@@ -3,12 +3,13 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { Button, FormField, PageHeader } from '@odyssey/ui'
 import DevDetailModal from './DevDetailModal.jsx'
-import { getComponentInfo, dsmUrl } from './componentInfo.js'
+import { getComponentInfo, dsmUrl, figmaUrl } from './componentInfo.js'
 import { _resetForTests, setFramework } from './useDevMode.js'
 
 vi.mock('./componentInfo.js', () => ({
   getComponentInfo: vi.fn(),
   dsmUrl: vi.fn((name, framework) => (framework === 'react' ? `/design-system#comp-${name}` : null)),
+  figmaUrl: vi.fn(() => null),
 }))
 
 // The modal reads `framework` from the real useDevMode store (same
@@ -91,6 +92,35 @@ describe('DevDetailModal — ported component', () => {
     // Cross-site DSM link — new tab, no tab-nabbing via noopener.
     expect(angularLink.getAttribute('target')).toBe('_blank')
     expect(angularLink.getAttribute('rel')).toBe('noopener')
+  })
+
+  it('renders a real Figma link, opened in a new tab, when figmaUrl resolves one', async () => {
+    getComponentInfo.mockResolvedValue(PORTED_INFO)
+    figmaUrl.mockReturnValueOnce('https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=213-27')
+    render(<DevDetailModal name="Badge" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const figmaLink = screen.getByRole('link', { name: /open in figma/i })
+    expect(figmaLink.getAttribute('href')).toBe(
+      'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=213-27'
+    )
+    // External Figma link — new tab, no tab-nabbing via noopener.
+    expect(figmaLink.getAttribute('target')).toBe('_blank')
+    expect(figmaLink.getAttribute('rel')).toBe('noopener')
+  })
+
+  it('shows a disabled Figma link with the expected title when the component has no figmaNode', async () => {
+    getComponentInfo.mockResolvedValue(PORTED_INFO)
+    // vi.mock() factory default already returns null; asserting it explicitly here.
+    figmaUrl.mockReturnValueOnce(null)
+    render(<DevDetailModal name="Badge" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(screen.queryByRole('link', { name: /open in figma/i })).toBeNull()
+    const disabledLink = screen.getByTitle('No Figma master for this component')
+    expect(disabledLink.tagName).toBe('SPAN')
   })
 })
 

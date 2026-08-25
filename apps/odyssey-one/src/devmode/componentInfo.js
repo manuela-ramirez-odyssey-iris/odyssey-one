@@ -17,6 +17,9 @@ const demoLoaders = import.meta.glob('../routes/design-system/demos/*.demo.jsx')
 // Task 7 (publish Angular DSM) landed 2026-08-23 — live at this URL.
 export const ANGULAR_DSM_URL = 'https://odyssey-dsm-angular-stage.vercel.app'
 
+// Figma library housing the DSM's component masters (Design System - MCP).
+export const FIGMA_LIBRARY_URL = 'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP'
+
 let indexPromise = null
 let resolvedIndex = null // set once loadDemoIndex() resolves; powers the sync read path
 
@@ -55,6 +58,7 @@ function buildReactInfo(demo) {
         tier: demo.meta.tier,
         version: demo.meta.version,
         normalizing: demo.meta.normalizing ?? false,
+        figmaNode: demo.meta.figmaNode ?? null,
         props: demo.props || [],
         // No demo carries a standalone "description" field (checked both
         // collectDemos.js's entry shape and every demo module) — omitted
@@ -95,4 +99,14 @@ export function dsmUrl(name, framework) {
   if (framework === 'react') return `/design-system#comp-${encodeURIComponent(name)}`
   if (framework === 'angular') return ANGULAR_DSM_URL ? `${ANGULAR_DSM_URL}#comp-${encodeURIComponent(name)}` : null
   return null
+}
+
+// Deep link to the component's master in the Figma library, or null when the
+// demo has no figmaNode (code-first components with no Figma counterpart) or
+// the demo index hasn't resolved yet. Figma node ids use a colon in meta
+// ('4534:5204') but a dash in the URL query param — converted here so
+// DevDetailModal doesn't need to know the encoding.
+export function figmaUrl(name) {
+  const figmaNode = getComponentInfoSync(name).react?.figmaNode
+  return figmaNode ? `${FIGMA_LIBRARY_URL}?node-id=${figmaNode.replace(':', '-')}` : null
 }

@@ -333,6 +333,16 @@
   vertical-align: top;
 }
 
+/* Groups the two DSM links on the footer's lead edge; the Figma link is a
+   sibling of this group, so .modal-medium__footer's justify-content:
+   space-between pushes it alone to the trail edge — no dashed-line
+   character, just layout. */
+.devmode-detail__link-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
 .devmode-detail__link {
   color: #e619c9;
   text-decoration: none;

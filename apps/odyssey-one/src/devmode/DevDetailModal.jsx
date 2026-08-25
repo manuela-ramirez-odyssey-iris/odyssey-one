@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ModalMedium } from '@odyssey/ui'
-import { getComponentInfo, dsmUrl } from './componentInfo.js'
+import { getComponentInfo, dsmUrl, figmaUrl } from './componentInfo.js'
 import { describeChain, elementTypeName, isReactElement } from './inspect.js'
 import { useDevMode } from './useDevMode.js'
 import './devmode.css'
@@ -162,6 +162,7 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
 
   const reactUrl = dsmUrl(name, 'react')
   const angularUrl = dsmUrl(name, 'angular')
+  const figmaLink = figmaUrl(name)
   const apiTable = pickApiTable(info, framework)
   const divergence = divergingPropNames(info)
 
@@ -178,19 +179,33 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
       ariaLabel={`${name} component details`}
       footer={
         <>
-          <a className="devmode-detail__link" href={reactUrl}>
-            Open in React DSM
-          </a>
-          {angularUrl ? (
-            <a className="devmode-detail__link" href={angularUrl} target="_blank" rel="noopener">
-              Open in Angular DSM
+          <div className="devmode-detail__link-group">
+            <a className="devmode-detail__link" href={reactUrl}>
+              Open in React DSM
+            </a>
+            {angularUrl ? (
+              <a className="devmode-detail__link" href={angularUrl} target="_blank" rel="noopener">
+                Open in Angular DSM
+              </a>
+            ) : (
+              <span
+                className="devmode-detail__link devmode-detail__link--disabled"
+                title="Angular DSM not published yet"
+              >
+                Open in Angular DSM
+              </span>
+            )}
+          </div>
+          {figmaLink ? (
+            <a className="devmode-detail__link" href={figmaLink} target="_blank" rel="noopener">
+              Open in Figma
             </a>
           ) : (
             <span
               className="devmode-detail__link devmode-detail__link--disabled"
-              title="Angular DSM not published yet"
+              title="No Figma master for this component"
             >
-              Open in Angular DSM
+              Open in Figma
             </span>
           )}
         </>

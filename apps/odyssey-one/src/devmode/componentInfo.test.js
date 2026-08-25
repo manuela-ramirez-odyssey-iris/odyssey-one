@@ -2,7 +2,15 @@
 import { describe, it, expect } from 'vitest'
 import angularMap from './angular-map.json'
 import { uiNameSet } from './inspect.js'
-import { getComponentInfo, getComponentInfoSync, preloadComponentInfo, dsmUrl, ANGULAR_DSM_URL } from './componentInfo.js'
+import {
+  getComponentInfo,
+  getComponentInfoSync,
+  preloadComponentInfo,
+  dsmUrl,
+  ANGULAR_DSM_URL,
+  figmaUrl,
+  FIGMA_LIBRARY_URL,
+} from './componentInfo.js'
 
 describe('angular-map.json', () => {
   it('parses to a plain object', () => {
@@ -78,5 +86,19 @@ describe('dsmUrl', () => {
   it('returns the Angular DSM deep-link for framework "angular"', () => {
     expect(ANGULAR_DSM_URL).toBe('https://odyssey-dsm-angular-stage.vercel.app')
     expect(dsmUrl('Badge', 'angular')).toBe('https://odyssey-dsm-angular-stage.vercel.app#comp-Badge')
+  })
+})
+
+describe('figmaUrl', () => {
+  it('returns the dash-form deep link for a component with a figmaNode', async () => {
+    await preloadComponentInfo()
+    // Badge.demo.jsx carries figmaNode: '213:27' — colon in meta, dash in the URL.
+    expect(figmaUrl('Badge')).toBe(`${FIGMA_LIBRARY_URL}?node-id=213-27`)
+  })
+
+  it('returns null for a component with no figmaNode (code-first, no Figma master)', async () => {
+    await preloadComponentInfo()
+    // Spinner.demo.jsx carries no figmaNode field at all.
+    expect(figmaUrl('Spinner')).toBeNull()
   })
 })
