@@ -2085,7 +2085,7 @@
   "ModalHeader": {
     "selector": "odyssey-modal-header",
     "version": "0.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "title",

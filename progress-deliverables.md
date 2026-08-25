@@ -2,11 +2,9 @@
 
 > Parallel to `progress.md` (the product-prototyping build log). This file is the **design-system / dev-tooling thread**: story packs and PM/dev-facing artifacts, dev mode, DSM work, and **normalization cycles** — anything about the design system and its delivery, as opposed to product feature prototyping and domain discoveries. Separate log so the two threads can run as independent agent work streams. Sessions numbered D1, D2, … A session touching both threads logs to both files with a one-line cross-reference.
 
-## Session D1 — August 20–21, 2026 (extracted from prototype S129)
+## Session Index (condensed)
 
-- **Story pack for Kathleen (`docs/story-packs/spotbid-2026-08-21/`).** Her question was whether the whole project should be sent and whether she'd have to take her own screenshots — no to both. The pack carries the model in a paragraph, **28 built behaviors across both surfaces each tagged with provenance** (her PRD/calls · SPB-NN · Jira prior art · *ours, needs ratification*), **18 story skeletons with Given/When/Then AC**, a **stand-ins list** so prototype shortcuts (email, auth, OCM profiles, fuel, history) can't harden into requirements, a trace table back to her own 8 PRD stories, and **18 named screenshots** captured live against Neon and keyed to the stories so she attaches rather than captures. Scope is deliberately the two built surfaces — SpotBid tab + bid entry page — matching the `SPB-43` V1 list; the carrier board and monitoring board are listed as consciously deferred.
-- **Open questions on the pack (v1):** whether it also lands in Confluence/Jira (MCP is connected) · whether a provision-only carrier-board appendix is added · what devs specifically need beyond AC + screens (component/token references, API contract shape).
-- **New direction (user, Aug 23):** Kathleen prefers stories NOT name components — that's stretching them into the *how*, and she's right. Devs still need a component guide, so the guide moves out of the stories and into the prototype itself: a toggleable **dev mode** (URL param + floating draggable toggle) that overlays each component's React + Angular name on the live UI without blocking interaction.
+**D1 — August 20–21, 2026** (extracted from prototype S129). Built the **SpotBid story pack** for Kathleen (`docs/story-packs/spotbid-2026-08-21/`): the model in a paragraph, 28 built behaviours each tagged with provenance, 18 story skeletons with Given/When/Then AC, a stand-ins list so prototype shortcuts can't harden into requirements, a trace table back to her own 8 PRD stories, and 18 named screenshots captured live against Neon so she attaches rather than captures. Scope deliberately the two built surfaces per `SPB-43`. Its closing decision set up everything after: **stories must not name components** — that stretches them into the *how* — so the component guide moved out of the stories and into the prototype itself as **dev mode**, which D2 then built.
 
 ## Session D2 — August 23, 2026
 
@@ -63,6 +61,56 @@ Commit `151a5d0` + skill/docs edits; deployed (user-authorized) and verified in 
 
 1. **Define/design how we deliver FLOWS** — SpotBid is the pilot: its flow was never written in Figma, so the flow-deliverable format gets invented against it.
 2. **Then update the handover format** for PMs/POs (Kathleen, Ramesh): the pack should reference the new dev mode on Vercel, the component list, and the flow — dev mode + Angular DSM become part of how deliverables are handed over, not just internal tooling.
+
+## Session D3 — August 23–25, 2026
+
+> Ran in parallel with S130/S131 (and therefore with **D4**, which was written mid-flight by S131's design-system half). Numbering is out of order on purpose: this session's commits were tagged `D3` before D4 existed. D3 also **closes D4's stated pending item** — MatchRow's Angular twin is ported below.
+
+### The flow deliverable — the missing fourth handoff artifact
+
+A dev-ready feature normally ships as stories+AC, flows, a UI spec, and a data contract. Odyssey had three: the story pack carries what/why, and dev mode + the two DSMs already replaced the static UI spec with something better. **Flows were missing outright** — SpotBid's was never drawn in Figma.
+
+- **Format designed and committed** (`b0e2b7a`, `docs/superpowers/specs/2026-08-24-flow-deliverable-design.md`). Five node kinds (screen · action · decision · system · terminal), and the part that differs from a conventional flow diagram: **every node also carries build state (`built` / `stand-in` / `not-built`) and provenance**, reusing the story pack's own source vocabulary. A normal flow draws the happy built path and silently lies about the rest; here the unbuilt RFQ email renders as a dashed node *on the critical path* with its story attached, instead of a bullet in §4 nobody reads.
+- **Piloted by hand on SpotBid** (`6367ddf`, `docs/flows/spotbid.md`) — four diagrams (overview, planner detail, carrier detail, quote lifecycle) with node tables binding screen ↔ behaviour IDs ↔ story ID. **All four Mermaid blocks parse-checked** against the real parser (installed in scratchpad) rather than eyeballed; all 18 screenshots exist and all 18 are cited. Stories S1–S17 all land on a node; only S18 (Configuration) is excused, in writing.
+- **Spec overclaim corrected** (`9cf235c`): it asserted Confluence renders fenced Mermaid natively. It does not without an app, and Jira renders none at all. GitHub and Obsidian do. Flagged as untested for the Odyssey site before the Confluence route is promised to a PM.
+- Published as an artifact for review; re-published under the Odyssey account after re-login.
+
+### DSM staging triage — the answer to "they look fine, approve them"
+
+Asked to bulk-approve 12 NORMALIZING components, I ran a read-only triage first (`d9ce0ac`, `playground/dsm-triage-2026-08-24.md`) across both repos. **1 of 12 was releasable.**
+
+- **The root cause was not twelve stories.** Six (Alert, GlobalSearch, LeadNav, Navbar, SummaryStrip, TrailNav) were one React commit — S126's Figma-first navbar arc — that **Angular never received at all**: its working tree held only the six flag flips, no component source. The rest were the portal seam, the Escape stack, and GroupTable's containment redesign.
+- **Two corrections to the mental model.** `--approve` does *not* clear the NORMALIZING badge (it keeps `normalizing: true`); only `--release` does. And "port them" was already done for 11 of 12 — the twins existed, React had simply moved on.
+- **`GroupTable`'s demotion commit message is stale and actively misleading** — it names a `colSpan` fix React applied and reverted seven times in one afternoon before abandoning. A port following it literally would have reintroduced a reserved action lane the user rejected. Angular matched canon only by never having been touched.
+- **Found beyond the twelve:** `date-picker`, `dropdown` and `action-menu` — all **already released** — close their popover on any capture-phase scroll with no target check, so scrolling their own option list dismisses it. Confirmed later by the TimePicker port. **Backlog work, not this batch.**
+
+### React-side approvals + component work
+
+- **14 components approved** (`66046c7`, `88457f7`, plus ModalHeader/ModalMedium/MatchRow). `--approve` is the React gate: it records sign-off while **keeping `normalizing: true`**, so Cognizant still sees "don't consume yet". `--release` — which clears both DSMs, stamps versions and pushes — was correctly *not* run.
+- **`SummaryStrip` gained `truncationTooltip`** (`7287e76`, then char-gated) — opt-in overflow tooltip mirroring `DataTable`'s prop name, default and portal shape rather than inventing a second API. Gated on an exported `hiddenCharCount() >= TOOLTIP_MIN_HIDDEN_CHARS` (3) — **characters, not DataTable's words**, because strip values are often a single long token that a word estimator reads as zero hidden words. Detection at hover time, never at mount (the deleted `TruncatedText` shipped that bug once). Playground gained a toggle and a genuinely-clipping tracking-link cell.
+- **`ModalHeader`'s `trail` slot verified** (another session's work) and **`ModalMedium`'s `headerTrail` made reachable** — it was forwarded but undocumented, unreachable and untested. Both versions bumped, which neither modification had received.
+- **`DurationPicker` Figma master created** — component set `5303:14` in `Design System - MCP` › Fields, cloned from TimePicker so structure and token bindings are the file's real ones. Variants `Closed | Open | Running`; **Running mirrors `RunningField` in code** (label row + badge shell holding a green status-dot Badge — *not* a FormField input, which is what reading the source first revealed). Label/placeholder set to the real production values. Found in passing: the component pins itself to 150px, leaving 98px for placeholder text — `Select minutes` only just fits, `Select seconds` will not.
+- **Dev mode: "Open in Figma"** (`8c87b03`) — third footer link, DSM links grouped on the lead edge, Figma pushed to the trail edge by the footer's existing `space-between`. `figmaUrl()` owns the colon→dash node-id conversion. **5 of 80 demos lack a `figmaNode`** and gray out; two of them (Spinner, SearchChip) *do* have masters and just need backfilling — memory: [[project-components-missing-figmanode]].
+
+### The Angular batch port — 13 twins, all PORTED
+
+"Approve batch" resolves (per `figma-component-routine.md:224`) to the Angular port once React is approved. Ran on a fresh branch `port/batch-2026-08-25` after committing the loose S126 flag flips separately. **Local commits only — nothing pushed.**
+
+- **13 of 14 twins already existed** — this was an update pass, not a from-scratch port.
+- **Wave 1** (LeadNav `showMenu`, Alert `items`/`summary`, MatchRow `meta`, ModalHeader `trail`, SummaryStrip's three deltas), **wave 2** (TrailNav `showBell`, the modal pair, TimePicker's portal, GroupTable's containment), **wave 3** (Navbar + GlobalSearch together). ShipmentsBar's `--bottombar-partial` drift fixed by hand (`4fdc28c`) — Angular's default open stage was 50px short of canon on every row selection.
+- **The wave-3 blocker, and the fix worth remembering.** Navbar, TrailNav and GlobalSearch all use **Emulated** encapsulation, so React's technique — Navbar restyling its children via `.navbar--external .trail-nav-profile-name` descendant rules — is physically impossible in Angular. Solved with **CSS custom properties set on Navbar's host**, which inherit through the DOM regardless of scoping: no `::ng-deep`, and no tone `@Input`s on the children (which React's own source comment says it deliberately avoided).
+- **Agents caught what specs alone would not:** `[slot=trail]` forwarding silently dropped its content until `ngProjectAs` was added (Angular resolves nested projection from the *static* parent template); the escape stack deregisters **by id, not `.pop()`**, proven by an out-of-order-unmount spec.
+- **`ModalHeader` parity-lint failure — ours, and a real gap.** The new trail slot tripped G7/G9. Investigated rather than waved off: every other slot-bearing component here (`lead-nav`, `empty-state`, `form-field`) carries `::ng-deep` rules that **normalize projected icons**, and ModalHeader had none — a lucide icon in the trail would sit on the text baseline instead of centring against the close X. Fixed substantively (`31492cb`), gate cleared as a side effect.
+- **Final state: build green, 1176/1176 Angular specs in real Chrome, parity-lint 78/78.** `ported: true` set in **both** DSMs for all 13.
+
+### Carry-forwards
+
+1. **`DurationPicker` cannot be ported** — it is still app-local, so `port-readiness.mjs` fails outright (no `packages/ui` source). Its running state also imports `useCountdown`/`formatHMS`/`formatMMSS` from `spotboard/Countdown.jsx`, which must be promoted to `@odyssey/ui` first. The Figma master exists; **`/normalize` + promotion is the unblock**, and it is a session's work, not a step.
+2. **The published `@oneodyssey/ui` version is unknown** and blocks any release — npm returns 404, and `package.json` (0.14.0), the newest tag (v0.9.1) and the metas (up to 0.15.0) all disagree. Cognizant owns the number; ask them.
+3. **No Phase 3b functional QA** on any port. Every agent was honest that it had no browser tooling. Specs are strong (real Chrome, not jsdom) but nobody has watched these components work.
+4. **Scroll-exemption bug** in released `date-picker` / `dropdown` / `action-menu` — confirmed, needs its own approval.
+5. **Modal changeset still uncommitted** in the shared React tree (implementation + `.modal-header__trail` CSS live in `components.css` alongside other sessions' work). ModalMedium/ModalHeader approvals and ModalMedium's PORTED flag ride with it.
+6. **`.odyssey-group-table__detail th`** is `--text-primary` in Angular vs `--text-tertiary` in canon — pre-existing drift, flagged not fixed.
 
 ## Session D4 — August 24, 2026
 
