@@ -10,6 +10,7 @@ export const meta = {
   codeConnect: 'packages/ui/src/MatchRow.figma.tsx',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [

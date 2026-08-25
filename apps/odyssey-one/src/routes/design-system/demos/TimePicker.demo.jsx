@@ -14,6 +14,7 @@ export const meta = {
   figmaNode: '4534:5204',
   codeConnect: 'packages/ui/src/TimePicker.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [

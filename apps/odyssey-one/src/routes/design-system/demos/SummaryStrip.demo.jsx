@@ -10,6 +10,7 @@ export const meta = {
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [

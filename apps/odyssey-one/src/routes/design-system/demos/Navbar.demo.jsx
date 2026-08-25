@@ -10,6 +10,7 @@ export const meta = {
   codeConnect: 'packages/ui/src/Navbar.figma.tsx',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [

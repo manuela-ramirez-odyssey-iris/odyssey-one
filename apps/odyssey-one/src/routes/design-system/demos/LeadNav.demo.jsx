@@ -10,6 +10,7 @@ export const meta = {
   codeConnect: 'packages/ui/src/LeadNav.figma.tsx',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [
