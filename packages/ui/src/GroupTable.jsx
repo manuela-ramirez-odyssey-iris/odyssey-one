@@ -69,9 +69,9 @@ import { ICON_MD } from '@odyssey/tokens'
  * @param detailScroll   bool (nested flavor only, default false) — give each nested
  *                       table its NATURAL width with its own horizontal scrollbar
  *                       inside the band, instead of compressing to the outer
- *                       table's width. For nested tables with many columns
- *                       (Dropped Carrier's 14). Off, the nested table fills the
- *                       band and only scrolls if content genuinely cannot fit.
+ *                       table's width. For nested tables with many columns.
+ *                       Off, the nested table fills the band and only scrolls if
+ *                       content genuinely cannot fit.
  * @param stickyActions  bool — render a pinned trailing action column (sticky right),
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a

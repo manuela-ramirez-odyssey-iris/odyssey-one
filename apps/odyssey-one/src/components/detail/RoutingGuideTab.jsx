@@ -1440,13 +1440,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
         {/* LINX-13953 — its own card: GroupTable owns horizontal scroll and
             .tender-pane__table-card is overflow:hidden. Rendered regardless of
-            activeSubTab: the sub-tabs only switch which COLUMNS the tender
-            table shows, not which entity is on screen. */}
+            activeSubTab — the sub-tabs switch which COLUMNS a table shows, not
+            which entity is on screen — but it now follows the sub-tab the same
+            way the tender table does, so `View Volume Commitment` reaches both
+            (Jana, 2026-08-25). */}
         <div className="tender-pane__table-card">
           <DroppedCarrierSection
             carriers={shipmentDetails?.droppedCarriers || []}
             onProcess={handleProcessScac}
             processingScac={processingScac}
+            subTab={activeSubTab}
           />
         </div>
       </div>{/* /pane-col */}
