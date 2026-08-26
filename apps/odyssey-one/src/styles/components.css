@@ -6953,11 +6953,16 @@ button.breadcrumb__label:focus-visible {
 }
 /* INLINE, not block (Figma 5356:5110 — one text node, mixed weights): the label
    runs into its value on the same line, so a two-word label does not cost a
-   whole row of height. Primary against the value's tertiary is the contrast
-   that makes it read as a label at all. */
+   whole row of height.
+
+   TERTIARY, matching the value it introduces — WEIGHT alone separates them
+   (user, 2026-08-26). The label was primary against a tertiary value, which gave
+   the note more presence than the data rows above it; a note is context for the
+   row, not a heading over it. Figma master 5365:7833 recoloured to match before
+   this line changed. */
 .odyssey-group-table__detail-note-label {
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  color: var(--text-tertiary);
 }
 
 /* The clamp. `noteLines` feeds -webkit-line-clamp inline, so the height is

@@ -68,6 +68,7 @@ export const tokens = [
   { token: '--bg-secondary + 48px inset', resolves: 'DSN/50 / raw 48px', usage: 'nested flavor: the gray band hosting the second table, inset 48px on the LEFT only (a right inset would cut it short of the scroll extent)' },
   { token: '--text-primary semibold / --text-tertiary', resolves: 'DSN/900 / DSN/500', usage: 'nested table header labels / nested row values — same treatment as the outer table, over the gray band' },
   { token: '--border-subtle', resolves: 'DSN/200', usage: 'detailSections: the 1px hairline between SIBLING nested tables — on the 2nd and later only, since the group row above the first already carries one' },
+  { token: '--text-tertiary + semibold', resolves: 'DSN/500 / 600', usage: 'detailNote label — same colour as the value it introduces, weight alone separates them; a note is context for the row, not a heading over it' },
   { token: 'width:100% + padding:0', resolves: '—', usage: 'nested tables: the trailing FILLER column absorbs the band\'s spare width, so real columns keep their content width and values stay left instead of spreading; collapses to 0 when the table overflows' },
   { token: 'raw 48px', resolves: '—', usage: 'detailSections: the LEFT indent marking a nested table subordinate — on the section, not the host cell, so the sibling seam spans the band edge to edge' },
   { token: '--spacing-1 + --text-link', resolves: '4 / Text/link', usage: 'detailNote Show more/less toggle — a link Button, offset from the clamped text' },
