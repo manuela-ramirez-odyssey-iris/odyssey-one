@@ -40,8 +40,8 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
   })
 
   it('opens by default, showing the key fields without a click', () => {
-    // User ruling 2026-08-17. The SECTION is open; the per-carrier detail
-    // disclosure below is a separate control and still starts closed.
+    // User ruling 2026-08-17. The SECTION is open; since 2026-08-25 the
+    // per-carrier detail disclosure below opens with it (see next test).
     render(<DroppedCarrierSection carriers={[carrier]} />)
     expect(screen.getByText('JBHT')).toBeTruthy()
     expect(screen.getByText('J.B. HUNT')).toBeTruthy()
@@ -58,26 +58,32 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
   })
 
-  it('keeps the detail fields behind the per-carrier row disclosure', () => {
+  it('shows the detail fields without a click, including Volume Commitment', () => {
+    // Jana, 2026-08-25: "not all fields are displayed… volume commitment fields
+    // are missing". They were implemented but sat behind a second chevron. All
+    // 23 AC fields must now be on screen when the section is open — this test
+    // covers one field from each of the AC's two tables plus the note row.
     render(<DroppedCarrierSection carriers={[rich]} />)
-    // key field visible, detail field not
     expect(screen.getByText('RLCA')).toBeTruthy()
-    expect(screen.queryByText('CVC12345')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /RLCA/ }))
-    expect(screen.getByText('CVC12345')).toBeTruthy()
+    expect(screen.getByText('CVC12345')).toBeTruthy()          // Volume Commitment
+    expect(screen.getByText('Loads/Week')).toBeTruthy()         // Volume Commitment
     expect(screen.getByText('Contract renewal pending.')).toBeTruthy()
+  })
+
+  it('still collapses a carrier when the user asks it to', () => {
+    render(<DroppedCarrierSection carriers={[rich]} />)
+    fireEvent.click(screen.getByRole('button', { name: /RLCA/ }))
+    expect(screen.queryByText('CVC12345')).toBeNull()
   })
 
   it('renders the two checkbox fields as checked/unchecked, never as a dash', () => {
     render(<DroppedCarrierSection carriers={[rich]} />)
-    fireEvent.click(screen.getByRole('button', { name: /RLCA/ }))
     expect(screen.getByLabelText('Order equipment: yes')).toBeTruthy()
     expect(screen.getByLabelText('Indirect point: yes')).toBeTruthy()
   })
 
   it('shows the reason description, which is the whole point of the section', () => {
     render(<DroppedCarrierSection carriers={[carrier]} />)
-    fireEvent.click(screen.getByRole('button', { name: /JBHT/ }))
     expect(screen.getByText(/Transit time could not be calculated/)).toBeTruthy()
   })
 
@@ -86,7 +92,6 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     // horizontal room. It must be a full-width row spanning every detail
     // column, and there must be no Reason Description column header left.
     const { container } = render(<DroppedCarrierSection carriers={[rich]} />)
-    fireEvent.click(screen.getByRole('button', { name: /RLCA/ }))
     const detail = container.querySelector('.odyssey-group-table__detail')
     const headers = [...detail.querySelectorAll('th')].map((th) => th.textContent)
     expect(headers).not.toContain('Reason Description')

@@ -100,9 +100,16 @@ export default function DroppedCarrierSection({
   onProcess,
   processingScac = null,
 }) {
-  // Two independent disclosure levels, deliberately different defaults:
+  // Two disclosure levels, now BOTH open by default:
   //   • the SECTION opens by default (user ruling, 2026-08-17)
-  //   • each CARRIER's detail table stays closed until asked for
+  //   • each CARRIER's detail table also opens (Jana, 2026-08-25)
+  //
+  // The carrier detail used to start closed, which put 15 of the AC's 23 fields
+  // — including 5 of the 6 Volume Commitment fields — behind a second chevron.
+  // Jana read that as "not all fields are displayed… volume commitment fields
+  // are missing". Nothing was missing; it was hidden. Opening it is the stopgap
+  // so the story can be reviewed against the screen; the real answer is the
+  // two-block detail panel (Routing Details / Volume Commitment) pending Figma.
   const groups = carriers.map((c, i) => ({
     // RPC-ID would be the natural key but routing does not return it for a
     // dropped carrier. SCAC + equipment is the same compound key 13954's
@@ -144,7 +151,7 @@ export default function DroppedCarrierSection({
           columns={COLUMNS}
           detailColumns={DETAIL_COLUMNS}
           groups={groups}
-          defaultExpanded={false}
+          defaultExpanded
           renderDetailCell={(row, col) =>
             col.key in CHECKBOX_LABELS
               ? <CheckCell field={col.key} on={row[col.key]} />
