@@ -111,6 +111,17 @@ Asked to bulk-approve 12 NORMALIZING components, I ran a read-only triage first 
 4. **Scroll-exemption bug** in released `date-picker` / `dropdown` / `action-menu` — confirmed, needs its own approval.
 5. **Modal changeset still uncommitted** in the shared React tree (implementation + `.modal-header__trail` CSS live in `components.css` alongside other sessions' work). ModalMedium/ModalHeader approvals and ModalMedium's PORTED flag ride with it.
 6. **`.odyssey-group-table__detail th`** is `--text-primary` in Angular vs `--text-tertiary` in canon — pre-existing drift, flagged not fixed.
+7. **Backfill the missing `figmaNode`s so "Open in Figma" stops graying out.** The link is disabled purely when a demo meta has no `figmaNode` — **nothing to do with `normalizing`**. 75 of 80 link fine. The 5 that don't, with what was verified on 2026-08-25 via `search_design_system` against `Design System - MCP` (`vodiHJU38YWZYmTz81uOk7`):
+
+   | Component | Master in Figma? | Action |
+   |---|---|---|
+   | **Spinner** | **YES** — `componentKey 1a06732c4fcf23938a6b3e94e42873e8f724694b`; its Figma description even points back at `packages/ui/src/Spinner.jsx` | **backfill** |
+   | **SearchChip** | **YES** — component_set, `componentKey 072749f23bb1dd206571347df60c8d089c700602`, description references `packages/ui/src/SearchChip.jsx` | **backfill** |
+   | **ActionMenu** | no match returned | confirm, then leave `null` |
+   | **OdysseyLogo** | not checked | check |
+   | **DataTable** | **NO, by design** — the tracker documents it as "Code-first — no Figma master / no Code Connect" | leave `null`, correct as-is |
+
+   The search returns a `componentKey`, **not** a node id — backfilling needs the on-canvas node id (`<int>:<int>`, e.g. via `get_metadata` on the `Components-*` pages). The meta always stores the colon form; `figmaUrl()` in `apps/odyssey-one/src/devmode/componentInfo.js` converts colon→dash for the URL. Why it matters: a designer currently reads "no Figma master" when the truth is "nobody recorded the node id". Also in memory: [[project-components-missing-figmanode]].
 
 ## Session D4 — August 24, 2026
 
