@@ -134,6 +134,14 @@ function DetailBand({ detailScroll, className, children }) {
   }, [detailScroll])
   const classes = [
     (detailScroll || contain) && 'odyssey-group-table__detail-scroller',
+    // Independent h-scroll is TWO things, and the wrapper is only one of them:
+    // this modifier is what lets the inner table take its natural width. Without
+    // it the table stays width:100%, compresses to the band, and never overflows
+    // — so the scroller wrapper has nothing to scroll (found by the user,
+    // 2026-08-26, after sections shipped with only half the mechanism).
+    // Deliberately NOT applied for the self-healing `contain` case: there the
+    // table is already overflowing on its own and must not be widened further.
+    detailScroll && 'odyssey-group-table__detail-section--scroll',
     className,
   ].filter(Boolean).join(' ')
   return (
@@ -272,9 +280,9 @@ export default function GroupTable({
     'odyssey-group-table',
     !striped && 'odyssey-group-table--flat',
     nested && 'odyssey-group-table--nested',
-    // Kept as a ROOT class for the legacy single-table path (its CSS targets
-    // every descendant `__detail`). Sections carry their own per-band class
-    // instead, so two sections can disagree about scrolling.
+    // A STATE HOOK only — the scrolling behaviour is keyed on the section (see
+    // `__detail-section--scroll`), because siblings scroll independently and a
+    // root class cannot say "this one but not that one".
     nested && sections.length === 1 && sections[0].scroll && 'odyssey-group-table--detail-scroll',
     stickyActions && 'odyssey-group-table--sticky-actions',
     scrolledX && 'odyssey-group-table--scrolled-x',

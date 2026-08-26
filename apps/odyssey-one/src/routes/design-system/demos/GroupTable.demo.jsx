@@ -43,7 +43,7 @@ export const props = [
   { name: 'striped', type: 'boolean', desc: 'Default true — child rows as contiguous light-gray bands with 1px --border-subtle hairlines between them (no white gaps). False = white rows with hairlines.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root scroll element.' },
   { name: 'detailColumns', type: '[{ key, label, align?, width? }]', desc: 'NESTED-TABLE FLAVOR. The second table\'s OWN columns — its own keys, labels and widths, deliberately NOT aligned to `columns`. Passing this prop is what selects the flavor: an expanded group then reveals a full second table instead of child rows sharing `columns`. Sugar for a single `detailSections` entry; passing both THROWS.' },
-  { name: 'detailSections', type: '[{ key, columns, note?, scroll?, renderCell? }]', desc: 'N SIBLING nested tables, stacked, each genuinely independent: its own columns, its own widths, its own horizontal scrollbar, separated from the next by a hairline. For row detail that belongs to two or more NAMED groups which must not read as one flat run of columns (Dropped Carrier: Routing Details + Volume Commitment). The count is yours — pass three or ten. Every section reads the SAME `groups[].detailRows`: a section is a column set OVER those rows, not its own data. `note: true` picks which section hosts `detailNote` (default the first); `scroll` overrides the per-section scrollbar (default ON — independence is what a section IS); `renderCell` overrides `renderDetailCell` for that section alone. Actions never appear in a section — `groups[].action` belongs to the group row alone.' },
+  { name: 'detailSections', type: '[{ key, columns, note?, scroll?, renderCell? }]', desc: 'N SIBLING nested tables, stacked, each genuinely independent: its own columns, its own widths, its own horizontal scrollbar, separated from the next by a hairline. For row detail that belongs to two or more NAMED groups which must not read as one flat run of columns (Dropped Carrier: Routing Details + Volume Commitment). The count is yours — pass three or ten. Every section reads the SAME `groups[].detailRows`: a section is a column set OVER those rows, not its own data. `note: true` picks which section hosts `detailNote` (default the first); `scroll` overrides the per-section INDEPENDENT H-SCROLL (default ON — independence is what a section IS): the section takes its natural width and scrolls inside its own band, so a 6-column sibling overflowing does not drag a 3-column neighbour with it; `renderCell` overrides `renderDetailCell` for that section alone. Actions never appear in a section — `groups[].action` belongs to the group row alone.' },
   { name: 'renderDetailCell', type: '(row, col) => node', desc: 'Optional cell renderer for the nested table\'s rows (parallel to `renderCell`). Default: `row[col.key] ?? "--"`.' },
   { name: 'detailScroll', type: 'boolean', desc: 'LEGACY `detailColumns` path only, default false. Gives the nested table its NATURAL width with an independent horizontal scrollbar inside the band, instead of compressing its columns to the outer table\'s width. `detailSections` scroll by default instead, per section, so two sections can disagree.' },
   { name: 'noteLines', type: 'number', desc: 'Lines a `detailNote` clamps to before a Show more / Show less toggle appears (default 3). The toggle renders only when the text ACTUALLY overflows — a one-line description offering "Show more" is a lie. 0 disables the clamp.' },
@@ -67,6 +67,7 @@ export const tokens = [
   { token: '--bg-secondary + 48px inset', resolves: 'DSN/50 / raw 48px', usage: 'nested flavor: the gray band hosting the second table, inset 48px on the LEFT only (a right inset would cut it short of the scroll extent)' },
   { token: '--text-primary semibold / --text-tertiary', resolves: 'DSN/900 / DSN/500', usage: 'nested table header labels / nested row values — same treatment as the outer table, over the gray band' },
   { token: '--border-subtle', resolves: 'DSN/200', usage: 'detailSections: the 1px hairline between SIBLING nested tables — on the 2nd and later only, since the group row above the first already carries one' },
+  { token: 'raw 48px', resolves: '—', usage: 'detailSections: the LEFT indent marking a nested table subordinate — on the section, not the host cell, so the sibling seam spans the band edge to edge' },
   { token: '--spacing-1 + --text-link', resolves: '4 / Text/link', usage: 'detailNote Show more/less toggle — a link Button, offset from the clamped text' },
   { token: '--bg-primary + --border-subtle', resolves: 'white / DSN/200', usage: 'pinned action column (68px, sticky right) + its left shadow — DataTable\'s exact value, and the table is border-collapse: separate because Chrome will not paint cell shadows in collapsed tables' },
 ]
@@ -218,12 +219,15 @@ const ROUTE_DETAIL_SECTION_POOL = [
   {
     key: 'additional',
     columns: [
-      { key: 'rpcId', label: 'RPC-ID' },
-      { key: 'ttId', label: 'TT ID' },
-      { key: 'routeGroup', label: 'Route Group' },
-      { key: 'quoted', label: 'Carrier Quoted' },
-      { key: 'startDate', label: 'Start Date' },
-      { key: 'stopDate', label: 'Stop Date' },
+      // Explicit widths so this section genuinely EXCEEDS the band and its own
+      // scrollbar engages — the point of section.scroll is unobservable if every
+      // sibling happens to fit.
+      { key: 'rpcId', label: 'RPC-ID', width: 160 },
+      { key: 'ttId', label: 'TT ID', width: 160 },
+      { key: 'routeGroup', label: 'Route Group', width: 180 },
+      { key: 'quoted', label: 'Carrier Quoted', width: 180 },
+      { key: 'startDate', label: 'Start Date', width: 160 },
+      { key: 'stopDate', label: 'Stop Date', width: 160 },
     ],
   },
 ]
@@ -431,6 +435,11 @@ function Playground() {
   // the playground has to be able to ask for more than the two the Figma master
   // can draw (user, 2026-08-26).
   const [sectionCount, setSectionCount] = useState(2)
+  // Sections scroll independently BY DEFAULT; the toggle exists to show the
+  // other half — columns compressing to the band instead. Pair it with the
+  // narrow-container toggle and 4 sections to watch the 6-column section scroll
+  // while its 3-column neighbour sits still.
+  const [sectionScroll, setSectionScroll] = useState(true)
   const [noteLines, setNoteLines] = useState(3)
 
   const activeGroups = showDetailNote
@@ -490,6 +499,9 @@ function Playground() {
         )}
         {flavor === 'nested' && (
           <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
+        )}
+        {flavor === 'sections' && (
+          <Toggle label="section.scroll (independent h-scroll per sibling)" value={sectionScroll} set={setSectionScroll} />
         )}
         {flavor === 'sections' && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
@@ -558,7 +570,7 @@ function Playground() {
             <GroupTable
               {...shared}
               columns={ROUTE_COLUMNS}
-              detailSections={ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount)}
+              detailSections={ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount).map((sec) => ({ ...sec, scroll: sectionScroll }))}
               noteLines={noteLines}
               aria-label="Routing options with sibling detail sections"
             />

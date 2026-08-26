@@ -149,6 +149,23 @@ describe('GroupTable — detail scroller isolation + detailScroll', () => {
     expect(scroller.querySelector('.odyssey-group-table__detail')).toBeTruthy()
   })
 
+  it('routes the legacy detailScroll through the same per-section mechanism', () => {
+    // One mechanism, not two: the single `detailColumns` section takes `scroll`
+    // straight from `detailScroll`, so the width rule is keyed on the section for
+    // both paths and the old root-scoped rule is gone.
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
+                  detailScroll defaultExpanded />
+    )
+    const band = container.querySelector('.odyssey-group-table__detail-section')
+    expect(band.classList.contains('odyssey-group-table__detail-section--scroll')).toBe(true)
+
+    const off = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS} defaultExpanded />
+    )
+    expect(off.container.querySelector('.odyssey-group-table__detail-section--scroll')).toBeNull()
+  })
+
   it('detailScroll flags the root; nested flavor only', () => {
     const { container } = render(
       <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
@@ -206,20 +223,27 @@ describe('GroupTable detailSections — N independent sibling tables', () => {
       <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} defaultExpanded />
     )
     for (const band of sectionsOf(container)) {
+      // BOTH halves: the wrapper that scrolls, AND the modifier that lets the
+      // inner table reach its natural width. With only the wrapper the table
+      // compresses to the band and there is nothing to scroll — which is exactly
+      // how sections first shipped (user, 2026-08-26).
       expect(band.classList.contains('odyssey-group-table__detail-scroller')).toBe(true)
+      expect(band.classList.contains('odyssey-group-table__detail-section--scroll')).toBe(true)
     }
     // ...and does NOT set the legacy root class, which would force all of them.
     expect(container.querySelector('.odyssey-group-table--detail-scroll')).toBeNull()
   })
 
-  it('honours a per-section scroll override', () => {
+  it('honours a per-section scroll override — one sibling scrolls, the other does not', () => {
     const { container } = render(
       <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded
         detailSections={[{ key: 'a', columns: ROUTING, scroll: false }, { key: 'b', columns: COMMITMENT }]} />
     )
     const bands = sectionsOf(container)
-    expect(bands[0].classList.contains('odyssey-group-table__detail-scroller')).toBe(false)
-    expect(bands[1].classList.contains('odyssey-group-table__detail-scroller')).toBe(true)
+    for (const cls of ['odyssey-group-table__detail-scroller', 'odyssey-group-table__detail-section--scroll']) {
+      expect(bands[0].classList.contains(cls)).toBe(false)
+      expect(bands[1].classList.contains(cls)).toBe(true)
+    }
   })
 
   it('puts the note in the section that claims it, spanning THAT section\'s columns', () => {

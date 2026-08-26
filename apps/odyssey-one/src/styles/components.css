@@ -6855,11 +6855,19 @@ button.breadcrumb__label:focus-visible {
   background: transparent; /* the band owns the gray */
 }
 
-/* detailScroll: the nested table takes its NATURAL width (columns stop
-   compressing to the outer table's width) and the band scrolls it
-   independently. min-width keeps it filling the band when it is the narrower
-   one, so short nested tables look identical in both modes. */
-.odyssey-group-table--detail-scroll .odyssey-group-table__detail {
+/* Independent h-scroll, PER SECTION: the nested table takes its NATURAL width
+   (columns stop compressing to the band's width) and its own scroller handles
+   the excess. min-width keeps it filling the band when it is the narrower one,
+   so short nested tables look identical in both modes.
+
+   Keyed on the SECTION, not the root, so N siblings can each scroll on their own
+   — a 6-column section overflowing does not drag a 3-column neighbour with it
+   (user, 2026-08-26). The legacy single-`detailColumns` path routes through the
+   same rule: its one section takes `scroll` straight from `detailScroll`, which
+   is why the old root-scoped rule this replaces is gone rather than duplicated.
+   `.odyssey-group-table--detail-scroll` still lands on the root for that path as
+   a state hook, but it no longer carries behaviour. */
+.odyssey-group-table__detail-section--scroll > .odyssey-group-table__detail {
   width: max-content;
   min-width: 100%;
 }
