@@ -439,3 +439,55 @@ describe('GroupTable nested tables — the trailing filler column', () => {
     expect(th.style.minWidth).toBe('')
   })
 })
+
+describe('GroupTable detailNotes — one note per sibling table', () => {
+  const A = [{ key: 'method', label: 'Method' }]
+  const B = [{ key: 'user', label: 'User' }]
+  const SECTIONS = [{ key: 'a', columns: A }, { key: 'b', columns: B, note: true }]
+  const ROW = { method: 'Automatic Update', user: 'Moses Johnson' }
+  const notesIn = (c) => [...c.querySelectorAll('.odyssey-group-table__detail-section')]
+    .map((band) => band.querySelector('.odyssey-group-table__detail-note')?.textContent ?? null)
+
+  it('renders a note in EVERY sibling that has one', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} defaultExpanded
+        groups={[{ ...GROUPS[0], detailRows: [ROW],
+          detailNotes: { a: { label: 'Routing', value: 'first note' },
+                         b: { label: 'Commitment', value: 'second note' } } }]} />
+    )
+    const notes = notesIn(container)
+    expect(notes[0]).toContain('first note')
+    expect(notes[1]).toContain('second note')
+    expect(container.querySelectorAll('.odyssey-group-table__detail-note')).toHaveLength(2)
+  })
+
+  it('leaves siblings without an entry noteless', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} defaultExpanded
+        groups={[{ ...GROUPS[0], detailRows: [ROW], detailNotes: { b: { label: 'B', value: 'only b' } } }]} />
+    )
+    expect(notesIn(container)[0]).toBeNull()
+    expect(notesIn(container)[1]).toContain('only b')
+  })
+
+  it('keeps the single detailNote shorthand working, once, on its host', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} defaultExpanded
+        groups={[{ ...GROUPS[0], detailRows: [ROW], detailNote: { label: 'R', value: 'shorthand' } }]} />
+    )
+    expect(container.querySelectorAll('.odyssey-group-table__detail-note')).toHaveLength(1)
+    expect(notesIn(container)[1]).toContain('shorthand')
+  })
+
+  it('spans each note across its OWN section\'s columns, not the widest sibling\'s', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} defaultExpanded
+        detailSections={[{ key: 'a', columns: DETAIL_COLUMNS }, { key: 'b', columns: B }]}
+        groups={[{ ...GROUPS[0], detailRows: [ROW],
+          detailNotes: { a: { label: 'A', value: 'wide' }, b: { label: 'B', value: 'narrow' } } }]} />
+    )
+    const spans = [...container.querySelectorAll('.odyssey-group-table__detail-note > td')]
+      .map((td) => Number(td.getAttribute('colspan')))
+    expect(spans).toEqual([DETAIL_COLUMNS.length + 1, B.length + 1]) // + filler each
+  })
+})

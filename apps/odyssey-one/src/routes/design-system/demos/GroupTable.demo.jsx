@@ -50,7 +50,8 @@ export const props = [
   { name: 'stickyActions', type: 'boolean', desc: 'Render a pinned trailing action column (sticky right, 68px), fed by `actionsHeader` + `group.action`. Same convention DataTable uses, so both tables behave identically on a page carrying each.' },
   { name: 'actionsHeader', type: 'node', desc: 'Content of the pinned column\'s header cell — by convention a column-arrange `Button variant="icon"`.' },
   { name: 'groups[].detailRows', type: 'object[]', desc: 'Rows for that group\'s nested table(s), keyed by the active section\'s `columns[].key`. EVERY section reads this same array and picks its own columns out of it. Only read in the nested flavor.' },
-  { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every column of the section that hosts it (`note: true`, default the first). Clamped to `noteLines` with a Show more toggle. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
+  { name: 'groups[].detailNotes', type: '{ [sectionKey]: { label, value } | node }', desc: 'ONE NOTE PER SIBLING: a map keyed by `detailSections[].key`, so each nested table can carry its own long-text row, each with its own clamp and Show more toggle. Siblings with no entry render no note. Wins over the `detailNote` shorthand for its own section, so a group may carry both. Nested flavor only.' },
+  { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every column of the section that hosts it (`note: true`, default the first). The SHORTHAND for one note per row — for a note on every sibling use `detailNotes`. Clamped to `noteLines` with a Show more toggle. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
   { name: 'groups[].actionTone', type: "'danger' | 'warning' | 'success' | 'info'", desc: 'Colour scheme (glyph + background) for that row\'s pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL\'s background — a slotted node cannot paint its own ancestor. An unrecognised value degrades to neutral.' },
   { name: 'groups[].action', type: 'node', desc: 'Content of that group row\'s pinned action cell. A PURE SLOT — the component supplies no behavior or tone. By convention pass an `ActionMenu` (the canonical row-action control, same as DataTable\'s action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. Clicks are stopped from toggling the row.' },
 ]
@@ -265,6 +266,20 @@ const ROUTE_GROUPS = [
     label: '4',
     values: { rank: '1', scac: 'SEFL', carrier: 'Southeastern FRT', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="green">Accepted</Badge> },
     action: <ActionTile label="4" />,
+    // TWO notes, one per sibling — `detailNotes` keyed by section key. Group r3
+    // below keeps the single `detailNote` shorthand, and r2 has none, so the
+    // three groups show the three states side by side (user, 2026-08-26: the DSM
+    // "just shows one in the first sibling of the 3rd group").
+    detailNotes: {
+      routing: {
+        label: 'Routing Note',
+        value: 'Transit came back from PC*MILER rather than the contracted lane table, so the times below are estimates. Long enough to clamp, which is the point: each sibling gets its own Show more.',
+      },
+      commitment: {
+        label: 'Commitment Note',
+        value: 'Weekly cap is shared across three lanes for this carrier, so Open here is not reservable in full.',
+      },
+    },
     detailRows: [{ transit: '1 DY', distance: '476.98 mi', notifyMethod: 'Fax', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'Automatic Update', responseUser: 'Moses Johnson', quoted: 'Yes', commitment: '19', uom: 'Loads/Week', accepted: '4', open: '15', cvcId: 'CVC27656', transitSource: 'PCMILER', rpcId: '4457785', ttId: '10901692', routeGroup: 'EAST-01', startDate: '04/12/2025', stopDate: '09/30/2025' }],
   },
   {

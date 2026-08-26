@@ -69,8 +69,10 @@ import Button from './Button.jsx'
  *                       Carrier's Routing Details + Volume Commitment). Repeat freely — the
  *                       count is the consumer's, the Figma master shows two only because two
  *                       is what establishes the pattern (user, 2026-08-26).
- *                         • `note: true`  — this section hosts `group.detailNote` (default: the
- *                                           first section).
+ *                         • `note: true`  — this section hosts the single `group.detailNote`
+ *                                           shorthand (default: the first section). For a note
+ *                                           on EVERY sibling pass `group.detailNotes` instead,
+ *                                           a map keyed by section key.
  *                         • `scroll`      — per-section override of `detailScroll`, for the case
  *                                           where one sibling genuinely differs. Omit and the
  *                                           section follows `detailScroll` like any other
@@ -479,7 +481,7 @@ export default function GroupTable({
                                 </tr>
                               )
                             })}
-                            {group.detailNote && noteSectionIndex(sections) === si && (
+                            {noteForSection(group, section, sections, si) && (
                               /* Full-width note row UNDER the section's data rows — the
                                  escape hatch for one long free-text field (a reason
                                  description) that as a column would need ~360px and push
@@ -488,7 +490,7 @@ export default function GroupTable({
                                  this table stays nowrap. */
                               <tr className="odyssey-group-table__detail-note">
                                 <td colSpan={section.columns.length + 1}>
-                                  <DetailNote note={group.detailNote} lines={noteLines} />
+                                  <DetailNote note={noteForSection(group, section, sections, si)} lines={noteLines} />
                                 </td>
                               </tr>
                             )}
@@ -591,6 +593,32 @@ export function normalizeDetailSections({ detailColumns, detailSections, detailS
 export function noteSectionIndex(sections) {
   const i = sections.findIndex((s) => s.note)
   return i === -1 ? 0 : i
+}
+
+/**
+ * The note a given section renders, if any.
+ *
+ * TWO shapes, because two different things get asked for:
+ *   • `group.detailNotes` — a map keyed by section key: ONE NOTE PER SIBLING, each
+ *     section carrying its own long-text row (user, 2026-08-26).
+ *   • `group.detailNote`  — the single-note shorthand, hosted by the `note: true`
+ *     section (or the first). Predates the map and stays supported: most rows have
+ *     exactly one long field and should not have to name a section to say so.
+ *
+ * The map wins for its own section, so a group can carry both — a shorthand plus
+ * an override on one sibling — without the two fighting over the same row.
+ *
+ * @param {object} group
+ * @param {object} section
+ * @param {Array}  sections
+ * @param {number} index — this section's position, for the shorthand's host test
+ * @returns {any} the note, or null when this section has none
+ */
+export function noteForSection(group, section, sections, index) {
+  const own = group.detailNotes?.[section.key]
+  if (own) return own
+  if (group.detailNote && noteSectionIndex(sections) === index) return group.detailNote
+  return null
 }
 
 export function detailNoteContent(note) {

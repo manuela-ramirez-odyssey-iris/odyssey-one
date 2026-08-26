@@ -1,5 +1,5 @@
 // GroupTable pure helpers — node env (no DOM), vitest globals.
-import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex } from './GroupTable.jsx'
+import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection } from './GroupTable.jsx'
 
 describe('alignClass', () => {
   it('maps right/center to the modifier classes', () => {
@@ -187,5 +187,41 @@ describe('noteSectionIndex', () => {
 
   it('takes the FIRST claim when several claim it, so the note renders once', () => {
     expect(noteSectionIndex([{ note: true }, { note: true }])).toBe(0)
+  })
+})
+
+describe('noteForSection', () => {
+  const SECTIONS = [{ key: 'a' }, { key: 'b', note: true }]
+  const at = (group, i) => noteForSection(group, SECTIONS[i], SECTIONS, i)
+
+  it('gives each sibling its OWN note from the detailNotes map', () => {
+    const g = { detailNotes: { a: 'note A', b: 'note B' } }
+    expect(at(g, 0)).toBe('note A')
+    expect(at(g, 1)).toBe('note B')
+  })
+
+  it('leaves a sibling with no entry noteless', () => {
+    const g = { detailNotes: { b: 'only B' } }
+    expect(at(g, 0)).toBeNull()
+    expect(at(g, 1)).toBe('only B')
+  })
+
+  it('still honours the single detailNote shorthand on its host section', () => {
+    const g = { detailNote: 'the one note' }
+    expect(at(g, 0)).toBeNull()
+    expect(at(g, 1)).toBe('the one note')   // b claims it via note: true
+  })
+
+  it('lets a map entry override the shorthand on that section only', () => {
+    // Both shapes on one group: the shorthand still lands on its host, the map
+    // wins where it speaks.
+    const g = { detailNote: 'shorthand', detailNotes: { a: 'mine' } }
+    expect(at(g, 0)).toBe('mine')
+    expect(at(g, 1)).toBe('shorthand')
+  })
+
+  it('returns null when the group has no notes at all', () => {
+    expect(at({}, 0)).toBeNull()
+    expect(at({}, 1)).toBeNull()
   })
 })
