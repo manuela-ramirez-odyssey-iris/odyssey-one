@@ -185,10 +185,17 @@ const ROUTE_DETAIL_SECTION_POOL = [
   {
     key: 'routing',
     note: true, // this section hosts group.detailNote
+    // EXPLICIT WIDTHS, and they are load-bearing for the demo rather than
+    // decorative: with natural widths these three columns come to ~340px inside a
+    // ~1150px band, so min-width:100% fills the band, nothing overflows, and
+    // `detailScroll` has nothing to scroll — the only scrollbar left is the outer
+    // table's, which moves every sibling at once and reads as "one scroll for all"
+    // (user, 2026-08-26). Each section is sized to EXCEED the band so its own
+    // scrollbar engages and the independence is visible.
     columns: [
-      { key: 'transit', label: 'Transit' },
-      { key: 'distance', label: 'Distance' },
-      { key: 'transitSource', label: 'Transit Source' },
+      { key: 'transit', label: 'Transit', width: 420 },
+      { key: 'distance', label: 'Distance', width: 420 },
+      { key: 'transitSource', label: 'Transit Source', width: 420 },
     ],
   },
   {
@@ -200,34 +207,31 @@ const ROUTE_DETAIL_SECTION_POOL = [
     // where their first column starts. `align` is still supported per column; it
     // is just wrong as a default here.
     columns: [
-      { key: 'commitment', label: 'Commitment' },
-      { key: 'uom', label: 'UoM' },
-      { key: 'accepted', label: 'Accepted' },
-      { key: 'open', label: 'Open' },
-      { key: 'cvcId', label: 'CVC ID' },
+      { key: 'commitment', label: 'Commitment', width: 300 },
+      { key: 'uom', label: 'UoM', width: 300 },
+      { key: 'accepted', label: 'Accepted', width: 300 },
+      { key: 'open', label: 'Open', width: 300 },
+      { key: 'cvcId', label: 'CVC ID', width: 300 },
     ],
   },
   {
     key: 'notify',
     columns: [
-      { key: 'notifyMethod', label: 'Notify Method' },
-      { key: 'notifyDate', label: 'Notify Date' },
-      { key: 'responseMethod', label: 'Response Method' },
-      { key: 'responseUser', label: 'Response User' },
+      { key: 'notifyMethod', label: 'Notify Method', width: 360 },
+      { key: 'notifyDate', label: 'Notify Date', width: 360 },
+      { key: 'responseMethod', label: 'Response Method', width: 360 },
+      { key: 'responseUser', label: 'Response User', width: 360 },
     ],
   },
   {
     key: 'additional',
     columns: [
-      // Explicit widths so this section genuinely EXCEEDS the band and its own
-      // scrollbar engages — the point of section.scroll is unobservable if every
-      // sibling happens to fit.
-      { key: 'rpcId', label: 'RPC-ID', width: 160 },
-      { key: 'ttId', label: 'TT ID', width: 160 },
-      { key: 'routeGroup', label: 'Route Group', width: 180 },
-      { key: 'quoted', label: 'Carrier Quoted', width: 180 },
-      { key: 'startDate', label: 'Start Date', width: 160 },
-      { key: 'stopDate', label: 'Stop Date', width: 160 },
+      { key: 'rpcId', label: 'RPC-ID', width: 260 },
+      { key: 'ttId', label: 'TT ID', width: 260 },
+      { key: 'routeGroup', label: 'Route Group', width: 260 },
+      { key: 'quoted', label: 'Carrier Quoted', width: 260 },
+      { key: 'startDate', label: 'Start Date', width: 260 },
+      { key: 'stopDate', label: 'Stop Date', width: 260 },
     ],
   },
 ]
