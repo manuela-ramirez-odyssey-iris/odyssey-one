@@ -6965,6 +6965,18 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-tertiary);
 }
 
+/* Fill the band, size nothing. A nested table with `detailScroll` is width:
+   max-content, and max-content measures text UNWRAPPED — so one long note
+   defined the whole table's width (measured: 573px table → 1305px) and the band
+   scrolled because of the note rather than its columns. width:0 zeroes this
+   box's contribution to that measurement; min-width:100% stretches it back to
+   the band it lives in. The same isolation __detail-scroller applies to the
+   table (user, 2026-08-26). */
+.odyssey-group-table__detail-note-body {
+  width: 0;
+  min-width: 100%;
+}
+
 /* The clamp. `noteLines` feeds -webkit-line-clamp inline, so the height is
    whatever N lines of the note's own type is — no magic px. line-clamp needs the
    legacy -webkit-box display; it is the only cross-browser route to "N lines

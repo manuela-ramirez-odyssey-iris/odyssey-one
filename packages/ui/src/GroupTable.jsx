@@ -193,7 +193,14 @@ function DetailNote({ note, lines }) {
   }, [lines, note])
 
   return (
-    <>
+    /* The note must FILL the band without SIZING it. Under `width: max-content`
+       a table measures its content unwrapped, so one long sentence defined the
+       table's width (measured: 1305px from a 573px table) and the band scrolled
+       for the wrong reason — the note row exists precisely to stop long text
+       eating horizontal space. `width: 0` zeroes its max-content contribution,
+       `min-width: 100%` stretches it back to the band. Same idiom
+       __detail-scroller uses on the table itself. */
+    <div className="odyssey-group-table__detail-note-body">
       <div
         ref={ref}
         className={clamped ? 'odyssey-group-table__detail-note-body--clamped' : undefined}
@@ -212,7 +219,7 @@ function DetailNote({ note, lines }) {
           {open ? 'Show less' : 'Show more'}
         </Button>
       )}
-    </>
+    </div>
   )
 }
 

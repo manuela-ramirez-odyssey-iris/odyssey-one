@@ -524,3 +524,43 @@ describe('GroupTable detailNote — the label/value separator', () => {
     expect(container.querySelector('.odyssey-group-table__detail-note-label em').textContent).toBe('Custom')
   })
 })
+
+describe('GroupTable detailNote — fills the band without sizing it', () => {
+  const DETAIL = [{ key: 'method', label: 'Method' }]
+  const LONG = 'No rate is available for this carrier on this lane and equipment. '.repeat(4)
+
+  it('wraps the note in the isolation box that zeroes its max-content width', () => {
+    // The CSS on this element (width:0 / min-width:100%) is what stops one long
+    // sentence defining the whole table's width under `width: max-content` —
+    // measured at 1305px on a 573px table before it existed. jsdom sees no
+    // layout, so the DOM contract is what gets asserted here; the widths are
+    // browser-verified.
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL} detailScroll defaultExpanded
+        groups={[{ ...GROUPS[0], detailNote: { label: 'Reason', value: LONG } }]} />
+    )
+    const body = container.querySelector('.odyssey-group-table__detail-note-body')
+    expect(body).toBeTruthy()
+    expect(body.closest('.odyssey-group-table__detail-note')).toBeTruthy()
+    expect(body.textContent).toContain('No rate is available')
+  })
+
+  it('keeps the clamp and the toggle INSIDE that box, not beside it', () => {
+    const sh = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')
+    const ch = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')
+    Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => 120 })
+    Object.defineProperty(Element.prototype, 'clientHeight', { configurable: true, get: () => 60 })
+    try {
+      const { container } = render(
+        <GroupTable columns={COLUMNS} detailColumns={DETAIL} detailScroll defaultExpanded
+          groups={[{ ...GROUPS[0], detailNote: { label: 'Reason', value: LONG } }]} />
+      )
+      const body = container.querySelector('.odyssey-group-table__detail-note-body')
+      expect(body.querySelector('.odyssey-group-table__detail-note-body--clamped')).toBeTruthy()
+      expect(body.querySelector('.odyssey-group-table__detail-note-toggle')).toBeTruthy()
+    } finally {
+      Object.defineProperty(Element.prototype, 'scrollHeight', sh)
+      Object.defineProperty(Element.prototype, 'clientHeight', ch)
+    }
+  })
+})
