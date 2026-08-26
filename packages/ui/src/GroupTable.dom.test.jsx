@@ -166,6 +166,14 @@ describe('GroupTable — detail scroller isolation + detailScroll', () => {
     expect(off.container.querySelector('.odyssey-group-table__detail-section--scroll')).toBeNull()
   })
 
+  it('flags the root for sections too — the hook is per TABLE, not per flavor', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUPS} detailScroll defaultExpanded
+        detailSections={[{ key: 'a', columns: DETAIL_COLUMNS }, { key: 'b', columns: [{ key: 'user', label: 'User' }] }]} />
+    )
+    expect(container.querySelector('.odyssey-group-table--detail-scroll')).toBeTruthy()
+  })
+
   it('detailScroll flags the root; nested flavor only', () => {
     const { container } = render(
       <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
@@ -218,11 +226,21 @@ describe('GroupTable detailSections — N independent sibling tables', () => {
     expect(sectionsOf(container)).toHaveLength(5)
   })
 
-  it('gives every section its own scroller — independence is the point', () => {
-    const { container } = render(
+  it('follows detailScroll like the single-table flavor — same prop, same default', () => {
+    // ONE prop, off unless asked for, identical in both flavors (user,
+    // 2026-08-26: "detail scroll like we have for the non sibling version").
+    const off = render(
       <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} defaultExpanded />
     )
-    for (const band of sectionsOf(container)) {
+    for (const band of sectionsOf(off.container)) {
+      expect(band.classList.contains('odyssey-group-table__detail-scroller')).toBe(false)
+      expect(band.classList.contains('odyssey-group-table__detail-section--scroll')).toBe(false)
+    }
+
+    const on = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} detailScroll defaultExpanded />
+    )
+    for (const band of sectionsOf(on.container)) {
       // BOTH halves: the wrapper that scrolls, AND the modifier that lets the
       // inner table reach its natural width. With only the wrapper the table
       // compresses to the band and there is nothing to scroll — which is exactly
@@ -230,13 +248,20 @@ describe('GroupTable detailSections — N independent sibling tables', () => {
       expect(band.classList.contains('odyssey-group-table__detail-scroller')).toBe(true)
       expect(band.classList.contains('odyssey-group-table__detail-section--scroll')).toBe(true)
     }
-    // ...and does NOT set the legacy root class, which would force all of them.
-    expect(container.querySelector('.odyssey-group-table--detail-scroll')).toBeNull()
+  })
+
+  it('scrolls each sibling in its OWN band, not one shared scroller', () => {
+    // The whole point of keying it on the section: a wide sibling overflowing
+    // must not drag a narrow neighbour. Two bands, two scrollers.
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} detailScroll defaultExpanded />
+    )
+    expect(container.querySelectorAll('.odyssey-group-table__detail-scroller')).toHaveLength(2)
   })
 
   it('honours a per-section scroll override — one sibling scrolls, the other does not', () => {
     const { container } = render(
-      <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded
+      <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded detailScroll
         detailSections={[{ key: 'a', columns: ROUTING, scroll: false }, { key: 'b', columns: COMMITMENT }]} />
     )
     const bands = sectionsOf(container)

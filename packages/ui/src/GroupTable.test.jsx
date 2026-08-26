@@ -144,8 +144,18 @@ describe('normalizeDetailSections', () => {
     expect(normalizeDetailSections({ detailColumns: A })[0].scroll).toBe(false)
   })
 
-  it('defaults sections to scrolling — independence is what a section IS', () => {
-    const out = normalizeDetailSections({ detailSections: [{ columns: A }, { columns: B, scroll: false }] })
+  it('gives sections the SAME detailScroll default as the single-table flavor', () => {
+    // No divergent default: a consumer who knows detailScroll should not have to
+    // learn a second rule to use siblings (user, 2026-08-26).
+    expect(normalizeDetailSections({ detailSections: [{ columns: A }, { columns: B }] })
+      .map((s) => s.scroll)).toEqual([false, false])
+    expect(normalizeDetailSections({ detailSections: [{ columns: A }, { columns: B }], detailScroll: true })
+      .map((s) => s.scroll)).toEqual([true, true])
+  })
+
+  it('lets ONE section opt out of a table-wide detailScroll', () => {
+    const out = normalizeDetailSections({
+      detailSections: [{ columns: A }, { columns: B, scroll: false }], detailScroll: true })
     expect(out.map((s) => s.scroll)).toEqual([true, false])
   })
 

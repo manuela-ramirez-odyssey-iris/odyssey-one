@@ -71,9 +71,10 @@ import Button from './Button.jsx'
  *                       is what establishes the pattern (user, 2026-08-26).
  *                         • `note: true`  — this section hosts `group.detailNote` (default: the
  *                                           first section).
- *                         • `scroll`      — override the independent scrollbar (default ON for
- *                                           sections; `detailScroll` still drives the legacy
- *                                           single-table path).
+ *                         • `scroll`      — per-section override of `detailScroll`, for the case
+ *                                           where one sibling genuinely differs. Omit and the
+ *                                           section follows `detailScroll` like any other
+ *                                           nested table.
  *                         • `renderCell`  — per-section override of `renderDetailCell`.
  *                       Every section reads the SAME `group.detailRows`; a section is a column
  *                       set OVER those rows, not its own data. Actions never appear here —
@@ -88,13 +89,15 @@ import Button from './Button.jsx'
  *                       Long values clamp to `noteLines` with a Show more/less toggle.
  * @param noteLines      number (default 3) — lines a `detailNote` clamps to before the
  *                       toggle appears. 0 disables the clamp entirely.
- * @param detailScroll   bool (LEGACY single-table path only, default false) — give the nested
- *                       table its NATURAL width with its own horizontal scrollbar
- *                       inside the band, instead of compressing to the outer
- *                       table's width. For nested tables with many columns.
- *                       Off, the nested table fills the band and only scrolls if
- *                       content genuinely cannot fit. `detailSections` scroll by default
- *                       instead — independence is the point of a section.
+ * @param detailScroll   bool (nested flavor, default false) — give each nested table its
+ *                       NATURAL width with its own horizontal scrollbar inside its
+ *                       band, instead of compressing to the outer table's width.
+ *                       For nested tables with many columns. Off, the nested table
+ *                       fills the band and only scrolls if content genuinely cannot fit.
+ *                       ONE prop, same meaning and same default in both flavors: with
+ *                       `detailSections` it applies to every sibling, each scrolling in
+ *                       its own band, so a wide section never drags a narrow neighbour.
+ *                       Per-section `scroll` overrides it (user, 2026-08-26).
  * @param stickyActions  bool — render a pinned trailing action column (sticky right),
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
@@ -281,9 +284,9 @@ export default function GroupTable({
     !striped && 'odyssey-group-table--flat',
     nested && 'odyssey-group-table--nested',
     // A STATE HOOK only — the scrolling behaviour is keyed on the section (see
-    // `__detail-section--scroll`), because siblings scroll independently and a
-    // root class cannot say "this one but not that one".
-    nested && sections.length === 1 && sections[0].scroll && 'odyssey-group-table--detail-scroll',
+    // `__detail-section--scroll`), because a per-section override means a root
+    // class cannot say "this one but not that one".
+    nested && detailScroll && 'odyssey-group-table--detail-scroll',
     stickyActions && 'odyssey-group-table--sticky-actions',
     scrolledX && 'odyssey-group-table--scrolled-x',
     className,
@@ -525,10 +528,12 @@ export default function GroupTable({
  * second code path to keep in sync — and no ambiguity about which wins:
  * passing both throws rather than silently picking one.
  *
- * `scroll` defaults differ ON PURPOSE. A section IS an independent table, so it
- * scrolls independently by default; the legacy single-`detailColumns` path keeps
- * `detailScroll`'s default of false, because that is the look approved on
- * 2026-08-17 and every existing consumer renders against it.
+ * `detailScroll` means the SAME thing in both flavors and defaults the same way:
+ * one prop, off unless asked for (user, 2026-08-26 — "detail scroll like we have
+ * for the non sibling version"). Sections do NOT get a divergent default: a
+ * consumer who knows `detailScroll` from the single-table flavor should not have
+ * to learn a second rule to use siblings. Per-section `scroll` stays available
+ * for the case where one sibling genuinely differs.
  *
  * @param {{detailColumns?: Array, detailSections?: Array, detailScroll?: boolean}} opts
  * @returns {Array<{key, columns, note?, scroll: boolean, renderCell?}>}
@@ -542,7 +547,7 @@ export function normalizeDetailSections({ detailColumns, detailSections, detailS
   if (hasSections) {
     return detailSections
       .filter((s) => Array.isArray(s?.columns) && s.columns.length > 0)
-      .map((s, i) => ({ ...s, key: s.key ?? `section-${i}`, scroll: s.scroll ?? true }))
+      .map((s, i) => ({ ...s, key: s.key ?? `section-${i}`, scroll: s.scroll ?? detailScroll }))
   }
   if (hasColumns) return [{ key: 'default', columns: detailColumns, note: true, scroll: detailScroll }]
   return []

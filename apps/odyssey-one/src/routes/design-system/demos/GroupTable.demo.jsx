@@ -43,9 +43,9 @@ export const props = [
   { name: 'striped', type: 'boolean', desc: 'Default true — child rows as contiguous light-gray bands with 1px --border-subtle hairlines between them (no white gaps). False = white rows with hairlines.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root scroll element.' },
   { name: 'detailColumns', type: '[{ key, label, align?, width? }]', desc: 'NESTED-TABLE FLAVOR. The second table\'s OWN columns — its own keys, labels and widths, deliberately NOT aligned to `columns`. Passing this prop is what selects the flavor: an expanded group then reveals a full second table instead of child rows sharing `columns`. Sugar for a single `detailSections` entry; passing both THROWS.' },
-  { name: 'detailSections', type: '[{ key, columns, note?, scroll?, renderCell? }]', desc: 'N SIBLING nested tables, stacked, each genuinely independent: its own columns, its own widths, its own horizontal scrollbar, separated from the next by a hairline. For row detail that belongs to two or more NAMED groups which must not read as one flat run of columns (Dropped Carrier: Routing Details + Volume Commitment). The count is yours — pass three or ten. Every section reads the SAME `groups[].detailRows`: a section is a column set OVER those rows, not its own data. `note: true` picks which section hosts `detailNote` (default the first); `scroll` overrides the per-section INDEPENDENT H-SCROLL (default ON — independence is what a section IS): the section takes its natural width and scrolls inside its own band, so a 6-column sibling overflowing does not drag a 3-column neighbour with it; `renderCell` overrides `renderDetailCell` for that section alone. Actions never appear in a section — `groups[].action` belongs to the group row alone.' },
+  { name: 'detailSections', type: '[{ key, columns, note?, scroll?, renderCell? }]', desc: 'N SIBLING nested tables, stacked, each genuinely independent: its own columns, its own widths, its own horizontal scrollbar, separated from the next by a hairline. For row detail that belongs to two or more NAMED groups which must not read as one flat run of columns (Dropped Carrier: Routing Details + Volume Commitment). The count is yours — pass three or ten. Every section reads the SAME `groups[].detailRows`: a section is a column set OVER those rows, not its own data. `note: true` picks which section hosts `detailNote` (default the first); `scroll` is a per-section override of `detailScroll`, for the case where one sibling genuinely differs — omit it and the section follows `detailScroll` like any other nested table; `renderCell` overrides `renderDetailCell` for that section alone. Actions never appear in a section — `groups[].action` belongs to the group row alone.' },
   { name: 'renderDetailCell', type: '(row, col) => node', desc: 'Optional cell renderer for the nested table\'s rows (parallel to `renderCell`). Default: `row[col.key] ?? "--"`.' },
-  { name: 'detailScroll', type: 'boolean', desc: 'LEGACY `detailColumns` path only, default false. Gives the nested table its NATURAL width with an independent horizontal scrollbar inside the band, instead of compressing its columns to the outer table\'s width. `detailSections` scroll by default instead, per section, so two sections can disagree.' },
+  { name: 'detailScroll', type: 'boolean', desc: 'Nested flavor, default false. Gives each nested table its NATURAL width with an independent horizontal scrollbar inside its band, instead of compressing its columns to the outer table\'s width. ONE prop with the same meaning and default in both flavors: with `detailSections` it applies to every sibling, each scrolling in its OWN band, so a wide section never drags a narrow neighbour. Per-section `scroll` overrides it.' },
   { name: 'noteLines', type: 'number', desc: 'Lines a `detailNote` clamps to before a Show more / Show less toggle appears (default 3). The toggle renders only when the text ACTUALLY overflows — a one-line description offering "Show more" is a lie. 0 disables the clamp.' },
   { name: 'stickyActions', type: 'boolean', desc: 'Render a pinned trailing action column (sticky right, 68px), fed by `actionsHeader` + `group.action`. Same convention DataTable uses, so both tables behave identically on a page carrying each.' },
   { name: 'actionsHeader', type: 'node', desc: 'Content of the pinned column\'s header cell — by convention a column-arrange `Button variant="icon"`.' },
@@ -435,11 +435,6 @@ function Playground() {
   // the playground has to be able to ask for more than the two the Figma master
   // can draw (user, 2026-08-26).
   const [sectionCount, setSectionCount] = useState(2)
-  // Sections scroll independently BY DEFAULT; the toggle exists to show the
-  // other half — columns compressing to the band instead. Pair it with the
-  // narrow-container toggle and 4 sections to watch the 6-column section scroll
-  // while its 3-column neighbour sits still.
-  const [sectionScroll, setSectionScroll] = useState(true)
   const [noteLines, setNoteLines] = useState(3)
 
   const activeGroups = showDetailNote
@@ -497,11 +492,8 @@ function Playground() {
         {(flavor === 'nested' || flavor === 'sections') && (
           <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
         )}
-        {flavor === 'nested' && (
+        {(flavor === 'nested' || flavor === 'sections') && (
           <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
-        )}
-        {flavor === 'sections' && (
-          <Toggle label="section.scroll (independent h-scroll per sibling)" value={sectionScroll} set={setSectionScroll} />
         )}
         {flavor === 'sections' && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
@@ -570,7 +562,8 @@ function Playground() {
             <GroupTable
               {...shared}
               columns={ROUTE_COLUMNS}
-              detailSections={ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount).map((sec) => ({ ...sec, scroll: sectionScroll }))}
+              detailSections={ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount)}
+              detailScroll={detailScroll}
               noteLines={noteLines}
               aria-label="Routing options with sibling detail sections"
             />
