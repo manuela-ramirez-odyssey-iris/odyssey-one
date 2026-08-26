@@ -6888,9 +6888,14 @@ button.breadcrumb__label:focus-visible {
 
 /* The seam. SECOND and later siblings only — the group row above the first
    already carries a bottom stroke, and one seam needs exactly one line
-   (Figma 5356:5110, where NestedTable2 carries strokeTopWeight 1). */
+   (Figma master 5365:1188, where NestedTable2 carries strokeTopWeight 1).
+
+   --border-default, a step DARKER than the --border-subtle hairlines inside each
+   table (DSN/300 vs DSN/200), synced from Figma 2026-08-26. The seam divides two
+   independent tables; the hairlines divide rows within one. At the same weight
+   the boundary read as just another row line. */
 .odyssey-group-table__detail-section + .odyssey-group-table__detail-section {
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-default);
 }
 
 /* Nested header row — the outer column header's treatment over the gray band.
