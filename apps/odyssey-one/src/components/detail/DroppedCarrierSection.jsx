@@ -1,4 +1,5 @@
 import { Check, CircleX } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
 
 /**
@@ -143,9 +144,10 @@ const CHECKBOX_LABELS = {
 // routing returned, not a pass/fail. The glyph carries the state, the badge only
 // gives it weight.
 //
-// size={12} raw, not ICON_MD: there is no badge-icon token and every other
-// Badge in the app already hardcodes 12 (ProductTab, ordersColumns). Worth a
-// token if a third case appears; not worth inventing one here alone.
+// ICON_MD — the same token Badge uses for its OWN baked glyphs
+// (ICON_BADGE_DEFAULTS). 12px is not a value this design system has: the icon
+// tokens are 16 and 20. The `size={12}` badges elsewhere in the app are drift,
+// and citing them as precedent was the wrong call (user, 2026-08-26).
 //
 // Yes / No spelled out, because the badge has room for it and a checkmark alone
 // leaves "Order Equipment ✓" to be read as either "yes, it matches" or "checked
@@ -154,7 +156,7 @@ const CHECKBOX_LABELS = {
 function CheckCell({ field, on }) {
   const Icon = on ? Check : CircleX
   return (
-    <Badge variant="gray" leftIcon={<Icon size={12} aria-hidden="true" />}>
+    <Badge variant="gray" leftIcon={<Icon {...ICON_MD} aria-hidden="true" />}>
       <span aria-label={`${CHECKBOX_LABELS[field]}: ${on ? 'yes' : 'no'}`}>{on ? 'Yes' : 'No'}</span>
     </Badge>
   )
