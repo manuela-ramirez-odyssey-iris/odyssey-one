@@ -1,15 +1,16 @@
 import { useState } from 'react'
-import { ModalMedium, Button } from '@odyssey/ui'
+import { ModalMedium, Button, Badge } from '@odyssey/ui'
 
 export const meta = {
   name: 'ModalMedium',
   tier: 'organism',
-  version: '0.14.0',
+  version: '0.15.0',
   createdVersion: '0.2.0',
   figmaNode: '2032:915',
   codeConnect: 'packages/ui/src/ModalMedium.figma.tsx',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [
@@ -18,6 +19,7 @@ export const props = [
   { name: 'footer', type: 'ReactNode', desc: 'Footer slot — typically Cancel / Save action buttons.' },
   { name: 'onClose', type: '() => void', desc: 'Dismiss handler — wired to ESC key, overlay click, and the header X button.' },
   { name: 'onBack', type: '() => void', desc: 'Optional leading back chevron, rendered before the title when present. Mirrors ModalHeader’s onBack API.' },
+  { name: 'headerTrail', type: 'ReactNode', desc: 'Forwards straight into ModalHeader’s trail prop — a node on the trail edge, immediately before the close X. For status that must stay legible while the content slot scrolls (e.g. SpotBid’s live "closes in" countdown).' },
   { name: 'scrollableContent', type: 'boolean', desc: 'Implementation-only: removes bottom padding so a scrolling content region runs flush to the footer divider. Default false.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the dialog element.' },
   { name: 'ariaLabel', type: 'string', desc: 'Accessible label override. Defaults to title.' },
@@ -75,6 +77,7 @@ const FLOW_SECTIONS = [
 export default function ModalMediumDemo() {
   const [open, setOpen] = useState(false)
   const [scrollable, setScrollable] = useState(false)
+  const [trail, setTrail] = useState(false)
   // Navigation rig — `view` is the SAME modal showing different content, while
   // `confirmOpen` is a genuinely second dialog. Kept as separate state on
   // purpose: conflating them is the mistake the rig exists to make visible.
@@ -390,7 +393,7 @@ export default function ModalMediumDemo() {
           <div className="ds-demo-col">
             <button
               type="button"
-              onClick={() => { setScrollable(false); setOpen(true) }}
+              onClick={() => { setScrollable(false); setTrail(false); setOpen(true) }}
               style={TRIGGER}
             >
               Open ModalMedium
@@ -400,12 +403,22 @@ export default function ModalMediumDemo() {
           <div className="ds-demo-col">
             <button
               type="button"
-              onClick={() => { setScrollable(true); setOpen(true) }}
+              onClick={() => { setScrollable(true); setTrail(false); setOpen(true) }}
               style={TRIGGER}
             >
               Open ModalMedium (scrollable)
             </button>
             <span className="ds-demo-label">scrollableContent = true</span>
+          </div>
+          <div className="ds-demo-col">
+            <button
+              type="button"
+              onClick={() => { setScrollable(false); setTrail(true); setOpen(true) }}
+              style={TRIGGER}
+            >
+              Open ModalMedium (with trail)
+            </button>
+            <span className="ds-demo-label">headerTrail</span>
           </div>
           <div className="ds-demo-col">
             <button
@@ -424,6 +437,7 @@ export default function ModalMediumDemo() {
         <ModalMedium
           title="Confirm Action"
           scrollableContent={scrollable}
+          headerTrail={trail ? <Badge variant="green">04:12</Badge> : undefined}
           onClose={() => setOpen(false)}
           footer={
             <>

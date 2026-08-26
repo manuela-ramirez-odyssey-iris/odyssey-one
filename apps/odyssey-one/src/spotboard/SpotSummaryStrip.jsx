@@ -9,12 +9,15 @@ import TooltipTrigger from '../components/ui/TooltipTrigger.jsx'
 // equals `value`) wraps the value in a TooltipTrigger, making the cell
 // hoverable (user, round 2: "make the strip cells hoverable too" — callers
 // decide which cells opt in by passing `full`).
+// `groups` (optional) overrides the default one-group tooltip for cells whose
+// compact value stands in for MORE than one field — the Live Bids BID OPEN /
+// BID CLOSED cell shows one time but explains both (opened AND closed).
 export default function SpotSummaryStrip({ items, className = '', ...rest }) {
-  const cells = items.map(({ label, value, full }) => ({
+  const cells = items.map(({ label, value, full, groups }) => ({
     label,
-    value: full != null
+    value: (full != null || groups)
       ? (
-        <TooltipTrigger asSpan tooltipProps={{ groups: [{ subtitle: label, content: full }] }}>
+        <TooltipTrigger asSpan tooltipProps={{ groups: groups ?? [{ subtitle: label, content: full }] }}>
           <span>{value ?? '--'}</span>
         </TooltipTrigger>
       )

@@ -103,6 +103,22 @@
   flex-wrap: wrap;
 }
 
+/* Pill band leads, Save Draft + Quote Setup trail (user, 2026-08-24). */
+.setup-carriers__modes-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.setup-carriers__modes-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+}
+
 /* Planned Pickup / Planned Delivery cells — pin the DateField to its own
    floor instead of letting the table hand it surplus width (user, 2026-08-19:
    "they look too wide"). `.date-field` only sets `min-width`, and the inner
@@ -255,20 +271,11 @@
   white-space: nowrap;
 }
 
-/* RfqLinksPanel — CE-1 email stand-in shown after Send RFQ. */
-.rfq-links .alert__body {
-  align-items: flex-start;
-}
-
-.rfq-links__note {
-  padding: var(--spacing-1) var(--spacing-12) var(--spacing-1) var(--spacing-3);
-}
-
-.rfq-links__row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
+/* RfqLinksPanel carries NO styles of its own now (user, 2026-08-24) — it is
+   a stock Alert. The old `.rfq-links` rules (an `.alert__body` align-items
+   override plus the __note/__row list rules) went with the links list it
+   used to carry; the links live on the Live Bids rows instead
+   (liveBids.css `.live-bids__rfq-link`). */
 
 /* DraftsPanel — same table-wrap idiom as SetupCarriers; trailing actions cell
    pairs a Button (Restore) with a plain icon affordance (Delete), matching

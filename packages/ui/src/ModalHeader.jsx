@@ -15,6 +15,18 @@ import IconButtonGhost from './IconButtonGhost.jsx'
  * Back renders on `onBack` presence → chevron-left (lg). The close X (lg, via IconButtonGhost)
  * is ALWAYS shown; `onClose` is its handler. `subtitle` renders when set.
  *
+ * `trail` — optional node on the trail edge, immediately BEFORE the close X (SpotBid's
+ * live "closes in" countdown badge is the first consumer, 2026-08-24). Status that must
+ * stay legible while the body scrolls belongs here rather than in the body. Purely
+ * additive: with no `trail` the header renders as before, the X simply now sits in the
+ * `.modal-header__trail` wrapper the slot shares.
+ *
+ * `trail` — optional node placed on the trail edge, immediately BEFORE the close X
+ * (SpotBid's live "closes in" countdown badge is the first consumer, 2026-08-24).
+ * Status that must stay legible while the dialog's body scrolls belongs here rather
+ * than in the body. Purely additive: with no `trail` the header markup is unchanged
+ * apart from the wrapper the X now shares.
+ *
  * Mirrors the Figma `ModalHeader` (node 3447:7661): TEXT props Title / Subtitle (editable),
  * BOOLEANs Show Back / Editable. (Subtitle + close are always shown — no visibility boolean.)
  */
@@ -29,6 +41,7 @@ export default function ModalHeader({
   onTitleCancel,
   onBack,
   onClose,
+  trail,
   className = '',
   ariaLabel,
 }) {
@@ -86,11 +99,14 @@ export default function ModalHeader({
           {subtitle && <span className="modal-header__subtitle">{subtitle}</span>}
         </div>
       </div>
-      <IconButtonGhost
-        icon={<X {...ICON_LG} aria-hidden="true" />}
-        onClick={onClose}
-        ariaLabel="Close"
-      />
+      <div className="modal-header__trail">
+        {trail}
+        <IconButtonGhost
+          icon={<X {...ICON_LG} aria-hidden="true" />}
+          onClick={onClose}
+          ariaLabel="Close"
+        />
+      </div>
     </header>
   )
 }

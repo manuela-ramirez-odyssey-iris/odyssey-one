@@ -15,6 +15,8 @@ function carrier(scac, name, bid) {
     plannedPickup: '',
     plannedDelivery: '',
     flags: [],
+    // Minted at draft→open by spotStore.sendRFQ; the per-row RFQ link reads it.
+    token: `tok-${scac}`,
     ...(bid ? { bid } : {}),
   }
 }
@@ -120,22 +122,26 @@ describe('LiveBids', () => {
 
   // S112 kept pricing off the outer row entirely; the user has since reversed
   // that for Total only — the outer row now identifies + states + totals.
-  test('the main row carries identity + state + a trailing Total, no other money', () => {
+  test('the main row carries identity + state + trailing Cost and Client Cost (SPB-68), no other money', () => {
     render(<LiveBids quote={CLOSED_QUOTE} />)
     const headers = [...document.querySelectorAll('.odyssey-group-table__table > thead th')]
       .map((th) => th.textContent)
-    // trailing '' is the pinned Award action column (stickyActions)
-    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Total', ''])
+    // trailing 'Award' is the pinned action column header (stickyActions),
+    // 'RFQ' the per-carrier bid-link column (user, 2026-08-24).
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Cost', 'Client Cost', 'RFQ', 'Award'])
   })
 
-  test('outer row Total: a bid carrier shows fmtDollar(bid.total), a bidless carrier shows —', () => {
-    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+  test('outer row Cost/Client Cost: a bid carrier shows fmtDollar of both (SPB-68), a bidless carrier shows —', () => {
+    // 10% markup → client cost = cost × 1.10 (applyMarkup over the bid's own
+    // linehaul/fuel/accessorials, same math as the award hand-off).
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} markup={{ type: 'pct', value: 10 }} />)
     const table = within(container.querySelector('.odyssey-group-table'))
 
     // ODFL bid total is 2275 — collapsed, so this can only be the outer row's
     // value (the nested breakdown table doesn't exist until expanded).
     const odflRow = table.getByText(/ODFL/).closest('tr')
     expect(within(odflRow).getByText('$2,275.00')).toBeTruthy()
+    expect(within(odflRow).getByText('$2,502.50')).toBeTruthy() // client cost, +10%
 
     // XPO never submitted a bid at all — its Total cell (the right-aligned
     // trailing column) reads the em-dash, same as its other empty cells.
@@ -149,35 +155,207 @@ describe('LiveBids', () => {
     expect(fxfeTotalCell.textContent).toBe('—')
   })
 
-  test('onAward fires with the lowest carrier scac', () => {
-    const onAward = vi.fn()
-    render(<LiveBids quote={CLOSED_QUOTE} onAward={onAward} />)
-    fireEvent.click(screen.getByRole('button', { name: /Award Carrier/ }))
-    expect(onAward).toHaveBeenCalledWith('ODFL')
+  // SPB-63: award is a radio SELECTION, executed through the Stage dialog.
+  test('the LOWEST bid is pre-selected, and the planner can override it', () => {
+    render(<LiveBids quote={CLOSED_QUOTE} />)
+    expect(screen.getByRole('radio', { name: /Select ODFL/ }).checked).toBe(true) // lowest
+    const saia = screen.getByRole('radio', { name: /Select SAIA/ })
+    expect(saia.checked).toBe(false)
+
+    fireEvent.click(saia)
+    expect(saia.checked).toBe(true)
+    expect(screen.getByRole('radio', { name: /Select ODFL/ }).checked).toBe(false)
   })
 
-  test('open state shows Force Close and not the closed actions', () => {
+  test('Stage opens the award dialog; confirming there fires onAward with the SELECTED scac (not the lowest)', () => {
+    const onAward = vi.fn()
+    render(<LiveBids quote={CLOSED_QUOTE} onAward={onAward} />)
+
+    // Override the pre-selected lowest, then stage.
+    fireEvent.click(screen.getByRole('radio', { name: /Select SAIA/ }))
+    expect(onAward).not.toHaveBeenCalled() // selection alone must not tender
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
+    expect(within(dialog).getByText(/SAIA · Saia Motor Freight/)).toBeTruthy()
+
+    // Cancel leads; Force Close and Award and Tender trail, in that order.
+    const trail = [...dialog.querySelectorAll('.award-modal__footer-trail button')]
+      .map((b) => b.textContent)
+    expect(trail).toEqual(['Force Close', 'Award and Tender'])
+
+    const confirm = within(dialog).getByRole('button', { name: 'Award and Tender' })
+    expect(confirm.disabled).toBe(false) // quote is closed + carrier picked
+    fireEvent.click(confirm)
+    expect(onAward).toHaveBeenCalledWith('SAIA')
+  })
+
+  // The countdown lives in the modal HEADER's trail slot (user, 2026-08-24),
+  // not in the body — one placement across both views.
+  test('the award dialog renders its countdown in the header, beside the close X', () => {
     render(<LiveBids quote={OPEN_QUOTE} />)
-    expect(screen.getByRole('button', { name: 'Force Close' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Award Carrier/ })).toBeFalsy()
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
+
+    const trail = dialog.querySelector('.modal-header__trail')
+    expect(within(trail).getByText('Bid Live')).toBeTruthy()
+    expect(trail.querySelector('.award-modal__header-countdown')).toBeTruthy()
+    // …and nowhere in the body.
+    expect(dialog.querySelector('.modal-medium__content .award-modal__header-countdown')).toBeFalsy()
+
+    // Carried into the sibling view too.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Force Close' }))
+    const closeView = screen.getByRole('dialog', { name: 'Close Bidding' })
+    expect(within(closeView.querySelector('.modal-header__trail')).getByText('Bid Live')).toBeTruthy()
+  })
+
+  test('on an OPEN quote the dialog blocks confirm and routes to a Force Close sibling view', () => {
+    const onForceClose = vi.fn()
+    const onAward = vi.fn()
+    render(<LiveBids quote={OPEN_QUOTE} onForceClose={onForceClose} onAward={onAward} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
+    expect(within(dialog).getByRole('button', { name: 'Award and Tender' }).disabled).toBe(true)
+
+    // Sibling view — same dialog, new title, and the force-close action.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Force Close' }))
+    const closeView = screen.getByRole('dialog', { name: 'Close Bidding' })
+    fireEvent.click(within(closeView).getByRole('button', { name: 'Force Close Bidding' }))
+    expect(onForceClose).toHaveBeenCalled()
+    expect(onAward).not.toHaveBeenCalled()
+
+    // …and it lands back on the confirm view rather than dismissing.
+    expect(screen.getByRole('dialog', { name: 'Award and Tender' })).toBeTruthy()
+  })
+
+  // SPB-63 makes selection a staging cue that "will not trigger tendering",
+  // so close gates the EXECUTION, never the picking.
+  test('while the quote is OPEN the radios are selectable but the dialog cannot confirm', () => {
+    const { container } = render(<LiveBids quote={OPEN_QUOTE} />)
+    const headers = [...container.querySelectorAll('.odyssey-group-table__table > thead th')]
+      .map((th) => th.textContent)
+    expect(headers).toContain('Award')
+
+    const radios = screen.getAllByRole('radio')
+    expect(radios.length).toBe(3) // one per bidding carrier
+    radios.forEach((r) => expect(r.disabled).toBe(false))
+
+    fireEvent.click(radios[1])
+    expect(radios[1].checked).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
+    expect(within(dialog).getByRole('button', { name: 'Award and Tender' }).disabled).toBe(true)
+  })
+
+  test('an awarded quote swaps that row\'s radio for a static Award icon and drops the other radios', () => {
+    const AWARDED = { ...CLOSED_QUOTE, status: 'awarded', awardedScac: 'ODFL', awardType: 'manual' }
+    render(<LiveBids quote={AWARDED} />)
+    expect(screen.getByLabelText('ODFL awarded')).toBeTruthy()
+    expect(screen.queryAllByRole('radio')).toHaveLength(0)
+  })
+
+  test('every carrier row carries an RFQ link to its own /spot-bid/:token page', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const link = within(container).getByRole('link', { name: /Open bid link for ODFL/ })
+    expect(link.getAttribute('href')).toBe('/spot-bid/tok-ODFL')
+  })
+
+  test('open state shows no closed actions (Force Close now lives in the award dialog)', () => {
+    render(<LiveBids quote={OPEN_QUOTE} />)
+    expect(screen.queryByRole('button', { name: 'Force Close' })).toBeFalsy()
     expect(screen.queryByRole('button', { name: /Modify/ })).toBeFalsy()
     expect(screen.queryByRole('button', { name: /Clear/ })).toBeFalsy()
   })
 
-  test('closed state shows Award/Modify/Clear and not Force Close', () => {
-    render(<LiveBids quote={CLOSED_QUOTE} />)
-    expect(screen.getByRole('button', { name: /Award Carrier/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Modify/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Clear/ })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Force Close' })).toBeFalsy()
+  // Modify & Resend / Clear & Start Over / Force Close all live in the award
+  // dialog's Force Close view now (user, 2026-08-24), beside the tolerance
+  // verdict they're decided against — none of them render on the tab itself.
+  // The award dialog and the Shipment Details modal share one section rhythm
+  // (user, 2026-08-24) — the pairing rule lives on both selectors at once in
+  // components.css, so this pins the MARKUP contract it needs: sections are
+  // adjacent siblings, which is what makes the `+` separator land.
+  test('award dialog sections are adjacent siblings, so the shared separator rule applies', () => {
+    render(<LiveBids quote={CLOSED_QUOTE} markup={{ type: 'pct', value: 10 }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Force Close' }))
+
+    const body = screen.getByRole('dialog', { name: 'Close Bidding' })
+      .querySelector('.award-modal')
+    const sections = [...body.children].filter((el) => el.tagName === 'SECTION')
+    expect(sections.length).toBeGreaterThan(1)
+    // Every section is a direct child of the same flex column — no wrapper
+    // between them, or `section + section` would never match.
+    for (const el of sections) expect(el.parentElement).toBe(body)
+    expect(sections[0].className).toContain('award-modal__section')
   })
 
-  test('closed state shows the Award Action heading and the Award ≠ tender framing sentence verbatim', () => {
+  test('the Live Bids tab no longer renders the Tolerance Evaluation card', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} markup={{ type: 'pct', value: 10 }} />)
+    expect(container.querySelector('.tolerance-panel')).toBeFalsy()
+    expect(within(container).queryByText('Tolerance Evaluation')).toBeFalsy()
+  })
+
+  test('closed state shows none of the bid-management actions inline — they moved into the dialog', () => {
     render(<LiveBids quote={CLOSED_QUOTE} />)
-    expect(screen.getByText('Award Action')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Modify/ })).toBeFalsy()
+    expect(screen.queryByRole('button', { name: /Clear/ })).toBeFalsy()
+    expect(screen.queryByRole('button', { name: 'Force Close' })).toBeFalsy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Force Close' }))
+    const closeView = screen.getByRole('dialog', { name: 'Close Bidding' })
+    expect(within(closeView).getByRole('button', { name: /Modify/ })).toBeTruthy()
+    expect(within(closeView).getByRole('button', { name: /Clear/ })).toBeTruthy()
+    // Already closed → the close action is present but spent.
+    expect(within(closeView).getByRole('button', { name: 'Bidding Closed' }).disabled).toBe(true)
+    // Tolerance Evaluation rides along — it's what the decision is made on —
+    // and it must be COMPLETE, since the Live Bids tab no longer shows it
+    // (user, 2026-08-24): the same eight fields the old card had, plus the
+    // verdict banner.
+    expect(within(closeView).getByText('Tolerance Evaluation')).toBeTruthy()
+    for (const label of [
+      'Highest routed cost (benchmark)',
+      'Tolerance (% above)',
+      'Tolerance ceiling',
+      'Lowest bid (cost)',
+      'Markup',
+      'Lowest bid (client cost)',
+      'Result',
+      'Manual-review flag',
+    ]) {
+      expect(within(closeView).getByText(label)).toBeTruthy()
+    }
+    // The verdict appears twice on purpose: the Result field echoes the banner.
+    expect(within(closeView).getAllByText(/Within tolerance — eligible for auto-award/))
+      .toHaveLength(2)
+    expect(closeView.querySelector('.alert')).toBeTruthy()
+  })
+
+  test('the Force Close view offers no second Back button — ModalMedium\'s header owns that', () => {
+    render(<LiveBids quote={CLOSED_QUOTE} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Force Close' }))
+    const dialog = screen.getByRole('dialog', { name: 'Close Bidding' })
+    const footer = within(dialog.querySelector('.modal-medium__footer'))
+    expect(footer.queryByRole('button', { name: 'Back' })).toBeFalsy()
+    // Cancel on the lead edge, every action grouped on the trail edge.
+    expect(footer.getByRole('button', { name: 'Cancel' })).toBeTruthy()
+    const trail = [...dialog.querySelectorAll('.award-modal__footer-trail button')]
+      .map((b) => b.textContent)
+    expect(trail).toEqual(['Modify & Resend', 'Clear & Start Over', 'Bidding Closed'])
+    // The header's own back affordance is the one that stays.
+    expect(screen.getByRole('dialog', { name: 'Close Bidding' })
+      .querySelector('.modal-header__back, [aria-label="Back"]')).toBeTruthy()
+  })
+
+  test('closed state keeps the Award ≠ tender framing sentence verbatim (the heading is gone — the action moved to the strip)', () => {
+    render(<LiveBids quote={CLOSED_QUOTE} />)
+    expect(screen.queryByText('Award Action')).toBeFalsy()
     expect(
       screen.getByText(
-        'Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.'
+        'Select a carrier, then Stage to award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.'
       )
     ).toBeTruthy()
   })
@@ -246,10 +424,70 @@ describe('LiveBids', () => {
     const listCell = within(strip).getByText('List').closest('.summary-strip__cell')
     expect(listCell.querySelector('[data-tooltip-trigger]')).toBeTruthy()
 
-    // Status carries a Badge node, not text — no `full` is passed, so it
-    // stays bare (SpotSummaryStrip must tolerate items without `full`).
-    const statusCell = within(strip).getByText('Status').closest('.summary-strip__cell')
-    expect(statusCell.querySelector('[data-tooltip-trigger]')).toBeFalsy()
+    // Status and Award type cells were REMOVED (user, 2026-08-24).
+    expect(within(strip).queryByText('Status')).toBeFalsy()
+    expect(within(strip).queryByText('Award type')).toBeFalsy()
+
+    // CLOSES IN is node-valued (the countdown Badge) — no `full`, stays bare.
+    const closesCell = within(strip).getByText('CLOSES IN').closest('.summary-strip__cell')
+    expect(closesCell.querySelector('[data-tooltip-trigger]')).toBeFalsy()
+
+    // The merged window cell is hoverable and explains BOTH timestamps.
+    const windowCell = within(strip).getByText('BID CLOSED').closest('.summary-strip__cell')
+    expect(windowCell.querySelector('[data-tooltip-trigger]')).toBeTruthy()
+  })
+
+  // One cell replaces the old Opened + Closed pair (user, 2026-08-24): it
+  // shows the TIME of whichever event the quote is at, both full timestamps
+  // in the tooltip.
+  test('the window cell shows the OPEN time while open and the CLOSE time once closed', () => {
+    const { container, unmount } = render(<LiveBids quote={OPEN_QUOTE} />)
+    const strip = () => container.querySelector('.live-bids__summary')
+    const timeOf = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+    expect(within(strip()).getByText('BID OPEN')).toBeTruthy()
+    expect(within(strip()).getAllByText(timeOf(OPEN_QUOTE.openAt)).length).toBeGreaterThan(0)
+    unmount()
+
+    const closed = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const closedStrip = closed.container.querySelector('.live-bids__summary')
+    expect(within(closedStrip).getByText('BID CLOSED')).toBeTruthy()
+    expect(within(closedStrip).getAllByText(timeOf(CLOSED_QUOTE.closeAt)).length).toBeGreaterThan(0)
+  })
+
+  // Expiry IS a close (SPB-63) — spotStore has no timer of its own, so the
+  // countdown reaching zero is what performs the transition. Without it an
+  // expired quote reads BID OPEN forever AND can never be awarded, since
+  // `award()` rejects anything whose status isn't 'closed'.
+  test('an EXPIRED but still-open quote reads BID CLOSED and fires the close', () => {
+    const onForceClose = vi.fn()
+    const EXPIRED = { ...CLOSED_QUOTE, status: 'open', closeAt: NOW - 60000 }
+    const { container } = render(<LiveBids quote={EXPIRED} onForceClose={onForceClose} />)
+
+    const strip = within(container.querySelector('.live-bids__summary'))
+    expect(strip.getByText('BID CLOSED')).toBeTruthy()
+    expect(strip.queryByText('BID OPEN')).toBeFalsy()
+    // …and the store transition actually fired, so the bid is awardable.
+    expect(onForceClose).toHaveBeenCalled()
+  })
+
+  // An open quote has no close EVENT — only a scheduled closeAt, which the
+  // CLOSES IN countdown already expresses (user, 2026-08-24).
+  test('the window tooltip carries Bid Closed ONLY once the quote is actually closed', () => {
+    const open = render(<LiveBids quote={OPEN_QUOTE} />)
+    const openCell = within(open.container.querySelector('.live-bids__summary'))
+      .getByText('BID OPEN').closest('.summary-strip__cell')
+    fireEvent.mouseEnter(openCell.querySelector('[data-tooltip-trigger]'))
+    expect(screen.getByText('Bid Opened')).toBeTruthy()
+    expect(screen.queryByText('Bid Closed')).toBeFalsy()
+    open.unmount()
+
+    const closed = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const closedCell = within(closed.container.querySelector('.live-bids__summary'))
+      .getByText('BID CLOSED').closest('.summary-strip__cell')
+    fireEvent.mouseEnter(closedCell.querySelector('[data-tooltip-trigger]'))
+    expect(screen.getByText('Bid Opened')).toBeTruthy()
+    expect(screen.getByText('Bid Closed')).toBeTruthy()
   })
 
   test('hovering a hoverable strip cell opens its tooltip', () => {
@@ -276,20 +514,21 @@ describe('LiveBids', () => {
     const { container } = render(<LiveBids quote={NO_BID_QUOTE} />)
     const headers = [...container.querySelectorAll('.odyssey-group-table__table > thead th')]
       .map((th) => th.textContent)
-    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Total'])
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Cost', 'Client Cost', 'RFQ'])
     expect(container.querySelector('.odyssey-group-table__cell--sticky-right')).toBeFalsy()
-    expect(screen.queryByRole('button', { name: 'Award' })).toBeFalsy()
+    expect(screen.queryAllByRole('radio')).toHaveLength(0)
   })
 
-  test('the actions column is present with a per-row Award button when at least one carrier has bid', () => {
+  test('the actions column is present, headed "Award", when at least one carrier has bid on a CLOSED quote', () => {
     const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
     const headers = [...container.querySelectorAll('.odyssey-group-table__table > thead th')]
       .map((th) => th.textContent)
-    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Total', ''])
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Cost', 'Client Cost', 'RFQ', 'Award'])
     expect(container.querySelector('.odyssey-group-table__cell--sticky-right')).toBeTruthy()
 
     const table = within(container.querySelector('.odyssey-group-table'))
     const odflRow = table.getByText(/ODFL/).closest('tr')
-    expect(within(odflRow).getByRole('button', { name: 'Award' })).toBeTruthy()
+    // A radio now, not a Button — selection stages, the strip executes.
+    expect(within(odflRow).getByRole('radio', { name: /Select ODFL/ })).toBeTruthy()
   })
 })

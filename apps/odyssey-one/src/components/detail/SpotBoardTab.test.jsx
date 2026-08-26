@@ -57,11 +57,11 @@ describe('SpotBoardTab', () => {
     expect(container.querySelector('.spot-sticky-strip')).toBeFalsy()
   })
 
-  // Round 2 (2026-08-21, user): "duration should ... always be visible even
-  // if unset" — the Quote Duration cell is now ALWAYS in the strip, showing
-  // '--' before the planner has committed one via Quote Setup → Apply
-  // (SetupCarriers.jsx onTermsChange, wired through SpotBoardTab's `terms`).
-  it('the strip always shows a Quote Duration cell, "--" until Quote Setup → Apply commits one', async () => {
+  // The Quote Duration cell was REMOVED on 2026-08-24 (user): Live Bids' own
+  // strip already carries CLOSES IN on the shared countdown ramp, so a
+  // second, differently-styled clock on the setup tab was duplicate state to
+  // keep in agreement. Its place in the strip is now the Send RFQ cell.
+  it('has no Quote Duration cell, and carries a Send RFQ cell instead', async () => {
     const { waitFor } = await import('@testing-library/react')
     const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
 
@@ -69,47 +69,11 @@ describe('SpotBoardTab', () => {
       expect(container.querySelector('[data-testid^="pickup-"]')).toBeTruthy()
     })
     const strip = container.querySelector('.spot-sticky-strip')
-    expect(strip.textContent).toContain('Quote Duration')
-    expect(strip.textContent).toContain('--')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Quote Setup' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
-
-    expect(container.querySelector('.spot-sticky-strip').textContent).toContain('Quote Duration')
-    expect(container.querySelector('.spot-sticky-strip').textContent).toContain('30 min')
-  })
-
-  // Round 2 (2026-08-21, user): "when sent the quote duration cell should
-  // show the countdown in a badge and not show another sudden field for it."
-  // Once the RFQ is open, the Quote Duration cell's VALUE swaps to a live
-  // countdown (mm:ss), not the plain "N min" string — and the old
-  // running-state DurationPicker field that used to render in SetupCarriers'
-  // head is gone entirely (no `.duration-picker__running` anywhere).
-  it('shows a live countdown in the Quote Duration cell once the RFQ is open, with no separate running field', () => {
-    localStorage.setItem(
-      `spotboard:${shipment.sellShipment}`,
-      JSON.stringify({
-        quoteId: 'q1',
-        shipmentId: shipment.sellShipment,
-        listId: 'tl-se',
-        listName: 'TL Southeast Overflow',
-        durationMin: 60,
-        openAt: Date.now(),
-        closeAt: Date.now() + 30 * 60_000,
-        status: 'open',
-        awardType: null,
-        awardedScac: null,
-        carriers: [],
-        flexiblePickup: false,
-      })
-    )
-    const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    const strip = container.querySelector('.spot-sticky-strip')
-    expect(strip.textContent).toContain('Quote Duration')
-    // A live mm:ss countdown, not the flat "60 min" the unset/draft case shows.
-    expect(strip.textContent).toMatch(/\d{2}:\d{2}/)
-    expect(strip.textContent).not.toContain('60 min')
-    // The "sudden field" is gone — no running-state DurationPicker anywhere.
+    expect(strip.textContent).not.toContain('Quote Duration')
+    expect(strip.textContent).toContain("Send RFQ's")
+    // The button itself is portaled in by SetupCarriers, into that cell.
+    expect(within(strip).getByRole('button', { name: /^Send \d+\/\d+$/ })).toBeTruthy()
+    // …and the old running-state DurationPicker stays gone.
     expect(container.querySelector('.duration-picker__running')).toBeFalsy()
   })
 
@@ -198,8 +162,9 @@ describe('SpotBoardTab', () => {
       })
     )
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    // Send RFQ's label is now dynamic ("Send x/y RFQ", Task 7).
-    expect(screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ }).disabled).toBe(true)
+    // The button counts included/total ("Send x/y"); the strip cell's label
+    // carries the "RFQ's" wording (user, 2026-08-24).
+    expect(screen.getByRole('button', { name: /^\d+\/\d+ Sent$/ }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Save Draft' }).disabled).toBe(true)
   })
 
@@ -226,13 +191,13 @@ describe('SpotBoardTab', () => {
     )
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    // Send RFQ is a trailing button below the table, behind a confirmation
-    // modal (S112). Its label is dynamic ("Send x/y RFQ", Task 7).
-    fireEvent.click(screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ }))
+    // Send lives in the strip cell now, behind a confirmation modal (S112).
+    // Its label counts included vs total rows ("Send x/y").
+    fireEvent.click(screen.getByRole('button', { name: /^Send \d+\/\d+$/ }))
     fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
-    // RFQ links banner is collapsed by default (S125) — expand to reach the rows.
-    fireEvent.click(screen.getByLabelText('Expand list'))
-
+    // The RFQ banner is a plain alert now (user, 2026-08-24) — the per-carrier
+    // links live on the Live Bids rows, which is where this asserts them.
+    expect(screen.getByText(/RFQ sent to 1 carrier/)).toBeTruthy()
     const odflLink = screen.getByRole('link', { name: /ODFL.*Old Dominion/ })
     expect(odflLink).toBeTruthy()
     expect(screen.queryByRole('link', { name: /SAIA/ })).toBeFalsy()
@@ -241,6 +206,43 @@ describe('SpotBoardTab', () => {
     expect(href.startsWith('/spot-bid/')).toBe(true)
     const token = href.slice('/spot-bid/'.length)
     expect(decodeToken(token)).toEqual({ shipmentId: shipment.sellShipment, scac: 'ODFL' })
+  })
+
+  // Placement (user, 2026-08-24): on Live Bids the banner belongs UNDER that
+  // tab's own quote strip, not above it — so it reads as part of the bid.
+  it('renders the RFQ banner below the Live Bids quote strip, and only once', () => {
+    localStorage.setItem(
+      `spotboard:${shipment.sellShipment}`,
+      JSON.stringify({
+        quoteId: 'q1',
+        shipmentId: shipment.sellShipment,
+        listId: 'tl-se',
+        listName: 'TL Southeast Overflow',
+        durationMin: 120,
+        openAt: Date.now() - 60000,
+        closeAt: Date.now() + 60 * 60000,
+        status: 'open',
+        awardType: null,
+        awardedScac: null,
+        carriers: [
+          { scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van', incl: true, plannedPickup: '', plannedDelivery: '', flags: [], token: 'tok-odfl' },
+        ],
+        flexiblePickup: false,
+      })
+    )
+
+    const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    fireEvent.click(screen.getAllByText('Live Bids')[0])
+
+    const banners = container.querySelectorAll('.alert')
+    const bidBanner = [...banners].find((a) => /RFQ sent to/.test(a.textContent))
+    expect(bidBanner).toBeTruthy()
+    // Exactly one — the parent must not also render its own copy above.
+    expect([...banners].filter((a) => /RFQ sent to/.test(a.textContent))).toHaveLength(1)
+
+    // DOM order: the quote strip precedes the banner.
+    const strip = container.querySelector('.live-bids__summary')
+    expect(strip.compareDocumentPosition(bidBanner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   // Task 7 (2026-08-20, user): "when sent should take us to live bids
@@ -267,15 +269,16 @@ describe('SpotBoardTab', () => {
     )
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    // Setup & Carriers is the sub-tab shown by default.
-    expect(screen.queryByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })).toBeTruthy()
+    // Setup & Carriers is the sub-tab shown by default; the quote is a draft,
+    // so the button is still the ACTION.
+    expect(screen.queryByRole('button', { name: /^Send \d+\/\d+$/ })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Send \d+\/\d+$/ }))
     fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
 
     // Setup & Carriers' own content (the Send RFQ button) is gone — Live Bids
     // is now the active sub-tab.
-    expect(screen.queryByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })).toBeFalsy()
+    expect(screen.queryByRole('button', { name: /^Send \d+\/\d+$/ })).toBeFalsy()
     expect(screen.getByRole('button', { name: 'Live Bids' }).className).toContain('tab--current')
   })
 
@@ -304,7 +307,9 @@ describe('SpotBoardTab', () => {
     )
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    fireEvent.click(screen.getByLabelText('Expand list'))
+    // The links live on the Live Bids rows now, and a fresh mount opens on
+    // Setup & Carriers — switch to the tab that renders them.
+    fireEvent.click(screen.getAllByText('Live Bids')[0])
 
     const odflLink = screen.getByRole('link', { name: /ODFL.*Old Dominion/ })
     expect(odflLink).toBeTruthy()
@@ -400,8 +405,12 @@ describe('SpotBoardTab', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Restore' }))
 
       expect(screen.getByRole('button', { name: 'Setup & Carriers' }).className).toContain('tab--current')
-      // Duration comes back off the restored quote, into the sticky strip.
-      expect(document.querySelector('.spot-sticky-strip').textContent).toContain('99 min')
+      // The strip no longer carries Quote Duration (removed 2026-08-24), so
+      // the restored duration is asserted where the planner actually edits
+      // it — the Quote Setup modal's own field.
+      fireEvent.click(screen.getByRole('button', { name: 'Quote Setup' }))
+      const duration = document.getElementById('setup-quote-duration')
+      expect(duration.value).toContain('99')
     })
 
     // The strip's duration is computed at SpotBoardTab level straight off

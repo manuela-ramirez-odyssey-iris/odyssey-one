@@ -9,6 +9,13 @@ import DurationPicker from '../components/fields/DurationPicker.jsx'
 import { buildOverflowRows, FLAG_LABELS } from './carrierList.js'
 import './spotboard.css'
 
+// The strip cell this component portals its Send RFQ button into.
+// SpotBoardTab imports this to render the empty cell — declared HERE, in the
+// child, so the two don't form an import cycle (in one, whichever module
+// evaluates second reads the other's const as undefined).
+export const SEND_RFQ_SLOT_ID = 'spot-send-rfq-slot'
+
+
 // A row is selectable once it has both dates — the per-row Incl. checkbox is
 // disabled otherwise, and the header select-all must never include a
 // date-less row.
@@ -325,26 +332,52 @@ export default function SetupCarriers({
     flexiblePickup,
   })
 
-  // Save Draft and the primary Send RFQ trail on the right (user, S112).
-  // Cancel is GONE (Task 7, 2026-08-20, user) — there is nothing to lead the
-  // row on the left anymore. The primary button's label counts included vs
-  // total rows ("Send x/y RFQ", Task 7) instead of a flat "Send RFQ".
+  // Send RFQ moved INTO the sticky strip (user, 2026-08-24) — SpotBoardTab
+  // contributes the cell, this component fills it, because only it knows
+  // whether every included row carries the dates Send requires and it owns
+  // the confirmation modal. Portal rather than lifted state: the alternative
+  // was hoisting all of the row-validity machinery into the parent purely to
+  // render one label. The slot element is a sibling in the same commit, so
+  // it exists by the time this effect runs.
   //
-  // The buttons are ALWAYS MOUNTED (user, 2026-08-19) — once the RFQ is sent
-  // they go `disabled`, they do not disappear. A control that vanishes reads as
-  // a rendering bug and costs the planner the affordance's position; a disabled
-  // one says "this existed, and it is not available now".
-  const actions = (
-    <div className="setup-carriers__actions">
-      <div className="setup-carriers__actions-trail">
-        <Button variant="secondary" disabled={readOnly} onClick={() => onSaveDraft?.(buildPayload())}>
-          Save Draft
-        </Button>
-        <Button variant="primary" disabled={readOnly || !canSend} onClick={() => setConfirming(true)}>
-          {`Send ${includedRows.length}/${rows.length} RFQ`}
-        </Button>
-      </div>
-    </div>
+  // The button is ALWAYS MOUNTED (user, 2026-08-19) — once the RFQ is sent it
+  // goes `disabled`, it does not disappear. A control that vanishes reads as a
+  // rendering bug and costs the planner the affordance's position; a disabled
+  // one says "this existed, and it is not available now". Its LABEL states
+  // which of the two it is (user, 2026-08-24): "Send x/y" while it is an
+  // action, "x/y Sent" once it has become a record of one. `readOnly` is the
+  // right trigger because SpotBoardTab sets it for exactly the states an RFQ
+  // has gone out in — open, closed and awarded.
+  // `slotChecked` gates the first paint: the slot can only be found AFTER
+  // the parent's commit, so rendering the fallback immediately would flash
+  // the button in the wrong place for one frame.
+  const [sendSlot, setSendSlot] = useState(null)
+  const [slotChecked, setSlotChecked] = useState(false)
+  useEffect(() => {
+    setSendSlot(document.getElementById(SEND_RFQ_SLOT_ID))
+    setSlotChecked(true)
+  }, [])
+  const sendButton = (
+    <Button size="sm" variant="primary" disabled={readOnly || !canSend} onClick={() => setConfirming(true)}>
+      {readOnly
+        ? `${includedRows.length}/${rows.length} Sent`
+        : `Send ${includedRows.length}/${rows.length}`}
+    </Button>
+  )
+
+  // Save Draft + Quote Setup trail the PILL TAB row (user, 2026-08-24) —
+  // same component, so these render inline; no slot, no portal. BOTH
+  // secondary: the tab's one primary action is Send RFQ in the strip, and
+  // two competing primaries is what made the old pair read as equal weight.
+  const tabActions = (
+    <>
+      <Button size="sm" variant="secondary" disabled={readOnly} onClick={() => onSaveDraft?.(buildPayload())}>
+        Save Draft
+      </Button>
+      <Button size="sm" variant="secondary" disabled={readOnly} onClick={openSetup}>
+        Quote Setup
+      </Button>
+    </>
   )
 
   return (
@@ -368,28 +401,28 @@ export default function SetupCarriers({
         <div className="order-pane__section setup-carriers">
           <div className="order-pane__block">
 
-            <div className="setup-carriers__modes" role="group" aria-label="Carrier list mode">
-              {MODE_TABS.map((m) => (
-                <PillTab
-                  key={m.key}
-                  label={m.label}
-                  count={countFor(m.key)}
-                  selected={mode === m.key}
-                  onClick={() => setMode(m.key)}
-                />
-              ))}
+            <div className="setup-carriers__modes-row">
+              <div className="setup-carriers__modes" role="group" aria-label="Carrier list mode">
+                {MODE_TABS.map((m) => (
+                  <PillTab
+                    key={m.key}
+                    label={m.label}
+                    count={countFor(m.key)}
+                    selected={mode === m.key}
+                    onClick={() => setMode(m.key)}
+                  />
+                ))}
+              </div>
+              <div className="setup-carriers__modes-actions">{tabActions}</div>
             </div>
 
-            {/* …then the count, directly above the table, with the Quote
-                Setup trigger trailing it (Task 5; primary variant + "Quote
-                Setup" label, round 2). */}
+            {/* …then the count, directly above the table. Save Draft and
+                Quote Setup moved OUT to the sub-tab row's trail slot (user,
+                2026-08-24) — see `tabActions` above. */}
             <div className="setup-carriers__toolbar-top">
               <span className="setup-carriers__toolbar-count text-label-sm-regular">
                 {visibleRows.length} {visibleRows.length === 1 ? 'carrier' : 'carriers'}
               </span>
-              <Button variant="primary" disabled={readOnly} onClick={openSetup}>
-                Quote Setup
-              </Button>
             </div>
 
             <div className="setup-carriers__table-wrap">
@@ -442,9 +475,19 @@ export default function SetupCarriers({
 
       </SubAccordion>
 
-      {/* Actions live BELOW the accordion (user, 2026-08-19) — the card is the
-          table, the actions act on the card. */}
-      {actions}
+      {/* The action row that used to live BELOW the accordion is gone (user,
+          2026-08-24): Save Draft moved up beside Quote Setup, and Send RFQ
+          moved into the sticky strip via this portal. */}
+      {slotChecked && (sendSlot
+        ? createPortal(sendButton, sendSlot)
+        : (
+          // No strip to portal into (standalone render, DSM demo, tests) —
+          // the button must still exist, in its old place below the card,
+          // rather than silently disappearing with its slot.
+          <div className="setup-carriers__actions">
+            <div className="setup-carriers__actions-trail">{sendButton}</div>
+          </div>
+        ))}
 
       {/* ponytail: portal at the call site — ModalMedium should portal itself;
           deferred to its next normalization cycle to avoid demoting it for a

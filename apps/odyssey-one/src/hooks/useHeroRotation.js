@@ -17,17 +17,23 @@ import { HERO_IMAGES, HERO_ROTATE_MS } from '../heroImages'
 // of the OS setting today (a known pre-existing gap — plan §8) and this
 // keeps that unchanged. CarrierBid opts in so a reduced-motion visitor
 // never starts the interval at all (cheaper than gating each tick).
-export function useHeroRotation(initialIndex, { bgLoaded = true, respectReducedMotion = false } = {}) {
+//
+// `images` (default HERO_IMAGES) is the set being cycled — CarrierBid passes
+// the land-only HERO_IMAGES_LAND subset, so the wrap has to be modulo the
+// CALLER's length, not the full set's (otherwise the index walks past the
+// rendered layers and the background goes blank).
+export function useHeroRotation(initialIndex, { bgLoaded = true, respectReducedMotion = false, images = HERO_IMAGES } = {}) {
   const [index, setIndex] = useState(initialIndex)
+  const count = images.length
 
   useEffect(() => {
-    if (!bgLoaded || HERO_IMAGES.length < 2) return
+    if (!bgLoaded || count < 2) return
     if (respectReducedMotion && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       return
     }
-    const id = setInterval(() => setIndex((i) => (i + 1) % HERO_IMAGES.length), HERO_ROTATE_MS)
+    const id = setInterval(() => setIndex((i) => (i + 1) % count), HERO_ROTATE_MS)
     return () => clearInterval(id)
-  }, [bgLoaded, respectReducedMotion])
+  }, [bgLoaded, respectReducedMotion, count])
 
   return index
 }

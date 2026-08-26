@@ -18,3 +18,95 @@
   flex-wrap: wrap;
   gap: var(--spacing-3);
 }
+
+/* Per-carrier RFQ link cell — plain icon affordance (row-action convention:
+   never a Button), inheriting the row's own color so it goes link-blue on a
+   selected row and dark green on the awarded one along with the text. */
+.live-bids__rfq-link {
+  display: inline-flex;
+  color: inherit;
+}
+
+.live-bids__award-radio {
+  accent-color: var(--text-link);
+  cursor: pointer;
+}
+
+/* Selected award row — the SHIPMENTS selected-row treatment, reused verbatim
+   (components.css `.odyssey-table tbody tr[data-selected] td`): DSN-200 fill,
+   link-colored semibold text. Keyed off `:has(radio:checked)` rather than a
+   className prop so GroupTable (a normalized @odyssey/ui component) needs no
+   change — the checked radio IS the selection state, so the two can't drift.
+   Scoped to the OUTER group row: the nested breakdown table keeps its own
+   style (user, 2026-08-24). */
+.live-bids .odyssey-group-table__group-row:has(.live-bids__award-radio:checked) > td {
+  background: var(--deep-sea-neutral-200);
+  color: var(--text-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Awarded row (post-close): the fill drops back to white and the text goes
+   dark green — the decision reads as settled rather than as a live
+   selection. Same outer-row-only scoping. */
+.live-bids .odyssey-group-table__group-row:has(.live-bids__awarded-icon) > td {
+  background: var(--white);
+  color: var(--text-success);
+  font-weight: var(--font-weight-semibold);
+}
+
+.live-bids__awarded-icon {
+  color: var(--text-success);
+}
+
+/* AwardModal — the Stage confirmation and its Force Close sibling view. */
+/* Same column rhythm as `.shp-details` — the two dialogs are kept in
+   lockstep (the separator rule that pairs with this lives beside
+   `.shp-details__section` in components.css). */
+.award-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+/* Section anatomy mirrors the Shipment Details modal (components.css
+   `.shp-details__section-title` / `.shp-details__grid`) — same type ramp,
+   same 4-column grid, same gaps — under this component's own class names so
+   the two surfaces aren't coupled through a shared BEM namespace. */
+.award-modal__section-title {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-3);
+}
+
+.award-modal__section-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--spacing-5);
+  row-gap: var(--spacing-6);
+}
+
+/* Prose-length fields (the irreversibility note, the what-happens-next note)
+   span the grid instead of being squeezed into a quarter column. */
+.award-modal__field--full {
+  grid-column: 1 / -1;
+}
+
+/* The countdown label + badge sitting in the modal HEADER's trail slot,
+   beside the close X. */
+.award-modal__header-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--text-tertiary);
+}
+
+/* Only the TRAIL group needs styling: the lead/trail split is
+   `.modal-medium__footer`'s own `justify-content: space-between`, which
+   works because the footer's children are Cancel and this group directly
+   (fragment, house convention) rather than one wrapper div that would size
+   to its content and leave nothing to distribute. */
+.award-modal__footer-trail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}

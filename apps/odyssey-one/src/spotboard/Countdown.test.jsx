@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
-import Countdown from './Countdown'
+import Countdown, { countdownTone } from './Countdown'
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
@@ -13,16 +13,18 @@ describe('Countdown', () => {
     expect(screen.getByText('20:00')).toBeTruthy()
   })
 
-  test('ticks down each second and adds countdown--urgent under 15 minutes', () => {
+  // The red band is where `.countdown--urgent` still applies — with no
+  // `openAt` the tone falls back to absolute bands (red under 10 minutes).
+  test('ticks down each second and goes red (countdown--urgent) under 10 minutes', () => {
     const now = Date.now()
     render(<Countdown closeAt={now + 20 * 60000} />)
 
-    act(() => vi.advanceTimersByTime(6 * 60000))
-    expect(screen.getByText('14:00')).toBeTruthy()
-    expect(screen.getByText('14:00').closest('.countdown--urgent')).toBeTruthy()
+    act(() => vi.advanceTimersByTime(11 * 60000))
+    expect(screen.getByText('09:00')).toBeTruthy()
+    expect(screen.getByText('09:00').closest('.countdown--urgent')).toBeTruthy()
   })
 
-  test('not urgent above 15 minutes remaining', () => {
+  test('not red above 10 minutes remaining', () => {
     const now = Date.now()
     render(<Countdown closeAt={now + 20 * 60000} />)
     expect(screen.getByText('20:00').closest('.countdown--urgent')).toBeFalsy()
@@ -80,5 +82,37 @@ describe('Countdown', () => {
     rerender(<Countdown closeAt={now + 5000} onExpire={() => onExpire()} />)
 
     expect(onExpire).toHaveBeenCalledTimes(1)
+  })
+})
+
+// SpotBid countdown color ramp (user, 2026-08-24): BLUE from 100% down to
+// 30% of the bidding window, amber 30→10%, red under 10% and once expired.
+// One ramp for every countdown surface — strip badge, award dialog header,
+// and the carrier bid page's own H/M/S title.
+describe('countdownTone', () => {
+  const WINDOW = 60 * 60000 // 1h
+
+  test('ramps blue → amber → red across the window (100–30 / 30–10 / 10–0)', () => {
+    expect(countdownTone(WINDOW, WINDOW)).toBe('blue')          // 100%
+    expect(countdownTone(WINDOW * 0.5, WINDOW)).toBe('blue')    // 50%
+    expect(countdownTone(WINDOW * 0.31, WINDOW)).toBe('blue')   // just above the 30% edge
+    expect(countdownTone(WINDOW * 0.30, WINDOW)).toBe('amber')  // at 30%
+    expect(countdownTone(WINDOW * 0.11, WINDOW)).toBe('amber')  // just above the 10% edge
+    expect(countdownTone(WINDOW * 0.10, WINDOW)).toBe('red')    // at 10%
+    expect(countdownTone(WINDOW * 0.01, WINDOW)).toBe('red')
+  })
+
+  test('expired is red regardless of window', () => {
+    expect(countdownTone(0, WINDOW)).toBe('red')
+    expect(countdownTone(-5000, WINDOW)).toBe('red')
+    expect(countdownTone(0, 0)).toBe('red')
+  })
+
+  // Without a window there is no percentage — the fallback keeps the same
+  // three bands on absolute time, with red still at the old 15-minute mark.
+  test('falls back to absolute bands when no window is known', () => {
+    expect(countdownTone(45 * 60000, 0)).toBe('blue')
+    expect(countdownTone(20 * 60000, 0)).toBe('amber')
+    expect(countdownTone(5 * 60000, 0)).toBe('red')
   })
 })

@@ -3,11 +3,13 @@ title: SpotBoard — Domain Canon
 domain: spotboard
 type: canon
 tags: [spotboard, overflow, loadboard, tendering, carriers, bidding, carrier-portal, quotes, legacy-screens, auction, mffcofl, quote-viewer]
-date: 2026-08-19
+date: 2026-08-24
 status: active
 ---
 
-# SpotBoard — Domain Canon (v1.9)
+# SpotBoard — Domain Canon (v2.0)
+
+**v2.0 changelog (2026-08-24) — Kathleen's story-writing corrections, and Doug on flex dates.** One email (seven numbered items, relayed by Manuela) + two exhibits (`Kathleen Doug discussion.png` — Doug Albritton's Teams answers and enabled-dates calendar; `TMS.png` — `MFFCOFL` with the dotted-circled `Flexible Delivery?` checkbox and the Base Charge + Fuel Quote Detail). Full treatment in **§22**, including a code-verified build delta (§22.2). Decisions [[decisions/decision-log|SPB-64]]…[[decisions/decision-log|SPB-69]] + an appended reaffirmation on [[decisions/decision-log|SPB-63]]. Headlines: **fuel becomes an OCM-fuel-schedule element with three states** (SPB-64, refining SPB-56); **base rate > 0 required** (SPB-65); **one bid-level currency, USD/CAD** (SPB-66); **mobile MVP = quote entry only** (SPB-67); **cost AND client cost on the planner surfaces** (SPB-68); and **flex dates corrected by Kathleen herself** — config-gated per-direction checkboxes, planner-toggleable, resolving to **per-carrier lists of discrete allowable dates** from operating calendars, no single N (SPB-69, superseding SPB-60's carrier-visible framing). *"This is the biggest change."*
 
 **v1.9 changelog (2026-08-19) — the bidding process walked end-to-end, and the PM answers in writing.** Three source layers, one topic (`spotbid-bidding-process`): the **2026-08-18 "Spot Quote-Overflow" call** (1h02m; Kathleen O'Donnell, Irina Jachimek, Alexey Soroka of HiTech, Manuela Ramirez — Laura Blandon and Dmitry Miterev present, near-silent) in which Manuela drives the group through how bidding/overflow actually works; **Kathleen's SIX written follow-up answers** (2026-08-19, relayed verbatim) each backed by a screenshot; and **Irina's two `MFFCOFL` screenshots**, which turn out to be a **before/after pair of the same live quote (`Quote# 222625`) across the Send action** — the first photographic record of the send lifecycle this dossier holds. Full treatment in **§21**, including a **build-delta addendum (§21.9)**. Decisions [[decisions/decision-log|SPB-55]]…[[decisions/decision-log|SPB-63]].
 
@@ -1787,6 +1789,45 @@ Extends §20.5 (ground truth 2026-08-18); shipped state cited from that table an
 | F | Per-carrier distribution status (`Sent` / `No Distribution` + `Status Date`) unmodelled | Photographed post-send state; narrated [30:20] | **gap** — [[decisions/decision-log|SPB-61]] |
 | G | Live-bids breakdown display | Total on top line, **collapsed by default**, expandable [33:47–34:16] | **ruling now exists — verify build against it** — [[decisions/decision-log|SPB-62]] |
 | H | Award action shape | Radio-style selection after close + single **Award and Tender** action [49:52–50:45] | **ruling now exists — verify build against it** — [[decisions/decision-log|SPB-63]] |
+
+---
+
+## 22. The 2026-08-24 Kathleen email — seven story-writing corrections, Doug's flex-date mechanics, and the exhibits (new at v2.0)
+
+**Why this section exists.** Kathleen, writing stories against our prototype, sends **seven numbered corrections** (2026-08-24, relayed by Manuela) — the first artifact in the dossier produced by *diffing the build against the domain*, in her words: *"In working with Claude to start writing the stories, I've found some discrepancies."* Two exhibits ride along: **`Kathleen Doug discussion.png`** — a Teams thread where **Doug Albritton** (designer/developer of the existing TMS system) answers the flex-dates question directly, with a calendar screenshot — and **`TMS.png`** — `MFFCOFL` with the `Flexible Delivery?` checkbox dotted-circled and a `Quote Detail` popup pricing `Base Charge + Fuel = total`. Three of the seven items *refine rulings this canon already holds* (fuel, award, linehaul-required); four are new (validation, currency, mobile, client cost); one — **#7, flex dates — is Kathleen correcting her own 2026-08-19 answer #6**, and she flags it herself: *"This is the biggest change."*
+
+### 22.1 The seven items against the canon
+
+1. **Fuel** ([[decisions/decision-log|SPB-64]], refining [[decisions/decision-log|SPB-56]]) — carrier-uneditable stands; NEW: the source is a **configured OCM fuel schedule** (rate-per-mile OR % of linehaul), a % **resolves when the carrier leaves the base rate field**, and **no schedule → no fuel section**. Design obligation: a read-only element beneath Linehaul with **three states**. FSC exits the *seeded* Additional Charges; an unconfigured carrier adds fuel manually as an extra charge (today's behavior). One backwards-reading conditional recorded verbatim in SPB-64 — confirm with Kathleen.
+2. **Validation** ([[decisions/decision-log|SPB-65]]) — base rate **required, > 0**; accessorials optional; the charge sheet needs **validation states and messaging**. She names the prototype's zero-base-charge submit as the bug.
+3. **Currency** ([[decisions/decision-log|SPB-66]]) — **USD + CAD**, **one selector per bid**, never per line. Open: placement, and what happens to amounts on mid-entry switch (her own hedge: may not need UX display).
+4. **Mobile** ([[decisions/decision-log|SPB-67]]) — MVP mobile = **quote entry screen only**; hers as a new story *unless we make it responsive*.
+5. **Award** (appended to [[decisions/decision-log|SPB-63]]) — radio selection + single bottom **Award and Tender**: a **reaffirmation** of the Aug 18 ruling, not a change. She asks if we changed our mind; we did not — the build never caught up. She also names two unbuilt states: **confirmation and post-award**.
+6. **Cost vs client cost** ([[decisions/decision-log|SPB-68]]) — the markup-applied value shows **nowhere on the planner's screen today**; it belongs in the **Live Bids columns and the tolerance panel**. Exhibit caveat: `TMS.png`'s client-cost column is occluded by the popup in our copy.
+7. **Flex dates** ([[decisions/decision-log|SPB-69]], superseding [[decisions/decision-log|SPB-60]]'s framing) — **config gates a checkbox per direction** (pickup AND delivery); **the planner toggles per quote where offered, cannot add where not** (Doug: *"the planner cannot add it if it is not configured"*); the carrier gets **a per-carrier LIST of discrete allowable dates** from org × carrier **operating calendars** (*"a list of individual dates, not a range"*), computed by an *"involved"* algorithm living **in the APEX app**; **no single N exists** for helper text — two carriers on the same quote see different dates. Doug's exhibit: *"Choose pickup and delivery dates"*, `Earliest 26-Aug-2026`/`Latest 01-Sep-2026`, dual-month picker, **five selectable dates**. `TMS.png` corroborates per-direction config: that org shows a `Flexible Delivery?` checkbox only.
+
+### 22.2 BUILD DELTA — the seven items against shipped code (verified in code this pass, 2026-08-24)
+
+| # | Shipped state (verified) | Ruling | Verdict / size |
+|---|---|---|---|
+| 1 | `CarrierBid.jsx`: disabled `Fuel (Estimated)` seeded from the shipment's AP fuel amount; an `FSC` row seeds into Additional Charges and suppresses the fuel field (`hasFscCharge` guard) | OCM fuel schedule, rate/mile or % (resolves on base-rate blur), 3 states, no seeded FSC | **deviation** — read-only is right, source/states/seeding are not. Medium: prototype needs a seeded per-carrier fuel config (mode + value), the % blur interaction, and the empty state — [[decisions/decision-log|SPB-64]] |
+| 2 | `linehaulNum = Number(linehaulValue) \|\| 0`; submit fires with zero base | base rate required > 0, validation states + messaging | **gap — EASY WIN** (gate + message; the states are small design) — [[decisions/decision-log|SPB-65]] |
+| 3 | `USD_OPTIONS` hardcoded; a currency ComboBox on linehaul + every charge row | one bid-level USD/CAD selector | **deviation — EASY WIN** (delete per-line dropdowns, add one selector; skip conversion-on-switch, flag it) — [[decisions/decision-log|SPB-66]] |
+| 4 | `carrierBid.css`: single ≥640px breakpoint | quote entry responsive for MVP | **gap — medium** (one page, but real layout work: charge grid, summary, countdown) — [[decisions/decision-log|SPB-67]] |
+| 5 | `LiveBids.jsx`: per-row `Award` **Button** + bottom action that auto-awards the **lowest** bid | radio selection per row, single bottom **Award and Tender**, + confirmation and post-award states | **deviation (ruled Aug 18, confirmed now) — medium** (selection state + action rewire are easy; the two missing states are the real work) — [[decisions/decision-log|SPB-63]] |
+| 6 | `award.js` has `applyMarkup`/`buildSpotRateOption`; `LiveBids` + `TolerancePanel` display carrier cost only | cost AND client cost on Live Bids + tolerance panel | **gap — EASY WIN for display** (markup math already exists; add a column + panel fields). Open: which number tolerance evaluates — [[decisions/decision-log|SPB-68]] |
+| 7 | `SetupCarriers`: ONE ungated `flexiblePickup` checkbox; `CarrierBid`: BOTH date badges read `flexiblePickup` (no delivery flag exists); **zero date capture** on the bid page | config-gated pickup+delivery checkboxes, planner-toggleable; carrier picks from per-carrier discrete-date lists | **largest deviation** — three parts: (a) checkbox pair + config gate (easy), (b) delivery-badge bug fix (trivial), (c) carrier-side enabled-dates picker off seeded per-carrier lists (the real feature; the APEX algorithm is **seeded data for us, never computed**) — [[decisions/decision-log|SPB-69]] |
+
+**Also settled by #7 in passing:** [[decisions/decision-log|SPB-33]]'s price-only bid gap is no longer merely unratified — a date affordance is now *specified* for flexed quotes. And the shipped both-badges-read-`flexiblePickup` wiring was a latent bug this email converts into a visible one.
+
+### 22.3 What is still open from this intake
+
+- **The SPB-64 conditional** — confirm the FSC-removal sentence's direction with Kathleen (our seeded-FSC-never reading is inference).
+- **Currency switch behavior** (SPB-66) — Kathleen herself is unsure it needs UX; do amounts convert, clear, or keep-as-typed?
+- **Tolerance basis** (SPB-68) — ceiling vs cost or vs client cost?
+- **The un-occluded TMS screen** (SPB-68) — request the client-cost column exhibit.
+- **Mobile ownership** (SPB-67) — our responsive pass or Kathleen's new story; answer owed to her.
+- **Where the allowable-date lists come from at integration time** (SPB-69) — the algorithm lives in APEX; who exposes it to OdysseyONE is unaddressed by anyone.
 
 ---
 

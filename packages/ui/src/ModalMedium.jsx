@@ -30,6 +30,7 @@ export default function ModalMedium({
   scrollableContent = false,
   className = '',
   ariaLabel,
+  headerTrail,
 }) {
   useEscapeStack(onClose)
 
@@ -46,6 +47,7 @@ export default function ModalMedium({
           title={title}
           onBack={onBack}
           onClose={onClose}
+          trail={headerTrail}
           className="modal-medium__header"
         />
         <div className={`modal-medium__content${scrollableContent ? ' modal-medium__content--scroll' : ''}`}>

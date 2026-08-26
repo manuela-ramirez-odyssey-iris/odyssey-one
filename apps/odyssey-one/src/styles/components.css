@@ -3704,7 +3704,7 @@ button.breadcrumb__label:focus-visible {
 .shp-details {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-8);
+  gap: var(--spacing-6);
   /* ModalMedium is content-sized, so each tab would resize the dialog. Pin the
      content box to the 920px cap minus its 24px side padding, and the modal
      keeps ONE width across tab switches. */
@@ -3970,6 +3970,20 @@ button.breadcrumb__label:focus-visible {
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Section rhythm shared by the Shipment Details modal and SpotBid's award
+   dialog (user, 2026-08-24: "we need them have identical layout"). ONE rule
+   for both selectors rather than two that happen to match — a copy would
+   drift the first time either is touched.
+
+   The hairline is the strip's own line (`1px solid var(--border-subtle)`,
+   .summary-strip), with symmetric 24px above and below: the container's gap
+   supplies the space over the line, this padding the space under it. */
+.shp-details__section + .shp-details__section,
+.award-modal__section + .award-modal__section {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-6);
+}
+
 /* ----------------------------------------
    RIGHT PANEL (organism shell)
    Mirrors Figma `RightPanel` 3449:10701. Self-contained right-side drawer card:
@@ -4001,6 +4015,17 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-2);
   padding: var(--spacing-3) var(--spacing-6) var(--spacing-2);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Trail group — the close X, optionally preceded by a `trail` slot node
+   (SpotBid's live countdown badge). Wrapping the X was the only structural
+   change the slot needed: the header is space-between, so a second bare
+   child would have been pushed to the middle instead of sitting beside it. */
+.modal-header__trail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-shrink: 0;
 }
 
 .modal-header__lead {
@@ -6242,6 +6267,26 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
   gap: var(--spacing-3);
 }
+/* Tight vertical rhythm for a single-band child (the SpotBid RFQ banner):
+   the default 16/32 padding plus a 16px top margin is sized for a stack of
+   cards and reads as a gap when the column holds one Alert (user,
+   2026-08-24). No bottom padding at all — whatever follows owns its own top
+   spacing, so a second gap here only pushed the banner off its neighbour.
+   Horizontal padding is untouched, so the band stays on the same column
+   edges as everything else. */
+/* The Send RFQ strip cell holds a button, not text — kill the cell value's
+   own line-height inheritance so the control sits on the cell's baseline. */
+.setup-carriers__send-slot {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pane-col--tight {
+  margin-top: var(--spacing-2);
+  padding-top: var(--spacing-4);
+  padding-bottom: 0;
+}
+
 .pane-col--wide { max-width: calc(1280px + 2 * var(--spacing-6)); }
 .pane-col--medium { max-width: calc(1106px + 2 * var(--spacing-6)); }
 .pane-col--narrow { max-width: calc(760px + 2 * var(--spacing-6)); }

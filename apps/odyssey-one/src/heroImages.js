@@ -5,7 +5,22 @@
 // it here surfaces it everywhere. The fade mask + DSN/900 COLOR-blend tint live
 // on the .home-background layers (Home.css), so every image gets the identical
 // treatment — these are just the sources.
-export const HERO_IMAGES = ['/bg1.webp', '/bg2.webp', '/bg3.webp', '/bg4.webp', '/bg5.webp']
+// bg6–bg8 added 2026-08-24 (Unsplash, free license, no attribution required):
+// bg6 = trucks on a highway at sunset (unsplash qms-kprAgJM), bg7 = aerial
+// highway interchange at dusk (xhDmzxQneqs), bg8 = white tractor under blue
+// sky (5M_RGvhvQ_g) — sourced as the TL/LTL replacements for the maritime
+// photos the bid page dropped.
+export const HERO_IMAGES = ['/bg1.webp', '/bg2.webp', '/bg3.webp', '/bg4.webp', '/bg5.webp', '/bg6.webp', '/bg7.webp', '/bg8.webp']
+
+// Land/trucking-only subset (user ruling, 2026-08-24). CarrierBid is the
+// spot-bid page shown to TL/LTL carriers, so its background must never show
+// ocean freight — bg1 (port at dusk), bg2 (ocean-line containers) and bg3
+// (tanker at sea) are excluded. Road freight only: bg6 (sunset highway
+// trucks — FIRST, it's the demo-opening frame), bg5 (tractor-trailer lot),
+// bg4 (drayage tractors + trailers), bg7 (dusk interchange aerial), bg8
+// (white tractor). Home/Login keep the full HERO_IMAGES set — they're
+// multimodal surfaces.
+export const HERO_IMAGES_LAND = ['/bg6.webp', '/bg5.webp', '/bg4.webp', '/bg7.webp', '/bg8.webp']
 
 // Home hero rotation cadence.
 export const HERO_ROTATE_MS = 120000 // 2 minutes

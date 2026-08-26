@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { TriangleAlert } from 'lucide-react'
-import { Badge, EmptyState, Tab } from '@odyssey/ui'
-import SetupCarriers from '../../spotboard/SetupCarriers.jsx'
+import { EmptyState, Tab } from '@odyssey/ui'
+import SetupCarriers, { SEND_RFQ_SLOT_ID } from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
 import SpotSummaryStrip from '../../spotboard/SpotSummaryStrip.jsx'
@@ -10,8 +10,6 @@ import { listDrafts, saveDraftSnapshot, removeDraft, hydrateDrafts } from '../..
 import { getApiMode } from '../../api/config'
 import { cityState, compactWindow } from '../../spotboard/stripFormat.js'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
-import { useCountdown } from '../../spotboard/Countdown.jsx'
-import { formatRemaining, countdownVariant } from '../fields/DurationPicker.jsx'
 import { isSpotEligible, eligibilityReason } from '../../spotboard/eligibility.js'
 import { benchmark as computeBenchmark } from '../../spotboard/tolerance.js'
 import { buildSpotRateOption } from '../../spotboard/award.js'
@@ -25,11 +23,14 @@ const SUB_TABS = [
 ]
 
 // ponytail: no markup UI control exists anywhere in SpotBoard V1 (neither
-// SetupCarriers nor LiveBids carry a markup field) — award defaults to a flat
-// $0 markup, matching QuoteModal's own blank-markup default
-// (RoutingGuideTab.jsx:368, numMarkup = Number('') || 0). Add a real control
-// (and wire it here) once the design calls for one.
-const DEFAULT_MARKUP = { type: 'flat', value: 0 }
+// SetupCarriers nor LiveBids carry a markup field) — the value is a seeded
+// default, wired here for BOTH the award hand-off and the client-cost
+// display. 10% pct, not the old flat $0: SPB-68 requires cost vs CLIENT COST
+// visible on the planner surfaces, and a $0 markup made the two columns
+// identical (undemonstrable); SPB-15 rules markup is a pct-or-flat QMU line,
+// and the wireframe's own exhibit carries a real markup ($2,540 bid →
+// $2,690). Swap for the real OCM markup config when it's exposed.
+const DEFAULT_MARKUP = { type: 'pct', value: 10 }
 
 // header (origin/destination/equipment/distance/hazmat/pickup window) for the
 // sticky SpotSummaryStrip — sourced from the same fields the other panes
@@ -77,17 +78,10 @@ function buildHeader(shipmentDetails) {
   }
 }
 
-// Quote Duration strip cell — ALWAYS present (user, round 2: "duration
-// should ... always be visible even if unset"). Once the RFQ is open it
-// swaps from a plain "N min" string to a live countdown Badge, reusing
-// DurationPicker's own running-state pieces (useCountdown, formatRemaining,
-// countdownVariant) rather than a second implementation — this replaces the
-// running-state DurationPicker that used to render in SetupCarriers' head
-// (the "sudden field" the user flagged; that block is now deleted).
-function QuoteDurationCountdown({ closeAt, totalMs }) {
-  const remaining = useCountdown(closeAt)
-  return <Badge variant={countdownVariant(remaining, totalMs)} statusDot>{formatRemaining(remaining)}</Badge>
-}
+// The Quote Duration strip cell (and its live QuoteDurationCountdown badge)
+// was REMOVED on 2026-08-24 (user) — Live Bids' own strip already carries
+// CLOSES IN with the shared countdown ramp, so a second, differently-styled
+// clock on the setup tab was duplicate state to keep in agreement.
 
 // Order dates arrive as "MM/DD/YYYY HH:MM TZ" (or DASH); the planner's date
 // fields are date-only. Anything unparseable becomes '' — an empty field the
@@ -202,24 +196,23 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
 
   const header = useMemo(() => buildHeader(shipmentDetails), [shipmentDetails])
   // Sticky shipment-context strip (user, 2026-08-20; round-2 fixes
-  // 2026-08-21). Quote Duration is ALWAYS present (unset renders '--' via
-  // SummaryStrip's own placeholder — see stripItems below) and swaps to a
-  // live countdown Badge once the RFQ is open. Distance/Equipment/Hazmat are
-  // back (round 2) — see buildHeader.
+  // 2026-08-21). Distance/Equipment/Hazmat are back (round 2) — see
+  // buildHeader. Quote Duration was dropped 2026-08-24 (see above).
   const firstOrder = shipmentDetails?.orderDetails?.[0]
-  const durationMin = quote?.durationMin ?? terms?.durationMin ?? null
-  const quoteOpen = quote?.status === 'open' && !!quote?.closeAt
-  const durationValue = quoteOpen
-    ? <QuoteDurationCountdown closeAt={quote.closeAt} totalMs={quote.durationMin * 60_000} />
-    : (durationMin != null ? `${durationMin} min` : null)
   const stripItems = [
-    { label: 'Quote Duration', value: durationValue },
     { label: 'Origin', value: cityState(header?.origin), full: header?.origin },
     { label: 'Destination', value: cityState(header?.destination), full: header?.destination },
     { label: 'Pickup Window', value: compactWindow(firstOrder?.earliestPickup, firstOrder?.latestPickup), full: header?.pickupWindow },
     { label: 'Distance', value: header?.distance },
     { label: 'Equipment', value: header?.equipment },
     { label: 'Hazmat', value: header?.hazmat },
+    // Send RFQ lives in the strip now (user, 2026-08-24), but the button
+    // itself belongs to SetupCarriers — only that component knows whether
+    // every included row has the dates Send requires, and it owns the
+    // confirmation modal. So the strip contributes the CELL and SetupCarriers
+    // portals its button into this slot; the alternative was lifting the
+    // whole row-validity state up here just to render a label.
+    { label: "Send RFQ's", value: <span id={SEND_RFQ_SLOT_ID} className="setup-carriers__send-slot" /> },
   ]
   const distanceMi = parseDistanceMi(shipmentDetails?.stopsData?.summary?.distance)
   // Real benchmark: highest cost among the shipment's routed options (the
@@ -243,8 +236,13 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
     setSubTab('bids')
   }, [saveDraft, sendRFQ, submitBid, benchmarkValue])
 
+  // Visible through the CLOSED state too (user, 2026-08-24): the banner now
+  // carries the closed message ("… to be awarded — press Stage …"), which it
+  // could never show while this gate hid it the moment bidding ended.
+  // Still keyed on tokens having been minted, i.e. an RFQ was actually sent.
   const rfqLinksVisible =
-    quote?.status === 'open' && (quote.carriers ?? []).some((c) => c.token)
+    (quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded')
+    && (quote.carriers ?? []).some((c) => c.token)
 
   // spotStore has no closed -> draft transition (verified) — "Modify &
   // Resend" is clearQuote() + a fresh saveDraft() reseeded from the previous
@@ -326,12 +324,12 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
         <SpotSummaryStrip aria-label="Shipment summary" items={stripItems} />
       )}
 
-      {rfqLinksVisible && (
-        <div className="pane-col pane-col--wide">
-          <RfqLinksPanel
-            shipmentId={shipment?.sellShipment}
-            carriers={quote.carriers}
-          />
+      {/* Live Bids renders this itself, BELOW its own quote strip (user,
+          2026-08-24) — the strip is that tab's header, so the banner sitting
+          above it read as belonging to the page rather than to the bid. */}
+      {rfqLinksVisible && subTab !== 'bids' && (
+        <div className="pane-col pane-col--tight pane-col--wide">
+          <RfqLinksPanel quote={quote} carriers={quote.carriers} />
         </div>
       )}
 
@@ -400,7 +398,9 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
         // above, and LiveBids wraps its own SubAccordion in pane-col internally.
         <LiveBids
           quote={quote}
+          banner={rfqLinksVisible ? <RfqLinksPanel quote={quote} carriers={quote.carriers} /> : null}
           benchmark={benchmarkValue}
+          markup={DEFAULT_MARKUP}
           onForceClose={() => closeQuote(Date.now())}
           onAward={handleAward}
           onModify={handleModify}

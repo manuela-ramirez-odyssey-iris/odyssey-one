@@ -66,10 +66,11 @@ function showMode(label) {
 function actionButton(label) {
   return screen.getByRole('button', { name: label })
 }
-// The primary button's label is now `Send x/y RFQ` (Task 7) — x = included
-// rows, y = total rows — so it's matched by pattern, not exact text.
+// The primary button's label counts included/total rows, so it's matched by
+// pattern: `Send x/y` while it is an action, `x/y Sent` once the RFQ has gone
+// out (user, 2026-08-24) — readOnly renders show the latter.
 function sendRFQButton() {
-  return screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })
+  return screen.getByRole('button', { name: /^(Send \d+\/\d+|\d+\/\d+ Sent)$/ })
 }
 // Send RFQ routes through a confirmation modal (whose own title stays the
 // static "Send RFQ" — only the trigger button's label became dynamic).
@@ -166,7 +167,7 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    expect(screen.getByRole('button', { name: 'Send 2/5 RFQ' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Send 2/5' })).toBeTruthy()
   })
 
   // REVERSAL (2026-08-11): this asserted "empty dates + unchecked — no
@@ -458,7 +459,7 @@ describe('SetupCarriers', () => {
 
   // Task 5, step 1(a)/(b): the trigger and the modal it opens. Round 2:
   // renamed "Setup Quote" → "Quote Setup", secondary → primary.
-  it('a "Quote Setup" primary button renders trailing the carrier-count row', () => {
+  it('Save Draft + Quote Setup are SECONDARY and trail the pill-tab row', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -470,12 +471,23 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
+    // Both moved out of the count toolbar onto the pill row (user,
+    // 2026-08-24), and both are secondary — Send RFQ is the one primary.
+    const modesRow = container.querySelector('.setup-carriers__modes-row')
+    const setup = within(modesRow).getByRole('button', { name: 'Quote Setup' })
+    const save = within(modesRow).getByRole('button', { name: 'Save Draft' })
+    expect(setup.className).toContain('btn--secondary')
+    expect(save.className).toContain('btn--secondary')
+    expect(setup.className).not.toContain('btn--primary')
+    // …and the pill band still leads the row.
+    const band = within(modesRow).getByRole('group', { name: 'Carrier list mode' })
+    expect(band.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
-    const button = within(toolbar).getByRole('button', { name: 'Quote Setup' })
-    expect(button.className).toContain('btn--primary')
-    // All is the default mode — the toolbar count spans every built row.
+    expect(within(toolbar).queryByRole('button', { name: 'Quote Setup' })).toBeFalsy()
+    // All is the default mode — the toolbar count spans every built row, and
+    // it now sits BELOW the pill row that carries the two buttons.
     const count = within(toolbar).getByText(`${allRows.length} carriers`)
-    expect(count.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(setup.compareDocumentPosition(count) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('clicking Quote Setup opens a dialog containing the four fields', () => {
@@ -883,7 +895,7 @@ describe('SetupCarriers', () => {
   })
 
   // 2026-08-20 (Task 7): Cancel is gone — only Save Draft + Send x/y RFQ.
-  it('spreads the two actions as separate buttons, trailing, below the table', () => {
+  it('the below-table action row holds Send RFQ only — Save Draft moved to the pill row', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -895,9 +907,11 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
+    // Standalone render — with no strip slot to portal into, Send RFQ falls
+    // back to its old place below the table rather than disappearing.
     const actions = container.querySelector('.setup-carriers__actions')
-    expect(within(actions).getByRole('button', { name: 'Save Draft' })).toBeTruthy()
-    expect(within(actions).getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })).toBeTruthy()
+    expect(within(actions).queryByRole('button', { name: 'Save Draft' })).toBeFalsy()
+    expect(within(actions).getByRole('button', { name: /^Send \d+\/\d+$/ })).toBeTruthy()
     // Below the table, NOT in the card header and NOT in the top toolbar row.
     expect(actions.closest('.sub-accordion__header-row')).toBeFalsy()
     expect(container.querySelector('.setup-carriers__toolbar-top').contains(actions)).toBe(false)
@@ -944,7 +958,6 @@ describe('SetupCarriers', () => {
 
     // All is the default mode — the count spans every built row.
     expect(within(toolbar).getByText(`${allRows.length} carriers`)).toBeTruthy()
-    expect(within(toolbar).getByRole('button', { name: 'Quote Setup' })).toBeTruthy()
 
     // document order: pill band → toolbar → table
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
@@ -952,9 +965,9 @@ describe('SetupCarriers', () => {
     expect(toolbar.compareDocumentPosition(table) & FOLLOWING).toBeTruthy()
   })
 
-  // 2026-08-20 (Task 7): with Cancel gone, Save Draft + Send RFQ are the only
-  // two actions — both trail right, no lead-left affordance anymore.
-  it('Save Draft and Send RFQ both trail right in the actions row', () => {
+  // Send RFQ trails right in its fallback row (no strip slot in a standalone
+  // render); Save Draft now lives on the pill row instead.
+  it('Send RFQ trails right in the actions row', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -966,19 +979,16 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    const actions = container.querySelector('.setup-carriers__actions')
-    const save = within(actions).getByRole('button', { name: 'Save Draft' })
     const send = sendRFQButton()
-
-    expect(save.closest('.setup-carriers__actions-trail')).toBeTruthy()
     expect(send.closest('.setup-carriers__actions-trail')).toBeTruthy()
-    expect(save.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // Save Draft is on the pill row, not down here.
+    const actions = container.querySelector('.setup-carriers__actions')
+    expect(within(actions).queryByRole('button', { name: 'Save Draft' })).toBeFalsy()
 
-    // md sizing; Send RFQ stays the primary
-    for (const b of [save, send]) {
-      expect(b.className).toContain('btn--md')
-    }
+    // Send RFQ is the tab's one primary, and sm now that it sits in a strip
+    // cell rather than a full-width action row.
     expect(send.className).toContain('btn--primary')
+    expect(send.className).toContain('btn--sm')
   })
 
   it('populates the lists once carrierOptions actually resolves, not only on the first (empty) render', () => {
@@ -1313,6 +1323,28 @@ describe('SetupCarriers', () => {
     )
     expect(sendRFQButton().disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Save Draft' }).disabled).toBe(true)
+  })
+
+  // The label states which of the two the control is (user, 2026-08-24): an
+  // action before send, a record of one after — while staying mounted, so the
+  // affordance never moves.
+  it('reads "Send x/y" before send and "x/y Sent" once readOnly', () => {
+    const props = {
+      carrierOptions,
+      shipmentDetails: shipmentDetailsFixture,
+      defaultPickup: DEF_PICKUP,
+      defaultDelivery: DEF_DELIVERY,
+      onSaveDraft: () => {},
+      onSendRFQ: () => {},
+    }
+    const { rerender } = render(<SetupCarriers {...props} readOnly={false} />)
+    expect(screen.getByRole('button', { name: /^Send \d+\/\d+$/ })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Sent$/ })).toBeFalsy()
+
+    rerender(<SetupCarriers {...props} readOnly />)
+    const sent = screen.getByRole('button', { name: /^\d+\/\d+ Sent$/ })
+    expect(sent).toBeTruthy()
+    expect(sent.disabled).toBe(true)
   })
 
   // ── Send RFQ confirmation modal (S112) ────────────────────────────────────

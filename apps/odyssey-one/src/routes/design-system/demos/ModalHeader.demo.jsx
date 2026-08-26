@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { ModalHeader } from '@odyssey/ui'
+import { Badge, ModalHeader } from '@odyssey/ui'
 
 export const meta = {
   name: 'ModalHeader',
   tier: 'molecule',
-  version: '0.5.0',
+  version: '0.6.0',
   createdVersion: '0.5.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '3447:7661',
   codeConnect: 'packages/ui/src/ModalHeader.figma.tsx',
+  approved: true,
+  ported: true,
 }
 
 export const props = [
@@ -22,6 +24,7 @@ export const props = [
   { name: 'onTitleCommit', type: '() => void', desc: 'Enter pressed in the title input.' },
   { name: 'onTitleCancel', type: '() => void', desc: 'Escape pressed in the title input.' },
   { name: 'onClose', type: '() => void', desc: 'Close handler. The close X (lg, via IconButtonGhost) is always shown — no visibility boolean.' },
+  { name: 'trail', type: 'ReactNode', desc: 'Optional node on the trail edge, immediately BEFORE the close X. For status that must stay legible while the body scrolls (SpotBid puts its live "closes in" countdown here).' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the header element.' },
   { name: 'ariaLabel', type: 'string', desc: 'Optional accessible label on the header region.' },
 ]
@@ -59,6 +62,7 @@ export default function ModalHeaderDemo() {
   const [showBack, setShowBack] = useState(true)
   const [editable, setEditable] = useState(true)
   const [showSub, setShowSub] = useState(true)
+  const [showTrail, setShowTrail] = useState(true)
 
   return (
     <div>
@@ -76,6 +80,7 @@ export default function ModalHeaderDemo() {
           <Toggle label="back" value={showBack} set={setShowBack} />
           <Toggle label="editable title" value={editable} set={setEditable} />
           <Toggle label="subtitle" value={showSub} set={setShowSub} />
+          <Toggle label="trail slot" value={showTrail} set={setShowTrail} />
         </div>
         <Frame>
           <ModalHeader
@@ -89,6 +94,7 @@ export default function ModalHeaderDemo() {
             onTitleCommit={() => setEditing(false)}
             onTitleCancel={() => setEditing(false)}
             onClose={() => {}}
+            trail={showTrail ? <Badge variant="green">04:12</Badge> : undefined}
           />
         </Frame>
       </div>

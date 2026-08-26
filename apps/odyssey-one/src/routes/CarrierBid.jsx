@@ -7,17 +7,24 @@ import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
 import { SummaryCard } from '../components/detail/QuoteModal.jsx'
 import { decodeToken } from '../spotboard/token.js'
 import { getQuote, submitBid, declineBid, hydrateQuote } from '../spotboard/spotStore.js'
+import { getFuelSchedule, computeFuel } from '../spotboard/fuelSchedule.js'
 import { getApiMode } from '../api/config'
-import { useCountdown, formatHMS, URGENT_MS } from '../spotboard/Countdown.jsx'
+import { useCountdown, formatHMS, countdownTone } from '../spotboard/Countdown.jsx'
 import { useShipmentDetail } from '../api/queries/useShipmentDetail'
 import { getLookupOptions } from '../api/services/lookupService'
-import { parseDollar, fmtDollar } from '../utils/money'
+import { fmtDollar } from '../utils/money'
 import { formatDateTimeMDYHM } from '../lib/dates.js'
-import { HERO_IMAGES, heroPosition } from '../heroImages'
+import { HERO_IMAGES_LAND, heroPosition } from '../heroImages'
 import { useHeroRotation } from '../hooks/useHeroRotation'
 import './carrierBid.css'
 
-const USD_OPTIONS = [{ value: 'USD', label: 'USD' }]
+// One currency for the WHOLE bid, selected once at bid level — never per
+// charge line (SPB-66, Kathleen email 2026-08-24 item #3: "USD and CAD for
+// now"). Each MeasureField's trailing edge just displays the bid currency
+// (single-option list = no per-line choice). Amounts are kept as typed when
+// the carrier switches currency mid-entry — whether they should convert or
+// clear is an open question Kathleen herself flagged (SPB-66).
+const CURRENCY_OPTIONS = [{ value: 'USD', label: 'USD' }, { value: 'CAD', label: 'CAD' }]
 const round2 = (n) => Math.round(n * 100) / 100
 
 // TrailNav avatar (change 2) — initials from the first two words of the
@@ -37,12 +44,15 @@ function carrierInitials(name, scac) {
 // image is deterministic, NOT Home's Math.random()-seeded
 // HERO_INITIAL_INDEX: this page must open on the same photo across reloads
 // during a demo. Rotation AFTER mount is fine and now shares Home's
-// useHeroRotation hook (cross-fade through HERO_IMAGES every
-// HERO_ROTATE_MS) — see the heroIndex hook call in CarrierBid() below.
+// useHeroRotation hook (cross-fade every HERO_ROTATE_MS) — see the
+// heroIndex hook call in CarrierBid() below.
+// The set is HERO_IMAGES_LAND, not the full HERO_IMAGES: this page is the
+// spot bid shown to TL/LTL carriers, so no ocean freight (user ruling,
+// 2026-08-24 — see src/heroImages.js).
 // ponytail: a per-shipment hash would pin a different starting photo per
 // carrier, but nothing in the plan asks for it — upgrade if wanted.
 const HERO_INITIAL_INDEX = 0
-const HERO_SRC = HERO_IMAGES[HERO_INITIAL_INDEX]
+const HERO_SRC = HERO_IMAGES_LAND[HERO_INITIAL_INDEX]
 // Section entrance stagger (plan §3c) — strictly top-to-bottom, no shuffle,
 // no jitter (deliberate deviation from Home's randomized order).
 const ENTER_STEP_MS = 90
@@ -54,7 +64,7 @@ const ENTER_STEP_MS = 90
 // light/white sits at the top here, image toward the bottom — the mirror
 // of Home's orientation. The modifier is scoped to this page only (Home's
 // own `.hero-bg` div never carries it), so Home's mask is untouched — see
-// styles/hero.css. Cross-fades through HERO_IMAGES via the shared
+// styles/hero.css. Cross-fades through HERO_IMAGES_LAND via the shared
 // useHeroRotation hook (§change-2): one stacked photo div per image, only
 // the active index opaque, same mechanism as Home. Rendered identically in
 // both the closed/expired branch and the active-bid branch below, so it's
@@ -62,7 +72,7 @@ const ENTER_STEP_MS = 90
 function HeroBackground({ heroIndex }) {
   return (
     <div className="carrier-bid-page__bg hero-bg hero-bg--flipped" aria-hidden="true">
-      {HERO_IMAGES.map((src, i) => (
+      {HERO_IMAGES_LAND.map((src, i) => (
         <div
           key={src}
           className="hero-bg__photo"
@@ -147,17 +157,23 @@ function HeroBackground({ heroIndex }) {
 // that transient window the same way Countdown itself does: swap the H/M/S
 // unit trio for a single "Closed" title rather than rendering stale/negative
 // time. No urgent treatment for it — closed is terminal, not urgent.
-export function BidCountdownTitle({ closeAt, onExpire }) {
+//
+// Color follows the SHARED SpotBid ramp (countdownTone — blue >30% of the
+// window, amber 30→10%, red under 10%), the same one the Live Bids strip
+// badge and the award dialog use, so the carrier and the planner never see
+// the same quote at different urgencies (user, 2026-08-24). `openAt` is what
+// makes it a real percentage rather than the absolute fallback.
+export function BidCountdownTitle({ closeAt, openAt, onExpire }) {
   const remaining = useCountdown(closeAt, onExpire)
   const expired = remaining <= 0
-  const urgent = !expired && remaining < URGENT_MS
+  const tone = countdownTone(remaining, openAt ? closeAt - openAt : 0)
   const { hh, mm, ss } = formatHMS(remaining)
 
   if (expired) return <div className="carrier-bid-countdown-title" role="timer">Closed</div>
 
   return (
     <div
-      className={`carrier-bid-countdown-title${urgent ? ' carrier-bid-countdown-title--urgent' : ''}`}
+      className={`carrier-bid-countdown-title carrier-bid-countdown-title--${tone}`}
       role="timer"
       aria-label={`Bid closes in ${hh}:${mm}:${ss}`}
     >
@@ -172,6 +188,17 @@ export function BidCountdownTitle({ closeAt, onExpire }) {
       ))}
     </div>
   )
+}
+
+// The floating status badge under the countdown title. Its own hook, not a
+// render-time Date.now(): the tone has to re-evaluate every tick, and a bare
+// expression in the parent's JSX would freeze at whatever the last render
+// computed. Tracks the SAME ramp as the title above it (user, 2026-08-24) —
+// one quote, one urgency, whichever surface you read it on.
+function BidStatusBadge({ closeAt, openAt }) {
+  const remaining = useCountdown(closeAt)
+  const tone = countdownTone(remaining, openAt ? closeAt - openAt : 0)
+  return <Badge variant={tone} statusDot>{remaining > 0 ? 'Bid Open' : 'Bid Closed'}</Badge>
 }
 
 // Standalone external carrier page — reached via an unauthenticated token link
@@ -249,7 +276,7 @@ export default function CarrierBid() {
   // prefers-reduced-motion visitor (Home doesn't gate this — see the hook's
   // own doc comment for why that's a deliberate, pre-existing gap left
   // alone rather than "fixed" here for both pages).
-  const heroIndex = useHeroRotation(HERO_INITIAL_INDEX, { bgLoaded, respectReducedMotion: true })
+  const heroIndex = useHeroRotation(HERO_INITIAL_INDEX, { bgLoaded, respectReducedMotion: true, images: HERO_IMAGES_LAND })
 
   // Profile dropdown, anchored via the package Navbar's `trailRef` slot — same
   // idiom as apps/odyssey-one/src/components/layout/Navbar.jsx (the app's own
@@ -379,6 +406,17 @@ export default function CarrierBid() {
   const services = order?.specialServices ?? []
 
   const [linehaulValue, setLinehaulValue] = useState(() => String(priorBid?.linehaul ?? ''))
+  // Base-rate validation (SPB-65): required and > 0. The error message only
+  // shows once the carrier has LEFT the field (touched) — no red flash on a
+  // pristine form — but the Submit button gates on validity from the start.
+  const [linehaulTouched, setLinehaulTouched] = useState(() => priorBid?.linehaul != null)
+  // Bid-level currency (SPB-66) — one selector for the whole bid.
+  const [currency, setCurrency] = useState(() => priorBid?.currency ?? 'USD')
+  // %-of-linehaul fuel resolves ON BLUR of the base rate field (SPB-64), so
+  // the resolved amount is state, not a render-time derivation — it must NOT
+  // move while the carrier is still typing. A returning carrier's prior bid
+  // already carries its resolved fuel.
+  const [resolvedPctFuel, setResolvedPctFuel] = useState(() => priorBid?.fuel ?? null)
   // Additional Charges rows — `shipment` (and therefore order.specialServices)
   // isn't available at mount, so this can't be a lazy useState initializer
   // like `linehaulValue` above (priorBid IS available synchronously off
@@ -402,7 +440,12 @@ export default function CarrierBid() {
     const routingCharges = (shipment?.routingData?.options ?? [])
       .map((o) => o.rateDetails?.additionalCharges ?? [])
       .find((charges) => charges.length > 0) ?? []
-    const chargeRowsSeed = routingCharges.map((c) => ({
+    // FSC is never SEEDED into Additional Charges anymore (SPB-64): fuel is
+    // either a configured read-only element beneath Linehaul, or — when no
+    // schedule is configured — something the carrier adds manually via Add
+    // More (today's TMS behavior). Kathleen's conditional reads ambiguously
+    // (recorded verbatim in SPB-64); never-seed satisfies both readings.
+    const chargeRowsSeed = routingCharges.filter((c) => c.code !== 'FSC').map((c) => ({
       code: c.code,
       description: c.description,
       amount: priorByCode[c.code] != null ? String(priorByCode[c.code]) : String(c.amount),
@@ -483,9 +526,9 @@ export default function CarrierBid() {
               // header's own bottom edge) even though it's now a DOM
               // descendant of the search slot.
               <div className="carrier-bid-countdown-wrap">
-                <BidCountdownTitle closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
+                <BidCountdownTitle closeAt={quote.closeAt} openAt={quote.openAt} onExpire={() => setQuote(getQuote(shipmentId))} />
                 <div className="carrier-bid-status-float">
-                  <Badge variant="green" statusDot>Bid Open</Badge>
+                  <BidStatusBadge closeAt={quote.closeAt} openAt={quote.openAt} />
                 </div>
               </div>
             )
@@ -515,19 +558,6 @@ export default function CarrierBid() {
   // per-order picker, out of scope for v1). Instructions are read by the same
   // array position, never by orderId, so no order identifier is ever touched.
   // (order/services themselves moved above the closedReason return — see there.)
-  // ponytail: the VM has no per-carrier fuel figure at bid time — stand in
-  // with the shipment's own AP fuel amount ("precalculated") rather than
-  // inventing a number. Flagged for Jana/David: real fuel-index source TBD.
-  const fuel = shipment ? parseDollar(shipment.costData.planned.summary.fuel) ?? 0 : 0
-  // Fuel double-count guard (flagged, not user-ruled): the seed above can
-  // add a Fuel Surcharge (FSC) row into Additional Charges — the user
-  // explicitly expects it there. If it's present, the base "Fuel
-  // (Estimated)" field above is the SAME cost counted a second time, so it's
-  // suppressed from both render and every total below. Read live off
-  // chargeRows (not "was FSC seeded"), so adding/removing an FSC row by hand
-  // toggles the guard the same way a seeded one would.
-  const hasFscCharge = chargeRows.some((r) => r.code === 'FSC')
-  const effectiveFuel = hasFscCharge ? 0 : fuel
   const instructionsText = shipment
     ? (shipment.instructionsData.orders[0]?.instructions ?? []).map((i) => i.text).join(' ')
     : ''
@@ -555,6 +585,26 @@ export default function CarrierBid() {
   const distanceDisplay = (rawDistance && rawDistance !== '--') ? rawDistance : (fallbackDistance ?? '--')
 
   const linehaulNum = Number(linehaulValue) || 0
+  const linehaulInvalid = !(linehaulNum > 0)
+
+  // ── Fuel (SPB-64): OCM fuel schedule per carrier — rate-per-mile resolves
+  // immediately off the lane distance; %-of-linehaul resolves on base-rate
+  // blur (resolvedPctFuel state above); no schedule → no fuel section at all.
+  const fuelSchedule = getFuelSchedule(scac)
+  const distanceMiles = parseFloat(String(distanceDisplay).replace(/[^\d.]/g, ''))
+  const fuel = fuelSchedule?.type === 'perMile'
+    ? computeFuel(fuelSchedule, { distanceMiles }) ?? 0
+    : (resolvedPctFuel ?? null) // pct mode: null until the first base-rate blur
+  // The fuel amount that actually counts toward totals / the submitted bid —
+  // 0 while pct fuel is still unresolved or no schedule is configured.
+  const effectiveFuel = fuelSchedule ? (fuel ?? 0) : 0
+  const handleLinehaulBlur = () => {
+    setLinehaulTouched(true)
+    if (fuelSchedule?.type === 'pctLinehaul') {
+      setResolvedPctFuel(linehaulNum > 0 ? computeFuel(fuelSchedule, { linehaul: linehaulNum }) : null)
+    }
+  }
+
   // Every typed amount counts toward the total regardless of whether its row
   // has a code yet — what the carrier sees add up IS what submits; the
   // accessorials filter below applies the same amount>0 rule, so the two
@@ -583,13 +633,10 @@ export default function CarrierBid() {
     const accessorials = chargeRows
       .filter((r) => Number(r.amount) > 0)
       .map((r) => ({ code: r.code, description: r.description, amount: Number(r.amount) }))
-    // `fuel` is 0 here (not the AP estimate) whenever the FSC guard above
-    // suppressed the base Fuel field — the carrier's FSC accessorial line
-    // already carries that cost, so `total` (built off effectiveFuel) stays
-    // consistent with what's sent. LiveBids' Fuel column will show the
-    // dash/0 for this bid and Accessorials will carry FSC — acceptable
-    // (flagged for Jana/David, not user-ruled).
-    const bid = { linehaul: linehaulNum, fuel: effectiveFuel, accessorials, total, submittedBy: carrier.name }
+    // `fuel` is the schedule-resolved amount (SPB-64) — 0 for an
+    // unconfigured carrier, whose fuel (if any) rides in accessorials as a
+    // manually-added charge. `currency` is bid-level (SPB-66).
+    const bid = { linehaul: linehaulNum, fuel: effectiveFuel, accessorials, total, currency, submittedBy: carrier.name }
     setQuote(submitBid(shipmentId, scac, bid, Date.now()))
   }
   const handleDecline = () => {
@@ -679,24 +726,46 @@ export default function CarrierBid() {
               <section className="carrier-bid-bid__section">
                 <h3 className="text-label-base-semibold carrier-bid-bid__section-title">Base Charge</h3>
                 <div className="carrier-bid-card__grid">
+                  {/* ONE currency for the whole bid (SPB-66) — set from the
+                      Linehaul field's OWN trailing UoM button (no separate
+                      currency field: MeasureField already carries the
+                      selector, and Base Charge is the bid-level anchor).
+                      Every other amount field echoes it read-only via a
+                      single-option list, so the lines can never diverge. */}
                   <MeasureField
                     id="cb-linehaul"
                     showLabel
                     label="Linehaul"
-                    value={{ value: linehaulValue, uom: 'USD' }}
-                    options={USD_OPTIONS}
+                    value={{ value: linehaulValue, uom: currency }}
+                    options={CURRENCY_OPTIONS}
                     decimals={2}
-                    onChange={(v) => setLinehaulValue(v.value)}
+                    onChange={(v) => { setLinehaulValue(v.value); setCurrency(v.uom) }}
+                    onBlur={handleLinehaulBlur}
+                    // Required and > 0 (SPB-65) — message appears once the
+                    // field has been left; Submit gates on it regardless.
+                    error={linehaulTouched && linehaulInvalid ? 'A base rate greater than zero is required.' : undefined}
                   />
-                  {/* disabled, not readOnly — same ruling already applied to
-                      SpotBidDetailRoute's own Fuel field (spotboard/spotbid/
-                      SpotBidDetailRoute.jsx). Hidden entirely once an FSC
-                      (Fuel Surcharge) row is seeded/added into Additional
-                      Charges below — see the hasFscCharge guard above; that
-                      row already covers the fuel cost, so showing both would
-                      double-count it. */}
-                  {!hasFscCharge && (
-                    <FormField id="cb-fuel" label="Fuel (Estimated)" value={fmtDollar(fuel)} disabled />
+                  {/* Fuel (SPB-64) — read-only element directly beneath
+                      Linehaul, three states: resolved (per-mile, or % after
+                      base-rate blur), pending (% before blur), absent (no
+                      OCM fuel schedule configured — the whole field is gone;
+                      the carrier may add fuel manually in Additional
+                      Charges, which is why FSC stays in the charge-code
+                      lookup only for unconfigured carriers). */}
+                  {fuelSchedule && (
+                    <div>
+                      <FormField
+                        id="cb-fuel"
+                        label="Fuel"
+                        value={fuel != null ? fmtDollar(fuel) : '—'}
+                        disabled
+                      />
+                      <p className="carrier-bid-fuel__basis text-label-xs-regular">
+                        {fuelSchedule.type === 'perMile'
+                          ? `${fmtDollar(fuelSchedule.rate)}/mi × ${distanceDisplay}`
+                          : `${fuelSchedule.pct}% of linehaul${fuel == null ? ' — calculated when you leave the base rate field' : ''}`}
+                      </p>
+                    </div>
                   )}
                 </div>
               </section>
@@ -725,7 +794,13 @@ export default function CarrierBid() {
                             variant="select"
                             showLabel={false}
                             placeholder="--"
-                            loadOptions={(q) => getLookupOptions('charge-code', q)}
+                            // FSC is offerable ONLY when no fuel schedule is
+                            // configured (SPB-64): configured fuel already
+                            // renders as the read-only element above, so a
+                            // manual FSC line would double-count it.
+                            loadOptions={(q) => Promise.resolve(getLookupOptions('charge-code', q)).then(
+                              (opts) => (fuelSchedule ? opts.filter((o) => o.value !== 'FSC') : opts)
+                            )}
                             emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matching charge codes')}
                             value={row.code}
                             onSelect={(v, opt) => setChargeCode(idx, v, opt?.description)}
@@ -747,8 +822,10 @@ export default function CarrierBid() {
                              which `decimals` PADS to, so every entry blurred
                              to "150.000000". */
                           decimals={2}
-                          value={{ value: row.amount, uom: 'USD' }}
-                          options={USD_OPTIONS}
+                          /* trailing edge echoes the BID-LEVEL currency
+                             (SPB-66) — no per-line choice */
+                          value={{ value: row.amount, uom: currency }}
+                          options={[{ value: currency, label: currency }]}
                           onChange={(v) => updateChargeRow(idx, { amount: v.value })}
                         />
                         {/* Plain icon affordance, never a Button (row-action
@@ -796,11 +873,11 @@ export default function CarrierBid() {
             <div className="carrier-bid-card__grid">
               <SummaryCard
                 title="Base Charge"
-                // Fuel (Estimated) row drops out with the field above when
-                // an FSC charge covers it (hasFscCharge guard) — no $0.00
-                // ghost row for a cost that's really sitting in Additional
-                // Charges now.
-                rows={hasFscCharge ? [['Linehaul', linehaulNum]] : [['Linehaul', linehaulNum], ['Fuel (Estimated)', fuel]]}
+                // Fuel row exists only when a schedule is configured
+                // (SPB-64) — an unconfigured carrier's fuel (if any) sits in
+                // Additional Charges as a manually-added line. Unresolved %
+                // fuel counts as 0 until the base-rate blur resolves it.
+                rows={fuelSchedule ? [['Linehaul', linehaulNum], ['Fuel', effectiveFuel]] : [['Linehaul', linehaulNum]]}
                 total={round2(linehaulNum + effectiveFuel)}
               />
               <SummaryCard
@@ -822,7 +899,9 @@ export default function CarrierBid() {
                 <Button variant="secondary" size="lg" disabled={declinedNoBid} onClick={() => setConfirmAction('decline')}>
                   {declinedNoBid ? 'Declined' : 'Decline'}
                 </Button>
-                <Button variant="primary" size="lg" onClick={() => setConfirmAction('submit')}>
+                {/* Gated on a valid base rate (SPB-65) — the field-level
+                    error above explains the disabled state once touched. */}
+                <Button variant="primary" size="lg" disabled={linehaulInvalid} onClick={() => setConfirmAction('submit')}>
                   {confirmTitle}
                 </Button>
               </div>

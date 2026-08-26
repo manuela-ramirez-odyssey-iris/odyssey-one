@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CarrierBid, { BidCountdownTitle } from './CarrierBid.jsx'
 import { saveDraft, sendRFQ, closeQuote, getQuote, submitBid, declineBid } from '../spotboard/spotStore.js'
 import { mintToken } from '../spotboard/token.js'
+import { HERO_IMAGES_LAND } from '../heroImages'
 
 const SHIPMENT_ID = '25690001'
 const SCAC = 'ODFL'
@@ -101,6 +102,11 @@ function renderAt(path) {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+// Charge-row Code comboboxes only.
+function chargeCombos(bidSection) {
+  return within(bidSection).queryAllByRole('combobox').filter((c) => c.id.startsWith('cb-charge'))
 }
 
 function openQuote(durationMin = 120) {
@@ -223,6 +229,10 @@ describe('CarrierBid — open quote', () => {
 
     const linehaulInput = screen.getByLabelText(/linehaul/i)
     fireEvent.change(linehaulInput, { target: { value: '1500' } })
+    // ODFL's seeded fuel schedule is 25% of linehaul (SPB-64) — the %
+    // resolves on LEAVING the base rate field, so blur explicitly (a real
+    // browser blurs on the next click; jsdom does not).
+    fireEvent.blur(linehaulInput)
 
     // Additional Charges — the DTO's one special service (LFT/Lift Gate)
     // seeds a derived row whose Amount stays editable; typing into it is
@@ -242,19 +252,79 @@ describe('CarrierBid — open quote', () => {
       expect(row.bid?.linehaul).toBe(1500)
     })
 
-    // fuel (250.50 from the DTO's apFuelAmount) + linehaul + accessorials,
-    // rounded to 2dp — this is the M3 fix: the computed Total was untested.
+    // fuel (25% of the 1500 linehaul — ODFL's seeded pct schedule, resolved
+    // on blur above) + linehaul + accessorials, rounded to 2dp.
     const stored = getQuote(SHIPMENT_ID)
     const row = stored.carriers.find((c) => c.scac === SCAC)
-    expect(row.bid.fuel).toBe(250.5)
+    expect(row.bid.fuel).toBe(375)
+    // Bid-level currency rides the wire (SPB-66) — defaulted, never per-line.
+    expect(row.bid.currency).toBe('USD')
     // The derived row's own code/description (order.specialServices) ride
     // straight through to the wire — blank rows submit as ABSENT, not
     // zero-amount lines.
     expect(row.bid.accessorials).toEqual([{ code: 'LFT', description: 'Lift Gate', amount: 100 }])
-    expect(row.bid.total).toBe(1850.5)
+    expect(row.bid.total).toBe(1975)
 
     // Other carrier's row untouched.
     expect(stored.carriers.find((c) => c.scac === 'SAIA').bid).toBeUndefined()
+  })
+
+  it('Submit gates on a base rate > 0 (SPB-65): disabled + field error once touched, enabled once valid', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    // Pristine: disabled, but no red flash before the field is touched.
+    expect(screen.getByRole('button', { name: /submit bid/i }).disabled).toBe(true)
+    expect(screen.queryByText(/base rate greater than zero/i)).toBe(null)
+
+    // Touch and leave empty → validation message (SPB-65: "validation
+    // states and messaging").
+    const linehaulInput = screen.getByLabelText(/linehaul/i)
+    fireEvent.blur(linehaulInput)
+    expect(screen.getByText(/A base rate greater than zero is required\./)).toBeTruthy()
+
+    // Zero is not a valid base rate either.
+    fireEvent.change(linehaulInput, { target: { value: '0' } })
+    expect(screen.getByRole('button', { name: /submit bid/i }).disabled).toBe(true)
+
+    // A real rate clears the error and enables Submit.
+    fireEvent.change(linehaulInput, { target: { value: '1200' } })
+    expect(screen.getByRole('button', { name: /submit bid/i }).disabled).toBe(false)
+    expect(screen.queryByText(/base rate greater than zero/i)).toBe(null)
+  })
+
+  it('bid currency lives on the Linehaul trailing UoM button (SPB-66): switching to CAD retags every amount field and rides the submitted bid', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
+    // No separate currency FIELD — the selector is the Linehaul field's own
+    // trailing button (MeasureField → FormField trailingSelect).
+    expect(within(bidSection).queryByLabelText('Bid Currency')).toBe(null)
+
+    // Open the trailing UoM dropdown and pick CAD (same recipe as
+    // QuoteModal.test.jsx — useAnchoredPortal renders it to document.body).
+    const linehaulField = within(bidSection).getByLabelText(/linehaul/i).closest('.form-field')
+    fireEvent.click(within(linehaulField).getByRole('button'))
+    fireEvent.click(screen.getByRole('option', { name: 'CAD' }))
+
+    // Every amount field's trailing edge now reads CAD — the charge rows
+    // echo it read-only, so no line can diverge from the bid currency.
+    expect(within(bidSection).getAllByText('CAD').length).toBeGreaterThan(1)
+
+    const linehaulInput = screen.getByLabelText(/linehaul/i)
+    fireEvent.change(linehaulInput, { target: { value: '1000' } })
+    fireEvent.blur(linehaulInput)
+    fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Submit Bid' })).getByRole('button', { name: /confirm/i }))
+    await waitFor(() => {
+      const row = getQuote(SHIPMENT_ID).carriers.find((c) => c.scac === SCAC)
+      expect(row.bid?.currency).toBe('CAD')
+    })
   })
 
   it('clicking Submit Bid opens a confirmation dialog without submitting yet', async () => {
@@ -263,6 +333,8 @@ describe('CarrierBid — open quote', () => {
     renderAt(`/spot-bid/${token}`)
     await screen.findByText('Acme Houston Plant')
 
+    // Submit gates on a valid base rate (SPB-65) — enter one first.
+    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
 
     expect(screen.getByRole('dialog', { name: 'Submit Bid' })).toBeTruthy()
@@ -276,6 +348,7 @@ describe('CarrierBid — open quote', () => {
     renderAt(`/spot-bid/${token}`)
     await screen.findByText('Acme Houston Plant')
 
+    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
     const dialog = screen.getByRole('dialog', { name: 'Submit Bid' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
@@ -366,7 +439,9 @@ describe('CarrierBid — open quote', () => {
     expect(declinedBtn.disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Bid Now' })).toBeTruthy()
 
-    // Dialog title tracks the primary button's own label.
+    // Dialog title tracks the primary button's own label. Bid Now is the
+    // same submit action, so it gates on a valid base rate too (SPB-65).
+    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1000' } })
     fireEvent.click(screen.getByRole('button', { name: 'Bid Now' }))
     expect(screen.getByRole('dialog', { name: 'Bid Now' })).toBeTruthy()
   })
@@ -551,15 +626,41 @@ describe('CarrierBid — open quote', () => {
     expect(within(detailSection).getByText('Distance')).toBeTruthy()
   })
 
-  it('Fuel is disabled (not readOnly) and labelled "Fuel (Estimated)" (SPB-43 §5)', async () => {
+  // Fuel (SPB-64): read-only element beneath Linehaul off the carrier's OCM
+  // fuel schedule. ODFL's seeded schedule is 25% of linehaul — pending until
+  // the carrier leaves the base rate field, then resolved. SAIA's is
+  // per-mile — resolved immediately off the lane distance.
+  it('Fuel is a disabled read-only field: % schedule shows pending until base-rate blur, then resolves (SPB-64)', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
     await screen.findByText('Acme Houston Plant')
-    const fuelInput = screen.getByLabelText('Fuel (Estimated)')
+    const fuelInput = screen.getByLabelText('Fuel')
     expect(fuelInput.disabled).toBe(true)
-    expect(fuelInput.value).toBe('$250.50')
+    expect(fuelInput.value).toBe('—') // % of linehaul, nothing to resolve yet
+    expect(screen.getByText(/25% of linehaul — calculated when you leave the base rate field/)).toBeTruthy()
+
+    const linehaulInput = screen.getByLabelText(/linehaul/i)
+    fireEvent.change(linehaulInput, { target: { value: '1000' } })
+    expect(screen.getByLabelText('Fuel').value).toBe('—') // still typing — not resolved mid-entry
+    fireEvent.blur(linehaulInput)
+    expect(screen.getByLabelText('Fuel').value).toBe('$250.00') // 25% of 1000
+  })
+
+  it('Fuel per-mile schedule (SAIA) resolves immediately off the lane distance, no linehaul needed (SPB-64)', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, 'SAIA')
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+    const fuelInput = screen.getByLabelText('Fuel')
+    expect(fuelInput.disabled).toBe(true)
+    // SAIA's seeded schedule is $0.41/mi × the displayed lane distance —
+    // 842.3 mi off the routing-option fallback (the DTO's summary distance
+    // is '--'), so 0.41 × 842.3 = $345.34.
+    expect(fuelInput.value).toBe('$345.34')
+    expect(screen.getByText(/\$0\.41\/mi/)).toBeTruthy()
   })
 
   it('with no routing charge lines on the shipment, a special-service row (order.specialServices) still seeds — fully editable and deletable, the derived lock is retired (bug fix, 2026-08-21)', async () => {
@@ -575,7 +676,7 @@ describe('CarrierBid — open quote', () => {
     // initializer, which can't see order.specialServices at mount). No
     // routing-charge lines on this DTO's shippingOptionList, so the
     // special-service seed is all there is.
-    const combo = within(bidSection).getByRole('combobox')
+    const combo = chargeCombos(bidSection)[0]
     expect(combo.value).toBe('LFT')
     expect(combo.disabled).toBe(false)
 
@@ -603,14 +704,16 @@ describe('CarrierBid — open quote', () => {
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
     const rows = bidSection.querySelectorAll('.carrier-bid-charges__row')
-    expect(rows.length).toBe(4) // HZC, THC, FSC (routing charges) + LFT (special service)
+    // HZC, THC (routing charges) + LFT (special service). FSC is NEVER
+    // seeded anymore (SPB-64) — fuel is the read-only schedule element.
+    expect(rows.length).toBe(3)
 
-    const combos = within(bidSection).getAllByRole('combobox')
-    expect(combos.map((c) => c.value)).toEqual(['HZC', 'THC', 'FSC', 'LFT'])
+    const combos = chargeCombos(bidSection)
+    expect(combos.map((c) => c.value)).toEqual(['HZC', 'THC', 'LFT'])
     combos.forEach((c) => expect(c.disabled).toBe(false))
 
     const amounts = within(bidSection).getAllByLabelText('Amount')
-    expect(amounts.map((a) => a.value)).toEqual(['381.52', '431.39', '177.95', ''])
+    expect(amounts.map((a) => a.value)).toEqual(['381.52', '431.39', ''])
 
     const removeBtns = within(bidSection).getAllByRole('button', { name: /remove charge/i })
     removeBtns.forEach((b) => {
@@ -618,9 +721,9 @@ describe('CarrierBid — open quote', () => {
       expect(b.getAttribute('title')).toBe(null)
     })
 
-    // Deletable — remove the first row (HZC), three remain.
+    // Deletable — remove the first row (HZC), two remain.
     fireEvent.click(removeBtns[0])
-    expect(within(bidSection).getAllByRole('combobox')).toHaveLength(3)
+    expect(chargeCombos(bidSection)).toHaveLength(2)
   })
 
   it('a returning carrier\'s prior-bid accessorial amount wins over the seeded routing-charge amount for a matching code', async () => {
@@ -641,11 +744,12 @@ describe('CarrierBid — open quote', () => {
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
     const amounts = within(bidSection).getAllByLabelText('Amount')
     // HZC's amount is the prior bid's 500, not the freshly-seeded 381.52;
-    // THC/FSC keep their seeded amounts (no prior-bid entry for them).
-    expect(amounts.map((a) => a.value)).toEqual(['500', '431.39', '177.95', ''])
+    // THC keeps its seeded amount (no prior-bid entry). FSC never seeds
+    // (SPB-64 — fuel is the schedule element, not a charge row).
+    expect(amounts.map((a) => a.value)).toEqual(['500', '431.39', ''])
   })
 
-  it('excludes the base Fuel (Estimated) field and its amount from every total when the seed includes an FSC charge (avoids double-counting fuel)', async () => {
+  it('a routing FSC line never seeds a charge row — the schedule-driven Fuel element carries fuel instead, and totals stay consistent on the wire (SPB-64)', async () => {
     stubFetch(DTO_WITH_CHARGES)
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
@@ -653,24 +757,26 @@ describe('CarrierBid — open quote', () => {
 
     await screen.findByText('Acme Houston Plant')
 
-    expect(screen.queryByLabelText('Fuel (Estimated)')).toBe(null)
+    // The DTO's FSC routing line is filtered from the seed; the Fuel field
+    // (ODFL's 25%-of-linehaul schedule) is present instead.
+    const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
+    expect(chargeCombos(bidSection).map((c) => c.value)).toEqual(['HZC', 'THC', 'LFT'])
+    expect(screen.getByLabelText('Fuel')).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1000' } })
+    const linehaulInput = screen.getByLabelText(/linehaul/i)
+    fireEvent.change(linehaulInput, { target: { value: '1000' } })
+    fireEvent.blur(linehaulInput) // resolves 25% fuel = 250
 
     const summarySection = screen.getByRole('button', { name: 'Summary' }).closest('.sub-accordion')
-    // linehaul 1000 + HZC 381.52 + THC 431.39 + FSC 177.95 (base fuel
-    // excluded, LFT's blank amount contributes 0) = 1990.86.
-    expect(within(summarySection).getByText('$1,990.86')).toBeTruthy()
-    expect(within(summarySection).queryByText('Fuel (Estimated)')).toBe(null)
+    // linehaul 1000 + fuel 250 + HZC 381.52 + THC 431.39 (LFT blank = 0) = 2062.91.
+    expect(within(summarySection).getByText('$2,062.91')).toBeTruthy()
 
-    // Submitting sends fuel: 0 (not the AP estimate) so the wire total
-    // stays consistent with what's shown — the FSC line already carries it.
     fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Submit Bid' })).getByRole('button', { name: /confirm/i }))
     await waitFor(() => {
       const row = getQuote(SHIPMENT_ID).carriers.find((c) => c.scac === SCAC)
-      expect(row.bid?.fuel).toBe(0)
-      expect(row.bid?.total).toBe(1990.86)
+      expect(row.bid?.fuel).toBe(250)
+      expect(row.bid?.total).toBe(2062.91)
     })
   })
 
@@ -682,10 +788,10 @@ describe('CarrierBid — open quote', () => {
     await screen.findByText('Acme Houston Plant')
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
-    expect(within(bidSection).getAllByRole('combobox')).toHaveLength(1) // LFT special-service row only
+    expect(chargeCombos(bidSection)).toHaveLength(1) // LFT special-service row only
 
     fireEvent.click(within(bidSection).getByRole('button', { name: /^add more$/i }))
-    const combos = within(bidSection).getAllByRole('combobox')
+    const combos = chargeCombos(bidSection)
     expect(combos).toHaveLength(2)
     const newCombo = combos[combos.length - 1]
     expect(newCombo.disabled).toBe(false)
@@ -693,7 +799,7 @@ describe('CarrierBid — open quote', () => {
     expect(removeBtns[removeBtns.length - 1].disabled).toBe(false)
 
     fireEvent.click(removeBtns[removeBtns.length - 1])
-    expect(within(bidSection).getAllByRole('combobox')).toHaveLength(1)
+    expect(chargeCombos(bidSection)).toHaveLength(1)
   })
 
   it('every Additional Charges field carries a real accessible name (SPB-43 labelling job)', async () => {
@@ -705,7 +811,7 @@ describe('CarrierBid — open quote', () => {
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
     // Code: a real <label for>, not ComboBox's own (unlinked) showLabel span.
-    const combo = within(bidSection).getByRole('combobox')
+    const combo = chargeCombos(bidSection)[0]
     const label = bidSection.querySelector(`label[for="${combo.id}"]`)
     expect(label).toBeTruthy()
     expect(label.textContent).toBe('Code')
@@ -740,7 +846,9 @@ describe('CarrierBid — open quote', () => {
 
     await screen.findByText('Acme Houston Plant')
 
-    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1500' } })
+    const linehaulInput = screen.getByLabelText(/linehaul/i)
+    fireEvent.change(linehaulInput, { target: { value: '1500' } })
+    fireEvent.blur(linehaulInput) // resolves ODFL's 25% fuel = 375 (SPB-64)
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
     // Special-service-seeded LFT row's own Amount (only row present so far — unambiguous).
@@ -762,8 +870,8 @@ describe('CarrierBid — open quote', () => {
     fireEvent.change(within(newRow).getByLabelText('Amount'), { target: { value: '100' } })
 
     const summarySection = screen.getByRole('button', { name: 'Summary' }).closest('.sub-accordion')
-    // 1500 linehaul + 250.50 fuel + 25 LFT + 100 HZC = 1875.50.
-    expect(within(summarySection).getByText('$1,875.50')).toBeTruthy()
+    // 1500 linehaul + 375 fuel (25% of linehaul) + 25 LFT + 100 HZC = 2000.
+    expect(within(summarySection).getByText('$2,000.00')).toBeTruthy()
     expect(within(summarySection).getByText('LFT')).toBeTruthy()
     expect(within(summarySection).getByText('HZC')).toBeTruthy()
   })
@@ -775,13 +883,15 @@ describe('CarrierBid — open quote', () => {
 
     await screen.findByText('Acme Houston Plant')
 
-    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1500' } })
+    const linehaulInput = screen.getByLabelText(/linehaul/i)
+    fireEvent.change(linehaulInput, { target: { value: '1500' } })
+    fireEvent.blur(linehaulInput) // resolves ODFL's 25% fuel = 375 (SPB-64)
     // Derived LFT row's own Amount — only row present, unambiguous.
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '100' } })
 
     const summarySection = screen.getByRole('button', { name: 'Summary' }).closest('.sub-accordion')
-    // 1500 linehaul + 250.50 fuel + 100 charge = 1850.50.
-    expect(within(summarySection).getByText('$1,850.50')).toBeTruthy()
+    // 1500 linehaul + 375 fuel + 100 charge = 1975.
+    expect(within(summarySection).getByText('$1,975.00')).toBeTruthy()
     // SPB-15: QMU is Odyssey-side, applied after award — never shown to carriers.
     expect(within(summarySection).queryByText(/markup/i)).toBe(null)
   })
@@ -860,20 +970,44 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
     expect(countdownWrap.querySelector('.carrier-bid-countdown-title')).toBeTruthy()
   })
 
-  it('applies the urgent modifier once remaining time drops under 15 minutes', async () => {
+  // Color is the SHARED SpotBid ramp (spotboard/Countdown.jsx
+  // `countdownTone`), a percentage of the quote's own window: blue down to
+  // 30%, amber 30→10%, red under 10%. So the tone depends on how much of the
+  // window has ELAPSED, not on an absolute minute count — a 20-minute quote
+  // and a 4-hour one turn red at the same proportion.
+  it('runs the shared ramp: red once under 10% of the bidding window remains', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date('2026-08-17T12:00:00Z'))
-    const quote = openQuote(10) // 10 min remaining, under the 15-min threshold
+    const t0 = new Date('2026-08-17T12:00:00Z')
+    vi.setSystemTime(t0)
+    const quote = openQuote(20)
+    // 19 of 20 minutes gone → 5% left. Advancing Date BEFORE the render is
+    // what matters: the countdown seeds `remaining` in its state initializer.
+    vi.setSystemTime(new Date(t0.getTime() + 19 * 60000))
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
     await screen.findByText('Acme Houston Plant')
 
     const title = document.querySelector('.carrier-bid-countdown-title')
-    expect(title.className).toContain('carrier-bid-countdown-title--urgent')
+    expect(title.className).toContain('carrier-bid-countdown-title--red')
   })
 
-  it('does not apply the urgent modifier above the 15-minute threshold', async () => {
+  it('runs the shared ramp: amber between 30% and 10% of the window', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const t0 = new Date('2026-08-17T12:00:00Z')
+    vi.setSystemTime(t0)
+    const quote = openQuote(20)
+    vi.setSystemTime(new Date(t0.getTime() + 16 * 60000)) // 4 of 20 left = 20%
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const title = document.querySelector('.carrier-bid-countdown-title')
+    expect(title.className).toContain('carrier-bid-countdown-title--amber')
+  })
+
+  it('runs the shared ramp: blue on a fresh quote, never red', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-17T12:00:00Z'))
     const quote = openQuote(20)
@@ -883,7 +1017,8 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
     await screen.findByText('Acme Houston Plant')
 
     const title = document.querySelector('.carrier-bid-countdown-title')
-    expect(title.className).not.toContain('carrier-bid-countdown-title--urgent')
+    expect(title.className).toContain('carrier-bid-countdown-title--blue')
+    expect(title.className).not.toContain('carrier-bid-countdown-title--red')
   })
 })
 
@@ -1116,10 +1251,19 @@ describe('CarrierBid — hero background (SPB-43 plan, changes 1 & 2, 2026-08-18
     expect(bg.classList.contains('hero-bg')).toBe(true)
     expect(bg.classList.contains('hero-bg--flipped')).toBe(true)
 
-    // One stacked .hero-bg__photo per HERO_IMAGES entry (cross-fade
+    // One stacked .hero-bg__photo per HERO_IMAGES_LAND entry (cross-fade
     // mechanism, same as Home) — not a single static photo anymore.
     const photos = bg.querySelectorAll('.hero-bg__photo')
+    expect(photos.length).toBe(HERO_IMAGES_LAND.length)
     expect(photos.length).toBeGreaterThan(1)
+    // TL/LTL-only page: no ocean-freight photo may be rendered here (user
+    // ruling, 2026-08-24). Asserted on the DOM, not just the constant, so a
+    // future re-point back to the full HERO_IMAGES set fails here too.
+    const urls = Array.from(photos).map((p) => p.style.backgroundImage)
+    for (const src of HERO_IMAGES_LAND) expect(urls.some((u) => u.includes(src))).toBe(true)
+    for (const src of ['/bg1.webp', '/bg2.webp', '/bg3.webp']) {
+      expect(urls.some((u) => u.includes(src))).toBe(false)
+    }
     // Exactly one photo starts opaque (the deterministic initial index).
     const opaque = Array.from(photos).filter((p) => p.style.opacity === '1')
     expect(opaque).toHaveLength(1)

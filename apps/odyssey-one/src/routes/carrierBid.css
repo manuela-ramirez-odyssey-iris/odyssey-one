@@ -161,7 +161,19 @@
 /* Urgent (< 15 min remaining) — same token the old SummaryStrip urgent rule
    used (`--text-error`), same one Countdown's own `.countdown--urgent`
    (spotboard.css) uses. */
-.carrier-bid-countdown-title--urgent .carrier-bid-countdown-title__value {
+/* Shared SpotBid ramp (spotboard/Countdown.jsx `countdownTone`): blue while
+   the window is healthy, amber as it tightens, red at the end. Only the
+   VALUE is tinted — the HOURS/MINUTES/SECONDS labels stay tertiary so the
+   color reads as urgency on the number, not a restyle of the whole block. */
+.carrier-bid-countdown-title--blue .carrier-bid-countdown-title__value {
+  color: var(--badge-blue-text);
+}
+
+.carrier-bid-countdown-title--amber .carrier-bid-countdown-title__value {
+  color: var(--badge-yellow-text);
+}
+
+.carrier-bid-countdown-title--red .carrier-bid-countdown-title__value {
   color: var(--text-error);
 }
 
@@ -396,6 +408,13 @@
 
 .carrier-bid-page__note {
   color: var(--text-tertiary);
+}
+
+/* Fuel-basis helper under the read-only Fuel field (SPB-64) — names the
+   schedule the amount comes from (rate/mi × distance, or % of linehaul). */
+.carrier-bid-fuel__basis {
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-1);
 }
 
 .carrier-bid-page__actions {

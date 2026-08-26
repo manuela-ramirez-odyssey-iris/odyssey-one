@@ -39,6 +39,26 @@ describe('ModalMedium composes ModalHeader', () => {
   })
 })
 
+describe('ModalMedium headerTrail', () => {
+  it('renders headerTrail content immediately BEFORE the close X', () => {
+    const { container } = render(
+      <ModalMedium title="Confirm Action" onClose={() => {}} headerTrail={<span data-testid="badge">02:14</span>} />
+    )
+    const trail = container.querySelector('.modal-header__trail')
+    expect(trail).toBeTruthy()
+    const kids = [...trail.children]
+    expect(kids[0].getAttribute('data-testid')).toBe('badge')
+    expect(kids[kids.length - 1].getAttribute('aria-label')).toBe('Close')
+  })
+
+  it('without headerTrail the close X is still the only trail child', () => {
+    const { container } = render(<ModalMedium title="Confirm Action" onClose={() => {}} />)
+    const trail = container.querySelector('.modal-header__trail')
+    expect(trail.children).toHaveLength(1)
+    expect(screen.getByLabelText('Close')).toBeTruthy()
+  })
+})
+
 describe('ModalMedium stacked Escape', () => {
   it('Escape dismisses only the topmost of two open dialogs', () => {
     const onCloseBottom = vi.fn()

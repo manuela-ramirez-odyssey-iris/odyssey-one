@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { heroPosition, HERO_POSITIONS } from './heroImages'
+import { heroPosition, HERO_POSITIONS, HERO_IMAGES, HERO_IMAGES_LAND } from './heroImages'
+
+// The ocean-freight photos, by file. CarrierBid is TL/LTL-only (user ruling,
+// 2026-08-24) so none of these may reach it — this is the guard that fails if
+// someone re-points the page at the full set or drops a maritime shot into the
+// land subset.
+const MARITIME = ['/bg1.webp', '/bg2.webp', '/bg3.webp']
+
+describe('HERO_IMAGES_LAND (CarrierBid / TL-LTL background set)', () => {
+  it('excludes every maritime photo', () => {
+    for (const src of MARITIME) expect(HERO_IMAGES_LAND).not.toContain(src)
+  })
+
+  it('is a subset of the canonical set and still cross-fadeable (2+ images)', () => {
+    for (const src of HERO_IMAGES_LAND) expect(HERO_IMAGES).toContain(src)
+    expect(HERO_IMAGES_LAND.length).toBeGreaterThan(1)
+  })
+})
 
 describe('heroPosition', () => {
   it('passes through an in-range configured position', () => {
