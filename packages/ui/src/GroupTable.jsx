@@ -627,11 +627,25 @@ export function detailNoteContent(note) {
   return (
     <>
       {note.label != null && (
-        <span className="odyssey-group-table__detail-note-label">{note.label}</span>
+        <>
+          {/* The colon + space belongs to the COMPONENT, not the consumer: a label
+              and its value ran straight together before, and every caller would
+              otherwise have to remember the punctuation (Figma 5356:5110 renders
+              "Reason Description: No rate is available…"). A label that already
+              ends in a colon keeps just the one — the separator is normalised
+              here rather than doubled on screen. */}
+          <span className="odyssey-group-table__detail-note-label">{stripTrailingColon(note.label)}:</span>{' '}
+        </>
       )}
       {note.value}
     </>
   )
+}
+
+/** Drops a trailing colon from a string label so the separator is never doubled.
+ *  Node labels pass through — the component cannot rewrite what it did not author. */
+export function stripTrailingColon(label) {
+  return typeof label === 'string' ? label.replace(/\s*:\s*$/, '') : label
 }
 
 /** Cell alignment class for a column's `align` value ('' for default left). */

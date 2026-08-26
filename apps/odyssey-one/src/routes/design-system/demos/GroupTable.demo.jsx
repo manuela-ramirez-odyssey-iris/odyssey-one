@@ -186,6 +186,7 @@ const ROUTE_DETAIL_COLUMNS = [
 const ROUTE_DETAIL_SECTION_POOL = [
   {
     key: 'routing',
+    title: 'Routing Details', // demo label only — NOT part of the section API
     note: true, // this section hosts group.detailNote
     // UNSIZED on purpose — this section and `commitment` below are the pair that
     // demonstrates the trailing filler: 3 columns beside 5, both collapsing to
@@ -200,6 +201,7 @@ const ROUTE_DETAIL_SECTION_POOL = [
   },
   {
     key: 'commitment',
+    title: 'Volume Commitment', // demo label only — NOT part of the section API
     // LEFT-aligned, numerics included: every nested table aligns left (user,
     // 2026-08-26). `align: 'right'` on the numeric columns pushed them to the far
     // edge of a wide band and made this whole sibling read as right-aligned while
@@ -216,6 +218,7 @@ const ROUTE_DETAIL_SECTION_POOL = [
   },
   {
     key: 'notify',
+    title: 'Notify & Response', // demo label only — NOT part of the section API
     columns: [
       // Sized past the band, so this section and `additional` scroll on their own
       // while the two above sit still — the visible proof of per-section scroll.
@@ -227,6 +230,7 @@ const ROUTE_DETAIL_SECTION_POOL = [
   },
   {
     key: 'additional',
+    title: 'Additional Info', // demo label only — NOT part of the section API
     columns: [
       { key: 'rpcId', label: 'RPC-ID', width: 260 },
       { key: 'ttId', label: 'TT ID', width: 260 },
@@ -528,7 +532,10 @@ function Playground() {
         {flavor === 'sections' && visibleSections.map((sec) => (
           <Toggle
             key={sec.key}
-            label={`detailNotes.${sec.key}`}
+            /* Named for the TABLE it adds a row to, not as an API path: the key is
+               the consumer's own string, and `detailNotes.routing` read like a
+               property the component defines (user, 2026-08-26). */
+            label={`note in ${sec.title}`}
             value={noteKeys.includes(sec.key)}
             set={(on) => setNoteKeys((prev) =>
               on ? [...prev, sec.key] : prev.filter((k) => k !== sec.key))}

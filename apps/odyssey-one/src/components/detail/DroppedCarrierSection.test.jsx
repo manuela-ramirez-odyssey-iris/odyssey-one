@@ -108,7 +108,8 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
       for (const th of container.querySelectorAll('th')) seen.add(th.textContent)
       // The note is a label + value row, not a column header.
       const note = container.querySelector('.odyssey-group-table__detail-note')
-      seen.add(note.querySelector('.odyssey-group-table__detail-note-label').textContent)
+      // GroupTable owns the trailing ': ' separator — strip it back to the field name.
+      seen.add(note.querySelector('.odyssey-group-table__detail-note-label').textContent.replace(/:$/, ''))
     }
     seen.delete('') // the pinned action column's empty header
     for (const field of ['SCAC', 'Carrier Name', 'Equipment', 'Reason', 'Route Rank',

@@ -1,5 +1,5 @@
 // GroupTable pure helpers — node env (no DOM), vitest globals.
-import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection } from './GroupTable.jsx'
+import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection, stripTrailingColon } from './GroupTable.jsx'
 
 describe('alignClass', () => {
   it('maps right/center to the modifier classes', () => {
@@ -223,5 +223,24 @@ describe('noteForSection', () => {
   it('returns null when the group has no notes at all', () => {
     expect(at({}, 0)).toBeNull()
     expect(at({}, 1)).toBeNull()
+  })
+})
+
+describe('stripTrailingColon', () => {
+  it('drops a trailing colon and any space around it', () => {
+    expect(stripTrailingColon('Reason Description:')).toBe('Reason Description')
+    expect(stripTrailingColon('Reason Description :')).toBe('Reason Description')
+    expect(stripTrailingColon('Reason Description:  ')).toBe('Reason Description')
+  })
+
+  it('leaves a clean label untouched, colons INSIDE it included', () => {
+    expect(stripTrailingColon('Reason Description')).toBe('Reason Description')
+    expect(stripTrailingColon('Note: extra')).toBe('Note: extra')
+  })
+
+  it('passes non-strings through — a node label is the consumer\'s markup', () => {
+    const node = { type: 'em' }
+    expect(stripTrailingColon(node)).toBe(node)
+    expect(stripTrailingColon(undefined)).toBe(undefined)
   })
 })

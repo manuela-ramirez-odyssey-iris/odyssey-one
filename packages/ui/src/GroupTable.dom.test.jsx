@@ -110,7 +110,7 @@ describe('GroupTable detailNote', () => {
     )
     const note = container.querySelector('.odyssey-group-table__detail-note > td')
     expect(note.querySelector('.odyssey-group-table__detail-note-label').textContent)
-      .toBe('Reason Description')
+      .toBe('Reason Description:')   // the component owns the separator
     expect(note.textContent).toContain('Prohibited for this lane.')
     expect(Number(note.getAttribute('colspan'))).toBe(DETAIL_COLUMNS.length + 1) // + filler
   })
@@ -489,5 +489,38 @@ describe('GroupTable detailNotes — one note per sibling table', () => {
     const spans = [...container.querySelectorAll('.odyssey-group-table__detail-note > td')]
       .map((td) => Number(td.getAttribute('colspan')))
     expect(spans).toEqual([DETAIL_COLUMNS.length + 1, B.length + 1]) // + filler each
+  })
+})
+
+describe('GroupTable detailNote — the label/value separator', () => {
+  const DETAIL = [{ key: 'method', label: 'Method' }]
+  const withNote = (label) => [{ ...GROUPS[0], detailNote: { label, value: 'the value' } }]
+  const labelOf = (c) => c.querySelector('.odyssey-group-table__detail-note-label').textContent
+  const rowText = (c) => c.querySelector('.odyssey-group-table__detail-note > td').textContent
+
+  it('appends a colon AND a space, so label and value never run together', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL} groups={withNote('Reason Description')} defaultExpanded />
+    )
+    expect(labelOf(container)).toBe('Reason Description:')
+    expect(rowText(container)).toBe('Reason Description: the value')
+  })
+
+  it('does not double a colon the consumer already wrote', () => {
+    for (const given of ['Reason Description:', 'Reason Description :', 'Reason Description:  ']) {
+      cleanup()
+      const { container } = render(
+        <GroupTable columns={COLUMNS} detailColumns={DETAIL} groups={withNote(given)} defaultExpanded />
+      )
+      expect(labelOf(container)).toBe('Reason Description:')
+    }
+  })
+
+  it('leaves a NODE label alone — the component cannot rewrite what it did not author', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL} defaultExpanded
+        groups={withNote(<em>Custom</em>)} />
+    )
+    expect(container.querySelector('.odyssey-group-table__detail-note-label em').textContent).toBe('Custom')
   })
 })
