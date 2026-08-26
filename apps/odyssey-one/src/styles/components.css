@@ -6911,6 +6911,22 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* The trailing SLACK column. `width: 100%` makes this cell absorb every spare
+   pixel of the band, so the real columns collapse to their content width and
+   their values stay LEFT instead of spreading across a stretched table — the
+   fix for a 3-column section sitting beside a 6-column sibling (user,
+   2026-08-26). Columns with an explicit width are pinned with min-width in the
+   component, which is the floor this 100% cannot argue with.
+
+   `padding: 0` is what lets it disappear when there is no slack: measured in
+   Chrome at 0px on a table that overflows its band, 803px on one that does not.
+   It keeps the header underline and row hairlines, so the lines still run the
+   full width of the band. */
+.odyssey-group-table__detail-filler {
+  width: 100%;
+  padding: 0;
+}
+
 .odyssey-group-table__detail td {
   height: 48px;
   padding: 0 var(--spacing-4);

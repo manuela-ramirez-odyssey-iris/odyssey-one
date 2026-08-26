@@ -5,6 +5,8 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import GroupTable from './GroupTable.jsx'
 
+const FILLER = '.odyssey-group-table__detail-filler'
+
 afterEach(cleanup)
 
 const COLUMNS = [
@@ -110,7 +112,7 @@ describe('GroupTable detailNote', () => {
     expect(note.querySelector('.odyssey-group-table__detail-note-label').textContent)
       .toBe('Reason Description')
     expect(note.textContent).toContain('Prohibited for this lane.')
-    expect(Number(note.getAttribute('colspan'))).toBe(DETAIL_COLUMNS.length)
+    expect(Number(note.getAttribute('colspan'))).toBe(DETAIL_COLUMNS.length + 1) // + filler
   })
 
   it('still takes a bare node, for what a label/value pair cannot say', () => {
@@ -207,7 +209,8 @@ describe('GroupTable detailSections — N independent sibling tables', () => {
     )
     const bands = sectionsOf(container)
     expect(bands).toHaveLength(2)
-    const headersOf = (b) => [...b.querySelectorAll('th')].map((th) => th.textContent)
+    // ...minus the trailing filler, which is spacing, not a column.
+    const headersOf = (b) => [...b.querySelectorAll(`th:not(${FILLER})`)].map((th) => th.textContent)
     expect(headersOf(bands[0])).toEqual(['Method', 'User'])
     expect(headersOf(bands[1])).toEqual(['UoM', 'Open', 'CVC ID'])
     // Same rows, different column sets — a section is a view over the group's
@@ -278,7 +281,7 @@ describe('GroupTable detailSections — N independent sibling tables', () => {
     )
     const notes = container.querySelectorAll('.odyssey-group-table__detail-note')
     expect(notes).toHaveLength(1)          // exactly one, never duplicated per section
-    expect(Number(notes[0].querySelector('td').getAttribute('colspan'))).toBe(ROUTING.length)
+    expect(Number(notes[0].querySelector('td').getAttribute('colspan'))).toBe(ROUTING.length + 1) // + filler
     expect(sectionsOf(container)[0].contains(notes[0])).toBe(true)
   })
 
@@ -381,5 +384,58 @@ describe('GroupTable detailNote — clamp + Show more toggle', () => {
       expect(body(container)).toBeNull()
       expect(toggle()).toBeNull()
     } finally { restore() }
+  })
+})
+
+describe('GroupTable nested tables — the trailing filler column', () => {
+  const NARROW = [{ key: 'method', label: 'Method' }]
+  const GROUP = [{ ...GROUPS[0], detailRows: [{ method: 'Automatic Update', user: 'x' }] }]
+
+  it('appends exactly ONE filler per nested table, header and body alike', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded
+        detailSections={[{ key: 'a', columns: NARROW }, { key: 'b', columns: DETAIL_COLUMNS }]} />
+    )
+    for (const band of container.querySelectorAll('.odyssey-group-table__detail-section')) {
+      // :scope matters — a bare `tbody tr` selector resolves through the OUTER
+      // table's tbody and matches the nested THEAD row too.
+      const t = band.querySelector('.odyssey-group-table__detail')
+      expect(t.querySelectorAll(`:scope > thead > tr > ${FILLER}`)).toHaveLength(1)
+      expect(t.querySelectorAll(`:scope > tbody > tr:first-child > ${FILLER}`)).toHaveLength(1)
+      // last cell in the row, so the slack lands at the END
+      const cells = [...t.querySelectorAll(':scope > tbody > tr:first-child > *')]
+      expect(cells[cells.length - 1].classList.contains('odyssey-group-table__detail-filler')).toBe(true)
+    }
+  })
+
+  it('hides the filler from assistive tech — it is spacing, not a column', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={NARROW} groups={GROUP} defaultExpanded />
+    )
+    for (const cell of container.querySelectorAll(FILLER)) {
+      expect(cell.getAttribute('aria-hidden')).toBe('true')
+      expect(cell.textContent).toBe('')
+    }
+  })
+
+  it('pins an explicit column width with min-width so the filler cannot squeeze it', () => {
+    // Measured in Chrome: without the min-width floor, a width:100% filler
+    // collapses 360px columns to 125px.
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded
+        detailSections={[{ key: 'a', columns: [{ key: 'method', label: 'Method', width: 360 }] }]} />
+    )
+    const th = container.querySelector(`.odyssey-group-table__detail th:not(${FILLER})`)
+    expect(th.style.width).toBe('360px')
+    expect(th.style.minWidth).toBe('360px')
+  })
+
+  it('leaves unsized columns unpinned, so they collapse to their content', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={NARROW} groups={GROUP} defaultExpanded />
+    )
+    const th = container.querySelector(`.odyssey-group-table__detail th:not(${FILLER})`)
+    expect(th.style.width).toBe('')
+    expect(th.style.minWidth).toBe('')
   })
 })

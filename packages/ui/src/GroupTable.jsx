@@ -214,6 +214,27 @@ function DetailNote({ note, lines }) {
   )
 }
 
+/**
+ * The trailing SLACK column of a nested table.
+ *
+ * Without it, a nested table narrower than its band stretches its real columns
+ * to fill — a 3-column section beside a 6-column sibling ended up with columns
+ * at 286/343/475px for content needing 78/93/129, values drifting to the middle
+ * of an empty cell (user, 2026-08-26). `width: 100%` here makes THIS cell absorb
+ * every spare pixel instead, so the real columns collapse to their content and
+ * the values stay left, aligned with the sibling above.
+ *
+ * `padding: 0` (CSS) lets it vanish entirely when there is no slack: measured at
+ * 0px on a table that overflows its band, 803px on one that does not.
+ *
+ * aria-hidden because it carries nothing — it is spacing, not a column, and a
+ * screen reader announcing an empty trailing header is noise.
+ */
+function FillerCell({ head = false }) {
+  const props = { className: 'odyssey-group-table__detail-filler', 'aria-hidden': 'true' }
+  return head ? <th {...props} /> : <td {...props} />
+}
+
 export default function GroupTable({
   columns = [],
   groups = [],
@@ -431,11 +452,17 @@ export default function GroupTable({
                                   key={col.key}
                                   scope="col"
                                   className={alignClass(col.align) || undefined}
-                                  style={col.width != null ? { width: col.width } : undefined}
+                                  /* min-width PINS an explicit width: the filler below is
+                                     width:100%, and a 100% cell squeezes plain `width`
+                                     suggestions down to min-content (measured: 360px
+                                     columns collapsed to 125). min-width is the floor the
+                                     filler cannot argue with. */
+                                  style={col.width != null ? { width: col.width, minWidth: col.width } : undefined}
                                 >
                                   {col.label}
                                 </th>
                               ))}
+                              <FillerCell head />
                             </tr>
                           </thead>
                           <tbody>
@@ -448,6 +475,7 @@ export default function GroupTable({
                                       {render ? render(row, col) : row[col.key] ?? '--'}
                                     </td>
                                   ))}
+                                  <FillerCell />
                                 </tr>
                               )
                             })}
@@ -459,7 +487,7 @@ export default function GroupTable({
                                  2026-08-17). It wraps and clamps; every other cell in
                                  this table stays nowrap. */
                               <tr className="odyssey-group-table__detail-note">
-                                <td colSpan={section.columns.length}>
+                                <td colSpan={section.columns.length + 1}>
                                   <DetailNote note={group.detailNote} lines={noteLines} />
                                 </td>
                               </tr>

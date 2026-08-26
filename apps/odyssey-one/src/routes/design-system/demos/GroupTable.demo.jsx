@@ -67,6 +67,7 @@ export const tokens = [
   { token: '--bg-secondary + 48px inset', resolves: 'DSN/50 / raw 48px', usage: 'nested flavor: the gray band hosting the second table, inset 48px on the LEFT only (a right inset would cut it short of the scroll extent)' },
   { token: '--text-primary semibold / --text-tertiary', resolves: 'DSN/900 / DSN/500', usage: 'nested table header labels / nested row values — same treatment as the outer table, over the gray band' },
   { token: '--border-subtle', resolves: 'DSN/200', usage: 'detailSections: the 1px hairline between SIBLING nested tables — on the 2nd and later only, since the group row above the first already carries one' },
+  { token: 'width:100% + padding:0', resolves: '—', usage: 'nested tables: the trailing FILLER column absorbs the band\'s spare width, so real columns keep their content width and values stay left instead of spreading; collapses to 0 when the table overflows' },
   { token: 'raw 48px', resolves: '—', usage: 'detailSections: the LEFT indent marking a nested table subordinate — on the section, not the host cell, so the sibling seam spans the band edge to edge' },
   { token: '--spacing-1 + --text-link', resolves: '4 / Text/link', usage: 'detailNote Show more/less toggle — a link Button, offset from the clamped text' },
   { token: '--bg-primary + --border-subtle', resolves: 'white / DSN/200', usage: 'pinned action column (68px, sticky right) + its left shadow — DataTable\'s exact value, and the table is border-collapse: separate because Chrome will not paint cell shadows in collapsed tables' },
@@ -185,17 +186,15 @@ const ROUTE_DETAIL_SECTION_POOL = [
   {
     key: 'routing',
     note: true, // this section hosts group.detailNote
-    // EXPLICIT WIDTHS, and they are load-bearing for the demo rather than
-    // decorative: with natural widths these three columns come to ~340px inside a
-    // ~1150px band, so min-width:100% fills the band, nothing overflows, and
-    // `detailScroll` has nothing to scroll — the only scrollbar left is the outer
-    // table's, which moves every sibling at once and reads as "one scroll for all"
-    // (user, 2026-08-26). Each section is sized to EXCEED the band so its own
-    // scrollbar engages and the independence is visible.
+    // UNSIZED on purpose — this section and `commitment` below are the pair that
+    // demonstrates the trailing filler: 3 columns beside 5, both collapsing to
+    // their content width and both starting at the same left edge instead of
+    // stretching to fill the band. The two sections BELOW carry explicit widths so
+    // they overflow and demonstrate detailScroll. One pool, both behaviours.
     columns: [
-      { key: 'transit', label: 'Transit', width: 420 },
-      { key: 'distance', label: 'Distance', width: 420 },
-      { key: 'transitSource', label: 'Transit Source', width: 420 },
+      { key: 'transit', label: 'Transit' },
+      { key: 'distance', label: 'Distance' },
+      { key: 'transitSource', label: 'Transit Source' },
     ],
   },
   {
@@ -207,16 +206,18 @@ const ROUTE_DETAIL_SECTION_POOL = [
     // where their first column starts. `align` is still supported per column; it
     // is just wrong as a default here.
     columns: [
-      { key: 'commitment', label: 'Commitment', width: 300 },
-      { key: 'uom', label: 'UoM', width: 300 },
-      { key: 'accepted', label: 'Accepted', width: 300 },
-      { key: 'open', label: 'Open', width: 300 },
-      { key: 'cvcId', label: 'CVC ID', width: 300 },
+      { key: 'commitment', label: 'Commitment' },
+      { key: 'uom', label: 'UoM' },
+      { key: 'accepted', label: 'Accepted' },
+      { key: 'open', label: 'Open' },
+      { key: 'cvcId', label: 'CVC ID' },
     ],
   },
   {
     key: 'notify',
     columns: [
+      // Sized past the band, so this section and `additional` scroll on their own
+      // while the two above sit still — the visible proof of per-section scroll.
       { key: 'notifyMethod', label: 'Notify Method', width: 360 },
       { key: 'notifyDate', label: 'Notify Date', width: 360 },
       { key: 'responseMethod', label: 'Response Method', width: 360 },
