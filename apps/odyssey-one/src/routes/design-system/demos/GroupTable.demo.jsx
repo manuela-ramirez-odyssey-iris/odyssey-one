@@ -176,17 +176,18 @@ const ROUTE_DETAIL_COLUMNS = [
 ]
 
 // N SIBLING sections over the SAME detailRows — each is a column set, not its own
-// data. Two named groups here (Dropped Carrier's real shape: Routing Details +
-// Volume Commitment); pass three or ten and you get three or ten tables.
-const ROUTE_DETAIL_SECTIONS = [
+// data. A POOL rather than a fixed pair: the playground slices it, because the
+// count is the API's whole point and a hardcoded two cannot show that (user,
+// 2026-08-26). Deliberately unequal column counts and widths — sibling tables
+// share nothing, and a pool of four identical ones would hide that.
+const ROUTE_DETAIL_SECTION_POOL = [
   {
     key: 'routing',
     note: true, // this section hosts group.detailNote
     columns: [
       { key: 'transit', label: 'Transit' },
       { key: 'distance', label: 'Distance' },
-      { key: 'notifyMethod', label: 'Notify Method' },
-      { key: 'notifyDate', label: 'Notify Date' },
+      { key: 'transitSource', label: 'Transit Source' },
     ],
   },
   {
@@ -197,6 +198,26 @@ const ROUTE_DETAIL_SECTIONS = [
       { key: 'accepted', label: 'Accepted', align: 'right' },
       { key: 'open', label: 'Open', align: 'right' },
       { key: 'cvcId', label: 'CVC ID' },
+    ],
+  },
+  {
+    key: 'notify',
+    columns: [
+      { key: 'notifyMethod', label: 'Notify Method' },
+      { key: 'notifyDate', label: 'Notify Date' },
+      { key: 'responseMethod', label: 'Response Method' },
+      { key: 'responseUser', label: 'Response User' },
+    ],
+  },
+  {
+    key: 'additional',
+    columns: [
+      { key: 'rpcId', label: 'RPC-ID' },
+      { key: 'ttId', label: 'TT ID' },
+      { key: 'routeGroup', label: 'Route Group' },
+      { key: 'quoted', label: 'Carrier Quoted' },
+      { key: 'startDate', label: 'Start Date' },
+      { key: 'stopDate', label: 'Stop Date' },
     ],
   },
 ]
@@ -229,7 +250,7 @@ const ROUTE_GROUPS = [
     label: '4',
     values: { rank: '1', scac: 'SEFL', carrier: 'Southeastern FRT', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="green">Accepted</Badge> },
     action: <ActionTile label="4" />,
-    detailRows: [{ transit: '1 DY', distance: '476.98 mi', notifyMethod: 'Fax', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'Automatic Update', responseUser: 'Moses Johnson', quoted: 'Yes', commitment: '19', uom: 'Loads/Week', accepted: '4', open: '15', cvcId: 'CVC27656' }],
+    detailRows: [{ transit: '1 DY', distance: '476.98 mi', notifyMethod: 'Fax', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'Automatic Update', responseUser: 'Moses Johnson', quoted: 'Yes', commitment: '19', uom: 'Loads/Week', accepted: '4', open: '15', cvcId: 'CVC27656', transitSource: 'PCMILER', rpcId: '4457785', ttId: '10901692', routeGroup: 'EAST-01', startDate: '04/12/2025', stopDate: '09/30/2025' }],
   },
   {
     id: 'r2',
@@ -237,7 +258,7 @@ const ROUTE_GROUPS = [
     values: { rank: '2', scac: 'ODFL', carrier: 'Old Dominion Freight Line', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="gray">Cancelled</Badge> },
     action: <ActionTile label="2" />,
     actionTone: 'warning',
-    detailRows: [{ transit: '3 DY', distance: '1,434.31 mi', notifyMethod: 'EDI', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Shari Witting', quoted: 'No', commitment: '--', uom: '--', accepted: '--', open: '--', cvcId: 'CVC10154' }],
+    detailRows: [{ transit: '3 DY', distance: '1,434.31 mi', notifyMethod: 'EDI', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Shari Witting', quoted: 'No', commitment: '--', uom: '--', accepted: '--', open: '--', cvcId: 'CVC10154', transitSource: 'SMC', rpcId: '--', ttId: '--', routeGroup: '--', startDate: '--', stopDate: '--' }],
   },
   {
     id: 'r3',
@@ -245,7 +266,7 @@ const ROUTE_GROUPS = [
     values: { rank: '3', scac: 'ODFL', carrier: 'Old Dominion Freight Line', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="red">Declined</Badge> },
     action: <ActionTile label="3" />,
     actionTone: 'danger',
-    detailRows: [{ transit: '1 DY', distance: '499.39 mi', notifyMethod: 'Email', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Devin Bernhard', quoted: 'No', commitment: '39', uom: 'Loads/Month', accepted: '5', open: '34', cvcId: 'CVC35987' }],
+    detailRows: [{ transit: '1 DY', distance: '499.39 mi', notifyMethod: 'Email', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Devin Bernhard', quoted: 'No', commitment: '39', uom: 'Loads/Month', accepted: '5', open: '34', cvcId: 'CVC35987', transitSource: 'PCMILER', rpcId: '4491203', ttId: '18334027', routeGroup: 'MIDWEST-03', startDate: '01/08/2025', stopDate: '12/31/2025' }],
     // `detailNote` on ONE group deliberately: it is optional per group, and the
     // other two rows show what the nested table looks like without it.
     detailNote: {
@@ -400,6 +421,11 @@ function Playground() {
   // from the demo data so both states are visible (nested flavor only).
   const [showDetailNote, setShowDetailNote] = useState(true)
   const [detailScroll, setDetailScroll] = useState(false)
+  // The count IS the API — detailSections takes as many as the consumer has, so
+  // the playground has to be able to ask for more than the two the Figma master
+  // can draw (user, 2026-08-26).
+  const [sectionCount, setSectionCount] = useState(2)
+  const [noteLines, setNoteLines] = useState(3)
 
   const activeGroups = showDetailNote
     ? FLAVORS[flavor].groups
@@ -459,6 +485,32 @@ function Playground() {
         {flavor === 'nested' && (
           <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
         )}
+        {flavor === 'sections' && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+            detailSections (sibling tables)
+            <input
+              type="number"
+              min="1"
+              max={ROUTE_DETAIL_SECTION_POOL.length}
+              value={sectionCount}
+              onChange={(e) => setSectionCount(Math.min(ROUTE_DETAIL_SECTION_POOL.length, Math.max(1, Number(e.target.value))))}
+              style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}
+            />
+          </label>
+        )}
+        {(flavor === 'nested' || flavor === 'sections') && showDetailNote && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+            noteLines (0 = no clamp)
+            <input
+              type="number"
+              min="0"
+              max="10"
+              value={noteLines}
+              onChange={(e) => setNoteLines(Math.min(10, Math.max(0, Number(e.target.value))))}
+              style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}
+            />
+          </label>
+        )}
         <Button
           variant="link"
           onClick={() => setExpanded(Object.fromEntries(activeGroups.map((g) => [g.id, !allExpanded])))}
@@ -492,6 +544,7 @@ function Playground() {
               columns={ROUTE_COLUMNS}
               detailColumns={ROUTE_DETAIL_COLUMNS}
               detailScroll={detailScroll}
+              noteLines={noteLines}
               aria-label="Routing options"
             />
           )}
@@ -499,7 +552,8 @@ function Playground() {
             <GroupTable
               {...shared}
               columns={ROUTE_COLUMNS}
-              detailSections={ROUTE_DETAIL_SECTIONS}
+              detailSections={ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount)}
+              noteLines={noteLines}
               aria-label="Routing options with sibling detail sections"
             />
           )}
