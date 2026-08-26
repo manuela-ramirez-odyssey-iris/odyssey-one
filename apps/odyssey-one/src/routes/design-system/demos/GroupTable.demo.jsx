@@ -238,6 +238,16 @@ const ROUTE_DETAIL_SECTION_POOL = [
   },
 ]
 
+// One note body per section key. The playground picks WHICH nested tables carry a
+// note; the note itself has to exist for each of them. Long enough to clamp, so
+// every note gets its own Show more toggle.
+const SECTION_NOTES = {
+  routing: { label: 'Routing Note', value: 'Transit came back from PC*MILER rather than the contracted lane table, so the times below are estimates. Long enough to clamp, which is the point: each nested table gets its own Show more.' },
+  commitment: { label: 'Commitment Note', value: 'Weekly cap is shared across three lanes for this carrier, so Open here is not reservable in full. Commitment resets Monday 00:00 in the origin timezone, not on the shipment date.' },
+  notify: { label: 'Response Note', value: 'Carrier responded by EDI 990 within the tender window; the automatic update overwrote the manual entry made minutes earlier. Both are kept in tender history.' },
+  additional: { label: 'Route Note', value: 'RPC record is the contracted lane; start and stop dates bound the contract window, not the shipment. A carrier outside its window is dropped rather than ranked.' },
+}
+
 // The pinned column's content is entirely the consumer's — including its tone.
 // The component supplies the slot and nothing else.
 //
@@ -266,20 +276,6 @@ const ROUTE_GROUPS = [
     label: '4',
     values: { rank: '1', scac: 'SEFL', carrier: 'Southeastern FRT', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="green">Accepted</Badge> },
     action: <ActionTile label="4" />,
-    // TWO notes, one per sibling — `detailNotes` keyed by section key. Group r3
-    // below keeps the single `detailNote` shorthand, and r2 has none, so the
-    // three groups show the three states side by side (user, 2026-08-26: the DSM
-    // "just shows one in the first sibling of the 3rd group").
-    detailNotes: {
-      routing: {
-        label: 'Routing Note',
-        value: 'Transit came back from PC*MILER rather than the contracted lane table, so the times below are estimates. Long enough to clamp, which is the point: each sibling gets its own Show more.',
-      },
-      commitment: {
-        label: 'Commitment Note',
-        value: 'Weekly cap is shared across three lanes for this carrier, so Open here is not reservable in full.',
-      },
-    },
     detailRows: [{ transit: '1 DY', distance: '476.98 mi', notifyMethod: 'Fax', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'Automatic Update', responseUser: 'Moses Johnson', quoted: 'Yes', commitment: '19', uom: 'Loads/Week', accepted: '4', open: '15', cvcId: 'CVC27656', transitSource: 'PCMILER', rpcId: '4457785', ttId: '10901692', routeGroup: 'EAST-01', startDate: '04/12/2025', stopDate: '09/30/2025' }],
   },
   {
@@ -456,8 +452,25 @@ function Playground() {
   // can draw (user, 2026-08-26).
   const [sectionCount, setSectionCount] = useState(2)
   const [noteLines, setNoteLines] = useState(3)
+  // WHICH nested tables carry a note. Checked per section and applied to EVERY
+  // group, because `detailNotes` is per-group data but the SHAPE of a row is a
+  // table-wide decision — every collapsible group renders the same sections
+  // (user, 2026-08-26).
+  const [noteKeys, setNoteKeys] = useState(['routing'])
 
-  const activeGroups = showDetailNote
+  const visibleSections = ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount)
+  const activeGroups = flavor === 'sections'
+    // The note row is add/removable per nested table, and the choice replicates
+    // across every group — strip the single-note shorthand so the checkboxes are
+    // the only source of notes here.
+    ? FLAVORS[flavor].groups.map(({ detailNote, ...g }) => ({
+        ...g,
+        detailNotes: Object.fromEntries(
+          visibleSections.filter((sec) => noteKeys.includes(sec.key))
+            .map((sec) => [sec.key, SECTION_NOTES[sec.key]])
+        ),
+      }))
+    : showDetailNote
     ? FLAVORS[flavor].groups
     : FLAVORS[flavor].groups.map(({ detailNote, ...g }) => g)
   const [expanded, setExpanded] = useState(() =>
@@ -509,9 +522,18 @@ function Playground() {
         <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
-        {(flavor === 'nested' || flavor === 'sections') && (
+        {flavor === 'nested' && (
           <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
         )}
+        {flavor === 'sections' && visibleSections.map((sec) => (
+          <Toggle
+            key={sec.key}
+            label={`detailNotes.${sec.key}`}
+            value={noteKeys.includes(sec.key)}
+            set={(on) => setNoteKeys((prev) =>
+              on ? [...prev, sec.key] : prev.filter((k) => k !== sec.key))}
+          />
+        ))}
         {(flavor === 'nested' || flavor === 'sections') && (
           <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
         )}
@@ -528,7 +550,7 @@ function Playground() {
             />
           </label>
         )}
-        {(flavor === 'nested' || flavor === 'sections') && showDetailNote && (
+        {((flavor === 'nested' && showDetailNote) || (flavor === 'sections' && noteKeys.length > 0)) && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
             noteLines (0 = no clamp)
             <input
@@ -582,7 +604,7 @@ function Playground() {
             <GroupTable
               {...shared}
               columns={ROUTE_COLUMNS}
-              detailSections={ROUTE_DETAIL_SECTION_POOL.slice(0, sectionCount)}
+              detailSections={visibleSections}
               detailScroll={detailScroll}
               noteLines={noteLines}
               aria-label="Routing options with sibling detail sections"
