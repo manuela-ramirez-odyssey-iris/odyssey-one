@@ -62,23 +62,26 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
   })
 
-  it('locks identity + reason onto the row for every sub-tab', () => {
-    // These seven never rotate away — the reason in particular IS the section.
+  it('keeps the carrier row identical on every sub-tab', () => {
+    // Only the INNER table rotates. The row was never the problem, so nothing on
+    // it moves — including Commitment, the one commitment field always visible.
     for (const tab of SUB_TABS) {
       cleanup()
-      render(<DroppedCarrierSection carriers={[rich]} subTab={tab} />)
-      expect(screen.getByText('RLCA')).toBeTruthy()
+      const { container } = render(<DroppedCarrierSection carriers={[rich]} subTab={tab} />)
+      const rowHeaders = [...container.querySelectorAll('.odyssey-group-table__table > thead th')]
+        .map((th) => th.textContent)
+      expect(rowHeaders).toEqual(['SCAC', 'Carrier Name', 'Equipment', 'Reason',
+        'Route Rank', 'Pickup Date/Time', 'Delivery Date/Time', 'Commitment'])
       expect(screen.getByText('Prohibited Carrier')).toBeTruthy()
-      expect(screen.getByText('08/20/2025 14:00 CST, Wed')).toBeTruthy()
     }
   })
 
   it('shows the Volume Commitment fields on the View Volume Commitment sub-tab', () => {
-    // Jana, 2026-08-25: "volume commitment fields are missing". All six now land
-    // on the same sub-tab the tender list above already puts them on — and
-    // Commitment travels WITH its UoM rather than sitting nine columns away.
+    // Jana, 2026-08-25: "volume commitment fields are missing". The five that
+    // qualify Commitment now land on the same sub-tab the tender list above
+    // already puts them on, with no click needed to reach them.
     render(<DroppedCarrierSection carriers={[rich]} subTab="volume-commitment" />)
-    for (const header of ['Commitment', 'UoM', 'Accepted', 'Open', 'CVC ID', 'Comment']) {
+    for (const header of ['UoM', 'Accepted', 'Open', 'CVC ID', 'Comment']) {
       expect(screen.getByRole('columnheader', { name: header })).toBeTruthy()
     }
     expect(screen.getByText('CVC12345')).toBeTruthy()
@@ -86,32 +89,44 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(screen.getByText('Contract renewal pending.')).toBeTruthy()
   })
 
-  it('rotates the non-locked columns per sub-tab, and covers all 23 AC fields across the five', () => {
+  it('shows only that tab\'s fields in the inner table, not all fourteen', () => {
+    // The old fixed run of 14 is what made the section unreadable. Routing
+    // Options carries two; a commitment field must NOT leak onto it.
+    render(<DroppedCarrierSection carriers={[rich]} subTab="routing-options" />)
+    expect(screen.getByRole('columnheader', { name: 'Transit Time' })).toBeTruthy()
+    expect(screen.queryByRole('columnheader', { name: 'CVC ID' })).toBeNull()
+    expect(screen.queryByText('CVC12345')).toBeNull()
+  })
+
+  it('covers all 23 AC fields across the five sub-tabs', () => {
     // The guard against re-orphaning a field: every 13953 field must be reachable
     // from SOME sub-tab. A field dropped from TAB_COLUMNS by accident fails here.
-    const seen = new Set(['SCAC', 'Carrier Name', 'Equipment', 'Reason', 'Route Rank',
-      'Pickup Date/Time', 'Delivery Date/Time', 'Reason Description'])
+    const seen = new Set()
     for (const tab of SUB_TABS) {
       cleanup()
       const { container } = render(<DroppedCarrierSection carriers={[rich]} subTab={tab} />)
       for (const th of container.querySelectorAll('th')) seen.add(th.textContent)
+      // The note is a label + value row, not a column header.
+      const note = container.querySelector('.odyssey-group-table__detail-note')
+      seen.add(note.querySelector('.odyssey-group-table__detail-note-label').textContent)
     }
-    for (const field of ['Transit Time', 'Transit Source', 'Route Group', 'Commitment',
-      'UoM', 'Accepted', 'Open', 'CVC ID', 'Comment', 'Start Date', 'Stop Date',
-      'RPC-ID', 'TT ID', 'Order Equipment', 'Indirect Point', 'Reason Description']) {
+    seen.delete('') // the pinned action column's empty header
+    for (const field of ['SCAC', 'Carrier Name', 'Equipment', 'Reason', 'Route Rank',
+      'Pickup Date/Time', 'Delivery Date/Time', 'Commitment', 'Transit Time',
+      'Transit Source', 'Route Group', 'UoM', 'Accepted', 'Open', 'CVC ID', 'Comment',
+      'Start Date', 'Stop Date', 'RPC-ID', 'TT ID', 'Order Equipment',
+      'Indirect Point', 'Reason Description']) {
       expect(seen.has(field)).toBe(true)
     }
     expect(seen.size).toBe(23)
   })
 
-  it('falls back to the default sub-tab rather than rendering a bare row', () => {
+  it('falls back to the default sub-tab rather than an empty inner table', () => {
     render(<DroppedCarrierSection carriers={[rich]} subTab="not-a-tab" />)
     expect(screen.getByRole('columnheader', { name: 'Transit Time' })).toBeTruthy()
   })
 
-  it('renders the two flag fields as checked/unchecked on the ROW, never as a dash', () => {
-    // They live on the group row now, which has no renderCell hook — the icons
-    // are pre-rendered into `values`. Left as raw booleans the cell draws NOTHING.
+  it('renders the two flag fields as checked/unchecked, never as a dash', () => {
     render(<DroppedCarrierSection carriers={[rich]} subTab="others" />)
     expect(screen.getByLabelText('Order equipment: yes')).toBeTruthy()
     expect(screen.getByLabelText('Indirect point: yes')).toBeTruthy()
@@ -128,17 +143,19 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(screen.getByText(/Transit time could not be calculated/)).toBeTruthy()
   })
 
-  it('keeps the reason description in its own band, below the row and off the sub-tabs', () => {
-    // It is the one long free-text field: as a row column it cost 360px and
-    // pushed the rest off the scroll extent. It owns the detail band alone, so
-    // it survives every sub-tab switch and never competes for row width.
+  it('keeps the reason description a full-width note under every sub-tab', () => {
+    // It is the one long free-text field: as a column it cost 360px and pushed
+    // the rest off the scroll extent, so it stays the note row spanning whatever
+    // columns the active tab happens to have — and survives every tab switch.
     for (const tab of SUB_TABS) {
       cleanup()
       const { container } = render(<DroppedCarrierSection carriers={[rich]} subTab={tab} />)
       const detail = container.querySelector('.odyssey-group-table__detail')
       const headers = [...detail.querySelectorAll('th')].map((th) => th.textContent)
-      expect(headers).toEqual(['Reason Description'])
-      expect(detail.textContent).toContain('prohibited for this customer')
+      expect(headers).not.toContain('Reason Description')
+      const noteCell = detail.querySelector('.odyssey-group-table__detail-note > td')
+      expect(noteCell.getAttribute('colspan')).toBe(String(headers.length))
+      expect(noteCell.textContent).toContain('prohibited for this customer')
     }
   })
 
