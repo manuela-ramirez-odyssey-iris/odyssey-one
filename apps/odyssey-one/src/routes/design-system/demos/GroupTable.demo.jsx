@@ -192,11 +192,17 @@ const ROUTE_DETAIL_SECTION_POOL = [
   },
   {
     key: 'commitment',
+    // LEFT-aligned, numerics included: every nested table aligns left (user,
+    // 2026-08-26). `align: 'right'` on the numeric columns pushed them to the far
+    // edge of a wide band and made this whole sibling read as right-aligned while
+    // its neighbour read as left — two independent tables must not disagree about
+    // where their first column starts. `align` is still supported per column; it
+    // is just wrong as a default here.
     columns: [
-      { key: 'commitment', label: 'Commitment', align: 'right' },
+      { key: 'commitment', label: 'Commitment' },
       { key: 'uom', label: 'UoM' },
-      { key: 'accepted', label: 'Accepted', align: 'right' },
-      { key: 'open', label: 'Open', align: 'right' },
+      { key: 'accepted', label: 'Accepted' },
+      { key: 'open', label: 'Open' },
       { key: 'cvcId', label: 'CVC ID' },
     ],
   },

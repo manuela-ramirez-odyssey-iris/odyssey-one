@@ -6814,12 +6814,15 @@ button.breadcrumb__label:focus-visible {
   z-index: 0;
 }
 
-/* The gray band hosting the nested table. 48px LEFT inset only — the indent is
-   what marks the second table as subordinate; a matching right inset would just
-   cut the nested table short of the scroll extent (the Figma master carries a
-   symmetric 48px because a static mock has no scroll to run out of). */
+/* The gray band hosting the nested table(s). The 48px LEFT inset lives on the
+   SECTION, not here (see __detail-section): a section box has to span the band
+   edge to edge so its separator hairline does too — with the padding here, every
+   sibling seam started 48px in and stopped looking like a division of the band
+   at all (user, 2026-08-26: "you forgot the stroke separator"). Figma agrees:
+   the NestedTable frames are full-width (960) with their ROWS inset, and the
+   stroke runs the whole width. */
 .odyssey-group-table__detail-row > td {
-  padding: 0 0 0 48px;
+  padding: 0;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -6862,9 +6865,22 @@ button.breadcrumb__label:focus-visible {
 }
 
 /* Sibling sections: N independent nested tables stacked in one band, each with
-   its own columns and its own scrollbar. The hairline goes on the SECOND and
-   later siblings only — the group row above the first already carries a bottom
-   stroke, and a seam needs exactly one line (Figma 5356:5110). */
+   its own columns and its own scrollbar.
+
+   The 48px indent that marks a nested table as subordinate lives HERE rather
+   than on the host cell, so the section box spans the band edge to edge and the
+   separator hairline below spans it too. LEFT only — a matching right inset
+   would cut the nested table short of the scroll extent (the Figma master
+   carries a symmetric 48px because a static mock has no scroll to run out of).
+   Inside the scroller the padding scrolls with the content, which is the same
+   behaviour the whole table had when the cell owned the padding. */
+.odyssey-group-table__detail-section {
+  padding-left: 48px;
+}
+
+/* The seam. SECOND and later siblings only — the group row above the first
+   already carries a bottom stroke, and one seam needs exactly one line
+   (Figma 5356:5110, where NestedTable2 carries strokeTopWeight 1). */
 .odyssey-group-table__detail-section + .odyssey-group-table__detail-section {
   border-top: 1px solid var(--border-subtle);
 }
