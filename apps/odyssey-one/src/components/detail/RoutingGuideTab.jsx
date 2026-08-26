@@ -1440,16 +1440,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
         {/* LINX-13953 — its own card: GroupTable owns horizontal scroll and
             .tender-pane__table-card is overflow:hidden. Rendered regardless of
-            activeSubTab — the sub-tabs switch which COLUMNS a table shows, not
-            which entity is on screen — but it now follows the sub-tab the same
-            way the tender table does, so `View Volume Commitment` reaches both
-            (Jana, 2026-08-25). */}
+            activeSubTab, and deliberately INDEPENDENT of it: the sub-tabs are
+            the tender screen's own structure (13954 lists them as such), while
+            this section shows all 23 of its fields at once, in the AC's own two
+            groups. Following the sub-tabs was tried and dropped — it showed a
+            subset at a time, which is what Jana reported in the first place. */}
         <div className="tender-pane__table-card">
           <DroppedCarrierSection
             carriers={shipmentDetails?.droppedCarriers || []}
             onProcess={handleProcessScac}
             processingScac={processingScac}
-            subTab={activeSubTab}
           />
         </div>
       </div>{/* /pane-col */}

@@ -30,39 +30,47 @@ import { Button, GroupTable, SubAccordion } from '@odyssey/ui'
  * in particular may legitimately be blank: "Route Rank can be empty but Rank
  * will not be empty" (Jana, 2026-08-18).
  *
- * ── THE INNER TABLE FOLLOWS THE TENDER SUB-TAB (2026-08-25) ────────────────
- * 13953 specifies 23 fields and no layout. The first attempt put 8 on the row
- * and 15 in ONE fixed inner table behind a closed chevron, which Jana read as
- * "not all fields are displayed. Also, volume commitment fields are missing" —
- * nine routing fields and five of the six commitment fields were real,
- * populated, and invisible.
+ * ── TWO SIBLING TABLES, MIRRORING THE AC'S OWN TWO (2026-08-26) ───────────
+ * 13953 does not specify a layout, but it does specify a SHAPE: the fields
+ * arrive as two named tables, "Dropped Carrier Fields" (17) and "Volume
+ * Commitment Information" (6). This section renders exactly that — the carrier
+ * row, then Routing Details and Volume Commitment as sibling nested tables
+ * (GroupTable `detailSections`, 0.15.0), separated by a hairline, both open.
  *
- * Two things changed, and only two. The band is always open, and the inner
- * table's columns now rotate with the active tender sub-tab instead of being a
- * fixed run of 14. The carrier row is untouched — it was never the problem.
+ * Two earlier attempts are worth recording, because each was wrong in a way that
+ * is easy to repeat:
+ *   1. 8 fields on the row, 15 behind a per-carrier chevron. Jana: "not all
+ *      fields are displayed. Also, volume commitment fields are missing" — nine
+ *      routing fields and five of six commitment fields were real, populated and
+ *      invisible.
+ *   2. The remaining fields distributed across the tender list's five sub-tabs.
+ *      Tidier per view, but it invents a structure 13954 attaches to the TENDER
+ *      screen, not to this section, and it still showed a subset at a time —
+ *      the very thing that produced the complaint. Dropped 2026-08-26.
  *
- * The tab structure is borrowed from the table directly above rather than
- * invented, so `View Volume Commitment` swaps the columns on BOTH tables and the
- * heading Jana looks for finally covers this section too.
+ * Nothing is behind a disclosure now: every one of the 23 fields is on screen the
+ * moment the section opens.
  *
- * A sub-tab is not the same kind of hiding as the old chevron: it is labelled,
- * top-level, always on screen, and already how a reviewer reads the tender list.
- * The chevron gave no signal that anything was behind it — which is precisely
- * how the complaint happened.
+ * Jana's scoping trap is respected structurally: commitment is keyed on (carrier,
+ * equipment, week) — "here you would see it as if like it is applicable for the
+ * entire drop carrier list, but it is actually applicable for each and every
+ * option" — and each carrier owns its own Volume Commitment table.
  *
- * Jana's scoping trap still holds: commitment is keyed on (carrier, equipment,
- * week) — "here you would see it as if like it is applicable for the entire drop
- * carrier list, but it is actually applicable for each and every option" — and
- * every commitment value renders inside its own carrier's band.
- *
- * Still not through Figma. The field-to-tab assignment is derived from the
- * tender list's own (see TAB_COLUMNS) rather than drawn, so it is defensible but
- * not designed.
+ * KNOWN GAP: GroupTable draws no section HEADING, so the two tables are divided
+ * by a hairline rather than named the way the AC names them. The columns carry
+ * their own meaning (UoM / Accepted / Open / CVC ID read as commitment on sight),
+ * but "Volume Commitment" as a visible label needs a component change and its own
+ * normalize cycle. Flagged, not smuggled in.
  */
 
-// The carrier row — identical on every sub-tab. Identity, why it was dropped,
-// the dates, and Commitment. Unchanged from the original 8: the row was never
-// the problem, so it does not move.
+// The carrier row: who, what, and why it was dropped. Identity plus the reason,
+// which is the section's whole purpose, plus the dates every reviewer scans for.
+//
+// Commitment MOVED OFF this row (2026-08-26). It used to sit here while its UoM
+// lived nine columns away — "19" on screen with no unit, the exact ambiguity the
+// AC's own Accepted/Open gate exists to prevent. All six of the AC's Volume
+// Commitment fields now travel together in their own table. One line to revert if
+// a reviewer wants the headline number back on the row.
 //
 // GroupTable's nested flavor renders column 0 as the disclosure LABEL (not a
 // `values` lookup — see groupHeaderValue), so `scac` must lead; it doubles as
@@ -75,55 +83,45 @@ const COLUMNS = [
   { key: 'routeRank', label: 'Route Rank', align: 'center', width: 110 },
   { key: 'pickup', label: 'Pickup Date/Time', width: 210 },
   { key: 'delivery', label: 'Delivery Date/Time', width: 210 },
-  { key: 'commitment', label: 'Commitment', align: 'right', width: 120 },
 ]
 
-// The INNER table's columns, now driven by the active tender sub-tab instead of
-// being one fixed run of 14 (Jana, 2026-08-25: "not all fields are displayed…
-// volume commitment fields are missing"). Same five tabs as the tender list
-// above, so `View Volume Commitment` swaps the columns on BOTH tables and the
-// heading Jana looks for finally covers this section too.
+// The AC's two tables, as two sibling nested tables. Field order follows the
+// ticket's own listing rather than being re-sorted, so a reviewer can read the AC
+// and the screen top-to-bottom together.
 //
-// The assignment is not ours to invent: each field goes to the tab where the
-// tender list already keeps the field of that name (routeGroup lives under
-// Notify & Response, transitTimeSource/transitTimeId under Additional Info,
-// indirectPoint/orderEquip under Others). Start Date and Stop Date have no
-// tender counterpart and sit with the other RPC lookups they share a key with
-// (13397 §7/§8 both read `where rpc_id = :rpc_id`).
-//
-// Commitment itself stays UP on the carrier row — it is the one commitment field
-// that was always visible and it keeps that spot; the tab carries the five that
-// qualify it.
-//
-// The band is always open (see defaultExpanded), so these are on screen the
-// moment the section is — the 14-column run behind a closed chevron is what
-// produced the complaint.
-const TAB_COLUMNS = {
-  'routing-options': [
-    { key: 'transitTime', label: 'Transit Time', width: 116 },
-    { key: 'transitSource', label: 'Transit Source', width: 130 },
-  ],
-  'notify-response': [
-    { key: 'routeGroup', label: 'Route Group', width: 124 },
-  ],
-  'volume-commitment': [
-    { key: 'uom', label: 'UoM', width: 116 },
-    { key: 'accepted', label: 'Accepted', align: 'right', width: 104 },
-    { key: 'open', label: 'Open', align: 'right', width: 92 },
-    { key: 'cvcId', label: 'CVC ID', width: 116 },
-    { key: 'comment', label: 'Comment', width: 240 },
-  ],
-  'additional-info': [
-    { key: 'startDate', label: 'Start Date', width: 110 },
-    { key: 'stopDate', label: 'Stop Date', width: 110 },
-    { key: 'rpcId', label: 'RPC-ID', width: 110 },
-    { key: 'ttId', label: 'TT ID', width: 116 },
-  ],
-  others: [
-    { key: 'orderEquipment', label: 'Order Equipment', align: 'center', width: 140 },
-    { key: 'indirectPoint', label: 'Indirect Point', align: 'center', width: 124 },
-  ],
-}
+// No widths: unsized columns collapse to their content and the trailing filler
+// takes the slack (GroupTable 0.15.0), so both tables start at the same left edge
+// and neither spreads its values across a stretched row.
+const DETAIL_SECTIONS = [
+  {
+    key: 'routing',
+    // Reason Description lands here — the long free-text field belongs with the
+    // routing facts that explain the drop, not under the commitment numbers.
+    note: true,
+    columns: [
+      { key: 'startDate', label: 'Start Date' },
+      { key: 'stopDate', label: 'Stop Date' },
+      { key: 'transitTime', label: 'Transit Time' },
+      { key: 'transitSource', label: 'Transit Source' },
+      { key: 'routeGroup', label: 'Route Group' },
+      { key: 'rpcId', label: 'RPC-ID' },
+      { key: 'ttId', label: 'TT ID' },
+      { key: 'orderEquipment', label: 'Order Equipment', align: 'center' },
+      { key: 'indirectPoint', label: 'Indirect Point', align: 'center' },
+    ],
+  },
+  {
+    key: 'commitment',
+    columns: [
+      { key: 'commitment', label: 'Commitment' },
+      { key: 'uom', label: 'UoM' },
+      { key: 'accepted', label: 'Accepted' },
+      { key: 'open', label: 'Open' },
+      { key: 'comment', label: 'Comment' },
+      { key: 'cvcId', label: 'CVC ID' },
+    ],
+  },
+]
 
 const CHECKBOX_LABELS = {
   orderEquipment: 'Order equipment',
@@ -148,13 +146,9 @@ export default function DroppedCarrierSection({
   defaultOpen = true,
   onProcess,
   processingScac = null,
-  subTab = 'routing-options',
 }) {
-  // An unknown sub-tab falls back to the default view rather than rendering an
-  // inner table with no columns in it.
-  const detailColumns = TAB_COLUMNS[subTab] ?? TAB_COLUMNS['routing-options']
 
-  // Two disclosure levels, now BOTH open by default:
+  // Two disclosure levels, both open by default:
   //   • the SECTION opens by default (user ruling, 2026-08-17)
   //   • each CARRIER's detail band also opens (Jana, 2026-08-25)
   //
@@ -201,7 +195,7 @@ export default function DroppedCarrierSection({
       ) : (
         <GroupTable
           columns={COLUMNS}
-          detailColumns={detailColumns}
+          detailSections={DETAIL_SECTIONS}
           groups={groups}
           defaultExpanded
           renderDetailCell={(row, col) =>
