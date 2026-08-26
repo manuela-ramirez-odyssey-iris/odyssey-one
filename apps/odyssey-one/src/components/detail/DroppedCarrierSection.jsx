@@ -1,6 +1,5 @@
 import { Check, CircleX } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
-import { Button, GroupTable, SubAccordion } from '@odyssey/ui'
+import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
 
 /**
  * LINX-13953 — Dropped Carrier.
@@ -132,13 +131,33 @@ const CHECKBOX_LABELS = {
 // these two, which fall back to unchecked. "If not returned, then unchecked" —
 // so a dash here would be wrong, not merely ugly.
 //
-// Rendered as check / circle-x, NOT as a checkbox (user, 2026-08-18). The
-// AC's word is "Checkbox", but these are READ-ONLY routing output: a checkbox
-// glyph advertises an affordance that does not exist and invites the click.
-// Same two states, stated as status rather than control.
+// Rendered as a gray Badge, NOT as a checkbox (user, 2026-08-18) and no longer as
+// a bare glyph (user, 2026-08-26: "iconos alone look too small"). The AC's word
+// is "Checkbox", but these are READ-ONLY routing output: a checkbox advertises an
+// affordance that does not exist and invites the click. A lone 16px icon in a
+// wide cell had the opposite problem — too little presence to read as a value at
+// all, next to neighbours carrying real text.
+//
+// GRAY for both states, on purpose. Green/red would rank one outcome above the
+// other, and neither is good or bad news: they are attributes of the carrier
+// routing returned, not a pass/fail. The glyph carries the state, the badge only
+// gives it weight.
+//
+// size={12} raw, not ICON_MD: there is no badge-icon token and every other
+// Badge in the app already hardcodes 12 (ProductTab, ordersColumns). Worth a
+// token if a third case appears; not worth inventing one here alone.
+//
+// Yes / No spelled out, because the badge has room for it and a checkmark alone
+// leaves "Order Equipment ✓" to be read as either "yes, it matches" or "checked
+// this field". aria-label stays on the badge for the same reason it always did:
+// the AC's fallback here is "unchecked", never '--'.
 function CheckCell({ field, on }) {
   const Icon = on ? Check : CircleX
-  return <Icon {...ICON_MD} aria-label={`${CHECKBOX_LABELS[field]}: ${on ? 'yes' : 'no'}`} />
+  return (
+    <Badge variant="gray" leftIcon={<Icon size={12} aria-hidden="true" />}>
+      <span aria-label={`${CHECKBOX_LABELS[field]}: ${on ? 'yes' : 'no'}`}>{on ? 'Yes' : 'No'}</span>
+    </Badge>
+  )
 }
 
 export default function DroppedCarrierSection({

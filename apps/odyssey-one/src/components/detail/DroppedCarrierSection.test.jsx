@@ -124,6 +124,20 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(notes[0].textContent).toContain('prohibited for this customer')
   })
 
+  it('renders the two flag fields as gray badges, glyph AND word', () => {
+    // A lone 16px glyph in a wide cell had too little presence to read as a value
+    // (user, 2026-08-26). GRAY for both states: neither is good or bad news, so
+    // green/red would rank one outcome above the other.
+    const { container } = render(<DroppedCarrierSection carriers={[rich]} />)
+    const badges = [...container.querySelectorAll('.text-badge')]
+      .filter((b) => /^(Yes|No)$/.test(b.textContent.trim()))
+    expect(badges).toHaveLength(2)
+    for (const badge of badges) {
+      expect(badge.style.background).toContain('badge-gray-bg')
+      expect(badge.querySelector('svg')).toBeTruthy()   // the glyph survives
+    }
+  })
+
   it('renders the two flag fields as checked/unchecked, never as a dash', () => {
     render(<DroppedCarrierSection carriers={[rich]} />)
     expect(screen.getByLabelText('Order equipment: yes')).toBeTruthy()
