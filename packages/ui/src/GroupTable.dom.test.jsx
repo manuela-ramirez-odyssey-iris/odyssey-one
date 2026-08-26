@@ -163,3 +163,174 @@ describe('GroupTable — detail scroller isolation + detailScroll', () => {
     expect(rows.container.querySelector('.odyssey-group-table--detail-scroll')).toBeNull()
   })
 })
+
+describe('GroupTable detailSections — N independent sibling tables', () => {
+  const ROUTING = [{ key: 'method', label: 'Method' }, { key: 'user', label: 'User' }]
+  const COMMITMENT = [{ key: 'uom', label: 'UoM' }, { key: 'open', label: 'Open' }, { key: 'cvc', label: 'CVC ID' }]
+  const SECTIONS = [
+    { key: 'routing', columns: ROUTING, note: true },
+    { key: 'commitment', columns: COMMITMENT },
+  ]
+  const ROW = { method: 'Automatic Update', user: 'Moses Johnson', uom: 'Loads/Week', open: '14', cvc: 'CVC90831' }
+  const GROUP = [{ ...GROUPS[0], detailRows: [ROW] }]
+
+  const sectionsOf = (c) => [...c.querySelectorAll('.odyssey-group-table__detail-section')]
+
+  it('renders one table per section, each with its OWN columns', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} defaultExpanded />
+    )
+    const bands = sectionsOf(container)
+    expect(bands).toHaveLength(2)
+    const headersOf = (b) => [...b.querySelectorAll('th')].map((th) => th.textContent)
+    expect(headersOf(bands[0])).toEqual(['Method', 'User'])
+    expect(headersOf(bands[1])).toEqual(['UoM', 'Open', 'CVC ID'])
+    // Same rows, different column sets — a section is a view over the group's
+    // detailRows, not its own data.
+    expect(bands[0].textContent).toContain('Automatic Update')
+    expect(bands[1].textContent).toContain('Loads/Week')
+  })
+
+  it('scales past two — the count is the consumer\'s', () => {
+    const many = Array.from({ length: 5 }, (_, i) => ({
+      key: `s${i}`, columns: [{ key: 'method', label: `Group ${i}` }],
+    }))
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={many} groups={GROUP} defaultExpanded />
+    )
+    expect(sectionsOf(container)).toHaveLength(5)
+  })
+
+  it('gives every section its own scroller — independence is the point', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} defaultExpanded />
+    )
+    for (const band of sectionsOf(container)) {
+      expect(band.classList.contains('odyssey-group-table__detail-scroller')).toBe(true)
+    }
+    // ...and does NOT set the legacy root class, which would force all of them.
+    expect(container.querySelector('.odyssey-group-table--detail-scroll')).toBeNull()
+  })
+
+  it('honours a per-section scroll override', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded
+        detailSections={[{ key: 'a', columns: ROUTING, scroll: false }, { key: 'b', columns: COMMITMENT }]} />
+    )
+    const bands = sectionsOf(container)
+    expect(bands[0].classList.contains('odyssey-group-table__detail-scroller')).toBe(false)
+    expect(bands[1].classList.contains('odyssey-group-table__detail-scroller')).toBe(true)
+  })
+
+  it('puts the note in the section that claims it, spanning THAT section\'s columns', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} defaultExpanded
+        groups={[{ ...GROUP[0], detailNote: { label: 'Reason Description', value: 'Prohibited.' } }]} />
+    )
+    const notes = container.querySelectorAll('.odyssey-group-table__detail-note')
+    expect(notes).toHaveLength(1)          // exactly one, never duplicated per section
+    expect(Number(notes[0].querySelector('td').getAttribute('colspan'))).toBe(ROUTING.length)
+    expect(sectionsOf(container)[0].contains(notes[0])).toBe(true)
+  })
+
+  it('falls back to the first section when no section claims the note', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} defaultExpanded
+        detailSections={[{ key: 'a', columns: ROUTING }, { key: 'b', columns: COMMITMENT }]}
+        groups={[{ ...GROUP[0], detailNote: { label: 'R', value: 'v' } }]} />
+    )
+    const note = container.querySelector('.odyssey-group-table__detail-note')
+    expect(sectionsOf(container)[0].contains(note)).toBe(true)
+  })
+
+  it('keeps actions on the group row alone — a section has no action lane', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailSections={SECTIONS} groups={GROUP} defaultExpanded
+                  stickyActions actionsHeader="Action" />
+    )
+    for (const band of sectionsOf(container)) {
+      expect(band.querySelector(STICKY)).toBeNull()
+    }
+    expect(container.querySelector('.odyssey-group-table__group-row ' + STICKY)).toBeTruthy()
+  })
+
+  it('ignores a section with no columns rather than rendering an empty table', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUP} defaultExpanded
+        detailSections={[{ key: 'a', columns: ROUTING }, { key: 'empty', columns: [] }]} />
+    )
+    expect(sectionsOf(container)).toHaveLength(1)
+  })
+})
+
+describe('GroupTable detailNote — clamp + Show more toggle', () => {
+  const DETAIL = [{ key: 'method', label: 'Method' }]
+  const LONG = 'No rate is available for this carrier on this lane and equipment. '.repeat(6)
+  const withNote = () => [{
+    ...GROUPS[0],
+    detailNote: { label: 'Reason Description', value: LONG },
+  }]
+  const body = (c) => c.querySelector('.odyssey-group-table__detail-note-body--clamped')
+  const toggle = () => screen.queryByRole('button', { name: /Show (more|less)/ })
+
+  // jsdom reports 0 for both scrollHeight and clientHeight, so overflow is
+  // undetectable without stubbing them (see DetailNote's JSDOM CEILING note).
+  const stubOverflow = (scroll, client) => {
+    const sh = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')
+    const ch = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')
+    Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => scroll })
+    Object.defineProperty(Element.prototype, 'clientHeight', { configurable: true, get: () => client })
+    return () => {
+      Object.defineProperty(Element.prototype, 'scrollHeight', sh)
+      Object.defineProperty(Element.prototype, 'clientHeight', ch)
+    }
+  }
+
+  it('clamps to noteLines and offers Show more when the text overflows', () => {
+    const restore = stubOverflow(120, 60)
+    try {
+      const { container } = render(
+        <GroupTable columns={COLUMNS} detailColumns={DETAIL} groups={withNote()} defaultExpanded />
+      )
+      expect(body(container).style.webkitLineClamp).toBe('3')
+      expect(toggle().textContent).toBe('Show more')
+      expect(toggle().getAttribute('aria-expanded')).toBe('false')
+    } finally { restore() }
+  })
+
+  it('un-clamps on Show more and clamps again on Show less', () => {
+    const restore = stubOverflow(120, 60)
+    try {
+      const { container } = render(
+        <GroupTable columns={COLUMNS} detailColumns={DETAIL} groups={withNote()} defaultExpanded />
+      )
+      fireEvent.click(toggle())
+      expect(body(container)).toBeNull()            // clamp class gone = full text
+      expect(toggle().textContent).toBe('Show less')
+      expect(toggle().getAttribute('aria-expanded')).toBe('true')
+      fireEvent.click(toggle())
+      expect(body(container)).toBeTruthy()
+      expect(toggle().textContent).toBe('Show more')
+    } finally { restore() }
+  })
+
+  it('offers NO toggle when the text fits — a one-liner promising more is a lie', () => {
+    const restore = stubOverflow(60, 60)
+    try {
+      render(<GroupTable columns={COLUMNS} detailColumns={DETAIL} groups={withNote()} defaultExpanded />)
+      expect(toggle()).toBeNull()
+    } finally { restore() }
+  })
+
+  it('noteLines={0} disables the clamp outright', () => {
+    const restore = stubOverflow(120, 60)
+    try {
+      const { container } = render(
+        <GroupTable columns={COLUMNS} detailColumns={DETAIL} groups={withNote()}
+                    noteLines={0} defaultExpanded />
+      )
+      expect(body(container)).toBeNull()
+      expect(toggle()).toBeNull()
+    } finally { restore() }
+  })
+})

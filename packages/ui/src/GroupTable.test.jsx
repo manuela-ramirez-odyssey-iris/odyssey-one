@@ -1,5 +1,5 @@
 // GroupTable pure helpers — node env (no DOM), vitest globals.
-import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS } from './GroupTable.jsx'
+import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex } from './GroupTable.jsx'
 
 describe('alignClass', () => {
   it('maps right/center to the modifier classes', () => {
@@ -121,5 +121,61 @@ describe('splitHeaderRow', () => {
 
   it('HEADER_VALUE_COLUMNS is the documented master value', () => {
     expect(HEADER_VALUE_COLUMNS).toBe(3)
+  })
+})
+
+describe('normalizeDetailSections', () => {
+  const A = [{ key: 'a', label: 'A' }]
+  const B = [{ key: 'b', label: 'B' }]
+
+  it('returns [] when neither prop is passed — the rows flavor', () => {
+    expect(normalizeDetailSections({})).toEqual([])
+    expect(normalizeDetailSections({ detailColumns: [] })).toEqual([])
+    expect(normalizeDetailSections({ detailSections: [] })).toEqual([])
+  })
+
+  it('treats detailColumns as ONE section that hosts the note', () => {
+    const [only] = normalizeDetailSections({ detailColumns: A })
+    expect(only).toMatchObject({ key: 'default', columns: A, note: true, scroll: false })
+  })
+
+  it('carries detailScroll into the legacy single section, default off', () => {
+    expect(normalizeDetailSections({ detailColumns: A, detailScroll: true })[0].scroll).toBe(true)
+    expect(normalizeDetailSections({ detailColumns: A })[0].scroll).toBe(false)
+  })
+
+  it('defaults sections to scrolling — independence is what a section IS', () => {
+    const out = normalizeDetailSections({ detailSections: [{ columns: A }, { columns: B, scroll: false }] })
+    expect(out.map((s) => s.scroll)).toEqual([true, false])
+  })
+
+  it('keys sections positionally when the consumer omits key', () => {
+    expect(normalizeDetailSections({ detailSections: [{ columns: A }, { columns: B }] })
+      .map((s) => s.key)).toEqual(['section-0', 'section-1'])
+  })
+
+  it('drops sections with no columns instead of rendering an empty table', () => {
+    expect(normalizeDetailSections({ detailSections: [{ columns: A }, { columns: [] }, {}] }))
+      .toHaveLength(1)
+  })
+
+  it('THROWS on both props — silently picking one would hide the mistake', () => {
+    expect(() => normalizeDetailSections({ detailColumns: A, detailSections: [{ columns: B }] }))
+      .toThrow(/not both/)
+  })
+})
+
+describe('noteSectionIndex', () => {
+  it('picks the section that claims the note', () => {
+    expect(noteSectionIndex([{ key: 'a' }, { key: 'b', note: true }])).toBe(1)
+  })
+
+  it('falls back to the first — a note is never dropped for want of a claim', () => {
+    expect(noteSectionIndex([{ key: 'a' }, { key: 'b' }])).toBe(0)
+    expect(noteSectionIndex([])).toBe(0)
+  })
+
+  it('takes the FIRST claim when several claim it, so the note renders once', () => {
+    expect(noteSectionIndex([{ note: true }, { note: true }])).toBe(0)
   })
 })

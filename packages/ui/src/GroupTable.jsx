@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
+import Button from './Button.jsx'
 
 /**
  * GroupTable — the presentational grouped table for detail pane content
@@ -58,20 +59,42 @@ import { ICON_MD } from '@odyssey/tokens'
  *                    own `columns` header row is its header.
  *
  * @param detailColumns  [{ key, label, align?, width? }] — the nested table's OWN columns.
- *                       Presence of this prop is what selects the nested flavor.
+ *                       Presence of this prop (or `detailSections`) selects the nested flavor.
+ *                       Sugar for a single `detailSections` entry; both cannot be passed.
+ * @param detailSections [{ key, columns, note?, scroll?, renderCell? }] — N SIBLING nested
+ *                       tables, stacked, each one genuinely independent: its own columns, its
+ *                       own widths, its own horizontal scrollbar, separated from the next by a
+ *                       hairline. Use it when the fields under a row belong to two or more
+ *                       NAMED groups that must not read as one flat run of columns (Dropped
+ *                       Carrier's Routing Details + Volume Commitment). Repeat freely — the
+ *                       count is the consumer's, the Figma master shows two only because two
+ *                       is what establishes the pattern (user, 2026-08-26).
+ *                         • `note: true`  — this section hosts `group.detailNote` (default: the
+ *                                           first section).
+ *                         • `scroll`      — override the independent scrollbar (default ON for
+ *                                           sections; `detailScroll` still drives the legacy
+ *                                           single-table path).
+ *                         • `renderCell`  — per-section override of `renderDetailCell`.
+ *                       Every section reads the SAME `group.detailRows`; a section is a column
+ *                       set OVER those rows, not its own data. Actions never appear here —
+ *                       `group.action` belongs to the group row alone.
  * @param renderDetailCell (row, col) => node — optional cell renderer for nested rows
  *                       (parallel to `renderCell`); default renders `row[col.key] ?? '--'`
  *                       Per-group `detailNote` renders as a full-width WRAPPING row at the
- *                       bottom of the nested table — for the one long free-text field that
+ *                       bottom of its section — for the one long free-text field that
  *                       must not become a column. Pass `{ label, value }` and the component
  *                       renders (and styles) the label itself; a node is accepted as an
  *                       escape hatch. No internal class names required either way.
- * @param detailScroll   bool (nested flavor only, default false) — give each nested
+ *                       Long values clamp to `noteLines` with a Show more/less toggle.
+ * @param noteLines      number (default 3) — lines a `detailNote` clamps to before the
+ *                       toggle appears. 0 disables the clamp entirely.
+ * @param detailScroll   bool (LEGACY single-table path only, default false) — give the nested
  *                       table its NATURAL width with its own horizontal scrollbar
  *                       inside the band, instead of compressing to the outer
  *                       table's width. For nested tables with many columns.
  *                       Off, the nested table fills the band and only scrolls if
- *                       content genuinely cannot fit.
+ *                       content genuinely cannot fit. `detailSections` scroll by default
+ *                       instead — independence is the point of a section.
  * @param stickyActions  bool — render a pinned trailing action column (sticky right),
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
@@ -95,7 +118,7 @@ import { ICON_MD } from '@odyssey/tokens'
  * jsdom measures 0/0 everywhere, so tests always see the neutral state —
  * the self-healing branch is browser-verified only.
  */
-function DetailBand({ detailScroll, children }) {
+function DetailBand({ detailScroll, className, children }) {
   const ref = useRef(null)
   const [contain, setContain] = useState(false)
   useLayoutEffect(() => {
@@ -109,13 +132,74 @@ function DetailBand({ detailScroll, children }) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [detailScroll])
+  const classes = [
+    (detailScroll || contain) && 'odyssey-group-table__detail-scroller',
+    className,
+  ].filter(Boolean).join(' ')
   return (
-    <div
-      ref={ref}
-      className={detailScroll || contain ? 'odyssey-group-table__detail-scroller' : undefined}
-    >
+    <div ref={ref} className={classes || undefined}>
       {children}
     </div>
+  )
+}
+
+/**
+ * A `detailNote`'s body: the one long free-text field, clamped to `lines` with a
+ * Show more / Show less toggle.
+ *
+ * The toggle only renders when the text ACTUALLY overflows — a one-line
+ * description offering "Show more" is a lie. Overflow is measured with the same
+ * ResizeObserver idiom DetailBand uses.
+ *
+ * JSDOM CEILING: jsdom reports scrollHeight/clientHeight as 0, so `overflowing`
+ * is always false there and the toggle never renders in tests unless the test
+ * stubs those properties (GroupTable.dom.test.jsx does exactly that). The clamp
+ * itself is a CSS line-clamp, equally invisible to jsdom. Both are
+ * browser-verified.
+ */
+function DetailNote({ note, lines }) {
+  const ref = useRef(null)
+  const [open, setOpen] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const clamped = lines > 0 && !open
+
+  useLayoutEffect(() => {
+    if (!(lines > 0)) return
+    const el = ref.current
+    if (!el) return
+    // Measured while clamped: once open, scrollHeight === clientHeight and the
+    // toggle would vanish mid-interaction. `open` is deliberately NOT a dep.
+    const check = () => {
+      if (ref.current && !open) setOverflowing(ref.current.scrollHeight > ref.current.clientHeight + 1)
+    }
+    check()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [lines, note])
+
+  return (
+    <>
+      <div
+        ref={ref}
+        className={clamped ? 'odyssey-group-table__detail-note-body--clamped' : undefined}
+        style={clamped ? { WebkitLineClamp: lines } : undefined}
+      >
+        {detailNoteContent(note)}
+      </div>
+      {overflowing && (
+        <Button
+          variant="link"
+          size="sm"
+          className="odyssey-group-table__detail-note-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? 'Show less' : 'Show more'}
+        </Button>
+      )}
+    </>
   )
 }
 
@@ -130,7 +214,9 @@ export default function GroupTable({
   striped = true,
   className = '',
   detailColumns,
+  detailSections,
   renderDetailCell,
+  noteLines = 3,
   detailScroll = false,
   stickyActions = false,
   actionsHeader,
@@ -169,9 +255,12 @@ export default function GroupTable({
     onToggle?.(id, next)
   }
 
-  // Presence of detailColumns selects the nested-table flavor — see the header
+  // ONE list of sections drives the render, whichever prop the consumer used —
+  // `detailColumns` is sugar for a single section, not a parallel code path.
+  const sections = normalizeDetailSections({ detailColumns, detailSections, detailScroll })
+  // Presence of either prop selects the nested-table flavor — see the header
   // comment for why the group row means something different in each.
-  const nested = Array.isArray(detailColumns) && detailColumns.length > 0
+  const nested = sections.length > 0
   const spanAll = totalColumnCount(columns, stickyActions)
   // Nested flavor's group row IS a data row (one value per column), so it keeps
   // the column grid; only the rows flavor merges its label cell.
@@ -183,7 +272,10 @@ export default function GroupTable({
     'odyssey-group-table',
     !striped && 'odyssey-group-table--flat',
     nested && 'odyssey-group-table--nested',
-    nested && detailScroll && 'odyssey-group-table--detail-scroll',
+    // Kept as a ROOT class for the legacy single-table path (its CSS targets
+    // every descendant `__detail`). Sections carry their own per-band class
+    // instead, so two sections can disagree about scrolling.
+    nested && sections.length === 1 && sections[0].scroll && 'odyssey-group-table--detail-scroll',
     stickyActions && 'odyssey-group-table--sticky-actions',
     scrolledX && 'odyssey-group-table--scrolled-x',
     className,
@@ -299,61 +391,79 @@ export default function GroupTable({
                    one-line revert if that reads worse in practice. */
                 <tr className="odyssey-group-table__detail-row">
                   <td colSpan={spanAll}>
-                    {/* With `detailScroll` this wrapper becomes the band's own
-                        scroller (width:0 zeroes its contribution to the outer
-                        table's sizing; min-width:100% stretches it back; the
-                        inner table takes max-content and scrolls HERE,
-                        independently). Without it the wrapper is a bare,
-                        layout-neutral div — the nested table fills the band
-                        and rides the outer scroll exactly as before (user,
-                        2026-08-17: off must be the original behavior). */}
-                    <DetailBand detailScroll={detailScroll}>
-                    <table className="odyssey-group-table__detail">
-                      <thead>
-                        <tr>
-                          {detailColumns.map((col) => (
-                            <th
-                              key={col.key}
-                              scope="col"
-                              className={alignClass(col.align) || undefined}
-                              style={col.width != null ? { width: col.width } : undefined}
-                            >
-                              {col.label}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(group.detailRows ?? []).map((row, i) => (
-                          <tr key={i}>
-                            {detailColumns.map((col) => (
-                              <td key={col.key} className={alignClass(col.align) || undefined}>
-                                {renderDetailCell
-                                  ? renderDetailCell(row, col)
-                                  : row[col.key] ?? '--'}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                        {group.detailNote && (
-                          /* Full-width note row UNDER the nested data row — the escape
-                             hatch for one long free-text field (a reason description)
-                             that as a column would need ~360px and push every other
-                             column off the scroll extent (user, 2026-08-17). It wraps;
-                             every other cell in this table stays nowrap. */
-                          <tr className="odyssey-group-table__detail-note">
-                            <td colSpan={detailColumns.length}>
-                              {detailNoteContent(group.detailNote)}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                    </DetailBand>
+                    {/* N SIBLING tables, stacked, each one independent: its own
+                        columns, its own widths, its own scrollbar, separated
+                        from the next by a hairline (Figma 5356:5110, user
+                        2026-08-26). Every section reads the SAME
+                        `group.detailRows` — a section is a column set over
+                        those rows, not its own data.
+
+                        With `scroll` the band is its own scroller (width:0
+                        zeroes its contribution to the host cell's sizing;
+                        min-width:100% stretches it back; the inner table takes
+                        max-content and scrolls HERE, independently). Without
+                        it the wrapper is layout-neutral and the table rides the
+                        outer scroll (user, 2026-08-17: off must be the original
+                        behavior — which is why the legacy single-table path
+                        keeps defaulting to off). */}
+                    {sections.map((section, si) => (
+                      <DetailBand
+                        key={section.key ?? si}
+                        detailScroll={section.scroll}
+                        className="odyssey-group-table__detail-section"
+                      >
+                        <table className="odyssey-group-table__detail">
+                          <thead>
+                            <tr>
+                              {section.columns.map((col) => (
+                                <th
+                                  key={col.key}
+                                  scope="col"
+                                  className={alignClass(col.align) || undefined}
+                                  style={col.width != null ? { width: col.width } : undefined}
+                                >
+                                  {col.label}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(group.detailRows ?? []).map((row, i) => {
+                              const render = section.renderCell ?? renderDetailCell
+                              return (
+                                <tr key={i}>
+                                  {section.columns.map((col) => (
+                                    <td key={col.key} className={alignClass(col.align) || undefined}>
+                                      {render ? render(row, col) : row[col.key] ?? '--'}
+                                    </td>
+                                  ))}
+                                </tr>
+                              )
+                            })}
+                            {group.detailNote && noteSectionIndex(sections) === si && (
+                              /* Full-width note row UNDER the section's data rows — the
+                                 escape hatch for one long free-text field (a reason
+                                 description) that as a column would need ~360px and push
+                                 every other column off the scroll extent (user,
+                                 2026-08-17). It wraps and clamps; every other cell in
+                                 this table stays nowrap. */
+                              <tr className="odyssey-group-table__detail-note">
+                                <td colSpan={section.columns.length}>
+                                  <DetailNote note={group.detailNote} lines={noteLines} />
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </DetailBand>
+                    ))}
                   </td>
                   {/* No trailing pinned cell: the host cell above spans the
-                      action lane too, so the nested table gets the full width.
-                      See its comment for the trade-off. */}
+                      action lane too, so the nested tables get the full width.
+                      Actions live on the group row ALONE (user, 2026-08-26) —
+                      a nested table is an independent table, not a continuation
+                      of the outer one, so it has no action lane to fill.
+                      See the host cell's comment for the trade-off. */}
                 </tr>
               )}
 
@@ -401,6 +511,47 @@ export default function GroupTable({
  * @param {{label?: node, value?: node}|node} note
  * @returns {node}
  */
+/**
+ * Collapse `detailColumns` / `detailSections` into the ONE section list the
+ * render walks. `detailColumns` is sugar for a single section, so there is no
+ * second code path to keep in sync — and no ambiguity about which wins:
+ * passing both throws rather than silently picking one.
+ *
+ * `scroll` defaults differ ON PURPOSE. A section IS an independent table, so it
+ * scrolls independently by default; the legacy single-`detailColumns` path keeps
+ * `detailScroll`'s default of false, because that is the look approved on
+ * 2026-08-17 and every existing consumer renders against it.
+ *
+ * @param {{detailColumns?: Array, detailSections?: Array, detailScroll?: boolean}} opts
+ * @returns {Array<{key, columns, note?, scroll: boolean, renderCell?}>}
+ */
+export function normalizeDetailSections({ detailColumns, detailSections, detailScroll = false }) {
+  const hasSections = Array.isArray(detailSections) && detailSections.length > 0
+  const hasColumns = Array.isArray(detailColumns) && detailColumns.length > 0
+  if (hasSections && hasColumns) {
+    throw new Error('GroupTable: pass detailColumns OR detailSections, not both')
+  }
+  if (hasSections) {
+    return detailSections
+      .filter((s) => Array.isArray(s?.columns) && s.columns.length > 0)
+      .map((s, i) => ({ ...s, key: s.key ?? `section-${i}`, scroll: s.scroll ?? true }))
+  }
+  if (hasColumns) return [{ key: 'default', columns: detailColumns, note: true, scroll: detailScroll }]
+  return []
+}
+
+/**
+ * Which section hosts `group.detailNote`. The one flagged `note: true`, else the
+ * first — a note is never dropped just because nobody claimed it.
+ *
+ * @param {Array} sections
+ * @returns {number}
+ */
+export function noteSectionIndex(sections) {
+  const i = sections.findIndex((s) => s.note)
+  return i === -1 ? 0 : i
+}
+
 export function detailNoteContent(note) {
   if (!note || typeof note !== 'object' || Array.isArray(note) || note.$$typeof) return note
   if (!('label' in note) && !('value' in note)) return note

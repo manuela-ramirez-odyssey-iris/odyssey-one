@@ -25,13 +25,11 @@ function DiffCell({ value }) {
 export const meta = {
   name: 'GroupTable',
   tier: 'organism',
-  version: '0.14.0',
+  version: '0.15.0',
   createdVersion: '0.7.0',
   normalizing: true,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [
@@ -44,13 +42,15 @@ export const props = [
   { name: 'onToggle', type: '(groupId, next) => void', desc: 'Fires on any group toggle (row click or keyboard on the header button).' },
   { name: 'striped', type: 'boolean', desc: 'Default true — child rows as contiguous light-gray bands with 1px --border-subtle hairlines between them (no white gaps). False = white rows with hairlines.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root scroll element.' },
-  { name: 'detailColumns', type: '[{ key, label, align?, width? }]', desc: 'NESTED-TABLE FLAVOR. The second table\'s OWN columns — its own keys, labels and widths, deliberately NOT aligned to `columns`. Passing this prop is what selects the flavor: an expanded group then reveals a full second table instead of child rows sharing `columns`.' },
+  { name: 'detailColumns', type: '[{ key, label, align?, width? }]', desc: 'NESTED-TABLE FLAVOR. The second table\'s OWN columns — its own keys, labels and widths, deliberately NOT aligned to `columns`. Passing this prop is what selects the flavor: an expanded group then reveals a full second table instead of child rows sharing `columns`. Sugar for a single `detailSections` entry; passing both THROWS.' },
+  { name: 'detailSections', type: '[{ key, columns, note?, scroll?, renderCell? }]', desc: 'N SIBLING nested tables, stacked, each genuinely independent: its own columns, its own widths, its own horizontal scrollbar, separated from the next by a hairline. For row detail that belongs to two or more NAMED groups which must not read as one flat run of columns (Dropped Carrier: Routing Details + Volume Commitment). The count is yours — pass three or ten. Every section reads the SAME `groups[].detailRows`: a section is a column set OVER those rows, not its own data. `note: true` picks which section hosts `detailNote` (default the first); `scroll` overrides the per-section scrollbar (default ON — independence is what a section IS); `renderCell` overrides `renderDetailCell` for that section alone. Actions never appear in a section — `groups[].action` belongs to the group row alone.' },
   { name: 'renderDetailCell', type: '(row, col) => node', desc: 'Optional cell renderer for the nested table\'s rows (parallel to `renderCell`). Default: `row[col.key] ?? "--"`.' },
-  { name: 'detailScroll', type: 'boolean', desc: 'Nested flavor only. Gives each nested table its NATURAL width with an independent horizontal scrollbar inside the band, instead of compressing its columns to the outer table\'s width. For nested tables with many columns (Dropped Carrier\'s 14).' },
+  { name: 'detailScroll', type: 'boolean', desc: 'LEGACY `detailColumns` path only, default false. Gives the nested table its NATURAL width with an independent horizontal scrollbar inside the band, instead of compressing its columns to the outer table\'s width. `detailSections` scroll by default instead, per section, so two sections can disagree.' },
+  { name: 'noteLines', type: 'number', desc: 'Lines a `detailNote` clamps to before a Show more / Show less toggle appears (default 3). The toggle renders only when the text ACTUALLY overflows — a one-line description offering "Show more" is a lie. 0 disables the clamp.' },
   { name: 'stickyActions', type: 'boolean', desc: 'Render a pinned trailing action column (sticky right, 68px), fed by `actionsHeader` + `group.action`. Same convention DataTable uses, so both tables behave identically on a page carrying each.' },
   { name: 'actionsHeader', type: 'node', desc: 'Content of the pinned column\'s header cell — by convention a column-arrange `Button variant="icon"`.' },
-  { name: 'groups[].detailRows', type: 'object[]', desc: 'Rows for that group\'s nested table, keyed by `detailColumns[].key`. Only read in the nested flavor.' },
-  { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every detail column. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
+  { name: 'groups[].detailRows', type: 'object[]', desc: 'Rows for that group\'s nested table(s), keyed by the active section\'s `columns[].key`. EVERY section reads this same array and picks its own columns out of it. Only read in the nested flavor.' },
+  { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every column of the section that hosts it (`note: true`, default the first). Clamped to `noteLines` with a Show more toggle. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
   { name: 'groups[].actionTone', type: "'danger' | 'warning' | 'success' | 'info'", desc: 'Colour scheme (glyph + background) for that row\'s pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL\'s background — a slotted node cannot paint its own ancestor. An unrecognised value degrades to neutral.' },
   { name: 'groups[].action', type: 'node', desc: 'Content of that group row\'s pinned action cell. A PURE SLOT — the component supplies no behavior or tone. By convention pass an `ActionMenu` (the canonical row-action control, same as DataTable\'s action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. Clicks are stopped from toggling the row.' },
 ]
@@ -66,6 +66,8 @@ export const tokens = [
   { token: '--bg-error/--text-error · --badge-{yellow,green,blue}-*', resolves: 'per tone', usage: "groups[].actionTone — danger | warning | success | info, via the --gt-action-bg/--gt-action-fg pair each tone declares" },
   { token: '--bg-secondary + 48px inset', resolves: 'DSN/50 / raw 48px', usage: 'nested flavor: the gray band hosting the second table, inset 48px on the LEFT only (a right inset would cut it short of the scroll extent)' },
   { token: '--text-primary semibold / --text-tertiary', resolves: 'DSN/900 / DSN/500', usage: 'nested table header labels / nested row values — same treatment as the outer table, over the gray band' },
+  { token: '--border-subtle', resolves: 'DSN/200', usage: 'detailSections: the 1px hairline between SIBLING nested tables — on the 2nd and later only, since the group row above the first already carries one' },
+  { token: '--spacing-1 + --text-link', resolves: '4 / Text/link', usage: 'detailNote Show more/less toggle — a link Button, offset from the clamped text' },
   { token: '--bg-primary + --border-subtle', resolves: 'white / DSN/200', usage: 'pinned action column (68px, sticky right) + its left shadow — DataTable\'s exact value, and the table is border-collapse: separate because Chrome will not paint cell shadows in collapsed tables' },
 ]
 
@@ -173,6 +175,32 @@ const ROUTE_DETAIL_COLUMNS = [
   { key: 'quoted', label: 'Carrier Quoted' },
 ]
 
+// N SIBLING sections over the SAME detailRows — each is a column set, not its own
+// data. Two named groups here (Dropped Carrier's real shape: Routing Details +
+// Volume Commitment); pass three or ten and you get three or ten tables.
+const ROUTE_DETAIL_SECTIONS = [
+  {
+    key: 'routing',
+    note: true, // this section hosts group.detailNote
+    columns: [
+      { key: 'transit', label: 'Transit' },
+      { key: 'distance', label: 'Distance' },
+      { key: 'notifyMethod', label: 'Notify Method' },
+      { key: 'notifyDate', label: 'Notify Date' },
+    ],
+  },
+  {
+    key: 'commitment',
+    columns: [
+      { key: 'commitment', label: 'Commitment', align: 'right' },
+      { key: 'uom', label: 'UoM' },
+      { key: 'accepted', label: 'Accepted', align: 'right' },
+      { key: 'open', label: 'Open', align: 'right' },
+      { key: 'cvcId', label: 'CVC ID' },
+    ],
+  },
+]
+
 // The pinned column's content is entirely the consumer's — including its tone.
 // The component supplies the slot and nothing else.
 //
@@ -201,7 +229,7 @@ const ROUTE_GROUPS = [
     label: '4',
     values: { rank: '1', scac: 'SEFL', carrier: 'Southeastern FRT', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="green">Accepted</Badge> },
     action: <ActionTile label="4" />,
-    detailRows: [{ transit: '1 DY', distance: '476.98 mi', notifyMethod: 'Fax', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'Automatic Update', responseUser: 'Moses Johnson', quoted: 'Yes' }],
+    detailRows: [{ transit: '1 DY', distance: '476.98 mi', notifyMethod: 'Fax', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'Automatic Update', responseUser: 'Moses Johnson', quoted: 'Yes', commitment: '19', uom: 'Loads/Week', accepted: '4', open: '15', cvcId: 'CVC27656' }],
   },
   {
     id: 'r2',
@@ -209,7 +237,7 @@ const ROUTE_GROUPS = [
     values: { rank: '2', scac: 'ODFL', carrier: 'Old Dominion Freight Line', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="gray">Cancelled</Badge> },
     action: <ActionTile label="2" />,
     actionTone: 'warning',
-    detailRows: [{ transit: '3 DY', distance: '1,434.31 mi', notifyMethod: 'EDI', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Shari Witting', quoted: 'No' }],
+    detailRows: [{ transit: '3 DY', distance: '1,434.31 mi', notifyMethod: 'EDI', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Shari Witting', quoted: 'No', commitment: '--', uom: '--', accepted: '--', open: '--', cvcId: 'CVC10154' }],
   },
   {
     id: 'r3',
@@ -217,7 +245,7 @@ const ROUTE_GROUPS = [
     values: { rank: '3', scac: 'ODFL', carrier: 'Old Dominion Freight Line', equipment: 'LTL', apCost: '107.35 USD', status: <Badge variant="red">Declined</Badge> },
     action: <ActionTile label="3" />,
     actionTone: 'danger',
-    detailRows: [{ transit: '1 DY', distance: '499.39 mi', notifyMethod: 'Email', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Devin Bernhard', quoted: 'No' }],
+    detailRows: [{ transit: '1 DY', distance: '499.39 mi', notifyMethod: 'Email', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Devin Bernhard', quoted: 'No', commitment: '39', uom: 'Loads/Month', accepted: '5', open: '34', cvcId: 'CVC35987' }],
     // `detailNote` on ONE group deliberately: it is optional per group, and the
     // other two rows show what the nested table looks like without it.
     detailNote: {
@@ -227,7 +255,7 @@ const ROUTE_GROUPS = [
   },
 ]
 
-export const apiDoc = `// TWO FLAVORS, selected by whether you pass \`detailColumns\`.
+export const apiDoc = `// TWO FLAVORS, selected by whether you pass \`detailColumns\` / \`detailSections\`.
 
 // 1. Rows (default) — an expanded group reveals CHILD ROWS sharing \`columns\`.
 //    The per-group row is a GROUP HEADER: bold group id spanning the lead
@@ -243,6 +271,22 @@ export const apiDoc = `// TWO FLAVORS, selected by whether you pass \`detailColu
   detailColumns={DETAIL_COLS}      // own keys/labels/widths — shares nothing with columns
   groups={[{ id, label, values, detailRows, action }]}
 />
+
+// 2b. SIBLING nested tables — N of them, when the detail belongs to two or
+//     more NAMED groups that must not read as one flat run of columns. Each is
+//     an independent table: own columns, own widths, own scrollbar, separated
+//     by a hairline. Every section reads the SAME detailRows and picks its own
+//     columns out of them, so the row data is written once.
+<GroupTable
+  columns={COLS}
+  detailSections={[
+    { key: 'routing',    columns: ROUTING_COLS, note: true },  // hosts detailNote
+    { key: 'commitment', columns: COMMITMENT_COLS },
+  ]}
+  groups={[{ id, label, values, detailRows, detailNote, action }]}
+/>
+// Actions stay on the group row. A section has no action lane — it is an
+// independent table, not a continuation of the outer one.
 
 // ─────────────────────────────────────────────────────────────────────────
 // READ THE EXPANDABLE ROW AS A DATA ROW, NOT A HEADER.
@@ -343,6 +387,7 @@ const FLAVORS = {
   product: { label: 'Product (label-only group headers)', groups: GROUPS },
   cost: { label: 'Compare AP/AR (group.values)', groups: COST_GROUPS },
   nested: { label: 'Nested table (detailColumns)', groups: ROUTE_GROUPS },
+  sections: { label: 'Sibling nested tables (detailSections)', groups: ROUTE_GROUPS },
 }
 
 function Playground() {
@@ -367,7 +412,7 @@ function Playground() {
   // Each flavor has its own group ids, so reset expansion when switching.
   const handleFlavor = (next) => {
     setExpanded(Object.fromEntries(FLAVORS[next].groups.map((g) => [g.id, true])))
-    if (next === 'nested') setStickyActions(true) // the flavor this was built for
+    if (next === 'nested' || next === 'sections') setStickyActions(true) // the flavors this was built for
     setFlavor(next)
   }
 
@@ -408,11 +453,11 @@ function Playground() {
         <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
+        {(flavor === 'nested' || flavor === 'sections') && (
+          <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
+        )}
         {flavor === 'nested' && (
-          <>
-            <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
-            <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
-          </>
+          <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
         )}
         <Button
           variant="link"
@@ -448,6 +493,14 @@ function Playground() {
               detailColumns={ROUTE_DETAIL_COLUMNS}
               detailScroll={detailScroll}
               aria-label="Routing options"
+            />
+          )}
+          {flavor === 'sections' && (
+            <GroupTable
+              {...shared}
+              columns={ROUTE_COLUMNS}
+              detailSections={ROUTE_DETAIL_SECTIONS}
+              aria-label="Routing options with sibling detail sections"
             />
           )}
         </div>

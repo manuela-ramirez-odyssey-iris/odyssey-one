@@ -6861,10 +6861,19 @@ button.breadcrumb__label:focus-visible {
   min-width: 100%;
 }
 
-/* Nested header row — the outer column header's treatment over the gray band,
-   but TERTIARY text, not primary (user, 2026-08-07): it labels a breakdown
-   nested inside a row, so it must read quieter than the table's own header or
-   the two compete for the same rank. */
+/* Sibling sections: N independent nested tables stacked in one band, each with
+   its own columns and its own scrollbar. The hairline goes on the SECOND and
+   later siblings only — the group row above the first already carries a bottom
+   stroke, and a seam needs exactly one line (Figma 5356:5110). */
+.odyssey-group-table__detail-section + .odyssey-group-table__detail-section {
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Nested header row — the outer column header's treatment over the gray band.
+   PRIMARY text: matches the Figma master, whose Cell/Variant=Head has been bound
+   to Text/primary the whole time (user, 2026-08-26 — "in our code is too light").
+   This reverses the 2026-08-07 call for tertiary, which is what the code had
+   been rendering while Figma said otherwise. */
 .odyssey-group-table__detail th {
   height: 48px;
   padding: 0 var(--spacing-4);
@@ -6872,7 +6881,7 @@ button.breadcrumb__label:focus-visible {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-tertiary);
+  color: var(--text-primary);
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--border-subtle);
@@ -6902,9 +6911,30 @@ button.breadcrumb__label:focus-visible {
   padding: var(--spacing-3) var(--spacing-4);
   border-top: 1px solid var(--border-subtle);
 }
+/* INLINE, not block (Figma 5356:5110 — one text node, mixed weights): the label
+   runs into its value on the same line, so a two-word label does not cost a
+   whole row of height. Primary against the value's tertiary is the contrast
+   that makes it read as a label at all. */
 .odyssey-group-table__detail-note-label {
-  display: block;
   font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* The clamp. `noteLines` feeds -webkit-line-clamp inline, so the height is
+   whatever N lines of the note's own type is — no magic px. line-clamp needs the
+   legacy -webkit-box display; it is the only cross-browser route to "N lines
+   then ellipsis". */
+.odyssey-group-table__detail-note-body--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* The Show more / Show less toggle. A link Button, so it inherits the DS's link
+   tone; only the table-cell reset is local — no left hug, no cell padding. */
+.odyssey-group-table__detail-note-toggle.btn--link {
+  margin-top: var(--spacing-1);
+  padding: 0;
+  justify-content: flex-start;
 }
 
 /* ── Pinned action column (`stickyActions`) — Figma `Show Actions` +
