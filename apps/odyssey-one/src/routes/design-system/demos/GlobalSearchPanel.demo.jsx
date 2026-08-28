@@ -4,7 +4,7 @@ import { GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearchPanel',
   tier: 'organism',
-  version: '0.13.0',
+  version: '1.3.0',
   createdVersion: '0.2.0',
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/GlobalSearchPanel.figma.tsx',

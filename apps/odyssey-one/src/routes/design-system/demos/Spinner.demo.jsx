@@ -3,7 +3,7 @@ import { Spinner } from '@odyssey/ui'
 export const meta = {
   name: 'Spinner',
   tier: 'atom',
-  version: '0.12.0',
+  version: '1.2.0',
   createdVersion: '0.1.0',
   normalizing: false,
   // Design System - MCP → Components-Atoms → Spinner (4876:7331) — recolored

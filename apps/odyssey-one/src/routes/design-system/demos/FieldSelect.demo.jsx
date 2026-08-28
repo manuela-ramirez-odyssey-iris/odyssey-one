@@ -4,7 +4,7 @@ import { FieldSelect, useAnchoredPortal } from '@odyssey/ui'
 export const meta = {
   name: 'FieldSelect',
   tier: 'atom',
-  version: '0.10.0',
+  version: '1.5.0',
   createdVersion: '0.2.0',
   figmaNode: '2627:153',
   codeConnect: 'packages/ui/src/FieldSelect.figma.tsx',
@@ -15,7 +15,8 @@ export const props = [
   { name: 'variant', type: 'leading|trailing', desc: 'Edge side. leading = left border (divider on right); trailing = right border (divider on left). Default trailing.' },
   { name: 'state', type: 'default|focus|disabled|error-default|error', desc: 'Drives the divider color ladder. Default default.' },
   { name: 'label', type: 'string', desc: 'Trigger text (e.g. "+1", "kg"). Default "Select".' },
-  { name: 'onClick', type: '() => void', desc: 'Open the parent-supplied menu.' },
+  { name: 'locked', type: 'boolean', desc: 'The value is decided by another field, so there is nothing to open: renders as static text with NO chevron and no button semantics, keeping the divider ladder. Not the same as state="disabled" (which greys the whole field) — a locked select sits on a usable field. Default false.' },
+  { name: 'onClick', type: '() => void', desc: 'Open the parent-supplied menu. Ignored when locked.' },
 ]
 
 export const tokens = [
@@ -99,6 +100,12 @@ export default function FieldSelectDemo() {
                 <span className="ds-demo-label">{state}</span>
               </div>
             ))}
+            {/* locked is orthogonal to the state ladder — value owned elsewhere,
+                so no chevron and nothing to click. */}
+            <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+              <FieldSelect variant={variant} label="kg" locked />
+              <span className="ds-demo-label">locked</span>
+            </div>
           </div>
         </div>
       ))}

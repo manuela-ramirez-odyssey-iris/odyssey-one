@@ -13,7 +13,7 @@ import { DataTable, Paginator, Checkbox, Badge, ActionMenu, Button } from '@odys
 export const meta = {
   name: 'DataTable',
   tier: 'organism',
-  version: '0.13.0',
+  version: '1.3.0',
   createdVersion: '0.3.0',
   codeOnly: true,
   // S116 mod: two additions from Figma `Table Container` 5057:8509 —

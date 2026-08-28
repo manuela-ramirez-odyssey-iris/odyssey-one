@@ -58,7 +58,7 @@
   },
   "ActionMenu": {
     "selector": "odyssey-action-menu",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -139,8 +139,8 @@
   },
   "Alert": {
     "selector": "odyssey-alert",
-    "version": "0.9.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "variant",
@@ -181,6 +181,11 @@
         "name": "errors",
         "type": "{field, reason, resolved?}[]",
         "desc": "Non-empty → error-validation anatomy (replaces message/link/close): \"N Errors: Validation Required\" header (N = unresolved), Validate Errors link, chevron-collapsible per-field error list. resolved: true entries drop out of the count + the rows."
+      },
+      {
+        "name": "items / summary",
+        "type": "OdysseyAlertItem[] / string",
+        "desc": "Generic collapsible list (any variant, e.g. success) — used when `errors` is empty. `summary` is the caller-supplied header text; each item renders through `itemTemplate` (Angular carries the payload as data where React holds a `content` ReactNode). Same chevron/reveal mechanics as errors, colored by variant."
       },
       {
         "name": "contextText",
@@ -433,7 +438,7 @@
   },
   "CalendarPicker": {
     "selector": "odyssey-calendar-picker",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -527,7 +532,7 @@
   },
   "ComboBox": {
     "selector": "odyssey-combo-box",
-    "version": "0.10.0",
+    "version": "1.0.0",
     "normalizing": false,
     "props": [
       {
@@ -691,7 +696,7 @@
   },
   "DataTable": {
     "selector": "odyssey-data-table",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -783,7 +788,7 @@
   },
   "DatePicker": {
     "selector": "odyssey-date-picker",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -877,7 +882,7 @@
   },
   "DropdownButton": {
     "selector": "odyssey-dropdown-button",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -926,6 +931,73 @@
         "name": "className",
         "type": "string",
         "desc": "Additional class names merged onto the surface."
+      }
+    ]
+  },
+  "DurationPicker": {
+    "selector": "odyssey-duration-picker",
+    "version": "1.5.0",
+    "normalizing": false,
+    "props": [
+      {
+        "name": "unit",
+        "type": "'hours' | 'minutes' | 'seconds'",
+        "desc": "Drives the dropdown increments AND the ceiling (hours 1..24 step 1, minutes 10..120 step 10, seconds 30..240 step 30). Default minutes."
+      },
+      {
+        "name": "value",
+        "type": "number | ''",
+        "desc": "Controlled count of `unit`s, or '' for unset."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<number | ''>",
+        "desc": "Fired with a number on pick or valid parse on blur/Enter; fired with '' when the field is blanked on blur. Angular analogue of React's onChange."
+      },
+      {
+        "name": "running",
+        "type": "boolean",
+        "desc": "External lock — true hides the input/dropdown and shows a live countdown Badge instead. Parent-driven; the component never starts/stops itself, and never self-resets at zero."
+      },
+      {
+        "name": "endsAt",
+        "type": "number (epoch ms)",
+        "desc": "Countdown target. Required when [running]."
+      },
+      {
+        "name": "totalMs",
+        "type": "number",
+        "desc": "Full window length, for the green→amber→red thresholds (amber at ≤30% remaining). Defaults to `value` converted to ms."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "FormField label above the input (also shown above the running Badge, in the same markup, so nothing shifts on the flip)."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "FormField placeholder (default 'Select {unit}')."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Passed through to FormField; suppresses the dropdown the same way [running] does."
+      },
+      {
+        "name": "id",
+        "type": "string",
+        "desc": "Passed through to FormField (label association)."
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "desc": "External (form-level) error message; shown only when there is no internal parse error."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
       }
     ]
   },
@@ -1015,7 +1087,7 @@
   },
   "FieldSelect": {
     "selector": "odyssey-field-select",
-    "version": "0.10.0",
+    "version": "1.5.0",
     "normalizing": false,
     "props": [
       {
@@ -1034,9 +1106,14 @@
         "desc": "Trigger text (e.g. \"+1\", \"kg\"). Default \"Select\"."
       },
       {
+        "name": "locked",
+        "type": "boolean",
+        "desc": "The value is decided by another field, so there is nothing to open: renders as static text with NO chevron and no button semantics, keeping the divider ladder. Not the same as state=\"disabled\" (which greys the whole field) — a locked select sits on a usable field. Default false."
+      },
+      {
         "name": "(clicked)",
         "type": "EventEmitter<MouseEvent>",
-        "desc": "Open the parent-supplied menu."
+        "desc": "Open the parent-supplied menu. Never emits when locked."
       },
       {
         "name": "className",
@@ -1111,7 +1188,7 @@
   },
   "FormField": {
     "selector": "odyssey-form-field",
-    "version": "0.10.0",
+    "version": "1.5.0",
     "normalizing": false,
     "props": [
       {
@@ -1196,13 +1273,13 @@
       },
       {
         "name": "leadingSelect",
-        "type": "{ label }",
-        "desc": "Renders a leading FieldSelect."
+        "type": "{ label, locked? }",
+        "desc": "Renders a leading FieldSelect. locked: true = the value is decided by another field — static label, no chevron, not clickable (the input stays usable). Figma: the nested FieldSelect is exposed, so its `Show chevron` boolean is reachable from a FormField instance."
       },
       {
         "name": "trailingSelect",
-        "type": "{ label }",
-        "desc": "Renders a trailing FieldSelect."
+        "type": "{ label, locked? }",
+        "desc": "Renders a trailing FieldSelect. locked: true = the value is decided by another field — static label, no chevron, not clickable (the input stays usable). Figma: the nested FieldSelect is exposed, so its `Show chevron` boolean is reachable from a FormField instance."
       },
       {
         "name": "(changed)",
@@ -1238,8 +1315,8 @@
   },
   "GlobalSearch": {
     "selector": "odyssey-global-search",
-    "version": "0.13.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "mode",
@@ -1360,7 +1437,7 @@
   },
   "GlobalSearchPanel": {
     "selector": "odyssey-global-search-panel",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -1519,8 +1596,8 @@
   },
   "GroupTable": {
     "selector": "odyssey-group-table",
-    "version": "0.13.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "columns",
@@ -1583,6 +1660,21 @@
         "desc": "NESTED-TABLE FLAVOR. The second table's OWN columns — own keys, labels and widths, deliberately NOT aligned to `columns`. Setting this selects the flavor: an expanded group reveals a full second table instead of child rows. ⚠ READ THE EXPANDABLE ROW AS A DATA ROW, NOT A HEADER: in the Rows flavor the per-group row heads its children; here it heads nothing — it is an ordinary data row (one value per outer column via `values`, regular weight, the chevron merely living in its lead cell), and its header is the table's own `columns` row. An expanded group therefore shows TWO header rows belonging to TWO different tables — that is correct, not a duplicate."
       },
       {
+        "name": "detailSections",
+        "type": "OdysseyGroupTableDetailSection[]",
+        "desc": "N SIBLING nested tables, stacked, each genuinely independent: its own columns, its own widths, its own horizontal scrollbar, separated from the next by a hairline. For row detail that belongs to two or more NAMED groups which must not read as one flat run of columns (Dropped Carrier: Routing Details + Volume Commitment). The count is yours — pass three or ten. Every section reads the SAME `groups[].detailRows`: a section is a column set OVER those rows, not its own data. `note: true` picks which section hosts `detailNote` (default the first); `scroll` is a per-section override of [detailScroll], for the case where one sibling genuinely differs; `cellTemplate` overrides [detailCellTemplate] for that section alone. Mutually exclusive with [detailColumns] (which is sugar for a single section) — passing both THROWS. Actions never appear in a section: `groups[].action` belongs to the group row alone."
+      },
+      {
+        "name": "detailScroll",
+        "type": "boolean",
+        "desc": "Nested flavor, default false. Gives each nested table its NATURAL width with an independent horizontal scrollbar inside its band, instead of compressing its columns to the outer table's width. ONE input with the same meaning and default in both flavors: with [detailSections] it applies to every sibling, each scrolling in its OWN band, so a wide section never drags a narrow neighbour. Per-section `scroll` overrides it. Off, a ResizeObserver still self-heals a band into its own scroller if the nested table would otherwise overflow the outer table."
+      },
+      {
+        "name": "noteLines",
+        "type": "number",
+        "desc": "Lines a `detailNote` clamps to before a Show more / Show less toggle appears (default 3). The toggle renders only when the text ACTUALLY overflows — a one-line description offering \"Show more\" is a lie. 0 disables the clamp."
+      },
+      {
         "name": "detailCellTemplate",
         "type": "TemplateRef<{ $implicit: { row, col } }>",
         "desc": "Optional renderer for the nested table's cells (Angular analogue of React renderDetailCell). Same `{ row, col }` context, with `row` a detailRows entry. Default: `row[col.key] ?? \"--\"`."
@@ -1591,6 +1683,16 @@
         "name": "groups[].detailRows",
         "type": "Record<string, unknown>[]",
         "desc": "Rows for that group's nested table, keyed by detailColumns[].key. Only read in the nested flavor."
+      },
+      {
+        "name": "groups[].detailNote",
+        "type": "{ label?, value? } | TemplateRef",
+        "desc": "Optional full-width WRAPPING row at the bottom of that group's nested table, spanning every column of the section that hosts it (`note: true`, default the first) plus its filler cell. The SHORTHAND for one note per row — for a note on every sibling use `detailNotes`. Clamped to [noteLines] with a Show more toggle. For the one long free-text field among short ones (Dropped Carrier's Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a TemplateRef ($implicit = `{ group }`) is the escape hatch. Nested flavor only."
+      },
+      {
+        "name": "groups[].detailNotes",
+        "type": "{ [sectionKey]: { label?, value? } | TemplateRef }",
+        "desc": "ONE NOTE PER SIBLING: a map keyed by `detailSections[].key`, so each nested table can carry its own long-text row, each with its own clamp and Show more toggle. Siblings with no entry render no note. Wins over the `detailNote` shorthand for its own section, so a group may carry both. Nested flavor only."
       },
       {
         "name": "stickyActions",
@@ -1648,8 +1750,8 @@
   },
   "LeadNav": {
     "selector": "odyssey-lead-nav",
-    "version": "0.2.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "hasCustomLogo",
@@ -1662,6 +1764,11 @@
         "desc": "Called when the hamburger icon button is clicked."
       },
       {
+        "name": "showMenu",
+        "type": "boolean",
+        "desc": "Show the hamburger icon button. Default true — false removes the button from the DOM (and a11y tree) entirely, e.g. the external Navbar context."
+      },
+      {
         "name": "className",
         "type": "string",
         "desc": "Additional class names."
@@ -1670,8 +1777,8 @@
   },
   "MatchRow": {
     "selector": "odyssey-match-row",
-    "version": "0.6.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "matchId",
@@ -1702,6 +1809,11 @@
         "name": "shipmentId",
         "type": "string",
         "desc": "Optional fourth meta cell (Shipment #). When provided, adds a trailing divider to the BOL cell."
+      },
+      {
+        "name": "meta",
+        "type": "{ label: string; value: string }[]",
+        "desc": "The meta line as DATA — labels included. Omit for the Shipments set built from customer/carrier/bol/shipmentId; pass it when a domain names its cells differently (Orders: Customer | PO # | Equipment). Every cell but the last gets the divider."
       },
       {
         "name": "source",
@@ -1930,7 +2042,7 @@
   },
   "MenuRowRadio": {
     "selector": "odyssey-menu-row-radio",
-    "version": "0.13.0",
+    "version": "1.3.0",
     "normalizing": false,
     "props": [
       {
@@ -2084,13 +2196,18 @@
   },
   "ModalHeader": {
     "selector": "odyssey-modal-header",
-    "version": "0.5.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "title",
         "type": "string",
         "desc": "Header title text (controlled value). (Figma: Title TEXT prop.)"
+      },
+      {
+        "name": "[slot=trail]",
+        "type": "projected",
+        "desc": "Optional node on the trail edge, immediately BEFORE the close X. For status that must stay legible while the body scrolls (SpotBid puts its live \"closes in\" countdown here). Projected icons are normalized to centre against the X rather than sitting on the text baseline."
       },
       {
         "name": "subtitle",
@@ -2156,8 +2273,8 @@
   },
   "ModalLarge": {
     "selector": "odyssey-modal-large",
-    "version": "0.2.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "title",
@@ -2213,8 +2330,8 @@
   },
   "ModalMedium": {
     "selector": "odyssey-modal-medium",
-    "version": "0.14.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "title",
@@ -2265,6 +2382,11 @@
         "name": "default slot",
         "type": "projected",
         "desc": "Content slot — body area (React children)."
+      },
+      {
+        "name": "[slot=headerTrail]",
+        "type": "projected",
+        "desc": "Re-projected straight into ModalHeader's [slot=trail] — a node on the trail edge, immediately before the close X. For status that must stay legible while the content slot scrolls (e.g. SpotBid's live \"closes in\" countdown). Keeps React's headerTrail name so the public slot reads the same in both stacks; the forwarding uses ngProjectAs because nested projection is resolved from the static parent template."
       },
       {
         "name": "[slot=footer]",
@@ -2327,8 +2449,8 @@
   },
   "Navbar": {
     "selector": "odyssey-navbar",
-    "version": "0.2.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "[slot=lead]",
@@ -2349,6 +2471,11 @@
         "name": "compact",
         "type": "boolean",
         "desc": "Shaves 2px off each vertical padding (14→12px) to accommodate taller editor-mode trail buttons. Default false."
+      },
+      {
+        "name": "context",
+        "type": "'internal'|'external'",
+        "desc": "Figma's Context variant. 'internal' (default) is today's dark app chrome. 'external' is the white gradient+blur surface purpose-built for external Odyssey landing pages — not a light theme twin. [slot=lead] is free-form, so context='external' does NOT auto-swap a nested <odyssey-logo> — project <odyssey-logo variant=\"dark\"> explicitly. GlobalSearch/TrailNav recolor via the --global-search-title-color / --trail-nav-profile-color custom properties this sets on the host (Emulated encapsulation can't reach projected children the way React's descendant rules do)."
       },
       {
         "name": "className",
@@ -2688,7 +2815,7 @@
   },
   "SearchChip": {
     "selector": "odyssey-search-chip",
-    "version": "0.12.0",
+    "version": "1.2.0",
     "normalizing": false,
     "props": [
       {
@@ -2799,8 +2926,8 @@
   },
   "ShipmentsBar": {
     "selector": "odyssey-shipments-bar",
-    "version": "0.9.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "shipmentId",
@@ -2940,7 +3067,7 @@
   },
   "Spinner": {
     "selector": "odyssey-spinner",
-    "version": "0.12.0",
+    "version": "1.2.0",
     "normalizing": false,
     "props": [
       {
@@ -3145,9 +3272,14 @@
   },
   "SummaryStrip": {
     "selector": "odyssey-summary-strip",
-    "version": "0.13.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
+      {
+        "name": "truncationTooltip",
+        "type": "boolean",
+        "desc": "Opt-in, strip-level. On hover, scans the cell (both <dt> and <dd>) for real overflow (scrollWidth > clientWidth) and shows the normalized Tooltip with the full text — mirrors DataTable's truncationTooltip mechanism, but gates on hidden CHARACTERS (hiddenCharCount, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. Suppresses the native title while on so the browser tooltip doesn't double up; default false is byte-identical to every existing caller."
+      },
       {
         "name": "items",
         "type": "[{ label, value, tone?, truncate? }]",
@@ -3251,8 +3383,8 @@
   },
   "TimePicker": {
     "selector": "odyssey-time-picker",
-    "version": "0.13.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "value",
@@ -3389,8 +3521,8 @@
   },
   "TrailNav": {
     "selector": "odyssey-trail-nav",
-    "version": "0.2.0",
-    "normalizing": true,
+    "version": "1.5.0",
+    "normalizing": false,
     "props": [
       {
         "name": "mode",
@@ -3421,6 +3553,11 @@
         "name": "showNotification",
         "type": "boolean",
         "desc": "[profile] Force-show/hide the notification badge independent of count."
+      },
+      {
+        "name": "showBell",
+        "type": "boolean",
+        "desc": "[profile] Show the Notifications (bell) icon button. Default true — false removes the whole button, not just the badge (that's showNotification)."
       },
       {
         "name": "showCustomers",

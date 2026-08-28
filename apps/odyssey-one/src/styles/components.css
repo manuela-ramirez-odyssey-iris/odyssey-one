@@ -850,7 +850,10 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 /* hover — faint surface tint for affordance (code-only interaction state, not a
    Figma variant; bg-only so it never fights the error/leading color ladder). */
-.field-select:not(:disabled):hover { background: var(--bg-secondary); }
+.field-select:not(:disabled):not(.field-select--locked):hover { background: var(--bg-secondary); }
+/* locked — value owned by another field: static text, no chevron, no affordance.
+   Divider ladder still applies (it belongs to the field, not the trigger). */
+.field-select--locked { cursor: default; }
 /* state ladder — divider color */
 .field-select--focus { --field-select-divider: var(--border-strong); }
 .field-select--disabled { --field-select-divider: var(--border-subtle); cursor: not-allowed; }
@@ -7331,6 +7334,39 @@ button.breadcrumb__label:focus-visible {
 .date-field          { min-width: var(--date-picker-single-min); }
 /* Rule 1: floor unconditional, only `width` is viewport-dependent. */
 .time-picker         { min-width: var(--time-picker-min); width: 320px; }
+
+/* DurationPicker — promoted into @odyssey/ui 2026-08-27, so its rules moved
+   here from the app-local durationPicker.css alongside every other library
+   component's CSS. Structure is shared with TimePicker via the same primitives,
+   so the only rules are the ones the RUNNING (countdown) state needs; the idle
+   state is FormField's own chrome.
+
+   Same floor as TimePicker (--time-picker-min, 124px): the widest idle value is
+   "120 min" and the widest running value is "23:59:59", both of which fit.
+   Reusing the token rather than minting a new one — same class of control, they
+   should not drift apart. Unlike TimePicker no flex container needs this field
+   to grow, so `width` is pinned flat at 150px instead of tracking a breakpoint:
+   it renders at that width and only shrinks toward the 124px floor if a narrower
+   ancestor forces it (user: the field must not stretch to fill its container). */
+.duration-picker {
+  min-width: var(--time-picker-min);
+  width: 150px;
+}
+
+.duration-picker__running {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1); /* FormField's own label→control gap */
+}
+
+/* The badge sits in the space the input occupied, so the field's height doesn't
+   jump when it locks. `align-items: center` keeps the badge optically on the
+   same line the input text was on. */
+.duration-picker__badge-shell {
+  display: flex;
+  align-items: center;
+  min-height: var(--field-height);
+}
 @media (min-width: 1024px) {
   /* The GENERAL field floor is deliberately viewport-conditional — it's a
      comfort minimum for desktop forms, not a content-derived one, which is why

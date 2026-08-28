@@ -4,13 +4,11 @@ import { GlobalSearch } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearch',
   tier: 'molecule',
-  version: '0.13.0',
+  version: '1.5.0',
   createdVersion: '0.2.0',
   figmaNode: '658:18',
   codeConnect: 'packages/ui/src/GlobalSearch.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

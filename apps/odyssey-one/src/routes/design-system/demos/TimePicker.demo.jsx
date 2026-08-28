@@ -4,17 +4,15 @@ import { TimePicker } from '@odyssey/ui'
 export const meta = {
   name: 'TimePicker',
   tier: 'molecule',
-  version: '0.13.0',
+  version: '1.5.0',
   createdVersion: '0.8.0',
   // Back to NORMALIZING 2026-08-18: the listbox now renders through
   // useAnchoredPortal instead of an inline absolutely-positioned div, because
   // any scrolling ancestor clipped it (found inside ModalMedium). Structural,
   // so the Angular twin owes the same change before this clears.
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4534:5204',
   codeConnect: 'packages/ui/src/TimePicker.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

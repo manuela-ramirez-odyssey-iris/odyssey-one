@@ -4,13 +4,11 @@ import { TrailNav } from '@odyssey/ui'
 export const meta = {
   name: 'TrailNav',
   tier: 'molecule',
-  version: '0.2.0',
+  version: '1.5.0',
   createdVersion: '0.2.0',
   figmaNode: '1565:648',
   codeConnect: 'packages/ui/src/TrailNav.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [
@@ -24,7 +22,6 @@ export const props = [
   { name: 'showCustomers', type: 'boolean', desc: '[profile] Show the Customers (handshake) icon button. Default true.' },
   { name: 'customersActive', type: 'boolean', desc: '[profile] Active state for the customers button.' },
   { name: 'dropdownOpen', type: 'boolean', desc: '[profile] Swaps chevron direction (down→up) when profile dropdown is open.' },
-  { name: 'onMenuClick', type: '() => void', desc: '[profile] Hamburger click handler (unused in TrailNav — lives in LeadNav).' },
   { name: 'onCustomersClick', type: '() => void', desc: '[profile] Customers icon click handler.' },
   { name: 'onNotificationClick', type: '() => void', desc: '[profile] Bell icon click handler.' },
   { name: 'onProfileClick', type: '() => void', desc: '[profile] Profile button click handler.' },

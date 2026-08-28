@@ -4,13 +4,11 @@ import { ShipmentsBar } from '@odyssey/ui'
 export const meta = {
   name: 'ShipmentsBar',
   tier: 'organism',
-  version: '0.9.0',
+  version: '1.5.0',
   createdVersion: '0.6.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

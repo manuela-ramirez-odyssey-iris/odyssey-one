@@ -4,7 +4,7 @@ import { SearchChip } from '@odyssey/ui'
 export const meta = {
   name: 'SearchChip',
   tier: 'molecule',
-  version: '0.12.0',
+  version: '1.2.0',
   createdVersion: '0.1.0',
   normalizing: false,
   // GS-21 / Case 11 — committed search criterion chip (renamed from

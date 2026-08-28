@@ -4,7 +4,7 @@ import { MenuRowRadio } from '@odyssey/ui'
 export const meta = {
   name: 'MenuRowRadio',
   tier: 'atom',
-  version: '0.13.0',
+  version: '1.3.0',
   createdVersion: '0.4.0',
   figmaNode: '3447:6593',
   codeConnect: 'packages/ui/src/MenuRowRadio.figma.tsx',

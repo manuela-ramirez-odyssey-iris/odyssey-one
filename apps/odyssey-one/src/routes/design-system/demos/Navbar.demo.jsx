@@ -4,13 +4,11 @@ import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo } from '@odyssey/u
 export const meta = {
   name: 'Navbar',
   tier: 'organism',
-  version: '0.2.0',
+  version: '1.5.0',
   createdVersion: '0.2.0',
   figmaNode: '5152:3908',
   codeConnect: 'packages/ui/src/Navbar.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [
@@ -24,7 +22,7 @@ export const props = [
 
 export const tokens = [
   { token: '--navbar-bg', resolves: 'DSN/900 (deep-sea-neutral-900)', usage: "navbar background — context='internal'" },
-  { token: '--bg-primary', resolves: 'white (Figma Background/primary)', usage: "navbar background — context='external'" },
+  { token: '--white', resolves: 'white', usage: "navbar background — context='external' (opaque stop of the 0-alpha→white gradient; the 0-alpha stop has no token). Was a flat --bg-primary fill before Figma 5152:3904 gained the gradient+blur." },
   { token: '--spacing-6', resolves: '24px', usage: "trailing horizontal padding; also leading padding when context='external'" },
   { token: '--spacing-4', resolves: '16px', usage: "leading horizontal padding — context='internal'" },
   { token: '--deep-sea-neutral-500', resolves: 'DSN/500', usage: 'hamburger + trail icon color' },

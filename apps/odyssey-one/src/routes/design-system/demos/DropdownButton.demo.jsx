@@ -4,7 +4,7 @@ import { DropdownButton } from '@odyssey/ui'
 export const meta = {
   name: 'DropdownButton',
   tier: 'atom',
-  version: '0.13.0',
+  version: '1.3.0',
   createdVersion: '0.3.0',
   figmaNode: '3272:3880',
   codeConnect: 'packages/ui/src/DropdownButton.figma.tsx',

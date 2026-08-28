@@ -1,15 +1,14 @@
 import { useState } from 'react'
-import DurationPicker from '../../../components/fields/DurationPicker.jsx'
+import { DurationPicker } from '@odyssey/ui'
 
 export const meta = {
   name: 'DurationPicker',
   tier: 'molecule',
-  version: '0.1.0',
+  version: '1.5.0',
   createdVersion: '0.1.0',
-  normalizing: true, // app-local; Figma master now exists (below) — still owes /normalize + promotion out of app-local + Angular
+  normalizing: false,
   figmaNode: '5303:14',
   codeConnect: null,
-  approved: true,
 }
 
 export const props = [
@@ -27,6 +26,9 @@ export const props = [
 ]
 
 export const tokens = [
+  { token: '--time-picker-min',      resolves: '124px',   usage: "the field's width floor — REUSED from TimePicker rather than minting a new one: same class of control, and the widest values ('120 min' idle, '23:59:59' running) both fit" },
+  { token: '--field-height',         resolves: '36px',    usage: 'min-height of the running badge shell, so the field does not jump when it locks' },
+  { token: '--spacing-1',            resolves: '4px',     usage: "running state's label→badge gap (FormField's own label gap)" },
   { token: '--white',                resolves: '#FFFFFF', usage: 'field + dropdown surface (via FormField / DropdownMenu)' },
   { token: '--deep-sea-neutral-300', resolves: '#C5CAD4', usage: 'field border, default state (FormField)' },
   { token: '--deep-sea-neutral-500', resolves: '#6B7280', usage: 'trailing chevron stroke' },
@@ -128,13 +130,13 @@ export default function DurationPickerDemo() {
   return (
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        <strong>DurationPicker</strong> (app-local, <code>src/components/fields/DurationPicker.jsx</code>) picks an
-        AMOUNT of time rather than a time-of-day — deliberately not a mode on TimePicker (shared structure, not
-        shared intent). IDLE is a typable field + increment dropdown, identical contract shape to TimePicker
-        (liberal parse on blur/Enter, clamp to the unit's ceiling). RUNNING is parent-driven: pass{' '}
-        <code>running</code> + <code>endsAt</code> and it swaps to a live countdown Badge that never resets itself
-        at zero. Not yet through Figma / <code>/normalize</code> — hence NORMALIZING here rather than under
-        Molecules.
+        <strong>DurationPicker</strong> picks an AMOUNT of time rather than a time-of-day — deliberately not a
+        mode on TimePicker (shared structure, not shared intent). IDLE is a typable field + increment dropdown,
+        identical contract shape to TimePicker (liberal parse on blur/Enter, clamp to the unit's ceiling).
+        RUNNING is parent-driven: pass <code>running</code> + <code>endsAt</code> and it swaps to a live
+        countdown Badge that never resets itself at zero. Promoted out of the app into{' '}
+        <code>@odyssey/ui</code> on 2026-08-27 together with the <code>useCountdown</code> timing primitives it
+        depends on — that app-local dependency was what had blocked the Angular port, which landed the same day.
       </p>
 
       <div className="ds-demo-section">

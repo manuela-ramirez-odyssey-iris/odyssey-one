@@ -4,13 +4,11 @@ import { Badge, ModalHeader } from '@odyssey/ui'
 export const meta = {
   name: 'ModalHeader',
   tier: 'molecule',
-  version: '0.6.0',
+  version: '1.5.0',
   createdVersion: '0.5.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '3447:7661',
   codeConnect: 'packages/ui/src/ModalHeader.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [
