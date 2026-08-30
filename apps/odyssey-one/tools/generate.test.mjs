@@ -1057,3 +1057,40 @@ test('I4: shipment pickup/delivery === the order LATEST (requested) dates, and e
   }
   assert.ok(checked > 0, 'expected at least one order with dates')
 })
+
+// LINX-14509–14515 — Review Order Change (Direct Shipment). Seeds a new
+// exceptions category whose detail carries the prior-vs-new tender comparison
+// the review screen renders. Full 2200-row dataset so the ~17%-of-exceptions
+// weight clears a healthy population.
+test('order-change shipments carry a coherent detail.orderChange payload', () => {
+  const ds = buildDataset()
+  const ocRows = ds.shipments.filter(s => s.category === 'order-change')
+  assert.ok(ocRows.length >= 20, `expected a healthy order-change population, got ${ocRows.length}`)
+  for (const s of ocRows) {
+    assert.equal(s.panel, 'exceptions')
+    const oc = ds.details.get(s.sellShipment)?.orderChange
+    assert.ok(oc, `${s.sellShipment} missing detail.orderChange`)
+    assert.ok(['returned', 'not-returned'].includes(oc.scenario))
+    assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(oc.prior.tenderStatus))
+    // LINX-14511: comparison = prior list vs new list, each a routing-option-shaped array
+    assert.ok(Array.isArray(oc.priorTenderList) && oc.priorTenderList.length > 0)
+    assert.ok(Array.isArray(oc.newTenderList) && oc.newTenderList.length > 0)
+    const inNew = oc.newTenderList.some(o => o.scac === oc.prior.scac)
+    assert.equal(inNew, oc.scenario === 'returned', `${s.sellShipment} scenario/list mismatch`)
+    // LINX-14513: not-returned ⇒ no new cost (greyed out radio)
+    if (oc.scenario === 'not-returned') assert.equal(oc.newOption.apCost, null)
+    else assert.ok(oc.newOption.apCost > 0)
+    // LINX-14512: changed fields exist and are flagged
+    assert.ok(oc.comparison.some(f => f.changed))
+    assert.ok(oc.comparison.every(f => 'field' in f && 'prior' in f && 'new' in f && 'source' in f))
+    // hazmat lines present and prior/new identical in v1
+    assert.ok(Array.isArray(oc.hazmat) && oc.hazmat.length > 0)
+    assert.deepEqual(oc.hazmat[0].prior, oc.hazmat[0].new)
+  }
+})
+
+test('non order-change shipments have no orderChange key', () => {
+  const ds = buildDataset()
+  const other = ds.shipments.find(s => s.category !== 'order-change')
+  assert.equal(ds.details.get(other.sellShipment)?.orderChange, undefined)
+})

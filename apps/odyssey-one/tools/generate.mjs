@@ -162,6 +162,11 @@ const VALIDATION_MESSAGES = {
   'tender-issues': ['Tender failed - carrier timeout', 'Tender rejected by system', 'Carrier API error'],
   'tender-review': ['Manual carrier selection required', 'Cost exceeds threshold', 'Preferred carrier unavailable'],
   'bid-review': ['Spot bid expired', 'Multiple bids pending review', 'Bid below minimum rate'],
+  'order-change': [
+    'Transportation-relevant order change — review required',
+    'Order updated by customer — tender locked pending review',
+    'Order change received — new tender option version generated',
+  ],
 };
 
 export const CARRIERS = [
@@ -1955,6 +1960,13 @@ function generateShipment(index, chainOverride) {
     historyList: historyEntries,
   };
 
+  // LINX-14509–14515 — review payload only for shipments actually seeded into
+  // the order-change exceptions category; every other shipment carries no
+  // orderChange key at all (mirrors droppedCarrierList's placement above).
+  if (category === 'order-change') {
+    detail.orderChange = buildOrderChange(sellShipment, routingOptions);
+  }
+
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
   // an orders.json row with the SAME id, customer, locations, dates, weights.
   const orderStatusLabel = hasAccepted ? 'Shipment Planned' : hasSent ? 'Load Planned' : 'Shipment Failed'; // I6
@@ -2149,8 +2161,8 @@ function weightedPick(items, weights) {
 // Category weights within each panel (realistic, unequal distribution)
 const CATEGORY_WEIGHTS = {
   exceptions: {
-    items:   ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review'],
-    weights: [28, 22, 22, 18, 10], // date-issues most common, bid-review least
+    items:   ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review', 'order-change'],
+    weights: [24, 18, 18, 15, 8, 17], // order-change: LINX-14509 review population
   },
   monitoring: {
     items:   ['sent', 'hold', 'consolidation', 'spotbid', 'approved'],
@@ -2161,6 +2173,109 @@ const CATEGORY_WEIGHTS = {
     weights: [45, 33, 22], // PGI errors most common
   },
 };
+
+// LINX-14509–14515 — Order Change review payload. Deterministic per shipment:
+// mulberry32 keyed on the sellShipment id so NO main faker draws are added
+// (a new draw re-numbers every subsequent shipment id — S122 lesson).
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
+
+/**
+ * Builds detail.orderChange for a shipment seeded into the 'order-change'
+ * exceptions category. `routingOptions` is this shipment's own tender list
+ * (same array assigned to detail.shippingOptionList) — its field names
+ * (scac, carrierName, equipmentCode, rank, routeRank, pickupDateTime,
+ * deliveryDateTime, rateDetails.baseRate) are reused verbatim rather than
+ * invented, so the prior/new options stay shape-compatible with a real
+ * routing option row.
+ */
+function buildOrderChange(sellShipment, routingOptions) {
+  const rnd = mulberry32(seedFrom(sellShipment));
+  const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
+  // prior = the option the tender was riding on (LINX-14511 "Prior Options")
+  const prior = routingOptions[0];
+  const priorStatus = pickR(['Sent', 'Accepted', 'To Be Tendered']);
+  const priorQuoted = rnd() < 0.3;
+
+  // New list = re-run routing after the order change. Derived from the seeded
+  // options: perturb AP costs deterministically; in 'not-returned' the prior
+  // carrier is absent (routing did not bring it back).
+  const perturb = (v) => Math.round(v * (1 + (rnd() * 0.18 - 0.06)) * 100) / 100;
+  const newList = routingOptions
+    .filter(o => scenario === 'returned' || o.scac !== prior.scac)
+    .map((o, i) => ({
+      ...o,
+      rank: i + 1,
+      status: '',
+      rateDetails: { ...o.rateDetails, baseRate: perturb(o.rateDetails.baseRate) },
+    }));
+  const newForPrior = scenario === 'returned' ? newList.find(o => o.scac === prior.scac) : null;
+
+  // LINX-14512 comparison rows — subset of the 26-field AC table, changed
+  // fields first (the screen sorts them to the top anyway; seed them ordered).
+  const shiftDay = (iso, d) => { const t = new Date(iso); t.setDate(t.getDate() + d); return t.toISOString(); };
+  const changedPool = [
+    { field: 'Pickup Date/Time', source: 'Routing', prior: prior.pickupDateTime, new: shiftDay(prior.pickupDateTime, 1 + Math.floor(rnd() * 3)) },
+    { field: 'Delivery Date', source: 'Routing', prior: prior.deliveryDateTime, new: shiftDay(prior.deliveryDateTime, 1 + Math.floor(rnd() * 3)) },
+    { field: 'Gross Weight', source: 'Shipment', prior: '2,000 LB', new: `${2000 + Math.floor(rnd() * 500)} LB` },
+    { field: 'Package Count', source: 'Shipment', prior: '10', new: String(10 + Math.floor(rnd() * 4)) },
+    { field: 'Volume', source: 'Shipment', prior: '100 CuFt', new: `${100 + Math.floor(rnd() * 40)} CuFt` },
+  ];
+  const changedCount = 1 + Math.floor(rnd() * 3);
+  const comparison = [
+    ...changedPool.slice(0, changedCount).map(f => ({ ...f, changed: true })),
+    { field: 'Incoterm Info', source: 'Order', prior: 'FOB', new: 'FOB', changed: false },
+    { field: 'Ship Direction', source: 'Order', prior: 'Inbound', new: 'Inbound', changed: false },
+    { field: 'Seed Equipment', source: 'Order', prior: prior.equipmentCode, new: prior.equipmentCode, changed: false },
+    { field: 'Distance', source: 'Routing', prior: '282 MI', new: '282 MI', changed: false },
+    { field: 'Distance Source', source: 'Routing', prior: 'PCMILER PRACTICAL', new: 'PCMILER PRACTICAL', changed: false },
+  ];
+
+  return {
+    scenario,
+    prior: {
+      scac: prior.scac, carrierName: prior.carrierName, equipmentCode: prior.equipmentCode,
+      tenderStatus: priorStatus,
+      routeRank: prior.routeRank, rank: prior.rank,
+      pickupDateTime: prior.pickupDateTime, deliveryDateTime: prior.deliveryDateTime,
+      apCost: prior.rateDetails.baseRate, quoted: priorQuoted,
+    },
+    newOption: {
+      scac: prior.scac, equipmentCode: prior.equipmentCode,
+      tenderStatus: null, // undecided until the user picks an action
+      routeRank: newForPrior ? newForPrior.routeRank : null, // blank when not in list
+      rank: newForPrior ? newForPrior.rank : newList.length + 1, // insertion slot: bottom of equipment group
+      pickupDateTime: prior.pickupDateTime, deliveryDateTime: prior.deliveryDateTime,
+      apCost: newForPrior ? newForPrior.rateDetails.baseRate : null, // null ⇒ New Cost greyed
+    },
+    priorTenderList: routingOptions.map(o => ({ ...o })),
+    newTenderList: newList,
+    comparison,
+    // Preview Hazardous Material Information: rows by Line #, prior/new
+    // identical in v1 (the mock shows "Differences (0)").
+    hazmat: Array.from({ length: 1 + Math.floor(rnd() * 2) }, (_, i) => {
+      const line = 87000 + Math.floor(rnd() * 999) + i;
+      const row = {
+        line,
+        boilingPoint: `Line #${100 + i} C`,
+        hazmatClass: pickR(['I', 'II', 'III']),
+        hazmatDescription: pickR(['Flammable Liquid', 'Corrosive', 'Oxidizer']),
+        itemDescription: `UN000${10 + Math.floor(rnd() * 89)}`,
+        marinePollutant: rnd() < 0.5 ? 'Y' : 'N',
+      };
+      return { prior: row, new: { ...row } }; // identical both sides in v1
+    }),
+  };
+}
 
 // ============================================================
 // UNSHIPPED ORDERS (Orders-side only — I6/I9)
