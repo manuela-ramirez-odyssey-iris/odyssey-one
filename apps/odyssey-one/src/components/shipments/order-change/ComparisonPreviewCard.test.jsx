@@ -72,6 +72,44 @@ describe('ComparisonPreviewCard — difference filter', () => {
   })
 })
 
+describe('ComparisonPreviewCard — All chip (S134)', () => {
+  test('an All chip renders first, before the difference chips, and is selected by default', () => {
+    renderCard()
+    const allChip = screen.getByRole('button', { name: 'All' })
+    const rankChip = screen.getByRole('button', { name: 'Rank Order Change' })
+    const costChip = screen.getByRole('button', { name: 'AP Cost' })
+    // DOM order: All precedes both difference chips.
+    expect(allChip.compareDocumentPosition(rankChip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(allChip.compareDocumentPosition(costChip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(allChip.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  test('selecting a difference chip deselects All; selecting All clears the filter and restores the full table', () => {
+    const { renderBody } = renderCard()
+    const allChip = screen.getByRole('button', { name: 'All' })
+    const rankChip = screen.getByRole('button', { name: 'Rank Order Change' })
+    expect(allChip.getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(rankChip)
+    expect(rankChip.getAttribute('aria-pressed')).toBe('true')
+    expect(allChip.getAttribute('aria-pressed')).toBe('false')
+    expect(renderBody).toHaveBeenLastCalledWith('list', 'Rank Order Change')
+
+    fireEvent.click(allChip)
+    expect(allChip.getAttribute('aria-pressed')).toBe('true')
+    expect(rankChip.getAttribute('aria-pressed')).toBe('false')
+    expect(renderBody).toHaveBeenLastCalledWith('list', null)
+  })
+
+  test('the All chip and every difference chip render a gray Badge, never purple', () => {
+    renderCard()
+    const allChip = screen.getByRole('button', { name: 'All' })
+    const rankChip = screen.getByRole('button', { name: 'Rank Order Change' })
+    expect(allChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
+    expect(rankChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
+  })
+})
+
 describe('ComparisonPreviewCard — List/Table toggle', () => {
   test('defaults to list mode and switches to table mode', () => {
     const { renderBody } = renderCard()

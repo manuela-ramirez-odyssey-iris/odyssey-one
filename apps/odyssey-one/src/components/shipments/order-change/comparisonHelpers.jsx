@@ -22,3 +22,24 @@ export function DiffValue({ value, changed, asBadge = false }) {
 // whatever `col.label` says, and a KV block's own rows already carry the
 // field name in the `label` column.
 export const KV_COLUMNS = [{ key: 'label', width: 180 }, { key: 'value' }]
+
+/**
+ * Turns a flat array of data rows into GroupTable `flat`-mode groups: one
+ * group PER ROW, each carrying `values` pre-rendered by `cellFn(row, col)`
+ * for every column (flat mode reads `group.values`, not `renderCell` — see
+ * GroupTable's `flat` docblock). Used by the three preview sections wherever
+ * a former "one static band + N child rows" shape converts to flat rows
+ * under a `header={{ title }}` strip (S134) — the list/band NAME moves to
+ * the strip, so nothing here needs a `group.label` fallback.
+ *
+ * @param {object[]} rows
+ * @param {Array<{key:string}>} columns
+ * @param {(row:object, col:object) => *} cellFn
+ * @returns {Array<{id:number, values:object}>}
+ */
+export function rowsToFlatGroups(rows, columns, cellFn) {
+  return rows.map((row, i) => ({
+    id: i,
+    values: Object.fromEntries(columns.map((col) => [col.key, cellFn(row, col)])),
+  }))
+}

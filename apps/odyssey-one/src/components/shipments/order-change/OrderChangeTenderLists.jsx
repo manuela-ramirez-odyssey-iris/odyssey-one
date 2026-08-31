@@ -1,6 +1,6 @@
 import { GroupTable } from '@odyssey/ui'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
-import { DiffValue, KV_COLUMNS, val } from './comparisonHelpers.jsx'
+import { DiffValue, KV_COLUMNS, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
 
 // "Preview Tender List" (LINX-14510/14511, Figma 1794-5544). Fields, in the
 // AC's own order, for List mode's columnar table (one row per carrier).
@@ -143,28 +143,28 @@ function kvRowsFor(carrier, changeMap, fields) {
 }
 
 /**
- * List mode's ONE static band per side. `expandable: false` + a body renders
- * the band unconditionally with no chevron (GroupTable 0.16.0, D7 2026-08-30
- * — added for exactly this: its own docblock cites "Prior Tender List" as
- * the worked example). The band's LABEL carries the list's name; there is no
- * separate `header` strip here, unlike Table mode below, because one static
- * group already says everything a header strip would.
+ * List mode's ONE table per side: every carrier is its own FLAT row (S134 —
+ * GroupTable's `flat` mode, one plain white row per group via `values`,
+ * replacing the old `expandable: false` band whose child rows tinted like
+ * striped bands). The list's NAME moves to the `header={{ title }}` strip —
+ * flat mode has no group-header row of its own to carry it.
  */
 function ListModeTable({ label, rows, columns, changeMap }) {
-  return (
-    <GroupTable
-      columns={columns}
-      groups={[{ id: label, label, rows, expandable: false }]}
-      renderCell={(row, col) => renderListCell(row, col, changeMap)}
-    />
-  )
+  const groups = rowsToFlatGroups(rows, columns, (row, col) => renderListCell(row, col, changeMap))
+  return <GroupTable header={{ title: label }} columns={columns} groups={groups} flat />
 }
 
 /**
- * Table mode's side: one `expandable: false` KV group PER CARRIER (no single
- * group can carry the list's own name here, since there are N of them) — so
- * the list's name goes through GroupTable's `header` strip instead, the
- * mechanism this mode actually needs it for.
+ * Table mode's side: one `expandable: false` KV group PER CARRIER, each
+ * carrying SEVERAL key/value rows (one per field) beneath its label.
+ *
+ * NOT converted to `flat` (S134): flat renders exactly one row per group,
+ * but a carrier's KV block is N rows (Rank, SCAC, Equipment, …) under ONE
+ * carrier-name header — the two shapes don't match. Forcing flat here would
+ * mean either losing the per-field rows or inventing a per-field group (i.e.
+ * re-deriving the current shape by another name), so this stays on the
+ * ordinary rows flavor. The list's own name goes through GroupTable's
+ * `header` strip since no single group can carry it (there are N carriers).
  */
 function TableModeSide({ title, carriers, changeMap, fields }) {
   const groups = carriers.map((c, i) => ({

@@ -133,6 +133,18 @@ describe('OrderChangeTenderLists — List mode (default)', () => {
     expect(unchangedCost.closest('span')?.className || '').not.toMatch(/text-badge/)
   })
 
+  test('S134: filter chips render gray while a changed value inside the table stays purple', () => {
+    render(<OrderChangeTenderLists oc={makeOc()} />)
+    const allChip = screen.getByRole('button', { name: 'All' })
+    const costChip = screen.getByRole('button', { name: 'AP Cost' })
+    expect(allChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
+    expect(costChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
+    // ODFL's changed cost, inside the table — stays purple, the only thing
+    // purple means now.
+    const changedCost = screen.getByText('$2,850.00 USD')
+    expect(changedCost.style.background).toBe('var(--badge-purple-bg)')
+  })
+
   test('the static band header is a plain label, not a toggle button', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
     // GroupTable's `expandable: false` static band renders the label as

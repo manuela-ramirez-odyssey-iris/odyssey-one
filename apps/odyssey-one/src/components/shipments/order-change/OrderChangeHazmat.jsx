@@ -1,6 +1,6 @@
 import { GroupTable } from '@odyssey/ui'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
-import { DiffValue, KV_COLUMNS, val } from './comparisonHelpers.jsx'
+import { DiffValue, KV_COLUMNS, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
 
 // "Preview Hazardous Material Information" (LINX-14509…14515). oc.hazmat is
 // an array of { prior, new } OrderChangeHazmatLineVM pairs (api/types/
@@ -59,7 +59,14 @@ function renderListCell(row, col) {
   return <DiffValue value={row[col.key]} changed={row._changed[col.key]} />
 }
 
-// Table mode's side: one static KV group PER LINE, labelled "Line {n}".
+// Table mode's side: one static KV group PER LINE, labelled "Line {n}",
+// each carrying the five hazmat fields as its own KV rows.
+//
+// NOT converted to `flat` (S134): this is the exact shape the task calls
+// out by name — a per-entity label ("Line 87979") with several key/value
+// rows beneath it. Flat renders one row per group; a line's KV block is
+// five. See OrderChangeTenderLists' TableModeSide for the fuller reasoning,
+// which applies here unchanged.
 function TableModeSide({ title, pairs, side, fields }) {
   const groups = pairs.map((p, i) => {
     const changed = changedFieldsFor(p)
@@ -85,17 +92,22 @@ export default function OrderChangeHazmat({ oc }) {
           const columns = visibleColumns(filter)
           const priorRows = pairs.map((p) => ({ ...p.prior, _changed: changedFieldsFor(p) }))
           const newRows = pairs.map((p) => ({ ...p.new, _changed: changedFieldsFor(p) }))
+          // S134: each hazmat line is its own FLAT row (GroupTable `flat`),
+          // the list's name moved to the `header={{ title }}` strip — same
+          // conversion as OrderChangeTenderLists' ListModeTable.
           return (
             <div className="comparison-preview__stack">
               <GroupTable
+                header={{ title: 'Prior Tender List' }}
                 columns={columns}
-                groups={[{ id: 'prior', label: 'Prior Tender List', expandable: false, rows: priorRows }]}
-                renderCell={renderListCell}
+                groups={rowsToFlatGroups(priorRows, columns, renderListCell)}
+                flat
               />
               <GroupTable
+                header={{ title: 'New Tender List' }}
                 columns={columns}
-                groups={[{ id: 'new', label: 'New Tender List', expandable: false, rows: newRows }]}
-                renderCell={renderListCell}
+                groups={rowsToFlatGroups(newRows, columns, renderListCell)}
+                flat
               />
             </div>
           )

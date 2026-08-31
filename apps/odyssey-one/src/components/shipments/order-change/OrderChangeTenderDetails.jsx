@@ -1,6 +1,6 @@
 import { GroupTable } from '@odyssey/ui'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
-import { DiffValue, KV_COLUMNS } from './comparisonHelpers.jsx'
+import { DiffValue, KV_COLUMNS, rowsToFlatGroups } from './comparisonHelpers.jsx'
 
 // "Preview Tender Details" (LINX-14512, Figma 1794-5544). oc.comparison rows
 // carry { field, source, prior, new, changed } — OrderChangeComparisonRowVM
@@ -38,9 +38,30 @@ function filterRows(rows, filter) {
 // there is no separate `header` strip: the group's own label already says
 // "Prior Tender"/"New Tender". A `header` strip here would duplicate that
 // exact text (measured — GroupTable renders both).
+//
+// NOT converted to `flat` (S134): every comparison field is its own KV row,
+// several of them under ONE static label — the same "N rows under one
+// per-entity header" shape ListModeTable's Table-mode sibling has, and flat
+// only ever renders one row per group. See that file's comment for the full
+// reasoning; it applies here unchanged.
 function TableModeSide({ title, rows, side }) {
   const kvRows = rows.map((r) => ({ label: r.field, value: <DiffValue value={r[side]} changed={r.changed} /> }))
   return <GroupTable columns={KV_COLUMNS} groups={[{ id: title, label: title, expandable: false, rows: kvRows }]} />
+}
+
+/**
+ * List mode's ONE table per band ("Changed Fields" / "Unchanged Fields"):
+ * every comparison field is its own FLAT row (S134), same conversion as
+ * OrderChangeTenderLists' ListModeTable — the band's former group-header
+ * label moves to the `header={{ title }}` strip, and flat mode renders every
+ * field as a plain white row instead of a tinted child band. Two SIBLING
+ * tables, stacked, rather than one table with two groups: flat's `header` is
+ * one strip per TABLE, and there are two distinct band names to carry, the
+ * exact reason ListModeTable already renders Prior/New as two tables.
+ */
+function ListSection({ title, rows }) {
+  const groups = rowsToFlatGroups(rows, LIST_COLUMNS, renderListCell)
+  return <GroupTable header={{ title }} columns={LIST_COLUMNS} groups={groups} flat />
 }
 
 export default function OrderChangeTenderDetails({ oc }) {
@@ -54,14 +75,10 @@ export default function OrderChangeTenderDetails({ oc }) {
       {(mode, filter) => {
         if (mode === 'list') {
           return (
-            <GroupTable
-              columns={LIST_COLUMNS}
-              groups={[
-                { id: 'changed', label: 'Changed Fields', expandable: false, rows: filterRows(changed, filter) },
-                { id: 'unchanged', label: 'Unchanged Fields', expandable: false, rows: filterRows(unchanged, filter) },
-              ]}
-              renderCell={renderListCell}
-            />
+            <div className="comparison-preview__stack">
+              <ListSection title="Changed Fields" rows={filterRows(changed, filter)} />
+              <ListSection title="Unchanged Fields" rows={filterRows(unchanged, filter)} />
+            </div>
           )
         }
         const ordered = filterRows([...changed, ...unchanged], filter)

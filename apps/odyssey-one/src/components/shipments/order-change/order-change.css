@@ -174,8 +174,10 @@
 
 /* ComparisonPreviewCard (Task 10a, shared shell for the three "Additional
    Changes Preview" sections, LINX-14510/14511) — the sub-header row that
-   sits below SubAccordion's own title/chevron: "Differences (N)", one purple
-   difference badge per changed field, and the List/Table ButtonToggle. */
+   sits below SubAccordion's own title/chevron: "Differences (N)", a gray
+   All chip + one gray filter chip per changed field (S134 — gray toggles;
+   purple is reserved for changed VALUES inside the tables), and the
+   List/Table ButtonToggle. */
 .comparison-preview__subheader {
   display: flex;
   align-items: center;
@@ -195,6 +197,24 @@
   border: none;
   padding: 0;
   cursor: pointer;
+}
+
+/* Selected-state affordance for a filter chip (S134 — proposed, pending
+   designer confirmation: no spec existed for this state). A hairline ring +
+   tint around the gray Badge when its button is pressed, using the same
+   neutral pair (--border-default / --bg-tertiary) tokens.css already
+   defines for a default emphasis border + a light neutral fill — no new
+   color, no !important, Badge's own internals untouched. */
+.comparison-preview__diff-chip {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  border: 1px solid transparent;
+}
+
+.comparison-preview__diff-chip[aria-pressed='true'] {
+  border-color: var(--border-default);
+  background: var(--bg-tertiary);
 }
 
 .comparison-preview__mode-toggle {
