@@ -98,4 +98,12 @@ describe('OrderChangeHazmat — Table mode', () => {
     expect(screen.queryByRole('button', { name: 'Line 87979' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Line 87980' })).toBeNull()
   })
+
+  test('S134: Table mode per-line KV blocks are non-striped (white rows, hairlines), not tinted bands', () => {
+    // Figma 1931-9497 shows white per-line KV blocks with hairlines, not
+    // GroupTable's default tinted child-row bands.
+    const { container } = render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
+    expect(container.querySelectorAll('.odyssey-group-table--flat').length).toBe(2)
+  })
 })

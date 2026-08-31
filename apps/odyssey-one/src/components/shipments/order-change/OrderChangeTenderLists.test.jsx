@@ -178,6 +178,16 @@ describe('OrderChangeTenderLists — Table mode', () => {
     expect(screen.getByText('New Tender List')).toBeTruthy()
   })
 
+  test('S134: Table mode KV blocks are non-striped (white rows, hairlines), not tinted bands', () => {
+    // Figma 1931-7398 shows white carrier KV blocks separated by hairlines,
+    // not GroupTable's default tinted child-row bands. `striped={false}`
+    // reuses the same root modifier class `flat` mode applies elsewhere in
+    // this file — pinned here so it can't silently regress back to striped.
+    const { container } = render(<OrderChangeTenderLists oc={makeOc()} />)
+    switchToTable()
+    expect(container.querySelectorAll('.odyssey-group-table--flat').length).toBe(2)
+  })
+
   test('Rank renders as a badge in Table mode', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
     switchToTable()

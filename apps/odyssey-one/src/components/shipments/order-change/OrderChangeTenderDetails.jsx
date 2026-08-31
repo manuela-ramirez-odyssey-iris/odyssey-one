@@ -44,9 +44,19 @@ function filterRows(rows, filter) {
 // per-entity header" shape ListModeTable's Table-mode sibling has, and flat
 // only ever renders one row per group. See that file's comment for the full
 // reasoning; it applies here unchanged.
+//
+// `striped={false}` (S134, Figma 1931-8797): the mock's Prior/New KV blocks
+// are white with hairlines, not tinted bands — same fix as TenderLists'
+// TableModeSide, no structural change.
 function TableModeSide({ title, rows, side }) {
   const kvRows = rows.map((r) => ({ label: r.field, value: <DiffValue value={r[side]} changed={r.changed} /> }))
-  return <GroupTable columns={KV_COLUMNS} groups={[{ id: title, label: title, expandable: false, rows: kvRows }]} />
+  return (
+    <GroupTable
+      columns={KV_COLUMNS}
+      groups={[{ id: title, label: title, expandable: false, rows: kvRows }]}
+      striped={false}
+    />
+  )
 }
 
 /**

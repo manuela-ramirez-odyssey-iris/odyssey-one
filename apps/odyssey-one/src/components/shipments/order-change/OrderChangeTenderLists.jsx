@@ -165,6 +165,11 @@ function ListModeTable({ label, rows, columns, changeMap }) {
  * re-deriving the current shape by another name), so this stays on the
  * ordinary rows flavor. The list's own name goes through GroupTable's
  * `header` strip since no single group can carry it (there are N carriers).
+ *
+ * `striped={false}` (S134, Figma 1931-7398): the mock's KV blocks are white
+ * with hairline dividers, not the tinted gray bands `striped`'s default
+ * gives child rows — the structure was already right, only the child-row
+ * background was wrong.
  */
 function TableModeSide({ title, carriers, changeMap, fields }) {
   const groups = carriers.map((c, i) => ({
@@ -173,7 +178,7 @@ function TableModeSide({ title, carriers, changeMap, fields }) {
     expandable: false,
     rows: kvRowsFor(c, changeMap, fields),
   }))
-  return <GroupTable header={{ title }} columns={KV_COLUMNS} groups={groups} />
+  return <GroupTable header={{ title }} columns={KV_COLUMNS} groups={groups} striped={false} />
 }
 
 export default function OrderChangeTenderLists({ oc }) {

@@ -67,6 +67,10 @@ function renderListCell(row, col) {
 // rows beneath it. Flat renders one row per group; a line's KV block is
 // five. See OrderChangeTenderLists' TableModeSide for the fuller reasoning,
 // which applies here unchanged.
+//
+// `striped={false}` (S134, Figma 1931-9497): the mock's per-line KV blocks
+// are white with hairlines, not tinted bands — same fix, no structural
+// change.
 function TableModeSide({ title, pairs, side, fields }) {
   const groups = pairs.map((p, i) => {
     const changed = changedFieldsFor(p)
@@ -78,7 +82,7 @@ function TableModeSide({ title, pairs, side, fields }) {
       rows: fields.map(({ key, label }) => ({ label, value: <DiffValue value={line[key]} changed={changed[key]} /> })),
     }
   })
-  return <GroupTable header={{ title }} columns={KV_COLUMNS} groups={groups} />
+  return <GroupTable header={{ title }} columns={KV_COLUMNS} groups={groups} striped={false} />
 }
 
 export default function OrderChangeHazmat({ oc }) {

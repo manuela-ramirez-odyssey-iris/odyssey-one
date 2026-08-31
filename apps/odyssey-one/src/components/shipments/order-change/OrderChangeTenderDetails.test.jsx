@@ -108,6 +108,14 @@ describe('OrderChangeTenderDetails — Table mode', () => {
     expect(screen.queryByRole('button', { name: 'Prior Tender' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New Tender' })).toBeNull()
   })
+
+  test('S134: Table mode KV blocks are non-striped (white rows, hairlines), not tinted bands', () => {
+    // Figma 1931-8797 shows white Prior/New KV blocks with hairlines, not
+    // GroupTable's default tinted child-row bands.
+    const { container } = render(<OrderChangeTenderDetails oc={makeOc()} />)
+    switchToTable()
+    expect(container.querySelectorAll('.odyssey-group-table--flat').length).toBe(2)
+  })
 })
 
 describe('OrderChangeTenderDetails — filtering', () => {
