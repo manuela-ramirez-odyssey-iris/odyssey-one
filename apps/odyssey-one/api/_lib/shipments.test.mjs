@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -373,5 +373,74 @@ describe('shipment overrides', () => {
     const db = fakeDb({ detailRow: { detail: { sellShipment: '25068206' }, overrides: null } })
     const detail = await sellShipmentDetail({ params: ['25068206'], db })
     assert.equal('overrides' in detail, false)
+  })
+})
+
+// ── LINX-14514: order-change resolution (retender / bypass / cancel) ──────
+describe('resolveOrderChange', () => {
+  it('retender moves the shipment to monitoring/sent and stamps the resolution', async () => {
+    let seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const res = await resolveOrderChange({
+      params: ['S260000010'],
+      body: { action: 'retender', cost: { choice: 'prior', amount: 1901.56 } },
+      db,
+    })
+    assert.deepEqual(res, { success: true })
+    const text = seen.map(q => q.text).join('\n')
+    assert.match(text, /tender_status/)
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
+    assert.ok(values.some(v => typeof v === 'string' && v.includes('"action":"retender"')))
+  })
+
+  it('retender with priorTenderStatus Accepted still becomes Sent (re-soliciting acceptance)', async () => {
+    const db = { query: async () => ({ rowCount: 1, rows: [{}] }) }
+    const seen = []
+    db.query = async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } }
+    await resolveOrderChange({ params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Accepted' }, db })
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Sent'))
+    assert.ok(!values.includes('Accepted'))
+  })
+
+  it('bypass retains Accepted → monitoring/approved', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({ params: ['S1'], body: { action: 'bypass', priorTenderStatus: 'Accepted' }, db })
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Accepted') && values.includes('monitoring') && values.includes('approved'))
+    assert.ok(!values.includes('sent'))
+  })
+
+  it('bypass retains Sent → monitoring/sent', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({ params: ['S1'], body: { action: 'bypass', priorTenderStatus: 'Sent' }, db })
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
+    assert.ok(!values.includes('approved'))
+  })
+
+  it('cancel stays in exceptions / tender-review with status Cancelled', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Cancelled') && values.includes('exceptions') && values.includes('tender-review'))
+  })
+
+  it('rejects unknown action with 400', async () => {
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['S1'], body: { action: 'nuke' }, db: { query: async () => ({ rowCount: 1 }) } }),
+      (e) => /action/.test(e.message) && e.status === 400,
+    )
+  })
+
+  it('404s on unknown shipment', async () => {
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['NOPE'], body: { action: 'cancel' }, db: { query: async () => ({ rowCount: 0 }) } }),
+      (e) => /No shipment/.test(e.message) && e.status === 404,
+    )
   })
 })

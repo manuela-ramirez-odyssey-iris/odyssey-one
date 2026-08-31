@@ -30,6 +30,13 @@ test('matches sell-shipment-out detail route with id param', () => {
   assert.equal(matchRoute('GET', '/shipment-service/v1/sell-shipment-out/abc'), null)
 })
 
+test('matches PATCH order-change resolve route with id param', () => {
+  const m = matchRoute('PATCH', '/shipment-service/v1/sell-shipment-out/25004876/order-change')
+  assert.equal(m.name, 'resolveOrderChange')
+  assert.deepEqual(m.params, ['25004876'])
+  assert.equal(matchRoute('GET', '/shipment-service/v1/sell-shipment-out/25004876/order-change'), null)
+})
+
 test('matches PATCH order status route', () => {
   const m = matchRoute('PATCH', '/order-service/v3/order/status')
   assert.equal(m.name, 'updateOrderStatus')

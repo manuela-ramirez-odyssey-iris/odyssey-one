@@ -258,6 +258,47 @@ export async function saveShipmentOverrides({ params, body, db }) {
   return { success: true }
 }
 
+// PATCH /shipment-service/v1/sell-shipment-out/:id/order-change — LINX-14514
+// Tender Resolution Actions off the Review Order Change screen. Records the
+// planner's decision into detail.orderChange.resolution and re-files the
+// shipment: retender/bypass leave the review for monitoring, cancel stays in
+// exceptions so the planner is dropped back on Tender Review to choose again.
+const OC_OUTCOMES = {
+  // retender re-solicits the carrier regardless of prior status — an
+  // Accepted tender goes back to Sent, not back to Accepted (call w/ Jana).
+  retender: () => ({ tenderStatus: 'Sent', panel: 'monitoring', category: 'sent' }),
+  // bypass sends nothing, so whatever status the tender already had stands.
+  bypass: (prior) => prior === 'Accepted'
+    ? { tenderStatus: 'Accepted', panel: 'monitoring', category: 'approved' }
+    : { tenderStatus: prior ?? 'Sent', panel: 'monitoring', category: 'sent' },
+  cancel: () => ({ tenderStatus: 'Cancelled', panel: 'exceptions', category: 'tender-review' }),
+}
+
+export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) {
+  return {
+    text: `UPDATE shipments
+             SET tender_status = $1, panel = $2, category = $3, validation_message = NULL,
+                 detail = jsonb_set(detail, '{orderChange,resolution}', $4::jsonb)
+           WHERE sell_shipment = $5 RETURNING sell_shipment`,
+    values: [outcome.tenderStatus, outcome.panel, outcome.category, JSON.stringify(resolution), sellShipment],
+  }
+}
+
+export async function resolveOrderChange({ params, body, db }) {
+  const action = body?.action
+  const outcomeFor = OC_OUTCOMES[action]
+  if (!outcomeFor) {
+    const e = new Error(`Unknown order-change action: ${action ?? '(none)'}`); e.status = 400; throw e
+  }
+  const outcome = outcomeFor(body?.priorTenderStatus)
+  const resolution = { action, cost: body?.cost ?? null, resolvedAt: new Date().toISOString() }
+  const { rowCount } = await db.query(buildOrderChangeResolveQuery(params[0], outcome, resolution))
+  if (rowCount === 0) {
+    const e = new Error(`No shipment: ${params[0]}`); e.status = 404; throw e
+  }
+  return { success: true }
+}
+
 // PUT /shipment-service/v1/sell-shipment-out/:id/tender — add or update ONE
 // quote (Add Quote / Edit Quote / a tender-status action). Addressed by rank,
 // which is unique per shipment. ponytail: update-then-insert instead of an
