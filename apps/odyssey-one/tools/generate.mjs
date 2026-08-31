@@ -1097,9 +1097,12 @@ function generateShipment(index, chainOverride) {
   const hasAccepted = routingStatuses.includes('Accepted');
   const hasSent = routingStatuses.includes('Sent');
   // tenderStatus = the status of the "active" routing option (accepted or sent carrier)
-  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
+  // `let`: order-change (below) overrides both this and shipmentStatus, and
+  // both are read throughout the rest of this function (history gating,
+  // mainRow), so the override has to land here, before any of that runs.
+  let tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
   // shipmentStatus derived from tender statuses
-  const shipmentStatus = hasAccepted ? 'Done' : hasSent ? '' : 'Review';
+  let shipmentStatus = hasAccepted ? 'Done' : hasSent ? '' : 'Review';
 
   // Panel and category derived from tender outcome
   const panel = (hasAccepted || hasSent) ? 'monitoring' : 'exceptions';
@@ -1109,6 +1112,28 @@ function generateShipment(index, chainOverride) {
   const validationMessage = (panel === 'exceptions' && category)
     ? pick(VALIDATION_MESSAGES[category])
     : null;
+
+  // LINX-14509's gate ("Tender Status is Sent, Accepted, or To Be Tendered")
+  // is unsatisfiable by construction above: order-change is an exceptions-
+  // only category, and exceptions requires !hasAccepted && !hasSent. The
+  // domain intent is the opposite of what the tender-derived default above
+  // encodes — an order-change shipment IS an exception precisely because its
+  // tender was live and the order changed underneath it. So for this one
+  // category, override the row to agree with the payload rather than the
+  // (unsatisfiable) tenderFailed default. Built here, not at the later
+  // detail-assembly site, because tenderStatus/shipmentStatus are read all
+  // through the rest of this function. No new faker draw: buildOrderChange's
+  // randomness comes only from its own id-keyed mulberry32 PRNG.
+  let orderChangePayload = null;
+  if (category === 'order-change') {
+    const totalPackages = orders.reduce((s, o) => s + o.orderPackages, 0);
+    orderChangePayload = buildOrderChange(sellShipment, routingOptions, {
+      baseDate, originTz, destTz, routingDeliveryDates,
+      grossWeight, totalVolume, totalPackages,
+    });
+    tenderStatus = orderChangePayload.prior.tenderStatus;
+    shipmentStatus = 'Review'; // LINX-8284: order change on a live tender → Review
+  }
 
   // Use accepted carrier's rateDetails as base for cost allocation when available
   const acceptedOption = routingOptions.find(o => o.status === 'Accepted');
@@ -1968,15 +1993,11 @@ function generateShipment(index, chainOverride) {
   // LINX-14509–14515 — review payload only for shipments actually seeded into
   // the order-change exceptions category; every other shipment carries no
   // orderChange key at all (mirrors droppedCarrierList's placement above).
+  // Built earlier (above, alongside the tenderStatus/shipmentStatus override)
+  // and reused verbatim here — NOT recomputed — so the row and the detail
+  // payload can never drift into two different prior-tender pictures.
   if (category === 'order-change') {
-    // Real per-shipment totals (grossWeight/totalVolume computed above at I5;
-    // totalPackages rolled up the same way) so the comparison table's "prior"
-    // side is this shipment's own data, not a fake constant every shipment shares.
-    const totalPackages = orders.reduce((s, o) => s + o.orderPackages, 0);
-    detail.orderChange = buildOrderChange(sellShipment, routingOptions, {
-      baseDate, originTz, destTz, routingDeliveryDates,
-      grossWeight, totalVolume, totalPackages,
-    });
+    detail.orderChange = orderChangePayload;
   }
 
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
@@ -2307,7 +2328,12 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       pickupDateTime: priorShifted.pickupDateTime, deliveryDateTime: priorShifted.deliveryDateTime,
       apCost: newForPrior ? newForPrior.rateDetails.baseRate : null, // null ⇒ New Cost greyed
     },
-    priorTenderList: routingOptions,
+    // Same carrier, same screen, one status: the prior row's Tender Status
+    // column must read priorStatus too, or the carrier shows Accepted in the
+    // summary panel and Cancelled/Declined in the table two lines down. Only
+    // that one entry is cloned — routingOptions is also detail.shippingOptionList,
+    // so the rest stay direct references rather than an unrequested full copy.
+    priorTenderList: routingOptions.map((o, i) => (i === 0 ? { ...o, status: priorStatus } : o)),
     newTenderList: newList,
     comparison,
     // Preview Hazardous Material Information: rows by Line #, prior/new

@@ -1070,6 +1070,20 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     assert.equal(s.panel, 'exceptions')
     const oc = ds.details.get(s.sellShipment)?.orderChange
     assert.ok(oc, `${s.sellShipment} missing detail.orderChange`)
+    // LINX-14509 gate: the review only applies to a LIVE tender. Caught a
+    // real defect (measured against Neon, 0/521 rows satisfied this) where
+    // the exceptions-only default left every row Cancelled/Declined.
+    assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(s.tenderStatus),
+      `${s.sellShipment} order-change row has non-live tender status ${s.tenderStatus}`)
+    assert.equal(s.tenderStatus, oc.prior.tenderStatus,
+      `${s.sellShipment} row tenderStatus disagrees with payload prior.tenderStatus`)
+    // LINX-8284: order change on a live tender moves the shipment to Review
+    assert.equal(s.shipmentStatus, 'Review', `${s.sellShipment} shipmentStatus should be Review`)
+    // same carrier, same screen: the Prior Options table row must show the
+    // same status as the Prior panel, not the stale Cancelled/Declined draw
+    const priorEntry = oc.priorTenderList.find(o => o.scac === oc.prior.scac)
+    assert.equal(priorEntry?.status, oc.prior.tenderStatus,
+      `${s.sellShipment} priorTenderList entry status disagrees with prior.tenderStatus`)
     assert.ok(['returned', 'not-returned'].includes(oc.scenario), `${s.sellShipment} unexpected scenario ${oc.scenario}`)
     assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(oc.prior.tenderStatus))
     // LINX-14511: comparison = prior list vs new list, each a routing-option-shaped array
