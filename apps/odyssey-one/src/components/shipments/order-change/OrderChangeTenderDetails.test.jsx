@@ -12,6 +12,13 @@
 // "Prior Tender List"/"New Tender List", every field listed once. Table mode
 // composes a HeaderStrip ("Prior Tender"/"New Tender", matching Figma
 // 1931-8797) above a plain 2-column KV grid, not a GroupTable.
+//
+// Ordering: changed fields render FIRST, then unchanged — LINX-14512
+// Business Rules ("listed on the top... followed by fields which didn't
+// undergo the change"), confirmed by the domain expert in grooming. This is
+// a written AC and outranks the Table-mode mock's sample data (which
+// happens to render in plain domain order) — see
+// OrderChangeTenderDetails.jsx's header comment.
 import { afterEach, describe, expect, test } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import OrderChangeTenderDetails from './OrderChangeTenderDetails.jsx'
@@ -170,5 +177,36 @@ describe('OrderChangeTenderDetails — filtering', () => {
     // Unfiltered: the field name renders once per side (two stacked tables).
     expect(screen.getAllByRole('cell', { name: 'Package Count' })).toHaveLength(2)
     expect(screen.getAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(2)
+  })
+})
+
+describe('OrderChangeTenderDetails — ordering (LINX-14512 Business Rules)', () => {
+  // Unchanged fields FIRST in the source array, the one changed field LAST —
+  // the opposite of the required render order — so a passing test can only
+  // mean the component actually sorts, not that the fixture was already in
+  // the right order.
+  const outOfOrder = [
+    { field: 'Gross Weight', source: 'Shipment', prior: '2,000 LB', new: '2,000 LB', changed: false },
+    { field: 'Incoterm Info', source: 'Order', prior: 'FOB', new: 'FOB', changed: false },
+    { field: 'Distance', source: 'Routing', prior: '282 MI', new: '301 MI', changed: true },
+  ]
+
+  test('List mode: the changed field renders before the unchanged ones despite coming last in oc.comparison', () => {
+    render(<OrderChangeTenderDetails oc={makeOc({ comparison: outOfOrder })} />)
+    // Scope to table cells — 'Distance' also labels the Differences filter
+    // chip, which sits above the table and would otherwise be picked up as
+    // the "first" match.
+    const distance = screen.getAllByRole('cell', { name: 'Distance' })[0]
+    const grossWeight = screen.getAllByRole('cell', { name: 'Gross Weight' })[0]
+    expect(distance.compareDocumentPosition(grossWeight) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  test('Table mode: the changed field renders before the unchanged ones despite coming last in oc.comparison', () => {
+    render(<OrderChangeTenderDetails oc={makeOc({ comparison: outOfOrder })} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
+    // Scope to KVField labels — same filter-chip caveat as List mode.
+    const distance = screen.getAllByText('Distance').find((el) => el.closest('.comparison-preview__field'))
+    const grossWeight = screen.getAllByText('Gross Weight').find((el) => el.closest('.comparison-preview__field'))
+    expect(distance.compareDocumentPosition(grossWeight) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })

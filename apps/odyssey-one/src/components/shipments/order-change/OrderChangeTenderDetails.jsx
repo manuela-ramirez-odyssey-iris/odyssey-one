@@ -5,11 +5,18 @@ import { DiffValue, KVField, rowsToFlatGroups } from './comparisonHelpers.jsx'
 // "Preview Tender Details" (LINX-14512). oc.comparison rows carry { field,
 // source, prior, new, changed } — OrderChangeComparisonRowVM (api/types/
 // shipmentDetail.ts), matched verbatim against generate.mjs's `comparison`
-// builder. Rendered in the array's OWN order — S134 dropped the earlier
-// changed-first sort along with the Changed/Unchanged split: Figma 1931-8797
-// shows changed fields (Pick Up Date/Time, Distance, Package Count)
-// scattered through the block in plain domain order, not grouped at the
-// top, so re-sorting would itself be a deviation from the mock.
+// builder. Changed fields render FIRST, then unchanged — LINX-14512's own
+// Business Rules ("These fields to be listed on the top of the list
+// followed by fields which didn't undergo the change"), echoed by the
+// domain expert in grooming ("anything highlighted... should be moved to
+// the top"). This is a written AC, not a mock detail: the Table-mode mock
+// (Figma 1931-8797) happens to render its sample data in plain domain
+// order, but a Jira AC outrights a mock's sample data in this project — the
+// mock isn't evidence the ordering rule was withdrawn, it's just
+// illustrative data. The band LABELS ("Changed Fields"/"Unchanged Fields")
+// are still gone (S134, designer ruling, independent of this ordering
+// rule) — purple marks which fields changed, clustered at the top, with no
+// labelled separator between the two runs.
 //
 // List mode's own field|value column pair — one comparison field per row,
 // its PRIOR or NEW value in the second column depending on which side's
@@ -76,14 +83,22 @@ function ListSection({ title, rows, side }) {
   return <GroupTable header={{ title }} columns={LIST_COLUMNS} groups={groups} flat />
 }
 
+// Changed-first, LINX-14512's own order (see file header) — `sort` is
+// stable (ES2019+), so within each partition the source array's own order
+// survives untouched.
+function orderByChanged(rows) {
+  return [...rows].sort((a, b) => Number(b.changed) - Number(a.changed))
+}
+
 export default function OrderChangeTenderDetails({ oc }) {
   const comparison = oc?.comparison ?? []
   const tags = comparison.filter((r) => r.changed).map((r) => r.field)
+  const ordered = orderByChanged(comparison)
 
   return (
     <ComparisonPreviewCard title="Preview Tender Details" differences={tags}>
       {(mode, filter) => {
-        const rows = filterRows(comparison, filter)
+        const rows = filterRows(ordered, filter)
         if (mode === 'list') {
           return (
             <div className="comparison-preview__stack">
