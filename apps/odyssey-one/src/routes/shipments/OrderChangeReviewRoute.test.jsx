@@ -243,13 +243,11 @@ describe('OrderChangeReviewRoute', () => {
     ).toBeTruthy()
   })
 
-  // The route's `finish()` passes only an `onSuccess` callback to
-  // resolve.mutate — there is no `onError`. That's a real gap (a failed
-  // resolution fails silently, with no retry/toast for the planner), but
-  // fixing it is a product decision outside this task's scope, so this test
-  // pins the CURRENT honest behaviour — stayed put, mutation settled — not a
-  // future error UI that doesn't exist yet.
-  test('a failed resolution does not navigate away (no error handling exists in the route today)', async () => {
+  // Follow-up fix: `finish()` now has an `onError` alongside `onSuccess`
+  // (mirrors CreateOrderForm's saveGateError convention) that surfaces a
+  // visible Alert so the planner isn't left believing a failed resolution
+  // succeeded. Stays on the review page with state intact so they can retry.
+  test('a failed resolution shows a visible error and keeps the planner on the review page', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     resolveOrderChange.mockRejectedValueOnce(new Error('boom'))
     renderRoute()
@@ -257,10 +255,37 @@ describe('OrderChangeReviewRoute', () => {
     const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
     fireEvent.click(cancelButton)
 
+    expect(await screen.findByText("Couldn't resolve this tender. Please try again.")).toBeTruthy()
     // disabled tracks resolve.isPending — it going back to false is the
     // signal the rejected mutation actually settled, not just that time passed.
     await waitFor(() => expect(cancelButton.disabled).toBe(false))
     expect(screen.queryByText('shipments list')).toBeNull()
     expect(screen.getByRole('button', { name: 'Cancel tender' })).toBeTruthy()
+  })
+
+  test('retrying after a failure clears the stale error before the retry settles, then navigates on success', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    resolveOrderChange.mockRejectedValueOnce(new Error('boom'))
+    renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
+
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
+    fireEvent.click(cancelButton)
+    expect(await screen.findByText("Couldn't resolve this tender. Please try again.")).toBeTruthy()
+    await waitFor(() => expect(cancelButton.disabled).toBe(false))
+
+    // Hold the retry open so we can observe the error clearing BEFORE the
+    // second call settles — proves it's cleared on attempt-start, not just
+    // incidentally gone because the page navigated away.
+    let releaseRetry
+    resolveOrderChange.mockImplementationOnce(() => new Promise((res) => { releaseRetry = res }))
+    fireEvent.click(cancelButton)
+
+    await waitFor(() => expect(screen.queryByText("Couldn't resolve this tender. Please try again.")).toBeNull())
+    expect(screen.queryByText('shipments list')).toBeNull() // retry still in flight, no nav yet
+
+    releaseRetry()
+    expect(
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'order-change' })}`),
+    ).toBeTruthy()
   })
 })

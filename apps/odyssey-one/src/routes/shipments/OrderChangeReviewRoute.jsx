@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
-import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
+import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrderChangeActionsCard from '../../components/shipments/order-change/OrderChangeActionsCard'
 import OrderChangeTenderLists from '../../components/shipments/order-change/OrderChangeTenderLists'
@@ -42,15 +43,24 @@ export default function OrderChangeReviewRoute() {
   const oc = detail?.orderChange
   const headerTitle = buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
 
+  // Task 11 follow-up — a failed resolveOrderChange previously settled
+  // silently: button re-enabled, no feedback, planner left believing the
+  // tender resolved when it didn't. Same shape as CreateOrderForm's
+  // saveGateError (state string + Alert variant="error", cleared on the next
+  // attempt and on manual dismiss) — this codebase's existing convention for
+  // a failed mutation, not a new pattern.
+  const [resolveError, setResolveError] = useState('')
+
   // Tender Resolution Action (LINX-14515). Every exit off this screen —
-  // Cancel tender here; retender/bypass will live in OrderChangeActionsCard,
-  // Task 9 — funnels through this one mutation and the same post-success nav:
+  // Cancel tender here; retender/bypass live in OrderChangeActionsCard (Task
+  // 9) — funnels through this one mutation and the same post-success nav:
   // back to the Shipments table's Order Change tab. 'order-change' lives under
   // the 'exceptions' panel (data/panelConfig.js), and ShipmentsRoute reads its
   // deep-link target off `location.state?.panel` / `location.state?.tab`
   // (ShipmentsRoute.jsx:41-46) — not `selectedShipmentId`, which is a
   // different (row-detail) deep-link the resolved shipment no longer needs.
   function finish(action, cost) {
+    setResolveError('') // clear any stale error before a fresh attempt
     resolve.mutate(
       {
         sellShipment,
@@ -61,6 +71,9 @@ export default function OrderChangeReviewRoute() {
       {
         onSuccess: () => {
           navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })
+        },
+        onError: () => {
+          setResolveError("Couldn't resolve this tender. Please try again.")
         },
       },
     )
@@ -104,6 +117,12 @@ export default function OrderChangeReviewRoute() {
                 Cancel tender
               </Button>
             </PageHeader>
+
+            {resolveError && (
+              <Alert variant="error" onClose={() => setResolveError('')}>
+                {resolveError}
+              </Alert>
+            )}
 
             <OrderChangeActionsCard oc={oc} onAction={finish} />
             <OrderChangeTenderLists oc={oc} />
