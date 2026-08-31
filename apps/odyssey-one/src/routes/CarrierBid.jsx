@@ -823,7 +823,9 @@ export default function CarrierBid() {
                              to "150.000000". */
                           decimals={2}
                           /* trailing edge echoes the BID-LEVEL currency
-                             (SPB-66) — no per-line choice */
+                             (SPB-66) — no per-line choice. The single-option
+                             list makes MeasureField render the edge LOCKED
+                             (no chevron, no button) — Base Charge drives it. */
                           value={{ value: row.amount, uom: currency }}
                           options={[{ value: currency, label: currency }]}
                           onChange={(v) => updateChargeRow(idx, { amount: v.value })}

@@ -6631,6 +6631,33 @@ button.breadcrumb__label:focus-visible {
   font-family: var(--font-primary);
 }
 
+/* Header strip (Figma 4183:773 "Header" frame) — 48px band ABOVE the
+   column-header row: icon + bold title left, empty trailing slot right.
+   Sticky-left so it stays put while the table scrolls horizontally (it
+   describes the whole table, not a column). Optional — only renders when
+   the consumer passes `header`. */
+.odyssey-group-table__header {
+  position: sticky;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: fit-content;
+  min-width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+.odyssey-group-table__header-title {
+  flex: 1 1 auto;
+}
+.odyssey-group-table__header-trail {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .odyssey-group-table__table {
   width: 100%;
   /* separate (not collapse): Chrome refuses to paint box-shadow on cells in
@@ -6667,6 +6694,13 @@ button.breadcrumb__label:focus-visible {
   transition: background var(--transition-fast);
 }
 .odyssey-group-table__group-row:hover { background: var(--bg-secondary); }
+
+/* A group with nothing to reveal (isGroupExpandable) is a plain data row —
+   it must not present as clickable, and its hover must not imply a toggle. */
+.odyssey-group-table__group-row--static {
+  cursor: default;
+}
+.odyssey-group-table__group-row--static:hover { background: var(--bg-primary); }
 .odyssey-group-table__group-row > td {
   height: 48px; /* Figma HeaderRow: fixed 48px */
   padding: 0;
@@ -6716,6 +6750,15 @@ button.breadcrumb__label:focus-visible {
 }
 .odyssey-group-table__group-toggle[aria-expanded='false'] .odyssey-group-table__chevron {
   transform: rotate(-90deg);
+}
+
+/* Static (non-expandable) label — same class as the toggle button for
+   identical padding/height/typography, rendered as a <span> instead of a
+   <button> so it carries no interactive semantics. No chevron, so nothing to
+   reserve: the label starts at the same left padding a chevron+gap would
+   otherwise push it past, which is the alignment the grid needs. */
+.odyssey-group-table__group-label--static {
+  cursor: default;
 }
 
 /* Child rows — contiguous light-gray bands, hairline separator only.

@@ -273,29 +273,34 @@ describe('QuoteModal — Markup currency', () => {
 
 // LINX-13895 — "Currency shall only be selected on Base Rate" / "Users shall
 // not modify currency on: Markup Amount / Additional Charges." MeasureField
-// has no "trailing select disabled, input still editable" affordance, so
 // Markup and each charge row get a single-entry `options` array (the same
-// idiom CarrierBid.jsx already uses to lock Linehaul/Base to USD) — the
-// trailing trigger still renders, but its menu holds only the one value
-// already in force, so there is never an alternate to pick.
+// idiom CarrierBid.jsx already uses to lock Linehaul/Base to USD).
+// MeasureField now renders a single-option edge as FieldSelect's LOCKED
+// flavour: static text showing the value in force — no chevron, no button,
+// nothing to open — so "never an alternate" is structural, not a menu with
+// one entry.
 describe('QuoteModal — currency lock (LINX-13895)', () => {
-  it('Markup offers only the current currency, never an alternate', () => {
+  it('Markup shows the current currency locked — no trigger, no menu', () => {
     render(<QuoteModal mode="edit" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
     const markupField = screen.getByText('Markup', { selector: 'label' }).closest('.form-field')
-    fireEvent.click(within(markupField).getByRole('button'))
-    expect(screen.getByRole('option', { name: 'USD' })).toBeTruthy()
+    const edge = markupField.querySelector('.field-select--trailing')
+    expect(edge.textContent).toContain('USD')
+    expect(edge.classList.contains('field-select--locked')).toBe(true)
+    // No button semantics: the locked edge is a <span>, not a trigger.
+    expect(within(markupField).queryByRole('button')).toBeNull()
     expect(screen.queryByRole('option', { name: 'CAD' })).toBeNull()
-    expect(screen.queryByRole('option', { name: 'EUR' })).toBeNull()
   })
 
-  it('an Additional Charge row offers only the current currency, never an alternate', () => {
+  it('an Additional Charge row shows the current currency locked — no trigger, no menu', () => {
     // The modal portals into document.body (not RTL's `container`), same as
     // every other test here that reaches into the DOM via `screen`/`document`.
     render(<QuoteModal mode="edit" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
     const chargeSelects = document.querySelectorAll('.quote-charges__row--editable .field-select--trailing')
     expect(chargeSelects).toHaveLength(1)
-    fireEvent.click(chargeSelects[0])
-    expect(screen.getByRole('option', { name: 'USD' })).toBeTruthy()
+    expect(chargeSelects[0].tagName).toBe('SPAN')
+    expect(chargeSelects[0].textContent).toContain('USD')
+    fireEvent.click(chargeSelects[0]) // inert — nothing opens
+    expect(screen.queryByRole('option', { name: 'USD' })).toBeNull()
     expect(screen.queryByRole('option', { name: 'CAD' })).toBeNull()
   })
 
@@ -527,15 +532,17 @@ describe('QuoteModal — currency starts unselected on Add, restored on Edit (LI
     const chargeSelect = () => document.querySelectorAll('.quote-charges__row--editable .field-select--trailing')[0]
 
     // Currency still unselected — locked fields fall back to the 'UOM'
-    // placeholder (same as an unselected Base Rate), not a blank pill.
-    expect(within(markupField).getByRole('button').textContent).toContain('UOM')
+    // placeholder (same as an unselected Base Rate), not a blank pill. The
+    // edge is locked static text (no button) either way.
+    const markupEdge = () => markupField.querySelector('.field-select--trailing')
+    expect(markupEdge().textContent).toContain('UOM')
     expect(chargeSelect().textContent).toContain('UOM')
 
     const baseField = screen.getByText('Base Rate', { selector: 'label' }).closest('.form-field')
     fireEvent.click(within(baseField).getByRole('button'))
     fireEvent.click(screen.getByRole('option', { name: 'CAD' }))
 
-    expect(within(markupField).getByRole('button').textContent).toContain('CAD')
+    expect(markupEdge().textContent).toContain('CAD')
     expect(chargeSelect().textContent).toContain('CAD')
   })
 })

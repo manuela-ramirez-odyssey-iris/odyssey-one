@@ -104,6 +104,13 @@ import Button from './Button.jsx'
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
  *                       column-arrange Button)
+ * @param header         { title, icon?, trail? } — optional 48px strip ABOVE the column-header
+ *                       row (Figma 4183:773 "Header" frame): icon + bold title on the left, an
+ *                       empty trailing slot on the right. Presence renders the strip; omit it
+ *                       (the default) and the table renders exactly as before — this is a
+ *                       released component, so no `header` must stay byte-identical.
+ *                       `icon` is a caller-supplied node (e.g. a lucide element) — never
+ *                       hardcoded here. The table is `aria-labelledby` the title.
  */
 /**
  * The nested band's wrapper. Three states, one invariant — the band must NEVER
@@ -261,9 +268,11 @@ export default function GroupTable({
   detailScroll = false,
   stickyActions = false,
   actionsHeader,
+  header,
   ...rest
 }) {
   const uid = useId()
+  const headerTitleId = `${uid}-header-title`
   const controlled = expanded !== undefined
   const [internal, setInternal] = useState({})
 
@@ -326,7 +335,27 @@ export default function GroupTable({
 
   return (
     <div className={rootClasses} ref={rootRef} onScroll={handleScroll} {...rest}>
-      <table className="odyssey-group-table__table">
+      {header && (
+        /* Lives OUTSIDE <table> but INSIDE the root scroller, as a sticky-left
+           sibling of the table — not a <thead> row, since it spans the full
+           table width regardless of column count and must not scroll away
+           with the columns (sticky, like the pinned action column). Putting
+           it inside the root div (rather than wrapping GroupTable in another
+           div) keeps it in the same border/radius box the docstring commits
+           to, with zero effect on the sticky-actions column or the table's
+           own horizontal scroll — the table element is untouched. */
+        <div className="odyssey-group-table__header">
+          {header.icon}
+          <span id={headerTitleId} className="odyssey-group-table__header-title text-label-base-semibold">
+            {header.title}
+          </span>
+          <span className="odyssey-group-table__header-trail">{header.trail}</span>
+        </div>
+      )}
+      <table
+        className="odyssey-group-table__table"
+        aria-labelledby={header ? headerTitleId : undefined}
+      >
         <thead>
           <tr>
             {columns.map((col) => (
@@ -348,7 +377,8 @@ export default function GroupTable({
         </thead>
 
         {groups.map((group) => {
-          const open = isOpen(group.id)
+          const canExpand = isGroupExpandable(group, { detailColumns, detailSections })
+          const open = canExpand && isOpen(group.id)
           const bodyId = `${uid}-${group.id}`
           return (
             <tbody key={group.id} id={bodyId}>
@@ -356,32 +386,43 @@ export default function GroupTable({
                   the a11y contract (focus, Enter/Space, aria-expanded). Button
                   clicks stop propagation so activation toggles exactly once.
                   When group.values is present the non-first columns render the
-                  matching value (semibold, col.align) — visible collapsed + expanded. */}
+                  matching value (semibold, col.align) — visible collapsed + expanded.
+                  A group with nothing to reveal (see isGroupExpandable) renders
+                  the label as a plain, non-interactive row instead. */}
               <tr
-                className="odyssey-group-table__group-row"
-                onClick={() => toggle(group.id)}
+                className={[
+                  'odyssey-group-table__group-row',
+                  !canExpand && 'odyssey-group-table__group-row--static',
+                ].filter(Boolean).join(' ')}
+                onClick={canExpand ? () => toggle(group.id) : undefined}
               >
                 {/* The label is ONE merged cell (see splitHeaderRow) — the
                     header row does not follow the body's column grid, so a
                     narrow lead column isn't stretched to fit the group name. */}
                 <td colSpan={labelSpan}>
-                  <button
-                    type="button"
-                    className="odyssey-group-table__group-toggle"
-                    aria-expanded={open}
-                    aria-controls={bodyId}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggle(group.id)
-                    }}
-                  >
-                    <ChevronDown
-                      {...ICON_MD}
-                      className="odyssey-group-table__chevron"
-                      aria-hidden="true"
-                    />
-                    {group.label}
-                  </button>
+                  {canExpand ? (
+                    <button
+                      type="button"
+                      className="odyssey-group-table__group-toggle"
+                      aria-expanded={open}
+                      aria-controls={bodyId}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggle(group.id)
+                      }}
+                    >
+                      <ChevronDown
+                        {...ICON_MD}
+                        className="odyssey-group-table__chevron"
+                        aria-hidden="true"
+                      />
+                      {group.label}
+                    </button>
+                  ) : (
+                    <span className="odyssey-group-table__group-toggle odyssey-group-table__group-label--static">
+                      {group.label}
+                    </span>
+                  )}
                 </td>
                 {valueColumns.map((col) => (
                   <td
@@ -666,6 +707,35 @@ export function alignClass(align) {
  *  every group falls back to `defaultExpanded`. */
 export function isGroupExpanded(overrides, defaultExpanded, id) {
   return overrides[id] ?? !!defaultExpanded
+}
+
+/**
+ * Whether a group's label row should render as an expandable toggle at all.
+ * A chevron that opens onto nothing is a bug, not a feature — so this is
+ * derived, not just a flag the consumer sets.
+ *
+ * Precedence:
+ *   1. `group.expandable === false` always wins — explicit opt-out.
+ *   2. Otherwise, expandable iff there is something to reveal:
+ *      - rows flavor:   `group.rows` has at least one row
+ *      - nested flavor: `group.detailRows` has at least one row (the nested
+ *        tables all read the same `detailRows` — see `normalizeDetailSections`)
+ *      - either flavor: a note would render — `group.detailNote` or any value
+ *        in `group.detailNotes` — since a note-only group still has a body.
+ *
+ * @param {object} group
+ * @param {{detailColumns?: Array, detailSections?: Array}} [opts]
+ * @returns {boolean}
+ */
+export function isGroupExpandable(group, { detailColumns, detailSections } = {}) {
+  if (group.expandable === false) return false
+  const nested = (Array.isArray(detailSections) && detailSections.length > 0) ||
+    (Array.isArray(detailColumns) && detailColumns.length > 0)
+  const hasRows = nested
+    ? Array.isArray(group.detailRows) && group.detailRows.length > 0
+    : Array.isArray(group.rows) && group.rows.length > 0
+  const hasNote = !!group.detailNote || !!(group.detailNotes && Object.values(group.detailNotes).some(Boolean))
+  return hasRows || hasNote
 }
 
 /**

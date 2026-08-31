@@ -23,6 +23,13 @@ import { ChevronDown } from 'lucide-react'
  * `error-default`, **leading** reddens the label + chevron too; **trailing**
  * reddens the divider only (label/chevron stay `--text-tertiary`).
  *
+ * `locked` is NOT a state on that ladder — it is orthogonal: the value is
+ * decided elsewhere (another field, another FieldSelect), so there is nothing to
+ * open. It renders as static text with NO chevron and no button semantics, while
+ * keeping the divider ladder of whatever state the field is in. Distinct from
+ * `state="disabled"`, which greys the whole field out; a locked select sits on a
+ * perfectly usable field.
+ *
  * Figma master: `FieldSelect` set 2627:153 (Components-Atoms), `Variant`
  * (Leading|Trailing) × `State` (Default/Focus/Disabled/Error Default/Error).
  */
@@ -30,6 +37,7 @@ export default function FieldSelect({
   variant = 'trailing',
   state = 'default',
   label = 'Select',
+  locked = false,
   onClick,
   className = '',
   ...rest
@@ -38,9 +46,13 @@ export default function FieldSelect({
     'field-select',
     `field-select--${variant}`,
     state !== 'default' && `field-select--${state}`,
+    locked && 'field-select--locked',
     'text-label-sm-regular',
     className,
   ].filter(Boolean).join(' ')
+  if (locked) {
+    return <span className={classes} {...rest}>{label}</span>
+  }
   return (
     <button
       type="button"

@@ -1,5 +1,5 @@
 // GroupTable pure helpers — node env (no DOM), vitest globals.
-import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection, stripTrailingColon } from './GroupTable.jsx'
+import { alignClass, isGroupExpanded, isGroupExpandable, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection, stripTrailingColon } from './GroupTable.jsx'
 
 describe('alignClass', () => {
   it('maps right/center to the modifier classes', () => {
@@ -26,6 +26,31 @@ describe('isGroupExpanded', () => {
 
   it('other groups are unaffected by an override', () => {
     expect(isGroupExpanded({ g1: false }, true, 'g2')).toBe(true)
+  })
+})
+
+describe('isGroupExpandable', () => {
+  it('explicit expandable: false always wins, even with rows present', () => {
+    expect(isGroupExpandable({ expandable: false, rows: [{ a: 1 }] })).toBe(false)
+  })
+
+  it('rows flavor: expandable iff rows has at least one row', () => {
+    expect(isGroupExpandable({ rows: [{ a: 1 }] })).toBe(true)
+    expect(isGroupExpandable({ rows: [] })).toBe(false)
+    expect(isGroupExpandable({})).toBe(false)
+  })
+
+  it('nested flavor (detailColumns/detailSections present): keys off detailRows', () => {
+    expect(isGroupExpandable({ detailRows: [{ a: 1 }] }, { detailColumns: [{ key: 'a' }] })).toBe(true)
+    expect(isGroupExpandable({ detailRows: [] }, { detailColumns: [{ key: 'a' }] })).toBe(false)
+    expect(isGroupExpandable({}, { detailSections: [{ columns: [{ key: 'a' }] }] })).toBe(false)
+    expect(isGroupExpandable({ detailRows: [{ a: 1 }] }, { detailSections: [{ columns: [{ key: 'a' }] }] })).toBe(true)
+  })
+
+  it('a note-only group is still expandable in either flavor', () => {
+    expect(isGroupExpandable({ rows: [], detailNote: 'reason' })).toBe(true)
+    expect(isGroupExpandable({ detailRows: [], detailNotes: { a: 'x' } }, { detailColumns: [{ key: 'a' }] })).toBe(true)
+    expect(isGroupExpandable({ rows: [], detailNotes: {} })).toBe(false)
   })
 })
 

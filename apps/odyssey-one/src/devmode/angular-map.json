@@ -1189,7 +1189,7 @@
   "FormField": {
     "selector": "odyssey-form-field",
     "version": "1.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "label",

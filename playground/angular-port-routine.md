@@ -316,9 +316,27 @@ Add/update each row — Angular column `done` (batch date ISO), `figma-link.md` 
 
 Do **not** `npm publish` / dispatch the release workflow. Publishing is **Cognizant's** ([[feedback_cognizant_owns_npm_publish]]) — hand off the publish-ready version + CHANGELOG.
 
+### 5. Deploy the Angular DSM (user ruling, 2026-08-27)
+
+Every approved+pushed batch **must end with the Angular DSM explorer deployed** to
+**`odyssey-dsm-angular-stage.vercel.app`**, so stakeholders see the batch (badges cleared,
+new demos) without running `ng serve`. It is a **static deploy of the built app** — the
+`.vercel` link lives inside `dist` and is wiped by every rebuild, so re-link each time:
+
+```bash
+npx ng build odyssey-ui        # FIRST — the app resolves 'odyssey-ui' from dist/odyssey-ui
+npx ng build                   # dsm-explorer
+cd dist/dsm-explorer/browser
+vercel link --yes --project odyssey-dsm-angular-stage
+vercel --prod                  # Homebrew binary, never npx vercel
+```
+
+Then **verify by grepping the LIVE bundle** for strings unique to the batch (never by
+asset hash) — e.g. the new version stamp + a new prop/class name.
+
 ### One-line confirmation
 
-Output: `Batch <x.y.z> closed: N components promoted (flags cleared, version stamped), both repos committed + pushed. Publish is Cognizant's.`
+Output: `Batch <x.y.z> closed: N components promoted (flags cleared, version stamped), both repos committed + pushed, Angular DSM deployed. Publish is Cognizant's.`
 
 ---
 

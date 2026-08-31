@@ -37,6 +37,13 @@ export default function MeasureField({ id, value, options, onChange, onBlur, err
 
   const uomLabel = options.find((o) => o.value === value?.uom)?.label ?? 'UOM'
 
+  // A one-option list means the UoM is decided elsewhere (the SpotBid charge
+  // rows echo the bid-level currency the Base Charge field drives) — there is
+  // nothing to open, so the edge renders as FieldSelect's `locked` flavour:
+  // static text, no chevron, no button semantics. Inferred rather than a prop:
+  // a single-option menu is pointless for every caller, not just this one.
+  const uomLocked = options.length <= 1
+
   const handleBlur = (e) => {
     const raw = value?.value
     const places = decimals ?? maxDecimals
@@ -55,7 +62,7 @@ export default function MeasureField({ id, value, options, onChange, onBlur, err
   }
 
   return (
-    <div className="co-typeahead" ref={triggerRef}>
+    <div className="co-typeahead">
       <FormField
         id={id}
         showLabel={showLabel}
@@ -67,9 +74,22 @@ export default function MeasureField({ id, value, options, onChange, onBlur, err
         onBlur={handleBlur}
         error={error}
         disabled={disabled}
-        trailingSelect={{ label: uomLabel, onClick: () => setOpen((o) => !o) }}
+        trailingSelect={{
+          label: uomLabel,
+          locked: uomLocked,
+          // Anchor the menu to the FieldSelect BUTTON, not the field: the
+          // portal takes its minWidth from the trigger's rect, so anchoring
+          // the wrapper stretched a "USD / CAD / EUR" menu across the whole
+          // field (same fix as the DSM demos, 2026-08-27). Taken from the
+          // click event — the button lives inside FormField, unreachable by
+          // a ref from here.
+          onClick: (e) => {
+            triggerRef.current = e.currentTarget
+            setOpen((o) => !o)
+          },
+        }}
       />
-      {open && !disabled && (
+      {open && !disabled && !uomLocked && (
         <AnchoredPortal>
           <div ref={dropdownRef} role="listbox" className="co-dropdown" onMouseDown={(e) => e.preventDefault()}>
             {options.map((opt) => (

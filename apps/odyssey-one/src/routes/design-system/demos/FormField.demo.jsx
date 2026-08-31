@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { FormField, useAnchoredPortal } from '@odyssey/ui'
+import { FormField, Badge, useAnchoredPortal } from '@odyssey/ui'
 import { Search, Calendar } from 'lucide-react'
 
 export const meta = {
@@ -9,7 +9,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [
@@ -29,6 +29,8 @@ export const props = [
   { name: 'leadingSelect', type: '{ label, onClick, locked }', desc: 'Renders a leading FieldSelect. locked: true = the value is decided by another field — static label, no chevron, not clickable (the input stays usable). Figma: the nested FieldSelect is exposed, so its `Show chevron` boolean is reachable from a FormField instance.' },
   { name: 'trailingSelect', type: '{ label, onClick, locked }', desc: 'Renders a trailing FieldSelect. locked: true = the value is decided by another field — static label, no chevron, not clickable (the input stays usable). Figma: the nested FieldSelect is exposed, so its `Show chevron` boolean is reachable from a FormField instance.' },
   { name: 'onClear', type: '() => void', desc: 'Clear-X handler; the button shows only when set, enabled, and value non-empty.' },
+  { name: 'radio', type: '{ checked, onChange, name, value }', desc: 'radio-label mode — renders a Radio as the label; unchecked disables the whole field, including edge selects' },
+  { name: 'labelBadge', type: 'ReactNode', desc: 'optional Badge (or any node) next to the label (or Radio in radio mode); omit to hide' },
   { name: 'required', type: 'boolean', desc: 'Marks the field required — renders a ` *` after the label and sets native required + aria-required.' },
   { name: 'maxLength', type: 'number', desc: 'Native input maxLength; also the counter denominator.' },
   { name: 'showCounter', type: 'boolean', desc: 'Show the in-box char counter (basic variants only — suppressed when a leading/trailing select is present). Default false.' },
@@ -191,6 +193,7 @@ function Playground() {
   const [format, setFormat] = useState('text')
   const [edge, setEdge] = useState('none')
   const [locked, setLocked] = useState(false)
+  const [labelBadge, setLabelBadge] = useState(false)
 
   const lead = usePicker('+1')
   const trail = usePicker('kg')
@@ -211,6 +214,7 @@ function Playground() {
         <Toggle label="showCounter (30)" value={showCounter} set={setShowCounter} />
         <Toggle label="leadingIcon" value={leadingIcon} set={setLeadingIcon} />
         <Toggle label="trailingIcon" value={trailingIcon} set={setTrailingIcon} />
+        <Toggle label="labelBadge" value={labelBadge} set={setLabelBadge} />
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
           format
           <select value={format} onChange={(e) => { setFormat(e.target.value); setValue('') }}>
@@ -238,6 +242,7 @@ function Playground() {
             label="Customer"
             showLabel={showLabel}
             showInfo={showInfo}
+            labelBadge={labelBadge ? <Badge>New</Badge> : undefined}
             placeholder="Search Customers"
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -311,6 +316,39 @@ function LockedPair() {
           </ul>
         </AnchoredPortal>
       )}
+    </div>
+  )
+}
+
+/* ── 3b. radio-label mode ───────────────────────────────────────────────── */
+
+function RadioPair() {
+  const [selected, setSelected] = useState('new')
+  const [newCost, setNewCost] = useState('1,250')
+  const [existingCost, setExistingCost] = useState('980')
+
+  return (
+    <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
+      <div style={{ width: 280 }}>
+        <FormField
+          label="New Cost"
+          radio={{ checked: selected === 'new', onChange: () => setSelected('new'), name: 'cost-mode', value: 'new' }}
+          value={newCost}
+          onChange={(e) => setNewCost(e.target.value)}
+          format="decimal"
+          trailingSelect={{ label: 'USD' }}
+        />
+      </div>
+      <div style={{ width: 280 }}>
+        <FormField
+          label="Existing Cost"
+          radio={{ checked: selected === 'existing', onChange: () => setSelected('existing'), name: 'cost-mode', value: 'existing' }}
+          value={existingCost}
+          onChange={(e) => setExistingCost(e.target.value)}
+          format="decimal"
+          trailingSelect={{ label: 'USD' }}
+        />
+      </div>
     </div>
   )
 }
@@ -424,6 +462,16 @@ export default function FormFieldDemo() {
           on the FormField instance.
         </p>
         <LockedPair />
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">radio-label mode — label doubles as a Radio</h4>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          Pass <code>radio</code> and the label row renders a <code>Radio</code> instead of plain
+          text. Whichever field's radio is unchecked behaves exactly like <code>disabled</code> —
+          input and trailing USD select included. Figma: 5426:1366 (unchecked) / 5426:1381 (checked).
+        </p>
+        <RadioPair />
       </div>
 
       <div className="ds-demo-section">

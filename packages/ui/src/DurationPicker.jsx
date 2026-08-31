@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import {
-  Badge, DropdownMenu, FormField, MenuRow, useAnchoredPortal, useFieldPopover,
-} from '@odyssey/ui'
-import { useCountdown, formatHMS, formatMMSS } from '../../spotboard/Countdown.jsx'
-import './durationPicker.css'
+import Badge from './Badge.jsx'
+import DropdownMenu from './DropdownMenu.jsx'
+import FormField from './FormField.jsx'
+import MenuRow from './MenuRow.jsx'
+import { useAnchoredPortal } from './useAnchoredPortal.jsx'
+import { useFieldPopover } from './useFieldPopover.js'
+import { useCountdown, formatHMS, formatMMSS } from './useCountdown.js'
 
 /**
  * DurationPicker — pick an AMOUNT of time, then watch it burn down.
@@ -16,11 +18,13 @@ import './durationPicker.css'
  * a canonical 24h "HH:MM" value, 12h/24h display formats, liberal parsing of
  * "8:30 pm". None of that means anything for "how long is this bid open".
  * Per the merge-vs-primitive rule, shared STRUCTURE gets a shared primitive
- * (which is what the @odyssey/ui imports above are), shared INTENT gets a
- * merge — this is the former.
+ * (which is what the sibling imports above are), shared INTENT gets a merge —
+ * this is the former.
  *
- * App-local on purpose: un-normalized components stay in the app until they
- * have been through Figma + /normalize (CLAUDE.md, Normalization policy).
+ * Promoted from `apps/odyssey-one/src/components/fields/` into the library on
+ * 2026-08-27, together with the `useCountdown` timing primitives it depends on:
+ * a library component cannot reach back into an app folder, which is exactly
+ * what had blocked the Angular port. Figma master `5303:14` predates the move.
  *
  * Two states:
  *   IDLE     — typable, TimePicker-parity contract: free-typed draft text,

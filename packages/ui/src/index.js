@@ -103,3 +103,8 @@ export { default as ShipmentsBar } from './ShipmentsBar.jsx';
 // the same flip math.
 export { useAnchoredPortal, computeVerticalPlacement } from './useAnchoredPortal.jsx';
 export { useFieldPopover } from './useFieldPopover.js';
+export { useCountdown, formatHMS, formatMMSS } from './useCountdown.js';
+export { default as DurationPicker } from './DurationPicker.jsx';
+export {
+  UNIT_CONFIG, durationOptions, formatDuration, parseDuration, formatRemaining, countdownVariant,
+} from './DurationPicker.jsx';

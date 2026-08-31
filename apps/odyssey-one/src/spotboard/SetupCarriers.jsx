@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Badge, Button, Checkbox, ModalMedium, PillTab,
+  Badge, Button, Checkbox, DurationPicker, ModalMedium, PillTab,
   SubAccordion, TitleSubtitle,
 } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
-import DurationPicker from '../components/fields/DurationPicker.jsx'
+
 import { buildOverflowRows, FLAG_LABELS } from './carrierList.js'
 import './spotboard.css'
 

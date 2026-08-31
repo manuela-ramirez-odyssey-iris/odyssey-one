@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect, vi } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import FormField, { applyFormat } from './FormField.jsx'
 
@@ -136,5 +136,100 @@ describe('FormField format (input content policy)', () => {
     const input = container.querySelector('input')
     fireEvent.change(input, { target: { value: '12a' } })
     expect(seen).toEqual(['12'])
+  })
+})
+
+describe('FormField radio-label mode', () => {
+  test('unchecked radio disables the whole field, including edge selects', () => {
+    const { container } = render(
+      <FormField
+        label="New Cost"
+        value="1,250"
+        onChange={() => {}}
+        radio={{ checked: false, onChange: () => {}, name: 'cost-mode', value: 'new' }}
+        trailingSelect={{ label: 'USD', onClick: () => {} }}
+      />,
+    )
+    expect(container.querySelector('.form-field--disabled')).toBeTruthy()
+    expect(container.querySelector('input[type="text"]').disabled).toBe(true)
+    const select = container.querySelector('.field-select, [class*="field-select"]')
+    expect(select).toBeTruthy()
+  })
+
+  test('checked radio leaves the field enabled', () => {
+    const { container } = render(
+      <FormField
+        label="New Cost"
+        value="1,250"
+        onChange={() => {}}
+        radio={{ checked: true, onChange: () => {}, name: 'cost-mode', value: 'new' }}
+      />,
+    )
+    expect(container.querySelector('.form-field--disabled')).toBeNull()
+    expect(container.querySelector('input[type="text"]').disabled).toBe(false)
+  })
+
+  test('clicking the Radio calls radio.onChange', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <FormField
+        label="New Cost"
+        value=""
+        onChange={() => {}}
+        radio={{ checked: false, onChange, name: 'cost-mode', value: 'new' }}
+      />,
+    )
+    const radioInput = container.querySelector('input[type="radio"]')
+    expect(radioInput).toBeTruthy()
+    fireEvent.click(radioInput)
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  test('without radio, plain label + Info icon path is unchanged', () => {
+    const { container } = render(
+      <FormField label="Name" value="" onChange={() => {}} showInfo />,
+    )
+    expect(container.querySelector('label.form-field__label')).toBeTruthy()
+    expect(container.querySelector('.form-field__info')).toBeTruthy()
+    expect(container.querySelector('input[type="radio"]')).toBeNull()
+  })
+})
+
+describe('FormField labelBadge', () => {
+  test('renders inside the label row, after the label text', () => {
+    const { container } = render(
+      <FormField label="Name" value="" onChange={() => {}} labelBadge={<span className="my-badge">New</span>} />,
+    )
+    const row = container.querySelector('.form-field__label-row')
+    const label = row.querySelector('.form-field__label')
+    const badge = row.querySelector('.my-badge')
+    expect(badge).toBeTruthy()
+    expect(
+      label.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  test('absent labelBadge renders nothing extra', () => {
+    const { container } = render(<FormField label="Name" value="" onChange={() => {}} />)
+    expect(container.querySelector('.my-badge')).toBeNull()
+  })
+
+  test('renders after the Radio in radio mode', () => {
+    const { container } = render(
+      <FormField
+        label="New Cost"
+        value=""
+        onChange={() => {}}
+        radio={{ checked: false, onChange: () => {}, name: 'cost-mode', value: 'new' }}
+        labelBadge={<span className="my-badge">New</span>}
+      />,
+    )
+    const row = container.querySelector('.form-field__label-row')
+    const radioInput = row.querySelector('input[type="radio"]')
+    const badge = row.querySelector('.my-badge')
+    expect(badge).toBeTruthy()
+    expect(
+      radioInput.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })

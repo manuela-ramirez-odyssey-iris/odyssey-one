@@ -1,5 +1,6 @@
 import { Info, CircleX, Check } from 'lucide-react'
 import FieldSelect from './FieldSelect.jsx'
+import Radio from './Radio.jsx'
 
 /**
  * FormField — molecule (redesign, supersedes the 2255:98 master). Title label +
@@ -15,6 +16,8 @@ import FieldSelect from './FieldSelect.jsx'
  *
  * Slots (each maps to a Figma property):
  *   showLabel / label    — `Show label` + `Label`
+ *   labelBadge           — optional node (e.g. `<Badge>`) rendered right next to the label
+ *     (or Radio in radio mode); absent = not rendered.
  *   showInfo             — `Show info icon` (lucide/info beside the title)
  *   leadingIcon / trailingIcon — `Show/Leading Icon` + `Show/Trailing Icon` (placeholder-16 slots)
  *   onClear              — `Show X Icon` (clear button, shown when focused + filled)
@@ -24,9 +27,11 @@ import FieldSelect from './FieldSelect.jsx'
  *     belong, so a typo can never land in the value. This is deliberately a
  *     small closed set, not a mask DSL — anything richer (currency grouping,
  *     locale separators) belongs in a dedicated field component.
- *   leadingSelect / trailingSelect — `{ label, onClick }` → a `FieldSelect` on that edge.
+ *   leadingSelect / trailingSelect — `{ label, onClick, locked }` → a `FieldSelect` on that edge.
  *     The select's divider tracks the field's focus/error/disabled state via CSS
  *     (the parent overrides `--field-select-divider`), so no state prop is threaded.
+ *     `locked: true` = the value is decided by another field, so the select shows
+ *     the label as static text, no chevron, not clickable (the input stays usable).
  *
  * Figma master: `FormField` set 2602:1424 (Components-Molecules).
  */
@@ -68,6 +73,8 @@ export default function FormField({
   trailingIcon,
   leadingSelect,
   trailingSelect,
+  radio,
+  labelBadge,
   onClear,
   id,
   name,
@@ -81,6 +88,7 @@ export default function FormField({
   ...rest
 }) {
   const isValidated = validated && !error
+  const isDisabled = disabled || (radio && !radio.checked)
   // Reject disallowed characters BEFORE they reach the consumer's state — the
   // value can never end up unfixable (a NaN that re-parses to NaN forever).
   const handleChange = (e) => {
@@ -92,13 +100,13 @@ export default function FormField({
     'form-field',
     error && 'form-field--error',
     isValidated && 'form-field--validated',
-    disabled && 'form-field--disabled',
+    isDisabled && 'form-field--disabled',
     className,
   ].filter(Boolean).join(' ')
   const errorId = error && id ? `${id}-error` : undefined
   const ariaDescribedBy = [errorId, describedBy].filter(Boolean).join(' ') || undefined
-  const selectState = disabled ? 'disabled' : 'default'
-  const showClear = !!onClear && !disabled && value != null && value !== ''
+  const selectState = isDisabled ? 'disabled' : 'default'
+  const showClear = !!onClear && !isDisabled && value != null && value !== ''
   // Counter is a basic-variant affordance only — suppress when either select edge is present.
   const showCharCounter = showCounter && maxLength && !leadingSelect && !trailingSelect
 
@@ -106,10 +114,27 @@ export default function FormField({
     <div className={cls}>
       {showLabel && label && (
         <div className="form-field__label-row">
-          <label htmlFor={id} className="form-field__label text-label-sm-medium">
-            {label}{required && <span className="form-field__required" aria-hidden="true"> *</span>}
-          </label>
-          {showInfo && <Info className="form-field__info" size={16} aria-hidden="true" />}
+          {radio ? (
+            <>
+              <Radio
+                checked={radio.checked}
+                onChange={radio.onChange}
+                name={radio.name}
+                value={radio.value}
+                label={label}
+                showLabel={showLabel}
+              />
+              {labelBadge}
+            </>
+          ) : (
+            <>
+              <label htmlFor={id} className="form-field__label text-label-sm-medium">
+                {label}{required && <span className="form-field__required" aria-hidden="true"> *</span>}
+              </label>
+              {labelBadge}
+              {showInfo && <Info className="form-field__info" size={16} aria-hidden="true" />}
+            </>
+          )}
         </div>
       )}
       <div className="form-field__input">
@@ -118,6 +143,7 @@ export default function FormField({
             variant="leading"
             state={selectState}
             label={leadingSelect.label}
+            locked={leadingSelect.locked}
             onClick={leadingSelect.onClick}
           />
         )}
@@ -135,7 +161,7 @@ export default function FormField({
             required={required}
             aria-required={required || undefined}
             maxLength={maxLength}
-            disabled={disabled}
+            disabled={isDisabled}
             className="form-field__field text-label-sm-regular"
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={ariaDescribedBy}
@@ -166,6 +192,7 @@ export default function FormField({
             variant="trailing"
             state={selectState}
             label={trailingSelect.label}
+            locked={trailingSelect.locked}
             onClick={trailingSelect.onClick}
           />
         )}

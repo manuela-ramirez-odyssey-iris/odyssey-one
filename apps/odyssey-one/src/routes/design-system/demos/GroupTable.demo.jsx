@@ -27,7 +27,7 @@ export const meta = {
   tier: 'organism',
   version: '1.5.0',
   createdVersion: '0.7.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
 }
@@ -35,6 +35,7 @@ export const meta = {
 export const props = [
   { name: 'columns', type: '[{ key, label, align?, width? }]', desc: "Column definitions. `align`: 'left' (default) | 'right' | 'center'; `width` pins a column (number = px)." },
   { name: 'groups', type: '[{ id, label, rows: object[], values?: object }]', desc: 'One collapsible band per group. `values` is optional: an object keyed by col.key whose entries appear on the group header row in matching columns (medium weight, col.align respected) — visible both collapsed and expanded. Omit for label-only headers (Product tab style).' },
+  { name: 'groups[].expandable', type: 'boolean', desc: 'Default true. `false` renders the group\'s label row as a PLAIN row — no chevron, no button, no aria-expanded, no child rows or detail band, just the label as plain text in the merged lead cell (`group.values` and `group.action` still render as usual). Also derived automatically: a group with nothing to reveal (no `rows` in the rows flavor, no `detailRows`/notes in the nested flavor) is non-expandable even without passing the flag — a chevron that opens onto nothing is a bug. Explicit `false` always wins.' },
   { name: 'renderCell', type: '(row, col) => node', desc: 'Optional cell renderer for CHILD rows (e.g. a hazmat Badge, a colored Diff). Default: `row[col.key] ?? "—"`.' },
   { name: 'footerRow', type: 'object', desc: 'Optional TOTAL row (medium weight) keyed by col.key (values may be nodes). Pass to show; omit to hide. Not passed through renderCell.' },
   { name: 'expanded', type: '{ [groupId]: boolean }', desc: 'Controlled expansion map (missing key = collapsed) — pair with onToggle; lets a consumer drive Expand All.' },
@@ -54,6 +55,7 @@ export const props = [
   { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every column of the section that hosts it (`note: true`, default the first). The SHORTHAND for one note per row — for a note on every sibling use `detailNotes`. Clamped to `noteLines` with a Show more toggle. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
   { name: 'groups[].actionTone', type: "'danger' | 'warning' | 'success' | 'info'", desc: 'Colour scheme (glyph + background) for that row\'s pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL\'s background — a slotted node cannot paint its own ancestor. An unrecognised value degrades to neutral.' },
   { name: 'groups[].action', type: 'node', desc: 'Content of that group row\'s pinned action cell. A PURE SLOT — the component supplies no behavior or tone. By convention pass an `ActionMenu` (the canonical row-action control, same as DataTable\'s action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. Clicks are stopped from toggling the row.' },
+  { name: 'header', type: '{ title, icon?, trail? }', desc: 'Optional 48px strip above the column-header row (Figma 4183:773 "Header" frame): icon + bold title left, empty trailing slot right. Presence renders the strip; omit it (the default) for the unchanged, released look. `icon` is a caller-supplied node (e.g. a lucide element) — the component hardcodes none. The table is `aria-labelledby` the title.' },
 ]
 
 export const tokens = [
@@ -100,6 +102,16 @@ const GROUPS = [
       { lineNumber: '001', shipItem: '55129P3R', description: 'Reprocessed Polyethylene Pellets', packageCount: '65 Totes', grossWeight: '1,258 LB', hazmat: true },
       { lineNumber: '002', shipItem: '31052D8J', description: 'Ferric Chloride Solution 42%', packageCount: '78 Totes', grossWeight: '2,047 LB', hazmat: false },
       { lineNumber: '003', shipItem: '38089L2R', description: 'Insecticide Emulsifiable', packageCount: '28 Totes', grossWeight: '901 LB', hazmat: true },
+    ],
+  },
+  // `expandable: false` side by side with an ordinary expandable group above —
+  // a plain data row, no chevron, no toggle (user spec, 2026-08-28).
+  {
+    id: 'YWK4NPLR2',
+    label: 'YWK4NPLR2',
+    expandable: false,
+    rows: [
+      { lineNumber: '001', shipItem: '90214H7C', description: 'Empty Return — No Detail', packageCount: '1 Pallet', grossWeight: '84 LB', hazmat: false },
     ],
   },
 ]
@@ -448,6 +460,7 @@ function Playground() {
   const [showFooter, setShowFooter] = useState(true)
   const [stickyActions, setStickyActions] = useState(false)
   const [narrow, setNarrow] = useState(false)
+  const [showHeader, setShowHeader] = useState(false)
   // detailNote is per-group and optional in the API; this toggle just strips it
   // from the demo data so both states are visible (nested flavor only).
   const [showDetailNote, setShowDetailNote] = useState(true)
@@ -497,6 +510,9 @@ function Playground() {
     striped,
     stickyActions,
     actionsHeader: <Button variant="icon" size="sm" icon={<Columns3Cog {...ICON_LG} />} aria-label="Arrange columns" />,
+    header: showHeader
+      ? { title: 'Prior Tender List', icon: <TruckElectric {...ICON_LG} />, trail: null }
+      : undefined,
   }
 
   return (
@@ -527,6 +543,7 @@ function Playground() {
         <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
+        <Toggle label="header (title strip above column headers)" value={showHeader} set={setShowHeader} />
         {flavor === 'nested' && (
           <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
         )}

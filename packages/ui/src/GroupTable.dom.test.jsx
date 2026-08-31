@@ -28,6 +28,46 @@ const GROUPS = [{
 
 const STICKY = '.odyssey-group-table__cell--sticky-right'
 
+describe('GroupTable — non-expandable groups', () => {
+  const ROW_GROUPS = [
+    { id: 'g1', label: 'ALPHA', rows: [{ name: 'a', rank: '1', status: 'ok' }] },
+    { id: 'g2', label: 'BETA', rows: [{ name: 'b', rank: '2', status: 'ok' }], expandable: false },
+    { id: 'g3', label: 'GAMMA', rows: [] },
+  ]
+
+  it('expandable: false renders a plain row: no button, no chevron, no aria-expanded, label present, no child rows', () => {
+    render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded />)
+    const betaRow = screen.getByText('BETA').closest('tr')
+    expect(betaRow.querySelector('button')).toBeNull()
+    expect(betaRow.querySelector('.odyssey-group-table__chevron')).toBeNull()
+    expect(betaRow.querySelector('[aria-expanded]')).toBeNull()
+    expect(screen.getByText('BETA')).toBeTruthy()
+    expect(screen.queryByText('b')).toBeNull()
+  })
+
+  it('a group with no rows and no detail content is automatically non-expandable', () => {
+    render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded />)
+    const gammaRow = screen.getByText('GAMMA').closest('tr')
+    expect(gammaRow.querySelector('button')).toBeNull()
+    expect(gammaRow.querySelector('[aria-expanded]')).toBeNull()
+  })
+
+  it('an ordinary group still toggles as before (regression)', () => {
+    render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded={false} />)
+    expect(screen.queryByText('a')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /ALPHA/ }))
+    expect(screen.getByText('a')).toBeTruthy()
+  })
+
+  it('clicking a static row does nothing (no toggle handler on the tr)', () => {
+    render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded />)
+    const betaRow = screen.getByText('BETA').closest('tr')
+    expect(betaRow.className).toContain('odyssey-group-table__group-row--static')
+    fireEvent.click(betaRow)
+    expect(screen.queryByText('b')).toBeNull()
+  })
+})
+
 describe('GroupTable — the nested band spans the full width', () => {
   it('spans the action lane too, so the nested table gets the whole width', () => {
     // RULED 2026-08-17 (user): "nested table is separate, doesn't need to follow
@@ -562,5 +602,33 @@ describe('GroupTable detailNote — fills the band without sizing it', () => {
       Object.defineProperty(Element.prototype, 'scrollHeight', sh)
       Object.defineProperty(Element.prototype, 'clientHeight', ch)
     }
+  })
+})
+
+describe('GroupTable — optional header strip (Figma 4183:773)', () => {
+  const HEADER_SEL = '.odyssey-group-table__header'
+
+  it('renders no strip when `header` is omitted', () => {
+    const { container } = render(<GroupTable columns={COLUMNS} groups={GROUPS} />)
+    expect(container.querySelector(HEADER_SEL)).toBeNull()
+  })
+
+  it('renders the strip with the title when `header={{ title }}` is passed', () => {
+    render(<GroupTable columns={COLUMNS} groups={GROUPS} header={{ title: 'Prior Tender List' }} />)
+    const strip = screen.getByText('Prior Tender List').closest(HEADER_SEL)
+    expect(strip).toBeTruthy()
+  })
+
+  it('renders a caller-supplied icon and trail inside the strip', () => {
+    const { container } = render(
+      <GroupTable
+        columns={COLUMNS}
+        groups={GROUPS}
+        header={{ title: 'Prior Tender List', icon: <svg data-testid="hdr-icon" />, trail: <button type="button">Trail</button> }}
+      />
+    )
+    const strip = container.querySelector(HEADER_SEL)
+    expect(strip.querySelector('[data-testid="hdr-icon"]')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Trail' }).closest(HEADER_SEL)).toBeTruthy()
   })
 })
