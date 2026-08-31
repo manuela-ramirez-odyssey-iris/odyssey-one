@@ -321,6 +321,64 @@ export interface SellShipmentDroppedCarrier {
   indirectPoint: boolean
 }
 
+/**
+ * LINX-14509…14515 — one carrier's slot on the Review Order Change screen
+ * (either `prior` or `newOption`). Field names mirror SellShipmentRoutingOption
+ * (equipmentCode, not `equipment`) — see buildOrderChange in generate.mjs,
+ * which builds both directly off routing option rows.
+ */
+export interface SellShipmentOrderChangeCarrier {
+  scac: string
+  carrierName: string
+  equipmentCode: string
+  tenderStatus: string | null
+  routeRank: number | null
+  rank: number
+  pickupDateTime: string
+  deliveryDateTime: string
+  apCost: number | null
+  quoted?: boolean
+}
+
+export interface SellShipmentOrderChangeComparisonRow {
+  field: string
+  source: string
+  prior: string
+  new: string
+  changed: boolean
+}
+
+export interface SellShipmentOrderChangeHazmatLine {
+  line: number
+  boilingPoint: string
+  hazmatClass: string
+  hazmatDescription: string
+  itemDescription: string
+  marinePollutant: string
+}
+
+/** Stamped by PATCH .../order-change (resolveOrderChange in api/_lib/shipments.mjs). */
+export interface SellShipmentOrderChangeResolution {
+  action: string
+  cost: { choice: string; amount: number } | null
+  resolvedAt: string
+}
+
+/**
+ * LINX-14509…14515 — detail.orderChange, seeded only on shipments diverted
+ * into the 'order-change' exceptions category (generate.mjs buildOrderChange).
+ */
+export interface SellShipmentOrderChange {
+  scenario: 'returned' | 'not-returned'
+  prior: SellShipmentOrderChangeCarrier
+  newOption: SellShipmentOrderChangeCarrier
+  priorTenderList: SellShipmentRoutingOption[]
+  newTenderList: SellShipmentRoutingOption[]
+  comparison: SellShipmentOrderChangeComparisonRow[]
+  hazmat: { prior: SellShipmentOrderChangeHazmatLine; new: SellShipmentOrderChangeHazmatLine }[]
+  resolution?: SellShipmentOrderChangeResolution | null
+}
+
 export interface SellShipmentOut {
   shipmentId: string
   shipmentType?: string
@@ -345,6 +403,7 @@ export interface SellShipmentOut {
   shipmentStopList?: SellShipmentStop[]
   shippingOptionList?: SellShipmentRoutingOption[]
   droppedCarrierList?: SellShipmentDroppedCarrier[]
+  orderChange?: SellShipmentOrderChange | null
   /* Fake-data-only attachments (no real-contract equivalent yet): passed through
      verbatim to the Documents / Notes / History panes. */
   documentList?: unknown[]

@@ -906,4 +906,46 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(mapSellShipmentOutToDetail({} as never).droppedCarriers).toEqual([])
     })
   })
+
+  describe('mapOrderChange (LINX-14509…14515)', () => {
+    const orderChange: NonNullable<SellShipmentOut['orderChange']> = {
+      scenario: 'not-returned',
+      prior: {
+        scac: 'ABFS', carrierName: 'ABF FREIGHT SYSTEM', equipmentCode: 'VAN',
+        tenderStatus: 'Accepted', routeRank: 1, rank: 1,
+        pickupDateTime: '06/10/2026 08:00 CST', deliveryDateTime: '06/13/2026 09:00 CST',
+        apCost: 1384.16, quoted: false,
+      },
+      newOption: {
+        scac: 'ABFS', carrierName: 'ABF FREIGHT SYSTEM', equipmentCode: 'VAN',
+        tenderStatus: null, routeRank: null, rank: 2,
+        pickupDateTime: '06/11/2026 08:00 CST', deliveryDateTime: '06/14/2026 09:00 CST',
+        apCost: null,
+      },
+      priorTenderList: [{ rank: 1, scac: 'ABFS' }],
+      newTenderList: [{ rank: 1, scac: 'ODFL' }],
+      comparison: [
+        { field: 'Pickup Date/Time', source: 'Routing', prior: '06/10/2026 08:00 CST', new: '06/11/2026 08:00 CST', changed: true },
+      ],
+      hazmat: [
+        {
+          prior: { line: 87001, boilingPoint: '200 F', hazmatClass: 'II', hazmatDescription: 'Corrosive', itemDescription: 'UN0010', marinePollutant: 'N' },
+          new: { line: 87001, boilingPoint: '200 F', hazmatClass: 'II', hazmatDescription: 'Corrosive', itemDescription: 'UN0010', marinePollutant: 'N' },
+        },
+      ],
+    }
+
+    it('maps orderChange: tender lists through mapRoutingOption, carriers and comparison verbatim', () => {
+      const vm = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, orderChange } as never).orderChange!
+      expect(vm.scenario).toBe('not-returned')
+      expect(vm.newOption.apCost).toBeNull()
+      expect(vm.priorTenderList[0].scac).toBe('ABFS')
+      expect(vm.comparison[0].changed).toBe(true)
+      expect(vm.hazmat).toHaveLength(1)
+    })
+
+    it('orderChange absent → null', () => {
+      expect(mapSellShipmentOutToDetail(sellShipmentOutSample).orderChange).toBeNull()
+    })
+  })
 })

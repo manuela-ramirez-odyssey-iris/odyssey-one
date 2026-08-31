@@ -7,12 +7,18 @@ import type {
   SellShipmentRoutingOption,
   SellShipmentSpecialService,
   SellShipmentDroppedCarrier,
+  SellShipmentOrderChangeCarrier,
+  SellShipmentOrderChangeComparisonRow,
+  SellShipmentOrderChangeHazmatLine,
 } from '../types/sellShipmentOut'
 import type {
   CostOrderVM,
   CostSummaryVM,
   DroppedCarrierVM,
   InstructionOrderVM,
+  OrderChangeCarrierVM,
+  OrderChangeComparisonRowVM,
+  OrderChangeHazmatLineVM,
   OrderDetailVM,
   ProductLineVM,
   ProductOrderVM,
@@ -448,6 +454,65 @@ function mapDroppedCarrier(d: SellShipmentDroppedCarrier): DroppedCarrierVM {
   }
 }
 
+// ── Order Change tab (LINX-14509…14515) ──────────────────────────────────────
+//
+// Explicit whitelists, like mapDroppedCarrier/mapRoutingOption above — a DTO
+// field not named here is silently dropped, which is this repo's most-shipped
+// mapper bug class (5x). `prior`/`newOption` arrive as plain objects on the
+// DTO and could be passed through by reference, but that would let a renamed
+// DTO field vanish silently or a new one appear untyped in the VM; naming
+// every field here makes either change a type error instead.
+
+function mapOrderChangeCarrier(c: SellShipmentOrderChangeCarrier): OrderChangeCarrierVM {
+  return {
+    scac: c.scac,
+    carrierName: c.carrierName,
+    equipment: c.equipmentCode,
+    tenderStatus: c.tenderStatus,
+    routeRank: c.routeRank,
+    rank: c.rank,
+    pickupDateTime: c.pickupDateTime,
+    deliveryDateTime: c.deliveryDateTime,
+    apCost: c.apCost,
+    quoted: c.quoted,
+  }
+}
+
+function mapOrderChangeComparisonRow(r: SellShipmentOrderChangeComparisonRow): OrderChangeComparisonRowVM {
+  return { field: r.field, source: r.source, prior: r.prior, new: r.new, changed: r.changed }
+}
+
+function mapOrderChangeHazmatLine(l: SellShipmentOrderChangeHazmatLine): OrderChangeHazmatLineVM {
+  return {
+    line: l.line,
+    boilingPoint: l.boilingPoint,
+    hazmatClass: l.hazmatClass,
+    hazmatDescription: l.hazmatDescription,
+    itemDescription: l.itemDescription,
+    marinePollutant: l.marinePollutant,
+  }
+}
+
+function mapOrderChange(dto: SellShipmentOut): ShipmentDetailVM['orderChange'] {
+  const oc = dto.orderChange
+  if (!oc) return null
+  return {
+    scenario: oc.scenario,
+    prior: mapOrderChangeCarrier(oc.prior),
+    newOption: mapOrderChangeCarrier(oc.newOption),
+    priorTenderList: (oc.priorTenderList ?? []).map(mapRoutingOption),
+    newTenderList: (oc.newTenderList ?? []).map(mapRoutingOption),
+    comparison: (oc.comparison ?? []).map(mapOrderChangeComparisonRow),
+    hazmat: (oc.hazmat ?? []).map((h) => ({
+      prior: mapOrderChangeHazmatLine(h.prior),
+      new: mapOrderChangeHazmatLine(h.new),
+    })),
+    resolution: oc.resolution
+      ? { action: oc.resolution.action, cost: oc.resolution.cost, resolvedAt: oc.resolution.resolvedAt }
+      : null,
+  }
+}
+
 // Strips $, commas, and trailing units ("Days", "mi", "USD") down to a plain
 // number — parseDollar's regex just removes everything but digits/./-, so it
 // generically undoes fmtDollar/fmtDistance/the "N Days" format alike despite
@@ -633,6 +698,7 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     productData: mapProducts(dto),
     routingData: mapRouting(dto),
     droppedCarriers: (dto.droppedCarrierList ?? []).map(mapDroppedCarrier),
+    orderChange: mapOrderChange(dto),
     costData: mapCost(dto),
     instructionsData: mapInstructions(dto),
     userDefinedData: mapUserDefined(dto),

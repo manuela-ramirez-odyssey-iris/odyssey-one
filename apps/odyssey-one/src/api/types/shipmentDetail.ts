@@ -332,6 +332,53 @@ export interface DroppedCarrierVM {
   indirectPoint: boolean
 }
 
+/**
+ * LINX-14509…14515 — Review Order Change (Direct Shipment). Unlike
+ * DroppedCarrierVM/RoutingOptionVM, these fields are NOT pre-formatted
+ * display strings — the Review screen (Task 8+) does its own formatting —
+ * so numbers/nulls pass through typed rather than dashed.
+ */
+export interface OrderChangeComparisonRowVM {
+  field: string
+  source: 'Routing' | 'Order' | 'Shipment' | string
+  prior: string
+  new: string
+  changed: boolean
+}
+
+export interface OrderChangeCarrierVM {
+  scac: string
+  carrierName?: string
+  equipment: string
+  tenderStatus: string | null
+  routeRank: number | string | null
+  rank: number
+  pickupDateTime: string
+  deliveryDateTime: string
+  apCost: number | null
+  quoted?: boolean
+}
+
+export interface OrderChangeHazmatLineVM {
+  line: number
+  boilingPoint: string
+  hazmatClass: string
+  hazmatDescription: string
+  itemDescription: string
+  marinePollutant: string
+}
+
+export interface OrderChangeVM {
+  scenario: 'returned' | 'not-returned'
+  prior: OrderChangeCarrierVM
+  newOption: OrderChangeCarrierVM
+  priorTenderList: RoutingOptionVM[]
+  newTenderList: RoutingOptionVM[]
+  comparison: OrderChangeComparisonRowVM[]
+  hazmat: { prior: OrderChangeHazmatLineVM; new: OrderChangeHazmatLineVM }[]
+  resolution?: { action: string; cost: { choice: string; amount: number } | null; resolvedAt: string } | null
+}
+
 // ── Top-level VM ─────────────────────────────────────────────
 export interface ShipmentDetailVM {
   /* Shipment header field — on the wire since S92 but never mapped until the
@@ -344,6 +391,9 @@ export interface ShipmentDetailVM {
   productData: { orders: ProductOrderVM[] }
   routingData: { options: RoutingOptionVM[] }
   droppedCarriers: DroppedCarrierVM[]
+  /** LINX-14509…14515. Null on every shipment except the one row diverted
+      into the 'order-change' exceptions category. */
+  orderChange: OrderChangeVM | null
   costData: { planned: { summary: CostSummaryVM; orders: CostOrderVM[] } }
   instructionsData: { orders: InstructionOrderVM[] }
   userDefinedData: { orders: UserDefinedOrderVM[] }
