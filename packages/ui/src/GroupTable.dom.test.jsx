@@ -755,4 +755,76 @@ describe('GroupTable — flat mode', () => {
     fireEvent.click(button)
     expect(button.getAttribute('aria-expanded')).toBe('true')
   })
+
+  it('headerStyle="strip" adopts the HeaderStrip-style column header treatment', () => {
+    const { container } = render(<GroupTable columns={COLUMNS} groups={FLAT_GROUPS} flat headerStyle="strip" />)
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeTruthy()
+  })
+
+  it('striped={false} WITHOUT flat does NOT get the strip-style header (overloaded --flat class guard)', () => {
+    const groups = [{ id: 'g1', label: 'ALPHA', rows: [{ name: 'a', rank: '1', status: 'ok' }] }]
+    const { container } = render(<GroupTable columns={COLUMNS} groups={groups} striped={false} />)
+    // Still gets the unstriped `--flat` modifier...
+    expect(container.querySelector('.odyssey-group-table--flat')).toBeTruthy()
+    // ...but never the strip-style header modifier, which is `flat`-only.
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeNull()
+  })
+
+  it('flat still renders one <th scope="col"> per column plus the sticky actions header cell', () => {
+    render(<GroupTable columns={COLUMNS} groups={FLAT_GROUPS} flat stickyActions actionsHeader="Actions" />)
+    const headerCells = document.querySelectorAll('thead th')
+    // 3 outer columns + 1 sticky action header cell
+    expect(headerCells).toHaveLength(4)
+    headerCells.forEach((th) => {
+      if (th.classList.contains('odyssey-group-table__cell--sticky-right')) return
+      expect(th.getAttribute('scope')).toBe('col')
+    })
+    expect(document.querySelector('thead th.odyssey-group-table__cell--sticky-right')).toBeTruthy()
+    expect(screen.getByText('Actions')).toBeTruthy()
+  })
+})
+
+describe('GroupTable — headerStyle (independent of flat)', () => {
+  const GROUPS = [{ id: 'g1', label: 'ALPHA', rows: [{ name: 'a', rank: '1', status: 'ok' }] }]
+
+  it('headerStyle="strip" WITHOUT flat gets the strip header, and the table is otherwise a normal expandable table', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUPS} headerStyle="strip" defaultExpanded={false} />
+    )
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeTruthy()
+    const button = screen.getByRole('button', { name: /ALPHA/ })
+    expect(button.querySelector('.odyssey-group-table__chevron')).toBeTruthy()
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByText('a')).toBeTruthy()
+  })
+
+  it('flat + headerStyle="standard" gives flat rows but the standard header', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} groups={GROUPS} flat headerStyle="standard" />
+    )
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeNull()
+    expect(document.querySelector('.odyssey-group-table__chevron')).toBeNull()
+    expect(screen.getByText('ALPHA').closest('tr').querySelectorAll('td')[0].getAttribute('colspan')).toBeNull()
+  })
+
+  it('flat does NOT imply the strip header — standard is always the default', () => {
+    const { container } = render(<GroupTable columns={COLUMNS} groups={GROUPS} flat />)
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeNull()
+  })
+
+  it('flat + headerStyle="strip" opts in explicitly', () => {
+    const { container } = render(<GroupTable columns={COLUMNS} groups={GROUPS} flat headerStyle="strip" />)
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeTruthy()
+  })
+
+  it('default: non-flat is the standard header', () => {
+    const { container } = render(<GroupTable columns={COLUMNS} groups={GROUPS} />)
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeNull()
+  })
+
+  it('striped={false} alone never produces a strip header', () => {
+    const { container } = render(<GroupTable columns={COLUMNS} groups={GROUPS} striped={false} />)
+    expect(container.querySelector('.odyssey-group-table--flat-head')).toBeNull()
+  })
 })

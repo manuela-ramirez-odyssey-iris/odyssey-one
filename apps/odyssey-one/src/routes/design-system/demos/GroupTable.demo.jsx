@@ -30,6 +30,8 @@ export const meta = {
   normalizing: true,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
+  approved: true,
+  ported: true,
 }
 
 export const props = [
@@ -55,8 +57,9 @@ export const props = [
   { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every column of the section that hosts it (`note: true`, default the first). The SHORTHAND for one note per row — for a note on every sibling use `detailNotes`. Clamped to `noteLines` with a Show more toggle. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
   { name: 'groups[].actionTone', type: "'danger' | 'warning' | 'success' | 'info'", desc: 'Colour scheme (glyph + background) for that row\'s pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL\'s background — a slotted node cannot paint its own ancestor. An unrecognised value degrades to neutral.' },
   { name: 'groups[].action', type: 'node', desc: 'Content of that group row\'s pinned action cell. A PURE SLOT — the component supplies no behavior or tone. By convention pass an `ActionMenu` (the canonical row-action control, same as DataTable\'s action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. Clicks are stopped from toggling the row.' },
-  { name: 'header', type: '{ title, icon?, trail? }', desc: 'Optional 48px strip above the column-header row (Figma 4183:773 "Header" frame): icon + bold title left, empty trailing slot right. Presence renders the strip; omit it (the default) for the unchanged, released look. `icon` is a caller-supplied node (e.g. a lucide element) — the component hardcodes none. The table is `aria-labelledby` the title.' },
-  { name: 'flat', type: 'boolean', desc: 'Default false. Table-level mode: every group renders as ONE ordinary data row (regular weight, one `<td>` per column via `groupHeaderValue`, lead column falling back to `group.label`) instead of the bold merged-label group-header row. Nothing expands — no chevron, no button, no row click, no aria-expanded, no child rows/detail band/note, regardless of `rows`/`detailRows`. Rows stay white (reuses the same white background as `striped={false}`).' },
+  { name: 'header', type: '{ title, icon?, trail? }', desc: 'Optional 48px strip above the column-header row (Figma 4183:773 "Header" frame): icon + bold title left, empty trailing slot right. Presence renders the strip; omit it (the default) for the unchanged, released look. `icon` is a caller-supplied node (e.g. a lucide element) — the component hardcodes none. The table is `aria-labelledby` the title. (Figma: Group header BOOLEAN.) The strip itself is an INSTANCE of the standalone HeaderStrip master (5530:1140) — its `Title` / `Show icon` / `Icon` / `Show trail` properties are exposed straight through on GroupTable instances that carry the strip.' },
+  { name: 'flat', type: 'boolean', desc: 'Default false. Table-level mode: every group renders as ONE ordinary data row (regular weight, one `<td>` per column via `groupHeaderValue`, lead column falling back to `group.label`) instead of the bold merged-label group-header row. Nothing expands — no chevron, no button, no row click, no aria-expanded, no child rows/detail band/note, regardless of `rows`/`detailRows`. Rows stay white (reuses the same white background as `striped={false}`). Does NOT touch the column-header row at all — that is `headerStyle`, which is fully independent and defaults to \'standard\' whether or not `flat` is on.' },
+  { name: 'headerStyle', type: "'standard' | 'strip'", desc: 'The column-header row\'s style, independent of `flat`. **Default is always \'standard\'** — `flat` does NOT imply \'strip\' (user ruling 2026-08-31); the two are independent, exactly as Figma models them. Pass it explicitly to opt in, either way: `headerStyle="strip"` puts the HeaderStrip-look header (`--bg-secondary` tint + `text-label-base-semibold` typography) on an ordinary, still-expandable table; `flat headerStyle="strip"` is how a flat table gets the strip header. The strip tint also covers the PINNED first header cell in the nested flavour — that cell paints its own opaque background so content can scroll under it, and would otherwise stay white against the tinted rest. Never affects striping — `striped={false}` alone never produces a strip header. (Figma 4183:773: the independent boolean PAIR `Header strip style`, default false, and `Header standard style`, default true — set OPPOSITELY by the designer, since Figma has no inverse-binding mechanism.)' },
 ]
 
 export const tokens = [
@@ -424,7 +427,7 @@ function Schematic() {
       </div>
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="root" tier="molecule">Presentational grouped table — <strong>read-only</strong> (vs <code>DataTable</code> = the interactive TanStack grid: sort/resize/paginate/select). Root owns horizontal scroll; the consumer&apos;s card owns the white surface.</LegendRow>
-        <LegendRow part="header row" nested>Dark column labels (<code>--text-primary</code> semibold) over a <code>--border-subtle</code> hairline. 48px tall like every other row.</LegendRow>
+        <LegendRow part="header row" nested>Dark column labels (<code>--text-primary</code> semibold) over a <code>--border-subtle</code> hairline. 48px tall like every other row. <strong>Two styles, one prop:</strong> "standard" (this look) by default, or "strip" (<code>--bg-secondary</code> tint + <code>text-label-base-semibold</code>, matching <code>HeaderStrip</code>) via the independent <code>headerStyle</code> prop — see the Playground&apos;s <code>headerStyle</code> select. <code>flat</code> does not change it.</LegendRow>
         <LegendRow part="group header row" nested>White band per group: chevron (<code>--text-tertiary</code>, rotates −90° collapsed) + bold group id. The FULL row is the toggle — a row-filling <code>&lt;button aria-expanded aria-controls&gt;</code> carries focus + Enter/Space.</LegendRow>
         <LegendRow part="group.values" nested>Optional per-column values on the group header (e.g. per-order AP/AR/Diff). Semibold, <code>col.align</code> respected; visible both collapsed and expanded. Omit for label-only headers (Product tab style).</LegendRow>
         <LegendRow part="child rows" nested>Contiguous light-gray bands (<code>--bg-secondary</code>, <code>--text-tertiary</code> body), separated by 1px <code>--border-subtle</code> hairlines — no white gaps. Lead cell emphasized (<code>--text-primary</code> medium). <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
@@ -437,10 +440,28 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-function Toggle({ label, value, set }) {
+// `disabledReason` dims + disables the control rather than removing it — same
+// house precedent as devmode's Nesting group (DevToggle.jsx): a `title`
+// explaining why, opacity on the wrapper, `disabled` on the input. A
+// disappearing control is worse than a dimmed one for a designer trying to
+// understand what the component can do.
+function Toggle({ label, value, set, disabledReason }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
+    <label
+      title={disabledReason || undefined}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontSize: 'var(--font-size-sm)',
+        cursor: disabledReason ? 'not-allowed' : 'pointer',
+        opacity: disabledReason ? 0.4 : 1,
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={value}
+        disabled={!!disabledReason}
+        onChange={(e) => set(e.target.checked)}
+      />
       {label}
     </label>
   )
@@ -463,6 +484,10 @@ function Playground() {
   const [narrow, setNarrow] = useState(false)
   const [showHeader, setShowHeader] = useState(false)
   const [flat, setFlat] = useState(false)
+  // undefined = derive from `flat` (the regression case); an explicit value
+  // is independent of flat in both directions, so it must stay selectable
+  // in flat mode too (unlike the toggles below it, which flat genuinely disables).
+  const [headerStyle, setHeaderStyle] = useState(undefined)
   // detailNote is per-group and optional in the API; this toggle just strips it
   // from the demo data so both states are visible (nested flavor only).
   const [showDetailNote, setShowDetailNote] = useState(true)
@@ -516,6 +541,7 @@ function Playground() {
       ? { title: 'Prior Tender List', icon: <TruckElectric {...ICON_LG} />, trail: null }
       : undefined,
     flat,
+    headerStyle,
   }
 
   return (
@@ -542,14 +568,55 @@ function Playground() {
             ))}
           </select>
         </label>
-        <Toggle label="striped" value={striped} set={setStriped} />
+        {/* `flat` collapses every group to a plain white row (striped only
+            colors CHILD rows, which never render in flat mode) and disables
+            all expansion, so the controls below that only affect striping or
+            expand/collapse do nothing while it's on. Dimmed + disabled with a
+            `title`, not removed — house precedent: devmode/DevToggle.jsx
+            dims its Nesting options the same way when they don't apply. */}
+        <Toggle
+          label="striped"
+          value={striped}
+          set={setStriped}
+          disabledReason={flat ? 'Not applicable in flat mode — flat rows are always white' : undefined}
+        />
         <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
         <Toggle label="header (title strip above column headers)" value={showHeader} set={setShowHeader} />
-        <Toggle label="flat (every group = one white data row, nothing expands)" value={flat} set={setFlat} />
+        <Toggle
+          label="flat (every group = one white data row, nothing expands — column-header style is separate, see headerStyle)"
+          value={flat}
+          set={setFlat}
+        />
+        {/* Independent of `flat` — stays enabled in flat mode on purpose: it's
+            one of the few controls still relevant there, since an explicit
+            value overrides flat's default in either direction. */}
+        <label
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)',
+            fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          headerStyle
+          <select
+            className="ds-domain__select"
+            value={headerStyle ?? ''}
+            onChange={(e) => setHeaderStyle(e.target.value || undefined)}
+          >
+            <option value="">(default — standard)</option>
+            <option value="standard">standard</option>
+            <option value="strip">strip</option>
+          </select>
+        </label>
         {flavor === 'nested' && (
-          <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
+          <Toggle
+            label="detailNote (per-group note row)"
+            value={showDetailNote}
+            set={setShowDetailNote}
+            disabledReason={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+          />
         )}
         {flavor === 'sections' && visibleSections.map((sec) => (
           <Toggle
@@ -561,32 +628,46 @@ function Playground() {
             value={noteKeys.includes(sec.key)}
             set={(on) => setNoteKeys((prev) =>
               on ? [...prev, sec.key] : prev.filter((k) => k !== sec.key))}
+            disabledReason={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
           />
         ))}
         {(flavor === 'nested' || flavor === 'sections') && (
-          <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
+          <Toggle
+            label="detailScroll (independent nested h-scroll)"
+            value={detailScroll}
+            set={setDetailScroll}
+            disabledReason={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+          />
         )}
         {flavor === 'sections' && (
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+          <label
+            title={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', opacity: flat ? 0.4 : 1, cursor: flat ? 'not-allowed' : 'default' }}
+          >
             detailSections (sibling tables)
             <input
               type="number"
               min="1"
               max={ROUTE_DETAIL_SECTION_POOL.length}
               value={sectionCount}
+              disabled={flat}
               onChange={(e) => setSectionCount(Math.min(ROUTE_DETAIL_SECTION_POOL.length, Math.max(1, Number(e.target.value))))}
               style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}
             />
           </label>
         )}
         {((flavor === 'nested' && showDetailNote) || (flavor === 'sections' && noteKeys.length > 0)) && (
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+          <label
+            title={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', opacity: flat ? 0.4 : 1, cursor: flat ? 'not-allowed' : 'default' }}
+          >
             noteLines (0 = no clamp)
             <input
               type="number"
               min="0"
               max="10"
               value={noteLines}
+              disabled={flat}
               onChange={(e) => setNoteLines(Math.min(10, Math.max(0, Number(e.target.value))))}
               style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}
             />
@@ -594,6 +675,8 @@ function Playground() {
         )}
         <Button
           variant="link"
+          disabled={flat}
+          title={flat ? 'Not applicable in flat mode — nothing expands' : undefined}
           onClick={() => setExpanded(Object.fromEntries(activeGroups.map((g) => [g.id, !allExpanded])))}
         >
           {allExpanded ? 'Collapse All' : 'Expand All'}

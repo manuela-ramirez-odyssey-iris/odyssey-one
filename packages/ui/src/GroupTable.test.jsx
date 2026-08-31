@@ -1,5 +1,5 @@
 // GroupTable pure helpers — node env (no DOM), vitest globals.
-import { alignClass, isGroupExpanded, isGroupExpandable, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection, stripTrailingColon } from './GroupTable.jsx'
+import { alignClass, isGroupExpanded, isGroupExpandable, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS, normalizeDetailSections, noteSectionIndex, noteForSection, stripTrailingColon, resolveHeaderStyle } from './GroupTable.jsx'
 
 describe('alignClass', () => {
   it('maps right/center to the modifier classes', () => {
@@ -102,6 +102,22 @@ describe('totalColumnCount', () => {
 
   it('defaults to no columns and no action column', () => {
     expect(totalColumnCount()).toBe(0)
+  })
+})
+
+describe('resolveHeaderStyle', () => {
+  it('defaults to standard when omitted', () => {
+    expect(resolveHeaderStyle(undefined)).toBe('standard')
+  })
+  it('honours an explicit strip', () => {
+    expect(resolveHeaderStyle('strip')).toBe('strip')
+  })
+  it('honours an explicit standard', () => {
+    expect(resolveHeaderStyle('standard')).toBe('standard')
+  })
+  // flat is NOT an input: the header style is independent of it (2026-08-31).
+  it('ignores any second argument — flat does not imply strip', () => {
+    expect(resolveHeaderStyle(undefined, true)).toBe('standard')
   })
 })
 

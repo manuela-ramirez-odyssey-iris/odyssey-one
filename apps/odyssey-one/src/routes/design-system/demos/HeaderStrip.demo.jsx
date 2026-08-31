@@ -12,6 +12,8 @@ export const meta = {
   normalizing: true,
   figmaNode: '5530:1140',
   codeConnect: null,
+  approved: true,
+  ported: true,
 }
 
 export const props = [
@@ -38,6 +40,12 @@ export default function HeaderStripDemo() {
         A 48px band: leading icon + bold title, optional trailing slot. Extracted from{' '}
         <code>GroupTable</code>'s <code>header</code> prop so other surfaces can compose it
         directly.
+      </p>
+      <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+        <code>GroupTable</code>'s <code>header</code> strip is an instance of this component
+        (master 5530:1140) — its <code>Title</code> / <code>Show icon</code> / <code>Icon</code> /{' '}
+        <code>Show trail</code> Figma properties are exposed straight through on GroupTable
+        instances that carry the strip.
       </p>
 
       {/* ── Schematic ─────────────────────────────────────────────────── */}

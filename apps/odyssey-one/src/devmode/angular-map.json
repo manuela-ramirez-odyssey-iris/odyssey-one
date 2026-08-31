@@ -1282,6 +1282,16 @@
         "desc": "Renders a trailing FieldSelect. locked: true = the value is decided by another field — static label, no chevron, not clickable (the input stays usable). Figma: the nested FieldSelect is exposed, so its `Show chevron` boolean is reachable from a FormField instance."
       },
       {
+        "name": "radio",
+        "type": "{ checked, name?, value? }",
+        "desc": "radio-label mode — renders an odyssey-radio as the label; unchecked disables the whole field (input, clear, both edge selects) via isDisabled, independent of the explicit `disabled` input."
+      },
+      {
+        "name": "hasLabelBadge / [slot=label-badge]",
+        "type": "boolean + projection",
+        "desc": "Optional node (e.g. a Badge) next to the label (or Radio in radio mode), before the info icon. hasLabelBadge gates the projection; omit to hide."
+      },
+      {
         "name": "(changed)",
         "type": "EventEmitter<Event>",
         "desc": "Native input change event (mirrors React onChange)."
@@ -1305,6 +1315,11 @@
         "name": "(trailingSelectClick)",
         "type": "EventEmitter<MouseEvent>",
         "desc": "Trailing FieldSelect clicked."
+      },
+      {
+        "name": "(radioChange)",
+        "type": "EventEmitter<Event>",
+        "desc": "Composed Radio change event (mirrors React radio.onChange)."
       },
       {
         "name": "className",
@@ -1597,7 +1612,7 @@
   "GroupTable": {
     "selector": "odyssey-group-table",
     "version": "1.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "columns",
@@ -1608,6 +1623,11 @@
         "name": "groups",
         "type": "OdysseyGroupTableGroup[]",
         "desc": "One collapsible band per group `{ id, label, rows: Record<string,unknown>[], values? }`. `values` is optional: an object keyed by col.key whose entries appear on the group header row in matching columns (medium weight, col.align respected) — visible both collapsed and expanded. Omit for label-only headers (Product tab style). Interpolated as text by default — pass valueCellTemplate to render nodes."
+      },
+      {
+        "name": "groups[].expandable",
+        "type": "boolean",
+        "desc": "Default true. `false` renders the group's label row as a PLAIN row — no chevron, no button, no aria-expanded — just the label as plain text in the merged lead cell (`group.values` still renders as usual). If the group has a body (rows / detailRows / a note), that body renders UNCONDITIONALLY beneath the static band — there being no toggle, there is no way to close it. A group with no body renders just the static label, same as before. Also derived automatically without the flag: a group with nothing to reveal is non-expandable even without passing it — a chevron that opens onto nothing is a bug. Explicit `false` always wins. See the exported `isGroupExpandable` / `hasGroupBody` helpers."
       },
       {
         "name": "cellTemplate",
@@ -1713,6 +1733,58 @@
         "name": "groups[].action / actionTemplate",
         "type": "TemplateRef<{ $implicit: { group } }>",
         "desc": "Content of each group row's pinned action cell (React: `group.action`). The CONTENT is a pure slot — by convention project an `odyssey-action-menu` (the canonical row-action control, same as DataTable's action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. The COLOUR SCHEME is not the slot's — see `groups[].actionTone`. Clicks are stopped from toggling the row."
+      },
+      {
+        "name": "header",
+        "type": "{ title: string }",
+        "desc": "Optional 48px strip ABOVE the column-header row (Figma 4183:773 \"Header\" frame): title left, empty trailing slot right. Presence renders the strip, composed from `odyssey-header-strip`; omit it (the default) and the table renders exactly as before. Pair with [headerIconTemplate] / [headerTrailTemplate] for the strip's projected slots. The table is `aria-labelledby` the title."
+      },
+      {
+        "name": "headerIconTemplate / headerTrailTemplate",
+        "type": "TemplateRef<unknown>",
+        "desc": "Content of the composed header strip's leading icon / trailing slot (React: `header.icon` / `header.trail`). Angular analogue of passing a node — a projected template instead."
+      },
+      {
+        "name": "flat",
+        "type": "boolean",
+        "desc": "Default false. Table-level mode: every group renders as ONE ordinary data row (regular weight, one `<td>` per column via `groupHeaderValue`, lead column falling back to `group.label`) instead of the bold merged-label group-header row. Nothing expands — no chevron, no button, no row click, no aria-expanded, no child rows/detail band/note, regardless of `rows`/`detailRows`. Rows stay white (reuses the `--flat`/unstriped treatment). Does NOT touch the column-header row at all — that is `headerStyle`, which is fully independent and defaults to 'standard' whether or not `flat` is on."
+      },
+      {
+        "name": "headerStyle",
+        "type": "'standard' | 'strip'",
+        "desc": "The column-header row's style, independent of `flat`. **Default is always 'standard'** — `flat` does NOT imply 'strip' (user ruling 2026-08-31); the two are independent, exactly as Figma models them (the independent boolean PAIR `Header strip style` / `Header standard style`, set oppositely by the designer). Pass it explicitly to opt in, either direction: `headerStyle=\"strip\"` puts the HeaderStrip-look header (`--bg-secondary` tint + `text-label-base-semibold` typography) on an ordinary, still-expandable table; a flat table gets it only when asked. The strip tint also covers the PINNED first header cell in the nested flavour, which otherwise paints its own opaque background. Never affects striping — `striped: false` alone never produces a strip header."
+      }
+    ]
+  },
+  "HeaderStrip": {
+    "selector": "odyssey-header-strip",
+    "version": "0.1.0",
+    "normalizing": true,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "The strip's text. Truncates with an ellipsis rather than wrapping or growing the band."
+      },
+      {
+        "name": "[slot=icon]",
+        "type": "projection",
+        "desc": "Optional leading icon — caller-supplied (e.g. <i-lucide slot=\"icon\">); omitted entirely when nothing is projected."
+      },
+      {
+        "name": "[slot=trail]",
+        "type": "projection",
+        "desc": "Optional trailing slot, right-aligned. Omitted entirely (not just empty) when not passed."
+      },
+      {
+        "name": "titleId",
+        "type": "string",
+        "desc": "Id placed on the TITLE element (not the host) — for consumers that need `aria-labelledby` to point at the text itself, e.g. GroupTable labelling its <table>."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the host. Layout concerns specific to a host (e.g. GroupTable's sticky-left pin, or a right border) are expected to arrive this way rather than as component inputs."
       }
     ]
   },

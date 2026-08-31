@@ -10,6 +10,8 @@ export const meta = {
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
   normalizing: true,
+  approved: true,
+  ported: true,
 }
 
 export const props = [

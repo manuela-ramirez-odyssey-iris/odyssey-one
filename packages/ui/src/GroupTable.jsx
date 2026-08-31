@@ -130,6 +130,24 @@ import HeaderStrip from './HeaderStrip.jsx'
  *                       `rows`/`detailRows`. Reuses the `--flat` (non-striped) white
  *                       background so group rows never tint like child bands. `columns`,
  *                       `header`, `footerRow`, `stickyActions`/`group.action` all still work.
+ *                       Sets the DEFAULT column-header style (see `headerStyle`) — it no
+ *                       longer switches the header outright, since `headerStyle` can
+ *                       override it in either direction.
+ * @param headerStyle    'standard' | 'strip' — the column-header row's style, independent
+ *                       of `flat`. Default: derived from `flat` (`flat` → 'strip', non-flat
+ *                       → 'standard'), preserving prior behaviour when omitted. Passing it
+ *                       explicitly always wins over the derivation, in both directions:
+ *                       `headerStyle="strip"` on a non-flat table gets the strip header
+ *                       (an ordinary expandable table with a HeaderStrip-look column row);
+ *                       `flat headerStyle="standard"` gets flat rows with the ordinary
+ *                       column header. 'strip' drives the same `--bg-secondary` tint +
+ *                       `text-label-base-semibold` typography as before (2026-08-31), via
+ *                       the same `.odyssey-group-table--flat-head` class, now keyed off the
+ *                       resolved value rather than `flat` directly. Never affects striping
+ *                       — `striped={false}` alone must never produce a strip header (see
+ *                       `resolveHeaderStyle`). Figma 4183:773: the independent boolean PAIR
+ *                       `Header strip style` (default false) / `Header standard style`
+ *                       (default true), set oppositely by the designer.
  */
 /**
  * The nested band's wrapper. Three states, one invariant — the band must NEVER
@@ -289,6 +307,7 @@ export default function GroupTable({
   actionsHeader,
   header,
   flat = false,
+  headerStyle,
   ...rest
 }) {
   const uid = useId()
@@ -341,6 +360,12 @@ export default function GroupTable({
   const rootClasses = [
     'odyssey-group-table',
     (!striped || flat) && 'odyssey-group-table--flat',
+    // Distinct from the class above on purpose: `--flat` is the overloaded
+    // "unstriped" modifier (`!striped || flat`), so a `striped={false}`
+    // non-flat table must NOT pick up the strip-style column header. This
+    // one is driven by the RESOLVED header style (`headerStyle` prop, falling
+    // back to `flat`) — see `resolveHeaderStyle`.
+    resolveHeaderStyle(headerStyle) === 'strip' && 'odyssey-group-table--flat-head',
     nested && 'odyssey-group-table--nested',
     // A STATE HOOK only — the scrolling behaviour is keyed on the section (see
     // `__detail-section--scroll`), because a per-section override means a root
@@ -749,6 +774,25 @@ export function detailNoteContent(note) {
  *  Node labels pass through — the component cannot rewrite what it did not author. */
 export function stripTrailingColon(label) {
   return typeof label === 'string' ? label.replace(/\s*:\s*$/, '') : label
+}
+
+/**
+ * Resolves the column-header row's style: an explicit `headerStyle` always wins
+ * (in either direction — it can put a strip header on a non-flat table, or a
+ * standard header on a flat one); otherwise `flat` supplies the default so
+ * unmigrated callers keep today's behaviour exactly. Never reads `striped` —
+ * the overloaded `--flat` (unstriped) class must stay independent of this.
+ *
+ * The default is ALWAYS 'standard' — `flat` does NOT imply 'strip' (user ruling
+ * 2026-08-31). The two are independent, mirroring Figma's `Header strip style` /
+ * `Header standard style` booleans: a flat table keeps the ordinary column header
+ * unless you ask for the strip, and an expandable table can carry the strip.
+ *
+ * @param {'standard'|'strip'|undefined} headerStyle
+ * @returns {'standard'|'strip'}
+ */
+export function resolveHeaderStyle(headerStyle) {
+  return headerStyle ?? 'standard'
 }
 
 /** Cell alignment class for a column's `align` value ('' for default left). */

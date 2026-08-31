@@ -6704,6 +6704,35 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* `flat` mode's column-header row reads like a HeaderStrip band: same
+   `--bg-secondary` tint + `text-label-base-semibold` title typography
+   (packages/ui/src/HeaderStrip.jsx / `.header-strip`, `.header-strip__title`
+   above) instead of the ordinary column-header treatment below. Declarations
+   are NOT copy-pasted — this rule reads the SAME tokens HeaderStrip reads, so
+   both stay in sync off one set of variables. Height stays 48px (unchanged
+   from `.odyssey-group-table th` below): HeaderStrip's band is also 48px, so
+   no reconciliation was needed beyond background/type.
+   `--flat-head` is a DISTINCT class from `--flat` on purpose: `--flat` is the
+   overloaded "unstriped" modifier (`!striped || flat`) and must not pick up
+   this treatment for a plain `striped={false}` table — only `flat` itself
+   does. */
+/* The pinned first header cell paints its own opaque `--bg-primary` (it has to:
+   content scrolls underneath it), and that rule is MORE specific than the one
+   below — so without this the strip header came out tinted except for a white
+   first cell. Same tint, sticky/shadow untouched. */
+.odyssey-group-table--flat-head.odyssey-group-table--nested
+  .odyssey-group-table__table > thead th:first-child {
+  background: var(--bg-secondary);
+}
+.odyssey-group-table--flat-head .odyssey-group-table__table thead th {
+  background: var(--bg-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
 /* Group header row — white band, the whole row toggles; hairline below in
    BOTH expanded and collapsed state (no thick border, no state difference). */
 .odyssey-group-table__group-row {
