@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, within, act } from '@testing-library/react'
+import { render as rtlRender, screen, cleanup, fireEvent, within, act } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+
+// RoutingGuideTab calls useNavigate (S135 — the Review Order Change button,
+// LINX-14509), so every render needs a Router. Wrapped ONCE here rather than
+// at 40+ call sites — the S134 lesson from ShipmentTable's identical break.
+const render = (ui, options) => rtlRender(ui, { wrapper: MemoryRouter, ...options })
 import RoutingGuideTab, { orderedTabColumns } from './RoutingGuideTab'
 
 // Mocked so the persist-round-trip test below can inspect the EXACT payload
@@ -979,5 +985,28 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(screen.queryByText('Routing completed successfully.')).toBeNull()
 
     vi.useRealTimers()
+  })
+})
+
+// S135 — LINX-14509: "The Tender Tab shall display a Review Order Change
+// button when user review is required."
+describe('Review Order Change entry (LINX-14509)', () => {
+  const baseProps = () => ({ data: { options: [] }, shipmentDetails: {}, shipment: { sellShipment: '25319141', buyShipment: '87654321' } })
+
+  it('shows the button only while an order change is pending', () => {
+    const props = baseProps()
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null } }
+    render(<RoutingGuideTab {...props} />)
+    expect(screen.getByRole('button', { name: 'Review Order Change' })).toBeTruthy()
+  })
+
+  it('hides it when there is no order change, or it was already resolved', () => {
+    render(<RoutingGuideTab {...baseProps()} />)
+    expect(screen.queryByRole('button', { name: 'Review Order Change' })).toBeNull()
+    cleanup()
+    const props = baseProps()
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: { action: 'bypass' } } }
+    render(<RoutingGuideTab {...props} />)
+    expect(screen.queryByRole('button', { name: 'Review Order Change' })).toBeNull()
   })
 })

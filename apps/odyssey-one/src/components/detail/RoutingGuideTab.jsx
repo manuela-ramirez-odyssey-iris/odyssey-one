@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
@@ -1367,6 +1368,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     opt.rank === openMenuRank ? { ...opt, _menuPos: menuPos } : opt,
   )
 
+  // LINX-14509 — "The Tender Tab shall display a Review Order Change button
+  // when user review is required." Gated on an UNRESOLVED order change (a
+  // resolved one has left the review process); trailing side of the sub-tabs
+  // row (designer, S135). The row-menu entry on the Order Change tab remains
+  // the shortcut; this is the AC's canonical entry point.
+  const navigate = useNavigate()
+  const pendingOrderChange = shipmentDetails?.orderChange && !shipmentDetails.orderChange.resolution
+
   return (
     <div className="pane-canvas tender-pane">
       {/* Row 1: full-width tabs band (official ShipmentsBar tab-content styling)
@@ -1383,6 +1392,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
               />
             ))}
           </div>
+          {pendingOrderChange && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="tender-pane__review-oc"
+              onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment } })}
+            >
+              Review Order Change
+            </Button>
+          )}
         </div>
       </div>
 
