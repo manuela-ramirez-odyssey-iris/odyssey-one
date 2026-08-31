@@ -928,6 +928,11 @@ function generateShipment(index, chainOverride) {
   // Route ranks: unique per carrier, shuffled so routeRank !== rank
   const routeRanks = faker.helpers.shuffle(Array.from({ length: routingCount }, (_, i) => i + 1));
 
+  // Raw delivery Date per option, index-aligned with routingOptions — captured
+  // so buildOrderChange (order-change category, below) can shift a REAL Date
+  // and reformat it, rather than parsing formatDateTime's string output back.
+  const routingDeliveryDates = [];
+
   const routingOptions = routingCarriers.map((rc, ri) => {
     const rank = ri + 1;
     let status;
@@ -997,7 +1002,7 @@ function generateShipment(index, chainOverride) {
       pickupTZ: originTz,
       pickupOrgHours: `${String(pickupHour).padStart(2, '0')}:00 - ${String(pickupHour + faker.number.int({ min: 6, max: 10 })).padStart(2, '0')}:30`,
       pickupOrgDay: pick(['Yes', 'No']),
-      deliveryDateTime: formatDateTime(genDate(baseDate, faker.number.int({ min: 1, max: 5 })), destTz),
+      deliveryDateTime: formatDateTime((routingDeliveryDates[ri] = genDate(baseDate, faker.number.int({ min: 1, max: 5 }))), destTz),
       deliveryOrgHours: `${String(delivHour - 6).padStart(2, '0')}:00 - ${String(delivHour).padStart(2, '0')}:59`,
       deliveryTZ: destTz,
       transitDays: faker.number.int({ min: 1, max: 5 }),
@@ -1964,7 +1969,14 @@ function generateShipment(index, chainOverride) {
   // the order-change exceptions category; every other shipment carries no
   // orderChange key at all (mirrors droppedCarrierList's placement above).
   if (category === 'order-change') {
-    detail.orderChange = buildOrderChange(sellShipment, routingOptions);
+    // Real per-shipment totals (grossWeight/totalVolume computed above at I5;
+    // totalPackages rolled up the same way) so the comparison table's "prior"
+    // side is this shipment's own data, not a fake constant every shipment shares.
+    const totalPackages = orders.reduce((s, o) => s + o.orderPackages, 0);
+    detail.orderChange = buildOrderChange(sellShipment, routingOptions, {
+      baseDate, originTz, destTz, routingDeliveryDates,
+      grossWeight, totalVolume, totalPackages,
+    });
   }
 
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
@@ -2176,7 +2188,13 @@ const CATEGORY_WEIGHTS = {
 
 // LINX-14509–14515 — Order Change review payload. Deterministic per shipment:
 // mulberry32 keyed on the sellShipment id so NO main faker draws are added
-// (a new draw re-numbers every subsequent shipment id — S122 lesson).
+// (a new draw re-numbers every subsequent shipment id — S122 lesson). This is
+// NOT the file's existing droppedFaker second-Faker-instance idiom (~line
+// 235): that instance draws SEQUENTIALLY across shipments, so an earlier
+// shipment's category changing (which shifts whether/how often this function
+// even runs) would shift every later shipment's output. An id-keyed PRNG has
+// no such coupling — it depends only on the shipment's own id, so it stays
+// stable no matter what any other shipment does.
 function mulberry32(seed) {
   let a = seed >>> 0;
   return () => {
@@ -2196,8 +2214,23 @@ const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + 
  * deliveryDateTime, rateDetails.baseRate) are reused verbatim rather than
  * invented, so the prior/new options stay shape-compatible with a real
  * routing option row.
+ *
+ * `ctx` carries the pieces that have to come from the caller rather than be
+ * invented fresh, so this payload agrees with the rest of the shipment's
+ * detail instead of contradicting it:
+ *   - baseDate/originTz/destTz/routingDeliveryDates: the real Date objects
+ *     behind routingOptions' already-formatted pickup/delivery strings.
+ *     Shifting the Date and reformatting with formatDateTime is the only way
+ *     "new" and "prior" end up in the same, comparable format — parsing
+ *     formatDateTime's OWN string output back with `new Date(string)` would
+ *     rely on V8's non-standard legacy date parser, which is what the
+ *     previous version of this function did.
+ *   - grossWeight/totalVolume/totalPackages: this shipment's real I5
+ *     roll-ups (computed once, above, from its actual orders), not a
+ *     constant every order-change shipment would otherwise share.
  */
-function buildOrderChange(sellShipment, routingOptions) {
+function buildOrderChange(sellShipment, routingOptions, ctx) {
+  const { baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages } = ctx;
   const rnd = mulberry32(seedFrom(sellShipment));
   const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
   const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
@@ -2206,29 +2239,46 @@ function buildOrderChange(sellShipment, routingOptions) {
   const priorStatus = pickR(['Sent', 'Accepted', 'To Be Tendered']);
   const priorQuoted = rnd() < 0.3;
 
-  // New list = re-run routing after the order change. Derived from the seeded
-  // options: perturb AP costs deterministically; in 'not-returned' the prior
-  // carrier is absent (routing did not bring it back).
+  // Re-run routing after the order change. Cost AND dates move together, and
+  // each shift is drawn ONCE per shipment then reused everywhere that shift
+  // shows up (newOption, every newTenderList entry, the comparison rows) —
+  // so the review screen can't show two different answers for "what is the
+  // new pickup date" depending which part of the payload it reads.
   const perturb = (v) => Math.round(v * (1 + (rnd() * 0.18 - 0.06)) * 100) / 100;
-  const newList = routingOptions
+  const pickupShiftDays = 1 + Math.floor(rnd() * 3);
+  const deliveryShiftDays = 1 + Math.floor(rnd() * 3);
+  const newPickupDateTime = formatDateTime(genDate(baseDate, pickupShiftDays), originTz);
+  const shiftedOptions = routingOptions.map((o, i) => ({
+    ...o,
+    pickupDateTime: newPickupDateTime,
+    deliveryDateTime: formatDateTime(genDate(routingDeliveryDates[i], deliveryShiftDays), destTz),
+    rateDetails: { ...o.rateDetails, baseRate: perturb(o.rateDetails.baseRate) },
+  }));
+  // in 'not-returned' the prior carrier is absent — routing did not bring it back.
+  const newList = shiftedOptions
     .filter(o => scenario === 'returned' || o.scac !== prior.scac)
-    .map((o, i) => ({
-      ...o,
-      rank: i + 1,
-      status: '',
-      rateDetails: { ...o.rateDetails, baseRate: perturb(o.rateDetails.baseRate) },
-    }));
+    .map((o, i) => ({ ...o, rank: i + 1, status: '' }));
   const newForPrior = scenario === 'returned' ? newList.find(o => o.scac === prior.scac) : null;
+  // Prior's own re-shifted dates/cost, independent of whether it made the new
+  // list above — newOption always shows what the re-plan did to THIS
+  // carrier's slot, whether or not that carrier is still in the running.
+  const priorShifted = shiftedOptions[0];
 
   // LINX-14512 comparison rows — subset of the 26-field AC table, changed
-  // fields first (the screen sorts them to the top anyway; seed them ordered).
-  const shiftDay = (iso, d) => { const t = new Date(iso); t.setDate(t.getDate() + d); return t.toISOString(); };
+  // fields first (the screen sorts them to the top anyway; seed them
+  // ordered). Both sides of every row go through the SAME formatter
+  // (formatDateTime for dates, fmtInt for quantities) so prior/new are
+  // actually comparable, not one formatted string against one raw value.
+  const fmtWeight = (lb) => `${fmtInt(Math.round(lb))} LB`;
+  const fmtVolume = (cuft) => `${fmtInt(Math.round(cuft))} CuFt`;
   const changedPool = [
-    { field: 'Pickup Date/Time', source: 'Routing', prior: prior.pickupDateTime, new: shiftDay(prior.pickupDateTime, 1 + Math.floor(rnd() * 3)) },
-    { field: 'Delivery Date', source: 'Routing', prior: prior.deliveryDateTime, new: shiftDay(prior.deliveryDateTime, 1 + Math.floor(rnd() * 3)) },
-    { field: 'Gross Weight', source: 'Shipment', prior: '2,000 LB', new: `${2000 + Math.floor(rnd() * 500)} LB` },
-    { field: 'Package Count', source: 'Shipment', prior: '10', new: String(10 + Math.floor(rnd() * 4)) },
-    { field: 'Volume', source: 'Shipment', prior: '100 CuFt', new: `${100 + Math.floor(rnd() * 40)} CuFt` },
+    { field: 'Pickup Date/Time', source: 'Routing', prior: prior.pickupDateTime, new: newPickupDateTime },
+    { field: 'Delivery Date', source: 'Routing', prior: prior.deliveryDateTime, new: priorShifted.deliveryDateTime },
+    // Real per-shipment totals, perturbed ±5–20% — coherent with THIS
+    // shipment's own seeded data instead of a hardcoded constant.
+    { field: 'Gross Weight', source: 'Shipment', prior: fmtWeight(grossWeight), new: fmtWeight(grossWeight * (1 + (rnd() * 0.25 - 0.05))) },
+    { field: 'Package Count', source: 'Shipment', prior: String(totalPackages), new: String(Math.max(1, totalPackages + Math.floor(rnd() * 5) - 1)) },
+    { field: 'Volume', source: 'Shipment', prior: fmtVolume(totalVolume), new: fmtVolume(totalVolume * (1 + (rnd() * 0.25 - 0.05))) },
   ];
   const changedCount = 1 + Math.floor(rnd() * 3);
   const comparison = [
@@ -2250,14 +2300,14 @@ function buildOrderChange(sellShipment, routingOptions) {
       apCost: prior.rateDetails.baseRate, quoted: priorQuoted,
     },
     newOption: {
-      scac: prior.scac, equipmentCode: prior.equipmentCode,
+      scac: prior.scac, carrierName: prior.carrierName, equipmentCode: prior.equipmentCode,
       tenderStatus: null, // undecided until the user picks an action
       routeRank: newForPrior ? newForPrior.routeRank : null, // blank when not in list
       rank: newForPrior ? newForPrior.rank : newList.length + 1, // insertion slot: bottom of equipment group
-      pickupDateTime: prior.pickupDateTime, deliveryDateTime: prior.deliveryDateTime,
+      pickupDateTime: priorShifted.pickupDateTime, deliveryDateTime: priorShifted.deliveryDateTime,
       apCost: newForPrior ? newForPrior.rateDetails.baseRate : null, // null ⇒ New Cost greyed
     },
-    priorTenderList: routingOptions.map(o => ({ ...o })),
+    priorTenderList: routingOptions,
     newTenderList: newList,
     comparison,
     // Preview Hazardous Material Information: rows by Line #, prior/new
@@ -2266,7 +2316,7 @@ function buildOrderChange(sellShipment, routingOptions) {
       const line = 87000 + Math.floor(rnd() * 999) + i;
       const row = {
         line,
-        boilingPoint: `Line #${100 + i} C`,
+        boilingPoint: `${150 + Math.floor(rnd() * 250)} F`, // same convention as order-line hazmat rows (~line 733)
         hazmatClass: pickR(['I', 'II', 'III']),
         hazmatDescription: pickR(['Flammable Liquid', 'Corrosive', 'Oxidizer']),
         itemDescription: `UN000${10 + Math.floor(rnd() * 89)}`,

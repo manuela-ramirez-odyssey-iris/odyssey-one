@@ -1070,7 +1070,7 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     assert.equal(s.panel, 'exceptions')
     const oc = ds.details.get(s.sellShipment)?.orderChange
     assert.ok(oc, `${s.sellShipment} missing detail.orderChange`)
-    assert.ok(['returned', 'not-returned'].includes(oc.scenario))
+    assert.ok(['returned', 'not-returned'].includes(oc.scenario), `${s.sellShipment} unexpected scenario ${oc.scenario}`)
     assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(oc.prior.tenderStatus))
     // LINX-14511: comparison = prior list vs new list, each a routing-option-shaped array
     assert.ok(Array.isArray(oc.priorTenderList) && oc.priorTenderList.length > 0)
@@ -1080,12 +1080,20 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     // LINX-14513: not-returned ⇒ no new cost (greyed out radio)
     if (oc.scenario === 'not-returned') assert.equal(oc.newOption.apCost, null)
     else assert.ok(oc.newOption.apCost > 0)
+    // side-by-side UI needs a carrier name on both sides
+    assert.equal(oc.newOption.carrierName, oc.prior.carrierName, `${s.sellShipment} newOption missing carrierName`)
+    // the comparison table's "new" date and the new-tender snapshot's own date
+    // must never disagree — that mismatch was the bug this test caught
+    const pickupRow = oc.comparison.find(f => f.field === 'Pickup Date/Time')
+    if (pickupRow) assert.equal(pickupRow.new, oc.newOption.pickupDateTime, `${s.sellShipment} pickup date disagrees between comparison and newOption`)
+    const deliveryRow = oc.comparison.find(f => f.field === 'Delivery Date')
+    if (deliveryRow) assert.equal(deliveryRow.new, oc.newOption.deliveryDateTime, `${s.sellShipment} delivery date disagrees between comparison and newOption`)
     // LINX-14512: changed fields exist and are flagged
-    assert.ok(oc.comparison.some(f => f.changed))
-    assert.ok(oc.comparison.every(f => 'field' in f && 'prior' in f && 'new' in f && 'source' in f))
+    assert.ok(oc.comparison.some(f => f.changed), `${s.sellShipment} no comparison row flagged changed`)
+    assert.ok(oc.comparison.every(f => 'field' in f && 'prior' in f && 'new' in f && 'source' in f), `${s.sellShipment} comparison row missing a required key`)
     // hazmat lines present and prior/new identical in v1
-    assert.ok(Array.isArray(oc.hazmat) && oc.hazmat.length > 0)
-    assert.deepEqual(oc.hazmat[0].prior, oc.hazmat[0].new)
+    assert.ok(Array.isArray(oc.hazmat) && oc.hazmat.length > 0, `${s.sellShipment} missing hazmat rows`)
+    assert.deepEqual(oc.hazmat[0].prior, oc.hazmat[0].new, `${s.sellShipment} hazmat prior/new diverged`)
   }
 })
 
