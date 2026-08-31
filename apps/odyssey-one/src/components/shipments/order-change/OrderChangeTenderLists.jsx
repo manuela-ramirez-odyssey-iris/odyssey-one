@@ -43,27 +43,47 @@ const matchKey = (o) => `${o.scac}|${o.equipment}`
  * carrier absent from the new list) has nothing to diff against and is
  * skipped — it isn't itself a "change", the option is just gone.
  *
+ * scac+equipment is NOT a unique key across a whole list — the same carrier
+ * can legitimately appear twice at different ranks — so it is used only to
+ * build a per-key QUEUE of new-list candidates, never as the map's own
+ * identity. Each prior row shifts the next unconsumed candidate off its
+ * queue (pairing duplicates in list order) and the verdict is keyed by the
+ * ROW OBJECTS themselves (both p and its matched n), which are always
+ * distinct references even when their scac+equipment collide — so two
+ * "ODFL/Van" rows at different ranks get independent verdicts instead of
+ * silently overwriting one shared map entry (found in review: a
+ * string-keyed map collapsed them, and the unchanged duplicate rendered a
+ * false-positive "changed" badge).
+ *
  * ONE map drives both the tag list (computeTenderDiffs, below) and every
  * cell's own highlight decision, so they can never disagree about what
  * changed.
  */
 function buildChangeMap(priorList, newList) {
-  const newByKey = new Map(newList.map((o) => [matchKey(o), o]))
+  const newQueues = new Map()
+  for (const n of newList) {
+    const k = matchKey(n)
+    if (!newQueues.has(k)) newQueues.set(k, [])
+    newQueues.get(k).push(n)
+  }
   const map = new Map()
   for (const p of priorList) {
-    const n = newByKey.get(matchKey(p))
+    const queue = newQueues.get(matchKey(p))
+    const n = queue && queue.length ? queue.shift() : null
     if (!n) continue
-    map.set(matchKey(p), {
+    const changed = {
       rank: p.rank !== n.rank,
       routeRank: p.routeRank !== n.routeRank,
       cost: p.cost !== n.cost,
-    })
+    }
+    map.set(p, changed)
+    map.set(n, changed)
   }
   return map
 }
 
 const NO_CHANGE = { rank: false, routeRank: false, cost: false }
-const changedFieldsFor = (row, changeMap) => changeMap.get(matchKey(row)) || NO_CHANGE
+const changedFieldsFor = (row, changeMap) => changeMap.get(row) || NO_CHANGE
 
 /**
  * The unique set of "Differences" badges this shipment's re-route produced:

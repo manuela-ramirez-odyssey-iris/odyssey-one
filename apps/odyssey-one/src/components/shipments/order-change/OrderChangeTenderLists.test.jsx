@@ -31,6 +31,29 @@ const xpo = {
 const newOdfl = { ...odfl, cost: '$2,850.00 USD' }
 const newSaia = { ...saia, rank: 1, routeRank: 1 }
 
+// Two rows sharing scac+equipment — the domain genuinely allows the same
+// carrier to appear twice at different ranks. Regression fixture for the
+// buildChangeMap bug: a string `scac|equipment` key collapsed both rows into
+// one shared verdict, so the UNCHANGED row (dup1) rendered a false-positive
+// "changed" badge whenever its duplicate (dup2) actually moved. Ranks/costs
+// are deliberately unique numbers (1 vs 9 vs 5) so text queries below can't
+// accidentally match the wrong row's cell.
+// rank/routeRank deliberately DIFFER from each other (1 vs 11, 9 vs 99, 5 vs
+// 55) so a rank-column text query and a route-rank-column text query can
+// never collide inside the same fixture.
+const dup1 = {
+  rank: 1, routeRank: 11, scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'Van',
+  cost: '$500.00 USD', status: 'Accepted',
+  pickupDateTime: '01/07/2026 09:00 CST', deliveryDateTime: '01/09/2026 14:00 CST',
+}
+const dup2 = {
+  rank: 9, routeRank: 99, scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'Van',
+  cost: '$700.00 USD', status: 'Sent',
+  pickupDateTime: '01/07/2026 10:00 CST', deliveryDateTime: '01/09/2026 15:00 CST',
+}
+const newDup1 = { ...dup1 } // unchanged
+const newDup2 = { ...dup2, rank: 5, routeRank: 55 } // moved 9 -> 5, cost held constant
+
 function makeOc(overrides = {}) {
   return {
     priorTenderList: [odfl, saia, xpo],
@@ -59,6 +82,16 @@ describe('computeTenderDiffs', () => {
 
   test('both tags together, deduped, order-stable', () => {
     expect(computeTenderDiffs([odfl, saia], [newOdfl, newSaia])).toEqual(['AP Cost', 'Rank Order Change'])
+  })
+
+  test('duplicate scac+equipment rows resolve independently — the tag reflects the one that actually moved', () => {
+    expect(computeTenderDiffs([dup1, dup2], [newDup1, newDup2])).toEqual(['Rank Order Change'])
+  })
+
+  test('single-row cases are unaffected by the duplicate-matching change', () => {
+    expect(computeTenderDiffs([saia], [newSaia])).toEqual(['Rank Order Change'])
+    expect(computeTenderDiffs([odfl], [newOdfl])).toEqual(['AP Cost'])
+    expect(computeTenderDiffs([odfl], [{ ...odfl }])).toEqual([])
   })
 })
 
@@ -99,6 +132,16 @@ describe('OrderChangeTenderLists — List mode (default)', () => {
     const unchangedCost = screen.getByText('$3,100.00 USD')
     expect(unchangedCost.closest('span')?.className || '').not.toMatch(/text-badge/)
   })
+
+  test('the static band header is a plain label, not a toggle button', () => {
+    render(<OrderChangeTenderLists oc={makeOc()} />)
+    // GroupTable's `expandable: false` static band renders the label as
+    // plain text — no chevron, no button, no aria-expanded. A regression
+    // back to a toggle would still pass a getByText check, so this asserts
+    // the negative directly (review finding, S134).
+    expect(screen.queryByRole('button', { name: 'Prior Tender List' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New Tender List' })).toBeNull()
+  })
 })
 
 describe('OrderChangeTenderLists — Table mode', () => {
@@ -129,6 +172,35 @@ describe('OrderChangeTenderLists — Table mode', () => {
     const rankLabelCell = screen.getAllByText('Rank')[0]
     const row = rankLabelCell.closest('tr')
     expect(within(row).getByText('1').closest('span')?.className).toMatch(/text-badge/)
+  })
+
+  test('the header strip title is a plain label, not a toggle button', () => {
+    render(<OrderChangeTenderLists oc={makeOc()} />)
+    switchToTable()
+    expect(screen.queryByRole('button', { name: 'Prior Tender List' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New Tender List' })).toBeNull()
+  })
+})
+
+describe('OrderChangeTenderLists — duplicate carriers (same scac+equipment, different rows)', () => {
+  const dupOc = { priorTenderList: [dup1, dup2], newTenderList: [newDup1, newDup2] }
+
+  test('Differences reflects only the row that moved', () => {
+    render(<OrderChangeTenderLists oc={dupOc} />)
+    expect(screen.getByText('Differences (1)')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Rank Order Change' })).toBeTruthy()
+  })
+
+  test('only the moved duplicate renders a changed Rank badge; the unchanged one stays plain', () => {
+    render(<OrderChangeTenderLists oc={dupOc} />)
+    // dup1 is unchanged (rank 1 on both sides) — neither its prior nor its
+    // new cell should be a badge.
+    for (const el of screen.getAllByText('1')) {
+      expect(el.closest('span')?.className || '').not.toMatch(/text-badge/)
+    }
+    // dup2 moved (prior rank 9 -> new rank 5) — both cells are badges.
+    expect(screen.getByText('9').closest('span')?.className).toMatch(/text-badge/)
+    expect(screen.getByText('5').closest('span')?.className).toMatch(/text-badge/)
   })
 })
 
