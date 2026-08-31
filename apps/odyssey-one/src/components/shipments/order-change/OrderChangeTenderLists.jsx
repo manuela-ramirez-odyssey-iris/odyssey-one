@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TriangleAlert } from 'lucide-react'
+import { Eye, TriangleAlert } from 'lucide-react'
 import { Badge, Button, GroupTable, HeaderStrip } from '@odyssey/ui'
 import DroppedCarriersModal from './DroppedCarriersModal.jsx'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
@@ -220,7 +220,7 @@ export default function OrderChangeTenderLists({ oc }) {
   const [droppedOpen, setDroppedOpen] = useState(false)
   const newListTitle = <NewListTitle dropped={newDropped} />
   const droppedTrail = newDropped.length ? (
-    <Button variant="secondary" size="sm" onClick={() => setDroppedOpen(true)}>Preview Dropped Carriers</Button>
+    <Button variant="secondary" size="sm" icon={<Eye size={16} aria-hidden="true" />} onClick={() => setDroppedOpen(true)}>Preview Dropped Carriers</Button>
   ) : null
 
   return (

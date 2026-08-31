@@ -98,7 +98,7 @@ describe('OrderChangeActionsCard — tender resolution actions (LINX-14514)', ()
   test('Re tender emits retender with the selected cost choice and amount', () => {
     const onAction = vi.fn()
     render(<OrderChangeActionsCard oc={makeOc()} onAction={onAction} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Re tender' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Re Tender' }))
     expect(onAction).toHaveBeenCalledWith('retender', { choice: 'new', amount: 2950 })
   })
 
@@ -113,7 +113,7 @@ describe('OrderChangeActionsCard — tender resolution actions (LINX-14514)', ()
     const onAction = vi.fn()
     render(<OrderChangeActionsCard oc={makeOc()} onAction={onAction} />)
     fireEvent.click(screen.getByRole('radio', { name: 'Prior Cost' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Re tender' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Re Tender' }))
     expect(onAction).toHaveBeenCalledWith('retender', { choice: 'prior', amount: 2790 })
   })
 })
@@ -186,5 +186,23 @@ describe('OrderChangeActionsCard — New Quote flow', () => {
     // carrier's own routing-option row (matched by scac) — never the new one.
     expect(screen.getByText('Add Quote')).toBeTruthy()
     expect(screen.getAllByText('ODFL').length).toBeGreaterThan(0)
+  })
+})
+
+// S135 — closing the quote modal without saving undoes the New Quote
+// selection: nothing was entered, so the radio returns to what it was.
+describe('OrderChangeActionsCard — New Quote cancel reverts the radio', () => {
+  test('close-without-save restores the previous selection; a saved quote keeps it', () => {
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={() => {}} />)
+    // Default selection is New Cost (returned scenario).
+    expect(screen.getByRole('radio', { name: 'New Cost' }).checked).toBe(true)
+
+    fireEvent.click(screen.getByRole('radio', { name: 'New Quote' }))
+    // Modal open, radio moved to quote…
+    expect(screen.getByRole('radio', { name: 'New Quote' }).checked).toBe(true)
+    // …then dismissed with nothing saved.
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.getByRole('radio', { name: 'New Quote' }).checked).toBe(false)
+    expect(screen.getByRole('radio', { name: 'New Cost' }).checked).toBe(true)
   })
 })

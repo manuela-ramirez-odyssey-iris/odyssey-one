@@ -150,9 +150,19 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
   // Pickup/Delivery from.
   const priorRoutingOption = oc.priorTenderList.find((o) => o.scac === prior.scac) || null
 
+  // Selecting New Quote opens the modal immediately; if the planner CLOSES it
+  // without saving and no quote was ever saved before, the radio reverts to
+  // what was selected beforehand (S135, designer: "we basically did nothing").
+  // A previously saved amount keeps 'quote' selected — there IS a quote.
+  const [choiceBeforeQuote, setChoiceBeforeQuote] = useState(null)
   const chooseQuote = () => {
+    setChoiceBeforeQuote(choice)
     setChoice('quote')
     setQuoteOpen(true)
+  }
+  const handleQuoteClose = () => {
+    setQuoteOpen(false)
+    if (quoteAmount == null && choiceBeforeQuote) setChoice(choiceBeforeQuote)
   }
 
   // QuoteModal's onSave payload (QuoteModal.jsx handleSave): { scac,
@@ -230,7 +240,7 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
             Bypass Tender
           </Button>
           <Button variant="primary" onClick={() => fire('retender')} disabled={selectedAmount == null} aria-describedby="oc-tender-action-label">
-            Re tender
+            Re Tender
           </Button>
         </div>
       </div>
@@ -240,7 +250,7 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
           mode="add"
           carrierData={priorRoutingOption}
           onSave={handleQuoteSave}
-          onClose={() => setQuoteOpen(false)}
+          onClose={handleQuoteClose}
         />
       )}
     </section>

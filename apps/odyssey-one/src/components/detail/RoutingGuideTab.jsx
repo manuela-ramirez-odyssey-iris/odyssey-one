@@ -1394,10 +1394,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           </div>
           {pendingOrderChange && (
             <Button
-              variant="secondary"
+              variant="primary"
               size="sm"
               className="tender-pane__review-oc"
-              onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment } })}
+              onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
             >
               Review Order Change
             </Button>

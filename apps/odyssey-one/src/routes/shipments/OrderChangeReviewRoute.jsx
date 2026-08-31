@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Inbox } from 'lucide-react'
+import { Eye, Inbox } from 'lucide-react'
 import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrderChangeActionsCard from '../../components/shipments/order-change/OrderChangeActionsCard'
@@ -64,7 +64,7 @@ function confirmCopy(action, cost, scac) {
     return {
       title: 'Keep Carrier & Re-Tender',
       message: `${carrier} will be kept${at} and a new tender will be sent to the carrier, moving the tender status to Sent. Do you want to continue?`,
-      confirmLabel: 'Re tender',
+      confirmLabel: 'Re Tender',
     }
   }
   return {
@@ -109,6 +109,17 @@ export default function OrderChangeReviewRoute() {
   const navigate = useNavigate()
   const location = useLocation()
   const buyShipment = location.state?.buyShipment
+  // Where the planner CAME FROM (S135): 'tender' when opened from the Tender
+  // tab's Review order change button (RoutingGuideTab), otherwise the table's
+  // row menu. Close and the Tender breadcrumb return to the origin.
+  const fromTender = location.state?.from === 'tender'
+  // The shipment's own Tender screen — detail open on the routing tab, still
+  // parked on the Order Change category while the review is pending.
+  const tenderScreenState = {
+    panel: 'exceptions', tab: 'order-change',
+    selectedShipmentId: sellShipment, requestedTab: { key: 'routing' },
+  }
+  const closeState = fromTender ? tenderScreenState : { panel: 'exceptions', tab: 'order-change' }
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
   const resolve = useResolveOrderChange()
   const oc = detail?.orderChange
@@ -175,17 +186,17 @@ export default function OrderChangeReviewRoute() {
     <AppShell
       titleMode={{
         title: 'Review Order Change',
-        onClose: () => navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } }),
+        onClose: () => navigate('/shipments', { state: closeState }),
       }}
     >
       <div className="order-change">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Shipment" onClick={() => navigate('/shipments')} />
-          {/* 'Tender' isn't its own route — Tender lives inside the shipment
-              detail's tab set, not a standalone page — so this segment is
-              decorative only (no onClick renders it as a non-interactive
-              span, same as Breadcrumb's own `current` segment). */}
-          <Breadcrumb label="Tender" />
+          <Breadcrumb label="Shipment" onClick={() => navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
+          {/* Every ancestor step is clickable (designer, S135): 'Tender'
+              opens THIS shipment's detail on its Tender screen — the same
+              destination the navbar Close uses when the planner came from
+              there. */}
+          <Breadcrumb label="Tender" onClick={() => navigate('/shipments', { state: tenderScreenState })} />
           <Breadcrumb label="Review Order Change" current />
         </nav>
 
@@ -210,11 +221,11 @@ export default function OrderChangeReviewRoute() {
                   invisible on this page's light background) — `secondary` is
                   the light-surface bordered variant its own doc names for
                   this exact case, so that's what's used here. */}
-              <Button variant="secondary" onClick={() => setTenderOpen(true)}>
+              <Button variant="secondary" icon={<Eye size={16} aria-hidden="true" />} onClick={() => setTenderOpen(true)}>
                 View Tender
               </Button>
-              <Button variant="secondary" onClick={() => finish('cancel', null)} disabled={resolve.isPending}>
-                Cancel tender
+              <Button variant="error" onClick={() => finish('cancel', null)} disabled={resolve.isPending}>
+                Cancel Tender
               </Button>
             </PageHeader>
 

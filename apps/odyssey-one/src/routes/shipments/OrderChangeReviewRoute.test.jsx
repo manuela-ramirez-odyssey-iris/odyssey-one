@@ -150,14 +150,14 @@ describe('OrderChangeReviewRoute', () => {
   test('renders the Cancel tender button', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
-    expect(await screen.findByRole('button', { name: 'Cancel tender' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Cancel Tender' })).toBeTruthy()
   })
 
   test('Cancel tender calls the mutation with action cancel, cost null, and the prior tender status, then leaves the review screen', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel Tender' }))
     confirmAction('Yes')
 
     await waitFor(() => {
@@ -199,8 +199,8 @@ describe('OrderChangeReviewRoute', () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
-    confirmAction('Re tender')
+    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
+    confirmAction('Re Tender')
 
     await waitFor(() => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
@@ -232,8 +232,8 @@ describe('OrderChangeReviewRoute', () => {
     getSellShipmentDetail.mockResolvedValue(NOT_RETURNED_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
-    confirmAction('Re tender')
+    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
+    confirmAction('Re Tender')
 
     await waitFor(() => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
@@ -248,7 +248,7 @@ describe('OrderChangeReviewRoute', () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel Tender' }))
     confirmAction('Yes')
 
     expect(
@@ -265,7 +265,7 @@ describe('OrderChangeReviewRoute', () => {
     resolveOrderChange.mockRejectedValueOnce(new Error('boom'))
     renderRoute()
 
-    const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel Tender' })
     fireEvent.click(cancelButton)
     confirmAction('Yes')
 
@@ -274,7 +274,7 @@ describe('OrderChangeReviewRoute', () => {
     // signal the rejected mutation actually settled, not just that time passed.
     await waitFor(() => expect(cancelButton.disabled).toBe(false))
     expect(screen.queryByText('shipments list')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Cancel tender' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Cancel Tender' })).toBeTruthy()
   })
 
   test('retrying after a failure clears the stale error before the retry settles, then navigates on success', async () => {
@@ -282,7 +282,7 @@ describe('OrderChangeReviewRoute', () => {
     resolveOrderChange.mockRejectedValueOnce(new Error('boom'))
     renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
 
-    const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel Tender' })
     fireEvent.click(cancelButton)
     confirmAction('Yes')
     expect(await screen.findByText("Couldn't resolve this tender. Please try again.")).toBeTruthy()
@@ -315,7 +315,7 @@ describe('OrderChangeReviewRoute — action confirmations', () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel Tender' }))
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(resolveOrderChange).not.toHaveBeenCalled()
   })
@@ -324,7 +324,7 @@ describe('OrderChangeReviewRoute — action confirmations', () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
     confirmAction('Cancel')
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -335,7 +335,7 @@ describe('OrderChangeReviewRoute — action confirmations', () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText(/Keep Carrier & Re-Tender/)).toBeTruthy()
     expect(within(dialog).getByText(/\$2,950\.00/)).toBeTruthy()
@@ -354,7 +354,7 @@ describe('OrderChangeReviewRoute — action confirmations', () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel Tender' }))
     const dialog = within(screen.getByRole('dialog'))
     expect(dialog.getByRole('button', { name: 'Yes' })).toBeTruthy()
     expect(dialog.getByRole('button', { name: 'No' })).toBeTruthy()
@@ -383,7 +383,7 @@ describe('OrderChangeReviewRoute — View Tender', () => {
     expect(dialog.getByRole('cell', { name: 'Old Dominion' })).toBeTruthy()
     expect(resolveOrderChange).not.toHaveBeenCalled()
     // Still on the review screen behind the modal.
-    expect(screen.getByRole('button', { name: 'Cancel tender' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Cancel Tender' })).toBeTruthy()
   })
 })
 
