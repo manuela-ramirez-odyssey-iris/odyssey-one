@@ -28,6 +28,7 @@ prefix precisely so they are never mistaken for the ticket's own spec — implem
 | **LINX-13954** — Tender Tab - Process SCAC | Settled written spec (AC) | the rules |
 | **LINX-13397** — TMS Master Data Lookup Queries & Functions | Settled written spec, 11 lookups | the data |
 | **Jana call, 2026-08-11** (`jana-tender-drop-carrier-and-process-scac-2026-08-11.vtt`) | Jana's spoken intent, walking the TMS screens live with Manuela + Efrain | the *why*, and the placement/interaction rules the AC never states |
+| **Rovo, 2026-08-26** (`rovo-scac-definition-2026-08-26.md`) | Atlassian AI summarising LINX-13954 + tech design; relayed by Manuela | corroborating only — an AI reading of tickets we already hold verbatim. Contains one confirmed error (§1 *What a SCAC is*) |
 
 Verbatim AC lives at `vault-sources/10-domains/shipments/sources/linx-dropped-carrier-ac-2026-08-17.md`.
 Timestamps below (`[mm:ss]`) point into the VTT. Where the two disagree, both positions are quoted and
@@ -93,6 +94,35 @@ it can be rated, quoted and tendered like any other option.
 > *"We have a carrier and we would want to move this carrier from a drop carrier list to the usable
 > carrier list. … I want to take this carrier and move it here, right? I want to use it. How can I use
 > it? So I would select this carrier. And then process SCAC."* — Jana `[12:22]`
+
+### What a SCAC is
+
+**Standard Carrier Alpha Code** — a 2–4 letter identifier assigned to a carrier by the **NMFTA**
+(National Motor Freight Traffic Association). It is the freight industry's carrier primary key: it
+travels on EDI messages, bills of lading and rate tables so two systems can agree on *which carrier*
+without matching names. In Odyssey One it is the identifier a carrier is known by across routing,
+rating, tendering, volume commitments and the LINX-13397 OCM profile lookups — which is why the action
+is called **Process SCAC** and not *Process Carrier*: the SCAC (paired with Equipment) is the thing
+being processed. The same pairing is what the duplicate check keys on — see §4.3.
+
+Seeded codes in the prototype are real: `ODFL` Old Dominion, `JBHT` J.B. Hunt, `EXLA` Estes Express,
+`XPOL` XPO, `FXFE` FedEx Freight Economy (`apps/odyssey-one/tools/generate.mjs:173`).
+
+**Odyssey's own brokerage desks carry SCACs too.** `CTNS` is Odyssey's internal brokerage —
+corroborated independently in [[../spotboard/data/quote-model|the SpotBoard quote model]] (*"Odyssey's
+CTNS brokerage team"*), and seeded here as `CONTINENTAL TRANSPORTATION`. Rovo additionally names `ARIT`
+(Flatbed) and `ODLD` (Bulk) as internal SCACs split by mode, with `CTNS` as TL/Dry. ⚠️ **Unverified** —
+neither `ARIT` nor `ODLD` appears anywhere else in the vault or in the seed. Confirm with Jana before
+either is treated as canon or seeded.
+
+> ⚠️ **Rovo's one error, recorded so it is not re-imported.** Rovo defines Process SCAC as
+> *"moving a carrier from the Dropped Carrier section into the active Tender List."* **It is a COPY, not
+> a move** — the dropped row remains in both lists. Jana, 2026-08-17: *"yes shows in both, that's why he
+> said copy and add."* See [[questions-for-jana-2026-08-17|Q3]] and [[#OQ-10|OQ-10]]. The AC
+> itself invites the mistake: it says *"copied"* five times (lines 171, 172, 229, 244, 351) and
+> *"moved"* once (line 291). We made the same inference from the same absence and were corrected — it
+> is not cosmetic, because *move* would force the system to persist that a carrier had been processed,
+> which is the storage change [[decisions/dropped-carrier-decisions#DC-18|DC-18]] records we did not need.
 
 ### Terminology
 
@@ -880,6 +910,15 @@ just processed dropped carriers. Unresolved.
 empty cost and no prompt — the *"you should not leave it empty"* outcome Jana described designing against
 (§4.7). Built per the ticket as ruled; now worth looking at with the real screen in front of stakeholders
 rather than described.
+
+### OQ-18
+**◐ OPEN (2026-08-26, from Rovo).** Are `ARIT` (Flatbed) and `ODLD` (Bulk) Odyssey's internal brokerage
+SCACs, split by mode alongside `CTNS` (TL/Dry)? Rovo asserts it
+(`vault-sources/.../rovo-scac-definition-2026-08-26.md`); nothing else in the vault or the seed mentions
+either code, and `CTNS` is the only internal desk we can corroborate. If true it matters twice: the seed
+names `CTNS` `CONTINENTAL TRANSPORTATION` with no signal that it is Odyssey's own desk, and a
+mode-partitioned internal carrier set would be worth reflecting in dropped-carrier and SpotBoard affiliate
+data rather than treating every SCAC as third-party. **Ask Jana.** See §1 *What a SCAC is*.
 
 ---
 
