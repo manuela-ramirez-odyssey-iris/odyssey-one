@@ -2280,7 +2280,15 @@ const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + 
  */
 function buildOrderChange(sellShipment, routingOptions, ctx) {
   const { tenderStatus, baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages } = ctx;
-  const rnd = mulberry32(seedFrom(sellShipment));
+  // Distinct seed from the diversion gate's `mulberry32(seedFrom(sellShipment))`
+  // (~line 1143) — NOT the same seed. The gate already proved its own first
+  // draw is < 0.15 before this function is ever called; reusing that exact
+  // seed here would hand `scenario` (below) the SAME already-constrained
+  // draw, making it unconditionally < 0.5 → always 'returned' (measured: 218
+  // of 218). Salting with a suffix gives this function its own independent
+  // stream while staying id-keyed (still zero faker draws, still stable
+  // under a category reshuffle).
+  const rnd = mulberry32(seedFrom(sellShipment + ':oc'));
   const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
   const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
   // prior = the option that actually carries the shipment's real, live
@@ -2321,24 +2329,45 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   const priorShifted = shiftedOptions.find(o => o.scac === prior.scac);
 
   // LINX-14512 comparison rows — subset of the 26-field AC table, changed
-  // fields first (the screen sorts them to the top anyway; seed them
-  // ordered). Both sides of every row go through the SAME formatter
-  // (formatDateTime for dates, fmtInt for quantities) so prior/new are
-  // actually comparable, not one formatted string against one raw value.
+  // fields first (the screen sorts them to the top anyway). Both sides of
+  // every row go through the SAME formatter (formatDateTime for dates,
+  // fmtInt for quantities) so prior/new are actually comparable, not one
+  // formatted string against one raw value.
   const fmtWeight = (lb) => `${fmtInt(Math.round(lb))} LB`;
   const fmtVolume = (cuft) => `${fmtInt(Math.round(cuft))} CuFt`;
-  const changedPool = [
-    { field: 'Pickup Date/Time', source: 'Routing', prior: prior.pickupDateTime, new: newPickupDateTime },
-    { field: 'Delivery Date', source: 'Routing', prior: prior.deliveryDateTime, new: priorShifted.deliveryDateTime },
-    // Real per-shipment totals, perturbed ±5–20% — coherent with THIS
-    // shipment's own seeded data instead of a hardcoded constant.
-    { field: 'Gross Weight', source: 'Shipment', prior: fmtWeight(grossWeight), new: fmtWeight(grossWeight * (1 + (rnd() * 0.25 - 0.05))) },
-    { field: 'Package Count', source: 'Shipment', prior: String(totalPackages), new: String(Math.max(1, totalPackages + Math.floor(rnd() * 5) - 1)) },
-    { field: 'Volume', source: 'Shipment', prior: fmtVolume(totalVolume), new: fmtVolume(totalVolume * (1 + (rnd() * 0.25 - 0.05))) },
+  // Pickup/Delivery are NOT part of the shuffle below: newOption's dates
+  // (above) are UNCONDITIONALLY the shifted ones — routing re-runs for
+  // every order-change row — so prior !== new here always, and marking
+  // either "unchanged" while showing two different values would itself be
+  // incoherent. Fixed, always-changed rows, not a coin flip.
+  const dateRows = [
+    { field: 'Pickup Date/Time', source: 'Routing', prior: prior.pickupDateTime, new: newPickupDateTime, changed: true },
+    { field: 'Delivery Date', source: 'Routing', prior: prior.deliveryDateTime, new: priorShifted.deliveryDateTime, changed: true },
   ];
-  const changedCount = 1 + Math.floor(rnd() * 3);
+  // The shipment-level trio genuinely may or may not have moved with THIS
+  // customer order change, so — unlike the dates — whether each one changed
+  // is exactly what needs to vary. Each entry carries its own prior value
+  // and what its "new" value would be IF selected; unselected ones fall back
+  // to prior === new rather than being silently dropped (the actual bug: a
+  // fixed slice(0, changedCount) off a 5-item pool always favored the first
+  // 3 — Pickup/Delivery/Gross Weight — so Package Count and Volume could
+  // never surface at all, changed or not; measured 0 of 218 either way).
+  const shipmentPool = [
+    { field: 'Gross Weight', source: 'Shipment', prior: fmtWeight(grossWeight), changedNew: fmtWeight(grossWeight * (1 + (rnd() * 0.25 - 0.05))) },
+    { field: 'Package Count', source: 'Shipment', prior: String(totalPackages), changedNew: String(Math.max(1, totalPackages + Math.floor(rnd() * 5) - 1)) },
+    { field: 'Volume', source: 'Shipment', prior: fmtVolume(totalVolume), changedNew: fmtVolume(totalVolume * (1 + (rnd() * 0.25 - 0.05))) },
+  ];
+  // Fisher-Yates on the id-keyed `rnd` (no faker draw) — WHICH of the three
+  // gets picked has to vary across the population, not just how many.
+  for (let i = shipmentPool.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [shipmentPool[i], shipmentPool[j]] = [shipmentPool[j], shipmentPool[i]];
+  }
+  const shipmentChangedCount = Math.floor(rnd() * (shipmentPool.length + 1)); // 0..3, order changes don't have to touch any of these
   const comparison = [
-    ...changedPool.slice(0, changedCount).map(f => ({ ...f, changed: true })),
+    ...dateRows,
+    ...shipmentPool.slice(0, shipmentChangedCount).map(f => ({ field: f.field, source: f.source, prior: f.prior, new: f.changedNew, changed: true })),
+    ...shipmentPool.slice(shipmentChangedCount).map(f => ({ field: f.field, source: f.source, prior: f.prior, new: f.prior, changed: false })),
     { field: 'Incoterm Info', source: 'Order', prior: 'FOB', new: 'FOB', changed: false },
     { field: 'Ship Direction', source: 'Order', prior: 'Inbound', new: 'Inbound', changed: false },
     { field: 'Seed Equipment', source: 'Order', prior: prior.equipmentCode, new: prior.equipmentCode, changed: false },

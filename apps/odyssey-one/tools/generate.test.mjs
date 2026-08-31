@@ -1066,11 +1066,22 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
   const ds = buildDataset()
   const ocRows = ds.shipments.filter(s => s.category === 'order-change')
   assert.ok(ocRows.length >= 20, `expected a healthy order-change population, got ${ocRows.length}`)
+  // Population-level checks (a per-row assertion can't catch a distribution
+  // bug): caught a real defect where buildOrderChange's PRNG shared its seed
+  // with the diversion gate's already-<0.15-constrained draw, so `scenario`
+  // was unconditionally 'returned' — 218/218, LINX-14513 Scenario 2 dead on
+  // arrival. And a fixed slice(0, changedCount) off the comparison pool
+  // meant Package Count/Volume could never surface at all, changed or not.
+  const scenarioCounts = { returned: 0, 'not-returned': 0 }
+  const seenComparisonFields = new Set()
   for (const s of ocRows) {
     assert.equal(s.panel, 'exceptions')
     assert.equal(s.category, 'order-change')
-    const oc = ds.details.get(s.sellShipment)?.orderChange
+    const detail = ds.details.get(s.sellShipment)
+    const oc = detail?.orderChange
     assert.ok(oc, `${s.sellShipment} missing detail.orderChange`)
+    scenarioCounts[oc.scenario] = (scenarioCounts[oc.scenario] ?? 0) + 1
+    for (const f of oc.comparison) seenComparisonFields.add(f.field)
     // LINX-14509 gate: the review only applies to a LIVE tender. Caught a
     // real defect (measured against Neon, 0/521 rows satisfied this) where
     // the exceptions-only default left every row Cancelled/Declined. S134
@@ -1114,9 +1125,23 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     // LINX-14512: changed fields exist and are flagged
     assert.ok(oc.comparison.some(f => f.changed), `${s.sellShipment} no comparison row flagged changed`)
     assert.ok(oc.comparison.every(f => 'field' in f && 'prior' in f && 'new' in f && 'source' in f), `${s.sellShipment} comparison row missing a required key`)
+    // Package Count / Volume "prior" must be THIS shipment's real total, not
+    // a shared constant — cross-checked against the same roll-ups the app
+    // itself would compute (orderList line packageCounts / totalVolumeValue).
+    const pcRow = oc.comparison.find(f => f.field === 'Package Count')
+    const realPackages = detail.orderList.reduce((sum, o) => sum + o.orderLines.reduce((ls, l) => ls + l.packageCount, 0), 0)
+    assert.equal(Number(pcRow.prior), realPackages, `${s.sellShipment} Package Count prior doesn't match the shipment's real total`)
+    const volRow = oc.comparison.find(f => f.field === 'Volume')
+    assert.equal(Number(volRow.prior.replace(/[^0-9]/g, '')), Math.round(detail.totalVolumeValue),
+      `${s.sellShipment} Volume prior doesn't match the shipment's real total`)
     // hazmat lines present and prior/new identical in v1
     assert.ok(Array.isArray(oc.hazmat) && oc.hazmat.length > 0, `${s.sellShipment} missing hazmat rows`)
     assert.deepEqual(oc.hazmat[0].prior, oc.hazmat[0].new, `${s.sellShipment} hazmat prior/new diverged`)
+  }
+  assert.ok(scenarioCounts.returned > 0 && scenarioCounts['not-returned'] > 0,
+    `both scenario values must occur across the order-change population, got ${JSON.stringify(scenarioCounts)}`)
+  for (const f of ['Pickup Date/Time', 'Delivery Date', 'Gross Weight', 'Package Count', 'Volume']) {
+    assert.ok(seenComparisonFields.has(f), `comparison field "${f}" never appears in any order-change row's comparison`)
   }
 })
 
