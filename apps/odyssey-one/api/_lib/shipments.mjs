@@ -266,21 +266,31 @@ export async function saveShipmentOverrides({ params, body, db }) {
 const OC_OUTCOMES = {
   // retender re-solicits the carrier regardless of prior status — an
   // Accepted tender goes back to Sent, not back to Accepted (call w/ Jana).
-  retender: () => ({ tenderStatus: 'Sent', panel: 'monitoring', category: 'sent' }),
+  retender: () => ({ tenderStatus: 'Sent', panel: 'monitoring', category: 'sent', validationMessage: null }),
   // bypass sends nothing, so whatever status the tender already had stands.
   bypass: (prior) => prior === 'Accepted'
-    ? { tenderStatus: 'Accepted', panel: 'monitoring', category: 'approved' }
-    : { tenderStatus: prior ?? 'Sent', panel: 'monitoring', category: 'sent' },
-  cancel: () => ({ tenderStatus: 'Cancelled', panel: 'exceptions', category: 'tender-review' }),
+    ? { tenderStatus: 'Accepted', panel: 'monitoring', category: 'approved', validationMessage: null }
+    : { tenderStatus: prior ?? 'Sent', panel: 'monitoring', category: 'sent', validationMessage: null },
+  // cancel alone re-parks on exceptions/tender-review, where every
+  // naturally-seeded row carries a real validation_message — leaving this
+  // NULL blanks that grid column. Text is verbatim from LINX-14514's Cancel
+  // Tender AC; don't "simplify" it back to null.
+  cancel: () => ({
+    tenderStatus: 'Cancelled', panel: 'exceptions', category: 'tender-review',
+    validationMessage: 'User to review the current tender options and take appropriate action.',
+  }),
 }
 
 export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) {
   return {
     text: `UPDATE shipments
-             SET tender_status = $1, panel = $2, category = $3, validation_message = NULL,
-                 detail = jsonb_set(detail, '{orderChange,resolution}', $4::jsonb)
-           WHERE sell_shipment = $5 RETURNING sell_shipment`,
-    values: [outcome.tenderStatus, outcome.panel, outcome.category, JSON.stringify(resolution), sellShipment],
+             SET tender_status = $1, panel = $2, category = $3, validation_message = $4,
+                 detail = jsonb_set(detail, '{orderChange,resolution}', $5::jsonb)
+           WHERE sell_shipment = $6 RETURNING sell_shipment`,
+    values: [
+      outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
+      JSON.stringify(resolution), sellShipment,
+    ],
   }
 }
 

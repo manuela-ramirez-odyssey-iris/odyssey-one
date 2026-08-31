@@ -392,6 +392,7 @@ describe('resolveOrderChange', () => {
     const values = seen.flatMap(q => q.values)
     assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(values.some(v => typeof v === 'string' && v.includes('"action":"retender"')))
+    assert.ok(values.includes(null), 'retender clears validation_message')
   })
 
   it('retender with priorTenderStatus Accepted still becomes Sent (re-soliciting acceptance)', async () => {
@@ -411,6 +412,7 @@ describe('resolveOrderChange', () => {
     const values = seen.flatMap(q => q.values)
     assert.ok(values.includes('Accepted') && values.includes('monitoring') && values.includes('approved'))
     assert.ok(!values.includes('sent'))
+    assert.ok(values.includes(null), 'bypass clears validation_message')
   })
 
   it('bypass retains Sent → monitoring/sent', async () => {
@@ -420,14 +422,18 @@ describe('resolveOrderChange', () => {
     const values = seen.flatMap(q => q.values)
     assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(!values.includes('approved'))
+    assert.ok(values.includes(null), 'bypass clears validation_message')
   })
 
-  it('cancel stays in exceptions / tender-review with status Cancelled', async () => {
+  it('cancel stays in exceptions / tender-review with status Cancelled and the AC message', async () => {
     const seen = []
     const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
     await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
     const values = seen.flatMap(q => q.values)
     assert.ok(values.includes('Cancelled') && values.includes('exceptions') && values.includes('tender-review'))
+    // Verbatim LINX-14514 Cancel Tender AC text — cancel is the one action that
+    // carries a real validation_message (the panel it lands on always has one).
+    assert.ok(values.includes('User to review the current tender options and take appropriate action.'))
   })
 
   it('rejects unknown action with 400', async () => {
