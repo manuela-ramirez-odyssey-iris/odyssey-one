@@ -10,6 +10,7 @@ export const PANEL_CONFIG = {
       { key: 'tender-issues', label: 'Tender Issues', badgeKey: 'tenderIssues' },
       { key: 'tender-review', label: 'Tender Review', badgeKey: 'tenderReview' },
       { key: 'bid-review', label: 'Bid Review', badgeKey: 'bidReview' },
+      { key: 'order-change', label: 'Order Change', badgeKey: 'orderChange' },
     ],
   },
   monitoring: {

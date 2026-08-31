@@ -245,6 +245,7 @@ function ShipmentsRoute() {
       tenderIssues: c(exceptionCounts, 'tender-issues'),
       tenderReview: c(exceptionCounts, 'tender-review'),
       bidReview: c(exceptionCounts, 'bid-review'),
+      orderChange: c(exceptionCounts, 'order-change'),
       hold: c(monitoringCounts, 'hold'),
       consolidation: c(monitoringCounts, 'consolidation'),
       sent: c(monitoringCounts, 'sent'),
