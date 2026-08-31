@@ -149,3 +149,50 @@
   display: flex;
   gap: var(--spacing-3);
 }
+
+/* ComparisonPreviewCard (Task 10a, shared shell for the three "Additional
+   Changes Preview" sections, LINX-14510/14511) — the sub-header row that
+   sits below SubAccordion's own title/chevron: "Differences (N)", one purple
+   difference badge per changed field, and the List/Table ButtonToggle. */
+.comparison-preview__subheader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.comparison-preview__diff-label {
+  color: var(--text-tertiary);
+}
+
+/* A real <button> around each Badge (keyboard-operable filter, LINX-14511) —
+   reset to plain so it reads as "a clickable badge", not a bordered button
+   wrapping a badge. */
+.comparison-preview__diff-badge {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.comparison-preview__mode-toggle {
+  margin-left: auto;
+}
+
+.comparison-preview__body {
+  margin-top: var(--spacing-4);
+}
+
+/* OrderChangeTenderLists (Task 10a, LINX-14510/14511) — List mode stacks the
+   two GroupTables vertically; Table mode places them side by side. */
+.oc-tender-lists__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.oc-tender-lists__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
