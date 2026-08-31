@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getSellShipmentDetail } from './shipmentService'
+import { getSellShipmentDetail, resolveOrderChange } from './shipmentService'
 import { sellShipmentOutSample } from '../fixtures/sellShipmentOut.sample'
 
 afterEach(() => {
@@ -39,5 +39,39 @@ describe('getSellShipmentDetail', () => {
     vi.stubEnv('VITE_API_MODE', 'mock')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }))
     await expect(getSellShipmentDetail('999')).rejects.toThrow('Failed to load details for 999')
+  })
+})
+
+describe('resolveOrderChange', () => {
+  it('PATCHes order-change with action/priorTenderStatus/cost, sellShipment only in the URL', async () => {
+    vi.stubEnv('VITE_API_MODE', 'live')
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ success: true }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await resolveOrderChange('25690001', {
+      action: 'retender',
+      priorTenderStatus: 'Accepted',
+      cost: { choice: 'new', amount: 1500 },
+    })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/shipment-service/v1/sell-shipment-out/25690001/order-change')
+    expect(init.method).toBe('PATCH')
+    const body = JSON.parse(init.body)
+    expect(body).toEqual({
+      action: 'retender',
+      priorTenderStatus: 'Accepted',
+      cost: { choice: 'new', amount: 1500 },
+    })
+    expect(body.sellShipment).toBeUndefined()
+  })
+
+  it('mock mode is a no-op', async () => {
+    vi.stubEnv('VITE_API_MODE', 'mock')
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    await resolveOrderChange('25690001', { action: 'cancel', priorTenderStatus: null, cost: null })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

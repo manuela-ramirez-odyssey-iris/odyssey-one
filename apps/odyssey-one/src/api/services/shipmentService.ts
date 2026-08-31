@@ -51,3 +51,25 @@ export async function saveShipmentOverrides(
   if (getApiMode() !== 'live') return
   await apiPatch(`/shipment-service/v1/sell-shipment-out/${sellShipment}/overrides`, { overrides })
 }
+
+/**
+ * LINX-14509…14515 — Tender Resolution Action off the Review Order Change
+ * screen (retender/bypass/cancel). Records the planner's decision into
+ * detail.orderChange.resolution and re-files the shipment's tender status /
+ * panel / category (api/_lib/shipments.mjs resolveOrderChange).
+ * `sellShipment` rides the URL path, not the body — same split as
+ * saveTenderOption/saveShipmentOverrides above.
+ *
+ * Live writes; mock is a no-op, same contract as its two siblings above.
+ */
+export async function resolveOrderChange(
+  sellShipment: string,
+  body: {
+    action: string
+    priorTenderStatus: string | null
+    cost: { choice: string; amount: number } | null
+  },
+): Promise<void> {
+  if (getApiMode() !== 'live') return
+  await apiPatch(`/shipment-service/v1/sell-shipment-out/${sellShipment}/order-change`, body)
+}
