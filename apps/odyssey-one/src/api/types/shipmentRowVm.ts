@@ -19,6 +19,9 @@ export interface ShipmentRowVM {
   scac: string
   tenderStatus: string
   shipmentStatus: string
+  // Not a table column — read by the Review Order Change row-action gate
+  // (LINX-14509), not rendered as a cell.
+  category: string
   validationMessage: string | null
   grossWeight: string
   loadCount: string

@@ -33,6 +33,7 @@ export function mapShipmentErrorRow(row: ShipmentErrorRow): ShipmentRowVM {
     scac: s(row.scac),
     tenderStatus: s(row.tenderStatus),
     shipmentStatus: s(row.shipmentStatus),
+    category: s(row.category),
     validationMessage: row.validationMessage ?? null,
     grossWeight: s(row.grossWeight),
     loadCount: s(row.loadCount),

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -228,6 +229,7 @@ function deriveColumnState(visibleColumns) {
 export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isFetchingRows = false, isError = false, error, onRetry }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
+  const navigate = useNavigate()
 
   // Stable master column set — select + every possible data column (ALL_COLUMNS) +
   // the sticky-right action column. The SET never changes; the ColumnPanel only
@@ -273,10 +275,18 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           onClick={onToggleColumnPanel}
         />
       ),
-      cell: () => (
+      cell: ({ row }) => (
         <ActionMenu
           icon={<EllipsisVertical {...ICON_MD} />}
-          options={SHIPMENT_ACTIONS}
+          options={
+            row.original.category === 'order-change'
+              ? [
+                  // LINX-14509 — the review is required before tender actions unlock
+                  { label: 'Review Order Change', onSelect: () => navigate(`/shipments/order-change/${row.original.sellShipment}`) },
+                  ...SHIPMENT_ACTIONS,
+                ]
+              : SHIPMENT_ACTIONS
+          }
           align="right"
           ariaLabel="Shipment actions"
         />
@@ -287,7 +297,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     })
 
     return [...dataCols, actionColumn]
-  }, [onToggleColumnPanel])
+  }, [onToggleColumnPanel, navigate])
 
   // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their
   // ORDER via TanStack column state — the column SET above stays stable.

@@ -76,4 +76,11 @@ describe('mapShipmentErrorRow preserves every displayable field', () => {
     expect(vm.legType).toBeNull()
     expect(vm.shipmentSequenceLeg).toBeNull()
   })
+
+  // LINX-14509 — the row action gate (Review Order Change) reads vm.category,
+  // so it must survive this whitelist even though it isn't a table column.
+  test('carries category through (Review Order Change action gate)', () => {
+    const vm = mapShipmentErrorRow({ ...FULL_ROW, category: 'order-change' } as never)
+    expect(vm.category).toBe('order-change')
+  })
 })
