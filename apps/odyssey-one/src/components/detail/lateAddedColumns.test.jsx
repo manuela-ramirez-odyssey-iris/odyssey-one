@@ -10,6 +10,9 @@
 // listed" can never again be mistaken for "the column shows its value".
 import { describe, test, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+// ShipmentTable calls useNavigate (S134 — the order-change row action), so it
+// needs router context even when the test only cares about cell rendering.
+import { MemoryRouter } from 'react-router-dom'
 import {
   LATE_ADDED_COLUMNS,
   mergeLateAddedColumns,
@@ -69,11 +72,13 @@ describe('the cells actually render their values', () => {
 
   test('Shipment Type, Planning Type and Pickup # show their data, not a dash', () => {
     render(
-      <ShipmentTable
-        shipments={[row]}
-        visibleColumns={['buyShipment', ...LATE_ADDED_COLUMNS]}
-        totalCount={1}
-      />,
+      <MemoryRouter>
+        <ShipmentTable
+          shipments={[row]}
+          visibleColumns={['buyShipment', ...LATE_ADDED_COLUMNS]}
+          totalCount={1}
+        />
+      </MemoryRouter>,
     )
     expect(screen.getByText('Consolidation')).toBeTruthy()
     expect(screen.getByText('RDD')).toBeTruthy()
