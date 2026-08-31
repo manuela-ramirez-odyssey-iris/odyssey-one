@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Eye, Inbox } from 'lucide-react'
+import { Inbox } from 'lucide-react'
 import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrderChangeActionsCard from '../../components/shipments/order-change/OrderChangeActionsCard'
@@ -221,7 +221,7 @@ export default function OrderChangeReviewRoute() {
                   invisible on this page's light background) — `secondary` is
                   the light-surface bordered variant its own doc names for
                   this exact case, so that's what's used here. */}
-              <Button variant="secondary" icon={<Eye size={16} aria-hidden="true" />} onClick={() => setTenderOpen(true)}>
+              <Button variant="secondary" onClick={() => setTenderOpen(true)}>
                 View Tender
               </Button>
               <Button variant="error" onClick={() => finish('cancel', null)} disabled={resolve.isPending}>
