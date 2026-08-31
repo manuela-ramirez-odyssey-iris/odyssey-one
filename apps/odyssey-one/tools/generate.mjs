@@ -156,7 +156,7 @@ const HAZMAT_GROUPS = ['I', 'II', 'III'];
 // + HANDLING_UNITS come from data-pools.mjs (DB ledger row 6).
 const TUNNEL_CODES = ['A', 'B', 'C', 'D', 'E'];
 
-const VALIDATION_MESSAGES = {
+export const VALIDATION_MESSAGES = {
   'date-issues': ['Pickup date missing', 'Delivery date in the past', 'No delivery date provided', 'Pickup/delivery date conflict'],
   'routing-review': ['No routing guide available', 'All carriers exhausted', 'Route group expired'],
   'tender-issues': ['Tender failed - carrier timeout', 'Tender rejected by system', 'Carrier API error'],
@@ -1097,42 +1097,63 @@ function generateShipment(index, chainOverride) {
   const hasAccepted = routingStatuses.includes('Accepted');
   const hasSent = routingStatuses.includes('Sent');
   // tenderStatus = the status of the "active" routing option (accepted or sent carrier)
-  // `let`: order-change (below) overrides both this and shipmentStatus, and
-  // both are read throughout the rest of this function (history gating,
-  // mainRow), so the override has to land here, before any of that runs.
-  let tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
-  // shipmentStatus derived from tender statuses
+  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
+  // shipmentStatus derived from tender statuses. `let`: the order-change
+  // diversion below is the ONE legitimate override (LINX-8284's documented
+  // state transition) — everything else (hasAccepted/hasSent/tenderStatus/
+  // routing-option statuses) stays untouched, on purpose (see below).
   let shipmentStatus = hasAccepted ? 'Done' : hasSent ? '' : 'Review';
 
   // Panel and category derived from tender outcome
-  const panel = (hasAccepted || hasSent) ? 'monitoring' : 'exceptions';
-  const category = panel === 'exceptions'
+  let panel = (hasAccepted || hasSent) ? 'monitoring' : 'exceptions';
+  // Snapshot BEFORE the order-change diversion below can mutate `panel` —
+  // NOTE_BUCKET_WEIGHTS further down (note-count seeding) also keys off
+  // `panel`, and faker.helpers.weightedArrayElement's OUTPUT (not just its
+  // draw count) depends on which weight table it's given: diverting a row
+  // to 'exceptions' there would change its note count and, with it, the
+  // number of subsequent per-note faker draws — silently re-numbering every
+  // later shipment's id despite the diversion draw itself costing 0 faker
+  // calls. Caught by the id-stability check (S134 — do not remove).
+  const originalPanel = panel;
+  let category = panel === 'exceptions'
     ? weightedPick(CATEGORY_WEIGHTS.exceptions.items, CATEGORY_WEIGHTS.exceptions.weights)
     : weightedPick(CATEGORY_WEIGHTS.monitoring.items, CATEGORY_WEIGHTS.monitoring.weights);
-  const validationMessage = (panel === 'exceptions' && category)
+  let validationMessage = (panel === 'exceptions' && category)
     ? pick(VALIDATION_MESSAGES[category])
     : null;
 
-  // LINX-14509's gate ("Tender Status is Sent, Accepted, or To Be Tendered")
-  // is unsatisfiable by construction above: order-change is an exceptions-
-  // only category, and exceptions requires !hasAccepted && !hasSent. The
-  // domain intent is the opposite of what the tender-derived default above
-  // encodes — an order-change shipment IS an exception precisely because its
-  // tender was live and the order changed underneath it. So for this one
-  // category, override the row to agree with the payload rather than the
-  // (unsatisfiable) tenderFailed default. Built here, not at the later
-  // detail-assembly site, because tenderStatus/shipmentStatus are read all
-  // through the rest of this function. No new faker draw: buildOrderChange's
-  // randomness comes only from its own id-keyed mulberry32 PRNG.
+  // LINX-14509 — an Order Change shipment is one that ALREADY had a healthy,
+  // live tender (sitting in monitoring) and became an exception only because
+  // the customer changed the order underneath it. So it's diverted OUT of
+  // monitoring, never bolted onto the exceptions population after the fact
+  // (S134 correction — an earlier version of this forced tenderStatus/
+  // shipmentStatus to agree with a fabricated payload instead; that inverted
+  // the causality and left hasAccepted/hasSent/routing statuses/history all
+  // still narrating a failed tender under an "Accepted" row).
+  //
+  // hasAccepted/hasSent/tenderStatus/routing-option statuses are left
+  // COMPLETELY ALONE — a diverted row's tender genuinely was Sent/Accepted,
+  // so every consumer of those real booleans (history gating, orderStatusLabel,
+  // acceptedCarrierLabel, cost-allocation's acceptedOption lookup) stays
+  // coherent for free. The diversion draw comes from the id-keyed mulberry32
+  // PRNG (not faker), so it consumes zero faker draws and id stability holds
+  // by construction — same reasoning as buildOrderChange's own PRNG.
   let orderChangePayload = null;
+  if (panel === 'monitoring') {
+    const rnd = mulberry32(seedFrom(sellShipment));
+    if (rnd() < 0.15) {
+      panel = 'exceptions';
+      category = 'order-change';
+      shipmentStatus = 'Review'; // LINX-8284: order change on a live tender → Review
+      validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd() * VALIDATION_MESSAGES['order-change'].length)];
+    }
+  }
   if (category === 'order-change') {
     const totalPackages = orders.reduce((s, o) => s + o.orderPackages, 0);
     orderChangePayload = buildOrderChange(sellShipment, routingOptions, {
-      baseDate, originTz, destTz, routingDeliveryDates,
+      tenderStatus, baseDate, originTz, destTz, routingDeliveryDates,
       grossWeight, totalVolume, totalPackages,
     });
-    tenderStatus = orderChangePayload.prior.tenderStatus;
-    shipmentStatus = 'Review'; // LINX-8284: order change on a live tender → Review
   }
 
   // Use accepted carrier's rateDetails as base for cost allocation when available
@@ -1733,7 +1754,9 @@ function generateShipment(index, chainOverride) {
   // blended average back to the stated target (panel splits ~30/70 —
   // see hasAccepted/hasSent above). The Notes tab already supports
   // add/edit/delete, so this is purely seed shape, not a feature change.
-  const NOTE_BUCKET_WEIGHTS = panel === 'exceptions'
+  // Uses originalPanel, NOT the order-change-diverted `panel` — see its
+  // declaration above for why (id stability).
+  const NOTE_BUCKET_WEIGHTS = originalPanel === 'exceptions'
     ? [{ value: 0, weight: 49 }, { value: 1, weight: 32 }, { value: 2, weight: 19 }]
     : [{ value: 0, weight: 72 }, { value: 1, weight: 22 }, { value: 2, weight: 6 }];
   const noteBucket = faker.helpers.weightedArrayElement(NOTE_BUCKET_WEIGHTS);
@@ -2194,8 +2217,8 @@ function weightedPick(items, weights) {
 // Category weights within each panel (realistic, unequal distribution)
 const CATEGORY_WEIGHTS = {
   exceptions: {
-    items:   ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review', 'order-change'],
-    weights: [24, 18, 18, 15, 8, 17], // order-change: LINX-14509 review population
+    items:   ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review'],
+    weights: [28, 22, 22, 18, 10], // date-issues most common, bid-review least
   },
   monitoring: {
     items:   ['sent', 'hold', 'consolidation', 'spotbid', 'approved'],
@@ -2239,6 +2262,11 @@ const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + 
  * `ctx` carries the pieces that have to come from the caller rather than be
  * invented fresh, so this payload agrees with the rest of the shipment's
  * detail instead of contradicting it:
+ *   - tenderStatus: the shipment's REAL, already-derived tender status
+ *     (Accepted or Sent — this function is only reached for a shipment
+ *     diverted out of the monitoring population, so one of those two always
+ *     holds). Not drawn here: `prior.tenderStatus` IS the row's tenderStatus,
+ *     never a second, independently-drawn opinion about it.
  *   - baseDate/originTz/destTz/routingDeliveryDates: the real Date objects
  *     behind routingOptions' already-formatted pickup/delivery strings.
  *     Shifting the Date and reformatting with formatDateTime is the only way
@@ -2251,13 +2279,18 @@ const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + 
  *     constant every order-change shipment would otherwise share.
  */
 function buildOrderChange(sellShipment, routingOptions, ctx) {
-  const { baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages } = ctx;
+  const { tenderStatus, baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages } = ctx;
   const rnd = mulberry32(seedFrom(sellShipment));
   const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
   const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
-  // prior = the option the tender was riding on (LINX-14511 "Prior Options")
-  const prior = routingOptions[0];
-  const priorStatus = pickR(['Sent', 'Accepted', 'To Be Tendered']);
+  // prior = the option that actually carries the shipment's real, live
+  // tenderStatus (LINX-14511 "Prior Options") — NOT routingOptions[0]: the
+  // accepted/sent carrier's rank is drawn independently of array position
+  // (decisiveRank, above), so it can land at any index. tenderStatus is
+  // always 'Accepted' or 'Sent' here (the caller only reaches this branch
+  // when the shipment came from the monitoring population), so a match
+  // always exists; the [0] fallback is unreachable defensive-only.
+  const prior = routingOptions.find(o => o.status === tenderStatus) || routingOptions[0];
   const priorQuoted = rnd() < 0.3;
 
   // Re-run routing after the order change. Cost AND dates move together, and
@@ -2283,7 +2316,9 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   // Prior's own re-shifted dates/cost, independent of whether it made the new
   // list above — newOption always shows what the re-plan did to THIS
   // carrier's slot, whether or not that carrier is still in the running.
-  const priorShifted = shiftedOptions[0];
+  // Matched by scac, not index — shiftedOptions preserves routingOptions'
+  // order, and prior isn't necessarily at index 0 (see above).
+  const priorShifted = shiftedOptions.find(o => o.scac === prior.scac);
 
   // LINX-14512 comparison rows — subset of the 26-field AC table, changed
   // fields first (the screen sorts them to the top anyway; seed them
@@ -2315,7 +2350,7 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     scenario,
     prior: {
       scac: prior.scac, carrierName: prior.carrierName, equipmentCode: prior.equipmentCode,
-      tenderStatus: priorStatus,
+      tenderStatus,
       routeRank: prior.routeRank, rank: prior.rank,
       pickupDateTime: prior.pickupDateTime, deliveryDateTime: prior.deliveryDateTime,
       apCost: prior.rateDetails.baseRate, quoted: priorQuoted,
@@ -2328,12 +2363,10 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       pickupDateTime: priorShifted.pickupDateTime, deliveryDateTime: priorShifted.deliveryDateTime,
       apCost: newForPrior ? newForPrior.rateDetails.baseRate : null, // null ⇒ New Cost greyed
     },
-    // Same carrier, same screen, one status: the prior row's Tender Status
-    // column must read priorStatus too, or the carrier shows Accepted in the
-    // summary panel and Cancelled/Declined in the table two lines down. Only
-    // that one entry is cloned — routingOptions is also detail.shippingOptionList,
-    // so the rest stay direct references rather than an unrequested full copy.
-    priorTenderList: routingOptions.map((o, i) => (i === 0 ? { ...o, status: priorStatus } : o)),
+    // No patching needed: `prior` IS the routingOptions entry whose real
+    // status already equals tenderStatus (found above), so the Prior Options
+    // table and the Prior panel agree naturally, not by construction.
+    priorTenderList: routingOptions,
     newTenderList: newList,
     comparison,
     // Preview Hazardous Material Information: rows by Line #, prior/new

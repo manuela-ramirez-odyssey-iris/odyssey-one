@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildDataset } from './generate.mjs'
+import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
 
 test('buildDataset returns a coherent scaled dataset', () => {
@@ -1068,19 +1068,28 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
   assert.ok(ocRows.length >= 20, `expected a healthy order-change population, got ${ocRows.length}`)
   for (const s of ocRows) {
     assert.equal(s.panel, 'exceptions')
+    assert.equal(s.category, 'order-change')
     const oc = ds.details.get(s.sellShipment)?.orderChange
     assert.ok(oc, `${s.sellShipment} missing detail.orderChange`)
     // LINX-14509 gate: the review only applies to a LIVE tender. Caught a
     // real defect (measured against Neon, 0/521 rows satisfied this) where
-    // the exceptions-only default left every row Cancelled/Declined.
+    // the exceptions-only default left every row Cancelled/Declined. S134
+    // correction: order-change is diverted OUT of the monitoring population
+    // (hasAccepted/hasSent genuinely true), not bolted onto exceptions with
+    // an overridden status — so this now holds NATURALLY, not by construction.
     assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(s.tenderStatus),
       `${s.sellShipment} order-change row has non-live tender status ${s.tenderStatus}`)
     assert.equal(s.tenderStatus, oc.prior.tenderStatus,
       `${s.sellShipment} row tenderStatus disagrees with payload prior.tenderStatus`)
     // LINX-8284: order change on a live tender moves the shipment to Review
     assert.equal(s.shipmentStatus, 'Review', `${s.sellShipment} shipmentStatus should be Review`)
+    // exceptions siblings all get one of VALIDATION_MESSAGES[category]; diverted
+    // rows must too, not the null a plain monitoring row would carry
+    assert.ok(VALIDATION_MESSAGES['order-change'].includes(s.validationMessage),
+      `${s.sellShipment} validationMessage ${s.validationMessage} not one of the order-change messages`)
     // same carrier, same screen: the Prior Options table row must show the
-    // same status as the Prior panel, not the stale Cancelled/Declined draw
+    // same status as the Prior panel — holds naturally now (prior IS the
+    // routingOptions entry whose real status equals tenderStatus)
     const priorEntry = oc.priorTenderList.find(o => o.scac === oc.prior.scac)
     assert.equal(priorEntry?.status, oc.prior.tenderStatus,
       `${s.sellShipment} priorTenderList entry status disagrees with prior.tenderStatus`)
