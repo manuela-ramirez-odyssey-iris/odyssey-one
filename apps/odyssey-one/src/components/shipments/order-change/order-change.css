@@ -100,38 +100,60 @@
   margin: 0;
 }
 
+/* Prior|New comparison panel (Figma 1793:5274) — two HeaderStrip-topped
+   panels side by side, separated by a single hairline rather than a gap (the
+   mock's panels touch; the divider IS the seam). */
 .order-change-actions__comparison {
-  display: flex;
-  gap: var(--spacing-8);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
-.order-change-actions__col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  flex: 1;
+.order-change-actions__panel:first-child {
+  border-right: 1px solid var(--border-subtle);
 }
 
-.order-change-actions__col-heading {
-  color: var(--text-primary);
-}
-
-.order-change-actions__dl {
+.order-change-actions__panel-body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
-  margin: 0;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
 }
 
+/* SCAC / Equipment / Tender Status, then Route Rank / Rank / (empty) — a 5th
+   and 6th cell are never added, so the grid's own last cell is just left
+   empty, no placeholder markup needed. */
+.order-change-actions__grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-4);
+}
+
+/* Delivery/Pickup Date-Time — full-width halves, no gutter (measured: the
+   two columns meet edge to edge in the mock). */
+.order-change-actions__grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* One field's label-above-value cell — was a side-by-side label/value row
+   before this pass; still the SAME class (`order-change-actions__row`,
+   see ComparisonField) so the existing panel test's ancestor query keeps
+   matching. */
 .order-change-actions__row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
+  flex-direction: column;
+  gap: var(--spacing-1);
 }
 
-.order-change-actions__row dt {
+.order-change-actions__row-label {
   color: var(--text-tertiary);
+}
+
+/* Purple label to match a purple FieldBadge sibling — same token the purple
+   Badge variant already renders its own text in (--badge-purple-text),
+   never a new/invented color. */
+.order-change-actions__row-label--changed {
+  color: var(--badge-purple-text);
 }
 
 .order-change-actions__row dd {

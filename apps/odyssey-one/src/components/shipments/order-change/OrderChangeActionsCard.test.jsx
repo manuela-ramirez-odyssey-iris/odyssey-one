@@ -131,6 +131,51 @@ describe('OrderChangeActionsCard — Prior | New comparison panel', () => {
     const newRouteRankRow = routeRankRows[1].closest('.order-change-actions__row')
     expect(within(newRouteRankRow).getByText('--')).toBeTruthy()
   })
+
+  // S134 — Figma 1793:5274 structure: HeaderStrip bands + purple changed-field
+  // highlight (label + badge together).
+  test('both Prior and New header bands render', () => {
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)
+    expect(screen.getByText('Prior')).toBeTruthy()
+    expect(screen.getByText('New')).toBeTruthy()
+  })
+
+  test('a changed field renders a purple badge on the New side; an unchanged one renders gray', () => {
+    // Route Rank/Rank differ from prior (1/1 -> 3/4); Tender Status matches
+    // prior's 'Accepted' — same value both sides, so it stays unchanged.
+    const oc = makeOc({ newOption: { ...makeOc().newOption, tenderStatus: 'Accepted', routeRank: 3, rank: 4 } })
+    render(<OrderChangeActionsCard oc={oc} onAction={vi.fn()} />)
+
+    const newRouteRankRow = screen.getAllByText('Route Rank')[1].closest('.order-change-actions__row')
+    const newRouteRankBadge = within(newRouteRankRow).getByText('3')
+    expect(newRouteRankBadge.style.background).toBe('var(--badge-purple-bg)')
+    // label itself carries the changed modifier class
+    expect(within(newRouteRankRow).getByText('Route Rank').className).toContain('order-change-actions__row-label--changed')
+
+    // Tender Status is unchanged (same value both sides) — stays gray.
+    const newTenderStatusRow = screen.getAllByText('Tender Status')[1].closest('.order-change-actions__row')
+    expect(within(newTenderStatusRow).getByText('Accepted').style.background).toBe('var(--badge-gray-bg)')
+    expect(within(newTenderStatusRow).getByText('Tender Status').className).not.toContain('order-change-actions__row-label--changed')
+
+    // Prior side never colors, even though its own value now differs from New.
+    const priorRouteRankRow = screen.getAllByText('Route Rank')[0].closest('.order-change-actions__row')
+    expect(within(priorRouteRankRow).getByText('Route Rank').className).not.toContain('order-change-actions__row-label--changed')
+  })
+
+  test('Tender Status, Route Rank, Rank render as badges; SCAC and Equipment do not', () => {
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)
+
+    // Badge (Badge.jsx) renders as a <span class="text-badge">; SCAC/Equipment
+    // values render as plain <dd> text with no such wrapper.
+    const priorScacRow = screen.getAllByText('SCAC')[0].closest('.order-change-actions__row')
+    expect(within(priorScacRow).getByText('ODFL').className).not.toContain('text-badge')
+
+    const priorEquipmentRow = screen.getAllByText('Equipment')[0].closest('.order-change-actions__row')
+    expect(within(priorEquipmentRow).getByText('Van').className).not.toContain('text-badge')
+
+    const priorRankRow = screen.getAllByText('Rank')[0].closest('.order-change-actions__row')
+    expect(within(priorRankRow).getByText('1').className).toContain('text-badge')
+  })
 })
 
 describe('OrderChangeActionsCard — New Quote flow', () => {

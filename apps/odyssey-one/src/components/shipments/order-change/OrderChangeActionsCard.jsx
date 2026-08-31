@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Button, FormField, Radio } from '@odyssey/ui'
+import { Badge, Button, FormField, HeaderStrip, Radio } from '@odyssey/ui'
 import { QuoteModal } from '../../detail/QuoteModal.jsx'
 
 // "Actions to Keep Current Carrier" (Figma 1794-5544, LINX-14513/14514). The
@@ -9,11 +9,6 @@ import { QuoteModal } from '../../detail/QuoteModal.jsx'
 // carriers.
 const DASH = '--' // LINX-13590 convention — empty optional values read '--'
 
-// Tender Status renders as a Badge (Figma) — same palette RoutingGuideTab's
-// STATUS_STYLES already uses for these four values, just through the shared
-// Badge atom instead of an inline-styled span.
-const STATUS_BADGE_VARIANT = { Accepted: 'green', Sent: 'blue', Declined: 'red', Cancelled: 'gray' }
-
 // Cost inputs show a plain number ("2790.00"), never a "$" — the trailing
 // "USD" FieldSelect already carries the currency, matching the
 // MeasureField/QuoteModal convention (Base Rate/Markup) rather than
@@ -22,18 +17,22 @@ const amountStr = (n) => (n == null ? '' : n.toFixed(2))
 
 const dash = (v) => (v === null || v === undefined || v === '' ? DASH : v)
 
-function StatusBadge({ status }) {
-  if (!status) return <span className="text-label-sm-regular">{DASH}</span>
-  return <Badge variant={STATUS_BADGE_VARIANT[status] || 'gray'}>{status}</Badge>
-}
-
-// Route Rank / Rank — Badges per Figma; '--' covers the one case the AC
-// documents (routeRank absent from the new tender list).
-function RankBadge({ value }) {
+// Tender Status / Route Rank / Rank all render as Badge (Figma 1793:5274).
+// Pixel-measured off the mock: the Prior|New panel does NOT color-code
+// Tender Status by status meaning (Accepted=green etc, used elsewhere e.g.
+// RoutingGuideTab) — every badge here is plain gray unless its field
+// CHANGED on the New side, in which case it's purple. A '--' (tenderStatus
+// undecided, routeRank absent from the new tender list) is never itself a
+// "change" — isChanged (below) requires a real new value to compare.
+function FieldBadge({ value, changed }) {
   if (value === null || value === undefined || value === '') {
     return <span className="text-label-sm-regular">{DASH}</span>
   }
-  return <Badge variant="gray">{value}</Badge>
+  return <Badge variant={changed ? 'purple' : 'gray'}>{value}</Badge>
+}
+
+function isChanged(newVal, priorVal) {
+  return newVal !== null && newVal !== undefined && newVal !== '' && newVal !== priorVal
 }
 
 // One of the three "Select Cost" radio+input pairs. `radioDisabled` also
@@ -68,30 +67,52 @@ function CostOption({ value, label, amount, placeholder, choice, onChange, radio
   )
 }
 
-function ComparisonRow({ label, children }) {
+// One field's label-above-value cell (Figma "Term"/"Text" pair). Stays named
+// & classed `order-change-actions__row` — pre-existing class, CSS now stacks
+// it instead of the old side-by-side layout — so the comparison-panel test's
+// `.closest('.order-change-actions__row')` query keeps working unmodified.
+// `changed` colors the label purple to match a purple `FieldBadge` sibling;
+// never set for the Prior side (Prior is always gray, per the mock).
+function ComparisonField({ label, changed = false, children }) {
+  const labelClass = `text-label-sm-regular order-change-actions__row-label${
+    changed ? ' order-change-actions__row-label--changed' : ''
+  }`
   return (
     <div className="order-change-actions__row">
-      <dt className="text-label-sm-regular">{label}</dt>
+      <dt className={labelClass}>{label}</dt>
       <dd className="text-label-sm-medium">{children}</dd>
     </div>
   )
 }
 
-// One side of the Prior|New panel. Field order is the AC's own table order —
-// note Delivery precedes Pickup, not the reverse.
-function ComparisonColumn({ heading, carrier }) {
+// One side of the Prior|New panel (Figma 1793:5274): a HeaderStrip band,
+// then the AC's own two field groups — a 3-column grid for the non-date
+// fields (SCAC / Equipment / Tender Status, then Route Rank / Rank / empty),
+// and a 2-column grid for the two dates (Delivery precedes Pickup, the AC's
+// own order). `changed` is only ever non-empty for the New side.
+function ComparisonPanel({ heading, carrier, changed = {} }) {
   return (
-    <div className="order-change-actions__col">
-      <h3 className="text-label-sm-semibold order-change-actions__col-heading">{heading}</h3>
-      <dl className="order-change-actions__dl">
-        <ComparisonRow label="SCAC">{dash(carrier.scac)}</ComparisonRow>
-        <ComparisonRow label="Equipment">{dash(carrier.equipment)}</ComparisonRow>
-        <ComparisonRow label="Tender Status"><StatusBadge status={carrier.tenderStatus} /></ComparisonRow>
-        <ComparisonRow label="Route Rank"><RankBadge value={carrier.routeRank} /></ComparisonRow>
-        <ComparisonRow label="Rank"><RankBadge value={carrier.rank} /></ComparisonRow>
-        <ComparisonRow label="Delivery Date/Time">{dash(carrier.deliveryDateTime)}</ComparisonRow>
-        <ComparisonRow label="Pickup Date/Time">{dash(carrier.pickupDateTime)}</ComparisonRow>
-      </dl>
+    <div className="order-change-actions__panel">
+      <HeaderStrip title={heading} />
+      <div className="order-change-actions__panel-body">
+        <div className="order-change-actions__grid-3">
+          <ComparisonField label="SCAC">{dash(carrier.scac)}</ComparisonField>
+          <ComparisonField label="Equipment">{dash(carrier.equipment)}</ComparisonField>
+          <ComparisonField label="Tender Status" changed={!!changed.tenderStatus}>
+            <FieldBadge value={carrier.tenderStatus} changed={!!changed.tenderStatus} />
+          </ComparisonField>
+          <ComparisonField label="Route Rank" changed={!!changed.routeRank}>
+            <FieldBadge value={carrier.routeRank} changed={!!changed.routeRank} />
+          </ComparisonField>
+          <ComparisonField label="Rank" changed={!!changed.rank}>
+            <FieldBadge value={carrier.rank} changed={!!changed.rank} />
+          </ComparisonField>
+        </div>
+        <div className="order-change-actions__grid-2">
+          <ComparisonField label="Delivery Date/Time">{dash(carrier.deliveryDateTime)}</ComparisonField>
+          <ComparisonField label="Pickup Date/Time">{dash(carrier.pickupDateTime)}</ComparisonField>
+        </div>
+      </div>
     </div>
   )
 }
@@ -110,6 +131,14 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
 
   const amountFor = { prior: prior.apCost, new: newOption.apCost, quote: quoteAmount }
   const selectedAmount = amountFor[choice]
+
+  // New-side fields that differ from Prior (Figma 1793:5274) — drives the
+  // purple label+badge highlight in ComparisonPanel. Prior is always gray.
+  const newSideChanges = {
+    tenderStatus: isChanged(newOption.tenderStatus, prior.tenderStatus),
+    routeRank: isChanged(newOption.routeRank, prior.routeRank),
+    rank: isChanged(newOption.rank, prior.rank),
+  }
 
   // The quote being entered is for the PRIOR carrier (the card's one subject)
   // — its own row on the PRIOR tender list, matched by scac, is what
@@ -155,7 +184,7 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
             // LINX-14514 — if the prior cost was itself a quote, selecting it
             // copies the whole quote across (backend concern, not this
             // card's) — the badge is this card's only trace of that rule.
-            badge={prior.quoted && <Badge variant="blue">Quoted Cost</Badge>}
+            badge={prior.quoted && <Badge variant="gray">Quoted Cost</Badge>}
           />
           <CostOption
             value="new"
@@ -179,8 +208,8 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
       <hr className="order-change-actions__hr" />
 
       <div className="order-change-actions__comparison">
-        <ComparisonColumn heading="Prior" carrier={prior} />
-        <ComparisonColumn heading="New" carrier={newOption} />
+        <ComparisonPanel heading="Prior" carrier={prior} />
+        <ComparisonPanel heading="New" carrier={newOption} changed={newSideChanges} />
       </div>
 
       <hr className="order-change-actions__hr" />
