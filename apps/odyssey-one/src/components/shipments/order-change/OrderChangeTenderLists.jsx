@@ -1,5 +1,6 @@
-import { Badge, GroupTable } from '@odyssey/ui'
+import { GroupTable } from '@odyssey/ui'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
+import { DiffValue, KV_COLUMNS, val } from './comparisonHelpers.jsx'
 
 // "Preview Tender List" (LINX-14510/14511, Figma 1794-5544). Fields, in the
 // AC's own order, for List mode's columnar table (one row per carrier).
@@ -31,12 +32,7 @@ const KV_FIELDS = [
   { key: 'status', label: 'Tender Status' },
 ]
 
-// No header text — GroupTable renders whatever `col.label` says, and a KV
-// block's own rows already carry the field name in the `label` column.
-const KV_COLUMNS = [{ key: 'label', width: 180 }, { key: 'value' }]
-
 const matchKey = (o) => `${o.scac}|${o.equipment}`
-const val = (v) => (v === null || v === undefined || v === '' ? '--' : v)
 
 /**
  * Matches oc.priorTenderList/newTenderList rows by scac+equipment — identity
@@ -106,16 +102,6 @@ function visibleKeys(filter) {
   return new Set([...IDENTITY_FIELDS, ...(TAG_FIELDS[filter] || [])])
 }
 
-// A value that differs between prior and new renders inside a purple Badge;
-// unchanged values render as plain text. `asBadge` additionally forces a
-// (gray, unless changed) Badge even when unchanged — used for Rank in Table
-// mode, where the mock shows Rank as a badge unconditionally.
-function DiffValue({ value, changed, asBadge = false }) {
-  const display = val(value)
-  if (changed) return <Badge variant="purple">{display}</Badge>
-  return asBadge ? <Badge variant="gray">{display}</Badge> : <span>{display}</span>
-}
-
 function renderListCell(row, col, changeMap) {
   const changed = changedFieldsFor(row, changeMap)
   if (col.key === 'rank') return <DiffValue value={row.rank} changed={changed.rank} />
@@ -183,7 +169,7 @@ export default function OrderChangeTenderLists({ oc }) {
         if (mode === 'list') {
           const columns = keys ? LIST_COLUMNS.filter((c) => keys.has(c.key)) : LIST_COLUMNS
           return (
-            <div className="oc-tender-lists__stack">
+            <div className="comparison-preview__stack">
               <ListModeTable label="Prior Tender List" rows={priorList} columns={columns} changeMap={changeMap} />
               <ListModeTable label="New Tender List" rows={newList} columns={columns} changeMap={changeMap} />
             </div>
@@ -191,7 +177,7 @@ export default function OrderChangeTenderLists({ oc }) {
         }
         const fields = keys ? KV_FIELDS.filter((f) => keys.has(f.key)) : KV_FIELDS
         return (
-          <div className="oc-tender-lists__grid">
+          <div className="comparison-preview__grid">
             <TableModeSide title="Prior Tender List" carriers={priorList} changeMap={changeMap} fields={fields} />
             <TableModeSide title="New Tender List" carriers={newList} changeMap={changeMap} fields={fields} />
           </div>

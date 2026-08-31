@@ -183,15 +183,15 @@
   margin-top: var(--spacing-4);
 }
 
-/* OrderChangeTenderLists (Task 10a, LINX-14510/14511) — List mode stacks the
-   two GroupTables vertically; Table mode places them side by side. */
-.oc-tender-lists__stack {
+/* Shared by all three preview sections' bodies (Task 10a/10b) — List mode
+   stacks GroupTables vertically; Table mode places them side by side. */
+.comparison-preview__stack {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
 }
 
-.oc-tender-lists__grid {
+.comparison-preview__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-4);
