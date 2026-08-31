@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, FileBox } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
@@ -1394,8 +1394,12 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           </div>
           {pendingOrderChange && (
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
+              // Purple FileBox (designer, S135) — deliberate exception to the
+              // icon-follows-label-color rule: purple is the review flow's
+              // accent, same token the diff badges use.
+              icon={<FileBox size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
               className="tender-pane__review-oc"
               onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
             >
