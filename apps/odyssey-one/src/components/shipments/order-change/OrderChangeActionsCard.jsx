@@ -36,6 +36,38 @@ function RankBadge({ value }) {
   return <Badge variant="gray">{value}</Badge>
 }
 
+// One of the three "Select Cost" radio+input pairs. `radioDisabled` also
+// disables the input — Prior/Quote are never radio-disabled, New is whenever
+// `newOption.apCost` is null.
+function CostOption({ value, label, amount, placeholder, choice, onChange, radioDisabled = false, badge }) {
+  const checked = choice === value
+  return (
+    <div className="order-change-actions__cost-option">
+      <div className="order-change-actions__radio-row">
+        <Radio
+          name="oc-cost-choice"
+          value={value}
+          label={label}
+          checked={checked}
+          disabled={radioDisabled}
+          onChange={onChange}
+        />
+        {badge}
+      </div>
+      <FormField
+        showLabel={false}
+        aria-label={`${label} amount`}
+        placeholder={placeholder}
+        value={amount}
+        onChange={() => {}}
+        readOnly
+        disabled={radioDisabled || !checked}
+        trailingSelect={{ label: 'USD', locked: true }}
+      />
+    </div>
+  )
+}
+
 function ComparisonRow({ label, children }) {
   return (
     <div className="order-change-actions__row">
@@ -108,76 +140,39 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
       <h2 className="text-label-base-semibold order-change-actions__title">Actions to Keep Current Carrier</h2>
 
       <div className="order-change-actions__cost">
-        <div className="text-label-sm-medium order-change-actions__cost-label">Select Cost</div>
-        <div className="order-change-actions__cost-row">
-          <div className="order-change-actions__cost-option">
-            <div className="order-change-actions__radio-row">
-              <Radio
-                name="oc-cost-choice"
-                value="prior"
-                label="Prior Cost"
-                checked={choice === 'prior'}
-                onChange={() => setChoice('prior')}
-              />
-              {/* LINX-14514 — if the prior cost was itself a quote, selecting
-                  it copies the whole quote across (backend concern, not this
-                  card's) — the badge is this card's only trace of that rule. */}
-              {prior.quoted && <Badge variant="blue">Quoted Cost</Badge>}
-            </div>
-            <FormField
-              showLabel={false}
-              aria-label="Prior Cost amount"
-              value={amountStr(prior.apCost)}
-              onChange={() => {}}
-              readOnly
-              disabled={choice !== 'prior'}
-              trailingSelect={{ label: 'USD', locked: true }}
-            />
-          </div>
-
-          <div className="order-change-actions__cost-option">
-            <div className="order-change-actions__radio-row">
-              <Radio
-                name="oc-cost-choice"
-                value="new"
-                label="New Cost"
-                checked={choice === 'new'}
-                disabled={newCostDisabled}
-                onChange={() => setChoice('new')}
-              />
-            </div>
-            <FormField
-              showLabel={false}
-              aria-label="New Cost amount"
-              value={amountStr(newOption.apCost)}
-              onChange={() => {}}
-              readOnly
-              disabled={newCostDisabled || choice !== 'new'}
-              trailingSelect={{ label: 'USD', locked: true }}
-            />
-          </div>
-
-          <div className="order-change-actions__cost-option">
-            <div className="order-change-actions__radio-row">
-              <Radio
-                name="oc-cost-choice"
-                value="quote"
-                label="New Quote"
-                checked={choice === 'quote'}
-                onChange={chooseQuote}
-              />
-            </div>
-            <FormField
-              showLabel={false}
-              aria-label="New Quote amount"
-              placeholder="Enter Quote"
-              value={quoteAmount != null ? amountStr(quoteAmount) : ''}
-              onChange={() => {}}
-              readOnly
-              disabled={choice !== 'quote'}
-              trailingSelect={{ label: 'USD', locked: true }}
-            />
-          </div>
+        <div id="oc-select-cost-label" className="text-label-sm-medium order-change-actions__cost-label">
+          Select Cost
+        </div>
+        {/* radiogroup + aria-labelledby — existing pattern for an ungrouped
+            radio row (PickupDeliverySection "Planning Date/Time", Home.jsx). */}
+        <div className="order-change-actions__cost-row" role="radiogroup" aria-labelledby="oc-select-cost-label">
+          <CostOption
+            value="prior"
+            label="Prior Cost"
+            amount={amountStr(prior.apCost)}
+            choice={choice}
+            onChange={() => setChoice('prior')}
+            // LINX-14514 — if the prior cost was itself a quote, selecting it
+            // copies the whole quote across (backend concern, not this
+            // card's) — the badge is this card's only trace of that rule.
+            badge={prior.quoted && <Badge variant="blue">Quoted Cost</Badge>}
+          />
+          <CostOption
+            value="new"
+            label="New Cost"
+            amount={amountStr(newOption.apCost)}
+            choice={choice}
+            onChange={() => setChoice('new')}
+            radioDisabled={newCostDisabled}
+          />
+          <CostOption
+            value="quote"
+            label="New Quote"
+            placeholder="Enter Quote"
+            amount={quoteAmount != null ? amountStr(quoteAmount) : ''}
+            choice={choice}
+            onChange={chooseQuote}
+          />
         </div>
       </div>
 
@@ -191,16 +186,17 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
       <hr className="order-change-actions__hr" />
 
       <div className="order-change-actions__footer">
-        <span className="text-label-sm-medium">Select Tender Action *</span>
+        <span id="oc-tender-action-label" className="text-label-sm-medium">Select Tender Action *</span>
         <div className="order-change-actions__footer-actions">
-          {/* Bypass — keep the carrier, no message, prior tender status
-              retained (backend's job; this card only reports the choice). */}
-          <Button variant="secondary" onClick={() => fire('bypass')} disabled={selectedAmount == null}>
+          {/* Bypass keeps the carrier with no message, prior status retained;
+              Re tender keeps it WITH a message, status becomes Sent even if
+              it was Accepted (both backend's job — this card reports the
+              choice). aria-describedby ties the required-selection "*" to
+              both actions, since the label itself isn't a native <label>. */}
+          <Button variant="secondary" onClick={() => fire('bypass')} disabled={selectedAmount == null} aria-describedby="oc-tender-action-label">
             Bypass Tender
           </Button>
-          {/* Re tender — keep the carrier, DO send a message; new status
-              becomes Sent even if it was Accepted (backend's job too). */}
-          <Button variant="primary" onClick={() => fire('retender')} disabled={selectedAmount == null}>
+          <Button variant="primary" onClick={() => fire('retender')} disabled={selectedAmount == null} aria-describedby="oc-tender-action-label">
             Re tender
           </Button>
         </div>

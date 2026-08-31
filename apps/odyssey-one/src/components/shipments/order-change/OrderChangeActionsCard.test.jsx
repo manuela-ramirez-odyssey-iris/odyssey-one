@@ -80,6 +80,18 @@ describe('OrderChangeActionsCard — cost selection scenarios (LINX-14513)', () 
     render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)
     expect(screen.queryByText('Quoted Cost')).toBeNull()
   })
+
+  // The three radios have no native <fieldset>/<legend>, so without an
+  // explicit group they read to assistive tech as three unrelated radios —
+  // role="radiogroup" + aria-labelledby (this codebase's existing pattern,
+  // PickupDeliverySection/Home.jsx) is what ties them to "Select Cost".
+  test('cost radios are grouped for assistive tech under the Select Cost label', () => {
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)
+    const group = screen.getByRole('radiogroup', { name: 'Select Cost' })
+    expect(within(group).getByRole('radio', { name: 'Prior Cost' })).toBeTruthy()
+    expect(within(group).getByRole('radio', { name: 'New Cost' })).toBeTruthy()
+    expect(within(group).getByRole('radio', { name: 'New Quote' })).toBeTruthy()
+  })
 })
 
 describe('OrderChangeActionsCard — tender resolution actions (LINX-14514)', () => {
