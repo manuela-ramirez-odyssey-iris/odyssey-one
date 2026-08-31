@@ -12,6 +12,7 @@ import Tracking from './routes/Tracking.jsx'
 import Users from './routes/Users.jsx'
 import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
+import OrderChangeReviewRoute from './routes/shipments/OrderChangeReviewRoute.jsx'
 import SpotBidRoute from './routes/spotbid/SpotBidRoute.jsx'
 import SpotBidDetailRoute from './routes/spotbid/SpotBidDetailRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
@@ -76,6 +77,10 @@ export default function App() {
         <Route path="/orders/create" element={<CreateOrderRoute />} />
         <Route path="/orders/:orderId" element={<OrderSummaryRoute />} />
         <Route path="/carriers" element={<Carriers />} />
+        {/* Must precede the /shipments/* wildcard below — a wildcard declared
+            first would swallow this path and the row menu's navigate() would
+            land back on the shipments table instead. */}
+        <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
         <Route path="/shipments/*" element={<ShipmentsRoute />} />
         <Route path="/spotbid" element={<SpotBidRoute />} />
         <Route path="/spotbid/:quoteId" element={<SpotBidDetailRoute />} />

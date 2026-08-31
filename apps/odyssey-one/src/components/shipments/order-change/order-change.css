@@ -1,0 +1,50 @@
+/* Review Order Change page (Figma 1794-5544) — app-local styles.
+   Structure: breadcrumb row → PageHeader ("Buy Shipment {n}" + Cancel tender)
+   → OrderChangeActionsCard (Task 9) → OrderChangeTenderLists (Task 10) →
+   labeled divider → OrderChangeTenderDetails + OrderChangeHazmat (Task 10).
+   AppShell's <main> already carries the 32px page padding, so this page does
+   not need order-summary.css's full-bleed negative-margin trick. */
+
+.order-change {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-bottom: var(--spacing-8);
+}
+
+.order-change__crumbs {
+  display: flex;
+  align-items: center;
+}
+
+.order-change__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+/* Loading / error states — same shape as ShipmentsRoute/OrderSummaryRoute's
+   `.orders-page__status` (orders.css). */
+.order-change__status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  color: var(--text-tertiary);
+}
+
+/* Centered "Additional Changes Preview" rule between the tender-list and
+   tender-detail preview sections. */
+.order-change__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  color: var(--text-tertiary);
+}
+
+.order-change__divider::before,
+.order-change__divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--border-default);
+}
