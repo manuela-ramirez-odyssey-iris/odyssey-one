@@ -24,11 +24,20 @@ import Button from './Button.jsx'
  * it, or omit `expanded` for uncontrolled state seeded by `defaultExpanded`.
  *
  * @param columns        [{ key, label, align?: 'left'|'right'|'center', width?: number|string }]
- * @param groups         [{ id, label, rows: object[], values?: object }] — one collapsible band per group.
+ * @param groups         [{ id, label, rows: object[], values?: object, expandable?: boolean }] — one
+ *                       collapsible band per group.
  *                       `values` is an optional object keyed by col.key: when present those values appear
  *                       on the group header row in the matching columns (semibold, col.align respected),
  *                       visible in both expanded AND collapsed state (e.g. per-order AP/AR/Diff totals
  *                       in the Compare AP/AR flavor). Absent = label-only header (Product tab style).
+ *                       `expandable: false` opts a group OUT of the toggle: no chevron, no button, no
+ *                       aria-expanded — the label renders as plain text. If the group has a body (rows /
+ *                       detailRows / a note), that body renders UNCONDITIONALLY beneath the static band —
+ *                       there being no toggle, there is no way to close it (D7, 2026-08-30; a Figma band
+ *                       like "Prior Tender List" that must always show its rows with no chevron). A group
+ *                       with no body renders just the static label, same as before. This is also derived
+ *                       automatically without the flag: a group with nothing to reveal never gets a
+ *                       chevron either — see `isGroupExpandable`.
  * @param renderCell     (row, col) => node — optional cell renderer for CHILD rows;
  *                       default renders `row[col.key] ?? '—'`
  * @param footerRow      object keyed by col.key (values may be nodes) — rendered medium-weight
@@ -378,7 +387,11 @@ export default function GroupTable({
 
         {groups.map((group) => {
           const canExpand = isGroupExpandable(group, { detailColumns, detailSections })
-          const open = canExpand && isOpen(group.id)
+          // `expandable: false` no longer means "closed forever" — see
+          // hasGroupBody's docblock. A static band with a body is ALWAYS open
+          // (no toggle exists to close it); a static band with nothing to show
+          // renders exactly like before (label only, nothing beneath it).
+          const open = canExpand ? isOpen(group.id) : hasGroupBody(group, { detailColumns, detailSections })
           const bodyId = `${uid}-${group.id}`
           return (
             <tbody key={group.id} id={bodyId}>
@@ -710,25 +723,16 @@ export function isGroupExpanded(overrides, defaultExpanded, id) {
 }
 
 /**
- * Whether a group's label row should render as an expandable toggle at all.
- * A chevron that opens onto nothing is a bug, not a feature — so this is
- * derived, not just a flag the consumer sets.
- *
- * Precedence:
- *   1. `group.expandable === false` always wins — explicit opt-out.
- *   2. Otherwise, expandable iff there is something to reveal:
- *      - rows flavor:   `group.rows` has at least one row
- *      - nested flavor: `group.detailRows` has at least one row (the nested
- *        tables all read the same `detailRows` — see `normalizeDetailSections`)
- *      - either flavor: a note would render — `group.detailNote` or any value
- *        in `group.detailNotes` — since a note-only group still has a body.
+ * Whether a group has anything to reveal at all — rows, detailRows, or a note.
+ * The ONE place that answers that question, so `isGroupExpandable` (does this
+ * group get a chevron?) and the render's `open` (does a static, chevron-less
+ * group render its body anyway?) can never drift apart — see D7, 2026-08-30.
  *
  * @param {object} group
  * @param {{detailColumns?: Array, detailSections?: Array}} [opts]
  * @returns {boolean}
  */
-export function isGroupExpandable(group, { detailColumns, detailSections } = {}) {
-  if (group.expandable === false) return false
+export function hasGroupBody(group, { detailColumns, detailSections } = {}) {
   const nested = (Array.isArray(detailSections) && detailSections.length > 0) ||
     (Array.isArray(detailColumns) && detailColumns.length > 0)
   const hasRows = nested
@@ -736,6 +740,37 @@ export function isGroupExpandable(group, { detailColumns, detailSections } = {})
     : Array.isArray(group.rows) && group.rows.length > 0
   const hasNote = !!group.detailNote || !!(group.detailNotes && Object.values(group.detailNotes).some(Boolean))
   return hasRows || hasNote
+}
+
+/**
+ * Whether a group's label row should render as an expandable TOGGLE — i.e.
+ * whether it gets a chevron/button/aria-expanded at all. This is NOT "does
+ * the group have a body" (see `hasGroupBody`, which this is built on) — a
+ * group can have a body and still not get a toggle, when the group opts out.
+ *
+ * Precedence:
+ *   1. `group.expandable === false` always wins — explicit opt-out. Until
+ *      D7 (2026-08-30) this made the group's body unreachable too, so
+ *      `expandable: false` was only usable on an EMPTY group — the render
+ *      forced `open` to `canExpand && isOpen(...)`, and false `canExpand`
+ *      always won. That is fixed at the render, not here: this function's
+ *      contract (does it get a chevron?) is unchanged — see GroupTable's
+ *      `open` computation for the other half. `expandable: false` on a group
+ *      WITH a body now means "no toggle, always open" — a static band whose
+ *      rows (or nested table) render unconditionally beneath it, for group
+ *      bands that must never collapse (Figma: "Prior Tender List", "Changed
+ *      Fields").
+ *   2. Otherwise, expandable iff `hasGroupBody` — a chevron that opens onto
+ *      nothing is a bug, not a feature, so this is derived, not just a flag
+ *      the consumer sets.
+ *
+ * @param {object} group
+ * @param {{detailColumns?: Array, detailSections?: Array}} [opts]
+ * @returns {boolean}
+ */
+export function isGroupExpandable(group, opts = {}) {
+  if (group.expandable === false) return false
+  return hasGroupBody(group, opts)
 }
 
 /**

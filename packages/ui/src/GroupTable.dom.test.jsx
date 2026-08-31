@@ -35,14 +35,28 @@ describe('GroupTable — non-expandable groups', () => {
     { id: 'g3', label: 'GAMMA', rows: [] },
   ]
 
-  it('expandable: false renders a plain row: no button, no chevron, no aria-expanded, label present, no child rows', () => {
+  it('expandable: false renders a plain row (no button/chevron/aria-expanded) but STILL shows its rows — always open, not collapsed (S134/D7)', () => {
+    // Pre-D7 this asserted the OPPOSITE (`queryByText('b')` => null): a static
+    // band with a body used to hide that body entirely, because `open` was
+    // `canExpand && isOpen(...)` — false canExpand always won. That made
+    // `expandable: false` unusable on any group with something to show. Now a
+    // static band with a body is always open; only an EMPTY static band (see
+    // GAMMA below) renders nothing beneath it.
     render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded />)
     const betaRow = screen.getByText('BETA').closest('tr')
     expect(betaRow.querySelector('button')).toBeNull()
     expect(betaRow.querySelector('.odyssey-group-table__chevron')).toBeNull()
     expect(betaRow.querySelector('[aria-expanded]')).toBeNull()
+    expect(betaRow.className).toContain('odyssey-group-table__group-row--static')
     expect(screen.getByText('BETA')).toBeTruthy()
-    expect(screen.queryByText('b')).toBeNull()
+    expect(screen.getByText('b')).toBeTruthy()
+  })
+
+  it('a static group with rows stays open even when defaultExpanded is false — there is no toggle to collapse it', () => {
+    render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded={false} />)
+    expect(screen.getByText('b')).toBeTruthy()
+    // ...while the ordinary ALPHA group (canExpand) really is collapsed.
+    expect(screen.queryByText('a')).toBeNull()
   })
 
   it('a group with no rows and no detail content is automatically non-expandable', () => {
@@ -52,19 +66,64 @@ describe('GroupTable — non-expandable groups', () => {
     expect(gammaRow.querySelector('[aria-expanded]')).toBeNull()
   })
 
-  it('an ordinary group still toggles as before (regression)', () => {
+  it('an ordinary expandable group is completely unaffected: chevron present, toggles, aria-expanded correct', () => {
     render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded={false} />)
+    const alphaButton = screen.getByRole('button', { name: /ALPHA/ })
+    expect(alphaButton.querySelector('.odyssey-group-table__chevron')).toBeTruthy()
+    expect(alphaButton.getAttribute('aria-expanded')).toBe('false')
     expect(screen.queryByText('a')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /ALPHA/ }))
+    fireEvent.click(alphaButton)
+    expect(alphaButton.getAttribute('aria-expanded')).toBe('true')
     expect(screen.getByText('a')).toBeTruthy()
   })
 
-  it('clicking a static row does nothing (no toggle handler on the tr)', () => {
+  it('clicking a static row does nothing (no toggle handler on the tr) — its rows stay visible either way', () => {
     render(<GroupTable columns={COLUMNS} groups={ROW_GROUPS} defaultExpanded />)
     const betaRow = screen.getByText('BETA').closest('tr')
     expect(betaRow.className).toContain('odyssey-group-table__group-row--static')
+    expect(screen.getByText('b')).toBeTruthy()
     fireEvent.click(betaRow)
-    expect(screen.queryByText('b')).toBeNull()
+    expect(screen.getByText('b')).toBeTruthy()
+  })
+})
+
+describe('GroupTable — non-expandable groups, nested flavor (detailColumns)', () => {
+  const NESTED_GROUPS = [
+    { id: 'g1', label: 'ALPHA', detailRows: [{ method: 'Automatic Update', user: 'Moses Johnson' }] },
+    { id: 'g2', label: 'BETA', detailRows: [{ method: 'Manual', user: 'Devin Bernhard' }], expandable: false },
+    { id: 'g3', label: 'GAMMA', detailRows: [] },
+  ]
+
+  it('a static group with detailRows reveals its nested table, with no toggle/chevron', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={NESTED_GROUPS} defaultExpanded />
+    )
+    const betaRow = screen.getByText('BETA').closest('tr')
+    expect(betaRow.querySelector('button')).toBeNull()
+    expect(betaRow.querySelector('.odyssey-group-table__chevron')).toBeNull()
+    expect(betaRow.querySelector('[aria-expanded]')).toBeNull()
+    expect(betaRow.className).toContain('odyssey-group-table__group-row--static')
+    // The nested table itself rendered — same detail row content, no click needed.
+    expect(screen.getByText('Manual')).toBeTruthy()
+    expect(screen.getByText('Devin Bernhard')).toBeTruthy()
+  })
+
+  it('a static group stays open even when defaultExpanded is false', () => {
+    render(<GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={NESTED_GROUPS} defaultExpanded={false} />)
+    expect(screen.getByText('Manual')).toBeTruthy()
+    // ...while the ordinary ALPHA group is really collapsed.
+    expect(screen.queryByText('Automatic Update')).toBeNull()
+  })
+
+  it('a static group with no detailRows and no note renders just the band — today\'s behaviour, unchanged', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={NESTED_GROUPS} defaultExpanded />
+    )
+    expect(container.querySelector('.odyssey-group-table__detail-row')).toBeTruthy() // ALPHA's + BETA's, not GAMMA's
+    const gammaRow = screen.getByText('GAMMA').closest('tr')
+    expect(gammaRow.querySelector('button')).toBeNull()
+    // GAMMA has no detail row following it.
+    expect(gammaRow.nextElementSibling?.classList.contains('odyssey-group-table__detail-row')).toBeFalsy()
   })
 })
 
