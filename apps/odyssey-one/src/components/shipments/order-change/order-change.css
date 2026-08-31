@@ -48,3 +48,104 @@
   flex: 1;
   border-top: 1px solid var(--border-default);
 }
+
+/* OrderChangeActionsCard (Task 9, Figma 1794-5544) — "Actions to Keep Current
+   Carrier". Same white-surface card idiom as the rest of the app's detail
+   cards (radius-2xl + shadow-sm). */
+.order-change-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-6);
+}
+
+.order-change-actions__title {
+  color: var(--text-primary);
+}
+
+.order-change-actions__cost {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.order-change-actions__cost-label {
+  color: var(--text-secondary);
+}
+
+.order-change-actions__cost-row {
+  display: flex;
+  gap: var(--spacing-6);
+}
+
+.order-change-actions__cost-option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  flex: 1;
+}
+
+.order-change-actions__radio-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.order-change-actions__hr {
+  border: none;
+  border-top: 1px solid var(--border-default);
+  margin: 0;
+}
+
+.order-change-actions__comparison {
+  display: flex;
+  gap: var(--spacing-8);
+}
+
+.order-change-actions__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  flex: 1;
+}
+
+.order-change-actions__col-heading {
+  color: var(--text-primary);
+}
+
+.order-change-actions__dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin: 0;
+}
+
+.order-change-actions__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.order-change-actions__row dt {
+  color: var(--text-tertiary);
+}
+
+.order-change-actions__row dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.order-change-actions__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-change-actions__footer-actions {
+  display: flex;
+  gap: var(--spacing-3);
+}
