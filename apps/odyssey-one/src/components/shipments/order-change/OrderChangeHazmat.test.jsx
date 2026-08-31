@@ -65,6 +65,16 @@ describe('OrderChangeHazmat — List mode (default)', () => {
     expect(screen.getByText('II').closest('span')?.className).toMatch(/text-badge/)
     expect(screen.getByText('I').closest('span')?.className).toMatch(/text-badge/)
   })
+
+  test('the static band labels are plain labels, not toggle buttons', () => {
+    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    // GroupTable's `expandable: false` static band renders the label as
+    // plain text — no chevron, no button, no aria-expanded. A regression
+    // back to a toggle would still pass a getByText check, so this asserts
+    // the negative directly (review finding, S134).
+    expect(screen.queryByRole('button', { name: 'Prior Tender List' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New Tender List' })).toBeNull()
+  })
 })
 
 describe('OrderChangeHazmat — Table mode', () => {
@@ -75,5 +85,17 @@ describe('OrderChangeHazmat — Table mode', () => {
     expect(screen.getByText('New Tender')).toBeTruthy()
     expect(screen.getAllByText('Line 87979')).toHaveLength(2)
     expect(screen.getAllByText('Line 87980')).toHaveLength(2)
+  })
+
+  test('the header strip titles AND the Line {n} group labels are plain labels, not toggle buttons', () => {
+    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
+    // Same static-band regression guard as List mode — Table mode has TWO
+    // kinds of label here (the header strip AND each per-line static group),
+    // both must stay plain text (review finding, S134).
+    expect(screen.queryByRole('button', { name: 'Prior Tender' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New Tender' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Line 87979' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Line 87980' })).toBeNull()
   })
 })

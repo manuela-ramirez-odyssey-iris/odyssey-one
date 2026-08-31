@@ -72,6 +72,16 @@ describe('OrderChangeTenderDetails — List mode (default)', () => {
       expect(v.closest('span')?.className || '').not.toMatch(/text-badge/)
     }
   })
+
+  test('the static band labels are plain labels, not toggle buttons', () => {
+    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    // GroupTable's `expandable: false` static band renders the label as
+    // plain text — no chevron, no button, no aria-expanded. A regression
+    // back to a toggle would still pass a getByText check, so this asserts
+    // the negative directly (review finding, S134).
+    expect(screen.queryByRole('button', { name: 'Changed Fields' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Unchanged Fields' })).toBeNull()
+  })
 })
 
 describe('OrderChangeTenderDetails — Table mode', () => {
@@ -88,6 +98,15 @@ describe('OrderChangeTenderDetails — Table mode', () => {
     // both sides' tables since the field name is the row label there too).
     expect(screen.getAllByText('Distance').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Incoterm Info').length).toBeGreaterThan(0)
+  })
+
+  test('the static group labels are plain labels, not toggle buttons', () => {
+    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    switchToTable()
+    // Same static-band regression guard as List mode, for Table mode's two
+    // per-side static groups (review finding, S134).
+    expect(screen.queryByRole('button', { name: 'Prior Tender' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New Tender' })).toBeNull()
   })
 })
 
