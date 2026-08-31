@@ -6631,31 +6631,49 @@ button.breadcrumb__label:focus-visible {
   font-family: var(--font-primary);
 }
 
-/* Header strip (Figma 4183:773 "Header" frame) — 48px band ABOVE the
-   column-header row: icon + bold title left, empty trailing slot right.
-   Sticky-left so it stays put while the table scrolls horizontally (it
-   describes the whole table, not a column). Optional — only renders when
-   the consumer passes `header`. */
-.odyssey-group-table__header {
-  position: sticky;
-  left: 0;
+/* HeaderStrip molecule (packages/ui/src/HeaderStrip.jsx) — see its docblock
+   for the two Figma sources and the flagged padding deviation. GroupTable
+   composes it via `.odyssey-group-table__header`, a sticky-left modifier
+   layered on top (below) — this base rule must NOT be sticky, since other
+   consumers of HeaderStrip are not inside a horizontally-scrolling table. */
+.header-strip {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  width: fit-content;
-  min-width: 100%;
-  padding: var(--spacing-3) var(--spacing-4);
+  /* Asymmetric block padding is the DESIGN, not a slip: both Figma sources
+     (GroupTable's Header frame 5478:5447 and the standalone TableSubheader
+     1943:11132) read 12 top / 8 bottom, which optically centres the title
+     against the hairline underneath it. min-height pins the 48px band Figma
+     fixes — raw px, like every other row height in this family (no
+     row-height token exists). */
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
+  min-height: 48px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
   box-sizing: border-box;
 }
-.odyssey-group-table__header-title {
+.header-strip__title {
   flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.odyssey-group-table__header-trail {
+.header-strip__trail {
   flex: 0 0 auto;
   margin-left: auto;
+}
+
+/* GroupTable-specific: pins the strip sticky-left so it stays put while the
+   table scrolls horizontally (it describes the whole table, not a column) —
+   see GroupTable's `header` prop docblock. Layered over `.header-strip`,
+   never merged into it. */
+.odyssey-group-table__header {
+  position: sticky;
+  left: 0;
+  width: fit-content;
+  min-width: 100%;
 }
 
 .odyssey-group-table__table {

@@ -52,6 +52,12 @@ describe('isGroupExpandable', () => {
     expect(isGroupExpandable({ detailRows: [], detailNotes: { a: 'x' } }, { detailColumns: [{ key: 'a' }] })).toBe(true)
     expect(isGroupExpandable({ rows: [], detailNotes: {} })).toBe(false)
   })
+
+  it('opts.flat always wins, even over rows/detailNote that would otherwise expand', () => {
+    expect(isGroupExpandable({ rows: [{ a: 1 }] }, { flat: true })).toBe(false)
+    expect(isGroupExpandable({ rows: [], detailNote: 'reason' }, { flat: true })).toBe(false)
+    expect(isGroupExpandable({ detailRows: [{ a: 1 }] }, { detailColumns: [{ key: 'a' }], flat: true })).toBe(false)
+  })
 })
 
 describe('groupHeaderValue', () => {

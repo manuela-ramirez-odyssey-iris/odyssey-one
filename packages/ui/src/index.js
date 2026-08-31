@@ -39,6 +39,7 @@ export { default as GlobalSearch } from './GlobalSearch.jsx';
 export { default as TrailNav } from './TrailNav.jsx';
 export { default as PageHeader } from './PageHeader.jsx';
 export { default as SectionHeader } from './SectionHeader.jsx';
+export { default as HeaderStrip } from './HeaderStrip.jsx';
 export { default as TitleSubtitle } from './TitleSubtitle.jsx';
 export { default as StepperButtonsFooter } from './StepperButtonsFooter.jsx';
 export { default as EntityChip } from './EntityChip.jsx';

@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import Button from './Button.jsx'
+import HeaderStrip from './HeaderStrip.jsx'
 
 /**
  * GroupTable — the presentational grouped table for detail pane content
@@ -120,6 +121,15 @@ import Button from './Button.jsx'
  *                       released component, so no `header` must stay byte-identical.
  *                       `icon` is a caller-supplied node (e.g. a lucide element) — never
  *                       hardcoded here. The table is `aria-labelledby` the title.
+ * @param flat           bool (default false) — table-level mode where every group renders
+ *                       as ONE ordinary data row (regular weight, one cell per column via
+ *                       `groupHeaderValue`, lead column falling back to `group.label`)
+ *                       instead of the bold merged-label group-header row. Nothing expands:
+ *                       no chevron, no button, no row onClick, no aria-expanded, no child
+ *                       rows / detail band / note — regardless of whether the group carries
+ *                       `rows`/`detailRows`. Reuses the `--flat` (non-striped) white
+ *                       background so group rows never tint like child bands. `columns`,
+ *                       `header`, `footerRow`, `stickyActions`/`group.action` all still work.
  */
 /**
  * The nested band's wrapper. Three states, one invariant — the band must NEVER
@@ -278,6 +288,7 @@ export default function GroupTable({
   stickyActions = false,
   actionsHeader,
   header,
+  flat = false,
   ...rest
 }) {
   const uid = useId()
@@ -329,7 +340,7 @@ export default function GroupTable({
 
   const rootClasses = [
     'odyssey-group-table',
-    !striped && 'odyssey-group-table--flat',
+    (!striped || flat) && 'odyssey-group-table--flat',
     nested && 'odyssey-group-table--nested',
     // A STATE HOOK only — the scrolling behaviour is keyed on the section (see
     // `__detail-section--scroll`), because a per-section override means a root
@@ -353,13 +364,13 @@ export default function GroupTable({
            div) keeps it in the same border/radius box the docstring commits
            to, with zero effect on the sticky-actions column or the table's
            own horizontal scroll — the table element is untouched. */
-        <div className="odyssey-group-table__header">
-          {header.icon}
-          <span id={headerTitleId} className="odyssey-group-table__header-title text-label-base-semibold">
-            {header.title}
-          </span>
-          <span className="odyssey-group-table__header-trail">{header.trail}</span>
-        </div>
+        <HeaderStrip
+          className="odyssey-group-table__header"
+          title={header.title}
+          icon={header.icon}
+          trail={header.trail}
+          titleId={headerTitleId}
+        />
       )}
       <table
         className="odyssey-group-table__table"
@@ -386,85 +397,116 @@ export default function GroupTable({
         </thead>
 
         {groups.map((group) => {
-          const canExpand = isGroupExpandable(group, { detailColumns, detailSections })
+          const canExpand = isGroupExpandable(group, { detailColumns, detailSections, flat })
           // `expandable: false` no longer means "closed forever" — see
           // hasGroupBody's docblock. A static band with a body is ALWAYS open
           // (no toggle exists to close it); a static band with nothing to show
           // renders exactly like before (label only, nothing beneath it).
-          const open = canExpand ? isOpen(group.id) : hasGroupBody(group, { detailColumns, detailSections })
+          // `flat` wins over that fallback too: nothing ever opens in flat mode,
+          // even a group that would otherwise be a static-but-always-open band.
+          const open = flat ? false : canExpand ? isOpen(group.id) : hasGroupBody(group, { detailColumns, detailSections })
           const bodyId = `${uid}-${group.id}`
           return (
             <tbody key={group.id} id={bodyId}>
-              {/* Group header row — the WHOLE row toggles; the button carries
-                  the a11y contract (focus, Enter/Space, aria-expanded). Button
-                  clicks stop propagation so activation toggles exactly once.
-                  When group.values is present the non-first columns render the
-                  matching value (semibold, col.align) — visible collapsed + expanded.
-                  A group with nothing to reveal (see isGroupExpandable) renders
-                  the label as a plain, non-interactive row instead. */}
-              <tr
-                className={[
-                  'odyssey-group-table__group-row',
-                  !canExpand && 'odyssey-group-table__group-row--static',
-                ].filter(Boolean).join(' ')}
-                onClick={canExpand ? () => toggle(group.id) : undefined}
-              >
-                {/* The label is ONE merged cell (see splitHeaderRow) — the
-                    header row does not follow the body's column grid, so a
-                    narrow lead column isn't stretched to fit the group name. */}
-                <td colSpan={labelSpan}>
-                  {canExpand ? (
-                    <button
-                      type="button"
-                      className="odyssey-group-table__group-toggle"
-                      aria-expanded={open}
-                      aria-controls={bodyId}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggle(group.id)
-                      }}
+              {flat ? (
+                /* flat mode: the group IS a plain data row — one cell per
+                   outer column (no merged colSpan lead cell), regular data-row
+                   weight via the same class child rows use, so values line up
+                   under their headers exactly like an ordinary row. No
+                   chevron, no button, no onClick — see isGroupExpandable. */
+                <tr className="odyssey-group-table__row">
+                  {columns.map((col, i) => {
+                    const value = groupHeaderValue(group, col.key)
+                    return (
+                      <td key={col.key} className={alignClass(col.align) || undefined}>
+                        {i === 0 && value === '' ? group.label : value}
+                      </td>
+                    )
+                  })}
+                  {stickyActions && (
+                    <td
+                      className={[
+                        'odyssey-group-table__cell--sticky-right',
+                        actionToneClass(group.actionTone),
+                      ].filter(Boolean).join(' ')}
+                      onClick={handleActionCellClick}
                     >
-                      <ChevronDown
-                        {...ICON_MD}
-                        className="odyssey-group-table__chevron"
-                        aria-hidden="true"
-                      />
-                      {group.label}
-                    </button>
-                  ) : (
-                    <span className="odyssey-group-table__group-toggle odyssey-group-table__group-label--static">
-                      {group.label}
-                    </span>
+                      {group.action}
+                    </td>
                   )}
-                </td>
-                {valueColumns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={[
-                      'odyssey-group-table__group-value',
-                      alignClass(col.align) || undefined,
-                    ].filter(Boolean).join(' ') || undefined}
-                  >
-                    {groupHeaderValue(group, col.key)}
+                </tr>
+              ) : (
+                /* Group header row — the WHOLE row toggles; the button carries
+                    the a11y contract (focus, Enter/Space, aria-expanded). Button
+                    clicks stop propagation so activation toggles exactly once.
+                    When group.values is present the non-first columns render the
+                    matching value (semibold, col.align) — visible collapsed + expanded.
+                    A group with nothing to reveal (see isGroupExpandable) renders
+                    the label as a plain, non-interactive row instead. */
+                <tr
+                  className={[
+                    'odyssey-group-table__group-row',
+                    !canExpand && 'odyssey-group-table__group-row--static',
+                  ].filter(Boolean).join(' ')}
+                  onClick={canExpand ? () => toggle(group.id) : undefined}
+                >
+                  {/* The label is ONE merged cell (see splitHeaderRow) — the
+                      header row does not follow the body's column grid, so a
+                      narrow lead column isn't stretched to fit the group name. */}
+                  <td colSpan={labelSpan}>
+                    {canExpand ? (
+                      <button
+                        type="button"
+                        className="odyssey-group-table__group-toggle"
+                        aria-expanded={open}
+                        aria-controls={bodyId}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggle(group.id)
+                        }}
+                      >
+                        <ChevronDown
+                          {...ICON_MD}
+                          className="odyssey-group-table__chevron"
+                          aria-hidden="true"
+                        />
+                        {group.label}
+                      </button>
+                    ) : (
+                      <span className="odyssey-group-table__group-toggle odyssey-group-table__group-label--static">
+                        {group.label}
+                      </span>
+                    )}
                   </td>
-                ))}
-                {stickyActions && (
-                  /* The action is its own affordance — clicking it must not
-                     toggle the row the way the rest of the row does. The TONE
-                     lives on the cell (not the slotted node) because the hover
-                     fill is the cell's own background — a slotted node cannot
-                     paint its ancestor. */
-                  <td
-                    className={[
-                      'odyssey-group-table__cell--sticky-right',
-                      actionToneClass(group.actionTone),
-                    ].filter(Boolean).join(' ')}
-                    onClick={handleActionCellClick}
-                  >
-                    {group.action}
-                  </td>
-                )}
-              </tr>
+                  {valueColumns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={[
+                        'odyssey-group-table__group-value',
+                        alignClass(col.align) || undefined,
+                      ].filter(Boolean).join(' ') || undefined}
+                    >
+                      {groupHeaderValue(group, col.key)}
+                    </td>
+                  ))}
+                  {stickyActions && (
+                    /* The action is its own affordance — clicking it must not
+                       toggle the row the way the rest of the row does. The TONE
+                       lives on the cell (not the slotted node) because the hover
+                       fill is the cell's own background — a slotted node cannot
+                       paint its ancestor. */
+                    <td
+                      className={[
+                        'odyssey-group-table__cell--sticky-right',
+                        actionToneClass(group.actionTone),
+                      ].filter(Boolean).join(' ')}
+                      onClick={handleActionCellClick}
+                    >
+                      {group.action}
+                    </td>
+                  )}
+                </tr>
+              )}
 
               {open && nested && (
                 /* The second table. One full-width cell hosts it, so its columns
@@ -749,6 +791,10 @@ export function hasGroupBody(group, { detailColumns, detailSections } = {}) {
  * group can have a body and still not get a toggle, when the group opts out.
  *
  * Precedence:
+ *   0. `opts.flat` always wins first — the table-level flat mode where NO
+ *      group ever expands, chevron or otherwise (every group renders as an
+ *      ordinary data row instead of a group header). This is the single
+ *      place that decision is expressed; the render trusts it.
  *   1. `group.expandable === false` always wins — explicit opt-out. Until
  *      D7 (2026-08-30) this made the group's body unreachable too, so
  *      `expandable: false` was only usable on an EMPTY group — the render
@@ -765,10 +811,11 @@ export function hasGroupBody(group, { detailColumns, detailSections } = {}) {
  *      the consumer sets.
  *
  * @param {object} group
- * @param {{detailColumns?: Array, detailSections?: Array}} [opts]
+ * @param {{detailColumns?: Array, detailSections?: Array, flat?: boolean}} [opts]
  * @returns {boolean}
  */
 export function isGroupExpandable(group, opts = {}) {
+  if (opts.flat) return false
   if (group.expandable === false) return false
   return hasGroupBody(group, opts)
 }

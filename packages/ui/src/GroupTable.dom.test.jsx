@@ -691,3 +691,68 @@ describe('GroupTable — optional header strip (Figma 4183:773)', () => {
     expect(screen.getByRole('button', { name: 'Trail' }).closest(HEADER_SEL)).toBeTruthy()
   })
 })
+
+describe('GroupTable — flat mode', () => {
+  const FLAT_GROUPS = [
+    {
+      id: 'g1',
+      label: 'ALPHA',
+      values: { rank: '4', status: 'Accepted' },
+      rows: [{ name: 'child', rank: '1', status: 'child-row' }],
+      detailRows: [{ method: 'Automatic Update', user: 'Moses Johnson' }],
+      action: <button type="button">act</button>,
+    },
+    { id: 'g2', label: 'BETA', values: { rank: '2', status: 'ok' } },
+  ]
+
+  it('renders one row per group, no buttons/chevrons/aria-expanded, child rows never rendered even when rows are supplied', () => {
+    render(<GroupTable columns={COLUMNS} groups={FLAT_GROUPS} flat defaultExpanded />)
+    expect(screen.getByText('ALPHA')).toBeTruthy()
+    expect(screen.getByText('BETA')).toBeTruthy()
+    expect(screen.queryByText('child')).toBeNull()
+    expect(document.querySelector('.odyssey-group-table__chevron')).toBeNull()
+    expect(document.querySelector('[aria-expanded]')).toBeNull()
+    // No toggle buttons anywhere (stickyActions off here, so no action cell either).
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('each group row has one <td> per column (no merged colSpan lead cell) with values under the right columns', () => {
+    render(<GroupTable columns={COLUMNS} groups={FLAT_GROUPS} flat />)
+    const alphaRow = screen.getByText('ALPHA').closest('tr')
+    const cells = alphaRow.querySelectorAll('td')
+    // 3 outer columns + 1 sticky action column (stickyActions not enabled here → 3)
+    expect(cells).toHaveLength(3)
+    expect(cells[0].getAttribute('colspan')).toBeNull()
+    expect(cells[0].textContent).toBe('ALPHA')
+    expect(cells[1].textContent).toBe('4')
+    expect(cells[2].textContent).toBe('Accepted')
+  })
+
+  it('falls back to group.label in the lead column when there is no lead value', () => {
+    const groups = [{ id: 'g1', label: 'GAMMA', values: { rank: '9' } }]
+    render(<GroupTable columns={COLUMNS} groups={groups} flat />)
+    const row = screen.getByText('GAMMA').closest('tr')
+    expect(row.querySelectorAll('td')[0].textContent).toBe('GAMMA')
+  })
+
+  it('flat + stickyActions still renders the action cell', () => {
+    render(<GroupTable columns={COLUMNS} groups={FLAT_GROUPS} flat stickyActions />)
+    const alphaRow = screen.getByText('ALPHA').closest('tr')
+    expect(alphaRow.querySelector(STICKY)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'act' })).toBeTruthy()
+  })
+
+  it('flat + footerRow still renders the totals row', () => {
+    render(<GroupTable columns={COLUMNS} groups={FLAT_GROUPS} flat footerRow={{ name: 'TOTAL', rank: '6' }} />)
+    expect(screen.getByText('TOTAL')).toBeTruthy()
+  })
+
+  it('regression: without flat, existing group/expand behaviour is unchanged', () => {
+    const groups = [{ id: 'g1', label: 'ALPHA', rows: [{ name: 'a', rank: '1', status: 'ok' }] }]
+    render(<GroupTable columns={COLUMNS} groups={groups} defaultExpanded={false} />)
+    const button = screen.getByRole('button', { name: /ALPHA/ })
+    expect(button.querySelector('.odyssey-group-table__chevron')).toBeTruthy()
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+  })
+})

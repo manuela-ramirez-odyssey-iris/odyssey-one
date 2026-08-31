@@ -56,6 +56,7 @@ export const props = [
   { name: 'groups[].actionTone', type: "'danger' | 'warning' | 'success' | 'info'", desc: 'Colour scheme (glyph + background) for that row\'s pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL\'s background — a slotted node cannot paint its own ancestor. An unrecognised value degrades to neutral.' },
   { name: 'groups[].action', type: 'node', desc: 'Content of that group row\'s pinned action cell. A PURE SLOT — the component supplies no behavior or tone. By convention pass an `ActionMenu` (the canonical row-action control, same as DataTable\'s action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. Clicks are stopped from toggling the row.' },
   { name: 'header', type: '{ title, icon?, trail? }', desc: 'Optional 48px strip above the column-header row (Figma 4183:773 "Header" frame): icon + bold title left, empty trailing slot right. Presence renders the strip; omit it (the default) for the unchanged, released look. `icon` is a caller-supplied node (e.g. a lucide element) — the component hardcodes none. The table is `aria-labelledby` the title.' },
+  { name: 'flat', type: 'boolean', desc: 'Default false. Table-level mode: every group renders as ONE ordinary data row (regular weight, one `<td>` per column via `groupHeaderValue`, lead column falling back to `group.label`) instead of the bold merged-label group-header row. Nothing expands — no chevron, no button, no row click, no aria-expanded, no child rows/detail band/note, regardless of `rows`/`detailRows`. Rows stay white (reuses the same white background as `striped={false}`).' },
 ]
 
 export const tokens = [
@@ -461,6 +462,7 @@ function Playground() {
   const [stickyActions, setStickyActions] = useState(false)
   const [narrow, setNarrow] = useState(false)
   const [showHeader, setShowHeader] = useState(false)
+  const [flat, setFlat] = useState(false)
   // detailNote is per-group and optional in the API; this toggle just strips it
   // from the demo data so both states are visible (nested flavor only).
   const [showDetailNote, setShowDetailNote] = useState(true)
@@ -513,6 +515,7 @@ function Playground() {
     header: showHeader
       ? { title: 'Prior Tender List', icon: <TruckElectric {...ICON_LG} />, trail: null }
       : undefined,
+    flat,
   }
 
   return (
@@ -544,6 +547,7 @@ function Playground() {
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
         <Toggle label="header (title strip above column headers)" value={showHeader} set={setShowHeader} />
+        <Toggle label="flat (every group = one white data row, nothing expands)" value={flat} set={setFlat} />
         {flavor === 'nested' && (
           <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
         )}
