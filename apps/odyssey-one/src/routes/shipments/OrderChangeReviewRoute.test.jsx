@@ -7,7 +7,7 @@
 // hand-rolled hook mock.
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderChangeReviewRoute from './OrderChangeReviewRoute.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
@@ -68,10 +68,24 @@ const ORDER_CHANGE_DETAIL = {
 
 const NO_ORDER_CHANGE_DETAIL = { ...ORDER_CHANGE_DETAIL, orderChange: null }
 
-// `state` mirrors ShipmentTable.jsx's row-menu navigate() call — present on a
-// real row click, ABSENT on a refresh or a pasted URL (MemoryRouter drops
-// state exactly like a real browser reload would).
-function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment } = {}) {
+// Task 11 — "not-returned" fixture (LINX-14513): the prior carrier did NOT
+// come back from re-routing, so `newOption.apCost` is null. Everything else
+// mirrors ORDER_CHANGE_DETAIL — same carrier, same prior side — only the
+// re-routing outcome differs.
+const NOT_RETURNED_DETAIL = {
+  ...ORDER_CHANGE_DETAIL,
+  orderChange: {
+    ...ORDER_CHANGE_DETAIL.orderChange,
+    scenario: 'not-returned',
+    newOption: { ...ORDER_CHANGE_DETAIL.orderChange.newOption, apCost: null },
+  },
+}
+
+// Task 11 — renders whatever lands at "/shipments" after a resolution.
+// Defaults to the plain marker the existing tests already assert on;
+// `shipmentsElement` lets a navigation test swap in a location probe instead
+// of mocking useNavigate, per the task brief's preferred idiom.
+function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment, shipmentsElement } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
@@ -84,7 +98,7 @@ function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment } = {}) {
             }]}>
               <Routes>
                 <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
-                <Route path="/shipments" element={<div>shipments list</div>} />
+                <Route path="/shipments" element={shipmentsElement ?? <div>shipments list</div>} />
               </Routes>
             </MemoryRouter>
           </CustomersProvider>
@@ -92,6 +106,14 @@ function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment } = {}) {
       </EditModeProvider>
     </QueryClientProvider>,
   )
+}
+
+// Task 11 — location probe for the navigation test: renders the exact
+// `location.state` the route navigated with, so the assertion is on real
+// router state rather than a mocked useNavigate call.
+function LocationProbe() {
+  const location = useLocation()
+  return <div>landed with state: {JSON.stringify(location.state)}</div>
 }
 
 afterEach(() => {
@@ -157,5 +179,88 @@ describe('OrderChangeReviewRoute', () => {
     renderRoute()
     expect(await screen.findByText('Something went wrong loading this shipment.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
+  })
+
+  // Task 11 — end-to-end resolution wiring (LINX-14513/14514). These drive
+  // the actions card's own DOM (rendered inside the real route, not called
+  // as a standalone component like OrderChangeActionsCard.test.jsx does) to
+  // prove a click in the card actually reaches the mutation with the cost
+  // selection the card computed, not a value re-derived in the test.
+  test('Re tender on a returned scenario resolves with the pre-selected New Cost, untouched', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+
+    await waitFor(() => {
+      expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
+        action: 'retender',
+        priorTenderStatus: 'Accepted',
+        cost: { choice: 'new', amount: 2950 },
+      })
+    })
+  })
+
+  test('switching to Prior Cost then Bypass Tender resolves with the prior choice — proves the card selection reaches the route', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('radio', { name: 'Prior Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bypass Tender' }))
+
+    await waitFor(() => {
+      expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
+        action: 'bypass',
+        priorTenderStatus: 'Accepted',
+        cost: { choice: 'prior', amount: 2790 },
+      })
+    })
+  })
+
+  test('Re tender on a not-returned scenario defaults to Prior Cost — the disabled New Cost path never emits an unusable selection', async () => {
+    getSellShipmentDetail.mockResolvedValue(NOT_RETURNED_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+
+    await waitFor(() => {
+      expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
+        action: 'retender',
+        priorTenderStatus: 'Accepted',
+        cost: { choice: 'prior', amount: 2790 },
+      })
+    })
+  })
+
+  test('navigates to /shipments with the exceptions/order-change tab state after a successful resolution', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+
+    expect(
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'order-change' })}`),
+    ).toBeTruthy()
+  })
+
+  // The route's `finish()` passes only an `onSuccess` callback to
+  // resolve.mutate — there is no `onError`. That's a real gap (a failed
+  // resolution fails silently, with no retry/toast for the planner), but
+  // fixing it is a product decision outside this task's scope, so this test
+  // pins the CURRENT honest behaviour — stayed put, mutation settled — not a
+  // future error UI that doesn't exist yet.
+  test('a failed resolution does not navigate away (no error handling exists in the route today)', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    resolveOrderChange.mockRejectedValueOnce(new Error('boom'))
+    renderRoute()
+
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
+    fireEvent.click(cancelButton)
+
+    // disabled tracks resolve.isPending — it going back to false is the
+    // signal the rejected mutation actually settled, not just that time passed.
+    await waitFor(() => expect(cancelButton.disabled).toBe(false))
+    expect(screen.queryByText('shipments list')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Cancel tender' })).toBeTruthy()
   })
 })
