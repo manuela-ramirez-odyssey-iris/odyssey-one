@@ -2,6 +2,12 @@
 
 > Parallel to `progress.md` (the product-prototyping build log). This file is the **design-system / dev-tooling thread**: story packs and PM/dev-facing artifacts, dev mode, DSM work, and **normalization cycles** — anything about the design system and its delivery, as opposed to product feature prototyping and domain discoveries. Separate log so the two threads can run as independent agent work streams. Sessions numbered D1, D2, … A session touching both threads logs to both files with a one-line cross-reference.
 
+## Session D8 — August 31, 2026
+
+**`headerStyle` prop on GroupTable — the strip-style column header decoupled from `flat`.** User-authored during S135 and committed as its own D-thread change: `headerStyle: 'standard' | 'strip'` styles the column-header row independently of layout mode (default ALWAYS 'standard' — `flat` no longer implies anything about the header), mirroring Figma's independent `Header strip style` / `Header standard style` boolean pair. The `--flat-head` class now keys off the resolved value, never off `striped` (a `striped={false}` table must not grow a strip header). First consumer: S135's Tender Details segment tables, whose "Changed Fields" / "Unchanged Fields" labels ride strip-style header rows. Demos (GroupTable/HeaderStrip/FormField) + normalization tracker updated in the same commit. The product half is logged as **S135**.
+
+- **Carry-forwards (compounding from D7):** GroupTable now has TWO unreleased capabilities (`flat`/`expandable` semantics from D7, `headerStyle` from D8) and still owes **NORMALIZING flags in both DSMs, a version bump, its Figma-master sync (the new boolean pair exists in Figma but the code prop is unpublished) and its Angular twin**. `HeaderStrip` still owes its master link, Code Connect and port. Nothing pushed to the Angular repo. A `defaultOpen` on ActionMenu was built and reverted inside S135 — no debt from it.
+
 ## Session D7 — August 29–31, 2026
 
 **Two GroupTable capabilities pulled out by a real consumer — the S134 Order Change preview sections — plus the in-flight `HeaderStrip` extraction committed. The through-line: both changes were BUG FIXES wearing feature clothing. `expandable: false` already had a designed static-band visual and a demo written against it; it just swallowed its own rows, so the demo had been rendering an empty band since it was authored.** `packages/ui` **522 green**, monorepo **2082**. The product half is logged as **S134**.
