@@ -77,9 +77,9 @@ export default function App() {
         <Route path="/orders/create" element={<CreateOrderRoute />} />
         <Route path="/orders/:orderId" element={<OrderSummaryRoute />} />
         <Route path="/carriers" element={<Carriers />} />
-        {/* Must precede the /shipments/* wildcard below — a wildcard declared
-            first would swallow this path and the row menu's navigate() would
-            land back on the shipments table instead. */}
+        {/* Listed above the /shipments/* wildcard for readability only — react-router
+            v6 ranks routes by specificity, not declaration order, so a dynamic
+            segment here already outranks the splat below regardless of position. */}
         <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
         <Route path="/shipments/*" element={<ShipmentsRoute />} />
         <Route path="/spotbid" element={<SpotBidRoute />} />

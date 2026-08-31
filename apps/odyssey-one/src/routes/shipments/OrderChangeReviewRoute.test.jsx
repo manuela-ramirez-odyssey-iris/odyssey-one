@@ -21,6 +21,10 @@ vi.mock('../../api/services/shipmentService', () => ({
 import { getSellShipmentDetail, resolveOrderChange } from '../../api/services/shipmentService'
 
 const SELL_SHIPMENT = '25319141'
+// The user-facing id (LINX-11591/12490) — distinct from SELL_SHIPMENT on
+// purpose, so a test asserting the wrong one fails loudly instead of passing
+// by coincidence (the bug this whole fix-round guards against).
+const BUY_SHIPMENT = '87654321'
 
 // Minimal-but-real OrderChangeVM shape (shipmentDetail.ts) — only `prior` is
 // read by the shell (priorTenderStatus in the resolution payload); the rest
@@ -64,14 +68,20 @@ const ORDER_CHANGE_DETAIL = {
 
 const NO_ORDER_CHANGE_DETAIL = { ...ORDER_CHANGE_DETAIL, orderChange: null }
 
-function renderRoute(sellShipment = SELL_SHIPMENT) {
+// `state` mirrors ShipmentTable.jsx's row-menu navigate() call — present on a
+// real row click, ABSENT on a refresh or a pasted URL (MemoryRouter drops
+// state exactly like a real browser reload would).
+function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
       <EditModeProvider>
         <CreateOrderModeProvider>
           <CustomersProvider>
-            <MemoryRouter initialEntries={[`/shipments/order-change/${sellShipment}`]}>
+            <MemoryRouter initialEntries={[{
+              pathname: `/shipments/order-change/${sellShipment}`,
+              state: buyShipment ? { buyShipment } : undefined,
+            }]}>
               <Routes>
                 <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
                 <Route path="/shipments" element={<div>shipments list</div>} />
@@ -91,10 +101,20 @@ afterEach(() => {
 })
 
 describe('OrderChangeReviewRoute', () => {
-  test('renders the page title with the shipment number', async () => {
+  test('renders the page title with the BUY shipment number when the row menu threaded it through nav state', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
-    renderRoute()
-    expect(await screen.findByText(`Buy Shipment ${SELL_SHIPMENT}`)).toBeTruthy()
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    expect(await screen.findByText(`Buy Shipment ${BUY_SHIPMENT}`)).toBeTruthy()
+    // guards the exact bug this fix-round found: the sell id must never be
+    // rendered under the "Buy Shipment" label.
+    expect(screen.queryByText(`Buy Shipment ${SELL_SHIPMENT}`)).toBeNull()
+  })
+
+  test('degrades to "Shipment {sellShipment}" when nav state has no buy number (refresh / pasted URL)', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute() // no state — same as a hard refresh landing on the deep link
+    expect(await screen.findByText(`Shipment ${SELL_SHIPMENT}`)).toBeTruthy()
+    expect(screen.queryByText(/Buy Shipment/)).toBeNull()
   })
 
   test('renders the Cancel tender button', async () => {
@@ -121,9 +141,9 @@ describe('OrderChangeReviewRoute', () => {
 
   test('a shipment with orderChange: null renders the empty state instead of crashing', async () => {
     getSellShipmentDetail.mockResolvedValue(NO_ORDER_CHANGE_DETAIL)
-    renderRoute()
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
     expect(await screen.findByText('No order change to review for this shipment.')).toBeTruthy()
-    expect(screen.queryByText(`Buy Shipment ${SELL_SHIPMENT}`)).toBeNull()
+    expect(screen.queryByRole('heading')).toBeNull()
   })
 
   test('renders a loading state while the detail query is in flight', () => {

@@ -6,7 +6,7 @@
 // label also went Retry → Reload with the Figma design.
 import { describe, test, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ShipmentTable from './ShipmentTable.jsx'
 
 afterEach(cleanup)
@@ -114,5 +114,30 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
     // The regular actions menu still works, unregressed.
     expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: 'Tender by Preferred Carrier' })).toBeTruthy()
+  })
+
+  // Fix-round (2026-08-30): the review route's header used to render the
+  // sell id under a "Buy Shipment" label. buyShipment (LINX-11591/12490 — THE
+  // user-facing id, ColumnPanel.jsx:92) isn't on the detail DTO the review
+  // route fetches, so it has to ride in nav state from here instead — this
+  // pins that the row menu actually sends it, not just that the URL is right.
+  test('Review Order Change navigates to the sell id URL with buyShipment in nav state', () => {
+    function LocationProbe() {
+      const location = useLocation()
+      return <div data-testid="nav-probe">{JSON.stringify(location.state)}</div>
+    }
+    render(
+      <MemoryRouter initialEntries={['/shipments']}>
+        <Routes>
+          <Route path="/shipments" element={<ShipmentTable {...baseProps} shipments={[orderChangeRow]} />} />
+          <Route path="/shipments/order-change/:sellShipment" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Review Order Change' }))
+    expect(screen.getByTestId('nav-probe').textContent).toBe(
+      JSON.stringify({ buyShipment: orderChangeRow.buyShipment }),
+    )
   })
 })

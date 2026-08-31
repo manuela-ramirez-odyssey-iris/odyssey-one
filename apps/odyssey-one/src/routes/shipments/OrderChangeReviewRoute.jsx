@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
@@ -21,16 +21,26 @@ import '../../components/shipments/order-change/order-change.css'
 // so wiring them up later is additive, not a rewrite.
 //
 // ShipmentDetailVM (api/types/shipmentDetail.ts) carries no `buyShipment` or
-// timezone field — those live only on the shipments-table ROW vm
-// (shipmentRowVm.ts), which this route never fetches. The route param IS the
-// sell-shipment number, so the header uses it directly rather than a
-// nonexistent `detail.buyShipment`.
+// timezone field, and neither does the SellShipmentOut DTO it's mapped from
+// (tools/generate.mjs's `detail` object literal — verified: only `shipmentId`
+// (the sell id) is present; `buyShipment` exists solely on the shipments-table
+// ROW vm, built separately as `mainRow`). Adding it to the DTO would be a wire
+// -contract change requiring a regenerate/reseed, out of scope here — instead
+// the row menu (ShipmentTable.jsx) threads it through nav state, read below.
+// buyShipment is THE user-facing shipment ID (LINX-11591/12490,
+// ColumnPanel.jsx:92) — sellShipment is the internal wire key this route is
+// keyed on. state is lossy (gone on refresh/pasted URL), so the header falls
+// back to an honest "Shipment {sellShipment}" rather than mislabeling the
+// sell id as "Buy Shipment" when the buy number isn't known.
 export default function OrderChangeReviewRoute() {
   const { sellShipment } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const buyShipment = location.state?.buyShipment
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
   const resolve = useResolveOrderChange()
   const oc = detail?.orderChange
+  const headerTitle = buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
 
   // Tender Resolution Action (LINX-14515). Every exit off this screen —
   // Cancel tender here; retender/bypass will live in OrderChangeActionsCard,
@@ -83,7 +93,7 @@ export default function OrderChangeReviewRoute() {
           <EmptyState icon={<Inbox size={32} />} message="No order change to review for this shipment." />
         ) : (
           <div className="order-change__content">
-            <PageHeader title={`Buy Shipment ${sellShipment}`}>
+            <PageHeader title={headerTitle}>
               {/* Figma shows a bordered, non-primary action here ("outline"
                   in the mock's visual language). Button.jsx's own `outline`
                   variant is documented as dark-surface-only (white text,

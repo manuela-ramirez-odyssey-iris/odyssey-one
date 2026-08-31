@@ -281,8 +281,15 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           options={
             row.original.category === 'order-change'
               ? [
-                  // LINX-14509 — the review is required before tender actions unlock
-                  { label: 'Review Order Change', onSelect: () => navigate(`/shipments/order-change/${row.original.sellShipment}`) },
+                  // LINX-14509 — the review is required before tender actions unlock.
+                  // buyShipment (LINX-11591/12490 — THE user-facing shipment ID,
+                  // ColumnPanel.jsx:92) rides in nav state, not the URL: the
+                  // detail DTO the review route fetches (SellShipmentOut, see
+                  // mapSellShipmentOutToDetail.ts) never carries it, only this
+                  // row VM does. Lossy (gone on refresh/pasted URL) — the route
+                  // degrades to the honest "Shipment {sellShipment}" label when
+                  // state is absent rather than mislabeling the sell id as "Buy".
+                  { label: 'Review Order Change', onSelect: () => navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment } }) },
                   ...SHIPMENT_ACTIONS,
                 ]
               : SHIPMENT_ACTIONS
