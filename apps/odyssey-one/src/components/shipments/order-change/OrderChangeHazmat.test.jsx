@@ -99,11 +99,20 @@ describe('OrderChangeHazmat — Table mode', () => {
     expect(screen.queryByRole('button', { name: 'Line 87980' })).toBeNull()
   })
 
-  test('S134: Table mode per-line KV blocks are non-striped (white rows, hairlines), not tinted bands', () => {
-    // Figma 1931-9497 shows white per-line KV blocks with hairlines, not
-    // GroupTable's default tinted child-row bands.
+  test('S134: Table mode renders KV entry blocks, not a GroupTable (Figma 1931-9497)', () => {
+    // Correction 3 (S134): each line's block is a plain 3-column KV grid
+    // (comparison-preview__kv-grid--3col) under a bold "Line {n}" label, not
+    // a GroupTable row-per-field table.
     const { container } = render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
-    expect(container.querySelectorAll('.odyssey-group-table--flat').length).toBe(2)
+    expect(container.querySelectorAll('.odyssey-group-table').length).toBe(0)
+    expect(container.querySelectorAll('.comparison-preview__kv-grid--3col').length).toBe(4) // 2 lines x 2 sides
+  })
+
+  test('the two sides touch (zero-gap grid) with a vertical rule on the first side', () => {
+    const { container } = render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
+    const grid = container.querySelector('.comparison-preview__grid')
+    expect(grid.querySelectorAll(':scope > .comparison-preview__panel')).toHaveLength(2)
   })
 })

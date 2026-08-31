@@ -233,8 +233,70 @@
   gap: var(--spacing-4);
 }
 
+/* Table mode's two sides (S134, Figma 1931-7398/8797/9497) — the mock's
+   columns TOUCH (no gutter; the vertical rule below IS the seam), unlike
+   List mode's `__stack` which keeps a real gap between its two tables. */
 .comparison-preview__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-4);
+}
+
+/* One side of the Table-mode grid: a HeaderStrip band + stacked entry
+   blocks, composed directly (OrderChangeTenderLists/TenderDetails/Hazmat's
+   TableModeSide) rather than through GroupTable's `header` prop — the
+   strip's own two halves already form the mock's single header ROW spanning
+   both sides, so nesting it inside each side's own bordered/scrolling
+   GroupTable root is not needed. The vertical rule between Prior/New is the
+   left side's own right border — same idiom as
+   `.order-change-actions__panel:first-child`, above. */
+.comparison-preview__panel:first-child {
+  border-right: 1px solid var(--border-subtle);
+}
+
+/* One "entry" in a Table-mode side — a carrier (Tender List), a hazmat line
+   (Hazmat), or the sole comparison-field block (Tender Details). Hairline
+   BETWEEN entries only (not around every field) — `:last-child` drops the
+   trailing one so it doesn't double up with the card's own bottom edge. */
+.comparison-preview__entry {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.comparison-preview__entry:last-child {
+  border-bottom: none;
+}
+
+/* The entry's own bold identity label (Hazmat's "Line {n}" — Tender List has
+   none, measured: Carrier Name is just another KV field there). */
+.comparison-preview__entry-label {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-3);
+}
+
+/* The entry's KV grid — N fields per row (2 for Tender List/Details, 3 for
+   Hazmat via the `--3col` modifier), filling left-to-right then
+   top-to-bottom; CSS grid leaves a short final row's spare cell empty on its
+   own, no placeholder markup needed (Tender List's "Tender Status | —"). */
+.comparison-preview__kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: var(--spacing-5);
+  row-gap: var(--spacing-4);
+}
+.comparison-preview__kv-grid--3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* One KVField cell (comparisonHelpers.jsx) — label above value, same
+   "Term over Text" shape as order-change-actions__row but under this file's
+   own class names (S134 — the two preview surfaces don't share CSS). */
+.comparison-preview__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.comparison-preview__field-label {
+  color: var(--text-tertiary);
+}
+.comparison-preview__field-value {
+  color: var(--text-primary);
 }

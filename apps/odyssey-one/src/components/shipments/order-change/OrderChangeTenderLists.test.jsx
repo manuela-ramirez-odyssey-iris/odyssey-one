@@ -178,22 +178,35 @@ describe('OrderChangeTenderLists — Table mode', () => {
     expect(screen.getByText('New Tender List')).toBeTruthy()
   })
 
-  test('S134: Table mode KV blocks are non-striped (white rows, hairlines), not tinted bands', () => {
-    // Figma 1931-7398 shows white carrier KV blocks separated by hairlines,
-    // not GroupTable's default tinted child-row bands. `striped={false}`
-    // reuses the same root modifier class `flat` mode applies elsewhere in
-    // this file — pinned here so it can't silently regress back to striped.
+  test('S134: Table mode renders KV entry blocks, not a GroupTable (Figma 1931-7398)', () => {
+    // Correction 3 (S134): Table mode's carrier blocks are a plain 2-column
+    // KV grid (comparison-preview__kv-grid), not a GroupTable row-per-field
+    // table — GroupTable's own classes must not appear in Table mode at all.
     const { container } = render(<OrderChangeTenderLists oc={makeOc()} />)
     switchToTable()
-    expect(container.querySelectorAll('.odyssey-group-table--flat').length).toBe(2)
+    expect(container.querySelectorAll('.odyssey-group-table').length).toBe(0)
+    // 3 prior carriers + 2 new carriers = 5 entry blocks total.
+    expect(container.querySelectorAll('.comparison-preview__entry').length).toBe(5)
+    expect(container.querySelectorAll('.comparison-preview__kv-grid').length).toBe(5)
+  })
+
+  test('the two sides touch (zero-gap grid) with a vertical rule on the first side', () => {
+    // Correction 3 (S134): the mock's Prior/New columns touch — no gutter —
+    // separated only by a hairline, which is the first panel's own right
+    // border (`.comparison-preview__panel:first-child`, order-change.css).
+    const { container } = render(<OrderChangeTenderLists oc={makeOc()} />)
+    switchToTable()
+    const grid = container.querySelector('.comparison-preview__grid')
+    const panels = grid.querySelectorAll(':scope > .comparison-preview__panel')
+    expect(panels).toHaveLength(2)
   })
 
   test('Rank renders as a badge in Table mode', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
     switchToTable()
     const rankLabelCell = screen.getAllByText('Rank')[0]
-    const row = rankLabelCell.closest('tr')
-    expect(within(row).getByText('1').closest('span')?.className).toMatch(/text-badge/)
+    const field = rankLabelCell.closest('.comparison-preview__field')
+    expect(within(field).getByText('1').closest('span')?.className).toMatch(/text-badge/)
   })
 
   test('the header strip title is a plain label, not a toggle button', () => {

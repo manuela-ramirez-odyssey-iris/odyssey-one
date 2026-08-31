@@ -1,6 +1,6 @@
-import { GroupTable } from '@odyssey/ui'
+import { GroupTable, HeaderStrip } from '@odyssey/ui'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
-import { DiffValue, KV_COLUMNS, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
+import { DiffValue, KVField, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
 
 // "Preview Tender List" (LINX-14510/14511, Figma 1794-5544). Fields, in the
 // AC's own order, for List mode's columnar table (one row per carrier).
@@ -130,16 +130,11 @@ function renderListCell(row, col, changeMap) {
   return val(row[col.key])
 }
 
-function kvRowsFor(carrier, changeMap, fields) {
-  const changed = changedFieldsFor(carrier, changeMap)
-  return fields.map(({ key, label }) => {
-    let value
-    if (key === 'rank') value = <DiffValue value={carrier.rank} changed={changed.rank} asBadge />
-    else if (key === 'routeRank') value = <DiffValue value={carrier.routeRank} changed={changed.routeRank} />
-    else if (key === 'cost') value = <DiffValue value={carrier.cost} changed={changed.cost} />
-    else value = val(carrier[key])
-    return { label, value }
-  })
+function kvValue(carrier, key, changed) {
+  if (key === 'rank') return <DiffValue value={carrier.rank} changed={changed.rank} asBadge />
+  if (key === 'routeRank') return <DiffValue value={carrier.routeRank} changed={changed.routeRank} />
+  if (key === 'cost') return <DiffValue value={carrier.cost} changed={changed.cost} />
+  return val(carrier[key])
 }
 
 /**
@@ -155,30 +150,40 @@ function ListModeTable({ label, rows, columns, changeMap }) {
 }
 
 /**
- * Table mode's side: one `expandable: false` KV group PER CARRIER, each
- * carrying SEVERAL key/value rows (one per field) beneath its label.
- *
- * NOT converted to `flat` (S134): flat renders exactly one row per group,
- * but a carrier's KV block is N rows (Rank, SCAC, Equipment, …) under ONE
- * carrier-name header — the two shapes don't match. Forcing flat here would
- * mean either losing the per-field rows or inventing a per-field group (i.e.
- * re-deriving the current shape by another name), so this stays on the
- * ordinary rows flavor. The list's own name goes through GroupTable's
- * `header` strip since no single group can carry it (there are N carriers).
- *
- * `striped={false}` (S134, Figma 1931-7398): the mock's KV blocks are white
- * with hairline dividers, not the tinted gray bands `striped`'s default
- * gives child rows — the structure was already right, only the child-row
- * background was wrong.
+ * Table mode's side (S134, Figma 1931-7398): a HeaderStrip band ("Prior
+ * Tender List"/"New Tender List") composed DIRECTLY — not GroupTable's
+ * `header` prop — because the mock's header is ONE row of two half-width
+ * cells sitting ABOVE BOTH sides (see OrderChangeTenderLists' own
+ * `comparison-preview__grid`, order-change.css), not a band nested inside
+ * each side's own table. Below it, one plain entry block PER CARRIER — no
+ * bold carrier-name header (measured: the mock shows no such label, Carrier
+ * Name is just one of the nine KV fields) — each a 2-column KV grid via
+ * `KVField` (comparisonHelpers.jsx), NOT a GroupTable row: the mock's fields
+ * are two-per-row with label ABOVE value, a shape GroupTable's rows flavor
+ * (one field per <tr>, unconditional hairline under every row) can't express
+ * without either losing the pairing or adding a hairline between every
+ * field instead of only between carriers.
  */
 function TableModeSide({ title, carriers, changeMap, fields }) {
-  const groups = carriers.map((c, i) => ({
-    id: `${c.scac}-${c.equipment}-${i}`,
-    label: c.carrierName || c.scac,
-    expandable: false,
-    rows: kvRowsFor(c, changeMap, fields),
-  }))
-  return <GroupTable header={{ title }} columns={KV_COLUMNS} groups={groups} striped={false} />
+  return (
+    <div className="comparison-preview__panel">
+      <HeaderStrip title={title} />
+      {carriers.map((c, i) => {
+        const changed = changedFieldsFor(c, changeMap)
+        return (
+          <div key={`${c.scac}-${c.equipment}-${i}`} className="comparison-preview__entry">
+            <div className="comparison-preview__kv-grid">
+              {fields.map(({ key, label }) => (
+                <KVField key={key} label={label}>
+                  {kvValue(c, key, changed)}
+                </KVField>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export default function OrderChangeTenderLists({ oc }) {

@@ -1,6 +1,6 @@
-import { GroupTable } from '@odyssey/ui'
+import { GroupTable, HeaderStrip } from '@odyssey/ui'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
-import { DiffValue, KV_COLUMNS, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
+import { DiffValue, KVField, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
 
 // "Preview Hazardous Material Information" (LINX-14509…14515). oc.hazmat is
 // an array of { prior, new } OrderChangeHazmatLineVM pairs (api/types/
@@ -59,30 +59,38 @@ function renderListCell(row, col) {
   return <DiffValue value={row[col.key]} changed={row._changed[col.key]} />
 }
 
-// Table mode's side: one static KV group PER LINE, labelled "Line {n}",
-// each carrying the five hazmat fields as its own KV rows.
-//
-// NOT converted to `flat` (S134): this is the exact shape the task calls
-// out by name — a per-entity label ("Line 87979") with several key/value
-// rows beneath it. Flat renders one row per group; a line's KV block is
-// five. See OrderChangeTenderLists' TableModeSide for the fuller reasoning,
-// which applies here unchanged.
-//
-// `striped={false}` (S134, Figma 1931-9497): the mock's per-line KV blocks
-// are white with hairlines, not tinted bands — same fix, no structural
-// change.
+/**
+ * Table mode's side (S134, Figma 1931-9497): a HeaderStrip band ("Prior
+ * Tender"/"New Tender") composed directly, then one entry block PER LINE —
+ * a bold "Line {n}" label (measured: unlike Tender List, the mock DOES show
+ * this per-entity header) above a 3-COLUMN KV grid of the five hazmat
+ * fields. Not a GroupTable row for the same reason as OrderChangeTenderLists'
+ * TableModeSide: the fields are three-per-row with label above value, which
+ * GroupTable's rows flavor can't express without an unwanted hairline
+ * between every field.
+ */
 function TableModeSide({ title, pairs, side, fields }) {
-  const groups = pairs.map((p, i) => {
-    const changed = changedFieldsFor(p)
-    const line = p[side]
-    return {
-      id: `${line.line}-${i}`,
-      label: `Line ${line.line}`,
-      expandable: false,
-      rows: fields.map(({ key, label }) => ({ label, value: <DiffValue value={line[key]} changed={changed[key]} /> })),
-    }
-  })
-  return <GroupTable header={{ title }} columns={KV_COLUMNS} groups={groups} striped={false} />
+  return (
+    <div className="comparison-preview__panel">
+      <HeaderStrip title={title} />
+      {pairs.map((p, i) => {
+        const changed = changedFieldsFor(p)
+        const line = p[side]
+        return (
+          <div key={`${line.line}-${i}`} className="comparison-preview__entry">
+            <div className="text-label-base-semibold comparison-preview__entry-label">Line {line.line}</div>
+            <div className="comparison-preview__kv-grid comparison-preview__kv-grid--3col">
+              {fields.map(({ key, label }) => (
+                <KVField key={key} label={label}>
+                  <DiffValue value={line[key]} changed={changed[key]} />
+                </KVField>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export default function OrderChangeHazmat({ oc }) {

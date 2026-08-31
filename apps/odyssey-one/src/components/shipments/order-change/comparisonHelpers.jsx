@@ -18,10 +18,27 @@ export function DiffValue({ value, changed, asBadge = false }) {
   return asBadge ? <Badge variant="gray">{display}</Badge> : <span>{display}</span>
 }
 
-// Table mode's key/value column pair. No header text — GroupTable renders
-// whatever `col.label` says, and a KV block's own rows already carry the
-// field name in the `label` column.
-export const KV_COLUMNS = [{ key: 'label', width: 180 }, { key: 'value' }]
+// Table mode's entry KV grid (S134, Figma 1931-7398/8797/9497): a plain
+// "Term over Text" cell — label small/gray above, value medium/dark below —
+// laid out N-per-row by the CSS grid the caller wraps these in
+// (`.comparison-preview__kv-grid[--3col]`). This is NOT a GroupTable row:
+// the mock's entry blocks are two/three fields wide per row with no table
+// semantics, a shape GroupTable's rows flavor (one field per <tr>) can't
+// express without either losing the pairing or forcing an unwanted hairline
+// between every field (GroupTable child rows always carry their own
+// border-bottom — see GroupTable.jsx `.odyssey-group-table__row td`). Same
+// "Term"/"Text" idiom OrderChangeActionsCard's ComparisonField already uses
+// for its own Prior|New panel, kept as a separate component (not imported
+// from that file) so the two preview surfaces don't reach into each other's
+// internals — this one owns its own `comparison-preview__field*` classes.
+export function KVField({ label, children }) {
+  return (
+    <div className="comparison-preview__field">
+      <div className="text-label-sm-regular comparison-preview__field-label">{label}</div>
+      <div className="text-label-sm-medium comparison-preview__field-value">{children}</div>
+    </div>
+  )
+}
 
 /**
  * Turns a flat array of data rows into GroupTable `flat`-mode groups: one

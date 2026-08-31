@@ -4,6 +4,14 @@
 // against generate.mjs's `comparison` builder): field, source, prior, new,
 // changed. Real seed field name is 'Pickup Date/Time' (not 'Pick Up
 // Date/Time' as the task brief spelled it).
+//
+// S134 — Corrections 1/2/3/4: dropped the old 3-column table (field | Prior
+// Tender | New Tender) and its "Changed Fields"/"Unchanged Fields" band
+// split. List mode is now the same sibling shape OrderChangeTenderLists/
+// OrderChangeHazmat already use — two stacked flat GroupTables, each headed
+// "Prior Tender List"/"New Tender List", every field listed once. Table mode
+// composes a HeaderStrip ("Prior Tender"/"New Tender", matching Figma
+// 1931-8797) above a plain 2-column KV grid, not a GroupTable.
 import { afterEach, describe, expect, test } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import OrderChangeTenderDetails from './OrderChangeTenderDetails.jsx'
@@ -46,18 +54,37 @@ describe('OrderChangeTenderDetails — chrome', () => {
   })
 })
 
-describe('OrderChangeTenderDetails — List mode (default)', () => {
-  test('renders both Changed Fields and Unchanged Fields bands, changed first', () => {
+describe('OrderChangeTenderDetails — no Changed/Unchanged split anywhere (S134)', () => {
+  test('the band labels never appear in List mode', () => {
     render(<OrderChangeTenderDetails oc={makeOc()} />)
-    const changed = screen.getByText('Changed Fields')
-    const unchanged = screen.getByText('Unchanged Fields')
-    expect(changed).toBeTruthy()
-    expect(unchanged).toBeTruthy()
-    // DOM order: the changed band's row comes before the unchanged band's.
-    expect(changed.compareDocumentPosition(unchanged) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByText('Changed Fields')).toBeNull()
+    expect(screen.queryByText('Unchanged Fields')).toBeNull()
   })
 
-  test("a changed row's prior AND new values are inside badges", () => {
+  test('the band labels never appear in Table mode', () => {
+    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
+    expect(screen.queryByText('Changed Fields')).toBeNull()
+    expect(screen.queryByText('Unchanged Fields')).toBeNull()
+  })
+})
+
+describe('OrderChangeTenderDetails — List mode (default)', () => {
+  test('the header band shows Prior Tender List / New Tender List, not a 3-column table', () => {
+    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    const priorHeader = screen.getByText('Prior Tender List')
+    const newHeader = screen.getByText('New Tender List')
+    expect(priorHeader).toBeTruthy()
+    expect(newHeader).toBeTruthy()
+    // Two SEPARATE tables (one per side), not one shared 3-column table —
+    // an unchanged field (no filter chip competing for the same text) shows
+    // up exactly twice, once per side.
+    expect(screen.getAllByText('Incoterm Info')).toHaveLength(2)
+    // DOM order: Prior precedes New.
+    expect(priorHeader.compareDocumentPosition(newHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  test("a changed field's prior AND new values are each inside a purple badge", () => {
     render(<OrderChangeTenderDetails oc={makeOc()} />)
     const prior = screen.getByText('282 MI')
     const next = screen.getByText('301 MI')
@@ -65,7 +92,7 @@ describe('OrderChangeTenderDetails — List mode (default)', () => {
     expect(next.closest('span')?.className).toMatch(/text-badge/)
   })
 
-  test("an unchanged row's values are not inside badges", () => {
+  test("an unchanged field's values are not inside badges", () => {
     render(<OrderChangeTenderDetails oc={makeOc()} />)
     const values = screen.getAllByText('FOB')
     for (const v of values) {
@@ -73,14 +100,12 @@ describe('OrderChangeTenderDetails — List mode (default)', () => {
     }
   })
 
-  test('the static band labels are plain labels, not toggle buttons', () => {
+  test('the header bands are plain labels, not toggle buttons', () => {
     render(<OrderChangeTenderDetails oc={makeOc()} />)
-    // GroupTable's `expandable: false` static band renders the label as
-    // plain text — no chevron, no button, no aria-expanded. A regression
-    // back to a toggle would still pass a getByText check, so this asserts
-    // the negative directly (review finding, S134).
-    expect(screen.queryByRole('button', { name: 'Changed Fields' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Unchanged Fields' })).toBeNull()
+    // GroupTable's `header` strip is never a toggle — no chevron, no button,
+    // no aria-expanded (review finding, S134).
+    expect(screen.queryByRole('button', { name: 'Prior Tender List' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New Tender List' })).toBeNull()
   })
 })
 
@@ -94,46 +119,56 @@ describe('OrderChangeTenderDetails — Table mode', () => {
     switchToTable()
     expect(screen.getByText('Prior Tender')).toBeTruthy()
     expect(screen.getByText('New Tender')).toBeTruthy()
-    // Every comparison field appears as a KV label, once (shared across
-    // both sides' tables since the field name is the row label there too).
+    // Every comparison field appears as a KV label, once per side.
     expect(screen.getAllByText('Distance').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Incoterm Info').length).toBeGreaterThan(0)
   })
 
-  test('the static group labels are plain labels, not toggle buttons', () => {
+  test('the header strips are plain labels, not toggle buttons', () => {
     render(<OrderChangeTenderDetails oc={makeOc()} />)
     switchToTable()
-    // Same static-band regression guard as List mode, for Table mode's two
-    // per-side static groups (review finding, S134).
     expect(screen.queryByRole('button', { name: 'Prior Tender' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New Tender' })).toBeNull()
   })
 
-  test('S134: Table mode KV blocks are non-striped (white rows, hairlines), not tinted bands', () => {
-    // Figma 1931-8797 shows white Prior/New KV blocks with hairlines, not
-    // GroupTable's default tinted child-row bands.
+  test('S134: Table mode renders a KV entry grid, not a GroupTable (Figma 1931-8797)', () => {
     const { container } = render(<OrderChangeTenderDetails oc={makeOc()} />)
     switchToTable()
-    expect(container.querySelectorAll('.odyssey-group-table--flat').length).toBe(2)
+    expect(container.querySelectorAll('.odyssey-group-table').length).toBe(0)
+    expect(container.querySelectorAll('.comparison-preview__kv-grid').length).toBe(2) // one per side
+  })
+
+  test('the two sides touch (zero-gap grid) with a vertical rule on the first side', () => {
+    const { container } = render(<OrderChangeTenderDetails oc={makeOc()} />)
+    switchToTable()
+    const grid = container.querySelector('.comparison-preview__grid')
+    expect(grid.querySelectorAll(':scope > .comparison-preview__panel')).toHaveLength(2)
+  })
+
+  test('a changed field is purple; an unchanged one is not', () => {
+    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    switchToTable()
+    const changed = screen.getAllByText('282 MI')[0]
+    expect(changed.closest('span')?.className).toMatch(/text-badge/)
+    const unchanged = screen.getAllByText('FOB')[0]
+    expect(unchanged.closest('span')?.className || '').not.toMatch(/text-badge/)
   })
 })
 
 describe('OrderChangeTenderDetails — filtering', () => {
-  test('filtering by a badge narrows to that field; clicking again restores', () => {
+  test('filtering by a badge narrows to that field on both sides; clicking again restores', () => {
     render(<OrderChangeTenderDetails oc={makeOc()} />)
     const badge = screen.getByRole('button', { name: 'Distance' })
     fireEvent.click(badge)
     // 'Distance' now matches both the (still-visible) filter badge and the
-    // one surviving table row — getAllByText, not getByText. The OTHER
-    // badges (Package Count) also stay visible — filtering narrows table
-    // ROWS, not the badge list itself — so assert on table CELLS, not text
-    // anywhere on the page.
+    // surviving field cell on each of the two stacked tables.
     expect(screen.getAllByText('Distance').length).toBeGreaterThan(0)
-    expect(screen.queryByRole('cell', { name: 'Package Count' })).toBeNull()
-    expect(screen.queryByRole('cell', { name: 'Incoterm Info' })).toBeNull()
+    expect(screen.queryAllByRole('cell', { name: 'Package Count' })).toHaveLength(0)
+    expect(screen.queryAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(0)
 
     fireEvent.click(badge)
-    expect(screen.getByRole('cell', { name: 'Package Count' })).toBeTruthy()
-    expect(screen.getByRole('cell', { name: 'Incoterm Info' })).toBeTruthy()
+    // Unfiltered: the field name renders once per side (two stacked tables).
+    expect(screen.getAllByRole('cell', { name: 'Package Count' })).toHaveLength(2)
+    expect(screen.getAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(2)
   })
 })
