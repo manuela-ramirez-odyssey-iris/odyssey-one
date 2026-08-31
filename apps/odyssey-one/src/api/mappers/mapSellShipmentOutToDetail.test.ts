@@ -908,6 +908,14 @@ describe('mapSellShipmentOutToDetail', () => {
   })
 
   describe('mapOrderChange (LINX-14509…14515)', () => {
+    // S135 — the hazmat line grew to Jana's full 11-field list (mock deck p5).
+    const hazLine = {
+      line: 87001, boilingPoint: '200 F', flashPoint: '140 F', hazmatClass: 'II',
+      hazmatCode: 'UN0010', hazmatPkgGroup: 'II', hazmatDescription: 'Corrosive',
+      itemDescription: 'UN0010', marinePollutant: 'N',
+      shippingClass: '75', tunnelCode: '1', wgkClass: 'II',
+    }
+
     const orderChange: NonNullable<SellShipmentOut['orderChange']> = {
       scenario: 'not-returned',
       prior: {
@@ -929,11 +937,32 @@ describe('mapSellShipmentOutToDetail', () => {
       ],
       hazmat: [
         {
-          prior: { line: 87001, boilingPoint: '200 F', hazmatClass: 'II', hazmatDescription: 'Corrosive', itemDescription: 'UN0010', marinePollutant: 'N' },
-          new: { line: 87001, boilingPoint: '200 F', hazmatClass: 'II', hazmatDescription: 'Corrosive', itemDescription: 'UN0010', marinePollutant: 'N' },
+          prior: { ...hazLine },
+          new: { ...hazLine },
         },
       ],
+      // S135 — per-version dropped lists (LINX-14510).
+      droppedCarriers: {
+        prior: [],
+        new: [{
+          scac: 'ABFS', carrierName: 'ABF FREIGHT SYSTEM', equipment: 'VAN', routeRank: null,
+          apCost: 1901.56, dropCode: 23, reason: 'Missing Transit Time',
+          reasonDescription: 'Transit time could not be calculated due to missing transit or distance data.',
+        }],
+      },
     }
+
+    it('maps orderChange: the new version\'s dropped carriers, with an older payload degrading to empty', () => {
+      const vm = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, orderChange } as never).orderChange!
+      expect(vm.droppedCarriers.new).toHaveLength(1)
+      expect(vm.droppedCarriers.new[0].reason).toBe('Missing Transit Time')
+      expect(vm.droppedCarriers.prior).toEqual([])
+      // Pre-S135 payloads have no droppedCarriers key at all.
+      const legacy = { ...orderChange } as Record<string, unknown>
+      delete legacy.droppedCarriers
+      const old = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, orderChange: legacy } as never).orderChange!
+      expect(old.droppedCarriers).toEqual({ prior: [], new: [] })
+    })
 
     it('maps orderChange: tender lists through mapRoutingOption, carriers and comparison verbatim', () => {
       const vm = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, orderChange } as never).orderChange!

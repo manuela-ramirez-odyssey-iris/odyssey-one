@@ -1148,11 +1148,27 @@ function generateShipment(index, chainOverride) {
       validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd() * VALIDATION_MESSAGES['order-change'].length)];
     }
   }
+  // Hoisted above the order-change block (S135) so the review payload can
+  // reuse the PRIOR tender version's dropped list instead of drawing a second
+  // opinion about it. Same single call per shipment, just earlier — no extra
+  // droppedFaker draws, so the dropped population is byte-identical.
+  const droppedCarrierList = buildDroppedCarriers(routingCarriers, equipmentCode, { baseDate, originTz, destTz });
   if (category === 'order-change') {
     const totalPackages = orders.reduce((s, o) => s + o.orderPackages, 0);
+    // The 8 order/stop-sourced comparison fields (S135) are read from the
+    // shipment's OWN already-built facts — first pickup stop, last delivery
+    // stop, its customer, freight terms and planning type — never invented
+    // here, so the compare screen can't contradict the Stops/Order tabs of
+    // the same shipment.
+    const firstPickup = stops.find(s => s.stopType === 'pickup') ?? stops[0];
+    const lastDelivery = [...stops].reverse().find(s => s.stopType === 'delivery') ?? stops[stops.length - 1];
     orderChangePayload = buildOrderChange(sellShipment, routingOptions, {
       tenderStatus, baseDate, originTz, destTz, routingDeliveryDates,
       grossWeight, totalVolume, totalPackages,
+      customer, freightTerms, planningType, firstPickup, lastDelivery,
+      // The prior tender version's own dropped list = the shipment's already
+      // built droppedCarrierList (S135), never re-drawn here.
+      priorDropped: droppedCarrierList,
     });
   }
 
@@ -2007,7 +2023,7 @@ function generateShipment(index, chainOverride) {
     shippingOptionList: routingOptions,
     // LINX-13953. Rides inside shipments.detail, which sellShipmentDetail()
     // returns verbatim — no migration, no API change, no seed change.
-    droppedCarrierList: buildDroppedCarriers(routingCarriers, equipmentCode, { baseDate, originTz, destTz }),
+    droppedCarrierList,
     documentList: documents,
     noteList: notes,
     historyList: historyEntries,
@@ -2278,8 +2294,33 @@ const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + 
  *     roll-ups (computed once, above, from its actual orders), not a
  *     constant every order-change shipment would otherwise share.
  */
+/**
+ * Where a prior carrier that routing did NOT return would land if the planner
+ * keeps it — the rank the New panel predicts (LINX-14513, and Jana's own
+ * walkthrough 2026-08-29 @12:36): *"the rule is it will go and place it in the
+ * last of that equipment… suppose ODFL was TL, it would place it here in
+ * between rank one and two. But in this case it is an LTH, the LTH will go
+ * within that equipment at the bottom."*
+ *
+ * So: one past the LAST option sharing its equipment code — NOT the bottom of
+ * the whole list (which is only correct when its equipment happens to sort
+ * last). With no option of that equipment in the new list at all, there is no
+ * group to sit under, so it appends.
+ *
+ * @param {Array<{rank:number, equipmentCode:string}>} newList
+ * @param {string} equipmentCode
+ */
+export function insertionRank(newList, equipmentCode) {
+  const group = newList.filter(o => o.equipmentCode === equipmentCode);
+  if (!group.length) return newList.length + 1;
+  return Math.max(...group.map(o => o.rank)) + 1;
+}
+
 function buildOrderChange(sellShipment, routingOptions, ctx) {
-  const { tenderStatus, baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages } = ctx;
+  const {
+    tenderStatus, baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages,
+    customer, freightTerms, planningType, firstPickup, lastDelivery, priorDropped,
+  } = ctx;
   // Distinct seed from the diversion gate's `mulberry32(seedFrom(sellShipment))`
   // (~line 1143) — NOT the same seed. The gate already proved its own first
   // draw is < 0.15 before this function is ever called; reusing that exact
@@ -2316,10 +2357,45 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     deliveryDateTime: formatDateTime(genDate(routingDeliveryDates[i], deliveryShiftDays), destTz),
     rateDetails: { ...o.rateDetails, baseRate: perturb(o.rateDetails.baseRate) },
   }));
-  // in 'not-returned' the prior carrier is absent — routing did not bring it back.
+  // WHICH carriers the re-route dropped (S135 — Jana, 2026-08-29 @31:23: *"I
+  // have asked Laura to include the drop carrier as well… suppose the new
+  // tender did not bring any carrier, but it dropped some of the carriers. I
+  // also would like to see the drop carrier on these"*; LINX-14510 "each
+  // Tender Option Version shall maintain its own Dropped Carrier list").
+  //
+  // Derived from the re-route rather than drawn as a separate population: a
+  // carrier is dropped from the new version exactly when it was in the prior
+  // tender list and is NOT in the new one, so the dropped list can never
+  // disagree with the two lists shown above it. That makes the
+  // 'not-returned' prior carrier a dropped carrier BY CONSTRUCTION — which is
+  // the whole point of the section: it's the screen's only answer to "why
+  // isn't my carrier in the new list".
+  //
+  // A 'returned' shipment would otherwise drop nothing at all (half the
+  // population, section permanently empty), so 0-2 OTHER carriers are also
+  // dropped — re-routing legitimately loses carriers on a date change. Drawn
+  // from the id-keyed `rnd`, never faker: zero effect on id allocation.
+  const otherScacs = shiftedOptions.map(o => o.scac).filter(s => s !== prior.scac);
+  const extraDropCount = Math.min(Math.floor(rnd() * 3), Math.max(0, otherScacs.length - 1));
+  const droppedScacs = new Set(otherScacs.slice(0, extraDropCount));
+  if (scenario === 'not-returned') droppedScacs.add(prior.scac);
+
   const newList = shiftedOptions
-    .filter(o => scenario === 'returned' || o.scac !== prior.scac)
+    .filter(o => !droppedScacs.has(o.scac))
     .map((o, i) => ({ ...o, rank: i + 1, status: '' }));
+
+  // One dropped row per carrier the new routing lost. `reason` picks from the
+  // same DROP_REASONS pool the shipment-level dropped list uses (weighted the
+  // same way), so the two surfaces speak one vocabulary.
+  const reasonPool = DROP_REASONS.flatMap(r => Array(r.weight).fill(r));
+  const newDropped = shiftedOptions.filter(o => droppedScacs.has(o.scac)).map(o => {
+    const reason = pickR(reasonPool);
+    return {
+      scac: o.scac, carrierName: o.carrierName, equipment: o.equipmentCode,
+      routeRank: o.routeRank, apCost: o.rateDetails.baseRate,
+      dropCode: reason.dropCode, reason: reason.reason, reasonDescription: reason.description,
+    };
+  });
   const newForPrior = scenario === 'returned' ? newList.find(o => o.scac === prior.scac) : null;
   // Prior's own re-shifted dates/cost, independent of whether it made the new
   // list above — newOption always shows what the re-plan did to THIS
@@ -2335,6 +2411,20 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   // formatted string against one raw value.
   const fmtWeight = (lb) => `${fmtInt(Math.round(lb))} LB`;
   const fmtVolume = (cuft) => `${fmtInt(Math.round(cuft))} CuFt`;
+  // Order/stop-sourced values for the 8 fields added in S135. `addr` matches
+  // the deck's own rendering ("Add 1,2,3, city, State, Zip, Country").
+  const addr = (stop) => (stop
+    ? `${stop.address1}, ${stop.city}, ${stop.region}, ${stop.postal}, ${stop.country}`
+    : '--');
+  const shipFrom = addr(firstPickup);
+  const shipTo = addr(lastDelivery);
+  const pickupAppointment = firstPickup ? `${firstPickup.scheduledDateTime}` : '--';
+  const deliveryAppointment = lastDelivery ? `${lastDelivery.scheduledDateTime}` : '--';
+  // Deck p5: "SSD/RDD, Date Time" — the planning type this shipment actually
+  // runs on, then its own base date.
+  const orderRequestedDate = `${planningType}, ${formatDateTime(baseDate, originTz)}`;
+  const billTo = customer ? `${customer.name} (${customer.id})` : '--';
+  const networkLeverage = rnd() < 0.5 ? 'Y' : 'N';
   // Pickup/Delivery are NOT part of the shuffle below: newOption's dates
   // (above) are UNCONDITIONALLY the shifted ones — routing re-runs for
   // every order-change row — so prior !== new here always, and marking
@@ -2373,6 +2463,21 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     { field: 'Seed Equipment', source: 'Order', prior: prior.equipmentCode, new: prior.equipmentCode, changed: false },
     { field: 'Distance', source: 'Routing', prior: '282 MI', new: '282 MI', changed: false },
     { field: 'Distance Source', source: 'Routing', prior: 'PCMILER PRACTICAL', new: 'PCMILER PRACTICAL', changed: false },
+    // S135 — the remaining transportation-relevant fields from Jana's own
+    // list (mock deck p5 / Figma 1703-156564). Values come from THIS
+    // shipment's real stops/customer/terms (ctx), so the compare screen
+    // agrees with its Stops and Order tabs. All unchanged: an order change
+    // that moved an address or an appointment is possible but isn't what
+    // this seed models — the changed set stays the dates + the shipment
+    // trio above, which is what the "Differences (N)" chips are built from.
+    { field: 'Network Leverage', source: 'Routing', prior: networkLeverage, new: networkLeverage, changed: false },
+    { field: 'Order Requested Date', source: 'Order', prior: orderRequestedDate, new: orderRequestedDate, changed: false },
+    { field: 'Bill To', source: 'Order', prior: billTo, new: billTo, changed: false },
+    { field: 'Freight Terms', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
+    { field: 'Pickup Appointment', source: 'Order or entered in Shipment', prior: pickupAppointment, new: pickupAppointment, changed: false },
+    { field: 'Delivery Appointment', source: 'Order or entered in Shipment', prior: deliveryAppointment, new: deliveryAppointment, changed: false },
+    { field: 'Ship From', source: 'Order', prior: shipFrom, new: shipFrom, changed: false },
+    { field: 'Ship To', source: 'Order', prior: shipTo, new: shipTo, changed: false },
   ];
 
   return {
@@ -2388,7 +2493,7 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       scac: prior.scac, carrierName: prior.carrierName, equipmentCode: prior.equipmentCode,
       tenderStatus: null, // undecided until the user picks an action
       routeRank: newForPrior ? newForPrior.routeRank : null, // blank when not in list
-      rank: newForPrior ? newForPrior.rank : newList.length + 1, // insertion slot: bottom of equipment group
+      rank: newForPrior ? newForPrior.rank : insertionRank(newList, prior.equipmentCode),
       pickupDateTime: priorShifted.pickupDateTime, deliveryDateTime: priorShifted.deliveryDateTime,
       apCost: newForPrior ? newForPrior.rateDetails.baseRate : null, // null ⇒ New Cost greyed
     },
@@ -2397,18 +2502,43 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     // table and the Prior panel agree naturally, not by construction.
     priorTenderList: routingOptions,
     newTenderList: newList,
+    // Per-version dropped lists (LINX-14510). The prior version's is the
+    // shipment's OWN already-seeded droppedCarrierList — the same rows the
+    // Tender tab's Dropped Carriers section shows, not a second opinion about
+    // what the first routing dropped — reduced to this preview's columns.
+    droppedCarriers: {
+      prior: (priorDropped ?? []).map(d => ({
+        scac: d.scac, carrierName: d.carrierName, equipment: d.equipment,
+        routeRank: d.routeRank, apCost: null,
+        dropCode: d.dropCode, reason: d.reason, reasonDescription: d.reasonDescription,
+      })),
+      new: newDropped,
+    },
     comparison,
     // Preview Hazardous Material Information: rows by Line #, prior/new
     // identical in v1 (the mock shows "Differences (0)").
     hazmat: Array.from({ length: 1 + Math.floor(rnd() * 2) }, (_, i) => {
       const line = 87000 + Math.floor(rnd() * 999) + i;
+      const boilingPoint = `${150 + Math.floor(rnd() * 250)} F`; // same convention as order-line hazmat rows (~line 733)
+      const hazmatClass = pickR(['I', 'II', 'III']);
       const row = {
         line,
-        boilingPoint: `${150 + Math.floor(rnd() * 250)} F`, // same convention as order-line hazmat rows (~line 733)
-        hazmatClass: pickR(['I', 'II', 'III']),
+        boilingPoint,
+        // Deck p5: "Flash Point — same as Boiling Point" (same source, same
+        // by-line shape), so it's derived from it rather than drawn fresh.
+        flashPoint: `${Math.max(50, parseInt(boilingPoint, 10) - 60 - Math.floor(rnd() * 40))} F`,
+        hazmatClass,
+        hazmatCode: `UN00${10 + Math.floor(rnd() * 89)}`,
+        // Deck p5: Hazmat Pkg Group is "same as Hazmat class" — the roman
+        // numeral packing group, so it tracks the class rather than varying
+        // independently.
+        hazmatPkgGroup: hazmatClass,
         hazmatDescription: pickR(['Flammable Liquid', 'Corrosive', 'Oxidizer']),
         itemDescription: `UN000${10 + Math.floor(rnd() * 89)}`,
         marinePollutant: rnd() < 0.5 ? 'Y' : 'N',
+        shippingClass: pickR(SHIP_CLASS_CODES),
+        tunnelCode: pickR(['1', '2', '3', '4']),
+        wgkClass: pickR(['I', 'II', 'III']),
       };
       return { prior: row, new: { ...row } }; // identical both sides in v1
     }),

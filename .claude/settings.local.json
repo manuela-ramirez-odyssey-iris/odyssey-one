@@ -261,7 +261,12 @@
       "Bash(tee /tmp/dsm-measure/ng-serve-s67b.log)",
       "Bash(tee /tmp/dsm-measure/ng-serve-s67c.log)",
       "Bash(tee /tmp/dsm-measure/ng-serve-s67d.log)",
-      "Bash(tee /tmp/dsm-measure/ng-serve-s68.log)"
+      "Bash(tee /tmp/dsm-measure/ng-serve-s68.log)",
+      "Bash(rtk grep *)",
+      "Bash(rtk read *)",
+      "Read(//Users/manuelramirez/Documents/iris/Odyssey/Shipments/**)",
+      "Read(//Users/manuelramirez/Documents/iris/Odyssey/**)",
+      "Read(//Users/manuelramirez/Documents/iris/**)"
     ]
   }
 }

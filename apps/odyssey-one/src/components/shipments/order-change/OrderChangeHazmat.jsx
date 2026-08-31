@@ -6,12 +6,20 @@ import { DiffValue, KVField, rowsToFlatGroups, val } from './comparisonHelpers.j
 // an array of { prior, new } OrderChangeHazmatLineVM pairs (api/types/
 // shipmentDetail.ts). `line` is identity — always shown, never itself a
 // "difference" — the five remaining fields are what gets compared.
+// Order and labels follow Jana's own list (mock deck p5) — the six after
+// Boiling Point were missing until S135, so the section showed 5 of 11.
 const HAZMAT_FIELDS = [
   { key: 'boilingPoint', label: 'Boiling Point' },
+  { key: 'flashPoint', label: 'Flash Point' },
   { key: 'hazmatClass', label: 'Hazmat Class' },
+  { key: 'hazmatCode', label: 'Hazmat Code' },
   { key: 'hazmatDescription', label: 'Hazmat Description' },
+  { key: 'hazmatPkgGroup', label: 'Hazmat Pkg Group' },
   { key: 'itemDescription', label: 'Item Description' },
   { key: 'marinePollutant', label: 'Marine Pollutant' },
+  { key: 'shippingClass', label: 'Shipping Class' },
+  { key: 'tunnelCode', label: 'Tunnel Code' },
+  { key: 'wgkClass', label: 'WGK Class' },
 ]
 const LIST_COLUMNS = [{ key: 'line', label: 'Line' }, ...HAZMAT_FIELDS]
 
@@ -98,7 +106,7 @@ export default function OrderChangeHazmat({ oc }) {
   const tags = computeHazmatDiffs(pairs)
 
   return (
-    <ComparisonPreviewCard title="Preview Hazardous Material Information" differences={tags}>
+    <ComparisonPreviewCard title="Preview Hazardous Material Information" differences={tags} defaultExpanded={false}>
       {(mode, filter) => {
         if (mode === 'list') {
           const columns = visibleColumns(filter)

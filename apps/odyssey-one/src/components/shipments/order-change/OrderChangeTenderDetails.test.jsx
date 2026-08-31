@@ -37,10 +37,22 @@ function makeOc(overrides = {}) {
   return { comparison, ...overrides }
 }
 
+// S135 — this card now lands COLLAPSED (designer: the review page opens with
+// Preview Tender Details closed; the planner expands it). Every test below needs
+// its body, so rendering opens it, exactly as a click would.
+function renderCard(oc) {
+  const result = render(<OrderChangeTenderDetails oc={oc} />)
+  // getAll + last: one test renders the card twice in a row, so the most
+  // recently rendered header is the one to open.
+  const headers = screen.getAllByRole('button', { name: /^Preview Tender Details/ })
+  fireEvent.click(headers[headers.length - 1])
+  return result
+}
+
 describe('OrderChangeTenderDetails — chrome', () => {
   test('Differences (N) counts only changed rows, one badge each', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
-    expect(screen.getByText('Differences (3)')).toBeTruthy()
+    renderCard(makeOc())
+    expect(screen.getByText('(3)')).toBeTruthy() // purple count in the accordion title
     expect(screen.getByRole('button', { name: 'Pickup Date/Time' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Distance' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Package Count' })).toBeTruthy()
@@ -50,49 +62,58 @@ describe('OrderChangeTenderDetails — chrome', () => {
 
   test('an all-unchanged comparison renders Differences (0) and no badges', () => {
     const allUnchanged = comparison.map((r) => ({ ...r, changed: false, new: r.prior }))
-    render(<OrderChangeTenderDetails oc={makeOc({ comparison: allUnchanged })} />)
-    expect(screen.getByText('Differences (0)')).toBeTruthy()
+    renderCard(makeOc({ comparison: allUnchanged }))
+    expect(screen.getByText('No Differences')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Distance' })).toBeNull()
   })
 
   test('missing oc.comparison renders without throwing', () => {
-    expect(() => render(<OrderChangeTenderDetails oc={{}} />)).not.toThrow()
-    expect(screen.getByText('Differences (0)')).toBeTruthy()
+    expect(() => renderCard({})).not.toThrow()
+    expect(screen.getByText('No Differences')).toBeTruthy()
   })
 })
 
-describe('OrderChangeTenderDetails — no Changed/Unchanged split anywhere (S134)', () => {
-  test('the band labels never appear in List mode', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
-    expect(screen.queryByText('Changed Fields')).toBeNull()
-    expect(screen.queryByText('Unchanged Fields')).toBeNull()
+describe('OrderChangeTenderDetails — the Changed/Unchanged split (S135)', () => {
+  // Reinstated per Figma 1703-156564, but as the first COLUMN HEADER of each
+  // of the two segment tables — not as extra band rows inside one table.
+  test('List mode labels the two segments in their column-header rows', () => {
+    renderCard(makeOc())
+    expect(screen.getByRole('columnheader', { name: 'Changed Fields' })).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: 'Unchanged Fields' })).toBeTruthy()
   })
 
-  test('the band labels never appear in Table mode', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+  test('Table mode has no split — one undivided KV block per side', () => {
+    renderCard(makeOc())
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     expect(screen.queryByText('Changed Fields')).toBeNull()
     expect(screen.queryByText('Unchanged Fields')).toBeNull()
   })
+
+  test('a segment with no rows renders no table at all', () => {
+    const allUnchanged = comparison.map((r) => ({ ...r, changed: false, new: r.prior }))
+    const { container } = renderCard(makeOc({ comparison: allUnchanged }))
+    expect(container.querySelectorAll('.odyssey-group-table')).toHaveLength(1)
+    expect(screen.queryByRole('columnheader', { name: 'Changed Fields' })).toBeNull()
+  })
 })
 
 describe('OrderChangeTenderDetails — List mode (default)', () => {
-  test('the header band shows Prior Tender List / New Tender List, not a 3-column table', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
-    const priorHeader = screen.getByText('Prior Tender List')
-    const newHeader = screen.getByText('New Tender List')
-    expect(priorHeader).toBeTruthy()
-    expect(newHeader).toBeTruthy()
-    // Two SEPARATE tables (one per side), not one shared 3-column table —
-    // an unchanged field (no filter chip competing for the same text) shows
-    // up exactly twice, once per side.
-    expect(screen.getAllByText('Incoterm Info')).toHaveLength(2)
-    // DOM order: Prior precedes New.
-    expect(priorHeader.compareDocumentPosition(newHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  // S135 — Figma 1703-156564: two stacked 3-column tables (segment label |
+  // Prior Tender | New Tender), one row per comparison field.
+  test('renders two 3-column tables with strip-style Prior/New headers', () => {
+    const { container } = renderCard(makeOc())
+    const tables = container.querySelectorAll('.odyssey-group-table')
+    expect(tables).toHaveLength(2)
+    // The strip look is GroupTable's own `headerStyle="strip"`, not a local override.
+    for (const t of tables) expect(t.className).toMatch(/odyssey-group-table--flat-head/)
+    expect(screen.getAllByRole('columnheader', { name: 'Prior Tender' })).toHaveLength(2)
+    expect(screen.getAllByRole('columnheader', { name: 'New Tender' })).toHaveLength(2)
+    // Each field is ONE row, so its name appears exactly once.
+    expect(screen.getAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(1)
   })
 
   test("a changed field's prior AND new values are each inside a purple badge", () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    renderCard(makeOc())
     const prior = screen.getByText('282 MI')
     const next = screen.getByText('301 MI')
     expect(prior.closest('span')?.className).toMatch(/text-badge/)
@@ -100,19 +121,18 @@ describe('OrderChangeTenderDetails — List mode (default)', () => {
   })
 
   test("an unchanged field's values are not inside badges", () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    renderCard(makeOc())
     const values = screen.getAllByText('FOB')
     for (const v of values) {
       expect(v.closest('span')?.className || '').not.toMatch(/text-badge/)
     }
   })
 
-  test('the header bands are plain labels, not toggle buttons', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
-    // GroupTable's `header` strip is never a toggle — no chevron, no button,
-    // no aria-expanded (review finding, S134).
-    expect(screen.queryByRole('button', { name: 'Prior Tender List' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'New Tender List' })).toBeNull()
+  test('rows are plain, not toggles (flat mode — no chevron, no expand)', () => {
+    const { container } = renderCard(makeOc())
+    // (the card's own SubAccordion toggle is outside the table)
+    const table = container.querySelector('.odyssey-group-table')
+    expect(table.querySelectorAll('[aria-expanded]')).toHaveLength(0)
   })
 })
 
@@ -121,39 +141,30 @@ describe('OrderChangeTenderDetails — Table mode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
   }
 
-  test('renders Prior Tender and New Tender side by side with every field', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+  // S135 (designer): same construction as OrderChangeTenderLists/Hazmat's
+  // Table mode — HeaderStrip + KV entry panels in a zero-gap grid, no
+  // GroupTable, no gutter.
+  test('renders the sibling sections KV panel shape, two sides touching', () => {
+    const { container } = renderCard(makeOc())
     switchToTable()
+    expect(container.querySelectorAll('.odyssey-group-table')).toHaveLength(0)
+    const grid = container.querySelector('.comparison-preview__grid')
+    expect(grid.querySelectorAll(':scope > .comparison-preview__panel')).toHaveLength(2)
+    expect(grid.querySelectorAll('.comparison-preview__kv-grid')).toHaveLength(2)
     expect(screen.getByText('Prior Tender')).toBeTruthy()
     expect(screen.getByText('New Tender')).toBeTruthy()
-    // Every comparison field appears as a KV label, once per side.
-    expect(screen.getAllByText('Distance').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Incoterm Info').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Incoterm Info')).toHaveLength(2)
   })
 
   test('the header strips are plain labels, not toggle buttons', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    renderCard(makeOc())
     switchToTable()
     expect(screen.queryByRole('button', { name: 'Prior Tender' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New Tender' })).toBeNull()
   })
 
-  test('S134: Table mode renders a KV entry grid, not a GroupTable (Figma 1931-8797)', () => {
-    const { container } = render(<OrderChangeTenderDetails oc={makeOc()} />)
-    switchToTable()
-    expect(container.querySelectorAll('.odyssey-group-table').length).toBe(0)
-    expect(container.querySelectorAll('.comparison-preview__kv-grid').length).toBe(2) // one per side
-  })
-
-  test('the two sides touch (zero-gap grid) with a vertical rule on the first side', () => {
-    const { container } = render(<OrderChangeTenderDetails oc={makeOc()} />)
-    switchToTable()
-    const grid = container.querySelector('.comparison-preview__grid')
-    expect(grid.querySelectorAll(':scope > .comparison-preview__panel')).toHaveLength(2)
-  })
-
   test('a changed field is purple; an unchanged one is not', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    renderCard(makeOc())
     switchToTable()
     const changed = screen.getAllByText('282 MI')[0]
     expect(changed.closest('span')?.className).toMatch(/text-badge/)
@@ -164,19 +175,17 @@ describe('OrderChangeTenderDetails — Table mode', () => {
 
 describe('OrderChangeTenderDetails — filtering', () => {
   test('filtering by a badge narrows to that field on both sides; clicking again restores', () => {
-    render(<OrderChangeTenderDetails oc={makeOc()} />)
+    renderCard(makeOc())
     const badge = screen.getByRole('button', { name: 'Distance' })
     fireEvent.click(badge)
-    // 'Distance' now matches both the (still-visible) filter badge and the
-    // surviving field cell on each of the two stacked tables.
-    expect(screen.getAllByText('Distance').length).toBeGreaterThan(0)
+    // List mode is one row per field, so a filter leaves exactly that row.
+    expect(screen.getAllByRole('cell', { name: 'Distance' })).toHaveLength(1)
     expect(screen.queryAllByRole('cell', { name: 'Package Count' })).toHaveLength(0)
     expect(screen.queryAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(0)
 
     fireEvent.click(badge)
-    // Unfiltered: the field name renders once per side (two stacked tables).
-    expect(screen.getAllByRole('cell', { name: 'Package Count' })).toHaveLength(2)
-    expect(screen.getAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(2)
+    expect(screen.getAllByRole('cell', { name: 'Package Count' })).toHaveLength(1)
+    expect(screen.getAllByRole('cell', { name: 'Incoterm Info' })).toHaveLength(1)
   })
 })
 
@@ -192,7 +201,7 @@ describe('OrderChangeTenderDetails — ordering (LINX-14512 Business Rules)', ()
   ]
 
   test('List mode: the changed field renders before the unchanged ones despite coming last in oc.comparison', () => {
-    render(<OrderChangeTenderDetails oc={makeOc({ comparison: outOfOrder })} />)
+    renderCard(makeOc({ comparison: outOfOrder }))
     // Scope to table cells — 'Distance' also labels the Differences filter
     // chip, which sits above the table and would otherwise be picked up as
     // the "first" match.
@@ -202,7 +211,7 @@ describe('OrderChangeTenderDetails — ordering (LINX-14512 Business Rules)', ()
   })
 
   test('Table mode: the changed field renders before the unchanged ones despite coming last in oc.comparison', () => {
-    render(<OrderChangeTenderDetails oc={makeOc({ comparison: outOfOrder })} />)
+    renderCard(makeOc({ comparison: outOfOrder }))
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     // Scope to KVField labels — same filter-chip caveat as List mode.
     const distance = screen.getAllByText('Distance').find((el) => el.closest('.comparison-preview__field'))

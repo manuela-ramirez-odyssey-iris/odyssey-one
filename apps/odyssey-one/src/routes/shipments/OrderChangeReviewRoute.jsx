@@ -7,6 +7,9 @@ import OrderChangeActionsCard from '../../components/shipments/order-change/Orde
 import OrderChangeTenderLists from '../../components/shipments/order-change/OrderChangeTenderLists'
 import OrderChangeTenderDetails from '../../components/shipments/order-change/OrderChangeTenderDetails'
 import OrderChangeHazmat from '../../components/shipments/order-change/OrderChangeHazmat'
+import ViewTenderModal from '../../components/shipments/order-change/ViewTenderModal.jsx'
+import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
+import { fmtDollar } from '../../utils/money'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
 import '../../components/shipments/order-change/order-change.css'
@@ -33,6 +36,74 @@ import '../../components/shipments/order-change/order-change.css'
 // keyed on. state is lossy (gone on refresh/pasted URL), so the header falls
 // back to an honest "Shipment {sellShipment}" rather than mislabeling the
 // sell id as "Buy Shipment" when the buy number isn't known.
+// Confirm copy for the three Tender Resolution Actions (LINX-14515). The ACs
+// define the ACTIONS but no dialog, so this wording is ours — each message
+// states the consequence the AC does define, so the planner confirms
+// something the dialog actually told them:
+//   cancel   — "current tender shall be cancelled… shipment is in Review →
+//              Tender Review" (AC, Cancel Tender)
+//   retender — carrier kept, selected cost applied, tender status becomes
+//              Sent and the carrier IS messaged (AC, Keep Carrier & Re-Tender)
+//   bypass   — carrier kept, selected cost applied, prior status retained and
+//              NO communication generated (AC, Keep Carrier & Bypass Tender)
+// Cancel Tender uses Yes/No rather than a "Cancel" button, which in that
+// dialog would read as "cancel the tender" instead of "back out".
+function confirmCopy(action, cost, scac) {
+  const carrier = scac || 'the current carrier'
+  const at = cost?.amount != null ? ` at ${fmtDollar(cost.amount)}` : ''
+  if (action === 'cancel') {
+    return {
+      title: 'Cancel Tender',
+      message:
+        'The current tender will be cancelled and this shipment returns to Tender Review for a new tender decision. Do you want to continue?',
+      confirmLabel: 'Yes',
+      cancelLabel: 'No',
+    }
+  }
+  if (action === 'retender') {
+    return {
+      title: 'Keep Carrier & Re-Tender',
+      message: `${carrier} will be kept${at} and a new tender will be sent to the carrier, moving the tender status to Sent. Do you want to continue?`,
+      confirmLabel: 'Re tender',
+    }
+  }
+  return {
+    title: 'Keep Carrier & Bypass Tender',
+    message: `${carrier} will be kept${at} and the current tender status is retained. No tender communication will be sent to the carrier. Do you want to continue?`,
+    confirmLabel: 'Bypass Tender',
+  }
+}
+
+/**
+ * Where the planner lands after a resolution — NOT one destination for all
+ * three actions (S135, review vs Jana's call):
+ *
+ * - cancel — "Once the cancellation process is initiated, the user shall be
+ *   presented with the Tender screen to proceed with the next tender
+ *   decision" (LINX-14514), which Jana narrates as *"we'll go to the tender
+ *   page and leave it to the user to make a decision… they would go back to
+ *   the tender screen and select tender to the CTNS"*. The shipment isn't
+ *   done — it's re-parked on exceptions/tender-review (OC_OUTCOMES,
+ *   api/_lib/shipments.mjs) with another decision owed. So land on THAT tab
+ *   and open the shipment's own Tender screen: `selectedShipmentId` opens the
+ *   detail, `requestedTab` picks its tab (BottomBar.jsx:216). The tender
+ *   screen's key is `routing` (TABS: `{ key: 'routing', label: 'Tender' }`) —
+ *   `tender` is the Tender HISTORY tab, a different surface.
+ * - retender / bypass — the review is complete and the shipment left the
+ *   category, so there's nothing to open: back to the Order Change tab.
+ */
+export function landingFor(action, sellShipment) {
+  if (action === 'cancel') {
+    return {
+      panel: 'exceptions',
+      tab: 'tender-review',
+      selectedShipmentId: sellShipment,
+      requestedTab: { key: 'routing' },
+    }
+  }
+  return { panel: 'exceptions', tab: 'order-change' }
+}
+
 export default function OrderChangeReviewRoute() {
   const { sellShipment } = useParams()
   const navigate = useNavigate()
@@ -53,13 +124,31 @@ export default function OrderChangeReviewRoute() {
 
   // Tender Resolution Action (LINX-14515). Every exit off this screen —
   // Cancel tender here; retender/bypass live in OrderChangeActionsCard (Task
-  // 9) — funnels through this one mutation and the same post-success nav:
-  // back to the Shipments table's Order Change tab. 'order-change' lives under
-  // the 'exceptions' panel (data/panelConfig.js), and ShipmentsRoute reads its
-  // deep-link target off `location.state?.panel` / `location.state?.tab`
-  // (ShipmentsRoute.jsx:41-46) — not `selectedShipmentId`, which is a
-  // different (row-detail) deep-link the resolved shipment no longer needs.
+  // 9) — funnels through this one mutation, but NOT through one destination:
+  // where the planner lands depends on what the action left them to do (see
+  // `landingFor`). ShipmentsRoute reads all four keys off `location.state`
+  // (ShipmentsRoute.jsx:41-46).
+  // Every action is confirmed first (S135, designer — the ACs specify no
+  // dialog copy, so the wording below is ours): all three are irreversible
+  // from this screen, they end the review and change carrier/cost/tender
+  // status. `pending` holds the (action, cost) pair until the user confirms;
+  // gating HERE rather than in the actions card means one dialog covers the
+  // card's two buttons AND the header's Cancel tender, and nothing can reach
+  // the mutation unconfirmed.
+  const [pending, setPending] = useState(null)
+  // "View Tender" (LINX-14509 — the planner may VIEW tender information while
+  // the review is pending, but perform no tender actions). Deck p3 puts the
+  // button beside the New Tender List; it opens a read-only modal rather than
+  // navigating, so the cost selection made on this screen survives.
+  const [tenderOpen, setTenderOpen] = useState(false)
+
   function finish(action, cost) {
+    setPending({ action, cost })
+  }
+
+  function runPending() {
+    const { action, cost } = pending
+    setPending(null)
     setResolveError('') // clear any stale error before a fresh attempt
     resolve.mutate(
       {
@@ -70,7 +159,7 @@ export default function OrderChangeReviewRoute() {
       },
       {
         onSuccess: () => {
-          navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })
+          navigate('/shipments', { state: landingFor(action, sellShipment) })
         },
         onError: () => {
           setResolveError("Couldn't resolve this tender. Please try again.")
@@ -80,7 +169,15 @@ export default function OrderChangeReviewRoute() {
   }
 
   return (
-    <AppShell>
+    // Title navbar (S135, designer): no GlobalSearch on the review — a static
+    // "Review Order Change" title, TrailNav reduced to help + close. Close
+    // leaves WITHOUT deciding (the review stays pending), back to the tab.
+    <AppShell
+      titleMode={{
+        title: 'Review Order Change',
+        onClose: () => navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } }),
+      }}
+    >
       <div className="order-change">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Shipment" onClick={() => navigate('/shipments')} />
@@ -113,6 +210,9 @@ export default function OrderChangeReviewRoute() {
                   invisible on this page's light background) — `secondary` is
                   the light-surface bordered variant its own doc names for
                   this exact case, so that's what's used here. */}
+              <Button variant="secondary" onClick={() => setTenderOpen(true)}>
+                View Tender
+              </Button>
               <Button variant="secondary" onClick={() => finish('cancel', null)} disabled={resolve.isPending}>
                 Cancel tender
               </Button>
@@ -131,6 +231,21 @@ export default function OrderChangeReviewRoute() {
 
             <OrderChangeTenderDetails oc={oc} />
             <OrderChangeHazmat oc={oc} />
+
+            {tenderOpen && (
+              <ViewTenderModal
+                options={detail?.routingData?.options ?? []}
+                onClose={() => setTenderOpen(false)}
+              />
+            )}
+
+            {pending && (
+              <ConfirmDialog
+                {...confirmCopy(pending.action, pending.cost, oc?.prior?.scac)}
+                onConfirm={runPending}
+                onCancel={() => setPending(null)}
+              />
+            )}
           </div>
         )}
       </div>

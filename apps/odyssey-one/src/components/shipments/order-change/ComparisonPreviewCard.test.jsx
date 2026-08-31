@@ -25,20 +25,20 @@ describe('ComparisonPreviewCard — chrome', () => {
   test('renders the title and starts expanded', () => {
     renderCard()
     expect(screen.getByText('Preview Tender List')).toBeTruthy()
-    const collapseBtn = screen.getByRole('button', { name: 'Preview Tender List' })
+    const collapseBtn = screen.getByRole('button', { name: /^Preview Tender List/ })
     expect(collapseBtn.getAttribute('aria-expanded')).toBe('true')
   })
 
   test('shows Differences (N) with one badge per difference', () => {
     renderCard()
-    expect(screen.getByText('Differences (2)')).toBeTruthy()
+    expect(screen.getByText('(2)')).toBeTruthy() // purple count in the accordion title
     expect(screen.getByText('Rank Order Change')).toBeTruthy()
     expect(screen.getByText('AP Cost')).toBeTruthy()
   })
 
   test('Differences (0) renders no badges', () => {
     renderCard({ differences: [] })
-    expect(screen.getByText('Differences (0)')).toBeTruthy()
+    expect(screen.getByText('No Differences')).toBeTruthy()
   })
 })
 
@@ -126,7 +126,7 @@ describe('ComparisonPreviewCard — List/Table toggle', () => {
 describe('ComparisonPreviewCard — collapse', () => {
   test('collapsing hides the body from assistive tech (aria-hidden)', () => {
     renderCard()
-    const collapseBtn = screen.getByRole('button', { name: 'Preview Tender List' })
+    const collapseBtn = screen.getByRole('button', { name: /^Preview Tender List/ })
     fireEvent.click(collapseBtn)
     expect(collapseBtn.getAttribute('aria-expanded')).toBe('false')
   })

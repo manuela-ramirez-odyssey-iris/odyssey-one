@@ -98,7 +98,7 @@ describe('computeTenderDiffs', () => {
 describe('OrderChangeTenderLists — chrome', () => {
   test('Differences (N) shows one badge per computed tag', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
-    expect(screen.getByText('Differences (2)')).toBeTruthy()
+    expect(screen.getByText('(2)')).toBeTruthy() // purple count in the accordion title
     // Badge buttons, not column headers — 'AP Cost' is ALSO a column label,
     // so the filter query must be scoped to the button role.
     expect(screen.getByRole('button', { name: 'Rank Order Change' })).toBeTruthy()
@@ -107,7 +107,7 @@ describe('OrderChangeTenderLists — chrome', () => {
 
   test('empty prior/new lists render without throwing', () => {
     expect(() => render(<OrderChangeTenderLists oc={{ priorTenderList: [], newTenderList: [] }} />)).not.toThrow()
-    expect(screen.getByText('Differences (0)')).toBeTruthy()
+    expect(screen.getByText('No Differences')).toBeTruthy()
   })
 })
 
@@ -197,8 +197,12 @@ describe('OrderChangeTenderLists — Table mode', () => {
     const { container } = render(<OrderChangeTenderLists oc={makeOc()} />)
     switchToTable()
     const grid = container.querySelector('.comparison-preview__grid')
-    const panels = grid.querySelectorAll(':scope > .comparison-preview__panel')
+    const panels = grid.querySelectorAll('.comparison-preview__panel')
     expect(panels).toHaveLength(2)
+    // The seam rule keys on `:first-child`, so the Prior panel must stay a
+    // DIRECT first child of the grid — the New side may nest (S135: it wraps
+    // with the dropped-carrier note), the Prior side must not.
+    expect(grid.firstElementChild).toBe(panels[0])
   })
 
   test('Rank renders as a badge in Table mode', () => {
@@ -222,7 +226,7 @@ describe('OrderChangeTenderLists — duplicate carriers (same scac+equipment, di
 
   test('Differences reflects only the row that moved', () => {
     render(<OrderChangeTenderLists oc={dupOc} />)
-    expect(screen.getByText('Differences (1)')).toBeTruthy()
+    expect(screen.getByText('(1)')).toBeTruthy() // purple count in the accordion title
     expect(screen.getByRole('button', { name: 'Rank Order Change' })).toBeTruthy()
   })
 
@@ -255,5 +259,57 @@ describe('OrderChangeTenderLists — filtering', () => {
     fireEvent.click(badge)
     fireEvent.click(badge)
     expect(screen.getAllByRole('columnheader', { name: 'Tender Status' })).toHaveLength(2)
+  })
+})
+
+// S135 — dropped-carrier signal in the New Tender List's header strip (third
+// iteration, designer: replaces the quiet note and the standalone accordion):
+// an amber "Dropped from this version" badge + a secondary button opening the
+// dropped carriers in a modal.
+describe('OrderChangeTenderLists — dropped carriers', () => {
+  const withDrops = () => makeOc({
+    droppedCarriers: {
+      prior: [{ scac: 'RLCA', reason: 'No Rates' }], // must NOT render — new-version drops only
+      new: [
+        { scac: 'XPOL', carrierName: 'XPO Logistics', equipment: 'Van', routeRank: 3, dropCode: 23, reason: 'Missing Transit Time', reasonDescription: 'Transit time could not be calculated due to missing transit or distance data.' },
+        { scac: 'JBHT', carrierName: 'JB Hunt', equipment: 'Van', routeRank: null, dropCode: 1, reason: 'No Rates', reasonDescription: 'No rate is available for this carrier on this lane and equipment.' },
+      ],
+    },
+  })
+
+  test('the New list header carries the amber badge + Preview button, in both modes', () => {
+    render(<OrderChangeTenderLists oc={withDrops()} />)
+    expect(screen.getByText('Dropped from this version')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Preview Dropped Carriers' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
+    expect(screen.getByText('Dropped from this version')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Preview Dropped Carriers' })).toBeTruthy()
+  })
+
+  test('the button opens the modal with the NEW version drops; prior-version drops stay out', () => {
+    render(<OrderChangeTenderLists oc={withDrops()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Dropped Carriers' }))
+    const dialog = within(screen.getByRole('dialog'))
+    expect(dialog.getByRole('cell', { name: 'XPO Logistics' })).toBeTruthy()
+    expect(dialog.getByRole('cell', { name: 'JB Hunt' })).toBeTruthy()
+    expect(dialog.getByRole('cell', { name: 'Missing Transit Time' })).toBeTruthy()
+    expect(dialog.queryByText(/RLCA/)).toBeNull()
+    // Read-only: the header X is the only button in the dialog.
+    expect(dialog.getAllByRole('button')).toHaveLength(1)
+
+    fireEvent.click(dialog.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  test('absent entirely when the new version dropped nothing', () => {
+    render(<OrderChangeTenderLists oc={makeOc({ droppedCarriers: { prior: [], new: [] } })} />)
+    expect(screen.queryByText('Dropped from this version')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Preview Dropped Carriers' })).toBeNull()
+  })
+
+  test('absent on a pre-S135 payload with no droppedCarriers key', () => {
+    render(<OrderChangeTenderLists oc={makeOc()} />)
+    expect(screen.queryByText('Dropped from this version')).toBeNull()
   })
 })

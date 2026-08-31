@@ -21,10 +21,10 @@ import { Badge, ButtonToggle, SubAccordion } from '@odyssey/ui'
  * earlier "purple not red" deviation, which still stands for the RESULTS).
  * Purple now means exactly one thing: a changed value highlighted inside a
  * table (`Badge variant="purple"` in the section files). The chips that
- * choose a filter are a gray, toggleable control — `Badge variant="gray"`
- * inside the button that already carries `aria-pressed`, with a minimal
- * selected-state ring (`.comparison-preview__diff-chip`, order-change.css)
- * on top. Two different meanings no longer share one color.
+ * choose a filter are a gray, toggleable control — the app's OWN clickable
+ * badge, `.badge-interactive` (components.css): `Badge variant="gray"` inside
+ * a `<button aria-pressed>`, which already owns hover / pressed / selected /
+ * focus-visible. Two different meanings no longer share one color.
  *
  * An "All" chip is always first: selecting it clears `filter` (same state
  * `null` already meant "unfiltered"); selecting any other chip naturally
@@ -37,39 +37,62 @@ import { Badge, ButtonToggle, SubAccordion } from '@odyssey/ui'
  *
  * @param title        string — card title, also the collapse button's a11y name
  * @param differences  string[] — one gray filter chip per entry, after the All chip
+ * @param defaultExpanded bool (default true) — Preview Tender List lands open
+ *                     (it's the decision context); Tender Details and Hazmat
+ *                     land COLLAPSED (designer, S135 — matching Jana's own
+ *                     walkthrough of the deck: "this is how the screen will
+ *                     look like when the user comes, so it will be collapsed…
+ *                     they can click and expand and see what it is").
  * @param children     (mode: 'list'|'table', filter: string|null) => node
  */
-export default function ComparisonPreviewCard({ title, differences = [], children }) {
+export default function ComparisonPreviewCard({ title, differences = [], defaultExpanded = true, children }) {
   const [mode, setMode] = useState('list')
   const [filter, setFilter] = useState(null)
 
   const toggleFilter = (d) => setFilter((cur) => (cur === d ? null : d))
 
+  // S135 (designer): the count rides the accordion TITLE as a purple "(N)" —
+  // visible while the card is collapsed, which is exactly when it matters —
+  // and only when there is something to count.
+  const heading = differences.length ? (
+    <>
+      {title} <span className="comparison-preview__title-count">({differences.length})</span>
+    </>
+  ) : title
+
   return (
-    <SubAccordion title={title} showIcon={false} defaultExpanded>
+    <SubAccordion title={heading} showIcon={false} defaultExpanded={defaultExpanded}>
       <div className="comparison-preview__subheader">
-        <span className="comparison-preview__diff-label text-label-sm-medium">
-          Differences ({differences.length})
-        </span>
-        <button
-          type="button"
-          className="comparison-preview__diff-badge comparison-preview__diff-chip"
-          aria-pressed={filter === null}
-          onClick={() => setFilter(null)}
-        >
-          <Badge variant="gray">All</Badge>
-        </button>
-        {differences.map((d) => (
-          <button
-            key={d}
-            type="button"
-            className="comparison-preview__diff-badge comparison-preview__diff-chip"
-            aria-pressed={filter === d}
-            onClick={() => toggleFilter(d)}
-          >
-            <Badge variant="gray">{d}</Badge>
-          </button>
-        ))}
+        {/* S135 (designer): "Differences:" is just the row's label now (the
+            count lives in the title); with nothing changed the chips —
+            including All, which would filter nothing — collapse to a plain
+            "No Differences" statement. */}
+        {differences.length === 0 ? (
+          <span className="comparison-preview__diff-label text-label-sm-medium">No Differences</span>
+        ) : (
+          <>
+            <span className="comparison-preview__diff-label text-label-sm-medium">Differences:</span>
+            <button
+              type="button"
+              className="comparison-preview__diff-badge badge-interactive"
+              aria-pressed={filter === null}
+              onClick={() => setFilter(null)}
+            >
+              <Badge variant="gray">All</Badge>
+            </button>
+            {differences.map((d) => (
+              <button
+                key={d}
+                type="button"
+                className="comparison-preview__diff-badge badge-interactive"
+                aria-pressed={filter === d}
+                onClick={() => toggleFilter(d)}
+              >
+                <Badge variant="gray">{d}</Badge>
+              </button>
+            ))}
+          </>
+        )}
         <ButtonToggle
           className="comparison-preview__mode-toggle"
           selected={mode === 'list' ? 'first' : 'second'}

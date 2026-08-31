@@ -141,28 +141,26 @@ test('history outcome: green (success) is reserved for the three DEC-87 mileston
   }
 })
 
-// spotboard/board.js anchors its demo fixtures to REAL seeded sellShipment ids
-// and asks by name for a test that they resolve — every row action 404s the
-// moment they stop existing. This is that test, and it caught a live staleness
-// on 2026-08-12: the 2026-08-11 authorship pass added two faker draws per
-// history entry, which re-numbered every shipment allocated after them, so the
-// eight ids picked from the S114-era seed were already dead against HEAD.
+// REMOVED (S135): the "spotboard demo fixtures still resolve to seeded
+// shipments" tripwire. It imported `demoFixtureShipmentIds` from
+// `src/spotboard/board.js`, which S126 DELETED when the SpotBoard dashboard
+// was rebuilt as SpotBid (commit b777c4b) — so the test had been erroring on
+// an unresolvable import, not passing, ever since.
 //
-// It MUST build with the seeder's own parameters (seed.mjs:89-92 — 10,000
-// shipments, unshippedOrders = 25% + 1000). buildDataset()'s bare default is
-// 2,200, and against that dataset the ids are legitimately absent for a reason
-// that has nothing to do with drift — a false alarm that is worse than no test.
-// board.js is import-clean (no DOM at module scope), so node:test can read the
-// ids straight from the source of truth rather than duplicating them here.
-const SEED_PARAMS = { totalShipments: 10000, unshippedOrders: 3500 }
-test('spotboard demo fixtures still resolve to seeded shipments (id-allocation tripwire)', async () => {
-  const { demoFixtureShipmentIds } = await import('../src/spotboard/board.js')
-  const seeded = new Set(buildDataset(SEED_PARAMS).shipments.map((s) => s.sellShipment))
-  assert.ok(demoFixtureShipmentIds.length > 0)
-  for (const id of demoFixtureShipmentIds) {
-    assert.ok(seeded.has(id), `demo fixture ${id} is no longer a seeded shipment — re-anchor DEMO_FIXTURES`)
-  }
-})
+// It is not re-pointed because the thing it guarded no longer exists: no
+// module now anchors fixtures to real seeded sellShipment ids. Its successor,
+// `src/spotbid/carrierQuotes.js`, says so in its own header — *"no shipment
+// ids or fixtures are borrowed from there (project rule: seeded ids from
+// another system are load-bearing and die at the next unrelated reseed; this
+// module has no such dependency)"* — and computes its windows as offsets
+// against `now`.
+//
+// If a surface ever hardcodes seeded ids again, restore this test against it:
+// build with the SEEDER's parameters (seed.mjs — 10,000 shipments,
+// unshippedOrders = 25% + 1000), NOT buildDataset()'s 2,200 default, or the
+// ids are legitimately absent and the failure is a false alarm. The original
+// caught a real staleness on 2026-08-12, when two added faker draws
+// re-numbered every shipment after them.
 
 test('promoted extra orgs own a thin tail; original customers dominate', () => {
   const { orders } = buildDataset({ totalShipments: 200 })

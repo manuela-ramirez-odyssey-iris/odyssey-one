@@ -351,10 +351,35 @@ export interface SellShipmentOrderChangeComparisonRow {
 export interface SellShipmentOrderChangeHazmatLine {
   line: number
   boilingPoint: string
+  /* S135 — seeded by generate.mjs's buildOrderChange; completes the hazmat
+     field list in Jana's mock deck (p5). */
+  flashPoint: string
   hazmatClass: string
+  hazmatCode: string
+  hazmatPkgGroup: string
   hazmatDescription: string
   itemDescription: string
   marinePollutant: string
+  shippingClass: string
+  tunnelCode: string
+  wgkClass: string
+}
+
+/**
+ * One carrier a tender version's routing did NOT return (S135). Seeded per
+ * VERSION — LINX-14510: "each Tender Option Version shall maintain its own
+ * Dropped Carrier list" — and reduced to this preview's columns; the Tender
+ * tab's own Dropped Carriers section (LINX-13953/13954) keeps the full row.
+ */
+export interface SellShipmentOrderChangeDroppedCarrier {
+  scac: string
+  carrierName: string
+  equipment: string
+  routeRank: number | null
+  apCost: number | null
+  dropCode: number
+  reason: string
+  reasonDescription: string
 }
 
 /** Stamped by PATCH .../order-change (resolveOrderChange in api/_lib/shipments.mjs). */
@@ -376,6 +401,10 @@ export interface SellShipmentOrderChange {
   newTenderList: SellShipmentRoutingOption[]
   comparison: SellShipmentOrderChangeComparisonRow[]
   hazmat: { prior: SellShipmentOrderChangeHazmatLine; new: SellShipmentOrderChangeHazmatLine }[]
+  droppedCarriers: {
+    prior: SellShipmentOrderChangeDroppedCarrier[]
+    new: SellShipmentOrderChangeDroppedCarrier[]
+  }
   resolution?: SellShipmentOrderChangeResolution | null
 }
 

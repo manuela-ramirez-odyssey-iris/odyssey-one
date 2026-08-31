@@ -362,10 +362,30 @@ export interface OrderChangeCarrierVM {
 export interface OrderChangeHazmatLineVM {
   line: number
   boilingPoint: string
+  /* S135 — the six fields below complete Jana's own hazmat list (mock deck
+     p5): they were missing, so the Hazmat preview showed 5 of 11 fields. */
+  flashPoint: string
   hazmatClass: string
+  hazmatCode: string
+  hazmatPkgGroup: string
   hazmatDescription: string
   itemDescription: string
   marinePollutant: string
+  shippingClass: string
+  tunnelCode: string
+  wgkClass: string
+}
+
+/** Per-version dropped carrier (S135) — see the DTO's own docblock. */
+export interface OrderChangeDroppedCarrierVM {
+  scac: string
+  carrierName: string
+  equipment: string
+  routeRank: number | null
+  apCost: number | null
+  dropCode: number
+  reason: string
+  reasonDescription: string
 }
 
 export interface OrderChangeVM {
@@ -376,6 +396,7 @@ export interface OrderChangeVM {
   newTenderList: RoutingOptionVM[]
   comparison: OrderChangeComparisonRowVM[]
   hazmat: { prior: OrderChangeHazmatLineVM; new: OrderChangeHazmatLineVM }[]
+  droppedCarriers: { prior: OrderChangeDroppedCarrierVM[]; new: OrderChangeDroppedCarrierVM[] }
   resolution?: { action: string; cost: { choice: string; amount: number } | null; resolvedAt: string } | null
 }
 

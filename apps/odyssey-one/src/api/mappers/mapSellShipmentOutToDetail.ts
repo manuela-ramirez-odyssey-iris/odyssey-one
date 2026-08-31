@@ -10,6 +10,7 @@ import type {
   SellShipmentOrderChangeCarrier,
   SellShipmentOrderChangeComparisonRow,
   SellShipmentOrderChangeHazmatLine,
+  SellShipmentOrderChangeDroppedCarrier,
 } from '../types/sellShipmentOut'
 import type {
   CostOrderVM,
@@ -19,6 +20,7 @@ import type {
   OrderChangeCarrierVM,
   OrderChangeComparisonRowVM,
   OrderChangeHazmatLineVM,
+  OrderChangeDroppedCarrierVM,
   OrderDetailVM,
   ProductLineVM,
   ProductOrderVM,
@@ -486,10 +488,31 @@ function mapOrderChangeHazmatLine(l: SellShipmentOrderChangeHazmatLine): OrderCh
   return {
     line: l.line,
     boilingPoint: l.boilingPoint,
+    flashPoint: l.flashPoint,
     hazmatClass: l.hazmatClass,
+    hazmatCode: l.hazmatCode,
+    hazmatPkgGroup: l.hazmatPkgGroup,
     hazmatDescription: l.hazmatDescription,
     itemDescription: l.itemDescription,
     marinePollutant: l.marinePollutant,
+    shippingClass: l.shippingClass,
+    tunnelCode: l.tunnelCode,
+    wgkClass: l.wgkClass,
+  }
+}
+
+function mapOrderChangeDroppedCarrier(
+  d: SellShipmentOrderChangeDroppedCarrier,
+): OrderChangeDroppedCarrierVM {
+  return {
+    scac: d.scac,
+    carrierName: d.carrierName,
+    equipment: d.equipment,
+    routeRank: d.routeRank ?? null,
+    apCost: d.apCost ?? null,
+    dropCode: d.dropCode,
+    reason: d.reason,
+    reasonDescription: d.reasonDescription,
   }
 }
 
@@ -507,6 +530,12 @@ function mapOrderChange(dto: SellShipmentOut): ShipmentDetailVM['orderChange'] {
       prior: mapOrderChangeHazmatLine(h.prior),
       new: mapOrderChangeHazmatLine(h.new),
     })),
+    // Absent on any payload seeded before S135 — an order-change row from an
+    // older reseed must render an empty section, not crash.
+    droppedCarriers: {
+      prior: (oc.droppedCarriers?.prior ?? []).map(mapOrderChangeDroppedCarrier),
+      new: (oc.droppedCarriers?.new ?? []).map(mapOrderChangeDroppedCarrier),
+    },
     resolution: oc.resolution
       ? { action: oc.resolution.action, cost: oc.resolution.cost, resolvedAt: oc.resolution.resolvedAt }
       : null,

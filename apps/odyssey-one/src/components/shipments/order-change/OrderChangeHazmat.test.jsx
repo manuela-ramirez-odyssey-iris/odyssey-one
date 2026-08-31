@@ -12,30 +12,49 @@ import OrderChangeHazmat from './OrderChangeHazmat.jsx'
 
 afterEach(cleanup)
 
+// S135 — full 11-field OrderChangeHazmatLineVM (Jana's own list, mock deck
+// p5). The six after Boiling Point were added when the review found the
+// section was showing 5 of 11.
 const line1 = {
-  line: 87979, boilingPoint: '210 F', hazmatClass: 'II',
+  line: 87979, boilingPoint: '210 F', flashPoint: '140 F', hazmatClass: 'II',
+  hazmatCode: 'UN0034', hazmatPkgGroup: 'II',
   hazmatDescription: 'Flammable Liquid', itemDescription: 'UN00034', marinePollutant: 'N',
+  shippingClass: '75', tunnelCode: '1', wgkClass: 'II',
 }
 const line2 = {
-  line: 87980, boilingPoint: '340 F', hazmatClass: 'III',
+  line: 87980, boilingPoint: '340 F', flashPoint: '260 F', hazmatClass: 'III',
+  hazmatCode: 'UN0071', hazmatPkgGroup: 'III',
   hazmatDescription: 'Corrosive', itemDescription: 'UN00071', marinePollutant: 'Y',
+  shippingClass: '85', tunnelCode: '2', wgkClass: 'III',
 }
 const identicalPairs = [
   { prior: line1, new: { ...line1 } },
   { prior: line2, new: { ...line2 } },
 ]
 
+// S135 — this card now lands COLLAPSED (designer: the review page opens with
+// Preview Hazardous Material Information closed; the planner expands it). Every test below needs
+// its body, so rendering opens it, exactly as a click would.
+function renderCard(oc) {
+  const result = render(<OrderChangeHazmat oc={oc} />)
+  // getAll + last: one test renders the card twice in a row, so the most
+  // recently rendered header is the one to open.
+  const headers = screen.getAllByRole('button', { name: /^Preview Hazardous Material Information/ })
+  fireEvent.click(headers[headers.length - 1])
+  return result
+}
+
 describe('OrderChangeHazmat — chrome', () => {
   test('Differences (0) with identical prior/new pairs, and no badges', () => {
-    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
-    expect(screen.getByText('Differences (0)')).toBeTruthy()
+    renderCard({ hazmat: identicalPairs })
+    expect(screen.getByText('No Differences')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Hazmat Class' })).toBeNull()
   })
 
   test('missing/empty oc.hazmat renders without throwing', () => {
-    expect(() => render(<OrderChangeHazmat oc={{}} />)).not.toThrow()
-    expect(screen.getByText('Differences (0)')).toBeTruthy()
-    expect(() => render(<OrderChangeHazmat oc={{ hazmat: [] }} />)).not.toThrow()
+    expect(() => renderCard({})).not.toThrow()
+    expect(screen.getByText('No Differences')).toBeTruthy()
+    expect(() => renderCard({ hazmat: [] })).not.toThrow()
   })
 
   test('a synthetic differing field produces a difference badge', () => {
@@ -43,31 +62,39 @@ describe('OrderChangeHazmat — chrome', () => {
       { prior: line1, new: { ...line1, hazmatClass: 'I' } },
       { prior: line2, new: { ...line2 } },
     ]
-    render(<OrderChangeHazmat oc={{ hazmat: changedPairs }} />)
-    expect(screen.getByText('Differences (1)')).toBeTruthy()
+    renderCard({ hazmat: changedPairs })
+    expect(screen.getByText('(1)')).toBeTruthy() // purple count in the accordion title
     expect(screen.getByRole('button', { name: 'Hazmat Class' })).toBeTruthy()
   })
 })
 
 describe('OrderChangeHazmat — List mode (default)', () => {
-  test('renders both list titles and all six columns', () => {
-    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+  test('renders both list titles and every hazmat column (Line + the 11 fields)', () => {
+    renderCard({ hazmat: identicalPairs })
     expect(screen.getByText('Prior Tender List')).toBeTruthy()
     expect(screen.getByText('New Tender List')).toBeTruthy()
-    for (const label of ['Line', 'Boiling Point', 'Hazmat Class', 'Hazmat Description', 'Item Description', 'Marine Pollutant']) {
+    const labels = [
+      'Line', 'Boiling Point', 'Flash Point', 'Hazmat Class', 'Hazmat Code',
+      'Hazmat Description', 'Hazmat Pkg Group', 'Item Description',
+      'Marine Pollutant', 'Shipping Class', 'Tunnel Code', 'WGK Class',
+    ]
+    for (const label of labels) {
       expect(screen.getAllByRole('columnheader', { name: label })).toHaveLength(2)
     }
   })
 
   test('a changed field renders in a purple badge on both sides', () => {
-    const changedPairs = [{ prior: line1, new: { ...line1, hazmatClass: 'I' } }]
-    render(<OrderChangeHazmat oc={{ hazmat: changedPairs }} />)
-    expect(screen.getByText('II').closest('span')?.className).toMatch(/text-badge/)
-    expect(screen.getByText('I').closest('span')?.className).toMatch(/text-badge/)
+    // Uses Hazmat Code, whose values are unique per cell — the roman-numeral
+    // fields (class / pkg group / WGK) legitimately repeat the same text in
+    // several columns, so a getByText on 'II' can't identify one cell.
+    const changedPairs = [{ prior: line1, new: { ...line1, hazmatCode: 'UN9999' } }]
+    renderCard({ hazmat: changedPairs })
+    expect(screen.getByText('UN0034').closest('span')?.className).toMatch(/text-badge/)
+    expect(screen.getByText('UN9999').closest('span')?.className).toMatch(/text-badge/)
   })
 
   test('the static band labels are plain labels, not toggle buttons', () => {
-    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    renderCard({ hazmat: identicalPairs })
     // GroupTable's `expandable: false` static band renders the label as
     // plain text — no chevron, no button, no aria-expanded. A regression
     // back to a toggle would still pass a getByText check, so this asserts
@@ -79,7 +106,7 @@ describe('OrderChangeHazmat — List mode (default)', () => {
 
 describe('OrderChangeHazmat — Table mode', () => {
   test('renders one Line {n} group per line on each side', () => {
-    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    renderCard({ hazmat: identicalPairs })
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     expect(screen.getByText('Prior Tender')).toBeTruthy()
     expect(screen.getByText('New Tender')).toBeTruthy()
@@ -88,7 +115,7 @@ describe('OrderChangeHazmat — Table mode', () => {
   })
 
   test('the header strip titles AND the Line {n} group labels are plain labels, not toggle buttons', () => {
-    render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    renderCard({ hazmat: identicalPairs })
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     // Same static-band regression guard as List mode — Table mode has TWO
     // kinds of label here (the header strip AND each per-line static group),
@@ -103,14 +130,14 @@ describe('OrderChangeHazmat — Table mode', () => {
     // Correction 3 (S134): each line's block is a plain 3-column KV grid
     // (comparison-preview__kv-grid--3col) under a bold "Line {n}" label, not
     // a GroupTable row-per-field table.
-    const { container } = render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    const { container } = renderCard({ hazmat: identicalPairs })
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     expect(container.querySelectorAll('.odyssey-group-table').length).toBe(0)
     expect(container.querySelectorAll('.comparison-preview__kv-grid--3col').length).toBe(4) // 2 lines x 2 sides
   })
 
   test('the two sides touch (zero-gap grid) with a vertical rule on the first side', () => {
-    const { container } = render(<OrderChangeHazmat oc={{ hazmat: identicalPairs }} />)
+    const { container } = renderCard({ hazmat: identicalPairs })
     fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     const grid = container.querySelector('.comparison-preview__grid')
     expect(grid.querySelectorAll(':scope > .comparison-preview__panel')).toHaveLength(2)

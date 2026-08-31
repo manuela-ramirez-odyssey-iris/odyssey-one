@@ -10,6 +10,7 @@ import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDeta
 import { QuoteModal } from './QuoteModal.jsx'
 import DroppedCarrierSection from './DroppedCarrierSection'
 import ManualDatesModal from './ManualDatesModal'
+import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import { droppedCarrierToOption, nextRank, planProcessScac, simulatedRoutingDates } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
@@ -387,39 +388,9 @@ function ActionDropdown({ option, position, onAction, onClose }) {
    delete-quote guard LINX-13897)
    ═══════════════════════════════════════════════════════════ */
 
-// Shared shell — both confirms below are a one-line message + Cancel/OK-style
-// footer over ModalMedium, same composition as DiscardChangesModal. Replaces
-// the hand-rolled createPortal dialog this used to be (S119): that version had
-// its own inline-styled overlay/box and NO Escape handling — ModalMedium's
-// useEscapeStack (packages/ui/src/useEscapeStack.js) is the actual fix.
-// cancelLabel is optional — omit it for a single-button (OK-only) dialog like
-// LINX-13895's dates-unavailable notice below, which has nothing to cancel
-// out of. Kept on this one shell rather than a second hand-rolled portal.
-function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', onConfirm, onCancel }) {
-  return createPortal(
-    <ModalMedium
-      title={title}
-      onClose={onCancel}
-      ariaLabel={title}
-      /* `.modal-medium` is deliberately content-sized (width:auto, max 920px —
-         the Shipment Details 4-column grid needs the room, S102). A confirm is
-         one short paragraph, so without a cap it stretches toward 920px and a
-         yes/no prompt renders as wide as a full data modal. Narrowing HERE via
-         the className hook ModalMedium already exposes, rather than touching
-         the shared component. */
-      className="confirm-dialog"
-      footer={
-        <>
-          {cancelLabel && <Button variant="secondary" size="lg" onClick={onCancel}>{cancelLabel}</Button>}
-          <Button variant="primary" size="lg" onClick={onConfirm}>{confirmLabel}</Button>
-        </>
-      }
-    >
-      <p className="text-label-sm-regular">{message}</p>
-    </ModalMedium>,
-    document.body,
-  )
-}
+// The shared shell moved to components/common/ConfirmDialog.jsx (S135) when
+// the Order Change review needed the same dialog — see its docblock for the
+// ModalMedium composition and why `.confirm-dialog` narrows it.
 
 // LINX-13894 — message is VERBATIM from the ticket. S119's "don't overwhelm the
 // user" ruling shortened the tab ERROR surfaces; it does not reach here. This

@@ -1,4 +1,7 @@
-import { GroupTable, HeaderStrip } from '@odyssey/ui'
+import { useState } from 'react'
+import { TriangleAlert } from 'lucide-react'
+import { Badge, Button, GroupTable, HeaderStrip } from '@odyssey/ui'
+import DroppedCarriersModal from './DroppedCarriersModal.jsx'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
 import { DiffValue, KVField, rowsToFlatGroups, val } from './comparisonHelpers.jsx'
 
@@ -144,9 +147,9 @@ function kvValue(carrier, key, changed) {
  * striped bands). The list's NAME moves to the `header={{ title }}` strip —
  * flat mode has no group-header row of its own to carry it.
  */
-function ListModeTable({ label, rows, columns, changeMap }) {
+function ListModeTable({ label, rows, columns, changeMap, trail }) {
   const groups = rowsToFlatGroups(rows, columns, (row, col) => renderListCell(row, col, changeMap))
-  return <GroupTable header={{ title: label }} columns={columns} groups={groups} flat />
+  return <GroupTable header={{ title: label, trail }} columns={columns} groups={groups} flat />
 }
 
 /**
@@ -164,10 +167,10 @@ function ListModeTable({ label, rows, columns, changeMap }) {
  * without either losing the pairing or adding a hairline between every
  * field instead of only between carriers.
  */
-function TableModeSide({ title, carriers, changeMap, fields }) {
+function TableModeSide({ title, carriers, changeMap, fields, trail }) {
   return (
     <div className="comparison-preview__panel">
-      <HeaderStrip title={title} />
+      <HeaderStrip title={title} trail={trail} />
       {carriers.map((c, i) => {
         const changed = changedFieldsFor(c, changeMap)
         return (
@@ -186,33 +189,64 @@ function TableModeSide({ title, carriers, changeMap, fields }) {
   )
 }
 
+/**
+ * Header-strip signal for dropped carriers (S135, designer — replaces both
+ * earlier treatments, the quiet note and the standalone accordion): when this
+ * version's routing dropped carriers, the New Tender List's header strip
+ * carries an amber warning badge RIGHT NEXT TO the title (designer, S135) and
+ * a trailing secondary button that opens them in a modal. New-version drops only — the prior
+ * version's are history, present on ~90% of seeded rows, and would put a
+ * warning badge on nearly every shipment.
+ */
+function NewListTitle({ dropped }) {
+  return (
+    <span className="comparison-preview__dropped-title">
+      New Tender List
+      {dropped.length > 0 && (
+        <Badge variant="amber" leftIcon={<TriangleAlert size={12} aria-hidden="true" />}>
+          Dropped from this version
+        </Badge>
+      )}
+    </span>
+  )
+}
+
 export default function OrderChangeTenderLists({ oc }) {
   const priorList = oc?.priorTenderList ?? []
   const newList = oc?.newTenderList ?? []
+  const newDropped = oc?.droppedCarriers?.new ?? []
   const changeMap = buildChangeMap(priorList, newList)
   const tags = computeTenderDiffs(priorList, newList)
+  const [droppedOpen, setDroppedOpen] = useState(false)
+  const newListTitle = <NewListTitle dropped={newDropped} />
+  const droppedTrail = newDropped.length ? (
+    <Button variant="secondary" size="sm" onClick={() => setDroppedOpen(true)}>Preview Dropped Carriers</Button>
+  ) : null
 
   return (
-    <ComparisonPreviewCard title="Preview Tender List" differences={tags}>
-      {(mode, filter) => {
-        const keys = visibleKeys(filter)
-        if (mode === 'list') {
-          const columns = keys ? LIST_COLUMNS.filter((c) => keys.has(c.key)) : LIST_COLUMNS
+    <>
+      <ComparisonPreviewCard title="Preview Tender List" differences={tags}>
+        {(mode, filter) => {
+          const keys = visibleKeys(filter)
+          if (mode === 'list') {
+            const columns = keys ? LIST_COLUMNS.filter((c) => keys.has(c.key)) : LIST_COLUMNS
+            return (
+              <div className="comparison-preview__stack">
+                <ListModeTable label="Prior Tender List" rows={priorList} columns={columns} changeMap={changeMap} />
+                <ListModeTable label={newListTitle} rows={newList} columns={columns} changeMap={changeMap} trail={droppedTrail} />
+              </div>
+            )
+          }
+          const fields = keys ? KV_FIELDS.filter((f) => keys.has(f.key)) : KV_FIELDS
           return (
-            <div className="comparison-preview__stack">
-              <ListModeTable label="Prior Tender List" rows={priorList} columns={columns} changeMap={changeMap} />
-              <ListModeTable label="New Tender List" rows={newList} columns={columns} changeMap={changeMap} />
+            <div className="comparison-preview__grid">
+              <TableModeSide title="Prior Tender List" carriers={priorList} changeMap={changeMap} fields={fields} />
+              <TableModeSide title={newListTitle} carriers={newList} changeMap={changeMap} fields={fields} trail={droppedTrail} />
             </div>
           )
-        }
-        const fields = keys ? KV_FIELDS.filter((f) => keys.has(f.key)) : KV_FIELDS
-        return (
-          <div className="comparison-preview__grid">
-            <TableModeSide title="Prior Tender List" carriers={priorList} changeMap={changeMap} fields={fields} />
-            <TableModeSide title="New Tender List" carriers={newList} changeMap={changeMap} fields={fields} />
-          </div>
-        )
-      }}
-    </ComparisonPreviewCard>
+        }}
+      </ComparisonPreviewCard>
+      {droppedOpen && <DroppedCarriersModal dropped={newDropped} onClose={() => setDroppedOpen(false)} />}
+    </>
   )
 }

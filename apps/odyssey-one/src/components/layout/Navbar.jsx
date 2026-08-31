@@ -7,7 +7,7 @@ import { useCreateOrderMode } from '../../contexts/CreateOrderModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useNotificationCount } from '../../utils/notifications'
 
-const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
+const Navbar = React.memo(function Navbar({ searchSlot, titleMode } = {}) {
   const [searchValue, setSearchValue] = useState('')
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const profileDropdownRef = useRef(null)
@@ -27,6 +27,28 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
     if (profileDropdownOpen) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [profileDropdownOpen])
+
+  // Focused full-page flows (S135 — Review Order Change): the navbar drops
+  // GlobalSearch for a static title, and TrailNav reduces to help + close.
+  // Same compact title-navbar idiom Edit Dashboard / Create Order use.
+  if (titleMode) {
+    return (
+      <NavbarShell
+        compact
+        lead={<LeadNav />}
+        search={<GlobalSearch mode="title" title={titleMode.title} />}
+        trail={
+          <TrailNav
+            mode="editor"
+            showPrimaryButton={false}
+            showSecondaryButton={false}
+            onHelpClick={() => {}}
+            onRightIconClick={titleMode.onClose}
+          />
+        }
+      />
+    )
+  }
 
   if (isEditMode) {
     return (

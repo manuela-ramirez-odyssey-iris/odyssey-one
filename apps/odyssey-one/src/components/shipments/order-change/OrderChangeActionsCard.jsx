@@ -108,9 +108,13 @@ function ComparisonPanel({ heading, carrier, changed = {} }) {
             <FieldBadge value={carrier.rank} changed={!!changed.rank} />
           </ComparisonField>
         </div>
+        {/* Pickup BEFORE Delivery (S135) — Jana's own mock deck (p3/p4) shows
+            Pickup Date above Delivery Date on both panels. LINX-14511's field
+            list happens to name Delivery first, but it's a list of fields,
+            not a stated ordering rule, so the mock decides the layout here. */}
         <div className="order-change-actions__grid-2">
-          <ComparisonField label="Delivery Date/Time">{dash(carrier.deliveryDateTime)}</ComparisonField>
           <ComparisonField label="Pickup Date/Time">{dash(carrier.pickupDateTime)}</ComparisonField>
+          <ComparisonField label="Delivery Date/Time">{dash(carrier.deliveryDateTime)}</ComparisonField>
         </div>
       </div>
     </div>

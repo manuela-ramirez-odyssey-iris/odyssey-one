@@ -6,10 +6,10 @@
 // mock, which exists precisely so a persist regression can't hide behind a
 // hand-rolled hook mock.
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import OrderChangeReviewRoute from './OrderChangeReviewRoute.jsx'
+import OrderChangeReviewRoute, { landingFor } from './OrderChangeReviewRoute.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
@@ -122,6 +122,14 @@ afterEach(() => {
   resolveOrderChange.mockClear()
 })
 
+// S135 — every tender-resolution action is now behind a ConfirmDialog, so the
+// button click only OPENS the dialog; the mutation fires on its confirm.
+// Scoped with `within(dialog)` because two of the confirm labels intentionally
+// match the page button that opened them.
+function confirmAction(label) {
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: label }))
+}
+
 describe('OrderChangeReviewRoute', () => {
   test('renders the page title with the BUY shipment number when the row menu threaded it through nav state', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
@@ -145,11 +153,12 @@ describe('OrderChangeReviewRoute', () => {
     expect(await screen.findByRole('button', { name: 'Cancel tender' })).toBeTruthy()
   })
 
-  test('Cancel tender calls the mutation with action cancel, cost null, and the prior tender status, then navigates back to the Order Change tab', async () => {
+  test('Cancel tender calls the mutation with action cancel, cost null, and the prior tender status, then leaves the review screen', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    confirmAction('Yes')
 
     await waitFor(() => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
@@ -191,6 +200,7 @@ describe('OrderChangeReviewRoute', () => {
     renderRoute()
 
     fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+    confirmAction('Re tender')
 
     await waitFor(() => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
@@ -207,6 +217,7 @@ describe('OrderChangeReviewRoute', () => {
 
     fireEvent.click(await screen.findByRole('radio', { name: 'Prior Cost' }))
     fireEvent.click(screen.getByRole('button', { name: 'Bypass Tender' }))
+    confirmAction('Bypass Tender')
 
     await waitFor(() => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
@@ -222,6 +233,7 @@ describe('OrderChangeReviewRoute', () => {
     renderRoute()
 
     fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+    confirmAction('Re tender')
 
     await waitFor(() => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
@@ -232,14 +244,15 @@ describe('OrderChangeReviewRoute', () => {
     })
   })
 
-  test('navigates to /shipments with the exceptions/order-change tab state after a successful resolution', async () => {
+  test('Cancel lands on the Tender Review tab with the shipment open on its Tender screen', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
 
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    confirmAction('Yes')
 
     expect(
-      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'order-change' })}`),
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'tender-review', selectedShipmentId: SELL_SHIPMENT, requestedTab: { key: 'routing' } })}`),
     ).toBeTruthy()
   })
 
@@ -254,6 +267,7 @@ describe('OrderChangeReviewRoute', () => {
 
     const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
     fireEvent.click(cancelButton)
+    confirmAction('Yes')
 
     expect(await screen.findByText("Couldn't resolve this tender. Please try again.")).toBeTruthy()
     // disabled tracks resolve.isPending — it going back to false is the
@@ -270,6 +284,7 @@ describe('OrderChangeReviewRoute', () => {
 
     const cancelButton = await screen.findByRole('button', { name: 'Cancel tender' })
     fireEvent.click(cancelButton)
+    confirmAction('Yes')
     expect(await screen.findByText("Couldn't resolve this tender. Please try again.")).toBeTruthy()
     await waitFor(() => expect(cancelButton.disabled).toBe(false))
 
@@ -279,13 +294,115 @@ describe('OrderChangeReviewRoute', () => {
     let releaseRetry
     resolveOrderChange.mockImplementationOnce(() => new Promise((res) => { releaseRetry = res }))
     fireEvent.click(cancelButton)
+    confirmAction('Yes')
 
     await waitFor(() => expect(screen.queryByText("Couldn't resolve this tender. Please try again.")).toBeNull())
     expect(screen.queryByText('shipments list')).toBeNull() // retry still in flight, no nav yet
 
     releaseRetry()
     expect(
-      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'order-change' })}`),
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'tender-review', selectedShipmentId: SELL_SHIPMENT, requestedTab: { key: 'routing' } })}`),
     ).toBeTruthy()
+  })
+})
+
+// S135 — confirmation gate on all three Tender Resolution Actions. The ACs
+// specify no dialog, so the copy is ours; what these pin is that NOTHING
+// reaches the mutation unconfirmed, and that each message states that
+// action's own consequence (Re-Tender messages the carrier, Bypass doesn't).
+describe('OrderChangeReviewRoute — action confirmations', () => {
+  test('an action opens a dialog and does NOT resolve until it is confirmed', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(resolveOrderChange).not.toHaveBeenCalled()
+  })
+
+  test('dismissing the dialog abandons the action entirely', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+    confirmAction('Cancel')
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(resolveOrderChange).not.toHaveBeenCalled()
+  })
+
+  test('Re-Tender names the carrier, the selected cost and the outbound tender', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Re tender' }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(/Keep Carrier & Re-Tender/)).toBeTruthy()
+    expect(within(dialog).getByText(/\$2,950\.00/)).toBeTruthy()
+    expect(within(dialog).getByText(/sent to the carrier/)).toBeTruthy()
+  })
+
+  test('Bypass says NO communication is sent — the one fact that separates it from Re-Tender', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Bypass Tender' }))
+    expect(within(screen.getByRole('dialog')).getByText(/No tender communication will be sent/)).toBeTruthy()
+  })
+
+  test('Cancel Tender uses Yes/No — a "Cancel" button here would read as cancelling the tender', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel tender' }))
+    const dialog = within(screen.getByRole('dialog'))
+    expect(dialog.getByRole('button', { name: 'Yes' })).toBeTruthy()
+    expect(dialog.getByRole('button', { name: 'No' })).toBeTruthy()
+    expect(dialog.queryByRole('button', { name: 'Cancel' })).toBeNull()
+    expect(dialog.getByText(/returns to Tender Review/)).toBeTruthy()
+  })
+})
+
+// S135 — "View Tender" (LINX-14509: view tender information during the
+// review, but no tender actions). A modal, so the cost selection already made
+// on this screen survives looking it up.
+describe('OrderChangeReviewRoute — View Tender', () => {
+  test('opens the live tender options in a modal, and nothing resolves', async () => {
+    getSellShipmentDetail.mockResolvedValue({
+      ...ORDER_CHANGE_DETAIL,
+      routingData: { options: [{
+        rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'LTL',
+        cost: '$1,901.56', status: 'Sent',
+        pickupDateTime: '06/03/2026 16:30 CDT', deliveryDateTime: '06/04/2026 16:30 CDT',
+      }] },
+    })
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View Tender' }))
+    const dialog = within(screen.getByRole('dialog'))
+    expect(dialog.getByRole('cell', { name: 'Old Dominion' })).toBeTruthy()
+    expect(resolveOrderChange).not.toHaveBeenCalled()
+    // Still on the review screen behind the modal.
+    expect(screen.getByRole('button', { name: 'Cancel tender' })).toBeTruthy()
+  })
+})
+
+// S135 — the three actions no longer share one landing. Unit-tested directly
+// so the rule is pinned without driving the whole screen three more times.
+describe('landingFor', () => {
+  test('cancel goes to Tender Review with the shipment open on its Tender screen (LINX-14514)', () => {
+    expect(landingFor('cancel', '123')).toEqual({
+      panel: 'exceptions',
+      tab: 'tender-review',
+      selectedShipmentId: '123',
+      // 'routing' IS the Tender tab (BottomBar TABS); 'tender' is Tender History.
+      requestedTab: { key: 'routing' },
+    })
+  })
+
+  test('retender and bypass return to the Order Change tab — the review is finished', () => {
+    for (const action of ['retender', 'bypass']) {
+      expect(landingFor(action, '123')).toEqual({ panel: 'exceptions', tab: 'order-change' })
+    }
   })
 })

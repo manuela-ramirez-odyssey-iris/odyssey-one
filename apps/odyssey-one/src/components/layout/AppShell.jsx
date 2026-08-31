@@ -4,12 +4,12 @@ import CustomersModal from '../CustomersModal'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 
-export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false, searchSlot }) {
+export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false, searchSlot, titleMode }) {
   const { isEditMode } = useEditMode()
   const { modalOpen } = useCustomers()
   return (
     <div className="flex flex-col h-screen">
-      <Navbar searchSlot={searchSlot} />
+      <Navbar searchSlot={searchSlot} titleMode={titleMode} />
       {/* overflow-clip (not hidden): hidden boxes are still scroll containers, so a
           scrollIntoView/focus on wide content (e.g. a shipment-table row) could
           horizontally scroll this wrapper and push the Sidebar off-screen with no
