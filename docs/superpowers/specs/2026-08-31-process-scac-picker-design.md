@@ -86,36 +86,51 @@ This is a legitimate state (the §13 join simply returns nothing), not an error.
 
 ## Data
 
-No carrier endpoint exists and no `mf_carrier` equivalent is seeded. Route through the existing
-master-data seam (`src/data/master-data.js` already imports `tools/data-pools.mjs`).
+No carrier endpoint exists and no `mf_carrier` equivalent is seeded. **Use the catalog the app
+already has.**
 
-- **`CARRIERS`** moves from `tools/generate.mjs:172` into `tools/data-pools.mjs`, **verbatim and in
-  the same order**. `generate.mjs` imports it back. Single source, no duplication.
-- **`SCAC_EQUIPMENT`** — new literal map in `data-pools.mjs`, over the existing 11
-  `EQUIPMENT_CODES`. A literal map beats a hash: greppable, and answerable when Jana asks why a
-  SCAC shows three options.
+`src/data/master-data.js` exports a **51-entry `CARRIERS`** (LINX-8126, the order-creation SCAC
+typeahead, consumed by `src/api/services/lookupService.ts`), shaped
+`{ scac, name, mode: 'TL' | 'LTL' }`. That is this app's TMS master data for SCACs, which is exactly
+what 15075 names as the source. Do not create a second carrier list.
+
+> **Corrected 2026-08-31.** An earlier draft of this spec moved the 15-entry generator pool from
+> `tools/generate.mjs` into `data-pools.mjs` and hand-mapped equipment for it. That was written
+> without checking for the existing catalog; it shipped as `19782e6` and was reverted in `08448e5`.
+> Nothing consumed it, and `generate-orders.mjs` never used `CARRIERS`, so the move bought nothing
+> and left an alias dodging a collision with the real list.
+
+Add to `src/data/master-data.js`, beside `CARRIERS`:
 
 ```js
-export const SCAC_EQUIPMENT = {
-  SEFL: ['LTL', 'LTR', 'LTH'],
-  ODFL: ['LTL', 'LTH'],
-  XPOL: ['LTL', 'LTR', 'TL'],
-  EXLA: ['LTL'],
-  SAIA: ['LTL', 'LTR'],
-  CTNS: [],                      // PS2 — the empty-equipment branch, deliberately reachable
-  JBHT: ['TL', 'TLR', 'TLH', 'TT'],
-  SNLU: ['TL', 'TLR', 'RR'],
-  USFC: ['LTL', 'LTH'],
-  FXFE: ['LTL', 'LTR'],
-  UPGF: ['LTL'],
-  RLCA: ['LTL', 'LTR', 'LTH'],
-  ABFS: ['LTL', 'TL'],
+// LINX-13397 §12 filters `carr_cd_pending_status_flag = 'N'`. Our stand-in for
+// "not active": the catalog's own (DNU) = Do Not Use marker. 51 → 43 selectable.
+export const TENDER_SCAC_OPTIONS = CARRIERS.filter((c) => !c.name.includes('(DNU)'))
+
+// LINX-13397 §13 joins mf_carrier_equipment per SCAC. We have no such table, so
+// equipment derives from the catalog's own `mode` — every carrier is covered, and
+// nothing is hand-maintained per SCAC.
+const MODE_EQUIPMENT = {
+  TL:  ['TL', 'TLR', 'TLH', 'TT', 'TLF'],
+  LTL: ['LTL', 'LTR', 'LTH'],
+}
+
+// PS2 — a carrier with no ACTIVE equipment rows is a real state in §13, and
+// 15075 specifies UI for it. Without one seeded, that branch is unreachable.
+const SCACS_WITHOUT_EQUIPMENT = ['WERN']
+
+export function equipmentForScac(scac) {
+  if (SCACS_WITHOUT_EQUIPMENT.includes(scac)) return []
+  const carrier = CARRIERS.find((c) => c.scac === scac)
+  return carrier ? (MODE_EQUIPMENT[carrier.mode] ?? []) : []
 }
 ```
 
-> **Moving `CARRIERS` is not a data migration.** Same values, same order, no new faker draw — no
-> regen, no Neon reseed. The order is load-bearing: `buildDroppedCarriers` filters this array, so
-> reordering it reshuffles every seeded shipment.
+Equipment codes must come from the existing `EQUIPMENT_CODES` / `EQUIPMENT_LABELS` vocabulary —
+`master-data.js` already imports both. Labels render as `CODE — Label` (e.g. `TLR — Refrigerated
+Box Trailer`).
+
+**No changes to `tools/`.** No regen, no Neon reseed.
 
 ## Rank insertion — supersedes plan decision D3
 
@@ -162,8 +177,9 @@ sense if nothing interrupted to collect dates. **Built per 15076: the picker doe
 Annotate each in code so a later reader does not mistake it for spec.
 
 - **PS1 — D3 superseded; group-aware insertion at both doorways.** Persist highest-rank-first.
-- **PS2 — `CTNS` maps to `[]`.** Otherwise 15075's empty-equipment rule ships against a screen that
-  can never show it.
+- **PS2 — `WERN` has no equipment.** Otherwise 15075's empty-equipment rule ships against a screen
+  that can never show it. One entry in `SCACS_WITHOUT_EQUIPMENT`, deleted when a real
+  `mf_carrier_equipment` exists.
 - **PS3 — manual carriers route successfully unless their SCAC is in `ROUTING_FAILS`.** Set it to
   `['EXLA']`. A picked carrier has no `dropCode`, so `planProcessScac`'s existing simulation would
   always succeed and 15076's failure branch + 15077's indicator would be unreachable. Deterministic,
@@ -194,10 +210,8 @@ After success, focus stays in the Tender tab and the new row is highlighted (`se
 
 | File | Action |
 |---|---|
-| `tools/data-pools.mjs` | Add `CARRIERS` (moved) + `SCAC_EQUIPMENT` |
-| `tools/generate.mjs` | Import `CARRIERS` instead of declaring it |
-| `src/data/master-data.js` | Re-export both |
-| `src/lib/processScac.js` | `insertRank`; `ROUTING_FAILS`; manual-carrier branch |
+| `src/data/master-data.js` | Add `TENDER_SCAC_OPTIONS` + `equipmentForScac()` beside the existing `CARRIERS` |
+| `src/lib/processScac.js` | ✅ done (`3ffd8e6`) — `insertRank`, `ROUTING_FAILS`, manual-carrier branch |
 | `src/lib/processScac.test.js` | Extend |
 | `src/components/detail/ProcessScacBar.jsx` | **New** — presentational |
 | `src/components/detail/ProcessScacBar.test.jsx` | **New** |
