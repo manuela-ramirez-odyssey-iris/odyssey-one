@@ -13,7 +13,7 @@ import DroppedCarrierSection from './DroppedCarrierSection'
 import ProcessScacBar from './ProcessScacBar.jsx'
 import ManualDatesModal from './ManualDatesModal'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
-import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates, PROCESSED_HIGHLIGHT_BG, PROCESSED_HIGHLIGHT_TEXT } from '../../lib/processScac'
+import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -585,7 +585,13 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, openM
   const getRowBg = (option) => {
     const isHighlighted = highlightedRank === option.rank
     const isHovered = hoveredRank === option.rank
-    if (isHighlighted) return STATUS_STYLES[option.status]?.bg ?? PROCESSED_HIGHLIGHT_BG
+    // A highlighted row borrows its TENDER STATUS colour and nothing else.
+    // There is deliberately no fallback tint for a status-less row: blue is
+    // STATUS_STYLES.Sent, so a freshly-added, untendered carrier wearing it
+    // read as already tendered (user, 2026-09-01). Adding a carrier is not
+    // tendering it — the only feedback it gets is the transient grey sheen,
+    // which fades back to white and leaves no residue.
+    if (isHighlighted && STATUS_STYLES[option.status]) return STATUS_STYLES[option.status].bg
     if (isHovered) return 'var(--bg-secondary)'
     return 'var(--bg-primary)'
   }
@@ -811,7 +817,9 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, openM
                       // back to the SAME blue getRowBg already tints the rest of the row
                       // with, not plain white. Without this the action lane was the one
                       // cell on the row that didn't look "just added".
-                      background: STATUS_STYLES[option.status]?.bg ?? (isHighlighted ? PROCESSED_HIGHLIGHT_BG : 'var(--bg-primary)'),
+                      // Status colour only — same rule as getRowBg: no blue
+                      // fallback, because blue means Sent.
+                      background: STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)',
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -829,7 +837,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, openM
                           the same weight as the header's arrange control (user, 2026-08-17).
                           S136 — same highlighted fallback as the cell's own background,
                           so the icon doesn't read as invisible/placeholder-gray against it. */}
-                      <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? (isHighlighted ? PROCESSED_HIGHLIGHT_TEXT : 'var(--text-placeholder)') }} />
+                      <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? 'var(--text-placeholder)' }} />
                     </div>
                   </td>
                 </tr>

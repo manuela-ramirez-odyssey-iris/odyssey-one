@@ -159,10 +159,15 @@
   width: 360px;
 }
 
-/* S136 — the inserted/highlighted tender row drifts a soft plasma sheen
+/* S136 — a row that something is HAPPENING to drifts a soft grey sheen
    RIGHTWARD rather than pulsing in place (user, 2026-09-01). Directional motion
-   reads as progress, which is what the row's state actually is: a tender that
-   has gone out and is awaiting a carrier response.
+   reads as progress. Driven by `processRank`, not `highlightedRank`: it marks a
+   carrier being added, routed, tendered or re-tendered — never a row that was
+   merely selected.
+
+   Grey, and leaving no residue, is the point. This table's only lasting colours
+   are tender statuses (STATUS_STYLES), and an added-but-untendered carrier must
+   not borrow one of them.
 
    Built as an ::after overlay, not a background, because every cell already
    carries `background: getRowBg(option)` as an INLINE style — inline beats any
@@ -214,12 +219,14 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  /* The darker partner of the tint the row landed on — defaults to the blue a
-     freshly-processed (status-less) row always gets, the same value
-     PROCESSED_HIGHLIGHT_TEXT carries in src/lib/processScac.js. */
+  /* NEUTRAL grey, not blue (user, 2026-09-01). Blue is STATUS_STYLES.Sent —
+     a carrier that has only just been ADDED has not been tendered, so nothing
+     about it may wear Sent's colour. The row underneath stays white and the
+     sheen fades to nothing, so "added" leaves no residue at all; the only
+     lasting colour on this table is a real tender status. */
   background-image:
-    radial-gradient(88px 27px at 30% 52%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%),
-    radial-gradient(126px 33px at 68% 44%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%);
+    radial-gradient(88px 27px at 30% 52%, var(--tender-plasma-tone, var(--deep-sea-neutral-500)) 0%, transparent 100%),
+    radial-gradient(126px 33px at 68% 44%, var(--tender-plasma-tone, var(--deep-sea-neutral-500)) 0%, transparent 100%);
   background-size: 310px 100%, 450px 100%;
   background-repeat: repeat-x, repeat-x;
   opacity: 0;
@@ -242,7 +249,7 @@
    landing WITH the row's colour rather than catching up to it. Only the tail
    fades, so it settles to the solid tint instead of cutting out. */
 @keyframes tender-row-plasma-fade {
-  0%, 70% { opacity: 0.14; }
+  0%, 70% { opacity: 0.18; }
   100%    { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
