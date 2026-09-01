@@ -269,7 +269,12 @@ the VTT — the ticket does not make these calls, we did. Each entry says so exp
   (`apps/odyssey-one/api/_lib/shipments.mjs:269`), so shifting row 5 to 6 would overwrite whatever
   currently holds rank 6.
 - **Source:** `processScac.js` (`nextRank`); `apps/odyssey-one/api/_lib/shipments.mjs:265-276`.
-- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build. Commit `7367759`.
+- **Status:** ⚠️ **superseded 2026-08-31 by [[#DC-24|DC-24]]/PS1** (LINX-15075). The
+  "our list is flat, so the AC's fallback applies verbatim" reasoning did not
+  survive 15075's own worked example, which inserts mid-list against a flat
+  array. `nextRank` → group-aware `insertRank`, un-exported and kept only as
+  that function's own no-match/empty fallback. Originally ✅ implemented
+  2026-08-17, LINX-13954 build, commit `7367759`.
 
 ### DC-15: The 3-second success message is an inline `Alert`, not a new Toast component
 - **This is our call, not the ticket's.** The AC's flow calls it a "Toast" with a 3s auto-dismiss.
@@ -414,10 +419,67 @@ the VTT — the ticket does not make these calls, we did. Each entry says so exp
 
 ---
 
+### DC-24: Process SCAC picker built (LINX-15075/76/77) — D3/DC-14 superseded
+
+- **Decision:** a second doorway into the same walk. `ProcessScacBar` (SCAC +
+  Equipment ComboBox pair + button) mounts in `pane-col--wide` between the
+  sub-tabs band and the Tender table card — deliberately outside
+  `.tender-pane__table-card`, which is `overflow: hidden` and would clip an
+  open ComboBox menu.
+- **PS1 — D3/DC-14 superseded: group-aware insertion at BOTH doorways.**
+  D3 reasoned "our tender list is flat, so the AC's no-matching-group fallback
+  applies verbatim" — true of the *code*, but 15075's own worked example
+  (`docs/superpowers/specs/2026-08-31-process-scac-picker-design.md`, "Rank
+  insertion") inserts mid-list against a flat array, which the flat-list
+  reading cannot produce. `nextRank` → `insertRank`: new row lands at the
+  bottom of the matching Equipment group (last matching run, if equipment
+  appears in more than one — the true bottom, not a mid-list wedge), else the
+  bottom of the whole list. Shifted rows persist **highest `rank` first**
+  (`insertRank`'s own `shifts` order) — the write endpoint is still addressed
+  `WHERE rank = $8`, so a destination must be vacated before it's written.
+  `nextRank` itself is un-exported (`processScac.js`), surviving only as
+  `insertRank`'s own no-match/empty fallback.
+- **PS2 — `WERN` seeded as the one no-equipment SCAC.** `TENDER_SCAC_OPTIONS`/
+  `equipmentForScac()` (`src/data/master-data.js`) derive from the existing
+  51-entry `CARRIERS` catalog (LINX-8126) rather than a second carrier list —
+  an earlier draft's move of a separate 15-entry pool was reverted
+  (`08448e5`) because nothing consumed it. Equipment derives from each
+  carrier's `mode` (TL/LTL) via a small static map; `WERN` is hardcoded to
+  resolve to `[]` so 15075's empty-equipment UI (no validation message,
+  button stays disabled) is reachable at all — no real
+  `mf_carrier_equipment` exists to produce that state on its own.
+- **PS3 — `ROUTING_FAILS = ['EXLA']` (`processScac.js`).** A picker-sourced
+  carrier has no `dropCode`, so without this the manual-carrier simulation
+  would always succeed and 15076's failure branch / 15077's failed-routing
+  indicator would be unreachable in a demo. One line to delete once real
+  routing exists for this doorway.
+- **Failure paths diverge from the dropped-carrier doorway (13954), despite
+  Jana's "both are same. Steps are the same."** 15076's AC never mentions
+  manual date entry, and its message ("has been added") only makes sense if
+  nothing interrupted to collect dates — so the picker's failure branch is
+  ONE step, `routing-failed`, not a reuse of `manual-dates`/`rating-failed`:
+  no `ManualDatesModal`, no rating call, row inserted with blank rank/dates
+  (cost was already always blank), message *"Routing could not be completed
+  for the selected carrier. The carrier has been added to the Routing
+  Options list."* **Flagged for Jana** — this is the seam in "both are same."
+- **PS4 — audit logging still not built** (extends DC-16). No table, no
+  endpoint. Known gap, unchanged by this build.
+- **Source:** `docs/superpowers/specs/2026-08-31-process-scac-picker-design.md`;
+  `src/lib/processScac.js` (`insertRank`, `ROUTING_FAILS`); `src/data/
+  master-data.js` (`TENDER_SCAC_OPTIONS`, `equipmentForScac`);
+  `src/components/detail/ProcessScacBar.jsx`; `src/components/detail/
+  RoutingGuideTab.jsx` (`runProcessScac`).
+- **Status:** ✅ built and tested (S136). `DroppedCarrierSection.jsx`
+  untouched — both doorways share `runProcessScac`/`handleProcessScac` and
+  the one `processingScac` lock.
+
+---
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Aug 31, 2026 | DC-24 — Process SCAC **picker** built (LINX-15075/76/77), the second doorway `ProcessScacBar` promised since DC-09. **D3/DC-14 superseded**: `nextRank` → group-aware `insertRank` at BOTH doorways (PS1), since the plan's "our list is flat, D3 applies verbatim" reading did not survive the spec's own worked mid-list example. **PS2** seeds `WERN` as the one no-equipment SCAC so that empty-equipment UI is reachable; **PS3** seeds `ROUTING_FAILS = ['EXLA']` so the picker's own failure branch is reachable in a demo. The picker's failure path is its OWN branch (`routing-failed`), not a reuse of 13954's `manual-dates`/`rating-failed` — flagged for Jana as the seam in "both are same." **PS4** (audit logging) remains an open gap. |
 | Aug 18, 2026 | DC-22, DC-23 — **DEC-108 reversed**: the dropped-carrier seed now invents values so the feature can be groomed by looking at it, with three AC-derived dependency chains enforced in code and tests and ~20% of rows left sparse to keep the `--` path visible. **OQ-13 resolved** by Jana — Route Rank may be empty, Rank may not — which retires a same-day interim ruling and makes `mapRoutingOption`'s `routeRank ?? rank` fallback known-wrong (raised as Q1 rather than changed unilaterally, since it touches every routing option). |
 | Aug 17, 2026 | DC-12 through DC-21 — Process SCAC (LINX-13954) built: six implementation calls the ticket doesn't make — **DC-12** Routing/Rating simulated off the seeded `dropCode` (`23` → no dates, `1`/`2` → success); **DC-13** Rating always fails on the failure branch, since a dropped carrier carries no rate data; **DC-14** insertion always takes the AC's own no-matching-group fallback (flat list, `max(rank)+1`, never renumbered — the write endpoint addresses rows by rank); **DC-15** the 3s success message is an `Alert`, not a new Toast component; **DC-16** audit logging is a known, unbuilt gap; **DC-17** Route Rank/RPC-ID are carried per DC-05 but arrive blank because routing supplies neither. Plus **DC-18** confirms no migration or API change was needed (`saveTender` already update-then-inserts, same finding as DEC-106); **DC-19**/**DC-20** record two defects found and fixed mid-build (a display dash almost persisted into a numeric wire field; the AC's Processing Failure branch was unreachable dead code); **DC-21** records real-Chrome/live-Neon browser verification, including cold-reload persistence. Four items verified but **not resolved** are logged as OQ-14 through OQ-17 in the canon. Also flipped four DC-01–DC-11 statuses to ✅ implemented now that the behaviour they ruled on (per-row action, routing-failure semantics, Rank vs Route Rank, OK/Cancel buttons) shipped as part of this build: **DC-02**, **DC-03**, **DC-05**, **DC-08**. |
 | Aug 17, 2026 | DC-01 through DC-11 — Dropped Carrier intake (S122), from the LINX-13953/13954/13397 AC pulled live plus Jana's 2026-08-11 call. Placement and per-row action are VTT-only rulings the AC never states (**DC-01**, **DC-02**); **DC-03** pins "routing failure" to *returned-without-dates*, not a service error; **DC-04** kills the assumption of a fixed LTL→TL equipment hierarchy; **DC-05** separates Rank from Route Rank, which the AC reads as one contradictory field; **DC-06**/**DC-07** split Volume Commitment into in-scope display vs Dave-blocked calculation and confirm the CVC-ID lookup won the TBD; **DC-08** retires the AC's stray "Yes" button; **DC-09** confirms S120's `Refer Story xxxx` match but **refutes its framing** — Jana demoed the manual add path and said they owe the ticket, and the quote S120 attributed to this call is not in this transcript; **DC-10** retires the "13397 is a blocking hole" reading; **DC-11** fixes terminology. Headline unresolved item is **OQ-1** — the AC and the VTT disagree on whether Rating runs on the routing-success path. |
