@@ -551,7 +551,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns }) {
+function RoutingTable({ options, tabColumns, highlightedRank, processRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -640,7 +640,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                   // .tender-row-plasma in styles/panes/tender.css: the cells
                   // must stay unpositioned for the row overlay to paint above
                   // their backgrounds.
-                  className={isHighlighted ? 'tender-row-plasma' : undefined}
+                  className={processRank === option.rank ? 'tender-row-plasma' : undefined}
                   style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
@@ -781,7 +781,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
               return (
                 <tr
                   key={option.rank}
-                  className={isHighlighted ? 'tender-row-plasma' : undefined}
+                  className={processRank === option.rank ? 'tender-row-plasma' : undefined}
                   style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
@@ -897,6 +897,18 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   const currentUser = useCurrentUser()
   const [activeSubTab, setActiveSubTab] = useState('routing-options')
   const [highlightedRank, setHighlightedRank] = useState(null)
+  // S136 — deliberately NOT highlightedRank. That one means "the row you just
+  // touched" and is set by merely opening the action menu, so binding the
+  // plasma sheen to it fired the animation on a plain menu click (user,
+  // 2026-09-01). The sheen means "a process is running on this row" —
+  // tendering, re-tendering, routing — so it needs its own state.
+  //
+  // Known limitation: re-triggering on the SAME rank does not replay the
+  // animation, because the class string never changes and CSS only restarts on
+  // a change. Only reachable by firing two process actions on one row in a row
+  // (e.g. Re-Tender twice); left alone rather than adding a nonce + rAF
+  // remount dance for it.
+  const [processRank, setProcessRank] = useState(null)
   const [openMenuRank, setOpenMenuRank] = useState(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [options, setOptions] = useState(data?.options || [])
@@ -942,6 +954,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   useEffect(() => {
     setActiveSubTab('routing-options')
     setHighlightedRank(null)
+    setProcessRank(null)
     setOpenMenuRank(null)
     setMenuPos({ top: 0, left: 0 })
     setOptions(data?.options || [])
@@ -1180,6 +1193,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // uses for "this is the row you just touched". Applies on the
     // routing-failed branch too: the row landed on screen either way.
     setHighlightedRank(option.rank)
+    setProcessRank(option.rank)
 
     // Persist HIGHEST `from` first — insertRank already orders them that way.
     // The write is addressed `WHERE rank = $8` (api/_lib/shipments.mjs), so a
@@ -1204,6 +1218,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       // and a filter would leave those ranks moved.
       setOptions(options)
       setHighlightedRank(null)
+      setProcessRank(null)
       setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
       setProcessingScac(null)
       return false   // S136 — write failure stays expanded too, retry with the same selections
@@ -1422,6 +1437,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       persistTender(updated)
       setProcessSuccess('Routing completed successfully.')
       setHighlightedRank(rank)
+      setProcessRank(rank)   // routing ran on this row — see processRank's note
       return
     }
 
@@ -1440,6 +1456,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // OUT of the response fields (they're notify events, not responses);
     // this only adds the notify-side fields they were missing.
     const isNotifyAction = action === 'Tender' || action === 'Re-Tender'
+    // The two actions that actually START something: a tender goes out and the
+    // row now waits on a carrier. Accept/Decline/Cancel are the opposite — they
+    // CLOSE a cycle — so they get no sheen. See processRank's note above.
+    if (isNotifyAction) setProcessRank(rank)
 
     let updated = options.map((opt) => {
       if (opt.rank !== rank) return opt
@@ -1576,6 +1596,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           options={optionsWithPos}
           tabColumns={activeTabColumns}
           highlightedRank={highlightedRank}
+          processRank={processRank}
           openMenuRank={openMenuRank}
           onOpenMenu={handleOpenMenu}
           onCloseMenu={handleCloseMenu}

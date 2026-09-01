@@ -925,6 +925,29 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(droppedProcessButton().disabled).toBe(false)
   })
 
+  it('the progress sheen fires on Tender but NOT on merely opening the action menu', () => {
+    // The sheen means "a process is running on this row". It was bound to
+    // highlightedRank, which handleOpenMenu also sets — so clicking the truck
+    // to open the menu animated the row for no reason (user, 2026-09-01).
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'OLD DOMINION',
+      equipment: 'Van', cost: '--', status: null,
+    }
+    render(<RoutingGuideTab data={{ options: [option] }} shipment={shipment} />)
+    const plasmaRows = () => document.querySelectorAll('tr.tender-row-plasma')
+
+    expect(plasmaRows()).toHaveLength(0)
+
+    // Opening the menu highlights the row but must NOT start the animation.
+    fireEvent.click(document.querySelector('[data-right-table] tbody tr').querySelector('td:last-child'))
+    expect(plasmaRows()).toHaveLength(0)
+
+    // Tendering does: the row now waits on a carrier. Both split tables carry
+    // the class, hence two.
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
+    expect(plasmaRows()).toHaveLength(2)
+  })
+
   it('rolls back the RENUMBERED rows too, not just the new one, when the write fails', async () => {
     // The rollback above runs against an EMPTY tender list, so no rank ever
     // shifts and it cannot see this. Group-aware insertion (PS1) renumbers
