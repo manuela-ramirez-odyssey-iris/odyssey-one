@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom'
 // at 40+ call sites — the S134 lesson from ShipmentTable's identical break.
 const render = (ui, options) => rtlRender(ui, { wrapper: MemoryRouter, ...options })
 import RoutingGuideTab, { orderedTabColumns } from './RoutingGuideTab'
+import { TENDER_SCAC_OPTIONS, equipmentForScac } from '../../data/master-data.js'
 
 // Mocked so the persist-round-trip test below can inspect the EXACT payload
 // `saveTenderOption` receives — the real function is a live-mode-only no-op
@@ -847,12 +848,20 @@ describe('Process SCAC (LINX-13954)', () => {
     routeGroup: '--', rpcId: '--',
   }
 
+  // LINX-15075 mounted a SECOND "Process SCAC" button (the picker bar) on this
+  // same screen — both doorways share the label by design. Scope these
+  // dropped-carrier-doorway tests to DroppedCarrierSection's own table
+  // (`data-dropped-carrier-table`, already on its GroupTable) so they keep
+  // pinning THAT button rather than failing on the new ambiguity.
+  const droppedProcessButton = () =>
+    within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Process SCAC' })
+
   it('a clean route copies the carrier into the Tender List and announces success; the row stays in the Dropped Carrier section too', async () => {
     const data = { options: [] }
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(droppedProcessButton())
     })
 
     expect(screen.getByText('Routing completed successfully.')).toBeTruthy()
@@ -879,7 +888,7 @@ describe('Process SCAC (LINX-13954)', () => {
                             shipment={shipment} />)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(droppedProcessButton())
     })
 
     expect(saveTenderOption).toHaveBeenCalledTimes(1)
@@ -902,7 +911,7 @@ describe('Process SCAC (LINX-13954)', () => {
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(droppedProcessButton())
     })
 
     expect(screen.getByText(
@@ -913,7 +922,7 @@ describe('Process SCAC (LINX-13954)', () => {
     // And no success message crept out alongside the failure.
     expect(screen.queryByText('Routing completed successfully.')).toBeNull()
     // Retry stays available: the one-at-a-time lock released.
-    expect(screen.getByRole('button', { name: 'Process SCAC' }).disabled).toBe(false)
+    expect(droppedProcessButton().disabled).toBe(false)
   })
 
   it('a duplicate SCAC+Equipment refuses: processing stops, nothing is added', async () => {
@@ -925,7 +934,7 @@ describe('Process SCAC (LINX-13954)', () => {
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(droppedProcessButton())
     })
 
     expect(screen.getByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeTruthy()
@@ -937,7 +946,7 @@ describe('Process SCAC (LINX-13954)', () => {
     const data = { options: [] }
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    fireEvent.click(droppedProcessButton())
     expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
 
     // Deliberately far-future so the past-check in ManualDatesModal never fires.
@@ -962,13 +971,13 @@ describe('Process SCAC (LINX-13954)', () => {
     const data = { options: [] }
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    fireEvent.click(droppedProcessButton())
     expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeNull()
     expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(0)
-    expect(screen.getByRole('button', { name: 'Process SCAC' }).disabled).toBe(false)
+    expect(droppedProcessButton().disabled).toBe(false)
   })
 
   it('the success message disappears after 3s with no user action', async () => {
@@ -977,7 +986,7 @@ describe('Process SCAC (LINX-13954)', () => {
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(droppedProcessButton())
     })
     expect(screen.getByText('Routing completed successfully.')).toBeTruthy()
 
@@ -985,6 +994,129 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(screen.queryByText('Routing completed successfully.')).toBeNull()
 
     vi.useRealTimers()
+  })
+})
+
+// LINX-15075/76/77 — the SECOND doorway into the same walk (see
+// lib/processScac.js header + docs/superpowers/specs/2026-08-31-process-scac-
+// picker-design.md). Group-aware insertion (PS1) and the shared lock are
+// exercised end to end here; ProcessScacBar's own dependent-enablement/reset
+// behaviour has its own test file.
+describe('Process SCAC picker (LINX-15075/76/77)', () => {
+  const shipment = { sellShipment: 'SHIP-1' }
+
+  // Real catalog carriers, picked for known equipment: KNGT/SCNN are TL
+  // (equipmentForScac → ['TL','TLR','TLH','TT','TLF']), EXLA is the one seeded
+  // ROUTING_FAILS SCAC (PS3, processScac.js).
+  const scacInputIndex = (code) => TENDER_SCAC_OPTIONS.findIndex((c) => c.scac === code)
+  const carrierName = (code) => TENDER_SCAC_OPTIONS.find((c) => c.scac === code).name
+
+  // Selects SCAC then Equipment on the picker bar. Keyboard selection walks
+  // the in-memory `matches` array (ComboBox.jsx), not rendered DOM rows, so
+  // it isn't blocked by jsdom's lack of virtualization — see ProcessScacBar's
+  // own test file for the fuller explanation.
+  function pickCarrier(scacCode, equipmentCode) {
+    const [scacInput] = screen.getAllByRole('combobox')
+    const scacWrapper = scacInput.closest('.combo-box')
+    fireEvent.focus(scacInput)
+    for (let i = 0; i <= scacInputIndex(scacCode); i++) fireEvent.keyDown(scacWrapper, { key: 'ArrowDown' })
+    fireEvent.keyDown(scacWrapper, { key: 'Enter' })
+
+    const equipmentInput = screen.getAllByRole('combobox')[1]
+    const equipmentWrapper = equipmentInput.closest('.combo-box')
+    const equipIdx = equipmentForScac(scacCode).indexOf(equipmentCode)
+    fireEvent.focus(equipmentInput)
+    for (let i = 0; i <= equipIdx; i++) fireEvent.keyDown(equipmentWrapper, { key: 'ArrowDown' })
+    fireEvent.keyDown(equipmentWrapper, { key: 'Enter' })
+  }
+
+  it('inserts at the bottom of the matching equipment group, renumbering everything below', async () => {
+    const before = [
+      { rank: 1, routeRank: 1, scac: 'AAAA', carrierName: 'Carrier A', equipment: 'TL', cost: '--', status: null },
+      { rank: 2, routeRank: 2, scac: 'BBBB', carrierName: 'Carrier B', equipment: 'TL', cost: '--', status: null },
+      { rank: 3, routeRank: 3, scac: 'CCCC', carrierName: 'Carrier C', equipment: 'LTL', cost: '--', status: null },
+    ]
+    render(<RoutingGuideTab data={{ options: before }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
+
+    pickCarrier('KNGT', 'TL')
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    // KNGT/TL lands at rank 3 (bottom of the AAAA/BBBB TL run); CCCC/LTL
+    // renumbers 3 → 4. Read off the LEFT table, which carries rank + scac.
+    const leftRows = [...document.querySelectorAll('[data-left-table] tbody tr')]
+    const scacCells = leftRows.map((tr) => tr.querySelector('td:nth-child(3)').textContent.trim())
+    expect(scacCells).toEqual(['AAAA', 'BBBB', 'KNGT', 'CCCC'])
+
+    // The shifted row's write must land BEFORE the new row's — the endpoint is
+    // addressed WHERE rank = $8, so CCCC's rank-4 write has to vacate rank 3
+    // before KNGT's write claims it.
+    const scacsWritten = saveTenderOption.mock.calls.map(([, sent]) => sent.scac)
+    expect(scacsWritten.indexOf('CCCC')).toBeLessThan(scacsWritten.indexOf('KNGT'))
+  })
+
+  it('refuses a duplicate SCAC+Equipment already in the Tender List', async () => {
+    const before = [
+      { rank: 1, routeRank: 1, scac: 'KNGT', carrierName: carrierName('KNGT'), equipment: 'TL', cost: '--', status: null },
+    ]
+    render(<RoutingGuideTab data={{ options: before }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
+
+    pickCarrier('KNGT', 'TL')
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(screen.getByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeTruthy()
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
+  })
+
+  it('shares the processingScac lock with the dropped-carrier doorway — pressing either disables both', async () => {
+    const dropped = {
+      scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL', dropCode: '1',
+      routeRank: '--', pickup: '--', delivery: '--', transitTime: '--', transitSource: '--',
+      routeGroup: '--', rpcId: '--',
+    }
+    render(<RoutingGuideTab data={{ options: [] }} shipmentDetails={{ droppedCarriers: [dropped] }} shipment={shipment} />)
+
+    pickCarrier('KNGT', 'TL')
+    const pickerButton = within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Process SCAC' })
+    const droppedButton = within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Process SCAC' })
+
+    expect(pickerButton.disabled).toBe(false)
+    expect(droppedButton.disabled).toBe(false)
+
+    fireEvent.click(pickerButton)
+    // Locked immediately (setProcessingScac runs synchronously); the async
+    // walk hasn't resolved yet, so this catches the in-flight window.
+    expect(pickerButton.disabled).toBe(true)
+    expect(droppedButton.disabled).toBe(true)
+
+    await act(async () => {}) // let the picker's own walk finish and unlock
+  })
+
+  it('routing-failed (PS3, ROUTING_FAILS) inserts the row AND shows the 15076 message', async () => {
+    // EXLA has no dropCode (picker-sourced) and IS in ROUTING_FAILS — the
+    // manual-carrier failure branch, distinct from the dropped-carrier one:
+    // no ManualDatesModal, dates stay blank, one message.
+    render(<RoutingGuideTab data={{ options: [] }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
+
+    pickCarrier('EXLA', 'LTL')
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(screen.getByText(
+      'Routing could not be completed for the selected carrier. The carrier has been added to the Routing Options list.',
+    )).toBeTruthy()
+    // The carrier WAS added, not merely announced — 15076's own wording.
+    const rows = document.querySelectorAll('[data-right-table] tbody tr')
+    expect(rows).toHaveLength(1)
+    expect(screen.getByText('EXLA')).toBeTruthy()
+    // No ManualDatesModal — 15076 has no manual date entry.
+    expect(screen.queryByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeNull()
+    // No success message alongside the failure one.
+    expect(screen.queryByText('Routing completed successfully.')).toBeNull()
   })
 })
 

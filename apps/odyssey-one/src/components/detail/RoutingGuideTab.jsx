@@ -10,9 +10,10 @@ import { parseDollar, fmtDollar } from '../../utils/money'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 import { QuoteModal } from './QuoteModal.jsx'
 import DroppedCarrierSection from './DroppedCarrierSection'
+import ProcessScacBar from './ProcessScacBar.jsx'
 import ManualDatesModal from './ManualDatesModal'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
-import { droppedCarrierToOption, nextRank, planProcessScac, simulatedRoutingDates } from '../../lib/processScac'
+import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -1039,8 +1040,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       .catch((e) => { console.error('tender save failed', e); return false })
   }, [shipment])
 
-  // LINX-13954 — walks the step list `planProcessScac` returns; every branch
-  // decision lives there, this only holds dialogs/state/persistence/focus.
+  // LINX-13954/15075 — walks the step list `planProcessScac` returns; every
+  // branch decision lives there, this only holds dialogs/state/persistence/
+  // focus. Shared by BOTH doorways (DroppedCarrierSection's row button and
+  // ProcessScacBar's picker) — one insertion rule, not a second copy that
+  // drifts (PS1).
   const runProcessScac = useCallback(async (carrier, dates) => {
     const steps = planProcessScac(carrier, options)
 
@@ -1051,7 +1055,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     }
 
     // Pause the walk and re-enter through this same function once the user has
-    // supplied the dates (or bail if they cancel).
+    // supplied the dates (or bail if they cancel). Picker-sourced carriers
+    // never reach here — planProcessScac never returns 'manual-dates' for a
+    // carrier with no dropCode (PS3), so ManualDatesModal stays the
+    // dropped-carrier doorway's alone, per 15076.
     if (steps.includes('manual-dates') && !dates) {
       setManualDatesFor(carrier)
       return
@@ -1059,6 +1066,15 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
     if (steps.includes('rating-failed')) {
       setProcessNotice('No rate is available for the carrier. You may obtain and enter a quote if needed.')
+    }
+
+    // LINX-15076 — the picker's OWN failure branch (PS3: ROUTING_FAILS). Not a
+    // reuse of the dropped-carrier failure branch: no rating call ran, so
+    // there is nothing to report but this one message, and dates stay blank
+    // rather than borrowing the lane's (nothing routed this carrier at all).
+    const isManualRoutingFailure = steps[0] === 'routing-failed'
+    if (isManualRoutingFailure) {
+      setProcessNotice('Routing could not be completed for the selected carrier. The carrier has been added to the Routing Options list.')
     }
 
     // On the success branch routing itself supplied the dates (the AC defines
@@ -1072,11 +1088,40 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // overwrite real data with a neighbour's. droppedCarrierToOption already
     // falls back to `carrier.pickup`, so passing null is what defers to it.
     const carrierHasOwnDates = carrier.pickup !== '--' && carrier.delivery !== '--'
-    const effectiveDates = dates ?? (carrierHasOwnDates ? null : simulatedRoutingDates(options))
-    const option = droppedCarrierToOption(carrier, { rank: nextRank(options), dates: effectiveDates })
+    const effectiveDates = isManualRoutingFailure
+      ? null
+      : dates ?? (carrierHasOwnDates ? null : simulatedRoutingDates(options))
+
+    // LINX-15075/PS1 — group-aware insertion, both doorways: land at the
+    // bottom of the matching equipment group (or the bottom of the list with
+    // no match), everything below renumbers.
+    const { rank, shifts } = insertRank(carrier.equipment, options)
+    // Persist HIGHEST `from` first — insertRank already orders them that way.
+    // The write is addressed `WHERE rank = $8` (api/_lib/shipments.mjs), so a
+    // destination rank must be vacated before something is written into it.
+    // Fire-and-forget like this file's other cascades (e.g. the Decline/Cancel
+    // auto-tender above) — only the NEW row's own write gates the rollback
+    // below, per the AC's Processing Failure clause.
+    for (const shift of shifts) {
+      const row = options.find((o) => o.rank === shift.from)
+      if (row) await persistTender({ ...row, rank: shift.to })
+    }
+    const shiftedTo = new Map(shifts.map((s) => [s.from, s.to]))
+    const option = droppedCarrierToOption(carrier, { rank, dates: effectiveDates })
     // Optimistic, matching how every other tender edit in this file behaves —
     // but unlike them this one ROLLS BACK, because the AC requires it.
-    setOptions((prev) => [...prev, option])
+    //
+    // Re-sorted by rank, not just appended: the table renders `options` in
+    // ARRAY order (no sort of its own), and a group-aware insertion — unlike
+    // the old always-append nextRank — lands the new row and the renumbered
+    // rows out of that order. Without this, ranks are correct but rows read
+    // top-to-bottom out of sequence.
+    setOptions((prev) =>
+      [
+        ...prev.map((o) => (shiftedTo.has(o.rank) ? { ...o, rank: shiftedTo.get(o.rank) } : o)),
+        option,
+      ].sort((a, b) => a.rank - b.rank),
+    )
     // A resolved false, not a rejection: persistTender reports failure by value
     // so the other callers can keep ignoring it. try/catch would never fire.
     if (!(await persistTender(option))) {
@@ -1091,11 +1136,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
     if (steps.includes('success')) setProcessSuccess('Routing completed successfully.')
     // AC Focus Management — highlightedRank is the mechanism this tab already
-    // uses for "this is the row you just touched".
+    // uses for "this is the row you just touched". Applies on the
+    // routing-failed branch too: the row landed on screen either way.
     setHighlightedRank(option.rank)
     setProcessingScac(null)
   }, [options, persistTender])
 
+  // Shared by both doorways (DroppedCarrierSection's row button, ProcessScacBar's
+  // picker) — same lock, same carrier shape (`{ scac, ... }`), same walk.
   const handleProcessScac = useCallback((carrier) => {
     if (processingScac) return   // AC: additional clicks shall not be allowed
     setProcessingScac(carrier.scac)
@@ -1410,6 +1458,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       </div>
 
       <div className="pane-col pane-col--wide tender-pane__col">
+        {/* LINX-15075 — the picker doorway. Deliberately OUTSIDE
+            .tender-pane__table-card: that card is overflow:hidden and would
+            clip an open ComboBox menu. */}
+        <ProcessScacBar onProcess={handleProcessScac} processingScac={processingScac} />
+
         {/* Row 2: table in a wide bordered container directly on canvas */}
         <div className="tender-pane__table-card">
           <div ref={tableRef}>
