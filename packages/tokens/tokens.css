@@ -44,15 +44,6 @@
   --sunrise-yellow-100: #FDF1C8;
   --sunrise-yellow-200: #FADF7E;
   --sunrise-yellow-300: #F8CE51;
-  /* Added S136. The ramp jumped 300 -> 800, i.e. from a true yellow straight to
-     a rust, with nothing usable as a standalone mark on a light surface: 300 is
-     ~1.7:1 on white, 800 reads brown. That hole is why `--text-warning` below
-     sits on an 800 while its siblings `--text-error`/`--text-success` both sit
-     on a 600, and why ShipmentTable.jsx hardcoded rgb(180,110,5) rather than
-     using a token. 600 is that same amber, promoted to a primitive.
-     NOT YET IN FIGMA — `npm run tokens:audit` will report this as drift until
-     Efrain pushes it. */
-  --sunrise-yellow-600: #B46E05;
   --sunrise-yellow-800: #8F3F11;
 
   /* --- Primitives: Bay of Many --- */
@@ -82,12 +73,7 @@
   --text-link: var(--carolina-blue-600);
   --text-error: var(--bittersweet-600);
   --text-success: var(--caribbean-green-600);
-  /* Repointed 800 -> 600 (S136), so all three state colors sit on a 600. The
-     800 was never a deliberate choice — it was the only step that existed. Kept
-     distinct from `--badge-yellow-text`, which STAYS on the 800: that one is
-     text-on-tint and is correct against `--badge-yellow-bg`. This one is for a
-     standalone mark on a light surface. */
-  --text-warning: var(--sunrise-yellow-600);
+  --text-warning: var(--sunrise-yellow-800);
 
   /* --- Semantic: Chart palette (pie segments + corresponding inline indicator dots) --- */
   --chart-1: var(--ice-blue-600);
