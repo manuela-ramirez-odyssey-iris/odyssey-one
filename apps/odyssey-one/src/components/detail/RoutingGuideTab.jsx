@@ -903,12 +903,32 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   // 2026-09-01). The sheen means "a process is running on this row" —
   // tendering, re-tendering, routing — so it needs its own state.
   //
-  // Known limitation: re-triggering on the SAME rank does not replay the
-  // animation, because the class string never changes and CSS only restarts on
-  // a change. Only reachable by firing two process actions on one row in a row
-  // (e.g. Re-Tender twice); left alone rather than adding a nonce + rAF
-  // remount dance for it.
   const [processRank, setProcessRank] = useState(null)
+
+  /**
+   * Start (or RESTART) the progress sheen on a row.
+   *
+   * Two commits, deliberately. Re-running a process on the row that already
+   * holds the sheen must replay it, but `setProcessRank(sameRank)` is a no-op
+   * React never re-renders, and CSS only restarts an animation when
+   * `animation-name` actually changes. Dropping the class for one frame and
+   * re-adding it is what produces the restart. The two updates must land in
+   * SEPARATE commits: batched into one, React coalesces them and the DOM never
+   * changes.
+   *
+   * The response actions clearing the sheen (below) covers the common
+   * Cancel-then-Re-Tender path on its own, but not every repeat: Call Routing
+   * on a routing-failed row leaves status null, so the next action offered is
+   * Tender — same row, second process, no clear in between. Hence this rather
+   * than enumerating which pairs happen to need it.
+   *
+   * The one-frame gap is imperceptible — the sheen has already settled to
+   * opacity 0 by then (`forwards`), so there is nothing on screen to blink.
+   */
+  const startProcessSheen = useCallback((rank) => {
+    setProcessRank(null)
+    requestAnimationFrame(() => setProcessRank(rank))
+  }, [])
   const [openMenuRank, setOpenMenuRank] = useState(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [options, setOptions] = useState(data?.options || [])
@@ -1193,7 +1213,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // uses for "this is the row you just touched". Applies on the
     // routing-failed branch too: the row landed on screen either way.
     setHighlightedRank(option.rank)
-    setProcessRank(option.rank)
+    startProcessSheen(option.rank)
 
     // Persist HIGHEST `from` first — insertRank already orders them that way.
     // The write is addressed `WHERE rank = $8` (api/_lib/shipments.mjs), so a
@@ -1227,7 +1247,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     if (steps.includes('success')) setProcessSuccess('Routing completed successfully.')
     setProcessingScac(null)
     return true   // S136 — carrier landed in the table (success OR routing-failed-but-added); ProcessScacBar collapses on this
-  }, [options, persistTender])
+  }, [options, persistTender, startProcessSheen])
 
   // Shared by both doorways (DroppedCarrierSection's row button, ProcessScacBar's
   // picker) — same lock, same carrier shape (`{ scac, ... }`), same walk.
@@ -1437,7 +1457,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       persistTender(updated)
       setProcessSuccess('Routing completed successfully.')
       setHighlightedRank(rank)
-      setProcessRank(rank)   // routing ran on this row — see processRank's note
+      startProcessSheen(rank)   // routing ran on this row
       return
     }
 
@@ -1459,7 +1479,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // The two actions that actually START something: a tender goes out and the
     // row now waits on a carrier. Accept/Decline/Cancel are the opposite — they
     // CLOSE a cycle — so they get no sheen. See processRank's note above.
-    if (isNotifyAction) setProcessRank(rank)
+    if (isNotifyAction) startProcessSheen(rank)
+    // ...and the response actions CLOSE the cycle, so the sheen stops. Without
+    // this it lingered on a Cancelled/Declined row that is no longer waiting on
+    // anything. (Harmless on screen, since the animation has already settled to
+    // opacity 0 by then, but the class is the state — leaving it set makes the
+    // row read as in-progress to anything that inspects it.)
+    if (isResponseAction) setProcessRank(null)
 
     let updated = options.map((opt) => {
       if (opt.rank !== rank) return opt
@@ -1521,7 +1547,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     touched.forEach((r) => persistTender(updated.find((o) => o.rank === r)))
 
     setOpenMenuRank(null)
-  }, [options, persistTender, currentUser])
+  }, [options, persistTender, currentUser, startProcessSheen])
 
   // Every option on a shipment shares its pickup/delivery timezone — take the
   // first one that actually carries a value as the shipment's TZ, so a NEW quote

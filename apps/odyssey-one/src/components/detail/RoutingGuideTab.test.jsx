@@ -925,7 +925,7 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(droppedProcessButton().disabled).toBe(false)
   })
 
-  it('the progress sheen fires on Tender but NOT on merely opening the action menu', () => {
+  it('the progress sheen fires on Tender but NOT on merely opening the action menu', async () => {
     // The sheen means "a process is running on this row". It was bound to
     // highlightedRank, which handleOpenMenu also sets — so clicking the truck
     // to open the menu animated the row for no reason (user, 2026-09-01).
@@ -935,16 +935,36 @@ describe('Process SCAC (LINX-13954)', () => {
     }
     render(<RoutingGuideTab data={{ options: [option] }} shipment={shipment} />)
     const plasmaRows = () => document.querySelectorAll('tr.tender-row-plasma')
+    const openMenu = () =>
+      fireEvent.click(document.querySelector('[data-right-table] tbody tr').querySelector('td:last-child'))
+    // startProcessSheen lands over two commits (see its note) — the class only
+    // appears on the second, so a frame has to pass.
+    const act1Frame = () => act(async () => { await new Promise((r) => requestAnimationFrame(r)) })
 
     expect(plasmaRows()).toHaveLength(0)
 
     // Opening the menu highlights the row but must NOT start the animation.
-    fireEvent.click(document.querySelector('[data-right-table] tbody tr').querySelector('td:last-child'))
+    openMenu()
     expect(plasmaRows()).toHaveLength(0)
 
     // Tendering does: the row now waits on a carrier. Both split tables carry
     // the class, hence two.
     fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
+    await act1Frame()
+    expect(plasmaRows()).toHaveLength(2)
+
+    // Cancel CLOSES a cycle — no sheen of its own — and then Re-Tender must
+    // replay it on the SAME row. This is the case that regressed: setting
+    // processRank to the rank it already held was a no-op React never
+    // re-rendered, so the animation silently never restarted (user).
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await act1Frame()
+    expect(plasmaRows()).toHaveLength(0)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Re-Tender' }))
+    await act1Frame()
     expect(plasmaRows()).toHaveLength(2)
   })
 
