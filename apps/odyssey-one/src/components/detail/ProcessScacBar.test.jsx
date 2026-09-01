@@ -37,20 +37,28 @@ function getCombos() {
   return { scacInput, equipmentInput }
 }
 
-// Only one "Process SCAC" button exists at a time — the collapsed toggle or
-// the expanded action button — so a plain name query is unambiguous either way.
-function getButton() {
-  return screen.getByRole('button', { name: /Process SCAC/ })
+// The collapsed toggle reads "Add Carrier" — the expanded action button
+// underneath it still reads "Process SCAC" (that's Jana's own AC term for the
+// actual validate/insert/route action, shared with the dropped-carrier
+// doorway's button). Never both on screen at once, but keep the queries
+// distinct so a rename of one can't silently start matching the other.
+function getToggleButton() {
+  return screen.getByRole('button', { name: 'Add Carrier' })
+}
+
+// The confirm button inside the expanded fields — still "Process SCAC".
+function getConfirmButton() {
+  return screen.getByRole('button', { name: 'Process SCAC' })
 }
 
 function expand() {
-  fireEvent.click(getButton())
+  fireEvent.click(getToggleButton())
 }
 
 describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
-  it('starts collapsed, showing only the Process SCAC button', () => {
+  it('starts collapsed, showing only the Add Carrier button', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
-    expect(getButton()).toBeTruthy()
+    expect(getToggleButton()).toBeTruthy()
     expect(screen.queryAllByRole('combobox')).toHaveLength(0)
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
   })
@@ -120,7 +128,7 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     expand()
     const { equipmentInput } = getCombos()
     expect(equipmentInput.disabled).toBe(true)
-    expect(getButton().disabled).toBe(true)
+    expect(getConfirmButton().disabled).toBe(true)
   })
 
   it('enables Equipment once a SCAC is picked, and the button once both are set', () => {
@@ -129,10 +137,10 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     expect(getCombos().equipmentInput.disabled).toBe(false)
-    expect(getButton().disabled).toBe(true) // equipment not picked yet
+    expect(getConfirmButton().disabled).toBe(true) // equipment not picked yet
 
     selectAt(getCombos().equipmentInput, 0) // first of KNGT's (TL) equipment options
-    expect(getButton().disabled).toBe(false)
+    expect(getConfirmButton().disabled).toBe(false)
   })
 
   it('never auto-selects Equipment, even when exactly one option would resolve', () => {
@@ -146,7 +154,7 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     expect(equipmentForScac('KNGT').length).toBeGreaterThan(1)
     selectAt(scacInput, scacIndex('KNGT'))
     // No equipment interaction at all — button must still be disabled.
-    expect(getButton().disabled).toBe(true)
+    expect(getConfirmButton().disabled).toBe(true)
     expect(getCombos().equipmentInput.value).toBe('')
   })
 
@@ -163,7 +171,7 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     // role="alert" anywhere in the bar.
     expect(screen.getByText('No equipment options')).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
-    expect(getButton().disabled).toBe(true)
+    expect(getConfirmButton().disabled).toBe(true)
   })
 
   it('resets Equipment when the SCAC selection changes', () => {
@@ -172,7 +180,7 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
-    expect(getButton().disabled).toBe(false)
+    expect(getConfirmButton().disabled).toBe(false)
 
     // Switch to a different SCAC — Equipment must clear and the button must
     // re-lock, even though the new SCAC also resolves TL equipment. Blur first:
@@ -183,7 +191,7 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     fireEvent.blur(getCombos().equipmentInput)
     selectAt(getCombos().scacInput, scacIndex('SCNN'))
     expect(getCombos().equipmentInput.value).toBe('')
-    expect(getButton().disabled).toBe(true)
+    expect(getConfirmButton().disabled).toBe(true)
   })
 
   it('reports {scac, carrierName, equipment} on click, matching droppedCarrierToOption\'s field names', () => {
@@ -208,6 +216,6 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
     // Both fields ARE set, but the shared lock still wins.
-    expect(getButton().disabled).toBe(true)
+    expect(getConfirmButton().disabled).toBe(true)
   })
 })

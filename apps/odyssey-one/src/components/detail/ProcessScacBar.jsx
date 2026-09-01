@@ -42,7 +42,7 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
     return (
       <div className="process-scac-bar">
         <Button variant="secondary" size="sm" onClick={() => setExpanded(true)}>
-          Process SCAC
+          Add Carrier
         </Button>
       </div>
     )
