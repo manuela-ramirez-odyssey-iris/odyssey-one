@@ -1051,7 +1051,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     if (steps[0] === 'duplicate') {
       setProcessNotice('Carrier and Equipment combination (SCAC/Equipment) already in the list.')
       setProcessingScac(null)
-      return
+      return false   // S136 — picker doorway stays expanded on a validation refusal
     }
 
     // Pause the walk and re-enter through this same function once the user has
@@ -1131,7 +1131,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       setOptions((prev) => prev.filter((o) => o.rank !== option.rank))
       setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
       setProcessingScac(null)
-      return
+      return false   // S136 — write failure stays expanded too, retry with the same selections
     }
 
     if (steps.includes('success')) setProcessSuccess('Routing completed successfully.')
@@ -1140,14 +1140,17 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // routing-failed branch too: the row landed on screen either way.
     setHighlightedRank(option.rank)
     setProcessingScac(null)
+    return true   // S136 — carrier landed in the table (success OR routing-failed-but-added); ProcessScacBar collapses on this
   }, [options, persistTender])
 
   // Shared by both doorways (DroppedCarrierSection's row button, ProcessScacBar's
   // picker) — same lock, same carrier shape (`{ scac, ... }`), same walk.
+  // Returns the promise from runProcessScac (added: true/false) so ProcessScacBar
+  // can decide whether to collapse; DroppedCarrierSection ignores the return value.
   const handleProcessScac = useCallback((carrier) => {
-    if (processingScac) return   // AC: additional clicks shall not be allowed
+    if (processingScac) return false   // AC: additional clicks shall not be allowed
     setProcessingScac(carrier.scac)
-    runProcessScac(carrier)
+    return runProcessScac(carrier)
   }, [processingScac, runProcessScac])
 
   // AC: "The message disappears after 3 s. No user action required."
@@ -1458,11 +1461,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       </div>
 
       <div className="pane-col pane-col--wide tender-pane__col">
-        {/* LINX-15075 — the picker doorway. Deliberately OUTSIDE
-            .tender-pane__table-card: that card is overflow:hidden and would
-            clip an open ComboBox menu. */}
-        <ProcessScacBar onProcess={handleProcessScac} processingScac={processingScac} />
-
         {/* Row 2: table in a wide bordered container directly on canvas */}
         <div className="tender-pane__table-card">
           <div ref={tableRef}>
@@ -1483,6 +1481,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           onOpenColumns={() => setColumnPanelOpen(true)}
         />
           </div>
+          {/* LINX-15075 — the picker doorway. Revised 2026-09-01: mounted
+              INSIDE .tender-pane__table-card, as the table's own trailing row
+              (collapsed to a single button by default) rather than a form
+              bolted above it. ComboBox already portals its open menu to
+              document.body at position:fixed (packages/ui/src/ComboBox.jsx),
+              so the card's overflow:hidden does not clip it — no workaround
+              needed. */}
+          <ProcessScacBar onProcess={handleProcessScac} processingScac={processingScac} />
         </div>{/* /tender-pane__table-card */}
 
         {/* LINX-13953 — its own card: GroupTable owns horizontal scroll and

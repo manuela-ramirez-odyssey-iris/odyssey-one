@@ -73,14 +73,18 @@
   display: flex;
 }
 
-/* LINX-15075 — Process SCAC picker bar. Sits between the sub-tabs band and
-   the first .tender-pane__table-card, deliberately OUTSIDE it: that card is
-   overflow:hidden and would clip an open ComboBox menu. */
+/* LINX-15075 — Process SCAC picker bar. Revised 2026-09-01: mounted INSIDE
+   .tender-pane__table-card, as RoutingTable's own trailing row — the border
+   is what reads as "the table's last row", matching RoutingTable's own
+   row-divider token. ComboBox already portals its open menu to document.body
+   at position:fixed (packages/ui/src/ComboBox.jsx), so the card's
+   overflow:hidden never clips it. */
 .process-scac-bar {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
-  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .process-scac-bar__field {

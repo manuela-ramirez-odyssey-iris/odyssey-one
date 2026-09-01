@@ -14,14 +14,39 @@ import { TENDER_SCAC_OPTIONS, equipmentForScac, EQUIPMENT_LABELS } from '../../d
  * Both fields are ComboBox (not Dropdown) — the option lists are
  * fetched/derived (Equipment re-derives per SCAC), which is this project's
  * Dropdown-vs-ComboBox rule (data source, not fixedness).
+ *
+ * Revised 2026-09-01 (placement doc): collapsed to a single button by
+ * default, reading as the table's trailing row rather than a form bolted
+ * above it. `onProcess` now doubles as the collapse signal — RoutingGuideTab's
+ * handleProcessScac/runProcessScac resolves `true` only when the carrier
+ * actually landed in the table (success, or PS3 routing-failed-but-added);
+ * `false` for a duplicate refusal or a write failure, both of which must
+ * keep the fields on screen with the selections intact for a retry.
  */
 
 // Static for the app's lifetime — computed once, not per render.
 const SCAC_OPTIONS = TENDER_SCAC_OPTIONS.map((c) => ({ value: c.scac, label: `${c.scac} — ${c.name}` }))
 
 export default function ProcessScacBar({ onProcess, processingScac = null }) {
+  const [expanded, setExpanded] = useState(false)
   const [scac, setScac] = useState(null)
   const [equipment, setEquipment] = useState(null)
+
+  const collapse = () => {
+    setExpanded(false)
+    setScac(null)
+    setEquipment(null)
+  }
+
+  if (!expanded) {
+    return (
+      <div className="process-scac-bar">
+        <Button variant="secondary" size="sm" onClick={() => setExpanded(true)}>
+          Process SCAC
+        </Button>
+      </div>
+    )
+  }
 
   // PS2 — WERN legitimately resolves to []. No validation message for it: an
   // empty list rendering its own "no options" copy in the popover is not the
@@ -70,9 +95,17 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
         variant="secondary"
         size="sm"
         disabled={!canProcess}
-        onClick={() => onProcess({ scac, carrierName, equipment })}
+        onClick={async () => {
+          const added = await onProcess({ scac, carrierName, equipment })
+          // Duplicate/write-failure resolve false — stay put so the user can
+          // correct and retry without losing their picks.
+          if (added) collapse()
+        }}
       >
         Process SCAC
+      </Button>
+      <Button variant="ghost" size="sm" onClick={collapse}>
+        Cancel
       </Button>
     </div>
   )
