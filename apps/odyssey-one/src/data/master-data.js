@@ -136,6 +136,35 @@ export const CARRIERS = [
   { scac: 'YFSY', name: 'YELLOW FREIGHT SYSTEM', mode: 'LTL' },
 ]
 
+// ── Process SCAC picker (LINX-15075) — SCAC + equipment lookups ───
+// LINX-13397 §12/§13 supersede §1/§2 for this screen: `carr_scac_id` +
+// `carr_short_desc`, filtered `carr_cd_pending_status_flag = 'N'`; equipment
+// joins `mf_carrier_equipment` per SCAC. No such tables are seeded here — this
+// app's existing CARRIERS catalog (LINX-8126) is the named source instead of a
+// second carrier list (docs/superpowers/specs/2026-08-31-process-scac-picker-design.md).
+//
+// §12 filters `carr_cd_pending_status_flag = 'N'`. Our stand-in for
+// "not active": the catalog's own (DNU) = Do Not Use marker. 51 → 43 selectable.
+export const TENDER_SCAC_OPTIONS = CARRIERS.filter((c) => !c.name.includes('(DNU)'))
+
+// §13 joins mf_carrier_equipment per SCAC. We have no such table, so equipment
+// derives from the catalog's own `mode` — every carrier is covered, and
+// nothing is hand-maintained per SCAC.
+const MODE_EQUIPMENT = {
+  TL: ['TL', 'TLR', 'TLH', 'TT', 'TLF'],
+  LTL: ['LTL', 'LTR', 'LTH'],
+}
+
+// PS2 — a carrier with no ACTIVE equipment rows is a real state in §13, and
+// 15075 specifies UI for it. Without one seeded, that branch is unreachable.
+const SCACS_WITHOUT_EQUIPMENT = ['WERN']
+
+export function equipmentForScac(scac) {
+  if (SCACS_WITHOUT_EQUIPMENT.includes(scac)) return []
+  const carrier = CARRIERS.find((c) => c.scac === scac)
+  return carrier ? (MODE_EQUIPMENT[carrier.mode] ?? []) : []
+}
+
 // ── Extra owning orgs — PROMOTED to real seeded customers at the end-of-Orders
 // reseed (DB ledger row 3): the list now lives in data-pools EXTRA_CUSTOMERS,
 // gets inserted into the customers table, and owns a thin tail of orders.
