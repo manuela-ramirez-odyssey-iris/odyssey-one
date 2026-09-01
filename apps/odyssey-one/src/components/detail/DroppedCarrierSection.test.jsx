@@ -2,7 +2,6 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import DroppedCarrierSection from './DroppedCarrierSection'
-import { tenderKey, PROCESSED_HIGHLIGHT_BG } from '../../lib/processScac'
 
 afterEach(cleanup)
 
@@ -208,21 +207,22 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(screen.queryByRole('button', { name: /Process SCAC/ })).toBeNull()
   })
 
-  // S136 — a carrier already copied into the tender list gets the same
-  // highlight tint the newly-inserted Routing Options row shows. Visual only:
-  // the button stays enabled so a re-press still reaches the duplicate dialog.
-  it('tints a processed carrier\'s button with the tender highlight color; leaves an unprocessed one alone', () => {
+  // S136 — an "already processed" tint on this button was tried and REVERTED
+  // (user, 2026-09-01). The dropped-carrier button keeps its plain Secondary
+  // treatment in every state; the only thing that marks a freshly-added
+  // carrier is the tender row itself, up in the Routing Options table.
+  it('keeps the plain Secondary button whether or not the carrier is already in the tender list', () => {
     render(
       <DroppedCarrierSection
         carriers={[carrier, { ...carrier, scac: 'RLCA' }]}
         onProcess={() => {}}
-        processedKeys={new Set([tenderKey('JBHT', carrier.equipment)])}
       />,
     )
     const buttons = screen.getAllByRole('button', { name: /Process SCAC/ })
     expect(buttons).toHaveLength(2)
-    expect(buttons[0].style.background).toBe(PROCESSED_HIGHLIGHT_BG)
-    expect(buttons[0].disabled).toBe(false)
-    expect(buttons[1].style.background).toBe('')
+    for (const b of buttons) {
+      expect(b.style.background).toBe('')
+      expect(b.disabled).toBe(false)
+    }
   })
 })

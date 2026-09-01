@@ -13,7 +13,7 @@ import DroppedCarrierSection from './DroppedCarrierSection'
 import ProcessScacBar from './ProcessScacBar.jsx'
 import ManualDatesModal from './ManualDatesModal'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
-import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates, tenderKeySet, PROCESSED_HIGHLIGHT_BG, PROCESSED_HIGHLIGHT_TEXT } from '../../lib/processScac'
+import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates, PROCESSED_HIGHLIGHT_BG, PROCESSED_HIGHLIGHT_TEXT } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -1526,10 +1526,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
             carriers={shipmentDetails?.droppedCarriers || []}
             onProcess={handleProcessScac}
             processingScac={processingScac}
-            // S136 — same scac+equipment key isDuplicate/insertRank already use;
-            // a dropped carrier already in the tender list gets the row's own
-            // highlight tint (visual "already added" signal, not a disable).
-            processedKeys={tenderKeySet(options)}
           />
         </div>
       </div>{/* /pane-col */}

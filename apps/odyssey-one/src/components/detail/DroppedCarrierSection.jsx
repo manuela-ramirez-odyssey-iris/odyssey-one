@@ -1,7 +1,6 @@
 import { Check, CircleX } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
-import { tenderKey, PROCESSED_HIGHLIGHT_BG } from '../../lib/processScac'
 
 /**
  * LINX-13953 — Dropped Carrier.
@@ -168,14 +167,6 @@ export default function DroppedCarrierSection({
   defaultOpen = true,
   onProcess,
   processingScac = null,
-  // S136 — set of `tenderKey(scac, equipment)` already in the tender list
-  // (RoutingGuideTab computes it via `tenderKeySet(options)`). A carrier in
-  // this set gets the same highlight tint the newly-inserted tender row
-  // shows — a visual "already added" signal only. It does NOT disable the
-  // button: pressing it again must still work and correctly hit the
-  // duplicate-refusal dialog (the row is COPIED, not moved, so the dropped
-  // entry survives its own success).
-  processedKeys = new Set(),
 }) {
 
   // Two disclosure levels, both open by default:
@@ -211,7 +202,6 @@ export default function DroppedCarrierSection({
         variant="secondary"
         disabled={processingScac != null}
         onClick={() => onProcess(c)}
-        style={processedKeys.has(tenderKey(c.scac, c.equipment)) ? { background: PROCESSED_HIGHLIGHT_BG } : undefined}
       >
         Process SCAC
       </Button>

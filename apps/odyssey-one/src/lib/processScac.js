@@ -31,14 +31,14 @@ export const ROUTING_FAILS = ['EXLA']
 /** Crosses JSON as a number from the generator and a string from the VM. */
 const code = (c) => String(c?.dropCode ?? '')
 
-// Exported (S136) — RoutingGuideTab and DroppedCarrierSection both need to ask
-// "is this scac+equipment in the tender list", so the key format lives here
-// once rather than drifting between two files.
-export const tenderKey = (scac, equipment) =>
+// Internal. Briefly exported in S136 so DroppedCarrierSection could tint an
+// "already added" button; that tint was reverted, and `isDuplicate` is once
+// again the only caller.
+const tenderKey = (scac, equipment) =>
   `${String(scac ?? '').toUpperCase()}|${String(equipment ?? '').toUpperCase()}`
 
 /** Every scac+equipment pair currently in the tender list, as a Set of keys. */
-export function tenderKeySet(tenderOptions = []) {
+function tenderKeySet(tenderOptions = []) {
   return new Set(tenderOptions.map((o) => tenderKey(o.scac, o.equipment)))
 }
 
@@ -57,11 +57,13 @@ export function isDuplicate(carrier, tenderOptions = []) {
 // S136 — the tint `getRowBg` (RoutingGuideTab.jsx) falls back to for a
 // highlighted row with no tender status yet — exactly the shape every
 // freshly-processed carrier lands in (`droppedCarrierToOption` always sets
-// `status: null`). Shared here so DroppedCarrierSection's "already added"
-// button tint, and the action-lane's background + truck icon color for that
-// same highlighted row, all reuse the SAME pair instead of hardcoding it
-// three times. Same blue STATUS_STYLES already uses for 'Sent' — a highlighted
-// no-status row reads as "just added", not a fourth, invented color.
+// `status: null`). Shared so the row's cell backgrounds, the pinned action
+// lane's background, and its truck icon all reuse the SAME pair instead of
+// hardcoding it three times. Same blue STATUS_STYLES already uses for 'Sent' —
+// a highlighted no-status row reads as "just added", not a fourth, invented
+// color. Scope is the TENDER ROW only: the dropped-carrier button deliberately
+// carries no tint (tried in S136, reverted — it read as a state change on a
+// control that had not changed state).
 export const PROCESSED_HIGHLIGHT_BG = 'var(--badge-blue-bg)'
 export const PROCESSED_HIGHLIGHT_TEXT = 'var(--badge-blue-text)'
 
