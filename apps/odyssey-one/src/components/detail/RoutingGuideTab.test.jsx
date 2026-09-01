@@ -1038,6 +1038,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     ]
     render(<RoutingGuideTab data={{ options: before }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' })) // expand the collapsed bar
     pickCarrier('KNGT', 'TL')
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
@@ -1062,6 +1063,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     ]
     render(<RoutingGuideTab data={{ options: before }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' })) // expand the collapsed bar
     pickCarrier('KNGT', 'TL')
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
@@ -1079,6 +1081,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     }
     render(<RoutingGuideTab data={{ options: [] }} shipmentDetails={{ droppedCarriers: [dropped] }} shipment={shipment} />)
 
+    fireEvent.click(within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Process SCAC' })) // expand
     pickCarrier('KNGT', 'TL')
     const pickerButton = within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Process SCAC' })
     const droppedButton = within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Process SCAC' })
@@ -1101,6 +1104,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     // no ManualDatesModal, dates stay blank, one message.
     render(<RoutingGuideTab data={{ options: [] }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' })) // expand the collapsed bar
     pickCarrier('EXLA', 'LTL')
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))

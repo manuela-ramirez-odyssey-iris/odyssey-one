@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import ProcessScacBar from './ProcessScacBar.jsx'
 import { TENDER_SCAC_OPTIONS, equipmentForScac } from '../../data/master-data.js'
@@ -37,13 +37,87 @@ function getCombos() {
   return { scacInput, equipmentInput }
 }
 
+// Only one "Process SCAC" button exists at a time — the collapsed toggle or
+// the expanded action button — so a plain name query is unambiguous either way.
 function getButton() {
   return screen.getByRole('button', { name: /Process SCAC/ })
 }
 
-describe('ProcessScacBar (LINX-15075)', () => {
+function expand() {
+  fireEvent.click(getButton())
+}
+
+describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
+  it('starts collapsed, showing only the Process SCAC button', () => {
+    render(<ProcessScacBar onProcess={() => {}} />)
+    expect(getButton()).toBeTruthy()
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
+  })
+
+  it('clicking the button reveals both fields and Cancel', () => {
+    render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
+    expect(screen.getAllByRole('combobox')).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy()
+  })
+
+  it('Cancel collapses and clears both selections', () => {
+    render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
+    selectAt(getCombos().scacInput, scacIndex('KNGT'))
+    selectAt(getCombos().equipmentInput, 0)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
+
+    // Re-expanding proves the selections did not survive.
+    expand()
+    expect(getCombos().scacInput.value).toBe('')
+    expect(getCombos().equipmentInput.disabled).toBe(true)
+  })
+
+  it('a successful process collapses the bar back to the button', async () => {
+    const onProcess = vi.fn().mockResolvedValue(true)
+    render(<ProcessScacBar onProcess={onProcess} />)
+    expand()
+    selectAt(getCombos().scacInput, scacIndex('KNGT'))
+    selectAt(getCombos().equipmentInput, 0)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(onProcess).toHaveBeenCalledTimes(1)
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
+  })
+
+  it('a failed/duplicate process keeps the bar expanded with selections intact', async () => {
+    const onProcess = vi.fn().mockResolvedValue(false)
+    render(<ProcessScacBar onProcess={onProcess} />)
+    expand()
+    selectAt(getCombos().scacInput, scacIndex('KNGT'))
+    selectAt(getCombos().equipmentInput, 0)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(onProcess).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByRole('combobox')).toHaveLength(2)
+    const { scacInput, equipmentInput } = getCombos()
+    expect(scacInput.value).toContain('KNGT')
+    expect(equipmentInput.value).not.toBe('')
+  })
+})
+
+describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
   it('starts with Equipment disabled and the button disabled', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
     const { equipmentInput } = getCombos()
     expect(equipmentInput.disabled).toBe(true)
     expect(getButton().disabled).toBe(true)
@@ -51,6 +125,7 @@ describe('ProcessScacBar (LINX-15075)', () => {
 
   it('enables Equipment once a SCAC is picked, and the button once both are set', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     expect(getCombos().equipmentInput.disabled).toBe(false)
@@ -66,6 +141,7 @@ describe('ProcessScacBar (LINX-15075)', () => {
     // behave differently for a hypothetical single-option list, so exercising
     // it against the real (multi-option) catalog exercises the same code path.
     render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
     const { scacInput } = getCombos()
     expect(equipmentForScac('KNGT').length).toBeGreaterThan(1)
     selectAt(scacInput, scacIndex('KNGT'))
@@ -76,6 +152,7 @@ describe('ProcessScacBar (LINX-15075)', () => {
 
   it('WERN resolves to an empty equipment list, no validation message, button stays disabled', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
     expect(equipmentForScac('WERN')).toEqual([])
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('WERN'))
@@ -91,6 +168,7 @@ describe('ProcessScacBar (LINX-15075)', () => {
 
   it('resets Equipment when the SCAC selection changes', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
+    expand()
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
@@ -109,12 +187,13 @@ describe('ProcessScacBar (LINX-15075)', () => {
   })
 
   it('reports {scac, carrierName, equipment} on click, matching droppedCarrierToOption\'s field names', () => {
-    const onProcess = vi.fn()
+    const onProcess = vi.fn().mockResolvedValue(true)
     render(<ProcessScacBar onProcess={onProcess} />)
+    expand()
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
-    fireEvent.click(getButton())
+    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
     expect(onProcess).toHaveBeenCalledTimes(1)
     const carrier = onProcess.mock.calls[0][0]
     expect(carrier.scac).toBe('KNGT')
@@ -124,6 +203,7 @@ describe('ProcessScacBar (LINX-15075)', () => {
 
   it('disables the button while a process is in flight, whichever SCAC is locked', () => {
     render(<ProcessScacBar onProcess={() => {}} processingScac="RLCA" />)
+    expand()
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
