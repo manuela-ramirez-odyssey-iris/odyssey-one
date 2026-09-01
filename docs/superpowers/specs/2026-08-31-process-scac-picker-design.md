@@ -52,23 +52,41 @@ carrier object ─────┤
 
 ## Placement
 
-`ProcessScacBar` mounts in `pane-col--wide`, **between** the sub-tabs band and the first
-`tender-pane__table-card`:
+**Revised 2026-09-01**, after the first build (`f0d8d5c`…`ac03afe`) shipped `ProcessScacBar` as a
+strip above the table. User feedback: it should read as a trailing row of the table itself, not a
+form bolted above it — collapsed to a single button until clicked, so "I'm bringing something to
+this table" is the affordance, not a permanently-open form competing with the table for attention.
+
+`ProcessScacBar` mounts **inside** `.tender-pane__table-card`, immediately after `RoutingTable`'s
+own markup (`RoutingGuideTab.jsx` — `RoutingTable` returns/closes ~line 800):
 
 ```
 tender-pane
 ├── pane-tabs-band                ← sub-tabs + conditional "Review Order Change"
 └── pane-col--wide
-    ├── ProcessScacBar            ← NEW
-    ├── tender-pane__table-card   ← RoutingTable        (overflow: hidden)
+    ├── tender-pane__table-card
+    │   ├── RoutingTable                  (the split locked/scrollable tables)
+    │   └── ProcessScacBar                ← NEW, trailing row, inside the card
     └── tender-pane__table-card   ← DroppedCarrierSection
 ```
 
-It sits **outside** `.tender-pane__table-card` deliberately: that card is `overflow: hidden` and
-would clip an open ComboBox menu.
+**Collapsed state:** a single row-height bar, `borderTop: 1px solid var(--border-subtle)` — the
+same token the table's own row dividers use, so it reads as the table's last row without being a
+synced `<tr>` across the split left/right tables (it carries no per-column data, so there is
+nothing to sync). Contains one `Button variant="secondary" size="sm"` labelled `Process SCAC`.
 
-Layout: `Select SCAC` ComboBox · `Equipment` ComboBox · `Process SCAC` Button, in a row.
-Button is `secondary` (light canvas, per house rule).
+**Expanded state**, on click, same bar space becomes: `Select SCAC` ComboBox · `Equipment`
+ComboBox · `Process SCAC` action button · a `Cancel`/collapse affordance back to the button.
+
+**On success:** collapses back to the button state. One carrier per click — matches the existing
+`processingScac` lock, which already serializes adds to one at a time.
+
+**The overflow:hidden clipping risk this placement raised does not exist.** `ComboBox` already
+portals its open menu to `document.body` at `position: fixed`, tracking the trigger's rect
+(`packages/ui/src/ComboBox.jsx:174-177`, `typeaheadPopover`) — it was built to escape exactly this
+kind of container. The picker can live inside the `overflow: hidden` card with no menu clipping.
+(The first build's placement OUTSIDE the card was dodging a risk that, on inspection, ComboBox
+already solves — that reasoning is superseded, not wrong at the time it was written.)
 
 ## Controls
 
