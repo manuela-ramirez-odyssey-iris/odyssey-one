@@ -167,18 +167,31 @@
      freshly-processed (status-less) row always gets, the same value
      PROCESSED_HIGHLIGHT_TEXT carries in src/lib/processScac.js. */
   background-image:
-    radial-gradient(58px 18px at 30% 52%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%),
-    radial-gradient(84px 22px at 68% 44%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%);
-  background-size: 260px 100%, 380px 100%;
+    radial-gradient(88px 27px at 30% 52%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%),
+    radial-gradient(126px 33px at 68% 44%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%);
+  background-size: 310px 100%, 450px 100%;
   background-repeat: repeat-x, repeat-x;
   opacity: 0;
-  animation: tender-row-plasma 3.8s linear 1 forwards;
+  /* Two animations, not one: the drift must stay CONSTANT speed (linear) or it
+     would visibly accelerate, while the opacity wants easing at both ends.
+     A single keyframe set can only carry one timing function, so they are
+     split. Both run once and hold with `forwards`. */
+  animation:
+    tender-row-plasma-drift 3.8s linear 1 forwards,
+    tender-row-plasma-fade 3.8s ease-in-out 1 forwards;
 }
-@keyframes tender-row-plasma {
-  0%   { opacity: 0;    background-position: 0 50%, 0 50%; }
-  15%  { opacity: 0.14; }
+/* One tile of travel per layer per cycle — the two tile widths differ, so the
+   layers drift at different speeds and never resolve into a single repeating
+   pattern. */
+@keyframes tender-row-plasma-drift {
+  from { background-position: 0 50%, 0 50%; }
+  to   { background-position: 620px 50%, 900px 50%; }
+}
+@keyframes tender-row-plasma-fade {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.14; }
   70%  { opacity: 0.14; }
-  100% { opacity: 0;    background-position: 520px 50%, 760px 50%; }
+  100% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tender-row-plasma::after {
