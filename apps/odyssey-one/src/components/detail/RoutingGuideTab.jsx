@@ -619,6 +619,12 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
               return (
                 <tr
                   key={option.rank}
+                  // Sheen spans the ROW, not each cell — per-cell it restarted
+                  // at every column edge and read as clipped. See
+                  // .tender-row-plasma in styles/panes/tender.css: the cells
+                  // must stay unpositioned for the row overlay to paint above
+                  // their backgrounds.
+                  className={isHighlighted ? 'tender-row-plasma' : undefined}
                   style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
@@ -653,7 +659,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       : getCellValue(option, col)
 
                     return (
-                      <td key={col.key} className={`${cellTypeClass(isPrimary || isHighlighted)}${isHighlighted ? ' tender-row-plasma' : ''}`} style={cellStyle}>
+                      <td key={col.key} className={cellTypeClass(isPrimary || isHighlighted)} style={cellStyle}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
                           {content}
                         </span>
@@ -741,6 +747,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
               return (
                 <tr
                   key={option.rank}
+                  className={isHighlighted ? 'tender-row-plasma' : undefined}
                   style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
@@ -751,19 +758,16 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                     }
                     return (
-                      <td key={col.key} className={`${cellTypeClass(isHighlighted)}${isHighlighted ? ' tender-row-plasma' : ''}`} style={cellStyle}>
+                      <td key={col.key} className={cellTypeClass(isHighlighted)} style={cellStyle}>
                         {getCellValue(option, col)}
                       </td>
                     )
                   })}
                   <td
-                    // The sheen has to cross the action lane too or it would
-                    // visibly stop short of the row's right edge — the one
-                    // direction it is meant to be travelling. Safe against the
-                    // lane's pinning: `position: sticky` here is INLINE, so it
-                    // beats the class's `position: relative`, and sticky is
-                    // itself a containing block for the ::after.
-                    className={isHighlighted ? 'tender-row-plasma' : undefined}
+                    // No sheen of its own: the lane's inline
+                    // `position: sticky; z-index: 3` sits above the row-level
+                    // overlay, so the drift passes behind it. Correct for a
+                    // pinned column — it stays put while the row moves under it.
                     style={{
                       ...stickyLastCol,
                       ...ACTION_LANE,

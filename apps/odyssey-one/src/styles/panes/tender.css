@@ -117,38 +117,53 @@
    carries `background: getRowBg(option)` as an INLINE style — inline beats any
    class, so a class-level background-image could never paint at all.
 
-   Two gradient layers on DIFFERENT tile widths (260 / 380px), each drifting one
-   full tile per cycle: they beat against each other instead of marching in
-   lockstep, which is what keeps it organic rather than a repeating barber-pole.
-   Every blob fades to fully transparent at its own tile edge, so all three
-   seams this table can produce — tile-to-tile, cell-to-cell, and across the gap
-   between the split left/right tables — are transparent meeting transparent,
-   i.e. invisible. That is why the blobs are sized in px rather than %: a
-   percentage tile would scale per column and the wisps would visibly change
-   size from one cell to the next.
+   THE OVERLAY LIVES ON THE `tr`, NOT THE CELLS. A first pass put it on each
+   `td`; every cell then restarted the tile pattern at its own left edge, so
+   blobs popped in and out at each column boundary and the sweep read as
+   clipped (user, 2026-09-01). One overlay spanning the whole row is the only
+   way the drift is continuous across columns.
 
-   Children are lifted to z-index 1 so the sheen passes UNDER the cell text
-   rather than tinting it — an absolutely-positioned ::after would otherwise
-   paint above in-flow content.
+   The z-index arrangement is what makes that work, and it is load-bearing:
+     • the `tr` is positioned, so `::after` (z-index 1) paints in the
+       positioned layer — ABOVE every cell background, which sit in the table
+       background layer below it;
+     • the `td`s must therefore stay UNPOSITIONED. Giving a cell
+       `position: relative` would lift its opaque background into the same
+       layer and hide the sheen behind it;
+     • cell text is lifted back above the sheen via the span below.
+   The pinned action lane is the deliberate exception: its inline
+   `position: sticky; z-index: 3` puts it above the overlay, so the sheen
+   passes behind it — correct for a pinned column, and why that cell no longer
+   carries the class itself.
 
-   Infinite, because "progressing" is an ongoing state that shouldn't settle.
-   NOTE the trigger is `highlightedRank`, which RoutingGuideTab never clears on
-   a timer, so this runs until another row is highlighted. Binding it to Tender
-   Status === 'Sent' instead would be a trigger change in RoutingGuideTab, not a
-   change here. */
+   Two gradient layers on DIFFERENT tile widths (260 / 380px) beat against each
+   other instead of marching in lockstep, which is what keeps it organic rather
+   than a repeating barber-pole. Blobs are sized in px, not %, so they stay the
+   same size whatever the row's width.
+
+   Runs ONCE for 3.8s and settles to the solid tint (user, 2026-09-01): the
+   opacity ramp is in the keyframes and the base state is transparent, so
+   `forwards` holds it invisible afterwards. That also means nothing here
+   depends on `highlightedRank` being cleared — it never is, and no longer
+   needs to be. */
 .tender-row-plasma {
   position: relative;
 }
-.tender-row-plasma > * {
+/* Above the sheen, so a wisp passes under the text instead of tinting it.
+   Only the locked table wraps its cell content in a span; the scrollable
+   half renders raw text, which the sheen does cross — acceptable at this
+   opacity, and transient now that it settles. */
+.tender-row-plasma td > span {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 .tender-row-plasma::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
-  /* The darker partner of the tint the cell landed on — defaults to the blue a
+  /* The darker partner of the tint the row landed on — defaults to the blue a
      freshly-processed (status-less) row always gets, the same value
      PROCESSED_HIGHLIGHT_TEXT carries in src/lib/processScac.js. */
   background-image:
@@ -156,12 +171,14 @@
     radial-gradient(84px 22px at 68% 44%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%);
   background-size: 260px 100%, 380px 100%;
   background-repeat: repeat-x, repeat-x;
-  opacity: 0.14;
-  animation: tender-row-plasma 5.5s linear infinite;
+  opacity: 0;
+  animation: tender-row-plasma 3.8s linear 1 forwards;
 }
 @keyframes tender-row-plasma {
-  from { background-position: 0 50%, 0 50%; }
-  to   { background-position: 260px 50%, 380px 50%; }
+  0%   { opacity: 0;    background-position: 0 50%, 0 50%; }
+  15%  { opacity: 0.14; }
+  70%  { opacity: 0.14; }
+  100% { opacity: 0;    background-position: 520px 50%, 760px 50%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tender-row-plasma::after {
