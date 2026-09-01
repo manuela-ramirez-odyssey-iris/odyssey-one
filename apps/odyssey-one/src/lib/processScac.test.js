@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  isDuplicate, planProcessScac, droppedCarrierToOption, nextRank, insertRank,
+  isDuplicate, planProcessScac, droppedCarrierToOption, insertRank,
   simulatedRoutingDates, ROUTING_FAILS,
 } from './processScac'
 
@@ -56,20 +56,6 @@ describe('planProcessScac — the ordered steps for one carrier', () => {
 
   it('treats the drop code as a string or a number — it crosses JSON either way', () => {
     expect(planProcessScac({ ...dropped, dropCode: 23 }, tender)[0]).toBe('manual-dates')
-  })
-})
-
-describe('nextRank — append only', () => {
-  it('is one past the highest existing rank', () => {
-    expect(nextRank(tender)).toBe(3)
-  })
-
-  it('is 1 for an empty list', () => {
-    expect(nextRank([])).toBe(1)
-  })
-
-  it('uses the MAX, not the length — ranks can have gaps', () => {
-    expect(nextRank([{ rank: 4 }, { rank: 9 }])).toBe(10)
   })
 })
 

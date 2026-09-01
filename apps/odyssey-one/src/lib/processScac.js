@@ -94,16 +94,22 @@ export function planProcessScac(carrier, tenderOptions = []) {
  * (api/_lib/shipments.mjs), so shifting an existing row would overwrite
  * whichever row currently holds the destination rank. MAX rather than length
  * because ranks can have gaps.
+ *
+ * Un-exported (S136): `RoutingGuideTab.jsx` called this directly until both
+ * doorways swapped to `insertRank` below (LINX-15075, supersedes plan
+ * decision D3) — it now survives only as `insertRank`'s own no-match/empty
+ * fallback, so it dropped its export and its dedicated test block with it.
  */
-export function nextRank(tenderOptions = []) {
+function nextRank(tenderOptions = []) {
   return tenderOptions.reduce((max, o) => Math.max(max, Number(o.rank) || 0), 0) + 1
 }
 
 /**
  * LINX-15075 — group-aware rank insertion; supersedes plan decision D3 (see
  * docs/superpowers/specs/2026-08-31-process-scac-picker-design.md, "Rank
- * insertion"). Not a replacement for `nextRank` yet: `RoutingGuideTab.jsx`
- * still calls that one, and a later agent swaps both call sites over.
+ * insertion"). Swapped in at BOTH call sites in `RoutingGuideTab.jsx`
+ * (they share one function, `runProcessScac`) — one insertion rule, not a
+ * second rank function that drifts.
  *
  * "Matching equipment group" = the contiguous run of rows, in rank order,
  * sharing the new carrier's equipment (compared case-insensitively — a code,
