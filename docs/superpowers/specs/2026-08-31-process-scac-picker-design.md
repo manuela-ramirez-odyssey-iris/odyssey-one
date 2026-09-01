@@ -218,6 +218,22 @@ Annotate each in code so a later reader does not mistake it for spec.
   `src/lib/processScac.js` beside the other simulation code — it is a prototype knob, **not** master
   data, and keeping it there avoids a dependency from the lib onto the seed pools.
 - **PS4 — audit logging still not built** (extends D5). No table, no endpoint. Known gap.
+- **PS5 — a `Call Routing` retry always succeeds.** `ROUTING_FAILS` is deterministic by SCAC, so a
+  retry that re-consulted it would fail forever and 15076/15077's own retry path could never be
+  demonstrated or tested end to end. Modelled as "routing was transiently unavailable; the retry
+  worked", which is the honest simulation and the only one that makes the AC reachable. One line to
+  delete when real routing lands.
+
+## Reverted — do not re-propose without new input
+
+- **An "already added" tint on the dropped-carrier button** (shipped `c4a91aa`, reverted `d18fd2c`,
+  user 2026-09-01). Tinting a Secondary button blue reads as the *control* changing state, but the
+  button has not changed state: it stays enabled, and a re-press still legitimately reaches the
+  duplicate dialog, because the action copies rather than moves. The only thing that marks a
+  freshly-added carrier is the tender row itself.
+- **A per-cell plasma overlay** (`6264ecc`, replaced `17a3ebf`). Every cell restarted the tile
+  pattern at its own left edge, so blobs popped in and out at each column boundary. The overlay must
+  span the `tr`; see the z-index note in `styles/panes/tender.css`, which is load-bearing.
 
 ## States
 
@@ -266,8 +282,10 @@ After success, focus stays in the Tender tab and the new row is highlighted (`se
 
 ## Scope
 
-**In:** the picker; group-aware insertion at both doorways; 15076 success/failure messaging;
-15077 lock, focus, failed-routing indicator.
+**In, and BUILT:** the picker; group-aware insertion at both doorways; 15076 success/failure
+messaging; 15077 lock, focus, failed-routing indicator on the SCAC, and the `Call Routing` per-option
+retry (which does **not** change shipment or tender status — `STATUS_AFTER_ACTION` has no entry for
+it, and the handler returns before the generic status-transition line).
 
 **Out:** audit logging (PS4); a real carrier/equipment API; Figma (no new `@odyssey/ui` component,
 so no `/normalize` gate — flag the strip to Efrain once it is on screen).

@@ -475,10 +475,56 @@ the VTT — the ticket does not make these calls, we did. Each entry says so exp
 
 ---
 
+### DC-25: the routing-failure retry loop, and one presentation decision reversed on sight (S136)
+
+- **Context:** DC-24 shipped the picker's `routing-failed` branch, but only as a
+  one-shot dialog. Once dismissed, nothing on screen said routing had failed and
+  there was no way to retry — leaving two AC requirements unbuilt: LINX-15076
+  *"Re-processing shall be applicable for each carrier option ('Call Routing')…
+  The carrier shall not need to be added again"* and LINX-15077 *"the call
+  routing option should be enabled for this particular option… Indicator on the
+  SCAC that the routing had failed."*
+- **Decision:** built both. `routingFailed` now rides on the option itself; the
+  SCAC cell renders a `TriangleAlert` (`--badge-yellow-text`, `aria-label`
+  "Routing failed"); `Call Routing` is appended to that option's action menu via
+  a new `actionsFor(option)` wrapper rather than a new `TENDER_ACTIONS` entry.
+- **`Call Routing` must not change status** — 15076 says so outright. Enforced
+  structurally, not by convention: no `STATUS_AFTER_ACTION` entry exists for it,
+  and the handler returns before the generic transition line. Covered by a
+  dedicated test, because this is the kind of rule a later refactor breaks
+  silently.
+- **PS5 (ours, not the ticket's) — the retry always succeeds.** `ROUTING_FAILS`
+  is deterministic by SCAC, so a retry that re-consulted it would fail forever
+  and the AC's own retry path could never be reached. Modelled as "routing was
+  transiently unavailable; the retry worked." Retry patches the row **in place**
+  — rank is unchanged, per 15076's *"Routing execution shall not alter the
+  carrier insertion position."*
+- **Whitelist-mapper bug class caught, again.** `routingOptionVmToDto` spreads
+  `...rest` and needed nothing, but `mapRoutingOption` is a hand-written
+  whitelist — `routingFailed` had to be added there explicitly or it would have
+  vanished on reload while every test still passed. Fifth-plus recurrence of
+  this class in this codebase.
+- **REVERSED — the "already added" tint on the dropped-carrier button.** Shipped
+  in DC-24's build and reverted on sight the same session (user, 2026-09-01):
+  tinting a Secondary button reads as *the control* changing state, but the
+  button had not changed state — it stays enabled and a re-press still
+  legitimately reaches the duplicate dialog, because the action copies rather
+  than moves. The tender row is the only thing that should mark a fresh add.
+  `tenderKey`/`tenderKeySet` went back to internal with it.
+- **Source:** LINX-15076/15077 AC; `src/lib/processScac.js`;
+  `src/components/detail/RoutingGuideTab.jsx` (`actionsFor`, `handleAction`);
+  `src/api/types/shipmentDetail.ts`, `src/api/types/sellShipmentOut.ts`,
+  `mapSellShipmentOutToDetail.ts`.
+- **Status:** ✅ built and tested (S136). Not browser-verified: the SCAC
+  indicator's fit inside the narrow 64px locked column is a jsdom blind spot.
+
+---
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 1, 2026 | DC-25 — the **routing-failure retry loop** finished (LINX-15076/15077): `routingFailed` on the option, a `TriangleAlert` indicator on the SCAC, and `Call Routing` in that option's action menu, wired so it provably cannot change tender status. **PS5** — the retry always succeeds, because `ROUTING_FAILS` is deterministic and a re-consulting retry could never reach the AC's own retry path. Caught the **whitelist-mapper bug class** a fifth-plus time: `mapRoutingOption` would have silently dropped `routingFailed` on reload with every test still green. **Reversed** DC-24's "already added" tint on the dropped-carrier button — it read as the control changing state when the control had not. |
 | Aug 31, 2026 | DC-24 — Process SCAC **picker** built (LINX-15075/76/77), the second doorway `ProcessScacBar` promised since DC-09. **D3/DC-14 superseded**: `nextRank` → group-aware `insertRank` at BOTH doorways (PS1), since the plan's "our list is flat, D3 applies verbatim" reading did not survive the spec's own worked mid-list example. **PS2** seeds `WERN` as the one no-equipment SCAC so that empty-equipment UI is reachable; **PS3** seeds `ROUTING_FAILS = ['EXLA']` so the picker's own failure branch is reachable in a demo. The picker's failure path is its OWN branch (`routing-failed`), not a reuse of 13954's `manual-dates`/`rating-failed` — flagged for Jana as the seam in "both are same." **PS4** (audit logging) remains an open gap. |
 | Aug 18, 2026 | DC-22, DC-23 — **DEC-108 reversed**: the dropped-carrier seed now invents values so the feature can be groomed by looking at it, with three AC-derived dependency chains enforced in code and tests and ~20% of rows left sparse to keep the `--` path visible. **OQ-13 resolved** by Jana — Route Rank may be empty, Rank may not — which retires a same-day interim ruling and makes `mapRoutingOption`'s `routeRank ?? rank` fallback known-wrong (raised as Q1 rather than changed unilaterally, since it touches every routing option). |
 | Aug 17, 2026 | DC-12 through DC-21 — Process SCAC (LINX-13954) built: six implementation calls the ticket doesn't make — **DC-12** Routing/Rating simulated off the seeded `dropCode` (`23` → no dates, `1`/`2` → success); **DC-13** Rating always fails on the failure branch, since a dropped carrier carries no rate data; **DC-14** insertion always takes the AC's own no-matching-group fallback (flat list, `max(rank)+1`, never renumbered — the write endpoint addresses rows by rank); **DC-15** the 3s success message is an `Alert`, not a new Toast component; **DC-16** audit logging is a known, unbuilt gap; **DC-17** Route Rank/RPC-ID are carried per DC-05 but arrive blank because routing supplies neither. Plus **DC-18** confirms no migration or API change was needed (`saveTender` already update-then-inserts, same finding as DEC-106); **DC-19**/**DC-20** record two defects found and fixed mid-build (a display dash almost persisted into a numeric wire field; the AC's Processing Failure branch was unreachable dead code); **DC-21** records real-Chrome/live-Neon browser verification, including cold-reload persistence. Four items verified but **not resolved** are logged as OQ-14 through OQ-17 in the canon. Also flipped four DC-01–DC-11 statuses to ✅ implemented now that the behaviour they ruled on (per-row action, routing-failure semantics, Rank vs Route Rank, OK/Cancel buttons) shipped as part of this build: **DC-02**, **DC-03**, **DC-05**, **DC-08**. |
