@@ -61,7 +61,10 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
   const canProcess = !!scac && !!equipment && processingScac == null
 
   return (
-    <div className="process-scac-bar">
+    // --expanded drives the staggered slide-in (styles/panes/tender.css). It is
+    // on the container, not each control, because the stagger is nth-child
+    // based — the controls themselves stay unaware of it.
+    <div className="process-scac-bar process-scac-bar--expanded">
       <Button variant="secondary" size="sm" onClick={collapse}>
         Cancel
       </Button>
