@@ -108,6 +108,26 @@
   width: 360px;
 }
 
+/* S136 — the inserted/highlighted tender row gets a brief pulse rather than an
+   instant color snap. Same timing convention as `.customers-row-pulse`
+   (src/styles/components.css) — 700ms ease-in-out, 2 iterations — but its own
+   keyframe: this table's highlight tint (`--badge-blue-bg`, see
+   `PROCESSED_HIGHLIGHT_BG` in src/lib/processScac.js) differs from the
+   customers pulse's carolina-blue, so a shared keyframe would fight the two
+   colors. Brightens the cell's OWN current background rather than hardcoding a
+   flash color, so it reads correctly whichever STATUS_STYLES bg the row landed
+   on. `highlightedRank` can persist past the animation (RoutingGuideTab does
+   not clear it on a timer) — that's fine, a finite `animation-iteration-count`
+   stops on its own even while the class stays applied; no JS timer needed. */
+.tender-row-pulse {
+  animation: tender-row-pulse 700ms ease-in-out 2;
+}
+@keyframes tender-row-pulse {
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
 /* LINX-13953 — Dropped Carrier empty state. The section renders even at zero
    so the count itself is readable; absence would be ambiguous. Font comes
    from the .text-label-sm-regular utility class on the element (no

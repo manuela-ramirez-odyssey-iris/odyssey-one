@@ -653,7 +653,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       : getCellValue(option, col)
 
                     return (
-                      <td key={col.key} className={cellTypeClass(isPrimary || isHighlighted)} style={cellStyle}>
+                      <td key={col.key} className={`${cellTypeClass(isPrimary || isHighlighted)}${isHighlighted ? ' tender-row-pulse' : ''}`} style={cellStyle}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
                           {content}
                         </span>
@@ -751,7 +751,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                     }
                     return (
-                      <td key={col.key} className={cellTypeClass(isHighlighted)} style={cellStyle}>
+                      <td key={col.key} className={`${cellTypeClass(isHighlighted)}${isHighlighted ? ' tender-row-pulse' : ''}`} style={cellStyle}>
                         {getCellValue(option, col)}
                       </td>
                     )
