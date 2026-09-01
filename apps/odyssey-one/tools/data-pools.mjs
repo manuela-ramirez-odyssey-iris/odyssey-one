@@ -21,61 +21,6 @@ export const EQUIPMENT_LABELS = {
 }
 export const EQUIPMENT_CODES = Object.keys(EQUIPMENT_LABELS)
 
-// Tender/routing carrier catalog (LINX-13397 §12: carr_scac_id + carr_short_desc,
-// carr_cd_pending_status_flag='N') — moved verbatim from generate.mjs, which
-// used to declare it locally. NOT a data migration: same 15 entries, same
-// order, no new faker draw. Order is LOAD-BEARING — buildDroppedCarriers
-// filters this array and the generator draws from it with a seeded faker, so
-// reordering reshuffles every seeded shipment. Do not sort, dedupe, or reformat.
-// NOTE (S136): the picker spec described this as "13 entries" — it is 15;
-// CNWY/WARD trail after ABFS and have no SCAC_EQUIPMENT entry below (spec's
-// literal map only covers the first 13). Preserved verbatim per the
-// load-bearing-order rule rather than truncated to match the spec's count.
-//
-// NOTE: this is a DIFFERENT catalog from master-data.js's own local `CARRIERS`
-// (LINX-8126 SCAC typeahead for order creation, 47 entries incl. `mode`) —
-// same export name, different domain, unrelated data. master-data.js
-// re-exports this one as `TENDER_CARRIERS` to avoid colliding with its own.
-export const CARRIERS = [
-  { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
-  { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
-  { scac: 'XPOL', name: 'XPO LOGISTICS' },
-  { scac: 'EXLA', name: 'ESTES EXPRESS LINES' },
-  { scac: 'SAIA', name: 'SAIA INC' },
-  { scac: 'CTNS', name: 'CONTINENTAL TRANSPORTATION' },
-  { scac: 'JBHT', name: 'J.B. HUNT TRANSPORT' },
-  { scac: 'SNLU', name: 'SCHNEIDER NATIONAL' },
-  { scac: 'USFC', name: 'USF CORPORATION' },
-  { scac: 'FXFE', name: 'FEDEX FREIGHT ECONOMY' },
-  { scac: 'UPGF', name: 'UPS FREIGHT' },
-  { scac: 'RLCA', name: 'R+L CARRIERS' },
-  { scac: 'ABFS', name: 'ABF FREIGHT SYSTEM' },
-  { scac: 'CNWY', name: 'CONWAY FREIGHT' },
-  { scac: 'WARD', name: 'WARD TRUCKING' },
-];
-
-// Equipment available per SCAC (LINX-13397 §13: mf_carrier_equipment joined
-// per carr_scac_id) — stand-in literal map, not a real join, since no carrier-
-// equipment endpoint exists yet. A literal map beats a hash: greppable, and
-// answerable when Jana asks why a SCAC shows three options.
-// CTNS: [] is DELIBERATE — it is the "SCAC with no equipment" branch (PS2,
-// Process SCAC picker spec), kept reachable on screen rather than removed.
-export const SCAC_EQUIPMENT = {
-  SEFL: ['LTL', 'LTR', 'LTH'],
-  ODFL: ['LTL', 'LTH'],
-  XPOL: ['LTL', 'LTR', 'TL'],
-  EXLA: ['LTL'],
-  SAIA: ['LTL', 'LTR'],
-  CTNS: [],
-  JBHT: ['TL', 'TLR', 'TLH', 'TT'],
-  SNLU: ['TL', 'TLR', 'RR'],
-  USFC: ['LTL', 'LTH'],
-  FXFE: ['LTL', 'LTR'],
-  UPGF: ['LTL'],
-  RLCA: ['LTL', 'LTR', 'LTH'],
-  ABFS: ['LTL', 'TL'],
-}
-
 // Shipment modes. Order is LOAD-BEARING: generate.mjs picks weighted-random
 // by index, so reordering this array changes the seeded dataset.
 export const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR']
