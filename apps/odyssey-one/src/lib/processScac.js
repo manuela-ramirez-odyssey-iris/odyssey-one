@@ -212,7 +212,7 @@ export function simulatedRoutingDates(tenderOptions = []) {
  * matches what the AC's own "from scratch" branch prescribes, and it starts
  * carrying real values for free if routing ever widens.
  */
-export function droppedCarrierToOption(carrier, { rank, dates } = {}) {
+export function droppedCarrierToOption(carrier, { rank, dates, routingFailed } = {}) {
   return {
     rank,
     routeRank: carrier.routeRank ?? DASH,
@@ -227,6 +227,13 @@ export function droppedCarrierToOption(carrier, { rank, dates } = {}) {
     // Untendered. Must NOT arrive with a quoteFlag — the point of landing here
     // is that the user MAY add a quote (LINX-13896).
     status: null,
+    // LINX-15076/15077 (S136) — the picker doorway's own failure branch only
+    // (`planProcessScac`'s 'routing-failed' step). Survives on the option so
+    // the SCAC-cell indicator and the "Call Routing" action can both key off
+    // it later, and through a reload via mapRoutingOption/routingOptionVmToDto.
+    // `undefined` (not `false`) when not applicable so JSON.stringify drops it,
+    // same convention as `quoteFlag`.
+    routingFailed: routingFailed ? true : undefined,
     pickupDateTime: dates?.pickupDateTime ?? (carrier.pickup !== DASH ? carrier.pickup : null),
     pickupTZ: '',
     pickupOrgHours: DASH,

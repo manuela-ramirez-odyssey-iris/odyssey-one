@@ -193,6 +193,10 @@ export interface RoutingOptionVM {
   quoteFlag?: 'Y' | 'N'
   /** LINX-13895 "Audit Information" — rendered read-only on the Quote Entry Page. */
   quoteAudit?: QuoteAuditVM
+  /** LINX-15076/15077 (S136) — set only on the picker doorway's routing-failed
+      branch (`processScac.js`'s `droppedCarrierToOption`). Drives the SCAC-cell
+      warning indicator and the "Call Routing" retry action. Absent otherwise. */
+  routingFailed?: boolean
   status: string | null
   pickupDateTime: string | null
   pickupTZ: string

@@ -350,6 +350,12 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
     // above silently dropped it on the next load. It is load-bearing now.
     quoteFlag: o.quoteFlag,
     quoteAudit: o.quoteAudit,
+    // LINX-15076/15077 (S136) — this mapper is a WHITELIST (unlike its write-
+    // direction counterpart `routingOptionVmToDto`, which spreads `...rest`),
+    // so an unlisted field silently does not survive a reload — a documented
+    // recurring bug class in this codebase. Passed through, not defaulted to
+    // `false`, so absence still reads as "never failed" via `option.routingFailed`.
+    routingFailed: o.routingFailed,
     status: o.status ?? null,
     pickupDateTime: o.pickupDateTime ?? null,
     pickupTZ: orDash(o.pickupTZ),

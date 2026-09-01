@@ -188,6 +188,8 @@ export interface SellShipmentRoutingOption {
   /** LINX-13895 "Audit Information" / LINX-13896 "Audit Information". Written on
       every quote save, retained after a delete so the history survives. */
   quoteAudit?: SellShipmentQuoteAudit
+  /** LINX-15076/15077 (S136) — see RoutingOptionVM.routingFailed. */
+  routingFailed?: boolean
   status?: string | null
   pickupDateTime?: string | null
   pickupTZ?: string
