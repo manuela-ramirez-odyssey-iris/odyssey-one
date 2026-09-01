@@ -668,16 +668,17 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       : col.key === 'cost' ? <CostTooltip carrier={option} onViewDetails={() => onViewRateDetails(option)} />
                       // LINX-15077 — "Indicator on the SCAC that the routing had
                       // failed." Same value+adornment composition as the
-                      // carrierName/spotRate cell below; amber to match every
-                      // other warning glyph in this codebase (TriangleAlert +
-                      // --badge-yellow-* — Badge's own `amber` variant is this
-                      // pair, see packages/ui/src/Badge.jsx).
+                      // carrierName/spotRate cell below.
+                      // `--text-warning`, NOT `--badge-yellow-text`: the badge
+                      // token is text-on-tint and only reads right against
+                      // --badge-yellow-bg. Standalone on a light row it renders
+                      // brown (S136 — shipped that way, caught on screen).
                       : col.key === 'scac' && option.routingFailed ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           {getCellValue(option, col)}
                           <TriangleAlert
                             {...ICON_MD}
-                            style={{ color: 'var(--badge-yellow-text)', flexShrink: 0 }}
+                            style={{ color: 'var(--text-warning)', flexShrink: 0 }}
                             role="img"
                             aria-label="Routing failed"
                           />
