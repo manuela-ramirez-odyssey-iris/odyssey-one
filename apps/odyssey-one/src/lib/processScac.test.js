@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { isDuplicate, planProcessScac, droppedCarrierToOption, nextRank, simulatedRoutingDates } from './processScac'
+import {
+  isDuplicate, planProcessScac, droppedCarrierToOption, nextRank, insertRank,
+  simulatedRoutingDates, ROUTING_FAILS,
+} from './processScac'
 
 const dropped = {
   scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
@@ -67,6 +70,103 @@ describe('nextRank — append only', () => {
 
   it('uses the MAX, not the length — ranks can have gaps', () => {
     expect(nextRank([{ rank: 4 }, { rank: 9 }])).toBe(10)
+  })
+})
+
+describe('insertRank — LINX-15075 group-aware insertion, supersedes plan decision D3', () => {
+  it('inserts at the bottom of the matching equipment group — the AC example, verbatim', () => {
+    const before = [
+      { rank: 1, scac: 'AAAA', equipment: 'TL' },
+      { rank: 2, scac: 'BBBB', equipment: 'TL' },
+      { rank: 3, scac: 'CCCC', equipment: 'LTL' },
+    ]
+    expect(insertRank('TL', before)).toEqual({ rank: 3, shifts: [{ from: 3, to: 4 }] })
+  })
+
+  it('is bottom of the whole list when no group matches that equipment', () => {
+    const before = [
+      { rank: 1, scac: 'AAAA', equipment: 'LTL' },
+      { rank: 2, scac: 'BBBB', equipment: 'LTL' },
+    ]
+    expect(insertRank('TL', before)).toEqual({ rank: 3, shifts: [] })
+  })
+
+  it('is rank 1 with no shifts for an empty list', () => {
+    expect(insertRank('TL', [])).toEqual({ rank: 1, shifts: [] })
+  })
+
+  it('is bottom of the list when the whole list is a single matching group', () => {
+    const before = [
+      { rank: 1, scac: 'AAAA', equipment: 'TL' },
+      { rank: 2, scac: 'BBBB', equipment: 'TL' },
+    ]
+    expect(insertRank('TL', before)).toEqual({ rank: 3, shifts: [] })
+  })
+
+  it('takes the LAST run on non-contiguous equipment (PS1) — true bottom, not the first occurrence', () => {
+    const before = [
+      { rank: 1, scac: 'AAAA', equipment: 'TL' },
+      { rank: 2, scac: 'BBBB', equipment: 'LTL' },
+      { rank: 3, scac: 'CCCC', equipment: 'TL' },
+    ]
+    expect(insertRank('TL', before)).toEqual({ rank: 4, shifts: [] })
+  })
+
+  it('orders multi-row shifts highest `from` first — a destination must be vacated before it is written', () => {
+    const before = [
+      { rank: 1, scac: 'AAAA', equipment: 'TL' },
+      { rank: 3, scac: 'BBBB', equipment: 'LTL' },
+      { rank: 4, scac: 'CCCC', equipment: 'LTH' },
+    ]
+    expect(insertRank('TL', before)).toEqual({
+      rank: 3,
+      shifts: [{ from: 4, to: 5 }, { from: 3, to: 4 }],
+    })
+  })
+
+  it('matches equipment case-insensitively — a code, not free text, same as isDuplicate', () => {
+    const before = [{ rank: 1, scac: 'AAAA', equipment: 'tl' }]
+    expect(insertRank('TL', before)).toEqual({ rank: 2, shifts: [] })
+  })
+
+  it('does not assume rank === index + 1 — ranks can have gaps', () => {
+    const before = [
+      { rank: 1, scac: 'AAAA', equipment: 'TL' },
+      { rank: 2, scac: 'BBBB', equipment: 'TL' },
+      { rank: 5, scac: 'CCCC', equipment: 'LTL' },
+    ]
+    expect(insertRank('TL', before)).toEqual({ rank: 5, shifts: [{ from: 5, to: 6 }] })
+  })
+})
+
+describe('ROUTING_FAILS / manual-carrier routing — LINX-15076, plan decision PS3', () => {
+  // No dropCode: this carrier came from the ProcessScacBar picker, not
+  // Dropped Carriers.
+  const manual = { scac: 'EXLA', carrierName: 'EXLA CORP', equipment: 'LTL' }
+
+  it('exports ROUTING_FAILS as the deterministic one-SCAC demo list', () => {
+    expect(ROUTING_FAILS).toEqual(['EXLA'])
+  })
+
+  it('takes the routing-failed step for a manual carrier whose SCAC is in ROUTING_FAILS', () => {
+    expect(planProcessScac(manual, tender)).toEqual(['routing-failed'])
+  })
+
+  it('never includes manual-dates on the picker doorway — 15076 has no ManualDatesModal', () => {
+    expect(planProcessScac(manual, tender)).not.toContain('manual-dates')
+  })
+
+  it('succeeds normally for a manual carrier whose SCAC is not in ROUTING_FAILS', () => {
+    expect(planProcessScac({ ...manual, scac: 'JBHT' }, tender)).toEqual(['copy', 'success'])
+  })
+
+  it('is case-insensitive on SCAC, same as everywhere else in this file', () => {
+    expect(planProcessScac({ ...manual, scac: 'exla' }, tender)).toEqual(['routing-failed'])
+  })
+
+  it('leaves the dropped-carrier failure branch UNCHANGED even for an EXLA drop code carrier', () => {
+    expect(planProcessScac({ ...dropped, scac: 'EXLA', dropCode: '23' }, tender))
+      .toEqual(['manual-dates', 'rating-failed', 'copy'])
   })
 })
 

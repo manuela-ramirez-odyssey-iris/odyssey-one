@@ -18,6 +18,16 @@ const DASH = '--'
 // which does not stop date calculation.
 const DROP_CODE_MISSING_TRANSIT_TIME = '23'
 
+/**
+ * PS3 (ours, not the ticket's) — a carrier added through the ProcessScacBar
+ * picker has no `dropCode` at all, so without this list `routingReturnsDates`
+ * below would always see a non-'23' code and always succeed: 15076's
+ * failure branch and 15077's failed-routing indicator would be unreachable
+ * on screen. Deterministic and repeatable so a demo always shows both paths.
+ * One line to delete once real routing exists for the picker doorway.
+ */
+export const ROUTING_FAILS = ['EXLA']
+
 /** Crosses JSON as a number from the generator and a string from the VM. */
 const code = (c) => String(c?.dropCode ?? '')
 
@@ -43,6 +53,15 @@ function routingReturnsDates(carrier) {
 }
 
 /**
+ * True only for the picker doorway: a dropped carrier ALWAYS carries a
+ * `dropCode` (routing put it there), so this only fires for a carrier the
+ * user picked directly. PS3 — see ROUTING_FAILS above.
+ */
+function isManualRoutingFailure(carrier) {
+  return carrier?.dropCode == null && ROUTING_FAILS.includes(String(carrier?.scac ?? '').toUpperCase())
+}
+
+/**
  * The ordered steps for one Process SCAC press. The component walks this list;
  * it does not decide anything itself.
  *
@@ -53,9 +72,16 @@ function routingReturnsDates(carrier) {
  *   • "Add carrier to list" sits at the END of the failure branch
  *   • the "Routing completed successfully" message belongs to Routing Success
  *     only — there is deliberately no 'success' step on the failure path
+ *
+ * The picker doorway (LINX-15076) is a THIRD branch, not a reuse of the
+ * dropped-carrier failure branch: no ManualDatesModal, no rating call — one
+ * step, 'routing-failed', that means "insert the row with blanks and show
+ * the failure message." Keeping it distinct from 'manual-dates'/
+ * 'rating-failed' is deliberate — see the spec's "Failure paths" section.
  */
 export function planProcessScac(carrier, tenderOptions = []) {
   if (isDuplicate(carrier, tenderOptions)) return ['duplicate']
+  if (isManualRoutingFailure(carrier)) return ['routing-failed']
   if (routingReturnsDates(carrier)) return ['copy', 'success']
   // Rating runs only here (follow the ticket: failure branch only), and always
   // fails: we hold no rate data for a dropped carrier, so "no rate available"
@@ -71,6 +97,58 @@ export function planProcessScac(carrier, tenderOptions = []) {
  */
 export function nextRank(tenderOptions = []) {
   return tenderOptions.reduce((max, o) => Math.max(max, Number(o.rank) || 0), 0) + 1
+}
+
+/**
+ * LINX-15075 — group-aware rank insertion; supersedes plan decision D3 (see
+ * docs/superpowers/specs/2026-08-31-process-scac-picker-design.md, "Rank
+ * insertion"). Not a replacement for `nextRank` yet: `RoutingGuideTab.jsx`
+ * still calls that one, and a later agent swaps both call sites over.
+ *
+ * "Matching equipment group" = the contiguous run of rows, in rank order,
+ * sharing the new carrier's equipment (compared case-insensitively — a code,
+ * not free text, same as `isDuplicate`). The new row lands at the BOTTOM of
+ * that run: everything above keeps its rank, the new row takes the rank the
+ * next row down used to hold, and that row plus everything below it shifts
+ * +1. No match → bottom of the whole list, same as `nextRank`.
+ *
+ * PS1 (ours): equipment can appear in more than one run once dropped carriers
+ * and manual adds interleave (e.g. TL, LTL, TL). We take the LAST matching
+ * run — the new row belongs at the true bottom of the list for that
+ * equipment, not wedged mid-list above a later occurrence of the same value.
+ *
+ * `shifts` is ordered highest `from` first. This is load-bearing, not
+ * cosmetic: the write endpoint is addressed `WHERE rank = $8`
+ * (`api/_lib/shipments.mjs`), so a destination rank must be vacated before
+ * something is written into it, or the write clobbers the current occupant.
+ */
+export function insertRank(equipment, tenderOptions = []) {
+  if (tenderOptions.length === 0) return { rank: 1, shifts: [] }
+
+  const target = String(equipment ?? '').toUpperCase()
+  const sorted = [...tenderOptions].sort((a, b) => Number(a.rank) - Number(b.rank))
+  const equipAt = (i) => String(sorted[i].equipment ?? '').toUpperCase()
+
+  // Single pass, tracking the END index of the last contiguous run whose
+  // equipment matches. A run breaks wherever equipment changes.
+  let lastMatchEnd = -1
+  let runStart = 0
+  for (let i = 1; i <= sorted.length; i++) {
+    if (i === sorted.length || equipAt(i) !== equipAt(runStart)) {
+      if (equipAt(runStart) === target) lastMatchEnd = i - 1
+      runStart = i
+    }
+  }
+
+  if (lastMatchEnd === -1) return { rank: nextRank(sorted), shifts: [] }
+
+  const after = sorted.slice(lastMatchEnd + 1)
+  if (after.length === 0) return { rank: Number(sorted[lastMatchEnd].rank) + 1, shifts: [] }
+
+  return {
+    rank: Number(after[0].rank),
+    shifts: after.map((o) => ({ from: Number(o.rank), to: Number(o.rank) + 1 })).reverse(),
+  }
 }
 
 /**
