@@ -162,8 +162,9 @@
 /* S136 — a row that something is HAPPENING to drifts a soft grey sheen
    RIGHTWARD rather than pulsing in place (user, 2026-09-01). Directional motion
    reads as progress. Driven by `processRank`, not `highlightedRank`: it marks a
-   carrier being added, routed, tendered or re-tendered — never a row that was
-   merely selected.
+   carrier being routed, tendered or re-tendered — never a row that was merely
+   selected, and never a plain manual add, which gets the still pulse above
+   because nothing is actually underway.
 
    Grey, and leaving no residue, is the point. This table's only lasting colours
    are tender statuses (STATUS_STYLES), and an added-but-untendered carrier must
@@ -202,8 +203,39 @@
    `forwards` holds it invisible afterwards. That also means nothing here
    depends on `highlightedRank` being cleared — it never is, and no longer
    needs to be. */
-.tender-row-plasma {
+/* A MANUAL add is not a process, so it does not get the directional sheen
+   (user, 2026-09-01). Pressing Process SCAC starts nothing the row then waits
+   on — it just puts a carrier in the list — so the animation's only job is
+   "your entry landed here". A slow, still, grey pulse says that; drifting
+   motion would claim work is underway.
+
+   Deliberately quieter and slower than the sheen: this is a locator, and the
+   user already knows they pressed the button. Two breaths and gone, ending on
+   white like everything else that is not a tender status. */
+.tender-row-added::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--deep-sea-neutral-500);
+  opacity: 0;
+  animation: tender-row-added-pulse 1.6s ease-in-out 2 forwards;
+}
+@keyframes tender-row-added-pulse {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 0.12; }
+}
+
+/* Shared scaffolding for both row overlays — see the sheen's note below for
+   why the `tr` is positioned and the cells must not be. */
+.tender-row-plasma,
+.tender-row-added {
   position: relative;
+}
+.tender-row-added td > span {
+  position: relative;
+  z-index: 2;
 }
 /* Above the sheen, so a wisp passes under the text instead of tinting it.
    Only the locked table wraps its cell content in a span; the scrollable
@@ -253,7 +285,8 @@
   100%    { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tender-row-plasma::after {
+  .tender-row-plasma::after,
+  .tender-row-added::after {
     animation: none;
   }
 }

@@ -1113,6 +1113,24 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.keyDown(equipmentWrapper, { key: 'Enter' })
   }
 
+  it('a manual add gets the locator PULSE, not the in-progress sheen', async () => {
+    // The two animations mean different things and must not be confused: the
+    // drifting sheen says work is underway, which a manual add is not — it
+    // starts nothing the row then waits on (user, 2026-09-01). One `tr` has one
+    // ::after, so they are also mutually exclusive by construction.
+    render(<RoutingGuideTab data={{ options: [] }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' }))
+    pickCarrier('KNGT', 'TL')
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      await new Promise((r) => requestAnimationFrame(r))
+    })
+
+    expect(document.querySelectorAll('tr.tender-row-added')).toHaveLength(2)
+    expect(document.querySelectorAll('tr.tender-row-plasma')).toHaveLength(0)
+  })
+
   it('inserts at the bottom of the matching equipment group, renumbering everything below', async () => {
     const before = [
       { rank: 1, routeRank: 1, scac: 'AAAA', carrierName: 'Carrier A', equipment: 'TL', cost: '--', status: null },

@@ -551,7 +551,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, tabColumns, highlightedRank, processRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns }) {
+function RoutingTable({ options, tabColumns, highlightedRank, processRank, addedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -581,6 +581,15 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, openM
     const dataKey = col.dataKey || col.key
     return option[dataKey] ?? '--'
   }
+
+  // One `tr` has one ::after, so these two are mutually exclusive by
+  // construction — never combined into a single className. Process wins if both
+  // somehow point at the same rank: work underway outranks "this is where it
+  // landed". The setters clear each other, so that tie should not arise.
+  const rowAnimClass = (rank) =>
+    processRank === rank ? 'tender-row-plasma'
+      : addedRank === rank ? 'tender-row-added'
+        : undefined
 
   const getRowBg = (option) => {
     const isHighlighted = highlightedRank === option.rank
@@ -646,7 +655,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, openM
                   // .tender-row-plasma in styles/panes/tender.css: the cells
                   // must stay unpositioned for the row overlay to paint above
                   // their backgrounds.
-                  className={processRank === option.rank ? 'tender-row-plasma' : undefined}
+                  className={rowAnimClass(option.rank)}
                   style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
@@ -787,7 +796,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, openM
               return (
                 <tr
                   key={option.rank}
-                  className={processRank === option.rank ? 'tender-row-plasma' : undefined}
+                  className={rowAnimClass(option.rank)}
                   style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
@@ -912,6 +921,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   // tendering, re-tendering, routing — so it needs its own state.
   //
   const [processRank, setProcessRank] = useState(null)
+  // S136 — a MANUAL add is not a process (user, 2026-09-01). Pressing Process
+  // SCAC does not start anything the row is then waiting on; it just puts a
+  // carrier in the list. So it gets a slow grey pulse whose only job is "your
+  // entry landed here", not the directional sheen that means work is underway.
+  // Separate state because the two must never paint at once — one `tr`, one
+  // ::after, and the second class would simply overwrite the first's rules.
+  const [addedRank, setAddedRank] = useState(null)
 
   /**
    * Start (or RESTART) the progress sheen on a row.
@@ -934,8 +950,21 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
    * opacity 0 by then (`forwards`), so there is nothing on screen to blink.
    */
   const startProcessSheen = useCallback((rank) => {
+    setAddedRank(null)   // only one row animation at a time — see addedRank
     setProcessRank(null)
     requestAnimationFrame(() => setProcessRank(rank))
+  }, [])
+
+  /**
+   * The manual-add locator pulse. Same two-commit restart as the sheen, and for
+   * the same reason: a second add into the same equipment group takes the rank
+   * the first one just had (the first shifts down), so the rank repeats and the
+   * animation would not otherwise replay.
+   */
+  const startAddedPulse = useCallback((rank) => {
+    setProcessRank(null)
+    setAddedRank(null)
+    requestAnimationFrame(() => setAddedRank(rank))
   }, [])
   const [openMenuRank, setOpenMenuRank] = useState(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
@@ -983,6 +1012,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     setActiveSubTab('routing-options')
     setHighlightedRank(null)
     setProcessRank(null)
+    setAddedRank(null)
     setOpenMenuRank(null)
     setMenuPos({ top: 0, left: 0 })
     setOptions(data?.options || [])
@@ -1221,7 +1251,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // uses for "this is the row you just touched". Applies on the
     // routing-failed branch too: the row landed on screen either way.
     setHighlightedRank(option.rank)
-    startProcessSheen(option.rank)
+    startAddedPulse(option.rank)
 
     // Persist HIGHEST `from` first — insertRank already orders them that way.
     // The write is addressed `WHERE rank = $8` (api/_lib/shipments.mjs), so a
@@ -1247,6 +1277,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       setOptions(options)
       setHighlightedRank(null)
       setProcessRank(null)
+      setAddedRank(null)
       setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
       setProcessingScac(null)
       return false   // S136 — write failure stays expanded too, retry with the same selections
@@ -1255,7 +1286,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     if (steps.includes('success')) setProcessSuccess('Routing completed successfully.')
     setProcessingScac(null)
     return true   // S136 — carrier landed in the table (success OR routing-failed-but-added); ProcessScacBar collapses on this
-  }, [options, persistTender, startProcessSheen])
+  }, [options, persistTender, startAddedPulse])
 
   // Shared by both doorways (DroppedCarrierSection's row button, ProcessScacBar's
   // picker) — same lock, same carrier shape (`{ scac, ... }`), same walk.
@@ -1631,6 +1662,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           tabColumns={activeTabColumns}
           highlightedRank={highlightedRank}
           processRank={processRank}
+          addedRank={addedRank}
           openMenuRank={openMenuRank}
           onOpenMenu={handleOpenMenu}
           onCloseMenu={handleCloseMenu}
