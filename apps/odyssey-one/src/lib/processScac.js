@@ -31,8 +31,16 @@ export const ROUTING_FAILS = ['EXLA']
 /** Crosses JSON as a number from the generator and a string from the VM. */
 const code = (c) => String(c?.dropCode ?? '')
 
-const key = (scac, equipment) =>
+// Exported (S136) — RoutingGuideTab and DroppedCarrierSection both need to ask
+// "is this scac+equipment in the tender list", so the key format lives here
+// once rather than drifting between two files.
+export const tenderKey = (scac, equipment) =>
   `${String(scac ?? '').toUpperCase()}|${String(equipment ?? '').toUpperCase()}`
+
+/** Every scac+equipment pair currently in the tender list, as a Set of keys. */
+export function tenderKeySet(tenderOptions = []) {
+  return new Set(tenderOptions.map((o) => tenderKey(o.scac, o.equipment)))
+}
 
 /**
  * AC: "validate whether the same SCAC and Equipment combination already exists
@@ -43,9 +51,15 @@ const key = (scac, equipment) =>
  * dropped row survives its own success and WILL be pressed again.
  */
 export function isDuplicate(carrier, tenderOptions = []) {
-  const target = key(carrier?.scac, carrier?.equipment)
-  return tenderOptions.some((o) => key(o.scac, o.equipment) === target)
+  return tenderKeySet(tenderOptions).has(tenderKey(carrier?.scac, carrier?.equipment))
 }
+
+// S136 — the tint `getRowBg` (RoutingGuideTab.jsx) falls back to for a
+// highlighted row with no tender status yet — exactly the shape every
+// freshly-processed carrier lands in (`droppedCarrierToOption` always sets
+// `status: null`). Shared here so DroppedCarrierSection's "already added"
+// button tint can reuse the SAME value instead of a second hardcoded color.
+export const PROCESSED_HIGHLIGHT_BG = 'var(--badge-blue-bg)'
 
 /** SIMULATED — see the file header. */
 function routingReturnsDates(carrier) {

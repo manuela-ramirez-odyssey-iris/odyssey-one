@@ -2,6 +2,7 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import DroppedCarrierSection from './DroppedCarrierSection'
+import { tenderKey, PROCESSED_HIGHLIGHT_BG } from '../../lib/processScac'
 
 afterEach(cleanup)
 
@@ -205,5 +206,23 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     // 13953 shipped read-only and must stay renderable that way.
     render(<DroppedCarrierSection carriers={[carrier]} />)
     expect(screen.queryByRole('button', { name: /Process SCAC/ })).toBeNull()
+  })
+
+  // S136 — a carrier already copied into the tender list gets the same
+  // highlight tint the newly-inserted Routing Options row shows. Visual only:
+  // the button stays enabled so a re-press still reaches the duplicate dialog.
+  it('tints a processed carrier\'s button with the tender highlight color; leaves an unprocessed one alone', () => {
+    render(
+      <DroppedCarrierSection
+        carriers={[carrier, { ...carrier, scac: 'RLCA' }]}
+        onProcess={() => {}}
+        processedKeys={new Set([tenderKey('JBHT', carrier.equipment)])}
+      />,
+    )
+    const buttons = screen.getAllByRole('button', { name: /Process SCAC/ })
+    expect(buttons).toHaveLength(2)
+    expect(buttons[0].style.background).toBe(PROCESSED_HIGHLIGHT_BG)
+    expect(buttons[0].disabled).toBe(false)
+    expect(buttons[1].style.background).toBe('')
   })
 })
