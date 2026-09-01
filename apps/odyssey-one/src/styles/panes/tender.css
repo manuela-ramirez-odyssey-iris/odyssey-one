@@ -141,7 +141,7 @@
    than a repeating barber-pole. Blobs are sized in px, not %, so they stay the
    same size whatever the row's width.
 
-   Runs ONCE for 3.8s and settles to the solid tint (user, 2026-09-01): the
+   Runs ONCE for 3.5s and settles to the solid tint (user, 2026-09-01): the
    opacity ramp is in the keyframes and the base state is transparent, so
    `forwards` holds it invisible afterwards. That also means nothing here
    depends on `highlightedRank` being cleared — it never is, and no longer
@@ -177,8 +177,8 @@
      A single keyframe set can only carry one timing function, so they are
      split. Both run once and hold with `forwards`. */
   animation:
-    tender-row-plasma-drift 3.8s linear 1 forwards,
-    tender-row-plasma-fade 3.8s ease-in-out 1 forwards;
+    tender-row-plasma-drift 3.5s linear 1 forwards,
+    tender-row-plasma-fade 3.5s ease-in-out 1 forwards;
 }
 /* One tile of travel per layer per cycle — the two tile widths differ, so the
    layers drift at different speeds and never resolve into a single repeating
