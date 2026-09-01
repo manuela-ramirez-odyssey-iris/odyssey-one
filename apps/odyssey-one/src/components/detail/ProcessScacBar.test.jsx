@@ -59,6 +59,15 @@ function expand() {
   fireEvent.click(getToggleButton())
 }
 
+// Collapsing is animated, so the real unmount is keyed off the LAST control's
+// animationend (Cancel, the first child — it leaves last under the reversed
+// exit stagger). jsdom runs no animations and fires no animationend, so the
+// bar would sit in its collapsing state forever without this.
+function finishExitAnimation() {
+  const bar = document.querySelector('.process-scac-bar--collapsing')
+  if (bar) fireEvent.animationEnd(bar.firstChild)
+}
+
 describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
   it('starts collapsed, showing only the Add Carrier button', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
@@ -81,6 +90,9 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     selectAt(getCombos().equipmentInput, 0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    // Still on screen mid-exit — that is the point of the collapsing state.
+    expect(screen.getAllByRole('combobox')).toHaveLength(2)
+    finishExitAnimation()
 
     expect(screen.queryAllByRole('combobox')).toHaveLength(0)
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
@@ -89,6 +101,29 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     expand()
     expect(getCombos().scacInput.value).toBe('')
     expect(getCombos().equipmentInput.disabled).toBe(true)
+  })
+
+  it('collapses immediately under prefers-reduced-motion, with no animationend to wait for', () => {
+    // Load-bearing, not a nicety: reduced motion sets `animation: none`, so no
+    // animationend ever fires. Without the JS check reading the same query,
+    // the row would stay open permanently for these users — the exit animation
+    // would make the picker impossible to close.
+    const original = window.matchMedia
+    window.matchMedia = (q) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener() {}, removeEventListener() {} })
+    try {
+      render(<ProcessScacBar onProcess={() => {}} />)
+      expand()
+      expect(screen.getAllByRole('combobox')).toHaveLength(2)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      // Gone on the same commit — no collapsing state, nothing to drive.
+      expect(document.querySelector('.process-scac-bar--collapsing')).toBeNull()
+      expect(screen.queryAllByRole('combobox')).toHaveLength(0)
+      expect(getToggleButton()).toBeTruthy()
+    } finally {
+      window.matchMedia = original
+    }
   })
 
   it('a successful process collapses the bar back to the button', async () => {
@@ -103,6 +138,7 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     })
 
     expect(onProcess).toHaveBeenCalledTimes(1)
+    finishExitAnimation()
     expect(screen.queryAllByRole('combobox')).toHaveLength(0)
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
   })

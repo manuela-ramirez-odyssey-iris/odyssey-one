@@ -33,11 +33,26 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
   const [expanded, setExpanded] = useState(false)
   const [scac, setScac] = useState(null)
   const [equipment, setEquipment] = useState(null)
+  // Kept expanded for the duration of the exit animation — React would
+  // otherwise drop the controls from the DOM on the same commit and there
+  // would be nothing left to animate.
+  const [collapsing, setCollapsing] = useState(false)
 
-  const collapse = () => {
+  const finishCollapse = () => {
+    setCollapsing(false)
     setExpanded(false)
     setScac(null)
     setEquipment(null)
+  }
+
+  const collapse = () => {
+    // Reduced motion means the CSS sets `animation: none`, so animationend
+    // never fires and the row would sit open forever. Skip straight to closed.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      finishCollapse()
+      return
+    }
+    setCollapsing(true)
   }
 
   if (!expanded) {
@@ -61,10 +76,19 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
   const canProcess = !!scac && !!equipment && processingScac == null
 
   return (
-    // --expanded drives the staggered slide-in (styles/panes/tender.css). It is
+    // The modifier drives the staggered slide (styles/panes/tender.css). It is
     // on the container, not each control, because the stagger is nth-child
     // based — the controls themselves stay unaware of it.
-    <div className="process-scac-bar process-scac-bar--expanded">
+    <div
+      className={`process-scac-bar process-scac-bar--${collapsing ? 'collapsing' : 'expanded'}`}
+      // animationend bubbles from each control, so this fires once per child.
+      // Under the reversed exit stagger the FIRST child (Cancel) leaves last,
+      // making its end the whole exit's end — no timer duplicating the CSS
+      // duration, and nothing to drift if that duration changes.
+      onAnimationEnd={(e) => {
+        if (collapsing && e.target === e.currentTarget.firstChild) finishCollapse()
+      }}
+    >
       <Button variant="secondary" size="sm" onClick={collapse}>
         Cancel
       </Button>
