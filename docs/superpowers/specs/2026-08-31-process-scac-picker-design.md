@@ -77,10 +77,19 @@ nothing to sync). Contains one `Button variant="secondary" size="sm"` labelled *
 (user ruling, 2026-09-01 — plain language for "I'm manually bringing a carrier to this list";
 matches the app's existing Add-X convention).
 
-**Expanded state**, on click, same bar space becomes: `Select SCAC` ComboBox · `Equipment`
-ComboBox · a `Process SCAC` action button (this one keeps Jana's own AC term — it is the actual
-validate/insert/route action, shared verbatim with the dropped-carrier doorway's already-shipped
-button) · a `Cancel`/collapse affordance back to the button.
+**Expanded state**, on click, same bar space becomes, in this order:
+
+```
+[Cancel]     Select SCAC ▾     Equipment ▾     [ Process ]
+                                                    ^ primary — the row's one emphasized action
+```
+
+**Revised 2026-09-01 (user ruling).** Cancel leads (ghost variant, ties off the row), fields sit
+in the middle, `Process` closes it as `variant="primary"` — the only primary-variant control in
+this component, since it is the row's single point of commitment. Labelled **`Process`**, not
+`Process SCAC`: once SCAC + Equipment are already visible as picked fields in the same row,
+restating "SCAC" in the button is redundant. The dropped-carrier doorway's own button keeps the
+full `Process SCAC` name — it has no adjacent fields to lean on, so it must stand alone.
 
 **On success:** collapses back to the button state. One carrier per click — matches the existing
 `processingScac` lock, which already serializes adds to one at a time.
@@ -101,7 +110,7 @@ per SCAC.
 |---|---|
 | Select SCAC | Searchable on **SCAC or Carrier Name**; option shows both. Selecting either fills the pair. |
 | Equipment | Disabled until a SCAC is chosen. Options filtered to that SCAC. **Never auto-selects**, even with one option. Resets when SCAC changes. |
-| Process SCAC (confirm button) | Disabled unless both set, **and** disabled while `processingScac != null`. |
+| Process (confirm button, primary) | Disabled unless both set, **and** disabled while `processingScac != null`. |
 
 **SCAC with no equipment:** list renders empty, **no validation message**, button stays disabled.
 This is a legitimate state (the §13 join simply returns nothing), not an error.

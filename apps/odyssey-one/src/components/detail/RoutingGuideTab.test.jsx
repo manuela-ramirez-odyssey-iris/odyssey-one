@@ -1041,7 +1041,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
     pickCarrier('KNGT', 'TL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
     })
 
     // KNGT/TL lands at rank 3 (bottom of the AAAA/BBBB TL run); CCCC/LTL
@@ -1066,7 +1066,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
     pickCarrier('KNGT', 'TL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
     })
 
     expect(screen.getByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeTruthy()
@@ -1083,7 +1083,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
 
     fireEvent.click(within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Add Carrier' })) // expand
     pickCarrier('KNGT', 'TL')
-    const pickerButton = within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Process SCAC' })
+    const pickerButton = within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Process' })
     const droppedButton = within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Process SCAC' })
 
     expect(pickerButton.disabled).toBe(false)
@@ -1107,7 +1107,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
     pickCarrier('EXLA', 'LTL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
     })
 
     expect(screen.getByText(

@@ -46,9 +46,13 @@ function getToggleButton() {
   return screen.getByRole('button', { name: 'Add Carrier' })
 }
 
-// The confirm button inside the expanded fields — still "Process SCAC".
+// The confirm button inside the expanded fields — "Process", primary variant.
+// Not "Process SCAC": once SCAC + Equipment are already visible as picked
+// fields in this row, restating "SCAC" in the button is redundant (user
+// ruling, 2026-09-01). The dropped-carrier doorway's own button keeps the
+// full "Process SCAC" name — it has no adjacent fields to lean on.
 function getConfirmButton() {
-  return screen.getByRole('button', { name: 'Process SCAC' })
+  return screen.getByRole('button', { name: 'Process' })
 }
 
 function expand() {
@@ -95,7 +99,7 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     selectAt(getCombos().equipmentInput, 0)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
     })
 
     expect(onProcess).toHaveBeenCalledTimes(1)
@@ -111,7 +115,7 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     selectAt(getCombos().equipmentInput, 0)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
     })
 
     expect(onProcess).toHaveBeenCalledTimes(1)
@@ -201,7 +205,7 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
-    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Process' }))
     expect(onProcess).toHaveBeenCalledTimes(1)
     const carrier = onProcess.mock.calls[0][0]
     expect(carrier.scac).toBe('KNGT')

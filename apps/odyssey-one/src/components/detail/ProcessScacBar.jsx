@@ -60,6 +60,9 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
 
   return (
     <div className="process-scac-bar">
+      <Button variant="ghost" size="sm" onClick={collapse}>
+        Cancel
+      </Button>
       <div className="process-scac-bar__field">
         <ComboBox
           variant="select"
@@ -92,7 +95,7 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
         />
       </div>
       <Button
-        variant="secondary"
+        variant="primary"
         size="sm"
         disabled={!canProcess}
         onClick={async () => {
@@ -102,10 +105,7 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
           if (added) collapse()
         }}
       >
-        Process SCAC
-      </Button>
-      <Button variant="ghost" size="sm" onClick={collapse}>
-        Cancel
+        Process
       </Button>
     </div>
   )
