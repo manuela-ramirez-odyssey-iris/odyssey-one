@@ -87,8 +87,25 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Small vertical divider, not a full-height rule — reads as "controls | fields"
+   rather than the two groups running together (S136). Same token the row's own
+   top border and RoutingTable's row dividers already use. */
+.process-scac-bar__divider {
+  align-self: center;
+  width: 0;
+  height: 20px;
+  border-left: 1px solid var(--border-subtle);
+}
+
 .process-scac-bar__field {
   width: 280px;
+}
+
+/* S136 — SCAC entries render "CODE — Carrier Name" (long); Equipment's own
+   "CODE — Label" is short enough for the base 280px. Only the SCAC field's
+   wrapper gets this modifier. */
+.process-scac-bar__field--wide {
+  width: 360px;
 }
 
 /* LINX-13953 — Dropped Carrier empty state. The section renders even at zero

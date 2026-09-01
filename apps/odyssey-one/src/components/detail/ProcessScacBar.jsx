@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Truck } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { ComboBox, Button } from '@odyssey/ui'
 import { TENDER_SCAC_OPTIONS, equipmentForScac, EQUIPMENT_LABELS } from '../../data/master-data.js'
 
@@ -60,10 +62,11 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
 
   return (
     <div className="process-scac-bar">
-      <Button variant="ghost" size="sm" onClick={collapse}>
+      <Button variant="secondary" size="sm" onClick={collapse}>
         Cancel
       </Button>
-      <div className="process-scac-bar__field">
+      <div className="process-scac-bar__divider" />
+      <div className="process-scac-bar__field process-scac-bar__field--wide">
         <ComboBox
           variant="select"
           placeholder="Select SCAC"
@@ -97,6 +100,7 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
       <Button
         variant="primary"
         size="sm"
+        icon={<Truck {...ICON_MD} aria-hidden="true" />}
         disabled={!canProcess}
         onClick={async () => {
           const added = await onProcess({ scac, carrierName, equipment })
