@@ -1153,20 +1153,17 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // bottom of the matching equipment group (or the bottom of the list with
     // no match), everything below renumbers.
     const { rank, shifts } = insertRank(carrier.equipment, options)
-    // Persist HIGHEST `from` first — insertRank already orders them that way.
-    // The write is addressed `WHERE rank = $8` (api/_lib/shipments.mjs), so a
-    // destination rank must be vacated before something is written into it.
-    // Fire-and-forget like this file's other cascades (e.g. the Decline/Cancel
-    // auto-tender above) — only the NEW row's own write gates the rollback
-    // below, per the AC's Processing Failure clause.
-    for (const shift of shifts) {
-      const row = options.find((o) => o.rank === shift.from)
-      if (row) await persistTender({ ...row, rank: shift.to })
-    }
     const shiftedTo = new Map(shifts.map((s) => [s.from, s.to]))
     const option = droppedCarrierToOption(carrier, { rank, dates: effectiveDates, routingFailed: isManualRoutingFailure })
-    // Optimistic, matching how every other tender edit in this file behaves —
-    // but unlike them this one ROLLS BACK, because the AC requires it.
+
+    // Paint FIRST, write after. Every renumbered row below the insertion point
+    // is its own sequential round-trip (they cannot be parallelised — see the
+    // write-order note below), and `.env.local` points at the DEPLOYED
+    // function, so inserting into a group with three rows under it used to mean
+    // four network calls before anything appeared on screen. The row insert was
+    // already optimistic; the highlight was not, so the tint and its animation
+    // trailed the row by one more round-trip. Both are optimistic now and both
+    // roll back together.
     //
     // Re-sorted by rank, not just appended: the table renders `options` in
     // ARRAY order (no sort of its own), and a group-aware insertion — unlike
@@ -1179,23 +1176,40 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
         option,
       ].sort((a, b) => a.rank - b.rank),
     )
+    // AC Focus Management — highlightedRank is the mechanism this tab already
+    // uses for "this is the row you just touched". Applies on the
+    // routing-failed branch too: the row landed on screen either way.
+    setHighlightedRank(option.rank)
+
+    // Persist HIGHEST `from` first — insertRank already orders them that way.
+    // The write is addressed `WHERE rank = $8` (api/_lib/shipments.mjs), so a
+    // destination rank must be vacated before something is written into it.
+    // This is why the loop is sequential and cannot be a Promise.all.
+    // Fire-and-forget like this file's other cascades (e.g. the Decline/Cancel
+    // auto-tender above) — only the NEW row's own write gates the rollback
+    // below, per the AC's Processing Failure clause.
+    for (const shift of shifts) {
+      const row = options.find((o) => o.rank === shift.from)
+      if (row) await persistTender({ ...row, rank: shift.to })
+    }
+
     // A resolved false, not a rejection: persistTender reports failure by value
     // so the other callers can keep ignoring it. try/catch would never fire.
     if (!(await persistTender(option))) {
       // AC Processing Failure: "Carrier shall remain in the Dropped Carrier
       // section. No updates shall be made to the Tender List. Process SCAC
       // shall remain available for retry."
-      setOptions((prev) => prev.filter((o) => o.rank !== option.rank))
+      // Restores the pre-insert array wholesale rather than filtering the new
+      // row out: the optimistic paint above also renumbered every shifted row,
+      // and a filter would leave those ranks moved.
+      setOptions(options)
+      setHighlightedRank(null)
       setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
       setProcessingScac(null)
       return false   // S136 — write failure stays expanded too, retry with the same selections
     }
 
     if (steps.includes('success')) setProcessSuccess('Routing completed successfully.')
-    // AC Focus Management — highlightedRank is the mechanism this tab already
-    // uses for "this is the row you just touched". Applies on the
-    // routing-failed branch too: the row landed on screen either way.
-    setHighlightedRank(option.rank)
     setProcessingScac(null)
     return true   // S136 — carrier landed in the table (success OR routing-failed-but-added); ProcessScacBar collapses on this
   }, [options, persistTender])

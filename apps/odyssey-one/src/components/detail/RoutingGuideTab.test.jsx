@@ -925,6 +925,46 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(droppedProcessButton().disabled).toBe(false)
   })
 
+  it('rolls back the RENUMBERED rows too, not just the new one, when the write fails', async () => {
+    // The rollback above runs against an EMPTY tender list, so no rank ever
+    // shifts and it cannot see this. Group-aware insertion (PS1) renumbers
+    // every row below the insertion point as part of the same optimistic
+    // paint; a rollback that only removed the new row would leave those rows
+    // sitting at their shifted ranks with nothing having been written.
+    //
+    // JBHT/LTL lands at the bottom of the LTL run (rank 2), so SAIA/TL shifts
+    // 2 -> 3. Two writes go out in order: the shift, then the new row. Only the
+    // NEW ROW's write gates the rollback — shift writes are deliberately
+    // fire-and-forget — so the shift has to succeed and the second one fail.
+    // Both mocks are `Once` so they cannot leak into the next test (the
+    // afterEach only mockClear()s, which does not reset implementations).
+    const before = [
+      { rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'OLD DOMINION', equipment: 'LTL', cost: '--', status: null },
+      { rank: 2, routeRank: 2, scac: 'SAIA', carrierName: 'SAIA', equipment: 'TL', cost: '--', status: null },
+    ]
+    saveTenderOption
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('write failed'))
+    render(<RoutingGuideTab data={{ options: before }} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
+
+    await act(async () => {
+      fireEvent.click(droppedProcessButton())
+    })
+
+    expect(screen.getByText(
+      'The dropped carrier could not be processed. If the issue persists, please contact your system administrator.',
+    )).toBeTruthy()
+
+    // Both original rows survive, at their ORIGINAL ranks — SAIA must be back
+    // at 2, not stranded at 3.
+    const leftRows = [...document.querySelectorAll('[data-left-table] tbody tr')]
+    const cells = leftRows.map((tr) => [
+      tr.querySelector('td:nth-child(2)').textContent.trim(),
+      tr.querySelector('td:nth-child(3)').textContent.trim(),
+    ])
+    expect(cells).toEqual([['1', 'ODFL'], ['2', 'SAIA']])
+  })
+
   it('a duplicate SCAC+Equipment refuses: processing stops, nothing is added', async () => {
     const existing = {
       rank: 1, routeRank: 1, scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
