@@ -173,7 +173,7 @@
   background-repeat: repeat-x, repeat-x;
   opacity: 0;
   /* Two animations, not one: the drift must stay CONSTANT speed (linear) or it
-     would visibly accelerate, while the opacity wants easing at both ends.
+     would visibly accelerate, while the opacity wants easing on its fade-out.
      A single keyframe set can only carry one timing function, so they are
      split. Both run once and hold with `forwards`. */
   animation:
@@ -187,11 +187,12 @@
   from { background-position: 0 50%, 0 50%; }
   to   { background-position: 620px 50%, 900px 50%; }
 }
+/* No fade-in (user, 2026-09-01): the sheen is at full strength from frame one,
+   landing WITH the row's colour rather than catching up to it. Only the tail
+   fades, so it settles to the solid tint instead of cutting out. */
 @keyframes tender-row-plasma-fade {
-  0%   { opacity: 0; }
-  30%  { opacity: 0.14; }
-  70%  { opacity: 0.14; }
-  100% { opacity: 0; }
+  0%, 70% { opacity: 0.14; }
+  100%    { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tender-row-plasma::after {
