@@ -4,9 +4,9 @@
 // only the create flow needs (ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, CITY_TIMEZONES, deriveTimezone, tzAbbrev, MODES } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, CITY_TIMEZONES, deriveTimezone, tzAbbrev, MODES, CARRIERS as TENDER_CARRIERS, SCAC_EQUIPMENT } from '../../tools/data-pools.mjs'
 
-export { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES }
+export { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES, TENDER_CARRIERS, SCAC_EQUIPMENT }
 
 // ── Owning organizations (typeahead) ───────────────────────
 export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
@@ -72,6 +72,10 @@ export const SPECIAL_SERVICES = [
 ]
 
 // ── Carriers (SCAC typeahead; free-typed values also allowed) ──
+// NOTE (S136): unrelated to the `TENDER_CARRIERS`/`SCAC_EQUIPMENT` re-exports
+// above — those back the Process SCAC picker (LINX-15075, tools/data-pools.mjs,
+// 15/13 entries) and would collide with this local `CARRIERS` if imported
+// under the same name, hence the alias.
 // Mock of master-data/v1/scac-carrier/lookup (QA capture 2026-07-27,
 // vault-sources/10-domains/orders/carriers.png): label "<SCAC> - <NAME>",
 // alphabetical by NAME (LINX-8126), many QA rows carry a "(DNU)" prefix.

@@ -64,7 +64,7 @@
 //                  rollup is Σ of its orders' directCostAmount (DEC-68).
 import { faker, Faker, en } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES } from './data-pools.mjs'
+import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES, CARRIERS } from './data-pools.mjs'
 import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
@@ -169,23 +169,8 @@ export const VALIDATION_MESSAGES = {
   ],
 };
 
-export const CARRIERS = [
-  { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
-  { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
-  { scac: 'XPOL', name: 'XPO LOGISTICS' },
-  { scac: 'EXLA', name: 'ESTES EXPRESS LINES' },
-  { scac: 'SAIA', name: 'SAIA INC' },
-  { scac: 'CTNS', name: 'CONTINENTAL TRANSPORTATION' },
-  { scac: 'JBHT', name: 'J.B. HUNT TRANSPORT' },
-  { scac: 'SNLU', name: 'SCHNEIDER NATIONAL' },
-  { scac: 'USFC', name: 'USF CORPORATION' },
-  { scac: 'FXFE', name: 'FEDEX FREIGHT ECONOMY' },
-  { scac: 'UPGF', name: 'UPS FREIGHT' },
-  { scac: 'RLCA', name: 'R+L CARRIERS' },
-  { scac: 'ABFS', name: 'ABF FREIGHT SYSTEM' },
-  { scac: 'CNWY', name: 'CONWAY FREIGHT' },
-  { scac: 'WARD', name: 'WARD TRUCKING' },
-];
+// CARRIERS now lives in data-pools.mjs (moved verbatim, same order — see there
+// for the load-bearing-order note); imported above.
 
 // REAL, from the routing sample payload the PM confirmed as current on
 // 2026-08-17 (vault-sources/10-domains/shipments/sources/routing-response-sample-S260000025.xml).
