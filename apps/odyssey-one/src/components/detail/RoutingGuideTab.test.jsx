@@ -1124,6 +1124,98 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
   })
 })
 
+// LINX-15076/15077 — the still-missing half of the picker doorway: an
+// indicator on a routing-failed row's SCAC, a "Call Routing" retry action
+// gated to that row, and the retry itself (PS5 — it always succeeds).
+describe('Routing-failed indicator + Call Routing retry (LINX-15076/15077)', () => {
+  const shipment = { sellShipment: 'SHIP-1' }
+
+  it('shows a warning indicator on the SCAC cell for a routing-failed row; a normal row shows none', () => {
+    const data = {
+      options: [
+        { ...baseOption, rank: 1, scac: 'EXLA', status: null, routingFailed: true },
+        { ...baseOption, rank: 2, scac: 'ODFL', status: 'Sent' },
+      ],
+    }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    expect(screen.getByLabelText('Routing failed')).toBeTruthy()
+    // Exactly one — the second (non-failed) row must not also render it.
+    expect(screen.getAllByLabelText('Routing failed')).toHaveLength(1)
+  })
+
+  it('offers "Call Routing" only for a routing-failed row', () => {
+    const data = {
+      options: [
+        { ...baseOption, rank: 1, scac: 'EXLA', carrierName: 'Ex Freight', status: null, routingFailed: true },
+        { ...baseOption, rank: 2, scac: 'ODFL', status: 'Sent' },
+      ],
+    }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    const rows = document.querySelectorAll('[data-right-table] tbody tr')
+    fireEvent.click(rows[0].querySelector('td:last-child'))
+    expect(screen.getByRole('button', { name: 'Call Routing' })).toBeTruthy()
+
+    // handleOpenMenu swaps openMenuRank directly — no need to close row 1's
+    // menu first, clicking row 2's action cell replaces it.
+    fireEvent.click(rows[1].querySelector('td:last-child'))
+    expect(screen.queryByRole('button', { name: 'Call Routing' })).toBeNull()
+  })
+
+  it('Call Routing succeeds: indicator clears, dates populate from a donor option, rank is unchanged, tender status is untouched', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 7, 10, 15, 30))
+
+    const failed = {
+      ...baseOption, rank: 1, scac: 'EXLA', carrierName: 'Ex Freight', status: null,
+      routingFailed: true, pickupDateTime: null, deliveryDateTime: null,
+    }
+    // Donor: the only other option carrying real dates — simulatedRoutingDates
+    // borrows from it (processScac.js), same as the success branch does.
+    const donor = {
+      ...baseOption, rank: 2, scac: 'ODFL', status: 'Sent',
+      pickupDateTime: '08/12/2026 09:00', deliveryDateTime: '08/14/2026 17:00',
+    }
+    const data = { options: [failed, donor] }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    const rows = document.querySelectorAll('[data-right-table] tbody tr')
+    fireEvent.click(rows[0].querySelector('td:last-child'))
+    fireEvent.click(screen.getByRole('button', { name: 'Call Routing' }))
+
+    expect(screen.queryByLabelText('Routing failed')).toBeNull()
+    expect(screen.getByText('Routing completed successfully.')).toBeTruthy()
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sent] = saveTenderOption.mock.calls[0]
+    expect(sent.rank).toBe(1) // AC: "shall not alter the carrier insertion position"
+    expect(sent.pickupDateTime).toBe('08/12/2026 09:00')
+    expect(sent.deliveryDateTime).toBe('08/14/2026 17:00')
+    expect(sent.status).toBeNull() // AC: "doesn't change Shipment or tender status"
+    expect(sent.routingFailed).toBeFalsy()
+
+    // Rows stayed in the SAME order — no re-insertion happened.
+    const leftRows = [...document.querySelectorAll('[data-left-table] tbody tr')]
+    const scacCells = leftRows.map((tr) => tr.querySelector('td:nth-child(3)').textContent.trim())
+    expect(scacCells).toEqual(['EXLA', 'ODFL'])
+
+    vi.useRealTimers()
+  })
+
+  it('Call Routing does not change tender status on a row that somehow already carries one', () => {
+    const failed = { ...baseOption, rank: 1, scac: 'EXLA', status: 'Sent', routingFailed: true }
+    render(<RoutingGuideTab data={{ options: [failed] }} shipment={shipment} />)
+
+    const rows = document.querySelectorAll('[data-right-table] tbody tr')
+    fireEvent.click(rows[0].querySelector('td:last-child'))
+    fireEvent.click(screen.getByRole('button', { name: 'Call Routing' }))
+
+    const [, sent] = saveTenderOption.mock.calls[0]
+    expect(sent.status).toBe('Sent')
+  })
+})
+
 // S135 — LINX-14509: "The Tender Tab shall display a Review Order Change
 // button when user review is required."
 describe('Review Order Change entry (LINX-14509)', () => {

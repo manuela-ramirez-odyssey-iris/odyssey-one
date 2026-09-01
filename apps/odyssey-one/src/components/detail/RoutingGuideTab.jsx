@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, FileBox } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, FileBox, TriangleAlert } from 'lucide-react'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
 import { saveTenderOption } from '../../api/services/shipmentService'
@@ -126,6 +126,22 @@ const STATUS_AFTER_ACTION = {
   Decline: 'Declined',
   Cancel: 'Cancelled',
   'Re-Tender': 'Sent',
+  // LINX-15076 — deliberately NO entry: "calling routing doesn't change
+  // Shipment or tender status." `handleAction` short-circuits before the
+  // generic `STATUS_AFTER_ACTION[action] || opt.status` line for this action
+  // anyway (see the 'Call Routing' branch), so this is belt-and-braces, not
+  // load-bearing on its own.
+}
+
+// LINX-15076/15077 — `TENDER_ACTIONS` is a static status→actions map, but
+// "Call Routing" is available whenever the OPTION carries `routingFailed`,
+// independent of tender status (a routing-failed row's status is always
+// null today, but nothing says it must stay that way). A function, not a
+// second map entry, so it composes with whatever status already offers
+// instead of drifting from it.
+function actionsFor(option) {
+  const base = TENDER_ACTIONS[option.status] || TENDER_ACTIONS[null] || []
+  return option.routingFailed ? [...base, 'Call Routing'] : base
 }
 
 /* Restyled 2026-08-17 against the Tender Table mock (Figma 1596:21526). Every
@@ -270,7 +286,7 @@ function ActionDropdown({ option, position, onAction, onClose }) {
     }
   }, [onClose])
 
-  const actions = TENDER_ACTIONS[option.status] || TENDER_ACTIONS[null] || []
+  const actions = actionsFor(option)
 
   // LINX-13894 — Add Quote and Edit Quote are mutually exclusive per option,
   // keyed on whether a USER-entered quote exists. That is exactly what
@@ -650,6 +666,23 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
 
                     const content = col.key === 'status' ? <StatusBadge status={option.status} />
                       : col.key === 'cost' ? <CostTooltip carrier={option} onViewDetails={() => onViewRateDetails(option)} />
+                      // LINX-15077 — "Indicator on the SCAC that the routing had
+                      // failed." Same value+adornment composition as the
+                      // carrierName/spotRate cell below; amber to match every
+                      // other warning glyph in this codebase (TriangleAlert +
+                      // --badge-yellow-* — Badge's own `amber` variant is this
+                      // pair, see packages/ui/src/Badge.jsx).
+                      : col.key === 'scac' && option.routingFailed ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {getCellValue(option, col)}
+                          <TriangleAlert
+                            {...ICON_MD}
+                            style={{ color: 'var(--badge-yellow-text)', flexShrink: 0 }}
+                            role="img"
+                            aria-label="Routing failed"
+                          />
+                        </span>
+                      )
                       : col.key === 'carrierName' && option.spotRate ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           {getCellValue(option, col)}
@@ -1130,7 +1163,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       if (row) await persistTender({ ...row, rank: shift.to })
     }
     const shiftedTo = new Map(shifts.map((s) => [s.from, s.to]))
-    const option = droppedCarrierToOption(carrier, { rank, dates: effectiveDates })
+    const option = droppedCarrierToOption(carrier, { rank, dates: effectiveDates, routingFailed: isManualRoutingFailure })
     // Optimistic, matching how every other tender edit in this file behaves —
     // but unlike them this one ROLLS BACK, because the AC requires it.
     //
@@ -1337,6 +1370,43 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
         // this option, and its Carrier Option section is read-only off it.
         setQuoteModal({ isOpen: true, mode: 'add', carrierData: carrier || null })
       }
+      return
+    }
+
+    if (action === 'Call Routing') {
+      // LINX-15076/15077 — retry for a picker-doorway carrier whose routing
+      // previously failed. "Users may re-process the carrier... calling
+      // routing doesn't change Shipment or tender status. The carrier shall
+      // not need to be added again." So this is NOT a re-run of
+      // `runProcessScac`/`planProcessScac` (that would re-insert the row and
+      // could move its rank — "Routing execution shall not alter the carrier
+      // insertion position"); it patches the EXISTING row in place.
+      //
+      // PS5 (ours) — the retry ALWAYS succeeds. `ROUTING_FAILS` is
+      // deterministic by SCAC, so a retry that re-consulted it would fail
+      // forever and this AC's own retry path could never be demonstrated or
+      // tested end-to-end. One line to delete when real routing exists.
+      setOpenMenuRank(null)
+      const target = options.find((o) => o.rank === rank)
+      if (!target) return
+      const now = formatDateTimeMDYHM(new Date())
+      // Reuse the same donor-date lookup the success branch uses
+      // (`simulatedRoutingDates`, processScac.js) rather than duplicating it —
+      // this carrier had no dates because routing never returned any the
+      // first time.
+      const dates = simulatedRoutingDates(options)
+      const updated = {
+        ...target,
+        routingFailed: undefined,
+        pickupDateTime: dates?.pickupDateTime ?? target.pickupDateTime,
+        deliveryDateTime: dates?.deliveryDateTime ?? target.deliveryDateTime,
+        modifyUser: currentUser.name,
+        modifyDate: now,
+      }
+      setOptions((prev) => prev.map((o) => (o.rank === rank ? updated : o)))
+      persistTender(updated)
+      setProcessSuccess('Routing completed successfully.')
+      setHighlightedRank(rank)
       return
     }
 
