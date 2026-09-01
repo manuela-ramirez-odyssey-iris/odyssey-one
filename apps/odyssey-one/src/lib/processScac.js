@@ -58,8 +58,12 @@ export function isDuplicate(carrier, tenderOptions = []) {
 // highlighted row with no tender status yet — exactly the shape every
 // freshly-processed carrier lands in (`droppedCarrierToOption` always sets
 // `status: null`). Shared here so DroppedCarrierSection's "already added"
-// button tint can reuse the SAME value instead of a second hardcoded color.
+// button tint, and the action-lane's background + truck icon color for that
+// same highlighted row, all reuse the SAME pair instead of hardcoding it
+// three times. Same blue STATUS_STYLES already uses for 'Sent' — a highlighted
+// no-status row reads as "just added", not a fourth, invented color.
 export const PROCESSED_HIGHLIGHT_BG = 'var(--badge-blue-bg)'
+export const PROCESSED_HIGHLIGHT_TEXT = 'var(--badge-blue-text)'
 
 /** SIMULATED — see the file header. */
 function routingReturnsDates(carrier) {

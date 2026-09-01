@@ -13,7 +13,7 @@ import DroppedCarrierSection from './DroppedCarrierSection'
 import ProcessScacBar from './ProcessScacBar.jsx'
 import ManualDatesModal from './ManualDatesModal'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
-import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates, tenderKeySet, PROCESSED_HIGHLIGHT_BG } from '../../lib/processScac'
+import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDates, tenderKeySet, PROCESSED_HIGHLIGHT_BG, PROCESSED_HIGHLIGHT_TEXT } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -757,7 +757,17 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                     )
                   })}
                   <td
-                    style={{ ...stickyLastCol, ...ACTION_LANE, borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', background: STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)' }}
+                    style={{
+                      ...stickyLastCol,
+                      ...ACTION_LANE,
+                      borderBottom: '1px solid var(--border-subtle)',
+                      cursor: 'pointer',
+                      // S136 — a highlighted no-status row (freshly Process-SCAC'd) falls
+                      // back to the SAME blue getRowBg already tints the rest of the row
+                      // with, not plain white. Without this the action lane was the one
+                      // cell on the row that didn't look "just added".
+                      background: STATUS_STYLES[option.status]?.bg ?? (isHighlighted ? PROCESSED_HIGHLIGHT_BG : 'var(--bg-primary)'),
+                    }}
                     onClick={(e) => {
                       e.stopPropagation()
                       const rect = e.currentTarget.getBoundingClientRect()
@@ -771,8 +781,10 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                   >
                     <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
                       {/* LG (20px) — it is the row's own action glyph in a 68px lane,
-                          the same weight as the header's arrange control (user, 2026-08-17). */}
-                      <TruckElectric {...ICON_LG} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
+                          the same weight as the header's arrange control (user, 2026-08-17).
+                          S136 — same highlighted fallback as the cell's own background,
+                          so the icon doesn't read as invisible/placeholder-gray against it. */}
+                      <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? (isHighlighted ? PROCESSED_HIGHLIGHT_TEXT : 'var(--text-placeholder)') }} />
                     </div>
                   </td>
                 </tr>
