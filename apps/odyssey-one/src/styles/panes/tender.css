@@ -108,23 +108,64 @@
   width: 360px;
 }
 
-/* S136 — the inserted/highlighted tender row gets a brief pulse rather than an
-   instant color snap. Same timing convention as `.customers-row-pulse`
-   (src/styles/components.css) — 700ms ease-in-out, 2 iterations — but its own
-   keyframe: this table's highlight tint (`--badge-blue-bg`, see
-   `PROCESSED_HIGHLIGHT_BG` in src/lib/processScac.js) differs from the
-   customers pulse's carolina-blue, so a shared keyframe would fight the two
-   colors. Brightens the cell's OWN current background rather than hardcoding a
-   flash color, so it reads correctly whichever STATUS_STYLES bg the row landed
-   on. `highlightedRank` can persist past the animation (RoutingGuideTab does
-   not clear it on a timer) — that's fine, a finite `animation-iteration-count`
-   stops on its own even while the class stays applied; no JS timer needed. */
-.tender-row-pulse {
-  animation: tender-row-pulse 700ms ease-in-out 2;
+/* S136 — the inserted/highlighted tender row drifts a soft plasma sheen
+   RIGHTWARD rather than pulsing in place (user, 2026-09-01). Directional motion
+   reads as progress, which is what the row's state actually is: a tender that
+   has gone out and is awaiting a carrier response.
+
+   Built as an ::after overlay, not a background, because every cell already
+   carries `background: getRowBg(option)` as an INLINE style — inline beats any
+   class, so a class-level background-image could never paint at all.
+
+   Two gradient layers on DIFFERENT tile widths (260 / 380px), each drifting one
+   full tile per cycle: they beat against each other instead of marching in
+   lockstep, which is what keeps it organic rather than a repeating barber-pole.
+   Every blob fades to fully transparent at its own tile edge, so all three
+   seams this table can produce — tile-to-tile, cell-to-cell, and across the gap
+   between the split left/right tables — are transparent meeting transparent,
+   i.e. invisible. That is why the blobs are sized in px rather than %: a
+   percentage tile would scale per column and the wisps would visibly change
+   size from one cell to the next.
+
+   Children are lifted to z-index 1 so the sheen passes UNDER the cell text
+   rather than tinting it — an absolutely-positioned ::after would otherwise
+   paint above in-flow content.
+
+   Infinite, because "progressing" is an ongoing state that shouldn't settle.
+   NOTE the trigger is `highlightedRank`, which RoutingGuideTab never clears on
+   a timer, so this runs until another row is highlighted. Binding it to Tender
+   Status === 'Sent' instead would be a trigger change in RoutingGuideTab, not a
+   change here. */
+.tender-row-plasma {
+  position: relative;
 }
-@keyframes tender-row-pulse {
-  50% {
-    filter: brightness(1.12);
+.tender-row-plasma > * {
+  position: relative;
+  z-index: 1;
+}
+.tender-row-plasma::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* The darker partner of the tint the cell landed on — defaults to the blue a
+     freshly-processed (status-less) row always gets, the same value
+     PROCESSED_HIGHLIGHT_TEXT carries in src/lib/processScac.js. */
+  background-image:
+    radial-gradient(58px 18px at 30% 52%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%),
+    radial-gradient(84px 22px at 68% 44%, var(--tender-plasma-tone, var(--badge-blue-text)) 0%, transparent 100%);
+  background-size: 260px 100%, 380px 100%;
+  background-repeat: repeat-x, repeat-x;
+  opacity: 0.14;
+  animation: tender-row-plasma 5.5s linear infinite;
+}
+@keyframes tender-row-plasma {
+  from { background-position: 0 50%, 0 50%; }
+  to   { background-position: 260px 50%, 380px 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tender-row-plasma::after {
+    animation: none;
   }
 }
 

@@ -653,7 +653,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       : getCellValue(option, col)
 
                     return (
-                      <td key={col.key} className={`${cellTypeClass(isPrimary || isHighlighted)}${isHighlighted ? ' tender-row-pulse' : ''}`} style={cellStyle}>
+                      <td key={col.key} className={`${cellTypeClass(isPrimary || isHighlighted)}${isHighlighted ? ' tender-row-plasma' : ''}`} style={cellStyle}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
                           {content}
                         </span>
@@ -751,12 +751,19 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                     }
                     return (
-                      <td key={col.key} className={`${cellTypeClass(isHighlighted)}${isHighlighted ? ' tender-row-pulse' : ''}`} style={cellStyle}>
+                      <td key={col.key} className={`${cellTypeClass(isHighlighted)}${isHighlighted ? ' tender-row-plasma' : ''}`} style={cellStyle}>
                         {getCellValue(option, col)}
                       </td>
                     )
                   })}
                   <td
+                    // The sheen has to cross the action lane too or it would
+                    // visibly stop short of the row's right edge — the one
+                    // direction it is meant to be travelling. Safe against the
+                    // lane's pinning: `position: sticky` here is INLINE, so it
+                    // beats the class's `position: relative`, and sticky is
+                    // itself a containing block for the ::after.
+                    className={isHighlighted ? 'tender-row-plasma' : undefined}
                     style={{
                       ...stickyLastCol,
                       ...ACTION_LANE,
