@@ -669,19 +669,26 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       // LINX-15077 — "Indicator on the SCAC that the routing had
                       // failed." Same value+adornment composition as the
                       // carrierName/spotRate cell below.
-                      // `--text-warning`, NOT `--badge-yellow-text`: the badge
-                      // token is text-on-tint and only reads right against
-                      // --badge-yellow-bg. Standalone on a light row it renders
-                      // brown (S136 — shipped that way, caught on screen).
+                      //
+                      // Badge `iconOnly` rather than a bare glyph (user,
+                      // 2026-09-01). It also fixes the colour properly: a naked
+                      // TriangleAlert had to borrow --badge-yellow-text, which
+                      // is a text-on-TINT token and rendered brown on a light
+                      // row. Inside the badge that token sits on its paired
+                      // --badge-yellow-bg, which is the pairing it was designed
+                      // for, so no standalone warning colour is needed at all.
+                      //
+                      // The wrapper carries the accessible name because Badge
+                      // hardcodes aria-hidden on iconOnly (Badge.jsx) — without
+                      // it the failure state is invisible to assistive tech.
+                      // `title` doubles as a hover explanation for the row's
+                      // blank rank/dates.
                       : col.key === 'scac' && option.routingFailed ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           {getCellValue(option, col)}
-                          <TriangleAlert
-                            {...ICON_MD}
-                            style={{ color: 'var(--text-warning)', flexShrink: 0 }}
-                            role="img"
-                            aria-label="Routing failed"
-                          />
+                          <span role="img" aria-label="Routing failed" title="Routing failed" style={{ display: 'inline-flex', flexShrink: 0 }}>
+                            <Badge variant="amber" iconOnly leftIcon={<TriangleAlert {...ICON_MD} />} />
+                          </span>
                         </span>
                       )
                       : col.key === 'carrierName' && option.spotRate ? (
