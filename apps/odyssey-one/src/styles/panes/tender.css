@@ -73,6 +73,20 @@
   display: flex;
 }
 
+/* LINX-15075 — Process SCAC picker bar. Sits between the sub-tabs band and
+   the first .tender-pane__table-card, deliberately OUTSIDE it: that card is
+   overflow:hidden and would clip an open ComboBox menu. */
+.process-scac-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+
+.process-scac-bar__field {
+  width: 280px;
+}
+
 /* LINX-13953 — Dropped Carrier empty state. The section renders even at zero
    so the count itself is readable; absence would be ambiguous. Font comes
    from the .text-label-sm-regular utility class on the element (no
