@@ -21,6 +21,35 @@ import GroupTable from './GroupTable'
 // The nested-table flavor lives on the GroupTableGroup set's `Content` axis
 // (Rows | Nested table, 4204:1243), not on this master — in code it is selected
 // by passing `detailColumns`, so there is no boolean here to map.
+//
+// `Group header` BOOLEAN → the `header` prop (`{ title, icon?, trail? }`). In
+// Figma the strip is an INSTANCE of the HeaderStrip master (5530:1140) whose
+// `Title`/`Show icon`/`Icon`/`Show trail` are EXPOSED on GroupTable instances
+// — a true nested-instance mapping (reading the exposed sub-properties off
+// that instance) isn't expressible in this parser-based (`figma.connect`)
+// file the way the MCP template API (`getInstanceSwap` + `executeTemplate`)
+// would allow it. Mapped honestly as a boolean → sample `header` object
+// instead; a designer editing the exposed Title/icon/trail on an instance
+// will NOT see that reflected in the generated snippet. Flag for a future
+// pass if/when this batch migrates to template-based Code Connect.
+//
+// `Header strip style` BOOLEAN (default false) + `Header standard style`
+// BOOLEAN (default true) → the single `headerStyle` prop
+// (`'standard' | 'strip'`). These are an inverse-set PAIR the designer sets
+// oppositely because Figma has no inverse-binding mechanism; code has ONE
+// prop whose default is ALWAYS `'standard'` (`flat` does NOT imply
+// `'strip'` — user ruling 2026-08-31, see `resolveHeaderStyle`). Mapped from
+// `Header strip style` alone — the meaningful one — via a boolean value
+// mapping (no ternary, parser trap S130). `Header standard style` gets no
+// mapping of its own: it is the redundant inverse the designer keeps in
+// sync by convention, not a second source of truth.
+//
+// `flat` and `groups[].expandable` have NO Figma property of their own —
+// CODE-ONLY / recipe-level, same treatment this file already gives the
+// nested-table flavor above. `flat` is expressible in Figma only as a
+// per-group variant recipe (`Content=Nested table` + `State=Collapsed` +
+// `Show chevron=false` + `Show Actions=false`), not a boolean on this
+// master, so no property is invented for it here.
 figma.connect(
   GroupTable,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4183-773',
@@ -33,8 +62,16 @@ figma.connect(
       }),
       stickyActions: figma.boolean('Show Actions'),
       actionsHeader: figma.instance('Header Action'),
+      header: figma.boolean('Group header', {
+        true: { title: 'Header title' },
+        false: undefined,
+      }),
+      headerStyle: figma.boolean('Header strip style', {
+        true: 'strip',
+        false: 'standard',
+      }),
     },
-    example: ({ footerRow, stickyActions, actionsHeader }) => (
+    example: ({ footerRow, stickyActions, actionsHeader, header, headerStyle }) => (
       <GroupTable
         columns={[
           { key: 'item', label: 'Item' },
@@ -54,6 +91,8 @@ figma.connect(
         footerRow={footerRow}
         stickyActions={stickyActions}
         actionsHeader={actionsHeader}
+        header={header}
+        headerStyle={headerStyle}
         defaultExpanded
       />
     ),

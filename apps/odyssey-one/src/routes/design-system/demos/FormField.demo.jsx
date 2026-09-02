@@ -5,13 +5,11 @@ import { Search, Calendar } from 'lucide-react'
 export const meta = {
   name: 'FormField',
   tier: 'molecule',
-  version: '1.5.0',
+  version: '1.6.0',
   createdVersion: '0.2.0',
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

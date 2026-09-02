@@ -1188,8 +1188,8 @@
   },
   "FormField": {
     "selector": "odyssey-form-field",
-    "version": "1.5.0",
-    "normalizing": true,
+    "version": "1.6.0",
+    "normalizing": false,
     "props": [
       {
         "name": "label",
@@ -1611,8 +1611,8 @@
   },
   "GroupTable": {
     "selector": "odyssey-group-table",
-    "version": "1.5.0",
-    "normalizing": true,
+    "version": "1.6.0",
+    "normalizing": false,
     "props": [
       {
         "name": "columns",
@@ -1758,8 +1758,8 @@
   },
   "HeaderStrip": {
     "selector": "odyssey-header-strip",
-    "version": "0.1.0",
-    "normalizing": true,
+    "version": "1.6.0",
+    "normalizing": false,
     "props": [
       {
         "name": "title",

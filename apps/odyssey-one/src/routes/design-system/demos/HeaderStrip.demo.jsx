@@ -7,13 +7,11 @@ import { ICON_MD } from '@odyssey/tokens'
 export const meta = {
   name: 'HeaderStrip',
   tier: 'molecule',
-  version: '0.1.0',
+  version: '1.6.0',
   createdVersion: '0.1.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '5530:1140',
-  codeConnect: null,
-  approved: true,
-  ported: true,
+  codeConnect: 'packages/ui/src/HeaderStrip.figma.tsx',
 }
 
 export const props = [
