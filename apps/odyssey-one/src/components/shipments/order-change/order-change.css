@@ -1,7 +1,8 @@
 /* Review Order Change page (Figma 1794-5544) — app-local styles.
    Structure: breadcrumb row → PageHeader ("Buy Shipment {n}" + Cancel tender)
    → OrderChangeActionsCard (Task 9) → OrderChangeTenderLists (Task 10) →
-   labeled divider → OrderChangeTenderDetails + OrderChangeHazmat (Task 10).
+   labeled divider → OrderChangeTenderDetails (Task 10). S137: the separate
+   Hazmat card merged INTO Tender Details, and View Tender is gone.
    AppShell's <main> already carries the 32px page padding, so this page does
    not need order-summary.css's full-bleed negative-margin trick. */
 
@@ -175,123 +176,59 @@
   gap: var(--spacing-3);
 }
 
-/* ComparisonPreviewCard (Task 10a, shared shell for the three "Additional
-   Changes Preview" sections, LINX-14510/14511) — the sub-header row that
-   sits below SubAccordion's own title/chevron: "Differences (N)", a gray
-   All chip + one gray filter chip per changed field (S134 — gray toggles;
-   purple is reserved for changed VALUES inside the tables), and the
-   List/Table ButtonToggle. */
-.comparison-preview__subheader {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-3);
-}
-
-.comparison-preview__diff-label {
-  color: var(--text-tertiary);
-}
+/* ComparisonPreviewCard (Task 10a, shared shell for the "Additional Changes
+   Preview" sections, LINX-14510/14511). S137: the whole sub-header row —
+   filter chips + List/Table toggle — is gone; only the difference count
+   survives, on the title. */
 
 /* Purple "(N)" difference count inside the SubAccordion title (S135) — same
-   token the purple Badge text uses; inherits the title's own type scale. */
+   token the purple Badge text uses; inherits the title's own type scale.
+   "(No Differences)" is the same slot with nothing to count, so it drops the
+   purple: purple means "something changed here", and this says the opposite. */
 .comparison-preview__title-count {
   color: var(--badge-purple-text);
 }
 
-/* A real <button> around each Badge (keyboard-operable filter, LINX-14511) —
-   reset to plain so it reads as "a clickable badge", not a bordered button
-   wrapping a badge. */
-.comparison-preview__diff-badge {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-/* Selected/hover/pressed states come from `.badge-interactive`
-   (components.css) — the app's defined clickable-badge affordance. No local
-   chip styling here. */
-
-.comparison-preview__mode-toggle {
-  margin-left: auto;
+.comparison-preview__title-count--none {
+  color: var(--text-tertiary);
 }
 
 .comparison-preview__body {
   margin-top: var(--spacing-4);
 }
 
-/* Shared by all three preview sections' bodies (Task 10a/10b) — List mode
-   stacks GroupTables vertically; Table mode places them side by side. */
+/* Each preview section's body — its stacked GroupTables (Prior above New for
+   Preview Tender List, Changed above Unchanged for Preview Tender Details).
+   S137: the side-by-side Table-mode grid this used to alternate with is gone
+   with the List/Table toggle, along with `__grid` / `__panel` / `__entry` /
+   `__entry-label` / `__kv-grid` / `__field*` and the View Tender modal's own
+   two rules — every one of their consumers was deleted (TableModeSide ×3,
+   comparisonHelpers' KVField, ViewTenderModal). */
 .comparison-preview__stack {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
 }
 
-/* Table mode's two sides (S134, Figma 1931-7398/8797/9497) — the mock's
-   columns TOUCH (no gutter; the vertical rule below IS the seam), unlike
-   List mode's `__stack` which keeps a real gap between its two tables. */
-.comparison-preview__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
+/* Dropped Carriers modal (S135) — read-only caveat as the first line of
+   content, then the options table. ModalMedium's own __content padding
+   carries the sides; the body just spaces caveat from table.
 
-/* One side of the Table-mode grid: a HeaderStrip band + stacked entry
-   blocks, composed directly (OrderChangeTenderLists/TenderDetails/Hazmat's
-   TableModeSide) rather than through GroupTable's `header` prop — the
-   strip's own two halves already form the mock's single header ROW spanning
-   both sides, so nesting it inside each side's own bordered/scrolling
-   GroupTable root is not needed. The vertical rule between Prior/New is the
-   left side's own right border — same idiom as
-   `.order-change-actions__panel:first-child`, above. */
-.comparison-preview__panel:first-child {
-  border-right: 1px solid var(--border-subtle);
-}
-
-/* One "entry" in a Table-mode side — a carrier (Tender List), a hazmat line
-   (Hazmat), or the sole comparison-field block (Tender Details). Hairline
-   BETWEEN entries only (not around every field) — `:last-child` drops the
-   trailing one so it doesn't double up with the card's own bottom edge. */
-.comparison-preview__entry {
-  padding: var(--spacing-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.comparison-preview__entry:last-child {
-  border-bottom: none;
-}
-
-/* The entry's own bold identity label (Hazmat's "Line {n}" — Tender List has
-   none, measured: Carrier Name is just another KV field there). */
-.comparison-preview__entry-label {
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-3);
-}
-
-/* The entry's KV grid — N fields per row (2 for Tender List/Details, 3 for
-   Hazmat via the `--3col` modifier), filling left-to-right then
-   top-to-bottom; CSS grid leaves a short final row's spare cell empty on its
-   own, no placeholder markup needed (Tender List's "Tender Status | —"). */
-.comparison-preview__kv-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  column-gap: var(--spacing-5);
-  row-gap: var(--spacing-4);
-}
-.comparison-preview__kv-grid--3col {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-/* View Tender modal (S135) — read-only caveat as the first line of content,
-   then the options table. ModalMedium's own __content padding carries the
-   sides; the body just spaces caveat from table. */
-.view-tender-modal__body {
+   S137: these two rules were named `.view-tender-modal__*` and shared with
+   the View Tender modal. That modal is gone, and removing its dead CSS took
+   these with it — leaving DroppedCarriersModal applying classes nothing
+   styled (caught by grepping the LIVE bundle after deploy, not by the test
+   suite: no test asserts on either class, and both modals render fine
+   unstyled in jsdom). Renamed to their one real consumer so the next sweep
+   cannot mistake them for another component's leftovers. */
+.dropped-carriers-modal__body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
   padding-bottom: var(--spacing-2);
 }
 
-.view-tender-modal__caveat {
+.dropped-carriers-modal__caveat {
   color: var(--text-tertiary);
 }
 
@@ -304,17 +241,17 @@
   gap: var(--spacing-3);
 }
 
-/* One KVField cell (comparisonHelpers.jsx) — label above value, same
-   "Term over Text" shape as order-change-actions__row but under this file's
-   own class names (S134 — the two preview surfaces don't share CSS). */
-.comparison-preview__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-}
-.comparison-preview__field-label {
-  color: var(--text-tertiary);
-}
-.comparison-preview__field-value {
-  color: var(--text-primary);
+/* S137 — Preview Tender Details' two segment tables ("Changed Fields" /
+   "Unchanged Fields", OrderChangeTenderDetails.jsx) share explicit column
+   widths (TENDER_COL_WIDTHS) so they line up column-for-column. That alone
+   isn't enough: GroupTable's child-row cells are `white-space: nowrap`
+   (components.css `.odyssey-group-table__row td`), so a long value (a full
+   address, "SSD, 01/07/2026 09:00 CST") would force its column wider than
+   the assigned width under `table-layout: auto`, and since the two tables
+   don't share content, they'd drift apart again despite identical `width`s.
+   Scoped to this component's own class — not a change to GroupTable's shared
+   CSS — so no other GroupTable consumer's nowrap behavior is touched. */
+.oc-tender-table .odyssey-group-table__row td {
+  white-space: normal;
+  overflow-wrap: break-word;
 }

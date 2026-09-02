@@ -225,4 +225,37 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
       expect(b.disabled).toBe(false)
     }
   })
+
+  // S137 — a pending order change blocks this section (Process SCAC is a
+  // tendering action) via the `locked` prop RoutingGuideTab drives off
+  // `pendingOrderChange`. Unit-tested here in isolation from that gate.
+  describe('locked (S137)', () => {
+    it('forces the section shut even though defaultOpen defaults to true', () => {
+      render(<DroppedCarrierSection carriers={[carrier]} locked />)
+      expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+    })
+
+    it('clicking the header while locked does not expand it', () => {
+      render(<DroppedCarrierSection carriers={[carrier]} locked />)
+      fireEvent.click(screen.getByRole('button', { name: /Dropped Carrier/ }))
+      expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+    })
+
+    it('marks the wrapper aria-disabled and tags it with the locked class', () => {
+      const { container } = render(<DroppedCarrierSection carriers={[carrier]} locked />)
+      const wrapper = container.querySelector('.dropped-carrier--locked')
+      expect(wrapper).toBeTruthy()
+      expect(wrapper.getAttribute('aria-disabled')).toBe('true')
+    })
+
+    it('leaves the section fully togglable when not locked (contrast case)', () => {
+      render(<DroppedCarrierSection carriers={[carrier]} />)
+      // defaultOpen: starts expanded, collapses, then reopens — proving the
+      // header genuinely still works when `locked` isn't set.
+      fireEvent.click(screen.getByRole('button', { name: /Dropped Carrier/ }))
+      expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: /Dropped Carrier/ }))
+      expect(screen.getByRole('button', { name: /JBHT/ })).toBeTruthy()
+    })
+  })
 })

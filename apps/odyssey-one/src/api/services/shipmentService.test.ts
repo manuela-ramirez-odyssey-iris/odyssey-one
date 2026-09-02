@@ -53,6 +53,7 @@ describe('resolveOrderChange', () => {
       action: 'retender',
       priorTenderStatus: 'Accepted',
       cost: { choice: 'new', amount: 1500 },
+      priorScac: 'ABCD',
     })
 
     const [url, init] = fetchMock.mock.calls[0]
@@ -63,6 +64,7 @@ describe('resolveOrderChange', () => {
       action: 'retender',
       priorTenderStatus: 'Accepted',
       cost: { choice: 'new', amount: 1500 },
+      priorScac: 'ABCD',
     })
     expect(body.sellShipment).toBeUndefined()
   })
@@ -71,7 +73,7 @@ describe('resolveOrderChange', () => {
     vi.stubEnv('VITE_API_MODE', 'mock')
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    await resolveOrderChange('25690001', { action: 'cancel', priorTenderStatus: null, cost: null })
+    await resolveOrderChange('25690001', { action: 'cancel', priorTenderStatus: null, cost: null, priorScac: null })
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

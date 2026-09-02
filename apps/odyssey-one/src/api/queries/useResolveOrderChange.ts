@@ -6,6 +6,10 @@ export interface ResolveOrderChangeInput {
   action: 'retender' | 'bypass' | 'cancel'
   priorTenderStatus: string | null
   cost: { choice: 'prior' | 'new' | 'quote'; amount: number } | null
+  // S137 — the carrier whose tender row gets the selected cost written onto
+  // it (resolveOrderChange, retender/bypass only). Identifies the row by
+  // scac, not rank: rank is unstable across a re-route.
+  priorScac: string | null
 }
 
 // LINX-14509…14515 — planner's Tender Resolution Action off the Review Order
@@ -30,8 +34,8 @@ export interface ResolveOrderChangeInput {
 export function useResolveOrderChange() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ sellShipment, action, priorTenderStatus, cost }: ResolveOrderChangeInput) =>
-      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost }),
+    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac }: ResolveOrderChangeInput) =>
+      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac }),
     onSuccess: (_data, { sellShipment }) => {
       queryClient.invalidateQueries({ queryKey: ['shipment', 'detail', sellShipment] })
       queryClient.invalidateQueries({ queryKey: ['shipment-error-list'] })

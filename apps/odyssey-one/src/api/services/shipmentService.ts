@@ -60,6 +60,10 @@ export async function saveShipmentOverrides(
  * `sellShipment` rides the URL path, not the body — same split as
  * saveTenderOption/saveShipmentOverrides above.
  *
+ * S137: `priorScac` identifies the carrier whose tender row gets the
+ * selected cost written onto it (retender/bypass only — see the handler).
+ * Cancel and a null cost both legitimately send priorScac as null.
+ *
  * Live writes; mock is a no-op, same contract as its two siblings above.
  */
 export async function resolveOrderChange(
@@ -68,6 +72,7 @@ export async function resolveOrderChange(
     action: string
     priorTenderStatus: string | null
     cost: { choice: string; amount: number } | null
+    priorScac: string | null
   },
 ): Promise<void> {
   if (getApiMode() !== 'live') return

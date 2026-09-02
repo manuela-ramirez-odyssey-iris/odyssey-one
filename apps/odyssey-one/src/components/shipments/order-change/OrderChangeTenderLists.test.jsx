@@ -96,18 +96,21 @@ describe('computeTenderDiffs', () => {
 })
 
 describe('OrderChangeTenderLists — chrome', () => {
-  test('Differences (N) shows one badge per computed tag', () => {
+  // S137 — the "Differences:" filter chips are gone (ComparisonPreviewCard
+  // dropped its whole sub-header row); only the count riding the title
+  // survives.
+  test('Differences (N) shows the computed tag count in the title', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
     expect(screen.getByText('(2)')).toBeTruthy() // purple count in the accordion title
-    // Badge buttons, not column headers — 'AP Cost' is ALSO a column label,
-    // so the filter query must be scoped to the button role.
-    expect(screen.getByRole('button', { name: 'Rank Order Change' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'AP Cost' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Rank Order Change' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'AP Cost' })).toBeNull()
   })
 
   test('empty prior/new lists render without throwing', () => {
     expect(() => render(<OrderChangeTenderLists oc={{ priorTenderList: [], newTenderList: [] }} />)).not.toThrow()
-    expect(screen.getByText('No Differences')).toBeTruthy()
+    // ComparisonPreviewCard (S137 rewrite) states this in the title itself,
+    // "(No Differences)" — no separate sub-header line any more.
+    expect(screen.getByText('(No Differences)')).toBeTruthy()
   })
 })
 
@@ -133,18 +136,6 @@ describe('OrderChangeTenderLists — List mode (default)', () => {
     expect(unchangedCost.closest('span')?.className || '').not.toMatch(/text-badge/)
   })
 
-  test('S134: filter chips render gray while a changed value inside the table stays purple', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    const allChip = screen.getByRole('button', { name: 'All' })
-    const costChip = screen.getByRole('button', { name: 'AP Cost' })
-    expect(allChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
-    expect(costChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
-    // ODFL's changed cost, inside the table — stays purple, the only thing
-    // purple means now.
-    const changedCost = screen.getByText('$2,850.00 USD')
-    expect(changedCost.style.background).toBe('var(--badge-purple-bg)')
-  })
-
   test('the static band header is a plain label, not a toggle button', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
     // GroupTable's `expandable: false` static band renders the label as
@@ -156,78 +147,12 @@ describe('OrderChangeTenderLists — List mode (default)', () => {
   })
 })
 
-describe('OrderChangeTenderLists — Table mode', () => {
-  function switchToTable() {
-    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
-  }
-
-  test('toggling to Table mode swaps the columnar table for KV blocks', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    expect(screen.queryAllByRole('columnheader', { name: 'Rank' }).length).toBeGreaterThan(0)
-    switchToTable()
-    // The columnar field headers are gone — Table mode has no such header row.
-    expect(screen.queryByRole('columnheader', { name: 'Rank' })).toBeNull()
-    // Every carrier's SCAC now renders as its own KV row (label cell "SCAC").
-    expect(screen.getAllByText('SCAC').length).toBeGreaterThan(0)
-  })
-
-  test('both list titles still render in Table mode', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    switchToTable()
-    expect(screen.getByText('Prior Tender List')).toBeTruthy()
-    expect(screen.getByText('New Tender List')).toBeTruthy()
-  })
-
-  test('S134: Table mode renders KV entry blocks, not a GroupTable (Figma 1931-7398)', () => {
-    // Correction 3 (S134): Table mode's carrier blocks are a plain 2-column
-    // KV grid (comparison-preview__kv-grid), not a GroupTable row-per-field
-    // table — GroupTable's own classes must not appear in Table mode at all.
-    const { container } = render(<OrderChangeTenderLists oc={makeOc()} />)
-    switchToTable()
-    expect(container.querySelectorAll('.odyssey-group-table').length).toBe(0)
-    // 3 prior carriers + 2 new carriers = 5 entry blocks total.
-    expect(container.querySelectorAll('.comparison-preview__entry').length).toBe(5)
-    expect(container.querySelectorAll('.comparison-preview__kv-grid').length).toBe(5)
-  })
-
-  test('the two sides touch (zero-gap grid) with a vertical rule on the first side', () => {
-    // Correction 3 (S134): the mock's Prior/New columns touch — no gutter —
-    // separated only by a hairline, which is the first panel's own right
-    // border (`.comparison-preview__panel:first-child`, order-change.css).
-    const { container } = render(<OrderChangeTenderLists oc={makeOc()} />)
-    switchToTable()
-    const grid = container.querySelector('.comparison-preview__grid')
-    const panels = grid.querySelectorAll('.comparison-preview__panel')
-    expect(panels).toHaveLength(2)
-    // The seam rule keys on `:first-child`, so the Prior panel must stay a
-    // DIRECT first child of the grid — the New side may nest (S135: it wraps
-    // with the dropped-carrier note), the Prior side must not.
-    expect(grid.firstElementChild).toBe(panels[0])
-  })
-
-  test('Rank renders as a badge in Table mode', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    switchToTable()
-    const rankLabelCell = screen.getAllByText('Rank')[0]
-    const field = rankLabelCell.closest('.comparison-preview__field')
-    expect(within(field).getByText('1').closest('span')?.className).toMatch(/text-badge/)
-  })
-
-  test('the header strip title is a plain label, not a toggle button', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    switchToTable()
-    expect(screen.queryByRole('button', { name: 'Prior Tender List' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'New Tender List' })).toBeNull()
-  })
-})
-
 describe('OrderChangeTenderLists — duplicate carriers (same scac+equipment, different rows)', () => {
   const dupOc = { priorTenderList: [dup1, dup2], newTenderList: [newDup1, newDup2] }
 
   test('Differences reflects only the row that moved', () => {
     render(<OrderChangeTenderLists oc={dupOc} />)
     expect(screen.getByText('(1)')).toBeTruthy() // purple count in the accordion title
-    expect(screen.getByRole('button', { name: 'Rank Order Change' })).toBeTruthy()
   })
 
   test('only the moved duplicate renders a changed Rank badge; the unchanged one stays plain', () => {
@@ -240,25 +165,6 @@ describe('OrderChangeTenderLists — duplicate carriers (same scac+equipment, di
     // dup2 moved (prior rank 9 -> new rank 5) — both cells are badges.
     expect(screen.getByText('9').closest('span')?.className).toMatch(/text-badge/)
     expect(screen.getByText('5').closest('span')?.className).toMatch(/text-badge/)
-  })
-})
-
-describe('OrderChangeTenderLists — filtering', () => {
-  test('clicking the AP Cost badge narrows columns to identity + AP Cost', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'AP Cost' }))
-    expect(screen.getAllByRole('columnheader', { name: 'AP Cost' })).toHaveLength(2)
-    expect(screen.getAllByRole('columnheader', { name: 'SCAC' })).toHaveLength(2)
-    expect(screen.queryByRole('columnheader', { name: 'Tender Status' })).toBeNull()
-    expect(screen.queryByRole('columnheader', { name: 'Rank' })).toBeNull()
-  })
-
-  test('clicking again clears the filter back to all columns', () => {
-    render(<OrderChangeTenderLists oc={makeOc()} />)
-    const badge = screen.getByRole('button', { name: 'AP Cost' })
-    fireEvent.click(badge)
-    fireEvent.click(badge)
-    expect(screen.getAllByRole('columnheader', { name: 'Tender Status' })).toHaveLength(2)
   })
 })
 
@@ -277,12 +183,8 @@ describe('OrderChangeTenderLists — dropped carriers', () => {
     },
   })
 
-  test('the New list header carries the amber badge + Preview button, in both modes', () => {
+  test('the New list header carries the amber badge + Preview button', () => {
     render(<OrderChangeTenderLists oc={withDrops()} />)
-    expect(screen.getByText('Dropped from this version')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Preview Dropped Carriers' })).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
     expect(screen.getByText('Dropped from this version')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Preview Dropped Carriers' })).toBeTruthy()
   })
@@ -311,5 +213,62 @@ describe('OrderChangeTenderLists — dropped carriers', () => {
   test('absent on a pre-S135 payload with no droppedCarriers key', () => {
     render(<OrderChangeTenderLists oc={makeOc()} />)
     expect(screen.queryByText('Dropped from this version')).toBeNull()
+  })
+})
+
+// S137 (designer/user, 2026-09-02) — "new Cost selected will update the base
+// cost": the New Tender List's AP Cost cell for the row matching
+// oc.prior.scac shows what Select Cost picked, recomputed into the column's
+// own AP-TOTAL unit (base rate + that row's additionalCharges), not the raw
+// base rate — a unit mismatch caught in review (oc.prior/newOption.apCost is
+// rateDetails.baseRate, this column's `cost` is totalCostAmount).
+describe('OrderChangeTenderLists — selected cost override (S137)', () => {
+  const odflNew = {
+    rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'Van',
+    cost: '$2,850.00 USD', status: null,
+    rateDetails: { baseRate: 2800, additionalCharges: [{ amount: 50 }] }, // 2800 + 50 = 2850, matches `cost`
+    pickupDateTime: '01/08/2026 09:00 CST', deliveryDateTime: '01/10/2026 14:00 CST',
+  }
+  const ocFixture = () => ({
+    prior: { scac: 'ODFL' },
+    priorTenderList: [odfl, saia],
+    newTenderList: [odflNew, newSaia],
+  })
+
+  test('a selected base rate that changes the recomputed total renders purple, in the AP-total unit', () => {
+    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'new', amount: 3000 }} />)
+    // 3000 (selected base) + 50 (ODFL's own additional charge) = 3050 — NOT
+    // a raw "$3,000.00" echo of the base rate.
+    const cell = screen.getByText('$3,050.00 USD')
+    expect(cell.closest('span')?.className).toMatch(/text-badge/)
+    expect(screen.queryByText('$2,850.00 USD')).toBeNull() // routed value is gone, overridden
+  })
+
+  test('a selected base rate whose recomputed total matches the routed cost renders plain, not changed', () => {
+    // 2800 (selected, same as the row's own baseRate) + 50 = 2850 — equals
+    // odflNew's routed `cost` exactly.
+    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'new', amount: 2800 }} />)
+    const cell = screen.getByText('$2,850.00 USD')
+    expect(cell.closest('span')?.className || '').not.toMatch(/text-badge/)
+  })
+
+  test('other carriers in the New Tender List are untouched by the override', () => {
+    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'new', amount: 3000 }} />)
+    // SAIA's own cost never moved and is not the selected carrier — appears
+    // once per side (prior + new), neither a badge.
+    for (const el of screen.getAllByText('$2,900.00 USD')) {
+      expect(el.closest('span')?.className || '').not.toMatch(/text-badge/)
+    }
+  })
+
+  test('no row for oc.prior.scac in newTenderList (not-returned, dropped) — no override, nothing invented', () => {
+    const notReturned = { prior: { scac: 'ODFL' }, priorTenderList: [odfl], newTenderList: [] }
+    expect(() => render(<OrderChangeTenderLists oc={notReturned} selectedCost={{ choice: 'new', amount: 3000 }} />)).not.toThrow()
+    expect(screen.queryByText(/3,050/)).toBeNull()
+  })
+
+  test('no selectedCost yet — renders the routed cost untouched', () => {
+    render(<OrderChangeTenderLists oc={ocFixture()} />)
+    expect(screen.getByText('$2,850.00 USD')).toBeTruthy()
   })
 })

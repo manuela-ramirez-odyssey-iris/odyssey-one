@@ -26,9 +26,15 @@ export default function DroppedCarriersModal({ dropped = [], onClose }) {
   const groups = rowsToFlatGroups(dropped, COLUMNS, (row, col) => val(row[col.key]))
 
   return createPortal(
-    <ModalMedium title="Dropped Carriers" ariaLabel="Dropped Carriers" onClose={onClose} className="view-tender-modal">
-      <div className="view-tender-modal__body">
-        <p className="text-label-sm-regular view-tender-modal__caveat">
+    // S137 — these three classes were `view-tender-modal*`, borrowed from the
+    // sibling View Tender modal this file was modelled on. That modal is now
+    // deleted (designer: "we don't need it"), which left this modal styled by
+    // a rule named after a component that no longer exists — and the sweep
+    // that removed the dead View Tender CSS silently took this modal's own
+    // layout with it. Renamed to the consumer that actually owns them.
+    <ModalMedium title="Dropped Carriers" ariaLabel="Dropped Carriers" onClose={onClose} className="dropped-carriers-modal">
+      <div className="dropped-carriers-modal__body">
+        <p className="text-label-sm-regular dropped-carriers-modal__caveat">
           Carriers not returned by this version&apos;s routing
         </p>
         <GroupTable columns={COLUMNS} groups={groups} flat />

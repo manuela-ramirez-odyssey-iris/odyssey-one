@@ -2351,12 +2351,36 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   const pickupShiftDays = 1 + Math.floor(rnd() * 3);
   const deliveryShiftDays = 1 + Math.floor(rnd() * 3);
   const newPickupDateTime = formatDateTime(genDate(baseDate, pickupShiftDays), originTz);
-  const shiftedOptions = routingOptions.map((o, i) => ({
-    ...o,
-    pickupDateTime: newPickupDateTime,
-    deliveryDateTime: formatDateTime(genDate(routingDeliveryDates[i], deliveryShiftDays), destTz),
-    rateDetails: { ...o.rateDetails, baseRate: perturb(o.rateDetails.baseRate) },
-  }));
+  // S137 — the re-rate has to move EVERY figure derived from the base rate,
+  // not just `rateDetails.baseRate`. It used to perturb that one field and let
+  // `rateAmount`/`totalCostAmount` ride along unchanged from the `...o`
+  // spread, which broke three things at once (measured over 2,200 shipments:
+  // 718 of 718 matched prior/new pairs):
+  //   1. `rateAmount !== rateDetails.baseRate` in every new-list row — the
+  //      invariant this file states at ~line 964 as one the app relies on.
+  //   2. The New Tender List's AP Cost column (mapped from totalCostAmount)
+  //      showed the PRIOR total for a carrier routing had just re-rated.
+  //   3. LINX-14511's "AP Cost" difference badge could never fire, since
+  //      computeTenderDiffs compares the formatted cost — 231 order-change
+  //      shipments, zero AP Cost badges reachable.
+  // apTotal/arTotal follow the same formulas as the original draw (~line 977):
+  // base + charges, and base + markup + charges. Zero new `rnd`/faker draws —
+  // `perturb` is still called exactly once per option, in the same order — so
+  // the id stream is untouched and a reseed does not renumber anything.
+  const shiftedOptions = routingOptions.map((o, i) => {
+    const baseRate = perturb(o.rateDetails.baseRate);
+    const chargeTotal = o.rateDetails.additionalCharges.reduce((s, c) => s + c.amount, 0);
+    const apTotal = Math.round((baseRate + chargeTotal) * 100) / 100;
+    const arTotal = Math.round((baseRate + o.rateDetails.markup + chargeTotal) * 100) / 100;
+    return {
+      ...o,
+      pickupDateTime: newPickupDateTime,
+      deliveryDateTime: formatDateTime(genDate(routingDeliveryDates[i], deliveryShiftDays), destTz),
+      rateAmount: baseRate,
+      totalCostAmount: apTotal,
+      rateDetails: { ...o.rateDetails, baseRate, apTotal, arTotal },
+    };
+  });
   // WHICH carriers the re-route dropped (S135 — Jana, 2026-08-29 @31:23: *"I
   // have asked Laura to include the drop carrier as well… suppose the new
   // tender did not bring any carrier, but it dropped some of the carriers. I

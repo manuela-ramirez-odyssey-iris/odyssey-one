@@ -1339,3 +1339,67 @@ describe('Review Order Change entry (LINX-14509)', () => {
     expect(screen.queryByRole('button', { name: 'Review Order Change' })).toBeNull()
   })
 })
+
+// S137 — domain ruling (Jana via designer): a pending order change blocks
+// EVERY OTHER tendering action on the Tender screen, not just the entry
+// point into the review. Table + ProcessScacBar go behind a blur/scrim;
+// Dropped Carrier's Process SCAC doorway locks shut too.
+describe('Order change blocks tendering actions (S137)', () => {
+  const baseProps = () => ({
+    data: { options: [{ ...baseOption }] },
+    shipmentDetails: {
+      orderChange: { scenario: 'returned', resolution: null },
+      droppedCarriers: [{ scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL' }],
+    },
+    shipment: { sellShipment: '25319141', buyShipment: '87654321' },
+  })
+
+  it('renders the overlay with a SINGLE, lg-sized Review Order Change button', () => {
+    render(<RoutingGuideTab {...baseProps()} />)
+    // Not also still in the sub-tabs row — moved, not duplicated.
+    const buttons = screen.getAllByRole('button', { name: 'Review Order Change' })
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0].className).toContain('btn--lg')
+    // The old sub-tabs-row alignment class must NOT come along: its
+    // `margin-left: auto` beats the overlay's `justify-content: center`
+    // (S137 — caught in the browser, the button sat hard right).
+    expect(buttons[0].className).not.toContain('tender-pane__review-oc')
+    expect(document.querySelector('.tender-pane__oc-overlay').contains(buttons[0])).toBe(true)
+  })
+
+  it('blurs and inerts the table-card content behind the overlay', () => {
+    render(<RoutingGuideTab {...baseProps()} />)
+    const inner = document.querySelector('.tender-pane__table-card-inner')
+    expect(inner.className).toContain('tender-pane__table-card-inner--locked')
+    expect(inner.getAttribute('aria-hidden')).toBe('true')
+    // jsdom cannot see the CSS blur itself — the DOM contract (inert, which
+    // also drops it from the tab order) is what proves it's non-interactive.
+    expect(inner.hasAttribute('inert')).toBe(true)
+    // RoutingTable + ProcessScacBar are BOTH inside the locked wrapper, not
+    // just the table — Process SCAC is itself a tendering action.
+    expect(inner.querySelector('.process-scac-bar')).toBeTruthy()
+    expect(inner.querySelector('[data-routing-container]')).toBeTruthy()
+  })
+
+  it('renders nothing extra when there is no pending order change', () => {
+    const props = baseProps()
+    props.shipmentDetails = { droppedCarriers: [] }
+    render(<RoutingGuideTab {...props} />)
+    expect(document.querySelector('.tender-pane__oc-overlay')).toBeNull()
+    const inner = document.querySelector('.tender-pane__table-card-inner')
+    expect(inner.className).not.toContain('--locked')
+    expect(inner.hasAttribute('inert')).toBe(false)
+    expect(inner.hasAttribute('aria-hidden')).toBe(false)
+  })
+
+  it('collapses the Dropped Carrier section and its header stays unresponsive to a click', () => {
+    render(<RoutingGuideTab {...baseProps()} />)
+    // The section itself still renders (the count is real information — same
+    // rule LINX-13953's empty state already follows) but its content isn't reachable.
+    expect(screen.getByText('Dropped Carrier (1)')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Dropped Carrier/ }))
+    expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+  })
+})

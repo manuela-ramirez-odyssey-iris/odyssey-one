@@ -35,6 +35,88 @@
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  /* S137 — containing block for the Review Order Change overlay below. */
+  position: relative;
+}
+
+/* S137 — LINX-14509's companion ruling (Jana via designer): a pending order
+   change blocks every tendering action on this screen, not the button's own
+   entry point alone. `.tender-pane__table-card-inner` wraps RoutingTable +
+   ProcessScacBar (Process SCAC IS a tendering action) so the blur/dim/lock
+   lands on CONTENT only — `.tender-pane__oc-overlay` below is this element's
+   SIBLING, not its child, precisely so a blurred ancestor can't blur the
+   button sitting on top of it too.
+
+   `filter` here also means something for free: it creates a new stacking
+   context for this subtree (CSS Filter Effects spec), so the table's own
+   internal sticky z-indexes (up to 5 — the pinned action lane) stay CONTAINED
+   inside it and can never paint above the overlay however high they climb.
+   pointer-events/user-select cover the mouse; keyboard reachability is the
+   `inert` attribute React sets on this element in RoutingGuideTab.jsx (CSS
+   pointer-events alone leaves a blurred control tabbable). */
+.tender-pane__table-card-inner--locked {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The blur lands on the DATA only — the column-header row stays crisp
+   (designer, S137: "overlay should not cover the header only the content of
+   the table"), so the planner can still read what the obscured rows are
+   columns OF, and the header keeps anchoring the table as a table.
+
+   Targeted per-`tbody` rather than on the wrapper because the header row
+   lives inside the SAME <table> element as the rows — two split tables, each
+   its own thead+tbody (RoutingGuideTab's `data-left-table` / right table) —
+   so no wrapper exists that holds the rows without also holding the header.
+   `.process-scac-bar` joins them: it is not part of a table, but Process
+   SCAC IS a tendering action and must read as locked with everything else.
+   `.tender-pane__col-toggle` — the Expand/Collapse-columns lane between the
+   two split tables — joins for the same reason (designer, S137): sitting
+   outside both tbodies, it alone stayed sharp and full-opacity, reading as a
+   live control floating in front of the overlay.
+
+   Each blurred element makes its own stacking context (CSS Filter Effects),
+   which still contains the table's internal sticky z-indexes (up to 5 — the
+   pinned action lane) below the overlay's 6. */
+.tender-pane__table-card-inner--locked tbody,
+.tender-pane__table-card-inner--locked .process-scac-bar,
+.tender-pane__table-card-inner--locked .tender-pane__col-toggle {
+  /* Component-internal geometric value (project policy exempts these from
+     tokenization, unlike color/radius/type/shadow) — chosen to read as
+     "obscured" without turning the table into an unrecognizable smear. */
+  filter: blur(4px);
+  opacity: 0.5;
+}
+
+/* The centered button, on NO scrim (designer, S137: "overlay should not be
+   dark"). It first painted --overlay-bg, the modal-backdrop token — wrong
+   here: a modal dims the whole page because the page is behind the dialog,
+   whereas this dims one card in place on a light canvas, and the dark wash
+   read as a modal that had failed to open.
+
+   No replacement colour, and deliberately no new light-scrim token: the
+   locked rows are already blurred AND at 0.5 opacity over the card's white
+   surface, which whitens them on their own — a white veil on top would be
+   the same effect billed twice. So this layer only positions the button.
+
+   `pointer-events: none` on the layer, restored on its children: with no
+   paint of its own, an inset:0 box would still SWALLOW every click across
+   the card including the header row's own controls — "covering" it in the
+   way that actually matters. Click-through keeps this layer to positioning
+   alone; the rows stay unreachable via the locked wrapper's own
+   pointer-events/inert, not via this. */
+.tender-pane__oc-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6; /* above the locked subtree's own contained stacking (filter caps it at 5) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.tender-pane__oc-overlay > * {
+  pointer-events: auto;
 }
 
 /* Split-table row height, STATED rather than inherited (2026-08-18).
@@ -299,6 +381,22 @@
 .dropped-carrier__empty {
   padding: var(--spacing-4);
   color: var(--text-secondary);
+}
+
+/* S137 — Dropped Carrier locked shut while an order change is pending
+   (Process SCAC from this doorway is a tendering action too). SubAccordion
+   is a shared @odyssey/ui molecule (out of scope to modify — see
+   DroppedCarrierSection.jsx's comment), so the click-guard is applied here,
+   at the consumer, via a descendant selector reaching into its header.
+   `expanded={false}` (passed by the consumer) already stops the disclosure
+   from opening; this just keeps the still-real <button> from LOOKING
+   pressable — a locked control that visibly reacts to hover/cursor reads as
+   broken, not as "not now". Legibility is deliberately only dimmed, not
+   grayed out flat: "locked, not broken" (task ruling). */
+.dropped-carrier--locked .sub-accordion__header {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 /* LINX-13954 Manual Pickup and Delivery Entry — each field is a date + time

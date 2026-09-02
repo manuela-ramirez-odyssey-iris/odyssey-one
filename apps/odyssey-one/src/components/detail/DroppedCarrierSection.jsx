@@ -167,6 +167,14 @@ export default function DroppedCarrierSection({
   defaultOpen = true,
   onProcess,
   processingScac = null,
+  // S137 — a pending order change blocks tendering actions everywhere on the
+  // Tender screen (domain ruling, Jana via designer), and Process SCAC lands
+  // in the tender list, so it counts. `locked` forces the section shut and
+  // keeps it that way: SubAccordion's `expanded` prop is CONTROLLED once
+  // passed (see packages/ui/src/SubAccordion.jsx), so `expanded={false}`
+  // alone already stops it opening — the header row below just makes sure a
+  // click on it doesn't feel like a dead button.
+  locked = false,
 }) {
 
   // Two disclosure levels, both open by default:
@@ -208,32 +216,47 @@ export default function DroppedCarrierSection({
     ) : undefined,
   }))
 
+  // S137 — the wrapper, not SubAccordion itself, carries the lock: it's what
+  // this file is allowed to touch (SubAccordion is a shared @odyssey/ui
+  // molecule; modifying it would kick off a normalization cycle out of scope
+  // here), and it's the one place both the CSS hook (`dropped-carrier--locked`,
+  // styled in tender.css) and `aria-disabled` — which SubAccordion has no prop
+  // for — can land without SubAccordion knowing anything changed.
   return (
-    <SubAccordion
-      title={`Dropped Carrier (${carriers.length})`}
-      defaultExpanded={defaultOpen}
-      showIcon={false}
-    >
-      {carriers.length === 0 ? (
-        <p className="dropped-carrier__empty text-label-sm-regular">
-          Routing did not drop any carriers for this shipment.
-        </p>
-      ) : (
-        <GroupTable
-          columns={COLUMNS}
-          detailSections={DETAIL_SECTIONS}
-          groups={groups}
-          defaultExpanded
-          renderDetailCell={(row, col) =>
-            col.key in CHECKBOX_LABELS
-              ? <CheckCell field={col.key} on={row[col.key]} />
-              : (row[col.key] ?? '--')
-          }
-          stickyActions={Boolean(onProcess)}
-          actionsHeader="Action"
-          data-dropped-carrier-table
-        />
-      )}
-    </SubAccordion>
+    <div className={locked ? 'dropped-carrier--locked' : undefined} aria-disabled={locked || undefined}>
+      <SubAccordion
+        title={`Dropped Carrier (${carriers.length})`}
+        defaultExpanded={defaultOpen}
+        // Controlled + forced shut while locked. Passing `expanded` at all
+        // switches SubAccordion out of its own internal (uncontrolled) state,
+        // so `locked` wins over whatever the user had open before a review
+        // landed — not just over future clicks (its header stays a real
+        // <button>, so onToggle would still fire; simply not wiring onToggle
+        // here means that click has nothing to call).
+        expanded={locked ? false : undefined}
+        showIcon={false}
+      >
+        {carriers.length === 0 ? (
+          <p className="dropped-carrier__empty text-label-sm-regular">
+            Routing did not drop any carriers for this shipment.
+          </p>
+        ) : (
+          <GroupTable
+            columns={COLUMNS}
+            detailSections={DETAIL_SECTIONS}
+            groups={groups}
+            defaultExpanded
+            renderDetailCell={(row, col) =>
+              col.key in CHECKBOX_LABELS
+                ? <CheckCell field={col.key} on={row[col.key]} />
+                : (row[col.key] ?? '--')
+            }
+            stickyActions={Boolean(onProcess)}
+            actionsHeader="Action"
+            data-dropped-carrier-table
+          />
+        )}
+      </SubAccordion>
+    </div>
   )
 }

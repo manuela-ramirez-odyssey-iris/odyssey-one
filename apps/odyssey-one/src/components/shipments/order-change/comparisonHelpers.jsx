@@ -18,27 +18,16 @@ export function DiffValue({ value, changed, asBadge = false }) {
   return asBadge ? <Badge variant="gray">{display}</Badge> : <span>{display}</span>
 }
 
-// Table mode's entry KV grid (S134, Figma 1931-7398/8797/9497): a plain
-// "Term over Text" cell — label small/gray above, value medium/dark below —
-// laid out N-per-row by the CSS grid the caller wraps these in
-// (`.comparison-preview__kv-grid[--3col]`). This is NOT a GroupTable row:
-// the mock's entry blocks are two/three fields wide per row with no table
-// semantics, a shape GroupTable's rows flavor (one field per <tr>) can't
-// express without either losing the pairing or forcing an unwanted hairline
-// between every field (GroupTable child rows always carry their own
-// border-bottom — see GroupTable.jsx `.odyssey-group-table__row td`). Same
-// "Term"/"Text" idiom OrderChangeActionsCard's ComparisonField already uses
-// for its own Prior|New panel, kept as a separate component (not imported
-// from that file) so the two preview surfaces don't reach into each other's
-// internals — this one owns its own `comparison-preview__field*` classes.
-export function KVField({ label, children }) {
-  return (
-    <div className="comparison-preview__field">
-      <div className="text-label-sm-regular comparison-preview__field-label">{label}</div>
-      <div className="text-label-sm-medium comparison-preview__field-value">{children}</div>
-    </div>
-  )
-}
+// S137 — `KVField` lived here for the List/Table toggle's TABLE mode: a
+// "Term over Text" cell (label small/gray above, value medium/dark below),
+// laid out N-per-row by `.comparison-preview__kv-grid`. That toggle is gone
+// (designer: the preview sections render their list form only), so all three
+// former callers' TableModeSide went with it and nothing imported this. Its
+// `comparison-preview__field*` / `__kv-grid` / `__panel` / `__entry` CSS is
+// deleted alongside it in order-change.css. OrderChangeActionsCard's own
+// `ComparisonField` is the surviving instance of the same idiom — it was
+// always a separate component so the two surfaces never reached into each
+// other's internals, which is why removing this one touches nothing there.
 
 /**
  * Turns a flat array of data rows into GroupTable `flat`-mode groups: one

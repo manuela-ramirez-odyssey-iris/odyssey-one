@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -448,5 +448,75 @@ describe('resolveOrderChange', () => {
       () => resolveOrderChange({ params: ['NOPE'], body: { action: 'cancel' }, db: { query: async () => ({ rowCount: 0 }) } }),
       (e) => /No shipment/.test(e.message) && e.status === 404,
     )
+  })
+
+  // ── S137: cost selected on Review Order Change lands on the carrier's tender ──
+  it('retender with a cost + priorScac also updates that carrier\'s tender row', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({
+      params: ['S1'],
+      body: { action: 'retender', cost: { choice: 'new', amount: 2100.5 }, priorScac: 'ABCD' },
+      db,
+    })
+    assert.equal(seen.length, 2)
+    assert.match(seen[1].text, /UPDATE tenders SET rate_amount/)
+    assert.match(seen[1].text, /jsonb_set/)
+    assert.deepEqual(seen[1].values, [2100.5, '2100.5', 'S1', 'ABCD'])
+  })
+
+  it('bypass with a cost + priorScac also updates that carrier\'s tender row', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({
+      params: ['S1'],
+      body: { action: 'bypass', priorTenderStatus: 'Sent', cost: { choice: 'prior', amount: 900 }, priorScac: 'WXYZ' },
+      db,
+    })
+    assert.equal(seen.length, 2)
+    assert.deepEqual(seen[1].values, [900, '900', 'S1', 'WXYZ'])
+  })
+
+  it('cancel does not touch the tender row even with a cost + priorScac present', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({
+      params: ['S1'],
+      body: { action: 'cancel', cost: { choice: 'new', amount: 500 }, priorScac: 'ABCD' },
+      db,
+    })
+    assert.equal(seen.length, 1, 'cancel drops the tender — no carrier row left to cost')
+  })
+
+  it('retender with a cost but no priorScac skips the tender update', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({
+      params: ['S1'],
+      body: { action: 'retender', cost: { choice: 'new', amount: 500 } },
+      db,
+    })
+    assert.equal(seen.length, 1)
+  })
+
+  it('retender with priorScac but no cost skips the tender update', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({
+      params: ['S1'],
+      body: { action: 'retender', priorScac: 'ABCD' },
+      db,
+    })
+    assert.equal(seen.length, 1)
+  })
+})
+
+describe('buildOrderChangeCostQuery', () => {
+  it('addresses the tender row by (shipment_sell_id, scac) and syncs rate_amount + the option blob', () => {
+    const q = buildOrderChangeCostQuery('S1', 'ABCD', 1234.56)
+    assert.match(q.text, /UPDATE tenders SET rate_amount = \$1/)
+    assert.match(q.text, /jsonb_set\(option, '\{rateAmount\}', \$2::jsonb\)/)
+    assert.match(q.text, /WHERE shipment_sell_id = \$3 AND scac = \$4/)
+    assert.deepEqual(q.values, [1234.56, '1234.56', 'S1', 'ABCD'])
   })
 })

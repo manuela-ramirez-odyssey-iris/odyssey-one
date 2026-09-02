@@ -1,125 +1,48 @@
 // @vitest-environment jsdom
-// Task 10a — shared shell for the three "Additional Changes Preview" sections
+// Task 10a — shared shell for the "Additional Changes Preview" sections
 // (LINX-14510/14511). Tested in isolation from any real tender/field data —
-// the shell knows nothing about carriers, it only owns title/collapse,
-// the Differences badges + filter toggle, and the List/Table ButtonToggle.
-import { afterEach, describe, expect, test, vi } from 'vitest'
+// the shell knows nothing about carriers, it only owns title + difference
+// count + collapse. S137 removed the filter chips and the List/Table toggle,
+// and with them the render-prop body.
+import { afterEach, describe, expect, test } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import ComparisonPreviewCard from './ComparisonPreviewCard.jsx'
 
 afterEach(cleanup)
 
 function renderCard(props = {}) {
-  const renderBody = vi.fn((mode, filter) => (
-    <div data-testid="body" data-mode={mode} data-filter={filter ?? ''} />
-  ))
   render(
     <ComparisonPreviewCard title="Preview Tender List" differences={['Rank Order Change', 'AP Cost']} {...props}>
-      {renderBody}
+      <div data-testid="body" />
     </ComparisonPreviewCard>,
   )
-  return { renderBody }
 }
 
 describe('ComparisonPreviewCard — chrome', () => {
-  test('renders the title and starts expanded', () => {
+  test('renders the title, the body, and starts expanded', () => {
     renderCard()
     expect(screen.getByText('Preview Tender List')).toBeTruthy()
+    expect(screen.getByTestId('body')).toBeTruthy()
     const collapseBtn = screen.getByRole('button', { name: /^Preview Tender List/ })
     expect(collapseBtn.getAttribute('aria-expanded')).toBe('true')
   })
 
-  test('shows Differences (N) with one badge per difference', () => {
+  test('the difference count rides the title', () => {
     renderCard()
-    expect(screen.getByText('(2)')).toBeTruthy() // purple count in the accordion title
-    expect(screen.getByText('Rank Order Change')).toBeTruthy()
-    expect(screen.getByText('AP Cost')).toBeTruthy()
+    expect(screen.getByText('(2)')).toBeTruthy()
   })
 
-  test('Differences (0) renders no badges', () => {
+  test('with nothing changed the title states (No Differences)', () => {
     renderCard({ differences: [] })
-    expect(screen.getByText('No Differences')).toBeTruthy()
-  })
-})
-
-describe('ComparisonPreviewCard — difference filter', () => {
-  test('clicking a difference badge filters; clicking again clears it', () => {
-    const { renderBody } = renderCard()
-    const badgeBtn = screen.getByRole('button', { name: 'Rank Order Change' })
-    expect(badgeBtn.getAttribute('aria-pressed')).toBe('false')
-
-    fireEvent.click(badgeBtn)
-    expect(badgeBtn.getAttribute('aria-pressed')).toBe('true')
-    expect(renderBody).toHaveBeenLastCalledWith('list', 'Rank Order Change')
-
-    fireEvent.click(badgeBtn)
-    expect(badgeBtn.getAttribute('aria-pressed')).toBe('false')
-    expect(renderBody).toHaveBeenLastCalledWith('list', null)
+    expect(screen.getByText('(No Differences)')).toBeTruthy()
   })
 
-  test('only one filter is active at a time', () => {
+  test('no filter chips and no List/Table toggle (S137)', () => {
     renderCard()
-    const rankBtn = screen.getByRole('button', { name: 'Rank Order Change' })
-    const costBtn = screen.getByRole('button', { name: 'AP Cost' })
-
-    fireEvent.click(rankBtn)
-    expect(rankBtn.getAttribute('aria-pressed')).toBe('true')
-    expect(costBtn.getAttribute('aria-pressed')).toBe('false')
-
-    fireEvent.click(costBtn)
-    expect(rankBtn.getAttribute('aria-pressed')).toBe('false')
-    expect(costBtn.getAttribute('aria-pressed')).toBe('true')
-  })
-})
-
-describe('ComparisonPreviewCard — All chip (S134)', () => {
-  test('an All chip renders first, before the difference chips, and is selected by default', () => {
-    renderCard()
-    const allChip = screen.getByRole('button', { name: 'All' })
-    const rankChip = screen.getByRole('button', { name: 'Rank Order Change' })
-    const costChip = screen.getByRole('button', { name: 'AP Cost' })
-    // DOM order: All precedes both difference chips.
-    expect(allChip.compareDocumentPosition(rankChip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(allChip.compareDocumentPosition(costChip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(allChip.getAttribute('aria-pressed')).toBe('true')
-  })
-
-  test('selecting a difference chip deselects All; selecting All clears the filter and restores the full table', () => {
-    const { renderBody } = renderCard()
-    const allChip = screen.getByRole('button', { name: 'All' })
-    const rankChip = screen.getByRole('button', { name: 'Rank Order Change' })
-    expect(allChip.getAttribute('aria-pressed')).toBe('true')
-
-    fireEvent.click(rankChip)
-    expect(rankChip.getAttribute('aria-pressed')).toBe('true')
-    expect(allChip.getAttribute('aria-pressed')).toBe('false')
-    expect(renderBody).toHaveBeenLastCalledWith('list', 'Rank Order Change')
-
-    fireEvent.click(allChip)
-    expect(allChip.getAttribute('aria-pressed')).toBe('true')
-    expect(rankChip.getAttribute('aria-pressed')).toBe('false')
-    expect(renderBody).toHaveBeenLastCalledWith('list', null)
-  })
-
-  test('the All chip and every difference chip render a gray Badge, never purple', () => {
-    renderCard()
-    const allChip = screen.getByRole('button', { name: 'All' })
-    const rankChip = screen.getByRole('button', { name: 'Rank Order Change' })
-    expect(allChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
-    expect(rankChip.querySelector('span').style.background).toBe('var(--badge-gray-bg)')
-  })
-})
-
-describe('ComparisonPreviewCard — List/Table toggle', () => {
-  test('defaults to list mode and switches to table mode', () => {
-    const { renderBody } = renderCard()
-    expect(renderBody).toHaveBeenLastCalledWith('list', null)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Table view' }))
-    expect(renderBody).toHaveBeenLastCalledWith('table', null)
-
-    fireEvent.click(screen.getByRole('button', { name: 'List view' }))
-    expect(renderBody).toHaveBeenLastCalledWith('list', null)
+    expect(screen.queryByRole('button', { name: 'All' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Rank Order Change' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Table view' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'List view' })).toBeNull()
   })
 })
 

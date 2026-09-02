@@ -6304,15 +6304,14 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.35));
 }
-/* Tender tab's sub-tabs row: tabs left, the (conditional) Review Order
-   Change button on the trailing side (LINX-14509, S135). */
+/* Tender tab's sub-tabs row (LINX-14509, S135). S137: the Review Order
+   Change button no longer lives here — it moved onto the locked table's
+   overlay — so its `.tender-pane__review-oc` trailing-alignment rule
+   (`margin-left: auto`) is gone with it. Leaving the rule in place while the
+   button kept the class is what pushed it off the overlay's centre. */
 .tender-pane__tab-row {
   display: flex;
   align-items: center;
-}
-.tender-pane__review-oc {
-  margin-left: auto;
-  margin-bottom: var(--spacing-2);
 }
 
 .pane-band-inner {

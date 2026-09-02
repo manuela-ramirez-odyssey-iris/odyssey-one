@@ -178,6 +178,52 @@ describe('OrderChangeActionsCard — Prior | New comparison panel', () => {
   })
 })
 
+// S137 (designer/user, 2026-09-02) — "new Cost selected will update the base
+// cost": OrderChangeReviewRoute needs the effective selection reported
+// upward (to reach the New Tender List preview + resolve payload) without
+// this card losing ownership of its own choice/quoteAmount state.
+describe('OrderChangeActionsCard — onCostChange (S137)', () => {
+  test('reports the initial auto-selection on mount, before any click', () => {
+    const onCostChange = vi.fn()
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} onCostChange={onCostChange} />)
+    // returned scenario auto-selects New Cost (LINX-14513).
+    expect(onCostChange).toHaveBeenCalledWith({ choice: 'new', amount: 2950 })
+  })
+
+  test('reports the not-returned default (Prior Cost) on mount', () => {
+    const onCostChange = vi.fn()
+    render(<OrderChangeActionsCard oc={NOT_RETURNED} onAction={vi.fn()} onCostChange={onCostChange} />)
+    expect(onCostChange).toHaveBeenCalledWith({ choice: 'prior', amount: 2790 })
+  })
+
+  test('re-reports on switching to Prior Cost', () => {
+    const onCostChange = vi.fn()
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} onCostChange={onCostChange} />)
+    onCostChange.mockClear()
+    fireEvent.click(screen.getByRole('radio', { name: 'Prior Cost' }))
+    expect(onCostChange).toHaveBeenCalledWith({ choice: 'prior', amount: 2790 })
+  })
+
+  test('re-reports once a New Quote is saved', () => {
+    const onCostChange = vi.fn()
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} onCostChange={onCostChange} />)
+    fireEvent.click(screen.getByRole('radio', { name: 'New Quote' }))
+    // 'add' mode starts with no currency selected (QuoteModal.jsx), which
+    // keeps Save Quote disabled until one is picked — same recipe
+    // QuoteModal.test.jsx's currency tests use (FieldSelect trigger → option).
+    const baseField = screen.getByText('Base Rate', { selector: 'label' }).closest('.form-field')
+    fireEvent.click(within(baseField).getByRole('button'))
+    fireEvent.click(screen.getByRole('option', { name: 'USD' }))
+    onCostChange.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: 'Save Quote' }))
+    expect(onCostChange).toHaveBeenCalledWith({ choice: 'quote', amount: expect.any(Number) })
+  })
+
+  test('does not throw when onCostChange is omitted', () => {
+    expect(() => render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)).not.toThrow()
+  })
+})
+
 describe('OrderChangeActionsCard — New Quote flow', () => {
   test('choosing New Quote opens the quote modal for the prior carrier', () => {
     render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)

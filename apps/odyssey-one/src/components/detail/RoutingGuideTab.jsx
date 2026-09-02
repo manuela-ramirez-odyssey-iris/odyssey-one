@@ -727,6 +727,11 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
         <div
           onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
           title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
+          // S137 — the ONLY reason this lane carries a class: it is neither a
+          // tbody nor the Process SCAC bar, so the order-change lock's blur
+          // (tender.css) had no selector for it and the expander stayed crisp
+          // in front of the overlay while everything around it receded.
+          className="tender-pane__col-toggle"
           style={{
             /* 36px lane, white, 20px glyph — the mock's Right Table Expander
                (Figma 1596:21583). It was a 20px gray lane with a 14px icon: at
@@ -1614,11 +1619,39 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
   // LINX-14509 — "The Tender Tab shall display a Review Order Change button
   // when user review is required." Gated on an UNRESOLVED order change (a
-  // resolved one has left the review process); trailing side of the sub-tabs
-  // row (designer, S135). The row-menu entry on the Order Change tab remains
-  // the shortcut; this is the AC's canonical entry point.
+  // resolved one has left the review process). The row-menu entry on the
+  // Order Change tab remains the shortcut; this is the AC's canonical entry
+  // point.
+  //
+  // S137 — moved OFF the sub-tabs row and ONTO the table-card overlay below
+  // (domain ruling, Jana via designer): a pending order change now blocks
+  // every OTHER tendering action on this screen too — Accept/Decline/Cancel/
+  // Tender in the table, Process SCAC in both its doorways (the trailing
+  // ProcessScacBar row AND the Dropped Carrier section) — not just the entry
+  // point into the review. One instance only; size bumped sm → md → lg per
+  // the designer's successive instructions for its new, more prominent home
+  // (it is now the ONLY thing the planner can act on in this whole card).
   const navigate = useNavigate()
   const pendingOrderChange = shipmentDetails?.orderChange && !shipmentDetails.orderChange.resolution
+  const reviewOrderChangeButton = (
+    <Button
+      variant="secondary"
+      size="lg"
+      // Purple FileBox (designer, S135) — deliberate exception to the
+      // icon-follows-label-color rule: purple is the review flow's
+      // accent, same token the diff badges use.
+      icon={<FileBox size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
+      // No `tender-pane__review-oc` class any more (S137, caught in the
+      // browser): that rule was `margin-left: auto` + `margin-bottom`, which
+      // is how it right-aligned itself in the sub-tabs row it USED to live in.
+      // Carried onto the overlay, the auto margin beats the overlay's own
+      // `justify-content: center` — the button rendered 529px right of centre,
+      // hard against the table's right edge. The rule went with the old home.
+      onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
+    >
+      Review Order Change
+    </Button>
+  )
 
   return (
     <div className="pane-canvas tender-pane">
@@ -1636,54 +1669,65 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
               />
             ))}
           </div>
-          {pendingOrderChange && (
-            <Button
-              variant="secondary"
-              size="sm"
-              // Purple FileBox (designer, S135) — deliberate exception to the
-              // icon-follows-label-color rule: purple is the review flow's
-              // accent, same token the diff badges use.
-              icon={<FileBox size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
-              className="tender-pane__review-oc"
-              onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
-            >
-              Review Order Change
-            </Button>
-          )}
         </div>
       </div>
 
       <div className="pane-col pane-col--wide tender-pane__col">
-        {/* Row 2: table in a wide bordered container directly on canvas */}
+        {/* Row 2: table in a wide bordered container directly on canvas.
+            S137 — a pending order change blocks every tendering action here
+            (domain ruling, Jana via designer): the table (RoutingTable) AND
+            the ProcessScacBar trailing row (Process SCAC IS a tendering
+            action) both go behind a blur+scrim, Review Order Change centered
+            on top as the one thing still reachable. The blurred content lives
+            in its OWN inner wrapper, never on `.tender-pane__table-card`
+            itself — the overlay is that wrapper's SIBLING, so a blurred
+            ancestor can't blur the button along with it. */}
         <div className="tender-pane__table-card">
-          <div ref={tableRef}>
-            <RoutingTable
-          options={optionsWithPos}
-          tabColumns={activeTabColumns}
-          highlightedRank={highlightedRank}
-          processRank={processRank}
-          addedRank={addedRank}
-          openMenuRank={openMenuRank}
-          onOpenMenu={handleOpenMenu}
-          onCloseMenu={handleCloseMenu}
-          onAction={handleAction}
-          isCollapsed={isCollapsed}
-          columnsCollapsed={collapsedWidths !== null}
-          collapsedWidths={collapsedWidths}
-          onCollapse={handleCollapse}
-          onExpand={handleExpand}
-          onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
-          onOpenColumns={() => setColumnPanelOpen(true)}
-        />
-          </div>
-          {/* LINX-15075 — the picker doorway. Revised 2026-09-01: mounted
-              INSIDE .tender-pane__table-card, as the table's own trailing row
-              (collapsed to a single button by default) rather than a form
-              bolted above it. ComboBox already portals its open menu to
-              document.body at position:fixed (packages/ui/src/ComboBox.jsx),
-              so the card's overflow:hidden does not clip it — no workaround
-              needed. */}
-          <ProcessScacBar onProcess={handleProcessScac} processingScac={processingScac} />
+          <div
+            className={`tender-pane__table-card-inner${pendingOrderChange ? ' tender-pane__table-card-inner--locked' : ''}`}
+            // aria-hidden pulls it out of the accessibility tree; `inert`
+            // (React 19, plain prop) additionally drops it from the tab
+            // order and swallows pointer/keyboard input on every descendant
+            // — `pointer-events: none` alone leaves it tabbable. Same pairing
+            // SubAccordion's own collapsed reveal already uses (packages/ui/
+            // src/SubAccordion.jsx) — no new precedent invented here.
+            aria-hidden={pendingOrderChange || undefined}
+            inert={pendingOrderChange || undefined}
+          >
+            <div ref={tableRef}>
+              <RoutingTable
+            options={optionsWithPos}
+            tabColumns={activeTabColumns}
+            highlightedRank={highlightedRank}
+            processRank={processRank}
+            addedRank={addedRank}
+            openMenuRank={openMenuRank}
+            onOpenMenu={handleOpenMenu}
+            onCloseMenu={handleCloseMenu}
+            onAction={handleAction}
+            isCollapsed={isCollapsed}
+            columnsCollapsed={collapsedWidths !== null}
+            collapsedWidths={collapsedWidths}
+            onCollapse={handleCollapse}
+            onExpand={handleExpand}
+            onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
+            onOpenColumns={() => setColumnPanelOpen(true)}
+          />
+            </div>
+            {/* LINX-15075 — the picker doorway. Revised 2026-09-01: mounted
+                INSIDE .tender-pane__table-card, as the table's own trailing row
+                (collapsed to a single button by default) rather than a form
+                bolted above it. ComboBox already portals its open menu to
+                document.body at position:fixed (packages/ui/src/ComboBox.jsx),
+                so the card's overflow:hidden does not clip it — no workaround
+                needed. */}
+            <ProcessScacBar onProcess={handleProcessScac} processingScac={processingScac} />
+          </div>{/* /tender-pane__table-card-inner */}
+          {pendingOrderChange && (
+            <div className="tender-pane__oc-overlay">
+              {reviewOrderChangeButton}
+            </div>
+          )}
         </div>{/* /tender-pane__table-card */}
 
         {/* LINX-13953 — its own card: GroupTable owns horizontal scroll and
@@ -1698,6 +1742,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
             carriers={shipmentDetails?.droppedCarriers || []}
             onProcess={handleProcessScac}
             processingScac={processingScac}
+            // S137 — Process SCAC from this doorway is a tendering action too;
+            // collapse + lock it shut while a review is pending, same ruling
+            // as the table above.
+            locked={pendingOrderChange}
           />
         </div>
       </div>{/* /pane-col */}

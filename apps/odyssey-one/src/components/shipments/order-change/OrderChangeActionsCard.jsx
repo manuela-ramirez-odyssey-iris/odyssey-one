@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge, Button, FormField, HeaderStrip, Radio } from '@odyssey/ui'
 import { QuoteModal } from '../../detail/QuoteModal.jsx'
 
@@ -121,7 +121,7 @@ function ComparisonPanel({ heading, carrier, changed = {} }) {
   )
 }
 
-export default function OrderChangeActionsCard({ oc, onAction }) {
+export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
   const { prior, newOption } = oc
 
   // LINX-14513 — "automatically it selects the new cost" when re-routing
@@ -135,6 +135,18 @@ export default function OrderChangeActionsCard({ oc, onAction }) {
 
   const amountFor = { prior: prior.apCost, new: newOption.apCost, quote: quoteAmount }
   const selectedAmount = amountFor[choice]
+
+  // S137 (designer/user, 2026-09-02) — "new Cost selected will update the
+  // base cost": report the effective selection upward on every change (and
+  // once on mount, so LINX-14513's auto-selected New Cost reaches the parent
+  // immediately, not just after a manual click) so OrderChangeReviewRoute can
+  // surface it in the New Tender List preview and the resolve payload. Deps
+  // are the two VALUES, not `onCostChange` itself, so a new inline callback
+  // from the parent on every render can't retrigger this.
+  useEffect(() => {
+    onCostChange?.({ choice, amount: selectedAmount })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [choice, selectedAmount])
 
   // New-side fields that differ from Prior (Figma 1793:5274) — drives the
   // purple label+badge highlight in ComparisonPanel. Prior is always gray.

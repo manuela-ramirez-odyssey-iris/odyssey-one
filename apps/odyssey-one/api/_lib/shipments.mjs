@@ -294,6 +294,32 @@ export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) 
   }
 }
 
+// S137/Jana ruling (2026-09-02): on Review Order Change, the planner's cost
+// pick ("the new cost selected will update the base cost") has to land on
+// the carrier's actual tender row, not just the resolution record below — or
+// the Tender tab keeps showing the pre-change rate after the review closes.
+// rate_amount is the column; option.rateAmount is the SAME figure inside the
+// JSONB blob sellShipmentDetail actually reads back into shippingOptionList
+// on the next fetch (buildTendersQuery above reads `tenders.option`, not the
+// column) — mapRoutingOption's `rate` field
+// (mapSellShipmentOutToDetail.ts ~line 344) is driven by option.rateAmount,
+// so jsonb_set keeps that one field in sync instead of rewriting the blob.
+//
+// Addressed by (shipment_sell_id, scac), not rank: rank is the carrier's
+// slot in THIS routing pass and is unstable across a re-route (buildTender
+// UpdateQuery's own comment above), but scac is who the whole review is
+// about. ponytail: a shipment could in principle carry more than one tender
+// row for the same scac (re-tender edge case) — no WHERE clause narrows
+// further than scac, so all of that carrier's rows get the new cost rather
+// than picking one arbitrarily.
+export function buildOrderChangeCostQuery(sellShipment, scac, amount) {
+  return {
+    text: `UPDATE tenders SET rate_amount = $1, option = jsonb_set(option, '{rateAmount}', $2::jsonb)
+           WHERE shipment_sell_id = $3 AND scac = $4`,
+    values: [amount, JSON.stringify(amount), sellShipment, scac],
+  }
+}
+
 export async function resolveOrderChange({ params, body, db }) {
   const action = body?.action
   const outcomeFor = OC_OUTCOMES[action]
@@ -301,10 +327,20 @@ export async function resolveOrderChange({ params, body, db }) {
     const e = new Error(`Unknown order-change action: ${action ?? '(none)'}`); e.status = 400; throw e
   }
   const outcome = outcomeFor(body?.priorTenderStatus)
-  const resolution = { action, cost: body?.cost ?? null, resolvedAt: new Date().toISOString() }
+  const cost = body?.cost ?? null
+  const resolution = { action, cost, resolvedAt: new Date().toISOString() }
   const { rowCount } = await db.query(buildOrderChangeResolveQuery(params[0], outcome, resolution))
   if (rowCount === 0) {
     const e = new Error(`No shipment: ${params[0]}`); e.status = 404; throw e
+  }
+  // Cancel drops the tender — there's no carrier left to apply a cost to, so
+  // only retender/bypass (which keep a carrier) write the tender-row update.
+  // ponytail: two sequential queries, no transaction — the surrounding code
+  // has no transaction helper (db.query is used bare everywhere in this
+  // file) and a tender update matching zero rows is expected, not an error,
+  // so there's nothing here that needs atomicity with the resolution write.
+  if ((action === 'retender' || action === 'bypass') && typeof cost?.amount === 'number' && body?.priorScac) {
+    await db.query(buildOrderChangeCostQuery(params[0], body.priorScac, cost.amount))
   }
   return { success: true }
 }

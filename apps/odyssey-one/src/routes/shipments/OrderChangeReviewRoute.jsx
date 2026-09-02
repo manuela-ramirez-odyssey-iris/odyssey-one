@@ -6,8 +6,6 @@ import AppShell from '../../components/layout/AppShell'
 import OrderChangeActionsCard from '../../components/shipments/order-change/OrderChangeActionsCard'
 import OrderChangeTenderLists from '../../components/shipments/order-change/OrderChangeTenderLists'
 import OrderChangeTenderDetails from '../../components/shipments/order-change/OrderChangeTenderDetails'
-import OrderChangeHazmat from '../../components/shipments/order-change/OrderChangeHazmat'
-import ViewTenderModal from '../../components/shipments/order-change/ViewTenderModal.jsx'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import { fmtDollar } from '../../utils/money'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
@@ -147,11 +145,14 @@ export default function OrderChangeReviewRoute() {
   // card's two buttons AND the header's Cancel tender, and nothing can reach
   // the mutation unconfirmed.
   const [pending, setPending] = useState(null)
-  // "View Tender" (LINX-14509 — the planner may VIEW tender information while
-  // the review is pending, but perform no tender actions). Deck p3 puts the
-  // button beside the New Tender List; it opens a read-only modal rather than
-  // navigating, so the cost selection made on this screen survives.
-  const [tenderOpen, setTenderOpen] = useState(false)
+  // S137 (designer/user, 2026-09-02) — "new Cost selected will update the
+  // base cost": the cost OrderChangeActionsCard's Select Cost radios landed
+  // on is the cost the prior carrier will actually be tendered at, so it's
+  // lifted here to reach the New Tender List preview (OrderChangeTenderLists,
+  // below) and the resolve payload. Reported by the card via `onCostChange`
+  // rather than owned here — smallest diff, the card keeps its own
+  // choice/quoteAmount state.
+  const [selectedCost, setSelectedCost] = useState(null)
 
   function finish(action, cost) {
     setPending({ action, cost })
@@ -166,6 +167,10 @@ export default function OrderChangeReviewRoute() {
         sellShipment,
         action,
         priorTenderStatus: oc?.prior?.tenderStatus ?? null,
+        // S137 — so the server can address the right carrier on resolution;
+        // a separate agent extends the endpoint + ResolveOrderChangeInput to
+        // consume it.
+        priorScac: oc?.prior?.scac,
         cost,
       },
       {
@@ -215,15 +220,6 @@ export default function OrderChangeReviewRoute() {
         ) : (
           <div className="order-change__content">
             <PageHeader title={headerTitle}>
-              {/* Figma shows a bordered, non-primary action here ("outline"
-                  in the mock's visual language). Button.jsx's own `outline`
-                  variant is documented as dark-surface-only (white text,
-                  invisible on this page's light background) — `secondary` is
-                  the light-surface bordered variant its own doc names for
-                  this exact case, so that's what's used here. */}
-              <Button variant="secondary" onClick={() => setTenderOpen(true)}>
-                View Tender
-              </Button>
               <Button variant="error" onClick={() => finish('cancel', null)} disabled={resolve.isPending}>
                 Cancel Tender
               </Button>
@@ -235,20 +231,12 @@ export default function OrderChangeReviewRoute() {
               </Alert>
             )}
 
-            <OrderChangeActionsCard oc={oc} onAction={finish} />
-            <OrderChangeTenderLists oc={oc} />
+            <OrderChangeActionsCard oc={oc} onAction={finish} onCostChange={setSelectedCost} />
+            <OrderChangeTenderLists oc={oc} selectedCost={selectedCost} />
 
             <div className="order-change__divider text-label-sm-medium">Additional Changes Preview</div>
 
             <OrderChangeTenderDetails oc={oc} />
-            <OrderChangeHazmat oc={oc} />
-
-            {tenderOpen && (
-              <ViewTenderModal
-                options={detail?.routingData?.options ?? []}
-                onClose={() => setTenderOpen(false)}
-              />
-            )}
 
             {pending && (
               <ConfirmDialog

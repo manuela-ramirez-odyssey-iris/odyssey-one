@@ -153,7 +153,17 @@ describe('OrderChangeReviewRoute', () => {
     expect(await screen.findByRole('button', { name: 'Cancel Tender' })).toBeTruthy()
   })
 
-  test('Cancel tender calls the mutation with action cancel, cost null, and the prior tender status, then leaves the review screen', async () => {
+  // S137 (designer: "remove view tender button, we don't need it") —
+  // LINX-14509's view-only allowance stays true (nothing here blocks looking
+  // up tender info elsewhere), the button and its modal are just gone.
+  test('does not render a View Tender button', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+    await screen.findByRole('button', { name: 'Cancel Tender' })
+    expect(screen.queryByRole('button', { name: 'View Tender' })).toBeNull()
+  })
+
+  test('Cancel tender calls the mutation with action cancel, cost null, the prior tender status and SCAC, then leaves the review screen', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute()
 
@@ -164,10 +174,26 @@ describe('OrderChangeReviewRoute', () => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
         action: 'cancel',
         priorTenderStatus: 'Accepted',
+        priorScac: 'ODFL',
         cost: null,
       })
     })
     expect(await screen.findByText('shipments list')).toBeTruthy()
+  })
+
+  // S137 — the server-side agent extending ResolveOrderChangeInput needs the
+  // prior carrier's SCAC to address the right carrier on resolution; this
+  // route's only job is to send it.
+  test('the resolve payload always carries priorScac off oc.prior.scac', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
+    confirmAction('Re Tender')
+
+    await waitFor(() => {
+      expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, expect.objectContaining({ priorScac: 'ODFL' }))
+    })
   })
 
   test('a shipment with orderChange: null renders the empty state instead of crashing', async () => {
@@ -206,6 +232,7 @@ describe('OrderChangeReviewRoute', () => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
         action: 'retender',
         priorTenderStatus: 'Accepted',
+        priorScac: 'ODFL',
         cost: { choice: 'new', amount: 2950 },
       })
     })
@@ -223,6 +250,7 @@ describe('OrderChangeReviewRoute', () => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
         action: 'bypass',
         priorTenderStatus: 'Accepted',
+        priorScac: 'ODFL',
         cost: { choice: 'prior', amount: 2790 },
       })
     })
@@ -239,6 +267,7 @@ describe('OrderChangeReviewRoute', () => {
       expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, {
         action: 'retender',
         priorTenderStatus: 'Accepted',
+        priorScac: 'ODFL',
         cost: { choice: 'prior', amount: 2790 },
       })
     })
@@ -360,30 +389,6 @@ describe('OrderChangeReviewRoute — action confirmations', () => {
     expect(dialog.getByRole('button', { name: 'No' })).toBeTruthy()
     expect(dialog.queryByRole('button', { name: 'Cancel' })).toBeNull()
     expect(dialog.getByText(/returns to Tender Review/)).toBeTruthy()
-  })
-})
-
-// S135 — "View Tender" (LINX-14509: view tender information during the
-// review, but no tender actions). A modal, so the cost selection already made
-// on this screen survives looking it up.
-describe('OrderChangeReviewRoute — View Tender', () => {
-  test('opens the live tender options in a modal, and nothing resolves', async () => {
-    getSellShipmentDetail.mockResolvedValue({
-      ...ORDER_CHANGE_DETAIL,
-      routingData: { options: [{
-        rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'LTL',
-        cost: '$1,901.56', status: 'Sent',
-        pickupDateTime: '06/03/2026 16:30 CDT', deliveryDateTime: '06/04/2026 16:30 CDT',
-      }] },
-    })
-    renderRoute()
-
-    fireEvent.click(await screen.findByRole('button', { name: 'View Tender' }))
-    const dialog = within(screen.getByRole('dialog'))
-    expect(dialog.getByRole('cell', { name: 'Old Dominion' })).toBeTruthy()
-    expect(resolveOrderChange).not.toHaveBeenCalled()
-    // Still on the review screen behind the modal.
-    expect(screen.getByRole('button', { name: 'Cancel Tender' })).toBeTruthy()
   })
 })
 
