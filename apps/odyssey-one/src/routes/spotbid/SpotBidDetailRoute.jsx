@@ -116,6 +116,13 @@ function BreadcrumbRow({ quoteId, onHome }) {
 function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onToggleCharges }) {
   const prefill = bid.state === 'submitted' ? bid : null
   const [linehaul, setLinehaul] = useState(() => (prefill?.linehaul != null ? String(prefill.linehaul) : ''))
+  // SPB-65 (Kathleen, 2026-08-24): base rate > 0 required to submit; message
+  // only after the carrier has touched the field (blur) — not on first paint
+  // of a blank form. Blur fires naturally as focus leaves the field toward
+  // the Submit button, so this also covers an "attempted submit" moment even
+  // though the button itself is `disabled` (a disabled button never fires
+  // onClick, so it can't drive this on its own).
+  const [linehaulTouched, setLinehaulTouched] = useState(false)
   const [chargeValues, setChargeValues] = useState(() => {
     const init = {}
     for (const name of CHARGE_NAMES) {
@@ -126,6 +133,9 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
   })
 
   const linehaulNum = Number(linehaul) || 0
+  const linehaulValid = Number(linehaul) > 0
+  const linehaulError =
+    linehaulTouched && !linehaulValid ? 'Enter a base rate greater than zero.' : undefined
   const { amount: fuel, uncalculable: fuelUncalculable } = fuelStateFor(quote)
   const subtotal = linehaulNum + fuel
 
@@ -159,6 +169,8 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
           format="decimal"
           value={linehaul}
           onChange={(e) => setLinehaul(e.target.value)}
+          onBlur={() => setLinehaulTouched(true)}
+          error={linehaulError}
           trailingSelect={{ label: quote.currency, locked: true }}
         />
         <FormField
@@ -201,8 +213,12 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
         <Button variant="secondary" onClick={onDecline}>Decline</Button>
         <Button
           variant="primary"
-          disabled={!(linehaulNum > 0)}
-          onClick={() => onSubmit({ linehaul: linehaulNum, currency: quote.currency, chargeAmounts })}
+          disabled={!linehaulValid}
+          onClick={() => {
+            setLinehaulTouched(true)
+            if (!linehaulValid) return
+            onSubmit({ linehaul: linehaulNum, currency: quote.currency, chargeAmounts })
+          }}
         >
           Submit
         </Button>

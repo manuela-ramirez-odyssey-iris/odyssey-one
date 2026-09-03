@@ -184,6 +184,19 @@ describe('submitBid', () => {
     const attempt = submitBid(SHIPMENT_ID, 'ODFL', bid, now + durationMs + 1)
     expect(attempt).toEqual(opened)
   })
+
+  // SPB-65: root-cause guard at the store boundary — CarrierBid.jsx already
+  // disables Submit on an invalid base rate, but the store must not persist
+  // one either, in case a caller (e.g. a future integration) skips the UI.
+  it('is a no-op when linehaul is zero, negative, or missing', () => {
+    const opened = openQuote()
+    for (const linehaul of [0, -5, undefined]) {
+      const bid = { linehaul, fuel: 200, accessorials: [], total: 2200, status: 'bid' }
+      const attempt = submitBid(SHIPMENT_ID, 'ODFL', bid, now + 1000)
+      expect(attempt.carriers.find((c) => c.scac === 'ODFL').bid).toBeUndefined()
+      expect(attempt).toEqual(opened)
+    }
+  })
 })
 
 describe('declineBid', () => {

@@ -97,6 +97,11 @@ export function sendRFQ(shipmentId, nowMs) {
 export function submitBid(shipmentId, scac, bid, nowMs) {
   const quote = read(shipmentId)
   if (!quote || quote.status !== 'open' || nowMs > quote.closeAt) return quote ?? null
+  // SPB-65: base rate > 0 required — CarrierBid.jsx already gates the Submit
+  // button on this, but the store is the actual persistence boundary (same
+  // convention as carrierQuotes.js's submitBid), so a zero/negative/NaN
+  // linehaul is a no-op here too rather than trusting the UI alone.
+  if (!(bid?.linehaul > 0)) return quote
 
   return write({
     ...quote,
