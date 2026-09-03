@@ -7,6 +7,32 @@ describe('renderText', () => {
   })
 })
 
+describe('blocks.factGrid', () => {
+  it('defaults to 8px top padding, and padTop:0 removes it (Distance row)', () => {
+    const withTop = blocks.factGrid([['Distance', '727 mi']], { columns: 1 })
+    const flush = blocks.factGrid([['Distance', '727 mi']], { columns: 1, padTop: 0 })
+    expect(withTop).toContain('padding:8px 10px 8px 10px;')
+    expect(flush).toContain('padding:0px 10px 8px 10px;')
+  })
+})
+
+describe('blocks.columnStack', () => {
+  it('lays out two groups as two <td> columns, each pair stacked label-over-value', () => {
+    const out = blocks.columnStack([
+      [['Shipper', 'Acme'], ['Carrier', 'CCNI']],
+      [['Quote#', '14903'], ['Equipment', 'TL']],
+    ])
+    expect(out.match(/<td width="50%"/g)).toHaveLength(2)
+    expect(out.indexOf('Shipper')).toBeLessThan(out.indexOf('Carrier'))
+    expect(out.indexOf('Carrier')).toBeLessThan(out.indexOf('Quote#'))
+  })
+  it('drops an empty group so the remaining one renders full width', () => {
+    const out = blocks.columnStack([[['Reference#', 'C1']], []])
+    expect(out).toContain('<td width="100%"')
+    expect(out).not.toContain('width="50%"')
+  })
+})
+
 describe('renderHtml', () => {
   const html = renderHtml({
     title: 'Quote Request 14903 Awarded',

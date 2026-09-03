@@ -25,7 +25,7 @@ const BASE_CTX = {
   distance: '727 mi',
   pickup: '09/20/2026',
   deliver: '09/25/2026',
-  stops: [{ label: '1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2026' }],
+  stops: [{ label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2026' }],
   offerExpires: '09/08/2026 11:44 EST',
   sender: PLANNING_GROUP_MAILBOX,
   plannerGroup: PLANNING_GROUP_MAILBOX,

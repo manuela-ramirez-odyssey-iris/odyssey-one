@@ -28,7 +28,7 @@ describe('buildEmailContext', () => {
     expect(ctx.from.name).toBe('Acme Chemical Plant 1')
     expect(ctx.from.lines).toEqual(['12345 N. Tryon', 'Charlotte NC 28217 US'])
     expect(ctx.to.name).toBe('Acme Client Plant2')
-    expect(ctx.stops).toEqual([{ label: '1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' }])
+    expect(ctx.stops).toEqual([{ label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' }])
   })
   it('formats equipment, weight, hazmat, distance, dates, expiry', () => {
     expect(ctx.equipment).toBe('TL')

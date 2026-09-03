@@ -7,7 +7,7 @@ const ctx = {
   to: { name: 'Acme Client Plant2', lines: ['123 Main St', 'New Orleans LA 70114 US'] },
   equipment: 'TL - Truck Load', weight: '10,500 lb', hazmat: 'No', distance: '727 mi',
   pickup: '09/20/2023', deliver: '09/25/2023',
-  stops: [{ label: '1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' }],
+  stops: [{ label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' }],
   offerExpires: '09/08/2023 11:44 EST',
   sender: 'planning@odysseylogistics.com', plannerGroup: 'planning@odysseylogistics.com',
   appOrigin: 'https://odyssey-one-stage.vercel.app',
@@ -27,9 +27,11 @@ describe('CE-1 rfqEmail', () => {
     expect(m.text).toContain('Quote#: 14903')
     expect(m.text).toContain('Distance: 727 mi')
     expect(m.text).toContain('Stop Offs:')
+    expect(m.text).toContain('S1 - Spartanburg SC 29301 US')
     expect(m.text).toContain('https://odyssey-one-stage.vercel.app/spot-bid/tok-ccni')
     expect(m.text).not.toMatch(/Order#|Load#|Reference#/)
     expect(m.html).toContain('href="https://odyssey-one-stage.vercel.app/spot-bid/tok-ccni"')
+    expect(m.html).toContain('S1 - Spartanburg SC 29301 US')
     expect(m.html).not.toMatch(/Reference#/)
   })
 })

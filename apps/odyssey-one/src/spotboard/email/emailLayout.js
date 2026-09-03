@@ -51,11 +51,11 @@ export const blocks = {
   // `align` 'center' (default) or 'left', label above value.
   // `gapBottom` trims the trailing padding when this grid is immediately
   // followed by another factGrid, so the pair reads as one stacked block.
-  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16 } = {}) => {
+  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16, padTop = 8 } = {}) => {
     const clean = pairs.filter(([, v]) => v != null && v !== '')
     const pct = Math.floor(100 / columns)
     const a = align === 'left' ? 'left' : 'center'
-    const fact = ([k, v], span = 1) => `<td width="${span > 1 ? pct * span : pct}%" ${span > 1 ? `colspan="${span}" ` : ''}align="${a}" valign="top" style="${FONT}text-align:${a};padding:8px 10px;">` +
+    const fact = ([k, v], span = 1) => `<td width="${span > 1 ? pct * span : pct}%" ${span > 1 ? `colspan="${span}" ` : ''}align="${a}" valign="top" style="${FONT}text-align:${a};padding:${padTop}px 10px 8px 10px;">` +
       `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(k)}</div>` +
       `<div style="font-size:15px;color:${C.text};">${esc(v)}</div></td>`
     const rows = []
@@ -66,6 +66,24 @@ export const blocks = {
     }
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
+      `padding:0 0 ${gapBottom}px 0;`))
+  },
+  // groups: [[label,value], …][] — one array of pairs per column, each
+  // column stacked vertically (label above value, pair after pair) rather
+  // than laid out as a row. Columns split the available width evenly; a
+  // group left empty (e.g. no bid data yet) is dropped so a lone remaining
+  // group renders full width instead of half-empty.
+  columnStack: (groups, { gapBottom = 16 } = {}) => {
+    const active = groups.map((g) => g.filter(([, v]) => v != null && v !== '')).filter((g) => g.length)
+    if (!active.length) return ''
+    const pct = Math.floor(100 / active.length)
+    const stackCell = (pairs) => `<td width="${pct}%" align="left" valign="top" style="${FONT}text-align:left;padding:8px 10px;">` +
+      pairs.map(([k, v], idx) => `<div style="padding:0 0 ${idx === pairs.length - 1 ? 0 : 8}px 0;">` +
+        `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(k)}</div>` +
+        `<div style="font-size:15px;color:${C.text};">${esc(v)}</div></div>`).join('') +
+      `</td>`
+    return row(cell(
+      `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${row(active.map(stackCell).join(''))}</table>`,
       `padding:0 0 ${gapBottom}px 0;`))
   },
   // Origin → destination as a centered, tinted band read at a glance.

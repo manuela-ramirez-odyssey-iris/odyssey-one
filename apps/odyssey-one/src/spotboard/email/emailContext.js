@@ -70,7 +70,7 @@ export function buildEmailContext({ shipmentDetails, shipment, quote, benchmark,
     pickup: fmtDate(first?.scheduledDateTime),
     deliver: fmtDate(last?.scheduledDateTime),
     stops: middle.map((s, i) => ({
-      label: `${i + 1} - ${cityLine(s)}`,
+      label: `S${i + 1} - ${cityLine(s)}`,
       date: `${s.type === 'pickup' ? 'Pickup' : 'Drop-off'}: ${fmtDate(s.scheduledDateTime)}`,
     })),
     offerExpires: fmtStamp(quote?.closeAt),

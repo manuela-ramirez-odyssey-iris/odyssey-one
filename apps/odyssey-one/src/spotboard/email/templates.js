@@ -23,9 +23,10 @@ function partyText(ctx, { withReference }) {
   ]
 }
 // wide: long-value pairs (Reference#, Order#, Lowest Cost Carrier, Shipper)
-// stacked first as a 2-column row; short: brief pairs (Quote#, Quoted
-// Amount) below as a 4-column row — split so a long value never wraps in a
-// cramped narrow cell.
+// stacked in the left column; short: brief pairs (Quote#, Quoted Amount)
+// stacked in the right column — a real two-column layout (via
+// blocks.columnStack), not two stacked rows, so a long value never wraps
+// in a cramped narrow cell.
 // route: whether to show the origin→destination band above the addresses
 // (CE-1/CE-2 — a single lane is worth reading at a glance; the six planner
 // alerts skip it, they're an exception report, not a lane summary).
@@ -39,8 +40,7 @@ function partyBlocks(ctx, { withReference, wide = [], short = [], route = false,
     ['Shipper', ctx.shipper],
   ].filter(Boolean)
   return [
-    blocks.factGrid(wideFields, { columns: 2, align: 'left', gapBottom: short.length ? 4 : 16 }),
-    short.length ? blocks.factGrid(short, { columns: 4, align: 'left' }) : null,
+    blocks.columnStack([wideFields, short]),
     route ? blocks.route(ctx.from, ctx.to) : null,
     blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to), foot),
   ].filter(Boolean)
@@ -83,20 +83,17 @@ export function rfqEmail(ctx, carrier) {
       blocks.eyebrow('Request for Quote'),
       blocks.headline(`${carrier.scac} — Quote ${ctx.quoteId}`),
       blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
-      blocks.factGrid([
-        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
-      ], { columns: 2, align: 'left', gapBottom: 4 }),
-      blocks.factGrid([
-        ['Quote#', ctx.quoteId], ['Equipment', ctx.equipment],
-        ['Weight', ctx.weight], ['Hazmat', ctx.hazmat],
-      ], { columns: 4, align: 'left' }),
+      blocks.columnStack([
+        [['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`]],
+        [['Quote#', ctx.quoteId], ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat]],
+      ]),
       blocks.route(ctx.from, ctx.to),
       blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to),
         ['Pickup', ctx.pickup, 'Deliver', ctx.deliver], { gapBottom: 4 }),
       ctx.stops?.length
         ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date]), { gapBottom: 4 })
         : null,
-      ctx.distance ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1 }) : null,
+      ctx.distance ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1, padTop: 0 }) : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
     ].filter(Boolean),
