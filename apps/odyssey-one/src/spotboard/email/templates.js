@@ -94,7 +94,7 @@ export function rfqEmail(ctx, carrier) {
         ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1, padTop: 0, gapBottom: ctx.stops?.length ? 4 : 16 })
         : null,
       ctx.stops?.length
-        ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date]), { columns: 1, topRule: true })
+        ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date]), { columns: 1, topRule: true, bottomRule: true })
         : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),

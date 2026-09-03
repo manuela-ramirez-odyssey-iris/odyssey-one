@@ -38,7 +38,7 @@ describe('CE-1 rfqEmail', () => {
     expect(m.html.indexOf('Deliver')).toBeLessThan(m.html.indexOf('Distance'))
     expect(m.html.indexOf('Distance')).toBeLessThan(m.html.indexOf('Stop - Spartanburg SC 29301 US'))
   })
-  it('sets off the whole stops group with one hairline above it, none between stops', () => {
+  it('sets off the whole stops group with a hairline above AND below it, none between stops', () => {
     const multi = rfqEmail({ ...ctx, stops: [
       { label: 'Stop - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' },
       { label: 'Stop - Atlanta GA 30301 US', date: 'Drop-off: 09/23/2023' },
@@ -47,8 +47,11 @@ describe('CE-1 rfqEmail', () => {
     // one rule above the stops group, plus the footer's own border-top — never
     // one per stop, regardless of how many stops there are.
     expect(multi.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(2)
+    // one rule below the stops group closes the bounded section.
+    expect(multi.html.match(/border-bottom:1px solid #E4E6EB;/g)).toHaveLength(1)
     // single stop: still gets its own group rule, plus the footer's border-top
     expect(m.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(2)
+    expect(m.html.match(/border-bottom:1px solid #E4E6EB;/g)).toHaveLength(1)
   })
 })
 

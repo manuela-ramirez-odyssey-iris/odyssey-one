@@ -23,6 +23,14 @@ describe('blocks.factGrid', () => {
     const noRule = blocks.factGrid([['S1 - Spartanburg SC', 'Drop-off: 09/22']], { columns: 1 })
     expect(noRule).not.toContain('border-top')
   })
+  it('bottomRule adds a matching hairline border-bottom, independent of topRule', () => {
+    const both = blocks.factGrid([['S1 - Spartanburg SC', 'Drop-off: 09/22']], { columns: 1, topRule: true, bottomRule: true })
+    expect(both.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(1)
+    expect(both.match(/border-bottom:1px solid #E4E6EB;/g)).toHaveLength(1)
+    const bottomOnly = blocks.factGrid([['S1 - Spartanburg SC', 'Drop-off: 09/22']], { columns: 1, bottomRule: true })
+    expect(bottomOnly).not.toContain('border-top')
+    expect(bottomOnly).toContain('border-bottom:1px solid #E4E6EB;')
+  })
 })
 
 describe('blocks.columnStack', () => {
@@ -70,6 +78,9 @@ describe('renderHtml', () => {
     expect(html).toContain('href="https://example.test/q/1"')
     expect(html).toContain('Do not process any bids.')
     expect(html).toContain('Odyssey Logistics')
+  })
+  it('button clears 16px above (room under a preceding hairline) and 20px below', () => {
+    expect(blocks.button('Open quote', 'https://example.test/q/1')).toContain('padding:16px 0 20px 0;')
   })
   it('escapes HTML in values', () => {
     const out = renderHtml({ title: 'x', blocks: [blocks.paragraph('<b>hi</b> & bye')] })

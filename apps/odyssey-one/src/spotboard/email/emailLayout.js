@@ -51,12 +51,14 @@ export const blocks = {
   // `align` 'center' (default) or 'left', label above value.
   // `gapBottom` trims the trailing padding when this grid is immediately
   // followed by another factGrid, so the pair reads as one stacked block.
-  // `topRule`: a single hairline border-top (THEME.color.border) above the
-  // whole grid — same weight as addressPair's vertical divider — with extra
-  // top padding for breathing room, so the grid reads as one delimited
-  // section relative to whatever precedes it (e.g. stop-offs under Distance).
+  // `topRule`/`bottomRule`: a hairline border (THEME.color.border) above
+  // and/or below the whole grid — same weight as addressPair's vertical
+  // divider — with extra top padding when topRule is set, so the grid reads
+  // as one delimited section relative to whatever precedes/follows it (e.g.
+  // stop-offs bounded above and below). `gapBottom`'s default (16) already
+  // mirrors the top rule's 16px, so a bottomRule sits clear of the last row.
   // Never between individual rows — that reads as N separators, not one.
-  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16, padTop = 8, topRule = false } = {}) => {
+  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16, padTop = 8, topRule = false, bottomRule = false } = {}) => {
     const clean = pairs.filter(([, v]) => v != null && v !== '')
     const pct = Math.floor(100 / columns)
     const a = align === 'left' ? 'left' : 'center'
@@ -69,7 +71,7 @@ export const blocks = {
       const short = columns - group.length
       rows.push(row(group.map((p, idx) => fact(p, idx === group.length - 1 ? 1 + short : 1)).join('')))
     }
-    const ruleStyle = topRule ? `border-top:1px solid ${C.border};` : ''
+    const ruleStyle = `${topRule ? `border-top:1px solid ${C.border};` : ''}${bottomRule ? `border-bottom:1px solid ${C.border};` : ''}`
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
       `${ruleStyle}padding:${topRule ? 16 : 0}px 0 ${gapBottom}px 0;`))
@@ -145,7 +147,7 @@ export const blocks = {
     )) +
     `</table>` +
     `<div style="${FONT}font-size:12px;color:${C.textTertiary};text-align:center;padding-top:10px;">If the button does not work, copy this link: <a href="${esc(href)}" style="color:${C.link};">${esc(href)}</a></div>`,
-    'padding:8px 0 20px 0;')),
+    'padding:16px 0 20px 0;')),
   // tone: 'warning' | 'error' | 'success' | 'info'
   // ponytail: nested table built directly (not via string surgery on
   // headline/paragraph output) — a naive replace('<tr>'/</tr>') on a
