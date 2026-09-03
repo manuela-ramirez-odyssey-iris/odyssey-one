@@ -11,6 +11,10 @@ describe('SpotEmailsRoute', () => {
     expect(screen.getByRole('heading', { name: /Overflow email set/i })).toBeTruthy()
     expect(screen.getByText(/reference/i)).toBeTruthy()
   })
+  it('labels the scenario nav with a visible heading', () => {
+    render(<SpotEmailsRoute />)
+    expect(screen.getByRole('heading', { name: 'Scenarios' })).toBeTruthy()
+  })
   it('offers every scenario and previews the first email in a sandboxed iframe', () => {
     render(<SpotEmailsRoute />)
     expect(screen.getByRole('button', { name: /Closed — out of tolerance/ })).toBeTruthy()

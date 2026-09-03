@@ -33,7 +33,8 @@ export default function SpotEmailsRoute() {
       </header>
 
       <div className="spot-emails__body">
-        <nav className="spot-emails__scenarios" aria-label="Scenarios">
+        <nav className="spot-emails__scenarios" aria-labelledby="spot-emails-scenarios-title">
+          <h2 id="spot-emails-scenarios-title" className="spot-emails__scenarios-title">Scenarios</h2>
           {SCENARIOS.map((s) => (
             <button
               key={s.key}

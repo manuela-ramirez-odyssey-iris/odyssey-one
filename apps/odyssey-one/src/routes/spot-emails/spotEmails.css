@@ -4,6 +4,7 @@
 .spot-emails__lede { margin: 0; max-width: 68ch; color: var(--text-secondary); font-size: var(--font-size-sm); line-height: 1.5; }
 .spot-emails__body { display: grid; grid-template-columns: minmax(190px, 220px) 1fr; gap: var(--spacing-5); align-items: start; }
 .spot-emails__scenarios { display: flex; flex-direction: column; gap: var(--spacing-1); position: sticky; top: var(--spacing-4); }
+.spot-emails__scenarios-title { margin: 0 0 var(--spacing-2) 0; text-transform: uppercase; letter-spacing: var(--letter-spacing-wide); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--text-tertiary); }
 .spot-emails__scenario { text-align: left; padding: var(--spacing-2) var(--spacing-3); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); font: inherit; font-size: var(--font-size-sm); color: var(--text-secondary); cursor: pointer; }
 .spot-emails__scenario:hover { background: var(--bg-secondary); }
 .spot-emails__scenario--current { background: var(--bg-secondary); border-color: var(--border-subtle); color: var(--text-primary); font-weight: 600; }
@@ -23,4 +24,4 @@
 .spot-emails__frame { width: 100%; height: 760px; border: 1px solid var(--border-subtle); background: var(--bg-primary); }
 /* no --font-mono token exists yet (same fallback used in styles/panes/history.css) */
 .spot-emails__text { margin: 0; padding: var(--spacing-3); border: 1px solid var(--border-subtle); background: var(--bg-primary); font-family: var(--font-mono, "SF Mono", "Fira Code", "Cascadia Code", monospace); font-size: var(--font-size-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 900px) { .spot-emails__body { grid-template-columns: 1fr; } .spot-emails__scenarios { position: static; flex-direction: row; flex-wrap: wrap; } }
+@media (max-width: 900px) { .spot-emails__body { grid-template-columns: 1fr; } .spot-emails__scenarios { position: static; flex-direction: row; flex-wrap: wrap; } .spot-emails__scenarios-title { width: 100%; } }
