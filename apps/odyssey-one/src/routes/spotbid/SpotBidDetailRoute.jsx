@@ -116,7 +116,6 @@ function BreadcrumbRow({ quoteId, onHome }) {
 function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onToggleCharges }) {
   const prefill = bid.state === 'submitted' ? bid : null
   const [linehaul, setLinehaul] = useState(() => (prefill?.linehaul != null ? String(prefill.linehaul) : ''))
-  const [currency, setCurrency] = useState(() => prefill?.currency ?? 'USD')
   const [chargeValues, setChargeValues] = useState(() => {
     const init = {}
     for (const name of CHARGE_NAMES) {
@@ -146,16 +145,21 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
       <div className="spotbid-qe__label text-label-sm-medium">Base Charge</div>
       <div className="spotbid-qe__grid">
         {/* Linehaul + Currency merged into one field (FormField trailingSelect
-            edge, packages/ui/src/FormField.jsx ~150-175) — click the currency
-            button to toggle USD/CAD; only two values exist, so a cycle is the
-            smallest working control (no anchored-menu plumbing needed). */}
+            edge, packages/ui/src/FormField.jsx ~150-175). SPB-66 (Kathleen,
+            2026-08-24): ONE currency per bid, chosen by the PLANNER in Quote
+            Setup — the carrier only sees which currency they're bidding in,
+            they cannot change it. `locked: true` is FieldSelect's own
+            non-interactive affordance (packages/ui/src/FieldSelect.jsx) —
+            static text, no chevron, no onClick — so this needs no FormField
+            edit. quote.currency is always seeded (carrierQuotes.js toQuote),
+            so the display is never blank. */}
         <FormField
           id="qe-linehaul"
           label="Linehaul"
           format="decimal"
           value={linehaul}
           onChange={(e) => setLinehaul(e.target.value)}
-          trailingSelect={{ label: currency, onClick: () => setCurrency((c) => (c === 'USD' ? 'CAD' : 'USD')) }}
+          trailingSelect={{ label: quote.currency, locked: true }}
         />
         <FormField
           id="qe-fuel"
@@ -198,7 +202,7 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
         <Button
           variant="primary"
           disabled={!(linehaulNum > 0)}
-          onClick={() => onSubmit({ linehaul: linehaulNum, currency, chargeAmounts })}
+          onClick={() => onSubmit({ linehaul: linehaulNum, currency: quote.currency, chargeAmounts })}
         >
           Submit
         </Button>

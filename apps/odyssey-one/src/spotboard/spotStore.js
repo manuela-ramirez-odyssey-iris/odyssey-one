@@ -53,7 +53,7 @@ export function getQuote(shipmentId) {
 
 export function saveDraft(
   shipmentId,
-  { listId, listName, durationMin, carriers, flexiblePickup, flexibleDelivery }
+  { listId, listName, durationMin, carriers, flexiblePickup, flexibleDelivery, currency }
 ) {
   const existing = read(shipmentId)
   if (existing && existing.status !== 'draft') return existing
@@ -72,6 +72,9 @@ export function saveDraft(
     carriers,
     flexiblePickup: flexiblePickup ?? false,
     flexibleDelivery: flexibleDelivery ?? false,
+    // SPB-66: ONE currency per bid, planner-chosen in Quote Setup. Carried
+    // forward on every mutation below via `{...quote, ...}` spreads.
+    currency: currency ?? 'USD',
   })
 }
 

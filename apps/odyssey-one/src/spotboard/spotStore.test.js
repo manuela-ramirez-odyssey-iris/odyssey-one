@@ -87,6 +87,19 @@ describe('saveDraft', () => {
     const attempt = saveDraft(SHIPMENT_ID, { ...draftInput, listName: 'Changed' })
     expect(attempt).toEqual(opened)
   })
+
+  // SPB-66 (Kathleen, 2026-08-24): ONE currency per bid, chosen by the
+  // planner in Quote Setup — persisted the same way as durationMin/flags,
+  // defaulting to USD when absent.
+  it('round-trips currency through getQuote, defaulting to USD when absent', () => {
+    const saved = saveDraft(SHIPMENT_ID, { ...draftInput, currency: 'CAD' })
+    expect(saved.currency).toBe('CAD')
+    expect(getQuote(SHIPMENT_ID).currency).toBe('CAD')
+
+    localStorage.clear()
+    const savedNoCurrency = saveDraft(SHIPMENT_ID, draftInput)
+    expect(savedNoCurrency.currency).toBe('USD')
+  })
 })
 
 describe('sendRFQ', () => {
@@ -101,6 +114,12 @@ describe('sendRFQ', () => {
 
   it('is a no-op when there is no draft to send', () => {
     expect(sendRFQ(SHIPMENT_ID, Date.now())).toBeNull()
+  })
+
+  it('carries the draft currency onto the opened quote, reaching the carrier-facing quote', () => {
+    saveDraft(SHIPMENT_ID, { ...draftInput, currency: 'CAD' })
+    const quote = sendRFQ(SHIPMENT_ID, Date.now())
+    expect(quote.currency).toBe('CAD')
   })
 
   it('is a no-op when already open', () => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Badge, Button, Checkbox, DurationPicker, ModalMedium, PillTab,
+  Badge, Button, Checkbox, Dropdown, DurationPicker, ModalMedium, PillTab,
   SubAccordion, TitleSubtitle,
 } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
@@ -46,6 +46,16 @@ const MODE_TABS = [{ key: MODE_ALL, label: 'All' }, ...MODES.map((m) => ({ key: 
 // Quote Duration default (user, 2026-08-19). Deliberately a flat constant —
 // no per-list default exists anymore (S128 dropped NAMED_LISTS entirely).
 const DEFAULT_DURATION_MIN = 30
+
+// SPB-66 (Kathleen, 2026-08-24): ONE currency selector per bid, USD or CAD,
+// chosen by the planner in Quote Setup — never a per-charge-line toggle.
+// Fixed two-value local list, so a Dropdown is the right control (project
+// rule: fetch/lazyload -> ComboBox, local list -> Dropdown).
+const DEFAULT_CURRENCY = 'USD'
+const CURRENCY_OPTIONS = [
+  { value: 'USD', label: 'USD' },
+  { value: 'CAD', label: 'CAD' },
+]
 
 // Rows built before the multi-list change carry no `listId` — they belong to
 // the quote's own single list, so attribute them to the first mode rather than
@@ -128,6 +138,7 @@ export default function SetupCarriers({
   const [durationMin, setDurationMin] = useState(quote?.durationMin ?? DEFAULT_DURATION_MIN)
   const [flexiblePickup, setFlexiblePickup] = useState(quote?.flexiblePickup ?? false)
   const [flexibleDelivery, setFlexibleDelivery] = useState(quote?.flexibleDelivery ?? false)
+  const [currency, setCurrency] = useState(quote?.currency ?? DEFAULT_CURRENCY)
   // SPB-69/73: OCM config gates WHICH checkbox(es) even appear, per shipment.
   const flexConfig = getFlexConfig(shipmentId)
   const [rows, setRows] = useState(quote?.carriers ?? [])
@@ -158,6 +169,7 @@ export default function SetupCarriers({
   const [draftDelivery, setDraftDelivery] = useState(generalDelivery)
   const [draftFlexible, setDraftFlexible] = useState(flexiblePickup)
   const [draftFlexibleDelivery, setDraftFlexibleDelivery] = useState(flexibleDelivery)
+  const [draftCurrency, setDraftCurrency] = useState(currency)
 
   // Build the overflow list in one pass off the shipment's own route guide +
   // dropped carriers (S128) — buildOverflowRows already stamps each row's
@@ -214,6 +226,7 @@ export default function SetupCarriers({
     setDraftDelivery(generalDelivery)
     setDraftFlexible(flexiblePickup)
     setDraftFlexibleDelivery(flexibleDelivery)
+    setDraftCurrency(currency)
     setSetupOpen(true)
   }
 
@@ -234,6 +247,7 @@ export default function SetupCarriers({
     setDurationMin(draftDuration)
     setFlexiblePickup(draftFlexible)
     setFlexibleDelivery(draftFlexibleDelivery)
+    setCurrency(draftCurrency)
     setGeneralPickup(draftPickup)
     setGeneralDelivery(draftDelivery)
     setRows((rs) =>
@@ -248,6 +262,7 @@ export default function SetupCarriers({
       durationMin: draftDuration,
       flexiblePickup: draftFlexible,
       flexibleDelivery: draftFlexibleDelivery,
+      currency: draftCurrency,
     })
     setSetupOpen(false)
   }
@@ -342,6 +357,7 @@ export default function SetupCarriers({
     carriers: rows,
     flexiblePickup,
     flexibleDelivery,
+    currency,
   })
 
   // Send RFQ moved INTO the sticky strip (user, 2026-08-24) — SpotBoardTab
@@ -525,12 +541,12 @@ export default function SetupCarriers({
             </>
           }
         >
-          {/* Row 1: Quote Duration (filled, see .setup-carriers__setup-grid
-              .duration-picker) + Flexible. Row 2: the two Planned dates, side
-              by side (user, round 2). Labeled "Planned Pickup"/"Planned
-              Delivery" (user, 2026-08-21 — dropped the "General" prefix to
-              match the table's own column headers; the modal context already
-              implies "applies to all carriers"). */}
+          {/* Grouped into 3 sections, each separated by a subtle rule (user,
+              2026-09-03): (1) Duration, (2) Planned dates + Flexible, (3)
+              Currency. Labeled "Planned Pickup"/"Planned Delivery" (user,
+              2026-08-21 — dropped the "General" prefix to match the table's
+              own column headers; the modal context already implies "applies
+              to all carriers"). */}
           <div className="setup-carriers__setup-grid">
             <DurationPicker
               id="setup-quote-duration"
@@ -539,6 +555,11 @@ export default function SetupCarriers({
               value={draftDuration}
               onChange={setDraftDuration}
             />
+          </div>
+
+          <hr className="setup-carriers__setup-divider" />
+
+          <div className="setup-carriers__setup-grid">
             {flexConfig.pickupDays != null && (
               <Checkbox
                 label={`Flexible pickup (±${flexConfig.pickupDays} days)`}
@@ -565,6 +586,22 @@ export default function SetupCarriers({
               value={draftDelivery}
               onChange={setDraftDelivery}
             />
+          </div>
+
+          <hr className="setup-carriers__setup-divider" />
+
+          <div className="setup-carriers__setup-grid">
+            <div className="setup-carriers__currency-field">
+              <label htmlFor="setup-currency" className="text-label-sm-medium setup-carriers__currency-label">
+                Currency
+              </label>
+              <Dropdown
+                id="setup-currency"
+                value={draftCurrency}
+                options={CURRENCY_OPTIONS}
+                onChange={setDraftCurrency}
+              />
+            </div>
           </div>
         </ModalMedium>,
         document.body

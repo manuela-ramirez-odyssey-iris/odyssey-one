@@ -199,6 +199,24 @@
   align-items: center;
 }
 
+/* Section rules between Duration / Planned dates+Flexible / Currency
+   (user, 2026-09-03) — same subtle border the toolbar row already uses. */
+.setup-carriers__setup-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--spacing-4) 0;
+}
+
+.setup-carriers__currency-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.setup-carriers__currency-label {
+  color: var(--text-secondary);
+}
+
 /* Send RFQ confirmation (ModalMedium) — carrier roll-call over the terms. */
 .setup-carriers__confirm {
   display: flex;

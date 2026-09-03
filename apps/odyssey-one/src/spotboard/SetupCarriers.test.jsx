@@ -753,7 +753,66 @@ describe('SetupCarriers', () => {
       durationMin: 40,
       flexiblePickup: true,
       flexibleDelivery: false,
+      currency: 'USD',
     })
+  })
+
+  // SPB-66 (Kathleen, 2026-08-24): ONE currency per bid, chosen by the
+  // planner in Quote Setup — USD by default, committed only on Apply.
+  it('Quote Setup currency defaults to USD, commits CAD via onTermsChange on Apply, and persists via Save Draft', () => {
+    const onTermsChange = vi.fn()
+    const onSaveDraft = vi.fn()
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={onSaveDraft}
+        onSendRFQ={() => {}}
+        onTermsChange={onTermsChange}
+      />
+    )
+    const dialog = openSetupModal()
+    expect(within(dialog).getByText('USD')).toBeTruthy()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /USD/ }))
+    fireEvent.click(within(screen.getByRole('menu')).getByText('CAD'))
+    applySetupModal()
+
+    expect(onTermsChange).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: 'CAD' })
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }))
+    expect(onSaveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: 'CAD' })
+    )
+  })
+
+  it('Cancel discards a currency change made in Quote Setup', () => {
+    const onSaveDraft = vi.fn()
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={onSaveDraft}
+        onSendRFQ={() => {}}
+      />
+    )
+    const dialog = openSetupModal()
+    fireEvent.click(within(dialog).getByRole('button', { name: /USD/ }))
+    fireEvent.click(within(screen.getByRole('menu')).getByText('CAD'))
+    cancelSetupModal()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }))
+    expect(onSaveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: 'USD' })
+    )
   })
 
   it('the LTL mode payload carries the "LTL" list — TL carries "TL"', () => {

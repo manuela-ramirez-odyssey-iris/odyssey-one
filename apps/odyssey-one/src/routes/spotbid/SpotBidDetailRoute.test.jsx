@@ -97,6 +97,26 @@ describe('SpotBidDetailRoute', () => {
     expect(screen.queryByRole('button', { name: 'Submit' })).toBeFalsy()
   })
 
+  // SPB-66 (Kathleen, 2026-08-24): ONE currency per bid, chosen by the
+  // PLANNER in Quote Setup — the carrier only sees it, never picks it.
+  test('the Linehaul currency shows the quote\'s currency and is not a button', () => {
+    renderDetail('222610') // carrierQuotes.js seeds currency: 'USD'
+    expect(screen.getByText('USD')).toBeTruthy()
+    // FieldSelect renders `locked` as a plain <span>, not a <button> — no
+    // clickable currency toggle exists for the carrier.
+    expect(screen.queryByRole('button', { name: 'USD' })).toBeFalsy()
+    expect(screen.queryByRole('button', { name: 'CAD' })).toBeFalsy()
+  })
+
+  test('a submitted bid carries the quote\'s currency, not a carrier-chosen one', () => {
+    renderDetail('222610')
+    fireEvent.change(screen.getByLabelText('Linehaul'), { target: { value: '1000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+
+    // "Your Quote" summary's Currency TitleSubtitle field.
+    expect(screen.getByText('USD')).toBeTruthy()
+  })
+
   test('an unknown quote id shows an EmptyState with a link back to /spotbid', () => {
     renderDetail('999999')
     expect(screen.getByText(/quote not found/i)).toBeTruthy()
