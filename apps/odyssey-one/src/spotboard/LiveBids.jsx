@@ -319,7 +319,7 @@ export default function LiveBids({
       full: selectedCarrier ? `${selectedCarrier.scac} · ${selectedCarrier.name}` : null,
     },
     {
-      label: 'AWARD AND TENDER',
+      label: 'STAGE AWARD',
       // "Award" opens the confirmation (user, 2026-08-24) — it never awards
       // directly. The close+selection gate lives on the modal's own Confirm,
       // so a planner can always OPEN the dialog and reach Force Close from
