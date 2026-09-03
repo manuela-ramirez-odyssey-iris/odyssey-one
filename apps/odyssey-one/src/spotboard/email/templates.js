@@ -28,16 +28,17 @@ function partyText(ctx, { withReference }) {
 // route: whether to show the origin→destination band above the addresses
 // (CE-1/CE-2 — a single lane is worth reading at a glance; the six planner
 // alerts skip it, they're an exception report, not a lane summary).
-function partyBlocks(ctx, { withReference, extra = [], route = false }) {
+// foot: optional [fromLabel, fromValue, toLabel, toValue] pair placed under
+// the two address columns (e.g. Ship Date under Ship From).
+function partyBlocks(ctx, { withReference, extra = [], route = false, foot = null }) {
   return [
     route ? blocks.route(ctx.from, ctx.to) : null,
+    blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to), foot),
     blocks.factGrid([
       ...extra,
       ...(withReference ? [['Reference#', ctx.reference], ['Order#', ctx.orderNumber]] : []),
       ['Shipper', ctx.shipper],
-    ]),
-    blocks.address('Ship From', addr(ctx.from)),
-    blocks.address('Ship To', addr(ctx.to)),
+    ], { columns: 3, align: 'left' }),
   ].filter(Boolean)
 }
 
@@ -79,15 +80,14 @@ export function rfqEmail(ctx, carrier) {
       blocks.headline(`${carrier.scac} — Quote ${ctx.quoteId}`),
       blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
       blocks.route(ctx.from, ctx.to),
+      blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to),
+        ['Pickup', ctx.pickup, 'Deliver', ctx.deliver]),
+      ctx.distance ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1 }) : null,
       blocks.factGrid([
         ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
         ['Quote#', ctx.quoteId], ['Equipment', ctx.equipment],
         ['Weight', ctx.weight], ['Hazmat', ctx.hazmat],
-        ['Pickup', ctx.pickup], ['Deliver', ctx.deliver],
-        ['Distance', ctx.distance],
-      ]),
-      blocks.address('Ship From', addr(ctx.from)),
-      blocks.address('Ship To', addr(ctx.to)),
+      ], { columns: 3, align: 'left' }),
       ctx.stops?.length ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date])) : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
@@ -155,11 +155,11 @@ export function alertEmail(kind, ctx) {
       blocks.headline(def.headline),
       blocks.notice(def.cancelled ? 'Your quote has been cancelled and is now invalid.' : `Quote ${ctx.quoteId} · ${def.action}`, def.tone),
       def.cancelled ? blocks.paragraph('Do not process any bids associated with this consolidation. Review shipment details to determine next steps.') : null,
-      ...partyBlocks(ctx, { withReference: true }),
-      bid.length ? blocks.factGrid([
-        ['Lowest Cost Carrier', ctx.lowest.carrier], ['Quoted Amount', ctx.lowest.amount],
-        ['Ship Date', ctx.lowest.shipDate], ['Delivery Date', ctx.lowest.deliveryDate],
-      ]) : null,
+      ...partyBlocks(ctx, {
+        withReference: true,
+        extra: bid.length ? [['Lowest Cost Carrier', ctx.lowest.carrier], ['Quoted Amount', ctx.lowest.amount]] : [],
+        foot: bid.length ? ['Ship Date', ctx.lowest.shipDate, 'Delivery Date', ctx.lowest.deliveryDate] : null,
+      }),
     ].filter(Boolean),
   })
   return { id: kind, kind, subject, from: ctx.sender, to: ctx.plannerGroup, text, html }

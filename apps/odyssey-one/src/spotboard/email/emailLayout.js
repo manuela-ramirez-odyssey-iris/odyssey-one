@@ -47,16 +47,20 @@ export const blocks = {
       cell(esc(v), `font-size:13px;color:${C.text};padding:3px 0;vertical-align:top;`),
     )).join('') +
     `</table>`, 'padding:0 0 16px 0;')),
-  // [[label, value], …] — centered facts grid, two per row, label above value.
-  factGrid: (pairs) => {
+  // [[label, value], …] — facts grid, `columns` per row (default 2),
+  // `align` 'center' (default) or 'left', label above value.
+  factGrid: (pairs, { columns = 2, align = 'center' } = {}) => {
     const clean = pairs.filter(([, v]) => v != null && v !== '')
-    const fact = ([k, v], full = false) => `<td width="${full ? '100' : '50'}%" ${full ? 'colspan="2" ' : ''}align="center" valign="top" style="${FONT}text-align:center;padding:8px 10px;">` +
+    const pct = Math.floor(100 / columns)
+    const a = align === 'left' ? 'left' : 'center'
+    const fact = ([k, v], span = 1) => `<td width="${span > 1 ? pct * span : pct}%" ${span > 1 ? `colspan="${span}" ` : ''}align="${a}" valign="top" style="${FONT}text-align:${a};padding:8px 10px;">` +
       `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(k)}</div>` +
       `<div style="font-size:15px;color:${C.text};">${esc(v)}</div></td>`
     const rows = []
-    for (let i = 0; i < clean.length; i += 2) {
-      const b = clean[i + 1]
-      rows.push(row(b ? fact(clean[i]) + fact(b) : fact(clean[i], true)))
+    for (let i = 0; i < clean.length; i += columns) {
+      const group = clean.slice(i, i + columns)
+      const short = columns - group.length
+      rows.push(row(group.map((p, idx) => fact(p, idx === group.length - 1 ? 1 + short : 1)).join('')))
     }
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
@@ -77,6 +81,26 @@ export const blocks = {
     `<div style="font-size:12px;font-weight:bold;letter-spacing:0.4px;text-transform:uppercase;color:${C.textTertiary};padding-bottom:3px;">${esc(label)}</div>` +
     lines.filter(Boolean).map((l) => `<div style="font-size:13px;line-height:18px;color:${C.text};">${esc(l)}</div>`).join(''),
     'padding:0 0 12px 0;')),
+  // Ship From / Ship To side by side, one column each. `footLabels` is an
+  // optional [fromLabel, fromValue, toLabel, toValue] second row aligned to
+  // the same two columns (e.g. Pickup under Ship From, Deliver under Ship To).
+  addressPair: (fromLabel, fromLines, toLabel, toLines, footLabels) => {
+    const addrCell = (label, lines) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 12px 10px;">` +
+      `<div style="font-size:12px;font-weight:bold;letter-spacing:0.4px;text-transform:uppercase;color:${C.textTertiary};padding-bottom:3px;">${esc(label)}</div>` +
+      lines.filter(Boolean).map((l) => `<div style="font-size:13px;line-height:18px;color:${C.text};">${esc(l)}</div>`).join('') +
+      `</td>`
+    const footCell = (label, value) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 8px 10px;">` +
+      `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(label)}</div>` +
+      `<div style="font-size:15px;color:${C.text};">${esc(value)}</div></td>`
+    const rows = [row(addrCell(fromLabel, fromLines) + addrCell(toLabel, toLines))]
+    if (footLabels) {
+      const [fLabel, fValue, tLabel, tValue] = footLabels
+      rows.push(row(footCell(fLabel, fValue) + footCell(tLabel, tValue)))
+    }
+    return row(cell(
+      `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
+      'padding:0 0 16px 0;'))
+  },
   button: (label, href) => row(cell(
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">` +
     row(centerCell(
