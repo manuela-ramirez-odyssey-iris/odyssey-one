@@ -91,4 +91,16 @@ describe('IE-* alertEmail', () => {
   it('rejects unknown kinds', () => {
     expect(() => alertEmail('IE-9', ctx)).toThrow()
   })
+  it('renders a hairline divider between Ship From/Ship To', () => {
+    expect(alertEmail('IE-1', { ...ctx, lowest: null }).html).toContain('border-left:1px solid #E4E6EB;')
+  })
+})
+
+describe('every email carries the Ship From/Ship To divider', () => {
+  it('rfqEmail (CE-1) has the divider, additive to its route band', () => {
+    expect(rfqEmail(ctx, carrier).html).toContain('border-left:1px solid #E4E6EB;')
+  })
+  it('awardEmail (CE-2) has the divider', () => {
+    expect(awardEmail(ctx, carrier, '2259.05 CAD').html).toContain('border-left:1px solid #E4E6EB;')
+  })
 })

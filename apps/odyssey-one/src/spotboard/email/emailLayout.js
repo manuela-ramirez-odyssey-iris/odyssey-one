@@ -107,18 +107,23 @@ export const blocks = {
   // `gapBottom` (default 16) trims the trailing padding when a block right
   // after this one belongs to the same visual group (e.g. Distance under
   // Pickup/Deliver) rather than starting a new section.
+  // A hairline vertical rule always separates Ship From/Ship To. Outlook-safe
+  // technique: border-left on the RIGHT-hand td of both the address row and
+  // the foot row, so the rule runs the full height of the block instead of
+  // stopping between rows.
   addressPair: (fromLabel, fromLines, toLabel, toLines, footLabels, { gapBottom = 16 } = {}) => {
-    const addrCell = (label, lines) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 12px 10px;">` +
+    const dividerStyle = `border-left:1px solid ${C.border};`
+    const addrCell = (label, lines, right = false) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 12px 10px;${right ? dividerStyle : ''}">` +
       `<div style="font-size:12px;font-weight:bold;letter-spacing:0.4px;text-transform:uppercase;color:${C.textTertiary};padding-bottom:3px;">${esc(label)}</div>` +
       lines.filter(Boolean).map((l) => `<div style="font-size:13px;line-height:18px;color:${C.text};">${esc(l)}</div>`).join('') +
       `</td>`
-    const footCell = (label, value) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 8px 10px;">` +
+    const footCell = (label, value, right = false) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 8px 10px;${right ? dividerStyle : ''}">` +
       `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(label)}</div>` +
       `<div style="font-size:15px;color:${C.text};">${esc(value)}</div></td>`
-    const rows = [row(addrCell(fromLabel, fromLines) + addrCell(toLabel, toLines))]
+    const rows = [row(addrCell(fromLabel, fromLines) + addrCell(toLabel, toLines, true))]
     if (footLabels) {
       const [fLabel, fValue, tLabel, tValue] = footLabels
-      rows.push(row(footCell(fLabel, fValue) + footCell(tLabel, tValue)))
+      rows.push(row(footCell(fLabel, fValue) + footCell(tLabel, tValue, true)))
     }
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
