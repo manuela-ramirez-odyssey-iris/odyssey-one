@@ -22,13 +22,19 @@ function partyText(ctx, { withReference }) {
     ...addrText('Ship To', ctx.to),
   ]
 }
-function partyBlocks(ctx, { withReference }) {
+// extra: leading key/value pairs (e.g. Quote#) folded into the same fields
+// group as Reference#/Order#/Shipper, so their value columns share one
+// nested table instead of each landing in its own misaligned one.
+function partyBlocks(ctx, { withReference, extra = [] }) {
   return [
-    withReference ? blocks.fields([['Reference#', ctx.reference], ['Order#', ctx.orderNumber]]) : null,
-    blocks.fields([['Shipper', ctx.shipper]]),
+    blocks.fields([
+      ...extra,
+      ...(withReference ? [['Reference#', ctx.reference], ['Order#', ctx.orderNumber]] : []),
+      ['Shipper', ctx.shipper],
+    ]),
     blocks.address('Ship From', addr(ctx.from)),
     blocks.address('Ship To', addr(ctx.to)),
-  ].filter(Boolean)
+  ]
 }
 
 // ---------- CE-1 Request for Quote ----------
@@ -70,10 +76,10 @@ export function rfqEmail(ctx, carrier) {
       blocks.fields([
         ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`], ['Quote#', ctx.quoteId],
         ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat], ['Distance', ctx.distance],
+        ['Pickup', ctx.pickup], ['Deliver', ctx.deliver],
       ]),
       blocks.address('Ship From', addr(ctx.from)),
       blocks.address('Ship To', addr(ctx.to)),
-      blocks.fields([['Pickup', ctx.pickup], ['Deliver', ctx.deliver]]),
       ctx.stops?.length ? blocks.fields(ctx.stops.map((s) => [s.label, s.date])) : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
@@ -97,8 +103,7 @@ export function awardEmail(ctx, carrier, allInRate) {
     blocks: [
       blocks.headline('Great news!'),
       blocks.paragraph(lead.replace(/^Great news!\s*/, '')),
-      blocks.fields([['Quote#', ctx.quoteId]]),
-      ...partyBlocks(ctx, { withReference: false }),
+      ...partyBlocks(ctx, { withReference: false, extra: [['Quote#', ctx.quoteId]] }),
       blocks.notice('The tender is a separate step. You are assigned to the load only once you accept it.', 'info'),
     ],
   })
