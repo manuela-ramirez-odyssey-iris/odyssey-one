@@ -473,6 +473,74 @@ describe('SpotBoardTab', () => {
     })
   })
 
+  // Clear & Start Over / Modify & Resend, both triggered from inside
+  // AwardModal on Live Bids — both must close the modal and land the planner
+  // on Setup & Carriers, since that's the only sub-tab where a new/reseeded
+  // quote can actually be built (S138).
+  describe('Award modal Clear & Start Over / Modify & Resend', () => {
+    function seedOpenQuoteWithBid() {
+      localStorage.setItem(
+        `spotboard:${shipment.sellShipment}`,
+        JSON.stringify({
+          quoteId: 'q1',
+          shipmentId: shipment.sellShipment,
+          listId: 'tl-se',
+          listName: 'TL Southeast Overflow',
+          durationMin: 120,
+          openAt: Date.now() - 60000,
+          closeAt: Date.now() + 60 * 60000,
+          status: 'open',
+          awardType: null,
+          awardedScac: null,
+          carriers: [
+            {
+              scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van',
+              incl: true, plannedPickup: '08/10/2026', plannedDelivery: '08/11/2026', flags: [], token: 'tok-odfl',
+              bid: { status: 'bid', linehaul: 1000, fuel: 60, accessorials: [], total: 1060, submittedBy: 'ops@odfl.example.com' },
+            },
+          ],
+          flexiblePickup: false,
+        })
+      )
+    }
+
+    function openAwardModal() {
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      fireEvent.click(screen.getAllByText('Live Bids')[0])
+      fireEvent.click(screen.getByRole('button', { name: 'Award' }))
+      // Modify & Resend / Clear & Start Over live on the modal's forceClose
+      // view (AwardModal.jsx), reached via Force Close from the confirm view.
+      fireEvent.click(screen.getByRole('button', { name: 'Force Close' }))
+    }
+
+    it('Clear & Start Over closes the modal and switches to Setup & Carriers', () => {
+      seedOpenQuoteWithBid()
+      openAwardModal()
+      expect(screen.getByRole('button', { name: 'Clear & Start Over' })).toBeTruthy()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear & Start Over' }))
+
+      // Modal is gone.
+      expect(screen.queryByRole('button', { name: 'Clear & Start Over' })).toBeFalsy()
+      // Setup & Carriers is now the current sub-tab, with its own content shown.
+      expect(screen.getByRole('button', { name: 'Setup & Carriers' }).className).toContain('tab--current')
+      expect(screen.getByRole('button', { name: 'Quote Setup' })).toBeTruthy()
+    })
+
+    it('Modify & Resend closes the modal, switches to Setup & Carriers, and reseeds the carrier list', () => {
+      seedOpenQuoteWithBid()
+      openAwardModal()
+      expect(screen.getByRole('button', { name: 'Modify & Resend' })).toBeTruthy()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Modify & Resend' }))
+
+      expect(screen.queryByRole('button', { name: 'Modify & Resend' })).toBeFalsy()
+      expect(screen.getByRole('button', { name: 'Setup & Carriers' }).className).toContain('tab--current')
+      // The reseeded draft's carrier row shows up on Setup & Carriers.
+      expect(screen.getByText('ODFL · Old Dominion')).toBeTruthy()
+    })
+  })
+
   // S128 (user, 2026-08-21: "make sure distance cell value is calculated").
   // A spot-eligible shipment never has an Accepted/Sent tender option
   // (eligibility.js), so stopsData.summary.distance is almost always '--' —
@@ -566,7 +634,7 @@ describe('SpotBoardTab', () => {
       expect(liveTab(container).querySelector('.live-bid-dot')).toBeFalsy()
     })
 
-    it('shows a blue dot for a healthy open quote (>30% of the window left)', () => {
+    it('shows a blue dot for a healthy open quote (>40% of the window left)', () => {
       seedQuote({ status: 'open', openAt: Date.now(), closeAt: Date.now() + 60 * 60000 })
       const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
       const dot = liveTab(container).querySelector('.live-bid-dot')
@@ -574,7 +642,7 @@ describe('SpotBoardTab', () => {
       expect(dot.className).toContain('live-bid-dot--blue')
     })
 
-    it('shows an amber dot once under 30% of the window remains', () => {
+    it('shows an amber dot once under 40% of the window remains', () => {
       const openAt = Date.now() - 80 * 60000 // 80 of 100 minutes elapsed → 20% left
       seedQuote({ status: 'open', openAt, closeAt: openAt + 100 * 60000 })
       const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
@@ -583,13 +651,13 @@ describe('SpotBoardTab', () => {
       expect(dot.className).toContain('live-bid-dot--amber')
     })
 
-    it('shows a red dot once under 10% of the window remains', () => {
+    it('still shows an amber dot (never red) with only 5% of the window remains — red is reserved for expiry', () => {
       const openAt = Date.now() - 95 * 60000 // 95 of 100 minutes elapsed → 5% left
       seedQuote({ status: 'open', openAt, closeAt: openAt + 100 * 60000 })
       const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
       const dot = liveTab(container).querySelector('.live-bid-dot')
       expect(dot).toBeTruthy()
-      expect(dot.className).toContain('live-bid-dot--red')
+      expect(dot.className).toContain('live-bid-dot--amber')
     })
 
     it('shows no dot once the countdown has already expired, even while status is still open', () => {

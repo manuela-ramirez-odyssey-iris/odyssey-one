@@ -248,10 +248,17 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
   // spotStore has no closed -> draft transition (verified) — "Modify &
   // Resend" is clearQuote() + a fresh saveDraft() reseeded from the previous
   // quote's list/carriers, with bids stripped so it starts a clean auction.
+  // Then jump to Setup & Carriers (mirrors handleRestore/handleClear below) —
+  // the re-seeded draft is only editable/visible there, and this call is
+  // fired from Live Bids, so staying put would leave the planner staring at
+  // an empty Live Bids pane with no obvious next step.
   const handleModify = useCallback(() => {
     const prev = quote
     clearQuote()
-    if (!prev) return
+    if (!prev) {
+      setSubTab('setup')
+      return
+    }
     saveDraft({
       listId: prev.listId,
       listName: prev.listName,
@@ -259,6 +266,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
       carriers: (prev.carriers ?? []).map(({ bid, ...c }) => c),
       flexiblePickup: prev.flexiblePickup,
     })
+    setSubTab('setup')
   }, [quote, clearQuote, saveDraft])
 
   const handleAward = useCallback((scac, awardType = 'manual') => {
@@ -287,6 +295,15 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
     setSubTab('setup')
     setRestoreKey((k) => k + 1)
   }, [clearQuote, saveDraft])
+
+  // "Clear & Start Over" drops the quote entirely — Start Over means
+  // building a NEW quote from scratch, and that only happens on Setup &
+  // Carriers, so jump there rather than leaving the planner on a now-empty
+  // Live Bids pane (mirrors handleRestore/handleModify above).
+  const handleClear = useCallback(() => {
+    clearQuote()
+    setSubTab('setup')
+  }, [clearQuote])
 
   const handleDeleteDraft = useCallback((draft) => {
     removeDraft(sid, draft.id)
@@ -409,7 +426,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
           onForceClose={() => closeQuote(Date.now())}
           onAward={handleAward}
           onModify={handleModify}
-          onClear={clearQuote}
+          onClear={handleClear}
         />
       ) : (
         <div className="pane-col pane-col--wide">
