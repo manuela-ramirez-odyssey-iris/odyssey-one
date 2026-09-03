@@ -130,7 +130,7 @@ export default function LiveBids({
   ).total
 
   // Award staging (SPB-63): the radio SELECTS, it never tenders. Execution is
-  // the Stage action in the summary strip → AwardModal.
+  // the Award action in the summary strip → AwardModal.
   //
   // `picked` is the planner's OVERRIDE, null until they touch a radio; the
   // effective selection falls back to the lowest bid, so the cheapest bid is
@@ -320,13 +320,13 @@ export default function LiveBids({
     },
     {
       label: 'AWARD AND TENDER',
-      // "Stage" opens the confirmation (user, 2026-08-24) — it never awards
+      // "Award" opens the confirmation (user, 2026-08-24) — it never awards
       // directly. The close+selection gate lives on the modal's own Confirm,
       // so a planner can always OPEN the dialog and reach Force Close from
       // it; a disabled trigger would have hidden that exit.
       value: (
         <Button size="sm" variant="primary" onClick={() => setStaging(true)}>
-          Stage
+          Award
         </Button>
       ),
     },
@@ -393,7 +393,7 @@ export default function LiveBids({
           {closed && (
             <div className="live-bids__actions">
               <p className="text-label-sm-regular live-bids__actions-note">
-                Select a carrier, then Stage to award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.
+                Award moves the selected carrier into the shipment tendering flow — it does not assign the load until tendered.
               </p>
             </div>
           )}

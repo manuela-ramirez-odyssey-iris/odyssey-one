@@ -237,7 +237,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
   }, [saveDraft, sendRFQ, submitBid, benchmarkValue])
 
   // Visible through the CLOSED state too (user, 2026-08-24): the banner now
-  // carries the closed message ("… to be awarded — press Stage …"), which it
+  // carries the closed message ("… to be awarded — press Award …"), which it
   // could never show while this gate hid it the moment bidding ended.
   // Still keyed on tokens having been minted, i.e. an RFQ was actually sent.
   const rfqLinksVisible =

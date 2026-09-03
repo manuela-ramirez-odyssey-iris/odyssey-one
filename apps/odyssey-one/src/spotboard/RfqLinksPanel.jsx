@@ -46,7 +46,7 @@ export default function RfqLinksPanel({ quote, carriers }) {
   const winner = closed ? lowestBid(quote) : null
   const message = closed
     ? (winner
-      ? `RFQ sent to ${count} — bid is closed, ${winner.scac} · ${winner.name} to be awarded — press Stage to confirm award and tender.`
+      ? `RFQ sent to ${count} — bid is closed, ${winner.scac} · ${winner.name} to be awarded — press Award to confirm award and tender.`
       : `RFQ sent to ${count} — bid is closed, no bids were received.`)
     : `RFQ sent to ${count} — open a carrier's bid page from the link on its row below.`
 

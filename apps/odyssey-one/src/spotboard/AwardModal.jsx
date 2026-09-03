@@ -50,7 +50,7 @@ function HeaderCountdown({ quote }) {
 }
 
 /**
- * AwardModal — the confirmation step behind Live Bids' "Stage" action.
+ * AwardModal — the confirmation step behind Live Bids' "Award" action.
  * Two VIEWS of ONE dialog, not two dialogs: the sibling-navigation pattern
  * ShipmentDetailsModal uses for Edit Quote (`key={view}` + `modal-nav-view`
  * slide + `onBack`).

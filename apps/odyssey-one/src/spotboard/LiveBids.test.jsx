@@ -155,7 +155,7 @@ describe('LiveBids', () => {
     expect(fxfeTotalCell.textContent).toBe('—')
   })
 
-  // SPB-63: award is a radio SELECTION, executed through the Stage dialog.
+  // SPB-63: award is a radio SELECTION, executed through the Award dialog.
   test('the LOWEST bid is pre-selected, and the planner can override it', () => {
     render(<LiveBids quote={CLOSED_QUOTE} />)
     expect(screen.getByRole('radio', { name: /Select ODFL/ }).checked).toBe(true) // lowest
@@ -167,7 +167,7 @@ describe('LiveBids', () => {
     expect(screen.getByRole('radio', { name: /Select ODFL/ }).checked).toBe(false)
   })
 
-  test('Stage opens the award dialog; confirming there fires onAward with the SELECTED scac (not the lowest)', () => {
+  test('Award opens the award dialog; confirming there fires onAward with the SELECTED scac (not the lowest)', () => {
     const onAward = vi.fn()
     render(<LiveBids quote={CLOSED_QUOTE} onAward={onAward} />)
 
@@ -175,7 +175,7 @@ describe('LiveBids', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Select SAIA/ }))
     expect(onAward).not.toHaveBeenCalled() // selection alone must not tender
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
     expect(within(dialog).getByText(/SAIA · Saia Motor Freight/)).toBeTruthy()
 
@@ -194,7 +194,7 @@ describe('LiveBids', () => {
   // not in the body — one placement across both views.
   test('the award dialog renders its countdown in the header, beside the close X', () => {
     render(<LiveBids quote={OPEN_QUOTE} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
 
     const trail = dialog.querySelector('.modal-header__trail')
@@ -214,7 +214,7 @@ describe('LiveBids', () => {
     const onAward = vi.fn()
     render(<LiveBids quote={OPEN_QUOTE} onForceClose={onForceClose} onAward={onAward} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
     expect(within(dialog).getByRole('button', { name: 'Award and Tender' }).disabled).toBe(true)
 
@@ -244,7 +244,7 @@ describe('LiveBids', () => {
     fireEvent.click(radios[1])
     expect(radios[1].checked).toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     const dialog = screen.getByRole('dialog', { name: 'Award and Tender' })
     expect(within(dialog).getByRole('button', { name: 'Award and Tender' }).disabled).toBe(true)
   })
@@ -278,7 +278,7 @@ describe('LiveBids', () => {
   // adjacent siblings, which is what makes the `+` separator land.
   test('award dialog sections are adjacent siblings, so the shared separator rule applies', () => {
     render(<LiveBids quote={CLOSED_QUOTE} markup={{ type: 'pct', value: 10 }} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Force Close' }))
 
     const body = screen.getByRole('dialog', { name: 'Close Bidding' })
@@ -303,7 +303,7 @@ describe('LiveBids', () => {
     expect(screen.queryByRole('button', { name: /Clear/ })).toBeFalsy()
     expect(screen.queryByRole('button', { name: 'Force Close' })).toBeFalsy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Force Close' }))
     const closeView = screen.getByRole('dialog', { name: 'Close Bidding' })
     expect(within(closeView).getByRole('button', { name: /Modify/ })).toBeTruthy()
@@ -335,7 +335,7 @@ describe('LiveBids', () => {
 
   test('the Force Close view offers no second Back button — ModalMedium\'s header owns that', () => {
     render(<LiveBids quote={CLOSED_QUOTE} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Award' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Force Close' }))
     const dialog = screen.getByRole('dialog', { name: 'Close Bidding' })
     const footer = within(dialog.querySelector('.modal-medium__footer'))
@@ -355,7 +355,7 @@ describe('LiveBids', () => {
     expect(screen.queryByText('Award Action')).toBeFalsy()
     expect(
       screen.getByText(
-        'Select a carrier, then Stage to award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.'
+        'Award moves the selected carrier into the shipment tendering flow — it does not assign the load until tendered.'
       )
     ).toBeTruthy()
   })

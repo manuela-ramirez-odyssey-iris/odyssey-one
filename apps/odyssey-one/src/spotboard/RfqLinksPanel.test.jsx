@@ -85,11 +85,11 @@ describe('RfqLinksPanel', () => {
         : carriers,
     })
 
-    it('names the carrier in line to be awarded and points at Stage', () => {
+    it('names the carrier in line to be awarded and points at Award', () => {
       const q = closedQuote(true)
       render(<RfqLinksPanel quote={q} carriers={q.carriers} />)
       expect(
-        screen.getByText(/RFQ sent to 2 carriers — bid is closed, ABCD · Acme Freight to be awarded — press Stage to confirm award and tender\./)
+        screen.getByText(/RFQ sent to 2 carriers — bid is closed, ABCD · Acme Freight to be awarded — press Award to confirm award and tender\./)
       ).toBeTruthy()
     })
 
