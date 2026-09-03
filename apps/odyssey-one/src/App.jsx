@@ -17,6 +17,7 @@ import SpotBidRoute from './routes/spotbid/SpotBidRoute.jsx'
 import SpotBidDetailRoute from './routes/spotbid/SpotBidDetailRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
 import DesignSystem from './routes/design-system/DesignSystem.jsx'
+import SpotEmailsRoute from './routes/spot-emails/SpotEmailsRoute.jsx'
 import DevMode from './devmode/DevMode.jsx'
 
 // Standalone external page (no AppShell) — lazy so the token-decode +
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/partners" element={<Partners />} />
         <Route path="/button-demo" element={<ButtonDemo />} />
         <Route path="/design-system" element={<DesignSystem />} />
+        <Route path="/spot-emails" element={<SpotEmailsRoute />} />
         <Route
           path="/spot-bid/:token"
           element={

@@ -1,0 +1,26 @@
+.spot-emails { max-width: 1200px; margin: 0 auto; padding: var(--spacing-6) var(--spacing-5); color: var(--text-primary); }
+.spot-emails__header { margin-bottom: var(--spacing-5); }
+.spot-emails__title { margin: 0 0 var(--spacing-2) 0; font-size: var(--font-size-2xl); font-weight: 600; }
+.spot-emails__lede { margin: 0; max-width: 68ch; color: var(--text-secondary); font-size: var(--font-size-sm); line-height: 1.5; }
+.spot-emails__body { display: grid; grid-template-columns: minmax(190px, 220px) 1fr; gap: var(--spacing-5); align-items: start; }
+.spot-emails__scenarios { display: flex; flex-direction: column; gap: var(--spacing-1); position: sticky; top: var(--spacing-4); }
+.spot-emails__scenario { text-align: left; padding: var(--spacing-2) var(--spacing-3); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); font: inherit; font-size: var(--font-size-sm); color: var(--text-secondary); cursor: pointer; }
+.spot-emails__scenario:hover { background: var(--bg-secondary); }
+.spot-emails__scenario--current { background: var(--bg-secondary); border-color: var(--border-subtle); color: var(--text-primary); font-weight: 600; }
+.spot-emails__main { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.spot-emails__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-sm); }
+.spot-emails__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-1); }
+.spot-emails__row { display: flex; align-items: center; gap: var(--spacing-2); width: 100%; padding: var(--spacing-2) var(--spacing-3); text-align: left; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font: inherit; color: var(--text-primary); cursor: pointer; }
+.spot-emails__row:hover { background: var(--bg-secondary); }
+.spot-emails__row--current { border-color: var(--text-link); background: var(--bg-secondary); }
+.spot-emails__recipient { white-space: nowrap; font-weight: 600; font-size: var(--font-size-sm); }
+.spot-emails__subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-tertiary); font-size: var(--font-size-sm); }
+.spot-emails__pane { display: flex; flex-direction: column; gap: var(--spacing-3); min-width: 0; }
+.spot-emails__envelope { display: grid; grid-template-columns: max-content 1fr; gap: var(--spacing-1) var(--spacing-3); margin: 0; font-size: var(--font-size-sm); }
+.spot-emails__envelope dt { color: var(--text-tertiary); }
+.spot-emails__envelope dd { margin: 0; overflow-wrap: anywhere; }
+.spot-emails__toolbar { display: flex; gap: var(--spacing-2); }
+.spot-emails__frame { width: 100%; height: 760px; border: 1px solid var(--border-subtle); background: var(--bg-primary); }
+/* no --font-mono token exists yet (same fallback used in styles/panes/history.css) */
+.spot-emails__text { margin: 0; padding: var(--spacing-3); border: 1px solid var(--border-subtle); background: var(--bg-primary); font-family: var(--font-mono, "SF Mono", "Fira Code", "Cascadia Code", monospace); font-size: var(--font-size-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .spot-emails__body { grid-template-columns: 1fr; } .spot-emails__scenarios { position: static; flex-direction: row; flex-wrap: wrap; } }
