@@ -93,8 +93,10 @@ export function rfqEmail(ctx, carrier) {
       blocks.route(ctx.from, ctx.to),
       blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to),
         ['Pickup', ctx.pickup, 'Deliver', ctx.deliver], { gapBottom: 4 }),
+      ctx.stops?.length
+        ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date]), { gapBottom: 4 })
+        : null,
       ctx.distance ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1 }) : null,
-      ctx.stops?.length ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date])) : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
     ].filter(Boolean),
