@@ -6,7 +6,7 @@
 // document that would be sent.
 import { useState } from 'react'
 import { Badge, Button } from '@odyssey/ui'
-import { SCENARIOS, scenarioFor, emailsForScenario } from './fixture.js'
+import { SCENARIOS, scenarioFor, emailsForScenario, defaultEmailIdFor } from './fixture.js'
 import './spotEmails.css'
 
 // Badge has no success/error/warning variants — map to the closest real ones.
@@ -18,7 +18,8 @@ export default function SpotEmailsRoute() {
   const scenario = scenarioFor(scenarioKey)
   const emails = emailsForScenario(scenarioKey)
   const [selectedId, setSelectedId] = useState(null)
-  const selected = emails.find((e) => e.id === selectedId) ?? emails[0]
+  const defaultId = defaultEmailIdFor(scenarioKey, emails)
+  const selected = emails.find((e) => e.id === selectedId) ?? emails.find((e) => e.id === defaultId)
 
   const pickScenario = (key) => { setScenarioKey(key); setSelectedId(null) }
 

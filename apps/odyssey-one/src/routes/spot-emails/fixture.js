@@ -69,3 +69,9 @@ export function emailsForScenario(key) {
   const ctx = { ...BASE_CTX, lowest: s.noBids || s.noLowest ? null : BASE_CTX.lowest }
   return emailsForQuote(ctx, { status: 'closed', carriers }, { alertKind: s.alertKind, awardedScac: s.awardedScac })
 }
+
+// The email this scenario is named for — its own distinguishing kind (kinds[0]).
+export function defaultEmailIdFor(key, emails) {
+  const kind = scenarioFor(key).kinds[0]
+  return (emails.find((e) => e.kind === kind) ?? emails[0])?.id
+}
