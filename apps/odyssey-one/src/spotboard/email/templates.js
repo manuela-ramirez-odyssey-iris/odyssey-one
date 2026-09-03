@@ -1,0 +1,148 @@
+// apps/odyssey-one/src/spotboard/email/templates.js
+// The eight overflow emails, plain-text first (verbatim skeletons from
+// Doug's 2023 sends — vault quote-model.md §7.1), with the HTML layer
+// mirroring the text line for line. CE-* go to carriers, IE-* to the
+// planning group. Sender is the planning group's FROMEMAIL (SPB-77).
+import { renderText, renderHtml, blocks } from './emailLayout.js'
+
+const addr = (a) => [a?.name, ...(a?.lines ?? [])].filter(Boolean)
+const addrText = (label, a) => [`${label}:`, ...addr(a).map((l) => `\t${l}`)]
+
+// Shared tail of every message: shipper + from/to. Planner alerts prepend
+// Reference#/Order#; carrier emails never carry them (SPB-05).
+function partyText(ctx, { withReference }) {
+  return [
+    withReference ? `Reference#: ${ctx.reference}` : null,
+    withReference && ctx.orderNumber ? `Order#: ${ctx.orderNumber}` : null,
+    withReference ? '' : null,
+    `Shipper: ${ctx.shipper}`,
+    '',
+    ...addrText('Ship From', ctx.from),
+    '',
+    ...addrText('Ship To', ctx.to),
+  ]
+}
+function partyBlocks(ctx, { withReference }) {
+  return [
+    withReference ? blocks.fields([['Reference#', ctx.reference], ['Order#', ctx.orderNumber]]) : null,
+    blocks.fields([['Shipper', ctx.shipper]]),
+    blocks.address('Ship From', addr(ctx.from)),
+    blocks.address('Ship To', addr(ctx.to)),
+  ].filter(Boolean)
+}
+
+// ---------- CE-1 Request for Quote ----------
+export function rfqEmail(ctx, carrier) {
+  const link = `${ctx.appOrigin}/spot-bid/${carrier.token}`
+  const subject = `Request for Quote to ${carrier.scac} for Quote No: ${ctx.quoteId}, for ${ctx.shipper.toUpperCase()}`
+  const stopsText = ctx.stops?.length
+    ? ['Stop Offs:', ...ctx.stops.map((s) => `\t${s.label}\t${s.date}`)]
+    : []
+  const text = renderText([
+    'Request For Quote',
+    `Offer Expires: ${ctx.offerExpires}`,
+    '',
+    `Shipper: ${ctx.shipper}`,
+    `Carrier: ${carrier.scac} - ${carrier.name}`,
+    `Quote#: ${ctx.quoteId}`,
+    `Equipment: ${ctx.equipment}`,
+    `Weight: ${ctx.weight}`,
+    `Hazmat: ${ctx.hazmat}`,
+    ctx.distance ? `Distance: ${ctx.distance}` : null,
+    '',
+    ...addrText('Ship From', ctx.from),
+    '',
+    ...addrText('Ship To', ctx.to),
+    '',
+    `Pickup: ${ctx.pickup}`,
+    `Deliver: ${ctx.deliver}`,
+    ...(stopsText.length ? ['', ...stopsText] : []),
+    '',
+    'Submit your quote here (this link is for your company only):',
+    link,
+  ])
+  const html = renderHtml({
+    title: subject,
+    preheader: `Quote ${ctx.quoteId} · ${ctx.equipment} · offer expires ${ctx.offerExpires}`,
+    blocks: [
+      blocks.headline('Request for Quote'),
+      blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
+      blocks.fields([
+        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`], ['Quote#', ctx.quoteId],
+        ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat], ['Distance', ctx.distance],
+      ]),
+      blocks.address('Ship From', addr(ctx.from)),
+      blocks.address('Ship To', addr(ctx.to)),
+      blocks.fields([['Pickup', ctx.pickup], ['Deliver', ctx.deliver]]),
+      ctx.stops?.length ? blocks.fields(ctx.stops.map((s) => [s.label, s.date])) : null,
+      blocks.button('Submit your quote', link),
+      blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
+    ].filter(Boolean),
+  })
+  return { id: 'CE-1', kind: 'CE-1', subject, from: ctx.sender, to: carrier.email, text, html }
+}
+
+// ---------- CE-2 Quote Awarded ----------
+export function awardEmail(ctx, carrier, allInRate) {
+  const subject = `Quote Request ${ctx.quoteId} Awarded`
+  const lead = `Great news! Your all in rate of ${allInRate} has been approved. Please accept the EDI or email tender at your earliest convenience.`
+  const text = renderText([
+    lead, '',
+    `Quote#: ${ctx.quoteId}`,
+    ...partyText(ctx, { withReference: false }),
+  ])
+  const html = renderHtml({
+    title: subject,
+    preheader: `Your rate of ${allInRate} for quote ${ctx.quoteId} was approved`,
+    blocks: [
+      blocks.headline('Great news!'),
+      blocks.paragraph(lead),
+      blocks.fields([['Quote#', ctx.quoteId]]),
+      ...partyBlocks(ctx, { withReference: false }),
+      blocks.notice('The tender is a separate step. You are assigned to the load only once you accept it.', 'info'),
+    ],
+  })
+  return { id: 'CE-2', kind: 'CE-2', subject, from: ctx.sender, to: carrier.email, text, html }
+}
+
+// ---------- IE-1…IE-6 planner alerts ----------
+const ALERTS = {
+  'IE-1': { cond: 'closed with no carrier bids submitted.', tone: 'error' },
+  'IE-2': { cond: 'closed and the lowest cost carrier is out of tolerance.', tone: 'warning' },
+  'IE-3': { cond: 'closed and Manual Review = Yes.  Please review quote responses immediately.', tone: 'warning' },
+  'IE-4': { cond: 'Cancelled, Consolidation Impacted by Order Change', tone: 'error', cancelled: true },
+  'IE-5': { cond: 'closed and no costed LCE option exists to determine quote tolerance.', tone: 'warning' },
+  'IE-6': { cond: 'closed and no distance was found to calculate an estimated costed LCE option.', tone: 'warning' },
+}
+export const ALERT_KINDS = Object.keys(ALERTS)
+
+export function alertEmail(kind, ctx) {
+  const def = ALERTS[kind]
+  if (!def) throw new Error(`Unknown alert kind ${kind}`)
+  const subject = `Attention - Quote Request ${ctx.quoteId} ${def.cond}`
+  const cancelledLead = def.cancelled
+    ? ['Your consolidation has changed.', '', 'Your quote has been cancelled and is now invalid.  Do not process any bids associated with this consolidation.  Review shipment details to determine next steps.']
+    : [subject]
+  const bid = ctx.lowest && !def.cancelled
+    ? ['', `Lowest Cost Carrier: ${ctx.lowest.carrier}`, `Quoted Amount: ${ctx.lowest.amount}`, `Ship Date: ${ctx.lowest.shipDate}`, `Delivery Date: ${ctx.lowest.deliveryDate}`]
+    : []
+  const text = renderText([
+    ...cancelledLead, '',
+    ...partyText(ctx, { withReference: true }),
+    ...bid,
+  ])
+  const html = renderHtml({
+    title: subject,
+    preheader: subject,
+    blocks: [
+      blocks.notice(def.cancelled ? 'Your consolidation has changed. Your quote has been cancelled and is now invalid.' : subject, def.tone),
+      def.cancelled ? blocks.paragraph('Do not process any bids associated with this consolidation. Review shipment details to determine next steps.') : null,
+      ...partyBlocks(ctx, { withReference: true }),
+      bid.length ? blocks.fields([
+        ['Lowest Cost Carrier', ctx.lowest.carrier], ['Quoted Amount', ctx.lowest.amount],
+        ['Ship Date', ctx.lowest.shipDate], ['Delivery Date', ctx.lowest.deliveryDate],
+      ]) : null,
+    ].filter(Boolean),
+  })
+  return { id: kind, kind, subject, from: ctx.sender, to: ctx.plannerGroup, text, html }
+}
