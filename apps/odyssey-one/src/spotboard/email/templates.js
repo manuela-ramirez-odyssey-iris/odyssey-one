@@ -32,13 +32,13 @@ function partyText(ctx, { withReference }) {
 // the two address columns (e.g. Ship Date under Ship From).
 function partyBlocks(ctx, { withReference, extra = [], route = false, foot = null }) {
   return [
-    route ? blocks.route(ctx.from, ctx.to) : null,
-    blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to), foot),
     blocks.factGrid([
       ...extra,
       ...(withReference ? [['Reference#', ctx.reference], ['Order#', ctx.orderNumber]] : []),
       ['Shipper', ctx.shipper],
-    ], { columns: 3, align: 'left' }),
+    ], { columns: 4, align: 'left' }),
+    route ? blocks.route(ctx.from, ctx.to) : null,
+    blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to), foot),
   ].filter(Boolean)
 }
 
@@ -79,15 +79,15 @@ export function rfqEmail(ctx, carrier) {
       blocks.eyebrow('Request for Quote'),
       blocks.headline(`${carrier.scac} — Quote ${ctx.quoteId}`),
       blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
+      blocks.factGrid([
+        ['Quote#', ctx.quoteId], ['Equipment', ctx.equipment],
+        ['Weight', ctx.weight], ['Hazmat', ctx.hazmat],
+        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
+      ], { columns: 4, align: 'left' }),
       blocks.route(ctx.from, ctx.to),
       blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to),
         ['Pickup', ctx.pickup, 'Deliver', ctx.deliver]),
       ctx.distance ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1 }) : null,
-      blocks.factGrid([
-        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
-        ['Quote#', ctx.quoteId], ['Equipment', ctx.equipment],
-        ['Weight', ctx.weight], ['Hazmat', ctx.hazmat],
-      ], { columns: 3, align: 'left' }),
       ctx.stops?.length ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date])) : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
