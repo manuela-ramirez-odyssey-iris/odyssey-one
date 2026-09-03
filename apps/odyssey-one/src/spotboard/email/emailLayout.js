@@ -51,18 +51,22 @@ export const blocks = {
   // `align` 'center' (default) or 'left', label above value.
   // `gapBottom` trims the trailing padding when this grid is immediately
   // followed by another factGrid, so the pair reads as one stacked block.
-  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16, padTop = 8 } = {}) => {
+  // `separators`: hairline border-top (THEME.color.border) between rows,
+  // not above the first — same weight as addressPair's vertical divider,
+  // so multiple entries (e.g. stop-offs) read as discrete rows.
+  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16, padTop = 8, separators = false } = {}) => {
     const clean = pairs.filter(([, v]) => v != null && v !== '')
     const pct = Math.floor(100 / columns)
     const a = align === 'left' ? 'left' : 'center'
-    const fact = ([k, v], span = 1) => `<td width="${span > 1 ? pct * span : pct}%" ${span > 1 ? `colspan="${span}" ` : ''}align="${a}" valign="top" style="${FONT}text-align:${a};padding:${padTop}px 10px 8px 10px;">` +
+    const fact = ([k, v], span = 1, borderTop = false) => `<td width="${span > 1 ? pct * span : pct}%" ${span > 1 ? `colspan="${span}" ` : ''}align="${a}" valign="top" style="${FONT}text-align:${a};padding:${padTop}px 10px 8px 10px;${borderTop ? `border-top:1px solid ${C.border};` : ''}">` +
       `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(k)}</div>` +
       `<div style="font-size:15px;color:${C.text};">${esc(v)}</div></td>`
     const rows = []
     for (let i = 0; i < clean.length; i += columns) {
       const group = clean.slice(i, i + columns)
       const short = columns - group.length
-      rows.push(row(group.map((p, idx) => fact(p, idx === group.length - 1 ? 1 + short : 1)).join('')))
+      const borderTop = separators && i > 0
+      rows.push(row(group.map((p, idx) => fact(p, idx === group.length - 1 ? 1 + short : 1, borderTop)).join('')))
     }
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,

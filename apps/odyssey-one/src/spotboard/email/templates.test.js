@@ -34,6 +34,20 @@ describe('CE-1 rfqEmail', () => {
     expect(m.html).toContain('S1 - Spartanburg SC 29301 US')
     expect(m.html).not.toMatch(/Reference#/)
   })
+  it('puts Distance directly under Pickup/Deliver, stop-offs below it', () => {
+    expect(m.html.indexOf('Deliver')).toBeLessThan(m.html.indexOf('Distance'))
+    expect(m.html.indexOf('Distance')).toBeLessThan(m.html.indexOf('S1 - Spartanburg SC 29301 US'))
+  })
+  it('separates multiple stop-offs with a hairline rule, none for a single stop', () => {
+    const multi = rfqEmail({ ...ctx, stops: [
+      { label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' },
+      { label: 'S2 - Atlanta GA 30301 US', date: 'Drop-off: 09/23/2023' },
+    ] }, carrier)
+    // one from the separator between the two stops, plus the footer's own border-top
+    expect(multi.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(2)
+    // single stop: only the footer's border-top, none from a separator
+    expect(m.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(1)
+  })
 })
 
 describe('CE-2 awardEmail', () => {

@@ -14,6 +14,15 @@ describe('blocks.factGrid', () => {
     expect(withTop).toContain('padding:8px 10px 8px 10px;')
     expect(flush).toContain('padding:0px 10px 8px 10px;')
   })
+  it('separators adds a hairline border-top between rows, not above the first', () => {
+    const three = blocks.factGrid(
+      [['S1 - Spartanburg SC', 'Drop-off: 09/22'], ['S2 - Atlanta GA', 'Drop-off: 09/23'], ['S3 - Mobile AL', 'Drop-off: 09/24']],
+      { columns: 1, separators: true },
+    )
+    expect(three.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(2)
+    const one = blocks.factGrid([['S1 - Spartanburg SC', 'Drop-off: 09/22']], { columns: 1, separators: true })
+    expect(one).not.toContain('border-top')
+  })
 })
 
 describe('blocks.columnStack', () => {
