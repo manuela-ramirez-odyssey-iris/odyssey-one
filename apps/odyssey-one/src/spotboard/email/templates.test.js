@@ -43,6 +43,11 @@ describe('CE-2 awardEmail', () => {
     expect(m.text).toContain('Quote#: 14903')
     expect(m.text).not.toMatch(/Order#|Load#/)
   })
+  it('does not repeat the "Great news!" greeting in the HTML body', () => {
+    expect(m.html).toContain('Great news!')
+    expect(m.html.match(/Great news!/g)).toHaveLength(1)
+    expect(m.html).toContain('Your all in rate of 2259.05 CAD has been approved.')
+  })
 })
 
 describe('IE-* alertEmail', () => {

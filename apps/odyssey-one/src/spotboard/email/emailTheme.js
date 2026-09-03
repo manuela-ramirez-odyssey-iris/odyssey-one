@@ -3,10 +3,18 @@
 // the token VALUES are baked here. Each line names the token it mirrors —
 // when tokens.css changes, update the hex and keep the comment.
 // ponytail: hand-copied; generate from tokens.css if this grows past a dozen.
+
+// Real emails need an absolute URL; a local preview should show the local
+// asset instead of a not-yet-deployed stage path. Single home for this
+// ternary — emailContext.js re-exports it for its existing consumers.
+export const APP_ORIGIN = typeof window !== 'undefined' && window.location?.origin
+  ? window.location.origin
+  : 'https://odyssey-one-stage.vercel.app'
+
 export const THEME = {
   font: 'Arial, Helvetica, sans-serif',
   width: 600,
-  logoUrl: 'https://odyssey-one-stage.vercel.app/email/odyssey-one-logo.png',
+  logoUrl: `${APP_ORIGIN}/email/odyssey-one-logo.png`,
   logoAlt: 'Odyssey One',
   color: {
     headerBg: '#1B2537',   // --bg-inverse (deep-sea-neutral-900)

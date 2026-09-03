@@ -2,13 +2,12 @@
 // Field paths mirror buildHeader() in components/detail/SpotBoardTab.jsx —
 // if that changes, change this. Every accessor tolerates missing data.
 import { fmtDollar } from '../../utils/money.js'
+import { APP_ORIGIN } from './emailTheme.js'
 
 // ponytail: FROMEMAIL is a TMS system profile per planning group (SPB-77);
 // the prototype has no planning-group model, so one seeded mailbox stands in.
 export const PLANNING_GROUP_MAILBOX = 'planning-charlotte@odysseylogistics.com'
-export const APP_ORIGIN = typeof window !== 'undefined' && window.location?.origin
-  ? window.location.origin
-  : 'https://odyssey-one-stage.vercel.app'
+export { APP_ORIGIN }
 
 const pad = (n) => String(n).padStart(2, '0')
 export function fmtDate(d) {

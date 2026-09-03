@@ -11,4 +11,7 @@ describe('emailTheme', () => {
     expect(THEME.logoUrl).toMatch(/\/email\/odyssey-one-logo\.png$/)
     expect(THEME.font).toContain('Arial')
   })
+  it('logo URL is absolute (real emails need it; jsdom origin makes it local in tests)', () => {
+    expect(THEME.logoUrl).toMatch(/^http/)
+  })
 })

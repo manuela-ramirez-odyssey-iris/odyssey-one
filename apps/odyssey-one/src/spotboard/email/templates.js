@@ -96,7 +96,7 @@ export function awardEmail(ctx, carrier, allInRate) {
     preheader: `Your rate of ${allInRate} for quote ${ctx.quoteId} was approved`,
     blocks: [
       blocks.headline('Great news!'),
-      blocks.paragraph(lead),
+      blocks.paragraph(lead.replace(/^Great news!\s*/, '')),
       blocks.fields([['Quote#', ctx.quoteId]]),
       ...partyBlocks(ctx, { withReference: false }),
       blocks.notice('The tender is a separate step. You are assigned to the load only once you accept it.', 'info'),
