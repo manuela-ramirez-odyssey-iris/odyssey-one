@@ -304,3 +304,37 @@
 }
 
 .drafts-panel__remove:hover { color: var(--badge-red-text); }
+
+/* LiveBidDot — pulsing status dot beside the "Live Bids" sub-tab label.
+   Each tone stays in the SAME hue family as the Countdown badge it must
+   never disagree with (badge-blue/yellow/red), but one step lighter than
+   the badge's own "text" token — the 800/950-level values read as a hard
+   dark pip at 6px, too heavy for a soft indicator dot. Picked the lightest
+   step of each family that still reads clearly on the tab band (the 100-level
+   "-bg" tints are near-invisible at this size):
+     blue  → --carolina-blue-400 (bay-of-many has no mid step between its
+             100 tint and its 950 text token; carolina-blue is the same blue
+             family already used elsewhere as the lighter "info" blue)
+     amber → --sunrise-yellow-600 (300 measures ~1.7:1 on white per the S136
+             comment above its definition — literally added as "a standalone
+             mark on a light surface"; that's this dot)
+     red   → --bittersweet-600 (300 is a pale pink at this size; 600 is the
+             same mid step Alert/Badge already use as the visible red mark)
+   Reuses the shared `pulse` keyframe (tokens.css), already used by Badge's
+   own statusDot. */
+.live-bid-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.live-bid-dot--blue { background: var(--carolina-blue-400); }
+.live-bid-dot--amber { background: var(--sunrise-yellow-600); }
+.live-bid-dot--red { background: var(--bittersweet-600); }
+
+@media (prefers-reduced-motion: reduce) {
+  .live-bid-dot { animation: none; }
+}

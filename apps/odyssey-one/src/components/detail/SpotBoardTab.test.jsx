@@ -513,4 +513,95 @@ describe('SpotBoardTab', () => {
       expect(strip.textContent).not.toMatch(/\d+\.\d{2} mi/)
     })
   })
+
+  // Live Bids sub-tab dot: shows ONLY while a bid is genuinely live (open
+  // quote, unexpired), and tracks countdownTone exactly — same function the
+  // Countdown badge uses (Countdown.jsx), so the two can never disagree.
+  describe('Live Bids tab dot', () => {
+    function seedQuote(overrides) {
+      localStorage.setItem(
+        `spotboard:${shipment.sellShipment}`,
+        JSON.stringify({
+          quoteId: 'q1',
+          shipmentId: shipment.sellShipment,
+          listId: 'tl-se',
+          listName: 'TL Southeast Overflow',
+          durationMin: 120,
+          openAt: null,
+          closeAt: null,
+          status: 'draft',
+          awardType: null,
+          awardedScac: null,
+          carriers: [],
+          flexiblePickup: false,
+          ...overrides,
+        })
+      )
+    }
+
+    function liveTab(container) {
+      return [...container.querySelectorAll('.tab')].find((el) => el.textContent.includes('Live Bids'))
+    }
+
+    it('shows no dot when there is no quote at all', () => {
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      expect(liveTab(container).querySelector('.live-bid-dot')).toBeFalsy()
+    })
+
+    it('shows no dot for a draft quote', () => {
+      seedQuote({ status: 'draft' })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      expect(liveTab(container).querySelector('.live-bid-dot')).toBeFalsy()
+    })
+
+    it('shows no dot for a closed quote', () => {
+      seedQuote({ status: 'closed', openAt: Date.now() - 120000, closeAt: Date.now() - 60000 })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      expect(liveTab(container).querySelector('.live-bid-dot')).toBeFalsy()
+    })
+
+    it('shows no dot for an awarded quote', () => {
+      seedQuote({ status: 'awarded', awardType: 'manual', awardedScac: 'ODFL', openAt: Date.now() - 120000, closeAt: Date.now() - 60000 })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      expect(liveTab(container).querySelector('.live-bid-dot')).toBeFalsy()
+    })
+
+    it('shows a blue dot for a healthy open quote (>30% of the window left)', () => {
+      seedQuote({ status: 'open', openAt: Date.now(), closeAt: Date.now() + 60 * 60000 })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      const dot = liveTab(container).querySelector('.live-bid-dot')
+      expect(dot).toBeTruthy()
+      expect(dot.className).toContain('live-bid-dot--blue')
+    })
+
+    it('shows an amber dot once under 30% of the window remains', () => {
+      const openAt = Date.now() - 80 * 60000 // 80 of 100 minutes elapsed → 20% left
+      seedQuote({ status: 'open', openAt, closeAt: openAt + 100 * 60000 })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      const dot = liveTab(container).querySelector('.live-bid-dot')
+      expect(dot).toBeTruthy()
+      expect(dot.className).toContain('live-bid-dot--amber')
+    })
+
+    it('shows a red dot once under 10% of the window remains', () => {
+      const openAt = Date.now() - 95 * 60000 // 95 of 100 minutes elapsed → 5% left
+      seedQuote({ status: 'open', openAt, closeAt: openAt + 100 * 60000 })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      const dot = liveTab(container).querySelector('.live-bid-dot')
+      expect(dot).toBeTruthy()
+      expect(dot.className).toContain('live-bid-dot--red')
+    })
+
+    it('shows no dot once the countdown has already expired, even while status is still open', () => {
+      seedQuote({ status: 'open', openAt: Date.now() - 120000, closeAt: Date.now() - 1000 })
+      const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      expect(liveTab(container).querySelector('.live-bid-dot')).toBeFalsy()
+    })
+
+    it('does not affect the Live Bids tab\'s accessible name', () => {
+      seedQuote({ status: 'open', openAt: Date.now(), closeAt: Date.now() + 60 * 60000 })
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      expect(screen.getByRole('button', { name: 'Live Bids' })).toBeTruthy()
+    })
+  })
 })

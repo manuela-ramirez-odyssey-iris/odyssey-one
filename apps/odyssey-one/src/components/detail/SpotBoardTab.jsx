@@ -3,6 +3,7 @@ import { TriangleAlert } from 'lucide-react'
 import { EmptyState, Tab } from '@odyssey/ui'
 import SetupCarriers, { SEND_RFQ_SLOT_ID } from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
+import LiveBidDot from '../../spotboard/LiveBidDot.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
 import SpotSummaryStrip from '../../spotboard/SpotSummaryStrip.jsx'
 import DraftsPanel from '../../spotboard/DraftsPanel.jsx'
@@ -311,7 +312,11 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
             {SUB_TABS.map((tab) => (
               <Tab
                 key={tab.key}
-                label={tab.label}
+                label={
+                  tab.key === 'bids'
+                    ? <>{tab.label} <LiveBidDot quote={quote} /></>
+                    : tab.label
+                }
                 current={subTab === tab.key}
                 onClick={() => setSubTab(tab.key)}
               />
