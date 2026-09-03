@@ -7,7 +7,7 @@ const ctx = {
   to: { name: 'Acme Client Plant2', lines: ['123 Main St', 'New Orleans LA 70114 US'] },
   equipment: 'TL - Truck Load', weight: '10,500 lb', hazmat: 'No', distance: '727 mi',
   pickup: '09/20/2023', deliver: '09/25/2023',
-  stops: [{ label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' }],
+  stops: [{ label: 'Stop - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' }],
   offerExpires: '09/08/2023 11:44 EST',
   sender: 'planning@odysseylogistics.com', plannerGroup: 'planning@odysseylogistics.com',
   appOrigin: 'https://odyssey-one-stage.vercel.app',
@@ -27,26 +27,28 @@ describe('CE-1 rfqEmail', () => {
     expect(m.text).toContain('Quote#: 14903')
     expect(m.text).toContain('Distance: 727 mi')
     expect(m.text).toContain('Stop Offs:')
-    expect(m.text).toContain('S1 - Spartanburg SC 29301 US')
+    expect(m.text).toContain('Stop - Spartanburg SC 29301 US')
     expect(m.text).toContain('https://odyssey-one-stage.vercel.app/spot-bid/tok-ccni')
     expect(m.text).not.toMatch(/Order#|Load#|Reference#/)
     expect(m.html).toContain('href="https://odyssey-one-stage.vercel.app/spot-bid/tok-ccni"')
-    expect(m.html).toContain('S1 - Spartanburg SC 29301 US')
+    expect(m.html).toContain('Stop - Spartanburg SC 29301 US')
     expect(m.html).not.toMatch(/Reference#/)
   })
   it('puts Distance directly under Pickup/Deliver, stop-offs below it', () => {
     expect(m.html.indexOf('Deliver')).toBeLessThan(m.html.indexOf('Distance'))
-    expect(m.html.indexOf('Distance')).toBeLessThan(m.html.indexOf('S1 - Spartanburg SC 29301 US'))
+    expect(m.html.indexOf('Distance')).toBeLessThan(m.html.indexOf('Stop - Spartanburg SC 29301 US'))
   })
-  it('separates multiple stop-offs with a hairline rule, none for a single stop', () => {
+  it('sets off the whole stops group with one hairline above it, none between stops', () => {
     const multi = rfqEmail({ ...ctx, stops: [
-      { label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' },
-      { label: 'S2 - Atlanta GA 30301 US', date: 'Drop-off: 09/23/2023' },
+      { label: 'Stop - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2023' },
+      { label: 'Stop - Atlanta GA 30301 US', date: 'Drop-off: 09/23/2023' },
+      { label: 'Stop - Mobile AL 36601 US', date: 'Drop-off: 09/24/2023' },
     ] }, carrier)
-    // one from the separator between the two stops, plus the footer's own border-top
+    // one rule above the stops group, plus the footer's own border-top — never
+    // one per stop, regardless of how many stops there are.
     expect(multi.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(2)
-    // single stop: only the footer's border-top, none from a separator
-    expect(m.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(1)
+    // single stop: still gets its own group rule, plus the footer's border-top
+    expect(m.html.match(/border-top:1px solid #E4E6EB;/g)).toHaveLength(2)
   })
 })
 

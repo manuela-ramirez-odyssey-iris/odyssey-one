@@ -69,8 +69,8 @@ export function buildEmailContext({ shipmentDetails, shipment, quote, benchmark,
       ?? (Number.isFinite(distanceMi) && distanceMi > 0 ? `${Math.round(distanceMi).toLocaleString('en-US')} mi` : null),
     pickup: fmtDate(first?.scheduledDateTime),
     deliver: fmtDate(last?.scheduledDateTime),
-    stops: middle.map((s, i) => ({
-      label: `S${i + 1} - ${cityLine(s)}`,
+    stops: middle.map((s) => ({
+      label: `Stop - ${cityLine(s)}`,
       date: `${s.type === 'pickup' ? 'Pickup' : 'Drop-off'}: ${fmtDate(s.scheduledDateTime)}`,
     })),
     offerExpires: fmtStamp(quote?.closeAt),

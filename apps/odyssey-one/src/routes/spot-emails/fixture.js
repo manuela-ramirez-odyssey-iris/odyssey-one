@@ -26,9 +26,9 @@ const BASE_CTX = {
   pickup: '09/20/2026',
   deliver: '09/25/2026',
   stops: [
-    { label: 'S1 - Spartanburg SC 29301 US', date: 'Drop-off: 09/22/2026' },
-    { label: 'S2 - Atlanta GA 30301 US', date: 'Drop-off: 09/23/2026' },
-    { label: 'S3 - Mobile AL 36601 US', date: 'Drop-off: 09/24/2026' },
+    { label: 'Stop - Spartanburg SC 29301 US', date: 'Pickup: 09/22/2026' },
+    { label: 'Stop - Atlanta GA 30301 US', date: 'Drop-off: 09/23/2026' },
+    { label: 'Stop - Mobile AL 36601 US', date: 'Drop-off: 09/24/2026' },
   ],
   offerExpires: '09/08/2026 11:44 EST',
   sender: PLANNING_GROUP_MAILBOX,
