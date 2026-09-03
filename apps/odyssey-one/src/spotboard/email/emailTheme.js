@@ -26,6 +26,8 @@ export const THEME = {
     border: '#E4E6EB',     // --border-subtle
     link: '#276DA2',       // --text-link (carolina-blue-600)
     accent: '#5BA4D4',     // carolina-blue-400 (logo "ONE")
+    ctaBg: '#1B2537',      // --btn-primary-bg (--bg-inverse) — primary button dark fill
+    ctaText: '#FFFFFF',    // --btn-primary-text (--text-inverse)
     warningBg: '#FFFBEB',  // --bg-warning
     warningText: '#B46E05', // --text-warning
     errorBg: '#FDE5E3',    // --bg-error

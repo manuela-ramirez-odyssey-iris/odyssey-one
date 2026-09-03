@@ -2,6 +2,8 @@
 // Plain-text-first email layout with a LIGHT HTML layer that Outlook's Word
 // engine renders faithfully: one 600px table, inline styles, hex colors from
 // emailTheme, hosted PNG logo, no flex/grid/var()/border-radius/web fonts.
+// Centering is done the Outlook-safe way: align="center" on td/table PLUS a
+// matching text-align:center inline style, never CSS margin:auto alone.
 import { THEME } from './emailTheme.js'
 
 const C = THEME.color
@@ -19,30 +21,73 @@ export function renderText(lines) {
 
 const cell = (inner, style = '') => `<td style="${FONT}${style}">${inner}</td>`
 const row = (inner) => `<tr>${inner}</tr>`
+// A td whose only job is centering an inner table — align= for Outlook, the
+// inline style so every other client agrees.
+const centerCell = (inner, style = '') =>
+  `<td align="center" style="${FONT}text-align:center;${style}">${inner}</td>`
+
+function routeLabel(a) {
+  const lines = a?.lines ?? []
+  return lines[lines.length - 1] || a?.name || ''
+}
 
 export const blocks = {
-  headline: (text) => row(cell(esc(text), `font-size:18px;font-weight:bold;color:${C.text};padding:0 0 12px 0;`)),
-  paragraph: (text) => row(cell(esc(text), `font-size:14px;line-height:20px;color:${C.textSecondary};padding:0 0 12px 0;`)),
-  // [[label, value], …] — two-column key/value table.
+  headline: (text) => row(centerCell(
+    esc(text), `font-size:22px;line-height:28px;font-weight:bold;color:${C.text};padding:4px 0 16px 0;`)),
+  // Short uppercase kicker, centered, sits right under the header band.
+  eyebrow: (text) => row(centerCell(
+    esc(text), `font-size:12px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 8px 0;`)),
+  paragraph: (text) => row(centerCell(
+    esc(text), `font-size:14px;line-height:20px;color:${C.textSecondary};padding:0 0 16px 0;`)),
+  // [[label, value], …] — plain list, kept for templates that don't want a grid.
   fields: (pairs) => row(cell(
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">` +
     pairs.filter(([, v]) => v != null && v !== '').map(([k, v]) => row(
       cell(esc(k), `font-size:13px;color:${C.textTertiary};padding:3px 12px 3px 0;white-space:nowrap;vertical-align:top;`) +
       cell(esc(v), `font-size:13px;color:${C.text};padding:3px 0;vertical-align:top;`),
     )).join('') +
-    `</table>`, 'padding:0 0 12px 0;')),
-  // Address block: label + lines.
-  address: (label, lines) => row(cell(
-    `<div style="font-size:13px;color:${C.textTertiary};padding-bottom:2px;">${esc(label)}</div>` +
+    `</table>`, 'padding:0 0 16px 0;')),
+  // [[label, value], …] — centered facts grid, two per row, label above value.
+  factGrid: (pairs) => {
+    const clean = pairs.filter(([, v]) => v != null && v !== '')
+    const fact = ([k, v], full = false) => `<td width="${full ? '100' : '50'}%" ${full ? 'colspan="2" ' : ''}align="center" valign="top" style="${FONT}text-align:center;padding:8px 10px;">` +
+      `<div style="font-size:11px;font-weight:bold;letter-spacing:0.6px;text-transform:uppercase;color:${C.textTertiary};padding:0 0 3px 0;">${esc(k)}</div>` +
+      `<div style="font-size:15px;color:${C.text};">${esc(v)}</div></td>`
+    const rows = []
+    for (let i = 0; i < clean.length; i += 2) {
+      const b = clean[i + 1]
+      rows.push(row(b ? fact(clean[i]) + fact(b) : fact(clean[i], true)))
+    }
+    return row(cell(
+      `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
+      'padding:0 0 16px 0;'))
+  },
+  // Origin → destination as a centered, tinted band read at a glance.
+  route: (from, to) => row(cell(
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${C.pageBg};border:1px solid ${C.border};">` +
+    row(
+      `<td width="45%" align="center" style="${FONT}text-align:center;font-size:15px;font-weight:bold;color:${C.text};padding:12px 8px;">${esc(routeLabel(from))}</td>` +
+      `<td width="10%" align="center" style="${FONT}text-align:center;font-size:16px;color:${C.textTertiary};padding:12px 0;">&rarr;</td>` +
+      `<td width="45%" align="center" style="${FONT}text-align:center;font-size:15px;font-weight:bold;color:${C.text};padding:12px 8px;">${esc(routeLabel(to))}</td>`,
+    ) +
+    `</table>`,
+    'padding:0 0 16px 0;')),
+  // Address block: label + lines, centered under the route band.
+  address: (label, lines) => row(centerCell(
+    `<div style="font-size:12px;font-weight:bold;letter-spacing:0.4px;text-transform:uppercase;color:${C.textTertiary};padding-bottom:3px;">${esc(label)}</div>` +
     lines.filter(Boolean).map((l) => `<div style="font-size:13px;line-height:18px;color:${C.text};">${esc(l)}</div>`).join(''),
     'padding:0 0 12px 0;')),
   button: (label, href) => row(cell(
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>` +
-    `<td style="${FONT}background:${C.link};padding:10px 18px;">` +
-    `<a href="${esc(href)}" style="${FONT}font-size:14px;font-weight:bold;color:${C.cardBg};text-decoration:none;display:inline-block;">${esc(label)}</a>` +
-    `</td></tr></table>` +
-    `<div style="font-size:12px;color:${C.textTertiary};padding-top:8px;">If the button does not work, copy this link: <a href="${esc(href)}" style="color:${C.link};">${esc(href)}</a></div>`,
-    'padding:4px 0 16px 0;')),
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">` +
+    row(centerCell(
+      `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>` +
+      `<td align="center" style="${FONT}background:${C.ctaBg};padding:14px 32px;">` +
+      `<a href="${esc(href)}" style="${FONT}font-size:14px;font-weight:bold;color:${C.ctaText};text-decoration:none;display:inline-block;">${esc(label)}</a>` +
+      `</td></tr></table>`,
+    )) +
+    `</table>` +
+    `<div style="${FONT}font-size:12px;color:${C.textTertiary};text-align:center;padding-top:10px;">If the button does not work, copy this link: <a href="${esc(href)}" style="color:${C.link};">${esc(href)}</a></div>`,
+    'padding:8px 0 20px 0;')),
   // tone: 'warning' | 'error' | 'success' | 'info'
   // ponytail: nested table built directly (not via string surgery on
   // headline/paragraph output) — a naive replace('<tr>'/</tr>') on a
@@ -53,9 +98,9 @@ export const blocks = {
     const fg = { warning: C.warningText, error: C.errorText, success: C.successText, info: C.textSecondary }[tone]
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">` +
-      row(cell(esc(text), `font-size:13px;line-height:18px;color:${fg};background:${bg};border:1px solid ${C.border};padding:10px 12px;`)) +
+      row(cell(esc(text), `font-size:13px;line-height:18px;text-align:center;color:${fg};background:${bg};border:1px solid ${C.border};padding:12px 16px;`)) +
       `</table>`,
-      'padding:0 0 12px 0;'))
+      'padding:0 0 16px 0;'))
   },
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
@@ -71,17 +116,17 @@ export function renderHtml({ title, blocks: body, preheader = '' }) {
 <body style="margin:0;padding:0;background:${C.pageBg};">
 <div style="display:none;max-height:0;overflow:hidden;">${esc(preheader)}</div>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${C.pageBg};">
-<tr><td align="center" style="padding:24px 12px;">
+<tr><td align="center" style="padding:32px 12px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${THEME.width}" style="width:${THEME.width}px;max-width:100%;background:${C.cardBg};border:1px solid ${C.border};">
-<tr><td style="background:${C.headerBg};padding:16px 24px;">
-<img src="${THEME.logoUrl}" width="172" height="24" alt="${esc(THEME.logoAlt)}" style="display:block;border:0;" />
+<tr><td align="center" style="background:${C.headerBg};padding:28px 24px;text-align:center;">
+<img src="${THEME.logoUrl}" width="172" height="24" alt="${esc(THEME.logoAlt)}" style="display:inline-block;border:0;" />
 </td></tr>
-<tr><td style="padding:24px 24px 8px 24px;">
+<tr><td style="padding:32px 32px 8px 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
 ${body.join('\n')}
 </table>
 </td></tr>
-<tr><td style="${FONT}font-size:11px;line-height:16px;color:${C.textTertiary};border-top:1px solid ${C.border};padding:16px 24px;">
+<tr><td style="${FONT}font-size:11px;line-height:16px;text-align:center;color:${C.textTertiary};border-top:1px solid ${C.border};padding:20px 24px;">
 Odyssey Logistics &amp; Technology Corporation &middot; 4235 South Stream Blvd, STE 300, Charlotte NC 28217 &middot; 1-888-352-4409<br />
 This is a transactional message about a shipment you are configured to receive quotes for. It contains confidential information for the intended recipient only.
 </td></tr>

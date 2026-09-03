@@ -25,16 +25,20 @@ function partyText(ctx, { withReference }) {
 // extra: leading key/value pairs (e.g. Quote#) folded into the same fields
 // group as Reference#/Order#/Shipper, so their value columns share one
 // nested table instead of each landing in its own misaligned one.
-function partyBlocks(ctx, { withReference, extra = [] }) {
+// route: whether to show the origin→destination band above the addresses
+// (CE-1/CE-2 — a single lane is worth reading at a glance; the six planner
+// alerts skip it, they're an exception report, not a lane summary).
+function partyBlocks(ctx, { withReference, extra = [], route = false }) {
   return [
-    blocks.fields([
+    route ? blocks.route(ctx.from, ctx.to) : null,
+    blocks.factGrid([
       ...extra,
       ...(withReference ? [['Reference#', ctx.reference], ['Order#', ctx.orderNumber]] : []),
       ['Shipper', ctx.shipper],
     ]),
     blocks.address('Ship From', addr(ctx.from)),
     blocks.address('Ship To', addr(ctx.to)),
-  ]
+  ].filter(Boolean)
 }
 
 // ---------- CE-1 Request for Quote ----------
@@ -71,16 +75,18 @@ export function rfqEmail(ctx, carrier) {
     title: subject,
     preheader: `Quote ${ctx.quoteId} · ${ctx.equipment} · offer expires ${ctx.offerExpires}`,
     blocks: [
-      blocks.headline('Request for Quote'),
+      blocks.eyebrow('Request for Quote'),
+      blocks.headline(`${carrier.scac} — Quote ${ctx.quoteId}`),
       blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
-      blocks.fields([
+      blocks.route(ctx.from, ctx.to),
+      blocks.factGrid([
         ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`], ['Quote#', ctx.quoteId],
         ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat], ['Distance', ctx.distance],
         ['Pickup', ctx.pickup], ['Deliver', ctx.deliver],
       ]),
       blocks.address('Ship From', addr(ctx.from)),
       blocks.address('Ship To', addr(ctx.to)),
-      ctx.stops?.length ? blocks.fields(ctx.stops.map((s) => [s.label, s.date])) : null,
+      ctx.stops?.length ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date])) : null,
       blocks.button('Submit your quote', link),
       blocks.paragraph('This link is for your company only. Bidding closes at the offer expiry above.'),
     ].filter(Boolean),
@@ -101,9 +107,10 @@ export function awardEmail(ctx, carrier, allInRate) {
     title: subject,
     preheader: `Your rate of ${allInRate} for quote ${ctx.quoteId} was approved`,
     blocks: [
+      blocks.eyebrow('Quote Awarded'),
       blocks.headline('Great news!'),
       blocks.paragraph(lead.replace(/^Great news!\s*/, '')),
-      ...partyBlocks(ctx, { withReference: false, extra: [['Quote#', ctx.quoteId]] }),
+      ...partyBlocks(ctx, { withReference: false, extra: [['Quote#', ctx.quoteId]], route: true }),
       blocks.notice('The tender is a separate step. You are assigned to the load only once you accept it.', 'info'),
     ],
   })
@@ -111,13 +118,15 @@ export function awardEmail(ctx, carrier, allInRate) {
 }
 
 // ---------- IE-1…IE-6 planner alerts ----------
+// headline: the human sentence shown in the HTML layer — never used in
+// m.text, which stays the verbatim legacy skeleton (subject carries `cond`).
 const ALERTS = {
-  'IE-1': { cond: 'closed with no carrier bids submitted.', tone: 'error' },
-  'IE-2': { cond: 'closed and the lowest cost carrier is out of tolerance.', tone: 'warning' },
-  'IE-3': { cond: 'closed and Manual Review = Yes.  Please review quote responses immediately.', tone: 'warning' },
-  'IE-4': { cond: 'Cancelled, Consolidation Impacted by Order Change', tone: 'error', cancelled: true },
-  'IE-5': { cond: 'closed and no costed LCE option exists to determine quote tolerance.', tone: 'warning' },
-  'IE-6': { cond: 'closed and no distance was found to calculate an estimated costed LCE option.', tone: 'warning' },
+  'IE-1': { cond: 'closed with no carrier bids submitted.', tone: 'error', headline: 'No carrier bids were submitted' },
+  'IE-2': { cond: 'closed and the lowest cost carrier is out of tolerance.', tone: 'warning', headline: 'The lowest cost carrier is out of tolerance' },
+  'IE-3': { cond: 'closed and Manual Review = Yes.  Please review quote responses immediately.', tone: 'warning', headline: 'Manual review is required' },
+  'IE-4': { cond: 'Cancelled, Consolidation Impacted by Order Change', tone: 'error', cancelled: true, headline: 'Your consolidation has changed' },
+  'IE-5': { cond: 'closed and no costed LCE option exists to determine quote tolerance.', tone: 'warning', headline: 'No costed option exists to determine tolerance' },
+  'IE-6': { cond: 'closed and no distance was found to calculate an estimated costed LCE option.', tone: 'warning', headline: 'No distance was found to estimate cost' },
 }
 export const ALERT_KINDS = Object.keys(ALERTS)
 
@@ -140,10 +149,12 @@ export function alertEmail(kind, ctx) {
     title: subject,
     preheader: subject,
     blocks: [
-      blocks.notice(def.cancelled ? 'Your consolidation has changed. Your quote has been cancelled and is now invalid.' : subject, def.tone),
+      blocks.eyebrow('Action Required'),
+      blocks.headline(def.headline),
+      blocks.notice(def.cancelled ? 'Your quote has been cancelled and is now invalid.' : subject, def.tone),
       def.cancelled ? blocks.paragraph('Do not process any bids associated with this consolidation. Review shipment details to determine next steps.') : null,
       ...partyBlocks(ctx, { withReference: true }),
-      bid.length ? blocks.fields([
+      bid.length ? blocks.factGrid([
         ['Lowest Cost Carrier', ctx.lowest.carrier], ['Quoted Amount', ctx.lowest.amount],
         ['Ship Date', ctx.lowest.shipDate], ['Delivery Date', ctx.lowest.deliveryDate],
       ]) : null,
