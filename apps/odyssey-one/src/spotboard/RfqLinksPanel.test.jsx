@@ -47,7 +47,9 @@ describe('RfqLinksPanel', () => {
   })
 
   // Colour rides the SAME countdownTone ramp as the countdown badges
-  // (user, 2026-08-24): blue → orange → red as the window runs out.
+  // (designer amendment, 2026-09-03): blue above 40% left, amber down to
+  // (but not including) 0% — red is reserved for a CLOSED quote (a separate,
+  // status-driven branch below), never for a live one running low.
   describe('tone tracks the bidding window', () => {
     const NOW = Date.now()
     const quoteWith = (minsLeft, windowMins = 60, status = 'open') => ({
@@ -61,14 +63,15 @@ describe('RfqLinksPanel', () => {
       expect(container.querySelector('.alert--info')).toBeTruthy()
     })
 
-    it('is orange (warning) between 30% and 10% left', () => {
+    it('is orange (warning) under 40% left', () => {
       const { container } = render(<RfqLinksPanel quote={quoteWith(12)} carriers={carriers} />)
       expect(container.querySelector('.alert--warning')).toBeTruthy()
     })
 
-    it('is red (error) under 10% left', () => {
+    it('stays orange (warning), never red, with almost no time left while still open', () => {
       const { container } = render(<RfqLinksPanel quote={quoteWith(3)} carriers={carriers} />)
-      expect(container.querySelector('.alert--error')).toBeTruthy()
+      expect(container.querySelector('.alert--warning')).toBeTruthy()
+      expect(container.querySelector('.alert--error')).toBeFalsy()
     })
   })
 

@@ -9,33 +9,27 @@ import './spotboard.css'
 // component into the design system.
 export { useCountdown, formatHMS, formatMMSS }
 
-export const URGENT_MS = 15 * 60000
-
-// SpotBid countdown color ramp (user, 2026-08-24, restated): the badge
-// tracks how much of the BIDDING WINDOW is left — BLUE from 100% down to
-// 30%, AMBER 30→10%, RED under 10% (and once expired). Blue is the
-// open-bid color, so a healthy countdown reads as "bid is live" and only
-// leaves that color as it runs out.
+// SpotBid countdown color ramp (designer amendment, 2026-09-03): RED is now
+// reserved EXCLUSIVELY for a closed/expired quote — a live quote is never
+// red. Above 40% of the BIDDING WINDOW remaining is BLUE, 0% (exclusive) up
+// to 40% is AMBER, and only remaining <= 0 is RED.
 //
 // `windowMs` is `closeAt - openAt`. Without it there is no percentage to
-// take, so the fallback keeps the same three bands on absolute time:
-// >30 min blue, 10–30 amber, <10 red.
+// take, so the fallback keeps a time-based split under the same rule (red
+// only at expiry): >10 min blue, otherwise (but still > 0) amber.
 //
 // ONE function, used by every countdown surface — the Live Bids strip badge,
-// the award dialog's header badge and the carrier bid page's H/M/S title —
-// so the three can never drift apart (user: "countdown color change should
-// be the same for the bidpage countdown and floating badge").
+// the Live Bids sub-tab dot, the award dialog's header badge and the carrier
+// bid page's H/M/S title — so none of them can ever drift apart (user:
+// "countdown color change should be the same for the bidpage countdown and
+// floating badge").
 export function countdownTone(remaining, windowMs) {
   if (remaining <= 0) return 'red'
   if (windowMs > 0) {
     const pct = remaining / windowMs
-    if (pct > 0.30) return 'blue'
-    if (pct > 0.10) return 'amber'
-    return 'red'
+    return pct > 0.40 ? 'blue' : 'amber'
   }
-  if (remaining > 30 * 60000) return 'blue'
-  if (remaining > 10 * 60000) return 'amber'
-  return 'red'
+  return remaining > 10 * 60000 ? 'blue' : 'amber'
 }
 
 // `zeroWhenExpired` (default false): an expired countdown holds at 00:00
