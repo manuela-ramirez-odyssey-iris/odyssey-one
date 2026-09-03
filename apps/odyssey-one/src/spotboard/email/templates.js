@@ -92,7 +92,7 @@ export function rfqEmail(ctx, carrier) {
       ], { columns: 4, align: 'left' }),
       blocks.route(ctx.from, ctx.to),
       blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to),
-        ['Pickup', ctx.pickup, 'Deliver', ctx.deliver]),
+        ['Pickup', ctx.pickup, 'Deliver', ctx.deliver], { gapBottom: 4 }),
       ctx.distance ? blocks.factGrid([['Distance', ctx.distance]], { columns: 1 }) : null,
       ctx.stops?.length ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date])) : null,
       blocks.button('Submit your quote', link),

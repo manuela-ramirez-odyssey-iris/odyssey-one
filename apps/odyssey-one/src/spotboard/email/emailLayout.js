@@ -86,7 +86,10 @@ export const blocks = {
   // Ship From / Ship To side by side, one column each. `footLabels` is an
   // optional [fromLabel, fromValue, toLabel, toValue] second row aligned to
   // the same two columns (e.g. Pickup under Ship From, Deliver under Ship To).
-  addressPair: (fromLabel, fromLines, toLabel, toLines, footLabels) => {
+  // `gapBottom` (default 16) trims the trailing padding when a block right
+  // after this one belongs to the same visual group (e.g. Distance under
+  // Pickup/Deliver) rather than starting a new section.
+  addressPair: (fromLabel, fromLines, toLabel, toLines, footLabels, { gapBottom = 16 } = {}) => {
     const addrCell = (label, lines) => `<td width="50%" align="center" valign="top" style="${FONT}text-align:center;padding:0 10px 12px 10px;">` +
       `<div style="font-size:12px;font-weight:bold;letter-spacing:0.4px;text-transform:uppercase;color:${C.textTertiary};padding-bottom:3px;">${esc(label)}</div>` +
       lines.filter(Boolean).map((l) => `<div style="font-size:13px;line-height:18px;color:${C.text};">${esc(l)}</div>`).join('') +
@@ -101,7 +104,7 @@ export const blocks = {
     }
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
-      'padding:0 0 16px 0;'))
+      `padding:0 0 ${gapBottom}px 0;`))
   },
   button: (label, href) => row(cell(
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">` +
