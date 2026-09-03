@@ -80,9 +80,11 @@ export function rfqEmail(ctx, carrier) {
       blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
       blocks.route(ctx.from, ctx.to),
       blocks.factGrid([
-        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`], ['Quote#', ctx.quoteId],
-        ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat], ['Distance', ctx.distance],
+        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
+        ['Quote#', ctx.quoteId], ['Equipment', ctx.equipment],
+        ['Weight', ctx.weight], ['Hazmat', ctx.hazmat],
         ['Pickup', ctx.pickup], ['Deliver', ctx.deliver],
+        ['Distance', ctx.distance],
       ]),
       blocks.address('Ship From', addr(ctx.from)),
       blocks.address('Ship To', addr(ctx.to)),
@@ -121,12 +123,12 @@ export function awardEmail(ctx, carrier, allInRate) {
 // headline: the human sentence shown in the HTML layer — never used in
 // m.text, which stays the verbatim legacy skeleton (subject carries `cond`).
 const ALERTS = {
-  'IE-1': { cond: 'closed with no carrier bids submitted.', tone: 'error', headline: 'No carrier bids were submitted' },
-  'IE-2': { cond: 'closed and the lowest cost carrier is out of tolerance.', tone: 'warning', headline: 'The lowest cost carrier is out of tolerance' },
-  'IE-3': { cond: 'closed and Manual Review = Yes.  Please review quote responses immediately.', tone: 'warning', headline: 'Manual review is required' },
+  'IE-1': { cond: 'closed with no carrier bids submitted.', tone: 'error', headline: 'No carrier bids were submitted', action: 'No bids received — planner review required' },
+  'IE-2': { cond: 'closed and the lowest cost carrier is out of tolerance.', tone: 'warning', headline: 'The lowest cost carrier is out of tolerance', action: 'Lowest bid out of tolerance — planner review required' },
+  'IE-3': { cond: 'closed and Manual Review = Yes.  Please review quote responses immediately.', tone: 'warning', headline: 'Manual review is required', action: 'Manual review flagged — planner review required' },
   'IE-4': { cond: 'Cancelled, Consolidation Impacted by Order Change', tone: 'error', cancelled: true, headline: 'Your consolidation has changed' },
-  'IE-5': { cond: 'closed and no costed LCE option exists to determine quote tolerance.', tone: 'warning', headline: 'No costed option exists to determine tolerance' },
-  'IE-6': { cond: 'closed and no distance was found to calculate an estimated costed LCE option.', tone: 'warning', headline: 'No distance was found to estimate cost' },
+  'IE-5': { cond: 'closed and no costed LCE option exists to determine quote tolerance.', tone: 'warning', headline: 'No costed option exists to determine tolerance', action: 'No costed option available — planner review required' },
+  'IE-6': { cond: 'closed and no distance was found to calculate an estimated costed LCE option.', tone: 'warning', headline: 'No distance was found to estimate cost', action: 'No distance found — planner review required' },
 }
 export const ALERT_KINDS = Object.keys(ALERTS)
 
@@ -151,7 +153,7 @@ export function alertEmail(kind, ctx) {
     blocks: [
       blocks.eyebrow('Action Required'),
       blocks.headline(def.headline),
-      blocks.notice(def.cancelled ? 'Your quote has been cancelled and is now invalid.' : subject, def.tone),
+      blocks.notice(def.cancelled ? 'Your quote has been cancelled and is now invalid.' : `Quote ${ctx.quoteId} · ${def.action}`, def.tone),
       def.cancelled ? blocks.paragraph('Do not process any bids associated with this consolidation. Review shipment details to determine next steps.') : null,
       ...partyBlocks(ctx, { withReference: true }),
       bid.length ? blocks.factGrid([
