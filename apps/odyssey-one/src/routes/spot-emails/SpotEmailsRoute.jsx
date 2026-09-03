@@ -4,13 +4,18 @@
 // produces beside it, and the selected one rendered in a SANDBOXED iframe:
 // the app's stylesheet cannot reach inside, so what is shown is the exact
 // document that would be sent.
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Badge, Button } from '@odyssey/ui'
 import { SCENARIOS, scenarioFor, emailsForScenario, defaultEmailIdFor } from './fixture.js'
 import './spotEmails.css'
 
 // Badge has no success/error/warning variants — map to the closest real ones.
 const KIND_TONE = { 'CE-1': 'info', 'CE-2': 'green', 'IE-1': 'red', 'IE-4': 'red' }
+
+// Fallback for when the frame's document can't be measured (e.g. jsdom, or a
+// browser that refuses the read despite allow-same-origin).
+const FALLBACK_FRAME_HEIGHT = 760
+const FRAME_HEIGHT_ALLOWANCE = 24
 
 export default function SpotEmailsRoute() {
   const [scenarioKey, setScenarioKey] = useState(SCENARIOS[0].key)
@@ -20,6 +25,23 @@ export default function SpotEmailsRoute() {
   const [selectedId, setSelectedId] = useState(null)
   const defaultId = defaultEmailIdFor(scenarioKey, emails)
   const selected = emails.find((e) => e.id === selectedId) ?? emails.find((e) => e.id === defaultId)
+  const frameRef = useRef(null)
+  const [frameHeight, setFrameHeight] = useState(FALLBACK_FRAME_HEIGHT)
+
+  const measureFrame = () => {
+    try {
+      const doc = frameRef.current?.contentDocument
+      const height = doc?.documentElement?.scrollHeight
+      setFrameHeight(height ? height + FRAME_HEIGHT_ALLOWANCE : FALLBACK_FRAME_HEIGHT)
+    } catch {
+      setFrameHeight(FALLBACK_FRAME_HEIGHT)
+    }
+  }
+
+  // Re-measure whenever the selected email changes (srcDoc swap re-fires load).
+  useEffect(() => {
+    setFrameHeight(FALLBACK_FRAME_HEIGHT)
+  }, [selected?.id])
 
   const pickScenario = (key) => { setScenarioKey(key); setSelectedId(null) }
 
@@ -79,7 +101,15 @@ export default function SpotEmailsRoute() {
                 <Button size="sm" variant={mode === 'text' ? 'primary' : 'secondary'} onClick={() => setMode('text')}>Text</Button>
               </div>
               {mode === 'html' ? (
-                <iframe className="spot-emails__frame" title="Email preview" sandbox="" srcDoc={selected.html} />
+                <iframe
+                  ref={frameRef}
+                  className="spot-emails__frame"
+                  title="Email preview"
+                  sandbox="allow-same-origin"
+                  srcDoc={selected.html}
+                  style={{ height: frameHeight }}
+                  onLoad={measureFrame}
+                />
               ) : (
                 <pre className="spot-emails__text">{selected.text}</pre>
               )}

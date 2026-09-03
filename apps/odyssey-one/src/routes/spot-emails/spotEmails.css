@@ -21,7 +21,7 @@
 .spot-emails__envelope dt { color: var(--text-tertiary); }
 .spot-emails__envelope dd { margin: 0; overflow-wrap: anywhere; }
 .spot-emails__toolbar { display: flex; gap: var(--spacing-2); }
-.spot-emails__frame { width: 100%; height: 760px; border: 1px solid var(--border-subtle); background: var(--bg-primary); }
+.spot-emails__frame { width: 100%; min-height: 760px; border: 1px solid var(--border-subtle); background: var(--bg-primary); }
 /* no --font-mono token exists yet (same fallback used in styles/panes/history.css) */
 .spot-emails__text { margin: 0; padding: var(--spacing-3); border: 1px solid var(--border-subtle); background: var(--bg-primary); font-family: var(--font-mono, "SF Mono", "Fira Code", "Cascadia Code", monospace); font-size: var(--font-size-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .spot-emails__body { grid-template-columns: 1fr; } .spot-emails__scenarios { position: static; flex-direction: row; flex-wrap: wrap; } .spot-emails__scenarios-title { width: 100%; } }
