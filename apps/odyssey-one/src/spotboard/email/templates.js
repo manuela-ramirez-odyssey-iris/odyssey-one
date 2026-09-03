@@ -22,21 +22,25 @@ function partyText(ctx, { withReference }) {
     ...addrText('Ship To', ctx.to),
   ]
 }
-// extra: leading key/value pairs (e.g. Quote#) folded into the same fields
-// group as Reference#/Order#/Shipper, so their value columns share one
-// nested table instead of each landing in its own misaligned one.
+// wide: long-value pairs (Reference#, Order#, Lowest Cost Carrier, Shipper)
+// stacked first as a 2-column row; short: brief pairs (Quote#, Quoted
+// Amount) below as a 4-column row — split so a long value never wraps in a
+// cramped narrow cell.
 // route: whether to show the origin→destination band above the addresses
 // (CE-1/CE-2 — a single lane is worth reading at a glance; the six planner
 // alerts skip it, they're an exception report, not a lane summary).
 // foot: optional [fromLabel, fromValue, toLabel, toValue] pair placed under
 // the two address columns (e.g. Ship Date under Ship From).
-function partyBlocks(ctx, { withReference, extra = [], route = false, foot = null }) {
+function partyBlocks(ctx, { withReference, wide = [], short = [], route = false, foot = null }) {
+  const wideFields = [
+    ...wide,
+    withReference ? ['Reference#', ctx.reference] : null,
+    withReference ? ['Order#', ctx.orderNumber] : null,
+    ['Shipper', ctx.shipper],
+  ].filter(Boolean)
   return [
-    blocks.factGrid([
-      ...extra,
-      ...(withReference ? [['Reference#', ctx.reference], ['Order#', ctx.orderNumber]] : []),
-      ['Shipper', ctx.shipper],
-    ], { columns: 4, align: 'left' }),
+    blocks.factGrid(wideFields, { columns: 2, align: 'left', gapBottom: short.length ? 4 : 16 }),
+    short.length ? blocks.factGrid(short, { columns: 4, align: 'left' }) : null,
     route ? blocks.route(ctx.from, ctx.to) : null,
     blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to), foot),
   ].filter(Boolean)
@@ -80,9 +84,11 @@ export function rfqEmail(ctx, carrier) {
       blocks.headline(`${carrier.scac} — Quote ${ctx.quoteId}`),
       blocks.notice(`Offer expires ${ctx.offerExpires}`, 'warning'),
       blocks.factGrid([
+        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
+      ], { columns: 2, align: 'left', gapBottom: 4 }),
+      blocks.factGrid([
         ['Quote#', ctx.quoteId], ['Equipment', ctx.equipment],
         ['Weight', ctx.weight], ['Hazmat', ctx.hazmat],
-        ['Shipper', ctx.shipper], ['Carrier', `${carrier.scac} - ${carrier.name}`],
       ], { columns: 4, align: 'left' }),
       blocks.route(ctx.from, ctx.to),
       blocks.addressPair('Ship From', addr(ctx.from), 'Ship To', addr(ctx.to),
@@ -112,7 +118,7 @@ export function awardEmail(ctx, carrier, allInRate) {
       blocks.eyebrow('Quote Awarded'),
       blocks.headline('Great news!'),
       blocks.paragraph(lead.replace(/^Great news!\s*/, '')),
-      ...partyBlocks(ctx, { withReference: false, extra: [['Quote#', ctx.quoteId]], route: true }),
+      ...partyBlocks(ctx, { withReference: false, short: [['Quote#', ctx.quoteId]], route: true }),
       blocks.notice('The tender is a separate step. You are assigned to the load only once you accept it.', 'info'),
     ],
   })
@@ -157,7 +163,8 @@ export function alertEmail(kind, ctx) {
       def.cancelled ? blocks.paragraph('Do not process any bids associated with this consolidation. Review shipment details to determine next steps.') : null,
       ...partyBlocks(ctx, {
         withReference: true,
-        extra: bid.length ? [['Lowest Cost Carrier', ctx.lowest.carrier], ['Quoted Amount', ctx.lowest.amount]] : [],
+        wide: bid.length ? [['Lowest Cost Carrier', ctx.lowest.carrier]] : [],
+        short: bid.length ? [['Quoted Amount', ctx.lowest.amount]] : [],
         foot: bid.length ? ['Ship Date', ctx.lowest.shipDate, 'Delivery Date', ctx.lowest.deliveryDate] : null,
       }),
     ].filter(Boolean),

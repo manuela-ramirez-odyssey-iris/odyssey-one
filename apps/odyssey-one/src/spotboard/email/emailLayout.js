@@ -49,7 +49,9 @@ export const blocks = {
     `</table>`, 'padding:0 0 16px 0;')),
   // [[label, value], …] — facts grid, `columns` per row (default 2),
   // `align` 'center' (default) or 'left', label above value.
-  factGrid: (pairs, { columns = 2, align = 'center' } = {}) => {
+  // `gapBottom` trims the trailing padding when this grid is immediately
+  // followed by another factGrid, so the pair reads as one stacked block.
+  factGrid: (pairs, { columns = 2, align = 'center', gapBottom = 16 } = {}) => {
     const clean = pairs.filter(([, v]) => v != null && v !== '')
     const pct = Math.floor(100 / columns)
     const a = align === 'left' ? 'left' : 'center'
@@ -64,7 +66,7 @@ export const blocks = {
     }
     return row(cell(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${rows.join('')}</table>`,
-      'padding:0 0 16px 0;'))
+      `padding:0 0 ${gapBottom}px 0;`))
   },
   // Origin → destination as a centered, tinted band read at a glance.
   route: (from, to) => row(cell(
