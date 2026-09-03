@@ -51,7 +51,10 @@ export function getQuote(shipmentId) {
   return read(shipmentId)
 }
 
-export function saveDraft(shipmentId, { listId, listName, durationMin, carriers, flexiblePickup }) {
+export function saveDraft(
+  shipmentId,
+  { listId, listName, durationMin, carriers, flexiblePickup, flexibleDelivery }
+) {
   const existing = read(shipmentId)
   if (existing && existing.status !== 'draft') return existing
 
@@ -68,6 +71,7 @@ export function saveDraft(shipmentId, { listId, listName, durationMin, carriers,
     awardedScac: null,
     carriers,
     flexiblePickup: flexiblePickup ?? false,
+    flexibleDelivery: flexibleDelivery ?? false,
   })
 }
 

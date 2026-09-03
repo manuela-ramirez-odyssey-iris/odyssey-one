@@ -110,3 +110,8 @@
   align-items: center;
   gap: var(--spacing-3);
 }
+
+/* SPB-75: the suppression note, same trail group as the disabled button. */
+.award-modal__auto-close-note {
+  color: var(--text-tertiary);
+}

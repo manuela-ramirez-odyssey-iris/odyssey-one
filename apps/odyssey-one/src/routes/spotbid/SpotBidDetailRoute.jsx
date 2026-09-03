@@ -17,7 +17,6 @@ import AppShell from '../../components/layout/AppShell'
 import {
   CHARGE_NAMES,
   declineBid,
-  fuelFor,
   getBid,
   listQuotes,
   statusFor,
@@ -25,6 +24,7 @@ import {
   subscribe,
   totalFor,
 } from '../../spotbid/carrierQuotes.js'
+import { computeFuel, seededDistanceMiles } from '../../spotboard/fuelSchedule.js'
 import { fmtDollar } from '../../utils/money'
 import './spotbid-detail.css'
 
@@ -44,6 +44,21 @@ const CLOSED_STATUS_COPY = {
   Expired: { variant: 'warning', message: 'This quote request has expired.' },
   Awarded: { variant: 'info', message: 'This quote request has been awarded.' },
   Cancelled: { variant: 'error', message: 'This quote request was cancelled.' },
+}
+
+// SPB-71: fuel here is a forced, seeded rate×distance charge (carrierQuotes.js
+// fuelRatePerMile/distanceMi) — the carrier never enters it. Routed through
+// fuelSchedule.js's computeFuel so the "TMS could not calculate it" path is
+// real and doesn't block the bid; carrierQuotes.js has no SCAC to seed the
+// no-distance slice on (SPB-05: never carrier-visible), so it's seeded on
+// quoteId instead (see fuelSchedule.js's seededDistanceMiles).
+function fuelStateFor(quote) {
+  const result = computeFuel(
+    { type: 'perMile', rate: quote.fuelRatePerMile },
+    { distanceMiles: seededDistanceMiles(quote.quoteId, quote.distanceMi) }
+  )
+  if (result && typeof result === 'object') return { amount: 0, uncalculable: true }
+  return { amount: result, uncalculable: false }
 }
 
 const columnHelper = createColumnHelper()
@@ -98,7 +113,7 @@ function BreadcrumbRow({ quoteId, onHome }) {
 // live totals. Keyed by the parent on every "start editing" so its local
 // state remounts fresh from the CURRENT bid (blank for a new bid, prefilled
 // for Update Bid) instead of carrying over stale input.
-function QuoteEntryForm({ quote, bid, onSubmit, onDecline }) {
+function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onToggleCharges }) {
   const prefill = bid.state === 'submitted' ? bid : null
   const [linehaul, setLinehaul] = useState(() => (prefill?.linehaul != null ? String(prefill.linehaul) : ''))
   const [currency, setCurrency] = useState(() => prefill?.currency ?? 'USD')
@@ -112,7 +127,7 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline }) {
   })
 
   const linehaulNum = Number(linehaul) || 0
-  const fuel = fuelFor(quote)
+  const { amount: fuel, uncalculable: fuelUncalculable } = fuelStateFor(quote)
   const subtotal = linehaulNum + fuel
 
   const chargeAmounts = {}
@@ -144,8 +159,8 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline }) {
         />
         <FormField
           id="qe-fuel"
-          label={`Fuel [${fmtDollar(quote.fuelRatePerMile)} per mile]`}
-          value={fmtDollar(fuel)}
+          label={fuelUncalculable ? 'Fuel' : `Fuel [${fmtDollar(quote.fuelRatePerMile)} per mile]`}
+          value={fuelUncalculable ? 'Could not be calculated — assumed included in base rate' : fmtDollar(fuel)}
           disabled
         />
       </div>
@@ -154,19 +169,25 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline }) {
         <span>{fmtDollar(subtotal)}</span>
       </div>
 
-      <div className="spotbid-qe__label text-label-sm-medium">Additional Charges</div>
-      <div className="spotbid-qe__grid">
-        {CHARGE_NAMES.map((name) => (
-          <FormField
-            key={name}
-            id={`qe-charge-${name}`}
-            label={name}
-            format="decimal"
-            value={chargeValues[name]}
-            onChange={(e) => setChargeValues((m) => ({ ...m, [name]: e.target.value }))}
-          />
-        ))}
-      </div>
+      <SubAccordion
+        title={`Additional charges (${CHARGE_NAMES.length} available)`}
+        showIcon={false}
+        expanded={chargesExpanded}
+        onToggle={onToggleCharges}
+      >
+        <div className="spotbid-qe__grid">
+          {CHARGE_NAMES.map((name) => (
+            <FormField
+              key={name}
+              id={`qe-charge-${name}`}
+              label={name}
+              format="decimal"
+              value={chargeValues[name]}
+              onChange={(e) => setChargeValues((m) => ({ ...m, [name]: e.target.value }))}
+            />
+          ))}
+        </div>
+      </SubAccordion>
       <div className="spotbid-qe__total-row text-label-sm-medium">
         <span>Total</span>
         <span>{fmtDollar(total)}</span>
@@ -189,19 +210,32 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline }) {
 // Read-only "Your Quote" — the submitted-state mirror of QuoteEntryForm.
 // `onUpdate` present only while the window is still open (PRD Feature 3 —
 // re-bid allowed while open); omitted once closed.
-function YourQuoteSummary({ quote, bid, onUpdate }) {
-  const fuel = fuelFor(quote)
+function YourQuoteSummary({ quote, bid, onUpdate, chargesExpanded, onToggleCharges }) {
+  const { amount: fuel, uncalculable: fuelUncalculable } = fuelStateFor(quote)
   const total = totalFor(quote, bid)
+  const addedCharges = Object.keys(bid.chargeAmounts ?? {}).filter((name) => bid.chargeAmounts[name] > 0)
   return (
     <SubAccordion title="Your Quote" showIcon={false} defaultExpanded>
       <div className="spotbid-qe__grid">
         <TitleSubtitle title={fmtDollar(bid.linehaul)} subtitle="Linehaul" />
-        <TitleSubtitle title={fmtDollar(fuel)} subtitle="Fuel" />
+        <TitleSubtitle
+          title={fuelUncalculable ? 'Could not be calculated — assumed included in base rate' : fmtDollar(fuel)}
+          subtitle="Fuel"
+        />
         <TitleSubtitle title={bid.currency ?? 'USD'} subtitle="Currency" />
-        {CHARGE_NAMES.map((name) => (
-          <TitleSubtitle key={name} title={fmtDollar(bid.chargeAmounts?.[name] ?? null)} subtitle={name} />
-        ))}
       </div>
+      <SubAccordion
+        title={`Additional charges (${addedCharges.length} added)`}
+        showIcon={false}
+        expanded={chargesExpanded}
+        onToggle={onToggleCharges}
+      >
+        <div className="spotbid-qe__grid">
+          {CHARGE_NAMES.map((name) => (
+            <TitleSubtitle key={name} title={fmtDollar(bid.chargeAmounts?.[name] ?? null)} subtitle={name} />
+          ))}
+        </div>
+      </SubAccordion>
       <div className="spotbid-qe__total-row text-label-sm-medium">
         <span>Total</span>
         <span>{fmtDollar(total)}</span>
@@ -241,6 +275,11 @@ export default function SpotBidDetailRoute() {
     setEditKey((k) => k + 1)
     setEditing(true)
   }
+
+  // Additional charges disclosure (SPB-72: 90% of carriers add none) — one
+  // toggle for the page visit, shared by the entry form and the read-only
+  // summary, so it survives "Update Bid" remounts instead of resetting.
+  const [chargesExpanded, setChargesExpanded] = useState(false)
 
   // Items table — built unconditionally (hooks can't be conditional); an
   // unknown quote just feeds it an empty array, and the early-return below
@@ -330,11 +369,25 @@ export default function SpotBidDetailRoute() {
         )}
 
         {showSummary && (
-          <YourQuoteSummary quote={quote} bid={bid} onUpdate={isOpen ? startEdit : undefined} />
+          <YourQuoteSummary
+            quote={quote}
+            bid={bid}
+            onUpdate={isOpen ? startEdit : undefined}
+            chargesExpanded={chargesExpanded}
+            onToggleCharges={setChargesExpanded}
+          />
         )}
 
         {showForm && (
-          <QuoteEntryForm key={editKey} quote={quote} bid={bid} onSubmit={handleSubmit} onDecline={handleDecline} />
+          <QuoteEntryForm
+            key={editKey}
+            quote={quote}
+            bid={bid}
+            onSubmit={handleSubmit}
+            onDecline={handleDecline}
+            chargesExpanded={chargesExpanded}
+            onToggleCharges={setChargesExpanded}
+          />
         )}
       </div>
     </AppShell>

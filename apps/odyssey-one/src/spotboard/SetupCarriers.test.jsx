@@ -293,6 +293,7 @@ describe('SetupCarriers', () => {
       <SetupCarriers
         carrierOptions={carrierOptions}
         shipmentDetails={shipmentDetailsFixture}
+        shipmentId="FLEX-BOTH-1"
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -306,7 +307,7 @@ describe('SetupCarriers', () => {
     fillDate(rows[0].scac, 'delivery', '08/11/2026')
 
     openSetupModal()
-    fireEvent.click(screen.getByLabelText('Flexible'))
+    fireEvent.click(screen.getByLabelText('Flexible pickup (±4 days)'))
     applySetupModal()
 
     sendRFQ()
@@ -495,6 +496,7 @@ describe('SetupCarriers', () => {
       <SetupCarriers
         carrierOptions={carrierOptions}
         shipmentDetails={shipmentDetailsFixture}
+        shipmentId="FLEX-BOTH-1"
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -507,7 +509,8 @@ describe('SetupCarriers', () => {
     expect(dialog.getByLabelText('Quote Duration')).toBeTruthy()
     expect(dialog.getByLabelText('Planned Pickup')).toBeTruthy()
     expect(dialog.getByLabelText('Planned Delivery')).toBeTruthy()
-    expect(dialog.getByLabelText('Flexible')).toBeTruthy()
+    expect(dialog.getByLabelText('Flexible pickup (±4 days)')).toBeTruthy()
+    expect(dialog.getByLabelText('Flexible delivery (±1 days)')).toBeTruthy()
   })
 
   it('the Setup Quote trigger is disabled when the pane is readOnly', () => {
@@ -733,6 +736,7 @@ describe('SetupCarriers', () => {
       <SetupCarriers
         carrierOptions={carrierOptions}
         shipmentDetails={shipmentDetailsFixture}
+        shipmentId="FLEX-BOTH-1"
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -741,11 +745,15 @@ describe('SetupCarriers', () => {
     )
     openSetupModal()
     pickModalDuration('40 min')
-    fireEvent.click(screen.getByLabelText('Flexible'))
+    fireEvent.click(screen.getByLabelText('Flexible pickup (±4 days)'))
     applySetupModal()
 
     expect(onTermsChange).toHaveBeenCalledTimes(1)
-    expect(onTermsChange).toHaveBeenCalledWith({ durationMin: 40, flexiblePickup: true })
+    expect(onTermsChange).toHaveBeenCalledWith({
+      durationMin: 40,
+      flexiblePickup: true,
+      flexibleDelivery: false,
+    })
   })
 
   it('the LTL mode payload carries the "LTL" list — TL carries "TL"', () => {
@@ -1349,11 +1357,12 @@ describe('SetupCarriers', () => {
 
   // ── Send RFQ confirmation modal (S112) ────────────────────────────────────
   describe('Send RFQ confirmation', () => {
-    const renderAndComplete = (onSendRFQ = () => {}) => {
+    const renderAndComplete = (onSendRFQ = () => {}, shipmentId) => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
           shipmentDetails={shipmentDetailsFixture}
+          shipmentId={shipmentId}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1390,9 +1399,14 @@ describe('SetupCarriers', () => {
     })
 
     it('summarises the carriers, the duration and the flexible-pickup flag', () => {
-      const rows = renderAndComplete()
+      // Uses a shipmentId that has both flex checkboxes configured — the
+      // overflow composition is re-derived off THIS shipmentId (not the
+      // module-level `allRows`, which is built with no shipmentId).
+      const flexShipmentId = 'FLEX-BOTH-1'
+      const shipRows = buildOverflowRows(shipmentDetailsFixture, carrierOptions, flexShipmentId)
+      const rows = renderAndComplete(() => {}, flexShipmentId)
       openSetupModal()
-      fireEvent.click(screen.getByLabelText('Flexible'))
+      fireEvent.click(screen.getByLabelText('Flexible pickup (±4 days)'))
       applySetupModal()
       fireEvent.click(sendRFQButton())
       const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
@@ -1407,13 +1421,13 @@ describe('SetupCarriers', () => {
       // (2026-08-21) every row is left untouched, Routed carriers included:
       // Apply must not silently re-include a carrier the user never dated
       // itself into inclusion.
-      const includedCount = allRows.filter((r) => !r.flags.includes('Routed')).length
+      const includedCount = shipRows.filter((r) => !r.flags.includes('Routed')).length
       expect(includedCount).toBeGreaterThan(1) // guards against a silent revert
       const dialogText = screen.getByRole('dialog', { name: 'Send RFQ' }).textContent
       expect(dialogText).toMatch(new RegExp(`will be sent to\\s*${includedCount}\\s*carrier`))
 
       // The ROUTED carrier is excluded by default and must not be listed.
-      const routed = allRows.find((r) => r.flags.includes('Routed'))
+      const routed = shipRows.find((r) => r.flags.includes('Routed'))
       expect(dialog.queryByText(new RegExp(routed.scac))).toBeFalsy()
 
       expect(dialog.getByText('30 min')).toBeTruthy() // flat default (2026-08-19)

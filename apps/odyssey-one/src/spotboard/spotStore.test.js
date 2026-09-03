@@ -71,6 +71,16 @@ describe('saveDraft', () => {
     expect(savedNoFlag.flexiblePickup).toBe(false)
   })
 
+  it('round-trips flexibleDelivery through getQuote, defaulting to false when absent', () => {
+    const saved = saveDraft(SHIPMENT_ID, { ...draftInput, flexibleDelivery: true })
+    expect(saved.flexibleDelivery).toBe(true)
+    expect(getQuote(SHIPMENT_ID).flexibleDelivery).toBe(true)
+
+    localStorage.clear()
+    const savedNoFlag = saveDraft(SHIPMENT_ID, draftInput)
+    expect(savedNoFlag.flexibleDelivery).toBe(false)
+  })
+
   it('is a no-op once the quote is open', () => {
     saveDraft(SHIPMENT_ID, draftInput)
     const opened = sendRFQ(SHIPMENT_ID, Date.now())

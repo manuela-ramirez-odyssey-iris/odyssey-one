@@ -1,4 +1,5 @@
 import { beforeEach, describe, it, expect } from 'vitest'
+import { seededDistanceMiles } from '../spotboard/fuelSchedule.js'
 import {
   listQuotes,
   fuelFor,
@@ -34,10 +35,18 @@ describe('listQuotes — coherence', () => {
     }
   })
 
-  it('fuelFor equals rate × distance, rounded to cents', () => {
+  it('fuelFor equals rate × distance, rounded to cents (except seeded no-distance quotes)', () => {
     for (const q of quotes) {
-      expect(fuelFor(q)).toBeCloseTo(q.fuelRatePerMile * q.distanceMi, 2)
+      const expected = seededDistanceMiles(q.quoteId, q.distanceMi) == null ? 0 : q.fuelRatePerMile * q.distanceMi
+      expect(fuelFor(q)).toBeCloseTo(expected, 2)
     }
+  })
+
+  it('fuelFor is 0 for a seeded no-distance quote (SPB-71 uncalculable), and totalFor excludes fuel', () => {
+    const quote = quotes.find((q) => q.quoteId === '222617')
+    expect(fuelFor(quote)).toBe(0)
+    const bid = submitBid(quote.quoteId, { linehaul: 1000, currency: 'USD', chargeAmounts: {} }, NOW)
+    expect(totalFor(quote, bid)).toBeCloseTo(1000, 2)
   })
 
   it('closesAt - openedAt equals durationMin in ms', () => {

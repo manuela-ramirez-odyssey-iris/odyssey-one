@@ -7,6 +7,7 @@ import {
 import DateField from '../components/orders/create/fields/DateField.jsx'
 
 import { buildOverflowRows, FLAG_LABELS } from './carrierList.js'
+import { getFlexConfig } from './flexConfig.js'
 import './spotboard.css'
 
 // The strip cell this component portals its Send RFQ button into.
@@ -126,6 +127,9 @@ export default function SetupCarriers({
   // ceiling is 120 — see DEFAULT_DURATION_MIN below.
   const [durationMin, setDurationMin] = useState(quote?.durationMin ?? DEFAULT_DURATION_MIN)
   const [flexiblePickup, setFlexiblePickup] = useState(quote?.flexiblePickup ?? false)
+  const [flexibleDelivery, setFlexibleDelivery] = useState(quote?.flexibleDelivery ?? false)
+  // SPB-69/73: OCM config gates WHICH checkbox(es) even appear, per shipment.
+  const flexConfig = getFlexConfig(shipmentId)
   const [rows, setRows] = useState(quote?.carriers ?? [])
   const [confirming, setConfirming] = useState(false)
   const [mode, setMode] = useState(MODE_ALL)
@@ -153,6 +157,7 @@ export default function SetupCarriers({
   const [draftPickup, setDraftPickup] = useState(generalPickup)
   const [draftDelivery, setDraftDelivery] = useState(generalDelivery)
   const [draftFlexible, setDraftFlexible] = useState(flexiblePickup)
+  const [draftFlexibleDelivery, setDraftFlexibleDelivery] = useState(flexibleDelivery)
 
   // Build the overflow list in one pass off the shipment's own route guide +
   // dropped carriers (S128) — buildOverflowRows already stamps each row's
@@ -208,6 +213,7 @@ export default function SetupCarriers({
     setDraftPickup(generalPickup)
     setDraftDelivery(generalDelivery)
     setDraftFlexible(flexiblePickup)
+    setDraftFlexibleDelivery(flexibleDelivery)
     setSetupOpen(true)
   }
 
@@ -227,6 +233,7 @@ export default function SetupCarriers({
   const applySetup = () => {
     setDurationMin(draftDuration)
     setFlexiblePickup(draftFlexible)
+    setFlexibleDelivery(draftFlexibleDelivery)
     setGeneralPickup(draftPickup)
     setGeneralDelivery(draftDelivery)
     setRows((rs) =>
@@ -237,7 +244,11 @@ export default function SetupCarriers({
         return next
       })
     )
-    onTermsChange?.({ durationMin: draftDuration, flexiblePickup: draftFlexible })
+    onTermsChange?.({
+      durationMin: draftDuration,
+      flexiblePickup: draftFlexible,
+      flexibleDelivery: draftFlexibleDelivery,
+    })
     setSetupOpen(false)
   }
 
@@ -330,6 +341,7 @@ export default function SetupCarriers({
     durationMin: effectiveDuration,
     carriers: rows,
     flexiblePickup,
+    flexibleDelivery,
   })
 
   // Send RFQ moved INTO the sticky strip (user, 2026-08-24) — SpotBoardTab
@@ -527,11 +539,20 @@ export default function SetupCarriers({
               value={draftDuration}
               onChange={setDraftDuration}
             />
-            <Checkbox
-              label="Flexible"
-              checked={draftFlexible}
-              onChange={(e) => setDraftFlexible(e.target.checked)}
-            />
+            {flexConfig.pickupDays != null && (
+              <Checkbox
+                label={`Flexible pickup (±${flexConfig.pickupDays} days)`}
+                checked={draftFlexible}
+                onChange={(e) => setDraftFlexible(e.target.checked)}
+              />
+            )}
+            {flexConfig.deliveryDays != null && (
+              <Checkbox
+                label={`Flexible delivery (±${flexConfig.deliveryDays} days)`}
+                checked={draftFlexibleDelivery}
+                onChange={(e) => setDraftFlexibleDelivery(e.target.checked)}
+              />
+            )}
             <DateField
               id="setup-pickup-all"
               label="Planned Pickup"
@@ -583,7 +604,12 @@ export default function SetupCarriers({
             </ul>
             <div className="order-pane__fields-grid">
               <TitleSubtitle subtitle="Quote Duration" title={`${effectiveDuration} min`} />
-              <TitleSubtitle subtitle="Flexible Pickup" title={flexiblePickup ? 'Yes' : 'No'} />
+              {flexConfig.pickupDays != null && (
+                <TitleSubtitle subtitle="Flexible Pickup" title={flexiblePickup ? 'Yes' : 'No'} />
+              )}
+              {flexConfig.deliveryDays != null && (
+                <TitleSubtitle subtitle="Flexible Delivery" title={flexibleDelivery ? 'Yes' : 'No'} />
+              )}
               <TitleSubtitle subtitle="Carrier Lists" title={includedModes.map((m) => m.label).join(' + ') || '--'} />
             </div>
           </div>

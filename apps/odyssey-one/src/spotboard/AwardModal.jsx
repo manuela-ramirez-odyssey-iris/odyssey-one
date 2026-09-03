@@ -7,6 +7,12 @@ import './liveBids.css'
 
 const DASH = '--'
 
+// SPB-75: force-close is suppressed once the quote is about to close on its
+// own — system-level threshold, not client-specific (Doug via Kathleen,
+// 2026-08-31). Legacy default 5 minutes.
+// ponytail: system-level per SPB-75; make it a profile value when config exists
+export const FORCE_CLOSE_MIN_MS = 5 * 60_000
+
 /**
  * Section — the Shipment Details modal's own body anatomy, replicated
  * (user, 2026-08-24: "mimic how the information is shown in shipment
@@ -74,6 +80,8 @@ export default function AwardModal({
   // `quote.status` alone would show a live bid as still open for one render.
   const closed = closedProp ?? quote.status === 'closed'
   const canConfirm = closed && !!carrier
+  const remaining = useCountdown(quote.closeAt)
+  const nearAutoClose = !closed && remaining > 0 && remaining < FORCE_CLOSE_MIN_MS
 
   const handleForceClose = () => {
     onForceClose?.()
@@ -105,9 +113,14 @@ export default function AwardModal({
         <>
           <Button variant="secondary" size="lg" onClick={onClose}>Cancel</Button>
           <div className="award-modal__footer-trail">
+            {nearAutoClose && (
+              <span className="text-label-sm-medium award-modal__auto-close-note">
+                Bidding closes in under 5 minutes — it will close on its own.
+              </span>
+            )}
             <Button variant="secondary" size="lg" onClick={onModify}>Modify &amp; Resend</Button>
             <Button variant="secondary" size="lg" onClick={onClear}>Clear &amp; Start Over</Button>
-            <Button variant="primary" size="lg" disabled={closed} onClick={handleForceClose}>
+            <Button variant="primary" size="lg" disabled={closed || nearAutoClose} onClick={handleForceClose}>
               {closed ? 'Bidding Closed' : 'Force Close Bidding'}
             </Button>
           </div>

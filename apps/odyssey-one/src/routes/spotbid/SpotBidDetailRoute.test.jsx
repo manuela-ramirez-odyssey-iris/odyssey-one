@@ -57,8 +57,10 @@ describe('SpotBidDetailRoute', () => {
   })
 
   test('submit flow: linehaul + a charge produce the correct total (incl. computed fuel)', () => {
-    renderDetail('222610') // fuelRatePerMile 0.68 × 325mi = $221.00
+    renderDetail('222610') // fuelRatePerMile 0.68 × 325mi = $221.00; not in the seeded no-distance slice
     fireEvent.change(screen.getByLabelText('Linehaul'), { target: { value: '1000' } })
+    // Additional charges (SPB-72) are collapsed by default — open the disclosure first.
+    fireEvent.click(screen.getByRole('button', { name: 'Additional charges (5 available)' }))
     fireEvent.change(screen.getByLabelText('Haz-Mat'), { target: { value: '50' } })
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
 
@@ -99,5 +101,38 @@ describe('SpotBidDetailRoute', () => {
     renderDetail('999999')
     expect(screen.getByText(/quote not found/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /back to spotbid/i })).toBeTruthy()
+  })
+
+  // SPB-72: 90% of carriers add no accessorials — collapsed behind a
+  // disclosure by default, no free-text "add other charge" affordance.
+  test('additional charges are collapsed by default and offer only the configured list', () => {
+    renderDetail('222610')
+    const disclosure = screen.getByRole('button', { name: 'Additional charges (5 available)' })
+    expect(disclosure.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('button', { name: /^add /i })).toBeFalsy()
+    expect(screen.queryByPlaceholderText(/charge name|other charge/i)).toBeFalsy()
+
+    fireEvent.click(disclosure)
+    expect(disclosure.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByLabelText('Haz-Mat')).toBeTruthy()
+  })
+
+  // SPB-71: perMile schedule + no distance on the shipment → uncalculable,
+  // rendered read-only, and does NOT block submission. Quote 222617 falls in
+  // the seeded no-distance slice (fuelSchedule.js seededDistanceMiles).
+  test('fuel uncalculable state renders read-only and does not block submission', () => {
+    renderDetail('222617')
+    expect(screen.getByDisplayValue(/could not be calculated/i)).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Linehaul'), { target: { value: '900' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    expect(screen.getByText('Your Quote')).toBeTruthy()
+    // Submission is not blocked, and the uncalculable note still shows in the
+    // read-only summary. fuelFor()/totalFor() (carrierQuotes.js) route
+    // through the same computeFuel/seededDistanceMiles path as the page, so
+    // an uncalculable fuel schedule contributes 0 to the stored total (fuel
+    // assumed folded into the base rate, SPB-71) — 900 linehaul + 0 fuel.
+    expect(screen.getAllByText('$900.00').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/could not be calculated/i).length).toBeGreaterThan(0)
   })
 })

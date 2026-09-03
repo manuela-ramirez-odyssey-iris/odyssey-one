@@ -16,6 +16,7 @@
 // renders in the UI (plan §1, "not shown in UI").
 
 import { CHARGE_CODES } from '../data/master-data.js'
+import { computeFuel, seededDistanceMiles } from '../spotboard/fuelSchedule.js'
 
 const DAY_MS = 24 * 60 * 60_000
 
@@ -325,9 +326,18 @@ export function listQuotes(now = Date.now()) {
   return RAW_QUOTES.map((raw) => toQuote(raw, now))
 }
 
-/** Fuel charge — rate × distance, rounded to cents. Computed, never stored. */
+/** Fuel charge — rate × distance, rounded to cents. Computed, never stored.
+ *  Routed through fuelSchedule.js's computeFuel/seededDistanceMiles (same
+ *  path SpotBidDetailRoute.jsx uses for display) so an uncalculable perMile
+ *  schedule (no distance, SPB-71) yields 0 here instead of disagreeing with
+ *  what the page shows — fuel is assumed folded into the base rate. */
 export function fuelFor(quote) {
-  return Math.round(quote.fuelRatePerMile * quote.distanceMi * 100) / 100
+  const result = computeFuel(
+    { type: 'perMile', rate: quote.fuelRatePerMile },
+    { distanceMiles: seededDistanceMiles(quote.quoteId, quote.distanceMi) }
+  )
+  if (result == null || result.uncalculable) return 0
+  return result
 }
 
 /** Derived status (never stored): Open while `now` is before closesAt;

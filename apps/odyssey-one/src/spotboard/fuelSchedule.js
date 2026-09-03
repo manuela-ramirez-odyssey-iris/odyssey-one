@@ -23,14 +23,33 @@ export function getFuelSchedule(scac) {
 // Resolves the fuel amount for a schedule. Returns null when it cannot
 // resolve yet: a pctLinehaul schedule before the carrier has left the base
 // rate field (SPB-64: "if a percentage, it resolves once the carrier leaves
-// the base rate field" — the caller passes `linehaul: null` until that blur),
-// or a perMile schedule with no usable distance.
+// the base rate field" — the caller passes `linehaul: null` until that blur).
+//
+// A perMile schedule with no usable distance is a DIFFERENT case (SPB-71):
+// TMS could not calculate it at all. Returns `{ uncalculable: true }` so the
+// caller can distinguish "not yet resolvable" (null) from "will never
+// resolve, don't block the bid, assume it's in the base rate" (uncalculable).
 export function computeFuel(schedule, { distanceMiles, linehaul }) {
   if (!schedule) return null
   if (schedule.type === 'perMile') {
-    if (!Number.isFinite(distanceMiles) || distanceMiles <= 0) return null
+    if (!Number.isFinite(distanceMiles) || distanceMiles <= 0) return { uncalculable: true }
     return round2(schedule.rate * distanceMiles)
   }
   if (linehaul == null || !Number.isFinite(linehaul)) return null
   return round2(linehaul * (schedule.pct / 100))
+}
+
+// SPB-71: a perMile schedule with no distance on the shipment is the
+// "uncalculable" path. carrierQuotes.js's quotes always carry a distanceMi
+// (and have no SCAC — SPB-05, intentionally never carrier-visible), so there
+// is nothing upstream that naturally reaches this state today.
+//
+// ponytail: seeded no-distance slice so the state is reachable — same hash
+// pattern as getFuelSchedule above, keyed on quoteId (the stable per-quote
+// id this route already has) instead of SCAC. Swap for the real "TMS has no
+// distance" signal once that reaches the page.
+export function seededDistanceMiles(quoteId, distanceMi) {
+  if (!quoteId) return distanceMi
+  const h = [...String(quoteId)].reduce((a, c) => a + c.charCodeAt(0), 0)
+  return h % 4 === 0 ? null : distanceMi
 }
