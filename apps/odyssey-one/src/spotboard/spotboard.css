@@ -362,7 +362,6 @@
 }
 
 .live-bid-dot--blue { background: var(--carolina-blue-400); }
-.live-bid-dot--amber { background: var(--sunrise-yellow-600); }
 .live-bid-dot--red { background: var(--bittersweet-600); }
 
 @media (prefers-reduced-motion: reduce) {

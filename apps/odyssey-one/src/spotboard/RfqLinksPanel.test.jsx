@@ -46,10 +46,10 @@ describe('RfqLinksPanel', () => {
     expect(container.firstChild.className).not.toContain('rfq-links')
   })
 
-  // Colour rides the SAME countdownTone ramp as the countdown badges
-  // (designer amendment, 2026-09-03): blue above 40% left, amber down to
-  // (but not including) 0% — red is reserved for a CLOSED quote (a separate,
-  // status-driven branch below), never for a live one running low.
+  // Colour rides the SAME countdownTone rule as the countdown badges
+  // (designer, 2026-09-07): blue above 10% left, red at or under 10% —
+  // and red again for a CLOSED quote (a separate, status-driven branch
+  // below). Amber dropped.
   describe('tone tracks the bidding window', () => {
     const NOW = Date.now()
     const quoteWith = (minsLeft, windowMins = 60, status = 'open') => ({
@@ -63,15 +63,15 @@ describe('RfqLinksPanel', () => {
       expect(container.querySelector('.alert--info')).toBeTruthy()
     })
 
-    it('is orange (warning) under 40% left', () => {
+    it('is still blue (info) at 20% left', () => {
       const { container } = render(<RfqLinksPanel quote={quoteWith(12)} carriers={carriers} />)
-      expect(container.querySelector('.alert--warning')).toBeTruthy()
+      expect(container.querySelector('.alert--info')).toBeTruthy()
     })
 
-    it('stays orange (warning), never red, with almost no time left while still open', () => {
+    it('is red (error) with 5% left while still open', () => {
       const { container } = render(<RfqLinksPanel quote={quoteWith(3)} carriers={carriers} />)
-      expect(container.querySelector('.alert--warning')).toBeTruthy()
-      expect(container.querySelector('.alert--error')).toBeFalsy()
+      expect(container.querySelector('.alert--error')).toBeTruthy()
+      expect(container.querySelector('.alert--warning')).toBeFalsy()
     })
   })
 

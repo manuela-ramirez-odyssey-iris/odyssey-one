@@ -659,22 +659,22 @@ describe('SpotBoardTab', () => {
       expect(dot.className).toContain('live-bid-dot--blue')
     })
 
-    it('shows an amber dot once under 40% of the window remains', () => {
+    it('stays blue with 20% of the window remaining (designer, 2026-09-07: red only at or under 10%)', () => {
       const openAt = Date.now() - 80 * 60000 // 80 of 100 minutes elapsed → 20% left
       seedQuote({ status: 'open', openAt, closeAt: openAt + 100 * 60000 })
       const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
       const dot = liveTab(container).querySelector('.live-bid-dot')
       expect(dot).toBeTruthy()
-      expect(dot.className).toContain('live-bid-dot--amber')
+      expect(dot.className).toContain('live-bid-dot--blue')
     })
 
-    it('still shows an amber dot (never red) with only 5% of the window remains — red is reserved for expiry', () => {
+    it('turns red with 5% of the window remaining while still live', () => {
       const openAt = Date.now() - 95 * 60000 // 95 of 100 minutes elapsed → 5% left
       seedQuote({ status: 'open', openAt, closeAt: openAt + 100 * 60000 })
       const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
       const dot = liveTab(container).querySelector('.live-bid-dot')
       expect(dot).toBeTruthy()
-      expect(dot.className).toContain('live-bid-dot--amber')
+      expect(dot.className).toContain('live-bid-dot--red')
     })
 
     it('shows no dot once the countdown has already expired, even while status is still open', () => {

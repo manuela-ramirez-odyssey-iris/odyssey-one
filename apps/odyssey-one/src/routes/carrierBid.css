@@ -169,9 +169,6 @@
   color: var(--badge-blue-text);
 }
 
-.carrier-bid-countdown-title--amber .carrier-bid-countdown-title__value {
-  color: var(--badge-yellow-text);
-}
 
 .carrier-bid-countdown-title--red .carrier-bid-countdown-title__value {
   color: var(--text-error);

@@ -6,7 +6,7 @@ import { lowestBid } from './spotStore'
 // The countdown ramp expressed in Alert's own variants (user, 2026-08-24:
 // "alert should be blue, orange, and red to match badge") — one source of
 // truth for the tone, two vocabularies for rendering it.
-const TONE_VARIANT = { blue: 'info', amber: 'warning', red: 'error' }
+const TONE_VARIANT = { blue: 'info', red: 'error' }
 
 /**
  * RfqLinksPanel — the send confirmation, and then the state of the bid it

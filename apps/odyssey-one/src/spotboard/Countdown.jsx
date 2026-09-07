@@ -23,13 +23,13 @@ export { useCountdown, formatHMS, formatMMSS }
 // bid page's H/M/S title — so none of them can ever drift apart (user:
 // "countdown color change should be the same for the bidpage countdown and
 // floating badge").
+// Two tones only (designer, 2026-09-07 — supersedes the 2026-09-03 three-step
+// ramp): blue while more than 10% of the window remains, red at or under 10%
+// and once expired. Amber is gone everywhere this tone feeds.
 export function countdownTone(remaining, windowMs) {
   if (remaining <= 0) return 'red'
-  if (windowMs > 0) {
-    const pct = remaining / windowMs
-    return pct > 0.40 ? 'blue' : 'amber'
-  }
-  return remaining > 10 * 60000 ? 'blue' : 'amber'
+  if (windowMs > 0) return remaining / windowMs > 0.10 ? 'blue' : 'red'
+  return remaining > 10 * 60000 ? 'blue' : 'red'
 }
 
 // `zeroWhenExpired` (default false): an expired countdown holds at 00:00

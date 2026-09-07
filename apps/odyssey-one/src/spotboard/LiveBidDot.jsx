@@ -8,7 +8,7 @@ import './spotboard.css'
  * the outside rather than adding a prop to the shared, normalized component.
  *
  * Tone reuses `countdownTone` — same function the Countdown badge calls —
- * so the dot and the badge can never disagree on blue/amber/red.
+ * so the dot and the badge can never disagree on blue/red.
  */
 export default function LiveBidDot({ quote }) {
   const isOpen = quote?.status === 'open'

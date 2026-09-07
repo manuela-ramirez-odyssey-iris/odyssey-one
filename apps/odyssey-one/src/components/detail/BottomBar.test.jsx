@@ -310,6 +310,24 @@ describe('S140 — Tender tab indicators', () => {
     expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
   })
 
+  test('SpotBid tab wears the live dot while this shipment\'s quote is open', () => {
+    localStorage.setItem('spotboard:SELL-1', JSON.stringify({
+      quoteId: 'q1', shipmentId: 'SELL-1', status: 'open', openAt: Date.now() - 60000, closeAt: Date.now() + 60 * 60000, carriers: [],
+    }))
+    render(
+      <BottomBar
+        {...baseProps}
+        shipment={{ buyShipment: 'BUY-1', sellShipment: 'SELL-1' }}
+        shipmentDetails={{ orderDetails: [{ orderNumber: 'ORD-A' }] }}
+        detailsLoading={false}
+        detailsError={false}
+      />,
+    )
+    const spotTab = within(screen.getByRole('tablist')).getAllByRole('tab').find((t) => t.textContent.trim() === 'SpotBid')
+    expect(spotTab.querySelector('.live-bid-dot')).toBeTruthy()
+    localStorage.removeItem('spotboard:SELL-1')
+  })
+
   test('neither condition renders no indicators at all', () => {
     renderBar({})
     expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()

@@ -967,14 +967,13 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
     expect(countdownWrap.querySelector('.carrier-bid-countdown-title')).toBeTruthy()
   })
 
-  // Color is the SHARED SpotBid ramp (spotboard/Countdown.jsx
+  // Colour is the SHARED SpotBid rule (spotboard/Countdown.jsx
   // `countdownTone`), a percentage of the quote's own window: blue above
-  // 40%, amber down to (but not including) 0% — red is reserved EXCLUSIVELY
-  // for expiry, never a live quote no matter how little time is left. So
-  // the tone depends on how much of the window has ELAPSED, not on an
-  // absolute minute count — a 20-minute quote and a 4-hour one turn amber
-  // at the same proportion.
-  it('runs the shared ramp: stays amber (never red) with almost no time left while still open', async () => {
+  // 10% remaining, red at or under 10% and once expired (designer,
+  // 2026-09-07 — amber dropped). So the tone depends on how much of the
+  // window has ELAPSED, not on an absolute minute count — a 20-minute quote
+  // and a 4-hour one turn red at the same proportion.
+  it('runs the shared rule: red with 5% of the window left while still open', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const t0 = new Date('2026-08-17T12:00:00Z')
     vi.setSystemTime(t0)
@@ -988,11 +987,11 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
     await screen.findByText('Acme Houston Plant')
 
     const title = document.querySelector('.carrier-bid-countdown-title')
-    expect(title.className).toContain('carrier-bid-countdown-title--amber')
-    expect(title.className).not.toContain('carrier-bid-countdown-title--red')
+    expect(title.className).toContain('carrier-bid-countdown-title--red')
+    expect(title.className).not.toContain('carrier-bid-countdown-title--amber')
   })
 
-  it('runs the shared ramp: amber under 40% of the window', async () => {
+  it('runs the shared rule: still blue at 20% of the window', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const t0 = new Date('2026-08-17T12:00:00Z')
     vi.setSystemTime(t0)
@@ -1004,7 +1003,7 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
     await screen.findByText('Acme Houston Plant')
 
     const title = document.querySelector('.carrier-bid-countdown-title')
-    expect(title.className).toContain('carrier-bid-countdown-title--amber')
+    expect(title.className).toContain('carrier-bid-countdown-title--blue')
   })
 
   it('runs the shared ramp: blue on a fresh quote, never red', async () => {

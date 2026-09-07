@@ -5821,11 +5821,35 @@ button.breadcrumb__label:focus-visible {
   transition: background var(--transition-fast);
 }
 /* S140 — optional per-tab status glyphs, rendered after the label. */
+/* Tab alerts (user, 2026-09-07): a small circle badge pinned to the tab's
+   top-right corner, icon inside, one colour per meaning. It sits INSIDE the
+   strip's top edge: `.shipments-bar__tabs` scrolls natively (overflow-x),
+   which clips anything overhanging above the bar — a true overhang would
+   need the scroll container restructured. */
+.shipments-bar__tab {
+  position: relative;
+}
 .shipments-bar__tab-indicators {
+  position: absolute;
+  top: 3px;
+  right: 3px;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
+  pointer-events: none;
 }
+.shipments-bar__tab-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--text-inverse);
+  box-shadow: 0 0 0 2px var(--bg-primary); /* lifts it off the tab fill */
+}
+.shipments-bar__tab-alert--orange { background: var(--sunrise-yellow-600); }
+.shipments-bar__tab-alert--purple { background: var(--badge-purple-text); }
 .shipments-bar__tab:hover:not(:disabled):not(.shipments-bar__tab--selected) {
   background: var(--deep-sea-neutral-50);
 }

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition
 import { ListX, PackageOpen, RefreshCw } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
+import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
+import LiveBidDot from '../../spotboard/LiveBidDot.jsx'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
 import PaneErrorBoundary from '../common/PaneErrorBoundary.jsx'
 import ErrorState from '../common/ErrorState.jsx'
@@ -301,17 +303,22 @@ export default function BottomBar({
   // (same two glyphs/colours those features use inside the pane).
   const droppedCount = shownDetails?.droppedCarriers?.length ?? 0
   const pendingOrderChange = !!(shownDetails?.orderChange && !shownDetails.orderChange.resolution)
+  // SpotBid: a live dot while this shipment's quote is open (user,
+  // 2026-09-07) — the same LiveBidDot the pane's Live Bids sub-tab wears.
+  const { quote: spotQuote } = useSpotQuote(shipment?.sellShipment)
+  const spotLive = spotQuote?.status === 'open'
   const tabs = useMemo(() => orderedTabs.map((t) => {
+    if (t.key === 'spot' && spotLive) return { ...t, indicators: <LiveBidDot quote={spotQuote} /> }
     if (t.key !== 'routing' || (!droppedCount && !pendingOrderChange)) return t
+    // Corner alert badges (user, 2026-09-07). One glyph, not two: a pending
+    // order change blocks the whole tab, so it overrides the dropped signal.
     return {
       ...t,
-      // One glyph, not two (user, 2026-09-07): a pending order change blocks
-      // the whole tab, so it overrides the dropped-carrier signal.
       indicators: pendingOrderChange
-        ? <PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} role="img" aria-label="Order change pending" />
-        : <ListX size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped carriers" />,
+        ? <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><PackageOpen size={12} aria-hidden="true" /></span>
+        : <span className="shipments-bar__tab-alert shipments-bar__tab-alert--orange" role="img" aria-label="Dropped carriers"><ListX size={12} aria-hidden="true" /></span>,
     }
-  }), [orderedTabs, droppedCount, pendingOrderChange])
+  }), [orderedTabs, droppedCount, pendingOrderChange, spotLive, spotQuote])
 
   const renderTabContent = () => {
     if (detailsError) {
