@@ -5795,6 +5795,10 @@ button.breadcrumb__label:focus-visible {
   flex: 1;
   min-width: 0;
   height: 100%;
+  /* Headroom for the floating tab alerts — see .shipments-bar__tab-indicators. */
+  box-sizing: content-box;
+  padding-top: 12px;
+  margin-top: -12px;
   /* Overflow scrolls natively — the old bar's scroll-chevron buttons are gone.
      The right padding lets the last tab scroll clear of the PanelActions
      overlay (its ~120px footprint). */
@@ -5821,18 +5825,27 @@ button.breadcrumb__label:focus-visible {
   transition: background var(--transition-fast);
 }
 /* S140 — optional per-tab status glyphs, rendered after the label. */
-/* Tab alerts (user, 2026-09-07): a small circle badge pinned to the tab's
-   top-right corner, icon inside, one colour per meaning. It sits INSIDE the
-   strip's top edge: `.shipments-bar__tabs` scrolls natively (overflow-x),
-   which clips anything overhanging above the bar — a true overhang would
-   need the scroll container restructured. */
+/* Tab alerts (user, 2026-09-07): a small circle badge FLOATING over the
+   tab's top-right corner and past the bar's top edge — the same float the
+   Filters count badge does on GlobalSearch (`.global-search-badge`,
+   top -5 / right -8). `.shipments-bar__tabs` scrolls natively (overflow-x),
+   which would clip the overhang, so the scroll box is given headroom: 12px
+   of top padding pulled back up with a matching negative margin
+   (content-box, so the tabs' own 100% height is untouched). `.shipments-bar`
+   already clips nothing above itself (clip-path inset -40px). */
 .shipments-bar__tab {
   position: relative;
 }
+.shipments-bar__tab-trailing {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--spacing-1);
+}
 .shipments-bar__tab-indicators {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: -7px;
+  right: -6px;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);

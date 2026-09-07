@@ -308,7 +308,8 @@ export default function BottomBar({
   const { quote: spotQuote } = useSpotQuote(shipment?.sellShipment)
   const spotLive = spotQuote?.status === 'open'
   const tabs = useMemo(() => orderedTabs.map((t) => {
-    if (t.key === 'spot' && spotLive) return { ...t, indicators: <LiveBidDot quote={spotQuote} /> }
+    // Inline beside the label (user, 2026-09-07), not a corner alert.
+    if (t.key === 'spot' && spotLive) return { ...t, trailing: <LiveBidDot quote={spotQuote} /> }
     if (t.key !== 'routing' || (!droppedCount && !pendingOrderChange)) return t
     // Corner alert badges (user, 2026-09-07). One glyph, not two: a pending
     // order change blocks the whole tab, so it overrides the dropped signal.

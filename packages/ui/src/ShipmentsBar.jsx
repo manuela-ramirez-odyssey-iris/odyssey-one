@@ -35,7 +35,8 @@ import Button from './Button.jsx'
  *   placeholder       — label when nothing is selected (default 'Select a Shipment').
  *   onPrevShipment / onNextShipment — arrow handlers; arrows render only when provided.
  *   prevDisabled / nextDisabled     — bound states for the arrows.
- *   tabs              — [{ key, label, indicators? }]. `indicators` is an optional
+ *   tabs              — [{ key, label, indicators?, trailing? }]. `trailing` is an optional
+ *                       node INLINE after the label (a live dot). `indicators` is an optional
  *                       ReactNode rendered after the label inside the tab button
  *                       (S140: small status glyphs, e.g. the Tender tab's dropped-carrier
  *                       and pending-order-change signals). Plain tabs otherwise — the dropdown-tab face
@@ -230,6 +231,9 @@ export default function ShipmentsBar({
                 onClick={() => handleTabClick(tab)}
               >
                 {tab.label}
+                {tab.trailing && (
+                  <span className="shipments-bar__tab-trailing">{tab.trailing}</span>
+                )}
                 {tab.indicators && (
                   <span className="shipments-bar__tab-indicators">{tab.indicators}</span>
                 )}
