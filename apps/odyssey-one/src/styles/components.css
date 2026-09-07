@@ -7183,7 +7183,7 @@ button.breadcrumb__label:focus-visible {
 .odyssey-group-table__group-row > td[class*='odyssey-group-table__cell--tone-']:hover {
   background: var(--gt-action-bg);
 }
-.odyssey-group-table [class*='odyssey-group-table__cell--tone-']:hover button {
+.odyssey-group-table [class*='odyssey-group-table__cell--tone-']:hover button:not(:disabled) {
   background: transparent;
   color: var(--gt-action-fg);
 }
@@ -7197,11 +7197,18 @@ button.breadcrumb__label:focus-visible {
   /* Its own fade, on its own trigger — the row hover never reaches here. */
   transition: background var(--transition-fast);
 }
+/* A cell whose control is disabled is not a hit area at all (user, 2026-09-07):
+   the cell forwards clicks to that control, and `.click()` on a disabled button
+   is a DOM no-op — so advertising a pointer, or lighting the tile on hover
+   below, promises an action that can never fire. */
+.odyssey-group-table td.odyssey-group-table__cell--sticky-right:has(button:disabled) {
+  cursor: default;
+}
 /* Untoned cells keep the TILE look rather than filling: hovering anywhere in
    the cell lights the tile with the control's own hover value, so the whole
    cell is the trigger while the look is unchanged. */
 .odyssey-group-table__group-row
-  > td.odyssey-group-table__cell--sticky-right:not([class*='--tone-']):hover button {
+  > td.odyssey-group-table__cell--sticky-right:not([class*='--tone-']):hover button:not(:disabled) {
   background: var(--bg-secondary);
   color: var(--text-secondary);
 }
