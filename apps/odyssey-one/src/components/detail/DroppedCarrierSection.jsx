@@ -189,7 +189,16 @@ export default function DroppedCarrierSection({
   // The band used to start closed while holding all 15 non-row fields, which is
   // how 5 of the 6 Volume Commitment fields ended up invisible. It is open now,
   // so nothing in this section is behind a chevron.
-  const groups = carriers.map((c, i) => ({
+  // Already-reinstated rows sink to the bottom (user, 2026-09-07). No canon
+  // governs THIS section's order — DC-04 rules the Tender List's insert
+  // position, and its "routing's own results are never re-sorted by us" scope
+  // is that list, not this one. A row whose action is spent should not sit
+  // above rows still awaiting a decision. `sort` is stable, so routing's
+  // returned order survives inside each half.
+  const reinstatedLast = (c) => (isDuplicate(c, tenderOptions) ? 1 : 0)
+  const ordered = [...carriers].sort((a, b) => reinstatedLast(a) - reinstatedLast(b))
+
+  const groups = ordered.map((c, i) => ({
     // RPC-ID would be the natural key but routing does not return it for a
     // dropped carrier. SCAC + equipment is the same compound key 13954's
     // duplicate rule uses; the index disambiguates the rest.

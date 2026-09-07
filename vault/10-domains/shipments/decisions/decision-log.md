@@ -839,6 +839,11 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision (user, 2026-09-07):** the row's button becomes **Reinstated**, disabled, whenever the SCAC + Equipment pair is in the live tender list (`isDuplicate`, the same rule). The dialog still guards any path that bypasses the button; it is no longer reachable from the row.
 - **Source:** shipment 10471649 after a persisted reinstate; canon [[../dropped-carrier]] §4.8, OQ-10 (copy vs move).
 
+### DEC-130: The Dropped Carrier section sorts already-reinstated rows to the bottom
+- **Previous:** the section rendered `droppedCarriers` in routing's returned order, with no ruling of its own. [[dropped-carrier-decisions#DC-04|DC-04]] governs the *Tender List's* insert position ("bottom of the matching equipment group", routing's order never re-sorted by us) and is scoped to that list, not this section.
+- **Decision (user, 2026-09-07):** rows whose SCAC + Equipment is already in the Tender List — the disabled "Reinstated" rows of DEC-129 — sort last. Stable sort, so routing's order survives inside each half. Presentation only; no domain rule and no API change.
+- **Source:** user session S140, 2026-09-07.
+
 ---
 
 ## Changelog

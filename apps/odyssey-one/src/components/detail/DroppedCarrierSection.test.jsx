@@ -197,6 +197,27 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(screen.getAllByRole('button', { name: 'Reinstate' })).toHaveLength(1)
   })
 
+  it('sinks already-reinstated carriers to the bottom, keeping routing order inside each half', () => {
+    const carriers = [
+      { scac: 'KNGT', carrierName: 'Knight', equipment: 'V' },
+      { scac: 'SAIA', carrierName: 'Saia', equipment: 'V' },
+      { scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'V' },
+    ]
+    render(
+      <DroppedCarrierSection
+        carriers={carriers}
+        onProcess={() => {}}
+        tenderOptions={[{ scac: 'KNGT', equipment: 'V' }]}
+      />,
+    )
+    const labels = [...document.querySelectorAll('.odyssey-group-table__table > tbody tr')]
+      .map((tr) => tr.textContent)
+      .filter((t) => /KNGT|SAIA|ODFL/.test(t))
+    const order = ['SAIA', 'ODFL', 'KNGT'].map((s) => labels.findIndex((t) => t.includes(s)))
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    expect(labels[labels.length - 1]).toContain('KNGT')
+  })
+
   it('disables EVERY Reinstate while one is in flight, not just the pressed one', () => {
     // AC: "Process SCAC shall be disabled (for the current SCAC and other
     // dropped carrier SCACs)" — only one may be processed at a time.
