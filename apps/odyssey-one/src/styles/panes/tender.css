@@ -389,7 +389,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .tender-row-plasma::after,
-  .tender-row-added::after {
+  .tender-row-added > td::after {
     animation: none;
   }
 }
