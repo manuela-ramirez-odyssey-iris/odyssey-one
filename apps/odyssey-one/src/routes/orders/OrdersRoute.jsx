@@ -76,6 +76,12 @@ export default function OrdersRoute() {
     const requested = location.state?.tab ?? 'created'
     return LEGACY_TAB_MAP[requested] ?? requested
   })
+  // Never strand the planner on an empty tab (user, 2026-09-07). Set whenever
+  // the CRITERIA change (search commit, filter apply); consumed once the new
+  // counts arrive. Not set by a tab CLICK — an explicitly chosen tab sticks
+  // even at zero, so a genuinely empty Draft stays reachable. Same shape as
+  // ShipmentsRoute's GS-18 landing jump (one-shot flag + render-time adjust).
+  const [landOnTab, setLandOnTab] = useState(false)
   // Header sorting (S94) — TanStack-shaped, lifted here so it can drive the
   // request; resets to the tab's default on every tab switch (handleTabSelect).
   const [sorting, setSorting] = useState(() => DEFAULT_SORT[activeTab] ?? DEFAULT_SORT.created)
@@ -146,6 +152,22 @@ export default function OrdersRoute() {
   const { data, isPending, isFetching, isError, refetch } = useOrderList(request, selectedDataIds)
   const { data: tabCounts } = useOrderTabCounts(selectedDataIds, countFilters)
 
+  // Consume the landing flag: if the active population came back empty under
+  // the new criteria and another has rows, move to the fullest. Render-time
+  // adjust (React's "derive state during render" pattern, as ShipmentsRoute
+  // does) rather than an effect, so the empty tab never paints first.
+  if (landOnTab && tabCounts) {
+    const active = MAIN_TABS.find(t => t.key === activeTab)
+    const fullest = MAIN_TABS
+      .filter(t => (tabCounts[t.countKey] ?? 0) > 0)
+      .sort((a, b) => tabCounts[b.countKey] - tabCounts[a.countKey])[0]
+    if ((tabCounts[active?.countKey] ?? 0) === 0 && fullest) {
+      setActiveTab(fullest.key)
+      setSorting(DEFAULT_SORT[fullest.key] ?? DEFAULT_SORT.created)
+    }
+    setLandOnTab(false)
+  }
+
   const handleTabSelect = (key) => {
     if (key === activeTab) return
     setActiveTab(key)
@@ -160,6 +182,7 @@ export default function OrdersRoute() {
   const handleSearch = useCallback((text) => {
     setSearchText(text)
     setPagination(p => ({ ...p, pageIndex: 0 }))
+    setLandOnTab(true)
   }, [])
 
   // "Show all results" — both halves of a bar commit land in one gesture, so
@@ -169,6 +192,7 @@ export default function OrdersRoute() {
     setSearchChips(chips)
     setSearchText(text)
     setPagination(p => ({ ...p, pageIndex: 0 }))
+    setLandOnTab(true)
   }, [])
 
   // Every way into an order goes through here — the grid's ⋮ menu, the VE tab's
@@ -214,6 +238,7 @@ export default function OrdersRoute() {
   const handleApplyFilters = useCallback((draft) => {
     setFilters(draft)
     setPagination(p => ({ ...p, pageIndex: 0 })) // a narrowed list may have fewer pages than the current index
+    setLandOnTab(true)
   }, [])
   // Paging during a background refetch is intentionally NOT gated: the @odyssey/ui
   // Paginator disables nav via getCan{Previous,Next}Page(), and

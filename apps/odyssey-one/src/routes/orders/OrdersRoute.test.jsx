@@ -92,6 +92,38 @@ describe('OrdersRoute — tab identity (ORD-24)', () => {
   })
 })
 
+// User ruling 2026-09-07: filtering down to nothing must not leave the planner
+// staring at an empty tab when another population has rows.
+describe('OrdersRoute — empty-tab landing jump', () => {
+  test('applying criteria that empty the active tab lands on the fullest one', async () => {
+    const listSpy = vi.spyOn(orderService, 'getOrderList')
+    vi.spyOn(orderService, 'getOrderTabCounts').mockResolvedValue({ created: 0, draft: 12, validationErrors: 3 })
+    renderOrders()
+    await waitFor(() => expect(listSpy).toHaveBeenCalled())
+    expect(listSpy.mock.calls[0][0].tab).toBe('created')
+
+    listSpy.mockClear()
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
+    const field = await screen.findByPlaceholderText('Enter Order Number')
+    fireEvent.change(field, { target: { value: 'ZZZZZZ' } })
+    fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))
+
+    await waitFor(() => expect(listSpy.mock.calls.at(-1)[0].tab).toBe('draft'))
+  })
+
+  test('an explicitly clicked tab sticks even at zero — it stays reachable', async () => {
+    const listSpy = vi.spyOn(orderService, 'getOrderList')
+    vi.spyOn(orderService, 'getOrderTabCounts').mockResolvedValue({ created: 40, draft: 0, validationErrors: 3 })
+    renderOrders()
+    await waitFor(() => expect(listSpy).toHaveBeenCalled())
+
+    listSpy.mockClear()
+    fireEvent.click(await screen.findByRole('button', { name: 'Draft' }))
+    await waitFor(() => expect(listSpy).toHaveBeenCalled())
+    expect(listSpy.mock.calls.at(-1)[0].tab).toBe('draft')
+  })
+})
+
 describe('OrdersRoute — Created tab default sort (S113 Task 3, Fix A)', () => {
   test('first-load request sorts by created, desc (newest first)', async () => {
     const spy = vi.spyOn(orderService, 'getOrderList')
