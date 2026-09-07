@@ -316,13 +316,19 @@ export default function BottomBar({
     if (t.key === 'routing' && pendingOrderChange) {
       return {
         ...t,
-        // The shared purple Badge, OctagonAlert + "Review" (user,
-        // 2026-09-07). OctagonAlert reads "halted", which is what a pending
-        // order change does to this tab; the word names the way out. The
-        // wrapper's aria-label says WHY rather than repeating the verb.
+        // The label goes purple too (user, 2026-09-07), so the whole tab —
+        // not just the badge — reads as blocked. `label` is a node here; the
+        // error-copy lookup at `tabLabel` below reads the TABS constant, not
+        // this mapped array, so it still gets the plain string.
+        label: <span style={{ color: 'var(--badge-purple-text)' }}>{t.label}</span>,
+        // The shared icon-only purple Badge (user, 2026-09-07, final of four
+        // tries: inline glyph → floating corner circle → count → this).
+        // OctagonAlert reads "halted", which is what a pending order change
+        // does to this tab. Badge's icon-only shape is aria-hidden by design,
+        // so the wrapper carries the label.
         indicators: (
           <span role="img" aria-label="Order change pending">
-            <Badge variant="purple" leftIcon={<OctagonAlert {...ICON_MD} aria-hidden="true" />}>Review</Badge>
+            <Badge variant="purple" iconOnly leftIcon={<OctagonAlert {...ICON_MD} aria-hidden="true" />} />
           </span>
         ),
       }
