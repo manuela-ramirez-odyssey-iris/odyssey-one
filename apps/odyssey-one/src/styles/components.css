@@ -5843,7 +5843,7 @@ button.breadcrumb__label:focus-visible {
 }
 .shipments-bar__tab-indicators {
   position: absolute;
-  top: -7px;
+  top: -10px;
   right: 2px; /* mostly within the tab's own width (user, 2026-09-07) */
   z-index: 1;
   display: inline-flex;
@@ -5851,18 +5851,19 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-1);
   pointer-events: none;
 }
+/* White tile, small shadow, the COLOUR on the glyph (user, 2026-09-07 — was
+   a filled purple circle with a white 12px glyph). Sized for a 20px icon. */
 .shipments-bar__tab-alert {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  color: var(--text-inverse);
-  box-shadow: 0 0 0 2px var(--bg-primary); /* lifts it off the tab fill */
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
 }
-.shipments-bar__tab-alert--orange { background: var(--sunrise-yellow-600); }
-.shipments-bar__tab-alert--purple { background: var(--badge-purple-text); }
+.shipments-bar__tab-alert--purple { color: var(--badge-purple-text); }
 .shipments-bar__tab:hover:not(:disabled):not(.shipments-bar__tab--selected) {
   background: var(--deep-sea-neutral-50);
 }

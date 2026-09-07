@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
 import { OctagonAlert, RefreshCw } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
 import LiveBidDot from '../../spotboard/LiveBidDot.jsx'
@@ -321,7 +321,7 @@ export default function BottomBar({
         // until the change is reviewed. Not TriangleAlert, which the app
         // already spends on failures/warnings; not PackageOpen, which names
         // the order-change CONCEPT on the review button rather than the alert.
-        indicators: <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><OctagonAlert size={12} aria-hidden="true" /></span>,
+        indicators: <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><OctagonAlert {...ICON_LG} aria-hidden="true" /></span>,
       }
     }
     return t
