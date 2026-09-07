@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Info, Copy } from 'lucide-react'
 import {
-  GlobalSearchPanel, PillTab, ComboBox, FormField, DatePicker,
+  Badge, GlobalSearchPanel, PillTab, ComboBox, FormField, DatePicker,
   MenuRowRadio, MenuRowCheckbox, ModalMedium, Button, IconButtonGhost,
 } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
@@ -256,8 +256,12 @@ function FieldLabel({ label, info = false }) {
 }
 
 // Multi-select tag chips (enum attrs). Value packs as a comma list in catalog
-// order — the chip layer reads it as a GS-12 IN-list. App-local visual pending
-// Efrain's FilterChip master.
+// order — the chip layer reads it as a GS-12 IN-list. Visual is the DSM's
+// documented Badge toggle (Badge.demo "Toggle (used as a selectable filter
+// chip)"): a gray `Badge` inside an `aria-pressed` button carrying
+// `.badge-interactive`, which retints the badge's own tokens for
+// hover/active/pressed. Replaces the app-local chip that had been sitting
+// here "pending Efrain's FilterChip master" — the master already existed.
 function EnumChips({ attr, value, onChange }) {
   const selected = new Set(value ? value.split(',') : [])
   const toggle = (v) => {
@@ -271,11 +275,11 @@ function EnumChips({ attr, value, onChange }) {
         <button
           key={v}
           type="button"
-          className={`shipments-filters__chip text-label-xs-medium${selected.has(v) ? ' is-selected' : ''}`}
+          className="badge-interactive"
           aria-pressed={selected.has(v)}
           onClick={() => toggle(v)}
         >
-          {v}
+          <Badge variant="gray">{v}</Badge>
         </button>
       ))}
     </div>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ComboBox, DatePicker, Dropdown, FormField, GlobalSearchPanel } from '@odyssey/ui'
+import { Badge, ComboBox, DatePicker, Dropdown, FormField, GlobalSearchPanel } from '@odyssey/ui'
 import {
   ERROR_COUNT_OPERATORS,
   attrsForTab,
@@ -45,8 +45,9 @@ import { emptyState, parseErrorCount } from '../../search/orders/toRequest'
  *   comparator → operator Dropdown (local fixed list) + integer FormField.
  */
 
-// App-local chip visuals, same as ShipmentsFiltersView's — pending Efrain's
-// FilterChip master. Styles are shared selectors in components.css, not a copy.
+// Enum chips use the DSM's documented Badge toggle (Badge.demo "Toggle (used
+// as a selectable filter chip)") — see ShipmentsFiltersView's EnumChips, which
+// this mirrors exactly.
 function FieldLabel({ label, htmlFor }) {
   return (
     <label className="orders-filters__label text-label-xs-medium" htmlFor={htmlFor}>
@@ -64,13 +65,13 @@ function EnumChips({ attr, value, onChange }) {
         <button
           key={v}
           type="button"
-          className={`orders-filters__chip text-label-xs-medium${selected.has(v) ? ' is-selected' : ''}`}
+          className="badge-interactive"
           aria-pressed={selected.has(v)}
           onClick={() =>
             onChange(selected.has(v) ? value.filter((x) => x !== v) : [...value, v])
           }
         >
-          {v}
+          <Badge variant="gray">{v}</Badge>
         </button>
       ))}
     </div>
