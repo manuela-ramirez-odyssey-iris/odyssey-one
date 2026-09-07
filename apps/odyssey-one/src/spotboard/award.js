@@ -42,8 +42,10 @@ export function buildSpotRateOption(winningCarrier, quote, existingOptions, mark
       arTotal: total,
     },
     status: 'Sent',
-    pickupDateTime: winningCarrier.plannedPickup || '--',
-    deliveryDateTime: winningCarrier.plannedDelivery || '--',
+    // SPB-69: on a flexible quote the carrier's chosen date is the date that
+    // goes to Tender; the planner's planned date is the fallback.
+    pickupDateTime: winningCarrier.bid?.pickupDate || winningCarrier.plannedPickup || '--',
+    deliveryDateTime: winningCarrier.bid?.deliveryDate || winningCarrier.plannedDelivery || '--',
     transit: '--',
     distance: '--',
     api: '--',

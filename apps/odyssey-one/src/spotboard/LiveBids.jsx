@@ -164,6 +164,15 @@ export default function LiveBids({
   }
   const awardedScac = quote.awardedScac ?? null
 
+  // SPB-69: a flexible direction adds the carrier-chosen date as a column,
+  // only for that direction — a non-flex quote keeps its usual shape.
+  const columns = [
+    ...COLUMNS.slice(0, 4),
+    ...(quote.flexiblePickup ? [{ key: 'pickupDate', label: 'Pickup' }] : []),
+    ...(quote.flexibleDelivery ? [{ key: 'deliveryDate', label: 'Delivery' }] : []),
+    ...COLUMNS.slice(4),
+  ]
+
   const groups = quote.carriers.map((carrier) => {
     const { bid } = carrier
     const isLowest = !!lowest && lowest.scac === carrier.scac
@@ -176,6 +185,8 @@ export default function LiveBids({
         status: statusBadge(bid, isLowest, terminal),
         submittedBy: bid?.submittedBy ?? '—',
         response: bid?.respondedAt ? new Date(bid.respondedAt).toLocaleString() : '—',
+        pickupDate: bid?.pickupDate ?? '—',
+        deliveryDate: bid?.deliveryDate ?? '—',
         total: bid?.status === 'bid' ? fmtDollar(bid.total) : '—',
         clientCost: bid?.status === 'bid' ? fmtDollar(clientCost(bid)) : '—',
         // EXCLUDED carriers get no link: sendRFQ mints a token for every row
@@ -370,7 +381,7 @@ export default function LiveBids({
       <SubAccordion title="Live Bids" showIcon={false} collapsible={false}>
         <div className="live-bids">
           <GroupTable
-            columns={COLUMNS}
+            columns={columns}
             groups={groups}
             detailColumns={DETAIL_COLUMNS}
             defaultExpanded={false}

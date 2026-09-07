@@ -71,4 +71,11 @@ describe('buildSpotRateOption', () => {
     // subtotal 2640 * 1.10 = 2904
     expect(option.rateDetails.apTotal).toBe(2904)
   })
+
+  it('carrier-chosen flex dates win over the planned dates', () => {
+    const c = { ...winningCarrier, bid: { ...winningCarrier.bid, pickupDate: '01/09/2026', deliveryDate: '01/10/2026' } }
+    const option = buildSpotRateOption(c, quote, [], markup)
+    expect(option.pickupDateTime).toBe('01/09/2026')
+    expect(option.deliveryDateTime).toBe('01/10/2026')
+  })
 })

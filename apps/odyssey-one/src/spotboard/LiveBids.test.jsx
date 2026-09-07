@@ -532,3 +532,33 @@ describe('LiveBids', () => {
     expect(within(odflRow).getByRole('radio', { name: /Select ODFL/ })).toBeTruthy()
   })
 })
+
+// SPB-69: a flexible direction gives the carrier a date choice; the planner
+// reads it back here, as a column, only for the flagged direction.
+describe('flex dates (SPB-69)', () => {
+  const headersOf = (container) =>
+    [...container.querySelectorAll('.odyssey-group-table__table > thead th')].map((th) => th.textContent)
+
+  test('a flexible quote shows the Pickup column with the carrier-chosen date', () => {
+    const quote = {
+      ...CLOSED_QUOTE,
+      flexiblePickup: true,
+      carriers: [carrier('ODFL', 'Old Dominion', {
+        ...bidOf({ linehaul: 1000, fuel: 0, total: 1000, submittedBy: 'a@b' }),
+        pickupDate: '10/15/2026',
+      })],
+    }
+    const { container } = render(<LiveBids quote={quote} />)
+    const headers = headersOf(container)
+    expect(headers).toContain('Pickup')
+    expect(headers).not.toContain('Delivery')
+    expect(screen.getByText('10/15/2026')).toBeTruthy()
+  })
+
+  test('a non-flexible quote has no date columns', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const headers = headersOf(container)
+    expect(headers).not.toContain('Pickup')
+    expect(headers).not.toContain('Delivery')
+  })
+})
