@@ -212,9 +212,12 @@ function renderControl(attr, value, onChange) {
 
 // Controls that pair into a two-column row when two of them sit next to each
 // other: date ranges (a DatePicker caps itself at 284px, so full-width leaves a
-// gap — see `.orders-filters__grid-2`) and the Origin/Destination locations
-// (user ruling, 2026-08-20 — they read as a pair, so they should sit as one).
-const PAIRABLE = new Set(['date-range', 'location'])
+// gap — see `.orders-filters__grid-2`), the Origin/Destination locations
+// (user ruling, 2026-08-20 — they read as a pair, so they should sit as one),
+// and comboboxes, which puts Created By beside Last Edited By in Audit Trail
+// (user, 2026-09-07). Customer is the only other combobox and has no combobox
+// neighbour, so it stays full-width.
+const PAIRABLE = new Set(['date-range', 'location', 'combobox'])
 
 /**
  * Group the field list so a RUN of two consecutive pairable fields of the SAME

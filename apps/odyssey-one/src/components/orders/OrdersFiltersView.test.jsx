@@ -74,6 +74,14 @@ describe('grouped sections', () => {
     expect(labels().length).toBeGreaterThan(0)
   })
 
+  it('Created By sits beside Last Edited By, and Customer stays full-width', () => {
+    setup('created')
+    const pairs = [...document.querySelectorAll('.orders-filters__grid-2')]
+      .map(g => [...g.querySelectorAll('.orders-filters__label')].map(l => l.textContent))
+    expect(pairs).toContainEqual(['Created By', 'Last Edited By'])
+    expect(pairs.flat()).not.toContain('Customer')
+  })
+
   it('a two-column pair never straddles a section boundary', () => {
     setup('created')
     for (const grid of document.querySelectorAll('.orders-filters__grid-2')) {
