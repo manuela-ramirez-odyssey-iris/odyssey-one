@@ -17,6 +17,17 @@ import Button from './Button.jsx'
  * `minDate` / `maxDate` (defaults 01/01/1900 – 01/01/2120) disable
  * out-of-range days and stop month navigation past either bound.
  *
+ * `enabledDates` — optional allow-list of discrete selectable days (`Date`s or
+ * `YYYY-MM-DD` strings). When given, every day NOT in the list renders greyed
+ * and unclickable, on top of the min/max bounds. Applies to both modes.
+ * Built for SPB-69: flex dates resolve to a per-carrier list of individual
+ * allowable dates, never a range.
+ *
+ * `isDateEnabled(date) => boolean` — optional predicate for rules the caller
+ * owns locally (weekends, a holiday set). Composed with bounds and
+ * `enabledDates`: a day must pass ALL that are given. Prefer this over
+ * hand-building a date list; use `enabledDates` for lists an API returns.
+ *
  * Month navigation is internal — no `onMonthChange` prop (YAGNI).
  * Adjacent-month days (padding the grid) are rendered, clickable, and
  * navigate the displayed month when clicked.
@@ -30,6 +41,8 @@ export default function CalendarPicker({
   defaultMonth,
   minDate = new Date(1900, 0, 1),
   maxDate = new Date(2120, 0, 1),
+  enabledDates = null,
+  isDateEnabled = null,
   className = '',
 }) {
   // Derive the initial month from value/start/today.
@@ -100,6 +113,13 @@ export default function CalendarPicker({
   function inBounds(d) {
     return iso(d) >= iso(minDate) && iso(d) <= iso(maxDate)
   }
+  // Allow-list of discrete dates; null = every in-bounds day is selectable.
+  const allowed = enabledDates
+    ? new Set(enabledDates.map(d => (d instanceof Date ? iso(d) : String(d))))
+    : null
+  function isEnabled(d) {
+    return inBounds(d) && (!allowed || allowed.has(iso(d))) && (!isDateEnabled || !!isDateEnabled(d))
+  }
   // Nav is allowed while the target month overlaps the bounds at all.
   const canPrev = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0) >= minDate
   const canNext = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1) <= maxDate
@@ -145,6 +165,9 @@ export default function CalendarPicker({
     const cls = ['calendar-picker__day']
 
     if (cell.adjacent) cls.push('calendar-picker__day--adjacent')
+
+    // Unselectable days stay plain grey — never painted as in-range.
+    if (!isEnabled(d)) return cls.join(' ')
 
     if (mode === 'single') {
       if (isoValue(value) === key) cls.push('calendar-picker__day--selected')
@@ -228,7 +251,7 @@ export default function CalendarPicker({
                   className={`${dayClasses(cell)} text-label-sm-medium`}
                   aria-label={label}
                   aria-pressed={isSelected(cell)}
-                  disabled={!inBounds(cell.date)}
+                  disabled={!isEnabled(cell.date)}
                   onClick={() => handleDayClick(cell)}
                 >
                   {cell.date.getDate()}

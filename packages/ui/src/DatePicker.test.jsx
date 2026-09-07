@@ -425,3 +425,23 @@ describe('DatePicker — scrolling inside the popover does not close it', () => 
     expect(screen.getByRole('button', { name: /open calendar/i })).toBeTruthy()
   })
 })
+
+describe('DatePicker — isDateEnabled predicate', () => {
+  test('rejects a typed date the predicate refuses and greys it in the calendar', () => {
+    const onChange = vi.fn()
+    render(
+      <DatePicker id="dp" label="Date" value={null} onChange={onChange}
+        isDateEnabled={d => d.getDay() !== 0} />   // no Sundays
+    )
+    const input = screen.getByRole('textbox')
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: '07/12/2026' } }) // a Sunday
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChange).not.toHaveBeenCalled()
+    // Calendar opens on today's month (no value), so sweep every Sunday it renders.
+    fireEvent.click(screen.getByRole('button', { name: /open calendar/i }))
+    const sundays = screen.getAllByRole('button').filter(b => /^Sunday, /.test(b.getAttribute('aria-label') ?? ''))
+    expect(sundays.length).toBeGreaterThan(0)
+    expect(sundays.every(b => b.disabled)).toBe(true)
+  })
+})

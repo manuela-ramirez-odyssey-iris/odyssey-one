@@ -20,6 +20,9 @@ import { useAnchoredPortal } from './useAnchoredPortal.jsx'
  *   placeholder — defaults 'Select Date' (single) / 'Select Range' (range)
  *   minDate     — lower bound (default 01/01/1900)
  *   maxDate     — upper bound (default 01/01/2120)
+ *   enabledDates— optional allow-list of discrete selectable days (Date|'YYYY-MM-DD');
+ *                 anything else greys out in the calendar AND fails typed entry (SPB-69)
+ *   isDateEnabled — optional (date) => boolean; rejected days grey out AND fail typed entry
  *   disabled    — passed through to FormField
  *   error       — passed through to FormField
  *   id          — passed through to FormField
@@ -107,6 +110,11 @@ export function parseDDMMYYYY(text, minDate = MIN_DATE, maxDate = MAX_DATE) {
   return d >= minDate && d <= maxDate ? d : null
 }
 
+/** ISO YYYY-MM-DD key, matching CalendarPicker's own comparison form. */
+function isoOf(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function DatePicker({
@@ -118,13 +126,25 @@ export default function DatePicker({
   format = 'MM/DD/YYYY', // US canon (S107 addendum, 2026-08-03) — 'DD/MM/YYYY' still available via prop
   minDate = MIN_DATE,
   maxDate = MAX_DATE,
+  enabledDates = null,
+  isDateEnabled = null,
   disabled = false,
   error,
   id,
 }) {
   // Format-bound aliases — every display/parse in the component routes through these
   const fmt = (d) => fmtDate(d, format)
-  const parse = (t) => parseDate(t, format, minDate, maxDate)
+  // Typed dates obey the same allow-list as the calendar cells (SPB-69).
+  const allowedIso = enabledDates
+    ? new Set(enabledDates.map(d => (d instanceof Date ? isoOf(d) : String(d))))
+    : null
+  const parse = (t) => {
+    const d = parseDate(t, format, minDate, maxDate)
+    if (!d) return null
+    if (allowedIso && !allowedIso.has(isoOf(d))) return null
+    if (isDateEnabled && !isDateEnabled(d)) return null
+    return d
+  }
   const [text, setText] = useState('')
   const [invalid, setInvalid] = useState(false)
   const editingRef = useRef(false)
@@ -295,6 +315,8 @@ export default function DatePicker({
                 defaultMonth={single ?? new Date()}
                 minDate={minDate}
                 maxDate={maxDate}
+                enabledDates={enabledDates}
+                isDateEnabled={isDateEnabled}
               />
             ) : (
               <CalendarPicker
@@ -309,6 +331,8 @@ export default function DatePicker({
                 defaultMonth={range?.start ?? new Date()}
                 minDate={minDate}
                 maxDate={maxDate}
+                enabledDates={enabledDates}
+                isDateEnabled={isDateEnabled}
               />
             )}
           </div>

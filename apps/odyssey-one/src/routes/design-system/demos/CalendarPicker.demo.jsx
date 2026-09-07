@@ -8,7 +8,7 @@ export const meta = {
   tier: 'molecule',
   version: '1.3.0',
   createdVersion: '0.8.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4422:711',
   codeConnect: null,
 }
@@ -20,6 +20,8 @@ export const props = [
   { name: 'defaultMonth', type: 'Date',                                       desc: 'Initial month to display. Defaults to the selected value (or today) when omitted.' },
   { name: 'minDate',      type: 'Date',                                       desc: 'Lower bound — earlier days are disabled and month nav stops. Default 01/01/1900.' },
   { name: 'maxDate',      type: 'Date',                                       desc: 'Upper bound — later days are disabled and month nav stops. Default 01/01/2120.' },
+  { name: 'enabledDates', type: "Array<Date | 'YYYY-MM-DD'> | null",           desc: 'Allow-list of discrete selectable days on top of min/max. Days not listed render greyed and unclickable, in both modes, and are never painted as in-range. Omit for "every in-bounds day is selectable". Flex dates (SPB-69) resolve to a per-carrier list of individual dates, not a range. DatePicker forwards it and also rejects typed dates outside the list.' },
+  { name: 'isDateEnabled', type: '(date: Date) => boolean | null', desc: 'Predicate for rules the caller owns (weekends, a holiday set). Composed with min/max and enabledDates — a day must pass all that are given. Use this instead of hand-building a date list; use enabledDates for lists an API returns (SpotBid flex dates). DatePicker forwards it and rejects typed dates it refuses.' },
   { name: 'className',    type: 'string',                                     desc: 'Extra class(es) on the root element.' },
   // ── DatePicker (composite) — own props; mode/value/onChange/minDate/maxDate mirror CalendarPicker ──
   { name: 'DatePicker: label',       type: 'string',  desc: 'FormField label above the input.' },
@@ -87,9 +89,18 @@ function fmt(d) {
 
 // Playground — demos the DatePicker composite extracted from this file into
 // packages/ui/src/DatePicker.jsx (S83). Controls: mode toggle + live value readout.
+// A carrier's five discrete allowable dates (SPB-69), seeded off today so the
+// list is always near the opening month. Real lists come from the API.
+const FLEX_DATES = [2, 3, 5, 9, 12].map(offset => {
+  const d = new Date()
+  d.setDate(d.getDate() + offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
+
 function Playground() {
   const [mode, setMode] = useState('single')
   const [value, setValue] = useState(null)
+  const [gate, setGate] = useState('none')
 
   const reset = (nextMode) => {
     setMode(nextMode)
@@ -111,6 +122,18 @@ function Playground() {
             <option value="range">range</option>
           </select>
         </label>
+        <label style={labelStyle}>
+          date gating
+          <select
+            value={gate}
+            onChange={e => { setGate(e.target.value); setValue(mode === 'single' ? null : { start: null, end: null }) }}
+            style={inputStyle}
+          >
+            <option value="none">none (every day)</option>
+            <option value="flex">enabledDates — carrier flex dates (5)</option>
+            <option value="weekdays">isDateEnabled — weekdays only</option>
+          </select>
+        </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>value</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{valueReadout}</code>
@@ -125,7 +148,14 @@ function Playground() {
           mode={mode}
           value={value}
           onChange={setValue}
+          enabledDates={gate === 'flex' ? FLEX_DATES : null}
+          isDateEnabled={gate === 'weekdays' ? (d => d.getDay() !== 0 && d.getDay() !== 6) : null}
         />
+        {gate === 'flex' && (
+          <p style={{ marginTop: 'var(--spacing-3)', marginBottom: 0, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
+            Allowed: <code>{FLEX_DATES.join(' · ')}</code> — every other day greys out, in the calendar and on typed entry.
+          </p>
+        )}
       </div>
 
       {/* DatePicker anatomy + usage */}

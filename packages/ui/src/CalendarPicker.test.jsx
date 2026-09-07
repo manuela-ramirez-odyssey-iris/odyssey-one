@@ -84,4 +84,51 @@ describe('CalendarPicker', () => {
     const newStart = onChange.mock.calls[0][0].start
     expect(newStart.getDate()).toBe(10)
   })
+
+  test('enabledDates — only listed days are selectable, the rest grey out (SPB-69)', () => {
+    const onChange = vi.fn()
+    render(
+      <CalendarPicker
+        defaultMonth={new Date(2024, 10, 1)}
+        enabledDates={['2024-11-15', new Date(2024, 10, 20)]}
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByLabelText('Friday, November 15, 2024').disabled).toBe(false)
+    expect(screen.getByLabelText('Wednesday, November 20, 2024').disabled).toBe(false)
+    expect(screen.getByLabelText('Thursday, November 21, 2024').disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText('Thursday, November 21, 2024'))
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Friday, November 15, 2024'))
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+
+  test('enabledDates — range mode does not paint disallowed in-between days', () => {
+    render(
+      <CalendarPicker
+        mode="range"
+        value={{ start: new Date(2024, 10, 15), end: new Date(2024, 10, 20) }}
+        defaultMonth={new Date(2024, 10, 1)}
+        enabledDates={['2024-11-15', '2024-11-18', '2024-11-20']}
+      />,
+    )
+    expect(screen.getByLabelText('Monday, November 18, 2024').className).toContain('--in-range')
+    expect(screen.getByLabelText('Sunday, November 17, 2024').className).not.toContain('--in-range')
+  })
+
+  test('isDateEnabled — predicate greys out days it rejects, composed with enabledDates', () => {
+    const onChange = vi.fn()
+    render(
+      <CalendarPicker
+        defaultMonth={new Date(2024, 10, 1)}
+        enabledDates={['2024-11-15', '2024-11-16']}      // Fri, Sat
+        isDateEnabled={d => d.getDay() !== 6}             // no Saturdays
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByLabelText('Friday, November 15, 2024').disabled).toBe(false)
+    expect(screen.getByLabelText('Saturday, November 16, 2024').disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText('Saturday, November 16, 2024'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })
