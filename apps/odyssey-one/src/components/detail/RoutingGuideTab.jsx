@@ -1757,6 +1757,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
             carriers={shipmentDetails?.droppedCarriers || []}
             onProcess={handleProcessScac}
             processingScac={processingScac}
+            tenderOptions={options}
             // S137 — Process SCAC from this doorway is a tendering action too;
             // collapse + lock it shut while a review is pending, same ruling
             // as the table above.

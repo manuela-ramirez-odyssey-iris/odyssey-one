@@ -1008,7 +1008,7 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(cells).toEqual([['1', 'ODFL'], ['2', 'SAIA']])
   })
 
-  it('a duplicate SCAC+Equipment refuses: processing stops, nothing is added', async () => {
+  it('a duplicate SCAC+Equipment reads "Reinstated", disabled — the refusal dialog is never reached from the row', async () => {
     const existing = {
       rank: 1, routeRank: 1, scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
       cost: '--', status: null,
@@ -1016,11 +1016,13 @@ describe('Process SCAC (LINX-13954)', () => {
     const data = { options: [existing] }
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
 
-    await act(async () => {
-      fireEvent.click(droppedProcessButton())
-    })
-
-    expect(screen.getByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeTruthy()
+    // Reinstate COPIES (Jana), so the pair is already in the list: the row's
+    // button is the signal (user, 2026-09-07); planProcessScac's duplicate
+    // rule still guards every other path.
+    const done = screen.getByRole('button', { name: 'Reinstated' })
+    expect(done.disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Reinstate' })).toBeNull()
+    expect(screen.queryByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeNull()
     // Still just the one pre-existing row — nothing appended.
     expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
   })

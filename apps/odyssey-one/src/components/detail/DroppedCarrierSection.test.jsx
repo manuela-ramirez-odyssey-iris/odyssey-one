@@ -186,6 +186,17 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     expect(onProcess.mock.calls[0][0].scac).toBe('RLCA')
   })
 
+  it('a carrier already in the tender list reads "Reinstated" and is disabled', () => {
+    const carriers = [
+      { scac: 'KNGT', carrierName: 'Knight', equipment: 'V' },
+      { scac: 'SAIA', carrierName: 'Saia', equipment: 'V' },
+    ]
+    render(<DroppedCarrierSection carriers={carriers} onProcess={() => {}} tenderOptions={[{ scac: 'KNGT', equipment: 'V' }]} />)
+    const done = screen.getByRole('button', { name: 'Reinstated' })
+    expect(done.disabled).toBe(true)
+    expect(screen.getAllByRole('button', { name: 'Reinstate' })).toHaveLength(1)
+  })
+
   it('disables EVERY Reinstate while one is in flight, not just the pressed one', () => {
     // AC: "Process SCAC shall be disabled (for the current SCAC and other
     // dropped carrier SCACs)" — only one may be processed at a time.

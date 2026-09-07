@@ -1,6 +1,7 @@
 import { Check, CircleX, ListX } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
+import { isDuplicate } from '../../lib/processScac'
 
 /**
  * LINX-13953 — Dropped Carrier.
@@ -167,6 +168,10 @@ export default function DroppedCarrierSection({
   defaultOpen = true,
   onProcess,
   processingScac = null,
+  // The live tender list. Reinstate COPIES (Jana, 2026-08-17), so a row whose
+  // SCAC+Equipment is already in the list reads "Reinstated" and is disabled
+  // (user, 2026-09-07) instead of inviting the duplicate refusal dialog.
+  tenderOptions = [],
   // S137 — a pending order change blocks tendering actions everywhere on the
   // Tender screen (domain ruling, Jana via designer), and Process SCAC lands
   // in the tender list, so it counts. `locked` forces the section shut and
@@ -205,14 +210,20 @@ export default function DroppedCarrierSection({
     // reports the press and renders the disabled state it is told about; it
     // validates nothing and knows nothing about routing.
     action: onProcess ? (
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={processingScac != null}
-        onClick={() => onProcess(c)}
-      >
-        Reinstate
-      </Button>
+      isDuplicate(c, tenderOptions) ? (
+        <Button size="sm" variant="secondary" disabled title="Already in the Tender List">
+          Reinstated
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={processingScac != null}
+          onClick={() => onProcess(c)}
+        >
+          Reinstate
+        </Button>
+      )
     ) : undefined,
   }))
 
