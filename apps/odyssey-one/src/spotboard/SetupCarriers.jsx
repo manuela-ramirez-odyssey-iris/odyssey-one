@@ -563,12 +563,13 @@ export default function SetupCarriers({
             </>
           }
         >
-          {/* Grouped into 3 sections, each separated by a subtle rule (user,
-              2026-09-03): (1) Duration, (2) Planned dates + Flexible, (3)
-              Currency. Labeled "Planned Pickup"/"Planned Delivery" (user,
-              2026-08-21 — dropped the "General" prefix to match the table's
-              own column headers; the modal context already implies "applies
-              to all carriers"). */}
+          {/* Two sections, separated by a subtle rule (user, 2026-09-07 —
+              was three): (1) the quote's own terms, Duration beside Currency;
+              (2) the planned dates, with each direction's Flexible checkbox
+              BELOW its picker rather than above the pair. Labeled "Planned
+              Pickup"/"Planned Delivery" (user, 2026-08-21 — dropped the
+              "General" prefix to match the table's own column headers; the
+              modal context already implies "applies to all carriers"). */}
           <div className="setup-carriers__setup-grid">
             <DurationPicker
               id="setup-quote-duration"
@@ -577,25 +578,22 @@ export default function SetupCarriers({
               value={draftDuration}
               onChange={setDraftDuration}
             />
+            <div className="setup-carriers__currency-field">
+              <label htmlFor="setup-currency" className="text-label-sm-medium setup-carriers__currency-label">
+                Currency
+              </label>
+              <Dropdown
+                id="setup-currency"
+                value={draftCurrency}
+                options={CURRENCY_OPTIONS}
+                onChange={setDraftCurrency}
+              />
+            </div>
           </div>
 
           <hr className="setup-carriers__setup-divider" />
 
           <div className="setup-carriers__setup-grid">
-            {flexConfig.pickupDays != null && (
-              <Checkbox
-                label={`Flexible pickup (±${flexConfig.pickupDays} days)`}
-                checked={draftFlexible}
-                onChange={(e) => setDraftFlexible(e.target.checked)}
-              />
-            )}
-            {flexConfig.deliveryDays != null && (
-              <Checkbox
-                label={`Flexible delivery (±${flexConfig.deliveryDays} days)`}
-                checked={draftFlexibleDelivery}
-                onChange={(e) => setDraftFlexibleDelivery(e.target.checked)}
-              />
-            )}
             <DateField
               id="setup-pickup-all"
               label="Planned Pickup"
@@ -608,22 +606,20 @@ export default function SetupCarriers({
               value={draftDelivery}
               onChange={setDraftDelivery}
             />
-          </div>
-
-          <hr className="setup-carriers__setup-divider" />
-
-          <div className="setup-carriers__setup-grid">
-            <div className="setup-carriers__currency-field">
-              <label htmlFor="setup-currency" className="text-label-sm-medium setup-carriers__currency-label">
-                Currency
-              </label>
-              <Dropdown
-                id="setup-currency"
-                value={draftCurrency}
-                options={CURRENCY_OPTIONS}
-                onChange={setDraftCurrency}
+            {flexConfig.pickupDays != null ? (
+              <Checkbox
+                label={`Flexible pickup (±${flexConfig.pickupDays} days)`}
+                checked={draftFlexible}
+                onChange={(e) => setDraftFlexible(e.target.checked)}
               />
-            </div>
+            ) : <span />}
+            {flexConfig.deliveryDays != null && (
+              <Checkbox
+                label={`Flexible delivery (±${flexConfig.deliveryDays} days)`}
+                checked={draftFlexibleDelivery}
+                onChange={(e) => setDraftFlexibleDelivery(e.target.checked)}
+              />
+            )}
           </div>
         </ModalMedium>,
         document.body
