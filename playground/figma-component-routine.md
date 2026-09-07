@@ -84,8 +84,9 @@ is the confusion, not the flag.
 2. **Never call `connect:publish` or push to Figma library until GATE B has been crossed.** Phase 3 work is irreversible-ish (publish goes live, library push affects designers). Approval required.
 3. **Pre-flight check before every code-touching tool call**: ask yourself "did the user explicitly approve the Figma changes I made?" If you can't quote the phrase, stop and ask.
 4. **Never run `release.mjs` while any batch component has uncommitted changes or an open question.** A release freezes the batch (above); freezing an unsettled component is what creates a PR that cannot honestly merge.
-5. **Never merge the library PR without GATE C-merge passing.** `release-parity-check.mjs` exit 0, quoted.
-6. **The default mode is Figma-first.** A Figma URL with no explicit override means: do Figma work first, screenshot, wait. The user opting into "code-first" is rare and must be stated in their words ("code-first", "skip Figma", "code only").
+5. **Every "approve" request gets a Figma-library publish ask first** (user, 2026-09-07) — see Step 8c. Ask in the same reply, wait, then run `--approve`.
+6. **Never merge the library PR without GATE C-merge passing.** `release-parity-check.mjs` exit 0, quoted.
+7. **The default mode is Figma-first.** A Figma URL with no explicit override means: do Figma work first, screenshot, wait. The user opting into "code-first" is rare and must be stated in their words ("code-first", "skip Figma", "code only").
 
 If you find yourself about to write code without a quotable approval phrase from the user, that's the violation. Stop, summarize what you intended to change, and ask for explicit go.
 
@@ -352,6 +353,14 @@ If the component has a `.figma.tsx`, run `bash tools/connect-publish.sh` from th
 **Pre-flight:** if `packages/ui/.env` is missing, ask the user once to create it. That's the only blocking gate in this step.
 
 ### Step 8c: Figma library publish reminder (manual user action)
+
+> **STANDING RULE (user, 2026-09-07): every time the user asks you to APPROVE, ask them
+> to publish the Figma library first — in the same reply, before running `--approve`.**
+> Not "if you think it's needed", not only when structure changed: **always ask.** The
+> user is the only one who can publish it (Assets panel → Publish library / Update), and
+> the approval, the Code Connect publish and the port all rest on a published master.
+> Approving against an unpublished library is what makes designers compose screens
+> against masters nobody else can see. Ask, wait for their confirmation, then approve.
 
 Whenever a normalize cycle modifies the **structure** of the Figma file in ways that other Figma files would consume, the user needs to **re-publish the Figma library** (manual step in Figma desktop: Assets panel → "Publish library / Update"). The library publish is what makes the changes flow to other Figma files where designers compose product screens.
 
