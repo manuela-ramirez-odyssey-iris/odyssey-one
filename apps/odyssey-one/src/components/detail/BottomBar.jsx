@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { ListX, PackageOpen, RefreshCw } from 'lucide-react'
+import { PackageOpen, RefreshCw } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
@@ -317,7 +317,7 @@ export default function BottomBar({
       ...t,
       indicators: pendingOrderChange
         ? <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><PackageOpen size={12} aria-hidden="true" /></span>
-        : <span className="shipments-bar__tab-alert shipments-bar__tab-alert--orange" role="img" aria-label="Dropped carriers"><ListX size={12} aria-hidden="true" /></span>,
+        : <span className="shipments-bar__tab-alert shipments-bar__tab-alert--orange text-label-xs-semibold" role="img" aria-label={`${droppedCount} dropped carrier${droppedCount === 1 ? '' : 's'}`}>{droppedCount}</span>,
     }
   }), [orderedTabs, droppedCount, pendingOrderChange, spotLive, spotQuote])
 

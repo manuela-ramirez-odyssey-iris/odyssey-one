@@ -287,27 +287,30 @@ describe('S140 — Tender tab indicators', () => {
         detailsError={false}
       />,
     )
-  // Matched on text, not accessible name: the indicators' own aria-labels join
-  // the tab's name, and "Tender History" is a sibling tab.
+  // Matched on the label prefix, not accessible name or full text: the
+  // indicators' own aria-labels join the tab's name, the dropped-carrier
+  // badge adds its COUNT to the text, and "Tender History" is a sibling tab.
   const tenderTab = () =>
-    within(screen.getByRole('tablist')).getAllByRole('tab').find((t) => t.textContent === 'Tender')
+    within(screen.getByRole('tablist')).getAllByRole('tab')
+      .find((t) => t.textContent.startsWith('Tender') && !t.textContent.includes('History'))
 
-  test('a dropped carrier puts the list-x glyph on the Tender tab', () => {
+  test('a dropped carrier puts its COUNT badge on the Tender tab', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }] })
-    expect(within(tenderTab()).getByLabelText('Dropped carriers')).toBeTruthy()
+    const badge = within(tenderTab()).getByLabelText('1 dropped carrier')
+    expect(badge.textContent).toBe('1') // the count IS the badge (user, 2026-09-07), no glyph
     expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
   })
 
   test('an unresolved order change puts the package glyph on the Tender tab', () => {
     renderBar({ orderChange: { resolution: null } })
     expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
-    expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
+    expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
   })
 
   test('an order change overrides the dropped-carrier glyph — one signal, never two', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }], orderChange: { resolution: null } })
     expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
-    expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
+    expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
   })
 
   test('SpotBid tab wears the live dot while this shipment\'s quote is open', () => {
@@ -330,7 +333,7 @@ describe('S140 — Tender tab indicators', () => {
 
   test('neither condition renders no indicators at all', () => {
     renderBar({})
-    expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
+    expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
     expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
   })
 })
