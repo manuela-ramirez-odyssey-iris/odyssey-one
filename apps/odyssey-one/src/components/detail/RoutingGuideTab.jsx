@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, PackageOpen, TriangleAlert } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, TriangleAlert } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
@@ -1649,10 +1649,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     <Button
       variant="secondary"
       size="lg"
-      // Purple PackageOpen (designer, S140; was FileBox, previewing again) — deliberate exception to the
-      // icon-follows-label-color rule: purple is the review flow's
-      // accent, same token the diff badges use.
-      icon={<PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
+      // No icon (user, 2026-09-07 — it wore three different glyphs across
+      // the day and none earned its place). The LABEL is purple instead:
+      // the review flow's accent, the same token the diff badges and the
+      // Tender tab's own alert badge use.
+      style={{ color: 'var(--badge-purple-text)' }}
       // No `tender-pane__review-oc` class any more (S137, caught in the
       // browser): that rule was `margin-left: auto` + `margin-bottom`, which
       // is how it right-aligned itself in the sub-tabs row it USED to live in.

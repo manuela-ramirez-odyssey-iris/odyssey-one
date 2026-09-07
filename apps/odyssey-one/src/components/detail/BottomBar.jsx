@@ -316,11 +316,6 @@ export default function BottomBar({
     if (t.key === 'routing' && pendingOrderChange) {
       return {
         ...t,
-        // The label goes purple too (user, 2026-09-07), so the whole tab —
-        // not just the badge — reads as blocked. `label` is a node here; the
-        // error-copy lookup at `tabLabel` below reads the TABS constant, not
-        // this mapped array, so it still gets the plain string.
-        label: <span style={{ color: 'var(--badge-purple-text)' }}>{t.label}</span>,
         // The shared icon-only purple Badge (user, 2026-09-07, final of four
         // tries: inline glyph → floating corner circle → count → this).
         // OctagonAlert reads "halted", which is what a pending order change
