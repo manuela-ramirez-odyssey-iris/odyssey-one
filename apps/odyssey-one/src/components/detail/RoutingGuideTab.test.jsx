@@ -1027,6 +1027,25 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
   })
 
+  it('the dates modal does not gray the rows behind it — the overlay already blocks them', () => {
+    const other = { ...missingTransitDropped, scac: 'SAIA', carrierName: 'Saia' }
+    render(
+      <RoutingGuideTab
+        data={{ options: [] }}
+        shipmentDetails={{ droppedCarriers: [missingTransitDropped, other] }}
+        shipment={shipment}
+      />,
+    )
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Reinstate' })[0])
+    expect(screen.getByRole('dialog', { name: 'Reinstate Dropped Carrier' })).toBeTruthy()
+    // User ruling 2026-09-07: the modal is aria-modal over a full overlay, so
+    // the one-SCAC-at-a-time AC is enforced by the scrim, not by disabling.
+    for (const b of screen.getAllByRole('button', { name: 'Reinstate' })) {
+      expect(b.disabled).toBe(false)
+    }
+  })
+
   it('missing Transit Time asks for dates, then warns no rate is available', async () => {
     const data = { options: [] }
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)

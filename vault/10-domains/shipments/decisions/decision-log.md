@@ -844,6 +844,12 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision (user, 2026-09-07):** rows whose SCAC + Equipment is already in the Tender List — the disabled "Reinstated" rows of DEC-129 — sort last. Stable sort, so routing's order survives inside each half. Presentation only; no domain rule and no API change.
 - **Source:** user session S140, 2026-09-07.
 
+### DEC-131: The Reinstate lock releases while the dates modal is open — a deliberate divergence from the §4.2 concurrency AC
+- **Previous:** [[../dropped-carrier|dropped-carrier]] §4.2, from Jana verbatim (*"the button should not be enabled for second carrier processing"*, `[17:47]`): while processing, the action is disabled for the current SCAC **and every other dropped-carrier row**. Implemented as one shared `processingScac` value, held for the whole walk — including the window where `ManualDatesModal` sits open waiting for the planner to type dates.
+- **Decision (user, 2026-09-07):** keep the lock for actual processing, release it while that modal is open. `ManualDatesModal` is `aria-modal="true"` over a full-screen overlay, so no row behind it is reachable: the AC's real requirement — a second SCAC can never start — is enforced by the scrim. Graying every row on top of that only read as broken. The lock is re-acquired on confirm, before the walk resumes.
+- **Scope:** presentation only. No second SCAC can begin at any point, so the domain rule Jana stated is intact; what changed is how it is signalled. Per [[feedback_jana_does_not_decide_ui]], the disabled-appearance half of §4.2 was never Jana's to rule.
+- **Source:** user session S140, 2026-09-07 (*"the modal is on top, we don't need to disable the reinstate buttons in the back, they are simply not reachable"*).
+
 ---
 
 ## Changelog

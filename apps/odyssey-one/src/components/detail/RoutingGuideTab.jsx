@@ -1198,6 +1198,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // dropped-carrier doorway's alone, per 15076.
     if (steps.includes('manual-dates') && !dates) {
       setManualDatesFor(carrier)
+      // Release the lock while the modal waits on the planner (user ruling,
+      // 2026-09-07 — a deliberate divergence from the §4.2 AC's literal "every
+      // other dropped-carrier row is disabled"). ManualDatesModal is
+      // `aria-modal` over a full overlay, so nothing behind it is reachable:
+      // the AC's actual requirement — no second SCAC may start — is enforced by
+      // the scrim, and graying every row on top of that only read as broken.
+      // Re-acquired on confirm below, for the processing walk that follows.
+      setProcessingScac(null)
       return
     }
 
@@ -1799,6 +1807,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           onConfirm={(dates) => {
             const carrier = manualDatesFor
             setManualDatesFor(null)
+            // Re-acquire the lock released when this modal opened — the rest of
+            // the walk IS processing, and there the AC's one-at-a-time holds.
+            setProcessingScac(carrier.scac)
             runProcessScac(carrier, dates)
           }}
         />
