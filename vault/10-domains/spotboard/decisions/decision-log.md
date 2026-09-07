@@ -885,3 +885,104 @@ Neither contains the other; both hang directly off the stored quote. **Our `/spo
 **Rationale:** Kathleen's own framing: *"This is the biggest change."* A carrier-side date affordance built as a range picker with helper text would be wrong on all four counts.
 **Source:** Kathleen email, 2026-08-24 (item #7 + correction table); `Kathleen Doug discussion.png` (Teams chat + calendar exhibit — SHOWN); `TMS.png` (SHOWN).
 **Affects:** SetupCarriers' single ungated checkbox (needs: config gate, pickup/delivery pair); CarrierBid's badge wiring (both badges read `flexiblePickup` — the delivery badge has no flag of its own) and its **absent date capture**, which this ruling now specifies as an enabled-dates picker fed by a per-carrier allowable-date list; canon §22.2 row 7. **Supersedes the carrier-visible framing of [[#spb-60|SPB-60]]** (the config engine it records stands); refines [[#spb-13|SPB-13]]; makes [[#spb-33|SPB-33]]'s date-capture gap a specified requirement. For the prototype, the "involved" APEX algorithm is a **seeded per-carrier date list**, not a computation we own.
+
+---
+
+## v2.1 — 2026-09-02 intake: PRD 08/31 revision, Doug's eleven answers, the email samples
+
+### SPB-70 — Tolerance evaluates against the carrier's BUY cost; client cost (markup applied) is display-only, and its presence on planner screens now rests on Kathleen alone
+**Decided:** 2026-08-31, Doug Albritton via Kathleen O'Donnell (email 2026-09-02, #4; PRD 08/31, Feature 5).
+**Previous state:** [[#spb-68|SPB-68]] put cost AND client cost on Live Bids and the tolerance panel and left open *"does the tolerance ceiling evaluate against cost or client cost?"*. Shipped `tolerance.js` already compared `lowestBid` (carrier cost).
+**Decision:** *"Tolerance calculations are based on carrier buy cost, not marked-up sell/client cost. The overflow carrier screens operate on buy-side carrier costs. Markup is applied later when tendering and creating the sell price."*
+**Rationale:** Tolerance protects Odyssey's buy against the routed benchmark; sell price is a downstream concern.
+**Tension recorded, not resolved:** Doug describes the legacy planner screens as buy-side only. Kathleen's 08/24 ruling (SPB-68) adds client cost to them. Compatible if read as "legacy shows buy; new adds sell" — but the shipped `Client Cost` column and `Markup` field have one sponsor. Confirm with Kathleen.
+**Source:** Kathleen email 2026-09-02 (#4); PRD 08/31 Feature 5 block. Code: `spotboard/tolerance.js`, `LiveBids.jsx`, `TolerancePanel.jsx`.
+**Affects:** closes SPB-68's open question; `evaluateTolerance` aligned; canon §23.2 row 4, §23.4.
+
+### SPB-71 — Fuel: forced → carrier never enters it; not forced → fuel may appear as an ordinary line in the configured charge list; uncalculable → the bid is NOT blocked, fuel is assumed in the base, and the planner is notified
+**Decided:** 2026-08-31, Doug via Kathleen (email #2, #3; PRD 08/31, Feature 3).
+**Previous state:** [[#spb-64|SPB-64]]: read-only fuel from an OCM schedule, three states, *"no schedule → no fuel section"*; open conditional on whether a carrier may add fuel manually.
+**Decision:** (1) *"When fuel is configured as a forced charge, the carrier does not enter it. When not forced, fuel may appear in the allowed charge list if configured there."* (2) *"Do not block the bid. If TMS cannot calculate fuel/per-mile values, the system sends a notification to the planner and falls back to manual planner review… it is just assumed to be included in the base."* Exact profile name still unconfirmed by engineering.
+**Rationale:** Fuel is not mandatory; a missing distance must not stop procurement.
+**Source:** Kathleen email 2026-09-02 (#2, #3).
+**Affects:** SPB-64 gains a fourth state (no schedule, fuel offered as accessorial) and an "uncalculable" path in `fuelSchedule.js`; the planner notification here is **not one of IE-1…6** — open (§23.5). Resolves SPB-64's FSC conditional: seeded FSC never; carrier-entered fuel only when the OCM list offers it.
+
+### SPB-72 — The carrier sees ONLY the configured OCM charge list and can never add a charge outside it; 613 codes exist and TMS exposes none of them to carriers
+**Decided:** 2026-08-31, Doug via Kathleen (email #3, #6; PRD 08/31, Feature 2/3).
+**Previous state:** [[#spb-55|SPB-55]] made the list OCM-profile-driven (org × equipment). Whether a carrier could add an unlisted charge was unstated.
+**Decision:** *"Today the carrier cannot select any additional charges not configured from the settings… 613 charge codes today and TMS does not let the carrier add new charges."* Lists are *"typically configured by equipment"* — every production profile Doug checked was. *"90% of carrier do not add extra charges."*
+**Rationale:** Charge governance is the client's configuration, not the carrier's discretion.
+**Source:** Kathleen email 2026-09-02 (#3, #6).
+**Affects:** no "add other charge" affordance on the bid page. **Design inference, flagged:** the 90% figure argues for accessorials collapsed by default beneath the base rate.
+
+### SPB-73 — Carrier date picker: calendar-restricted dates are unselectable and grey, selected dates blue; the PLANNER is never calendar-restricted; a workday calendar always resolves via the org hierarchy; the algorithm is APEX code Doug hands to Yuri
+**Decided:** 2026-08-31, Doug via Kathleen (email #1a–c, #5; PRD 08/31, Feature 1).
+**Previous state:** [[#spb-69|SPB-69]]: per-carrier discrete allowable-date lists from org × carrier calendars; open — who exposes the APEX algorithm to OdysseyONE.
+**Decision:** *"OdysseyONE can call TMS package procedures for calendar lookups, but the UI/calendar logic will likely need to be implemented in OdysseyONE. Doug offered to provide the algorithm/code to Yuri."* Hierarchy fallback consignor → owning org → client → root: *"we'll never not get an answer."* *"The planner can update these dates when sending to the carrier. There is no restriction on them to keep the dates from workday. UX wise, if the workday calendar restricts certain days, they cannot be selected by the carrier. Dates available for selection are grey and dates selected appear in blue."* Flex days are separate OCM values per direction (e.g. pickup 3, delivery 5); unconfigured → no flex.
+**Rationale:** The planner is trusted to override; the carrier is constrained to feasible dates.
+**Source:** Kathleen email 2026-09-02 (#1a, #1b, #1c, #5).
+**Affects:** SPB-69's open item answered (Yuri owns the port); first visual rule for the carrier-side picker; SetupCarriers' planner date fields need no calendar gating. Wording note: Doug's "available… grey" reads as *selectable-but-unselected* = grey, *selected* = blue, restricted = disabled — confirm the three-way mapping before building.
+
+### SPB-74 — No affiliate close-time extension in MVP; `COFL_AFFLM` is system-level (5 min), used only by CTNS, and is deliberately not carried forward
+**Decided:** 2026-08-31, Kathleen O'Donnell on Doug's data (email #10; PRD 08/31, Feature 6).
+**Previous state:** Canon §9.9 / follow-up (1) — *"is the affiliate/CTNS desk in scope?"* — open since v1.0.
+**Decision:** *"The affiliate extension is currently 5 additional minutes… system-profile-driven… Only designated affiliates can use it… Currently only CTNS appears configured to use it. We do not want to give affiliates like 3TS extra time, at least not as part of our MVP. They do have a bot that can do the heavy lifting."*
+**Rationale:** Fairness to external carriers; the affiliate already automates its bidding.
+**Source:** Kathleen email 2026-09-02 (#10).
+**Affects:** closes §9.9; no affiliate-close time in the quote model for MVP; [[data/quote-model|data/quote-model]] §5.5 `COFL_AFFLM` row is legacy reference only.
+
+### SPB-75 — The force-close minimum threshold is a system-level setting, never client-specific
+**Decided:** 2026-08-31, Doug via Kathleen (email #11; PRD 08/31 `OQ-2` **Resolved**).
+**Previous state:** `OQ-2` open — *"what is the configurable minimum threshold before force-close is suppressed?"*; legacy default 5 minutes.
+**Decision:** *"Doug stated he would not make this client-specific… The existing design uses a system-level setting, and there was no support expressed for client-specific configuration."*
+**Rationale:** No client has asked; per-client thresholds add configuration surface for no operational gain.
+**Source:** Kathleen email 2026-09-02 (#11).
+**Affects:** `AwardModal`'s force-close view should respect one system threshold (currently none) — small gap.
+
+### SPB-76 — Every Overflow OCM profile resolves by starting at the consignor organization and walking the hierarchy UPWARD to the first configured value
+**Decided:** 2026-08-31, Doug via Kathleen (email #7; PRD 08/31, Feature 2).
+**Previous state:** v1.3 follow-up (3): *"Doug's answer on OCM profile inheritance — the highest-value configuration question, since profiles demonstrably resolve down an org hierarchy with no documented rule."*
+**Decision:** *"Carrier Overflow profile type 14 is evaluated by starting at the consignor organization and walking the hierarchy upward to find the applicable value. Doug emphasized this applies to all Overflow OCM profiles, not just carrier lists."*
+**Rationale:** One resolution rule for carrier list, charges, tolerance, markup, flex, manual-review.
+**Source:** Kathleen email 2026-09-02 (#7).
+**Affects:** closes follow-up (3); [[data/quote-model|data/quote-model]] §5 configuration surface gains the resolution rule; the prototype's seeded per-shipment config is a valid stand-in for "the resolved value".
+
+### SPB-77 — All overflow emails send FROM the planning group's `FROMEMAIL` mailbox; carrier recipients come from TMS carrier communications (`MFFCONT` distribution events); a carrier without the overflow event configured gets `No Distribution`
+**Decided:** 2026-08-31, Doug via Kathleen (email #8 + body; PRD 08/31, Feature 4; `TMS1.png`).
+**Previous state:** Wireframe Screen 2 / canon §6 showed `Odyssey Logistics <spotquotes@odysseylogistics.com>`; recipient derivation undocumented; [[#spb-61|SPB-61]] recorded `No Distribution` without its cause.
+**Decision:** *"Emails derive the sender from the FROMEMAIL SystemProfile. The sender is usually the planning group's configured mailbox. RFQ and award emails sent to carriers use that planning-group email as the 'From' address. Planner notifications likewise use the planning group's mailbox. Carrier recipients are derived from TMS carrier communications ('comms') configuration."* Kathleen: *"There is a default sender id, but many customer specific emails… for the carrier, it is set up in the profiles by carrier and customer."* `TMS1.png` (`MFFCONT`, Arrive Logistics) shows `LOAD TENDER` / `LOAD CANCEL` distribution events with **no overflow row** — *"setting is missing for Arrive and Valtris."* *"Due to time, we will continue to access these profiles"* — no OdysseyONE contact-management UI in MVP.
+**Rationale:** Reuse TMS master data; carriers reply to the planning group that owns the load.
+**Source:** Kathleen email 2026-09-02 (#8, body); `TMS1.png` (SHOWN).
+**Affects:** template design — From = planning group, never a product mailbox; `spotquotes@…` is drift; SPB-61's `No Distribution` gets its meaning (*"no overflow email configured for this carrier"*). **Open → Thomas:** token permissiveness given group mailboxes and vacation forwarding — the token identifies an address, not a person (bears on SPB-09/16/23).
+
+### SPB-78 — The six planner alert emails are V1 scope and their payloads are now known verbatim from real sends; `IE-4` EXISTS for consolidations; `IE-3` has two shapes
+**Decided:** 2026-09-02, Kathleen O'Donnell (Teams + email), evidenced by nine `.msg` samples from Doug Albritton (2023-09-08).
+**Previous state:** `IE-1`…`IE-6` were a PRD table; the build has none. PRD Feature 4 annotated order-change invalidation *"(no notification for this today)"* and [[data/quote-model|data/quote-model]] §7 flagged it a *"possible gap"*.
+**Decision:** *"What was missed is that there are emails sent to the planners (that they continue to want to get). Specifically they mentioned… no carriers submitted bids and… bids received were out of tolerance."* Payloads: see [[data/quote-model|data/quote-model]] §7.1. Sample 14908 is `IE-4` live; samples 14906/14907 show `IE-3` with and without the lowest-bid block.
+**Rationale:** Planner operations run on these alerts today; removing them is a regression.
+**Source:** Kathleen Teams message 2026-09-02; `CarrierOverflow email samples.zip` (nine `.msg`, SHOWN/extracted); PRD 08/31 email appendix.
+**Affects:** the email set (8 templates: `CE-1`, `CE-2`, `IE-1`…`IE-6`) becomes design work we own — Kathleen's explicit ask; corrects the §7 "possible gap" (single-load case still unevidenced); `RfqLinksPanel` is the only email-adjacent surface shipped.
+
+### SPB-79 — Process SCAC copies the tolerance-checked, marked-up overflow quote onto the LCE screen flagged as overflow and does NOT tender; Kathleen wants a one-step Award and asks whether a post-review quote status is needed — both open to Yuri
+**Decided:** 2026-08-31, Doug via PRD 08/31 (Feature 7 block) — **clarification, with two open asks attached**.
+**Previous state:** [[#spb-63|SPB-63]]: radio award + single "Award and Tender"; LINX-15075 Process SCAC built on the Tender tab (S136) as the manual doorway.
+**Decision (Doug):** *"When Process SCAC is selected, the overflow quote is first checked for tolerance. If it is tolerant, markup is added. Then the same code used by the tender screen Process SCAC function adds the option to the LCE screen, or updates the option… It does not tender the option; this remains a manual process… the Process SCAC operation copies the quote onto the LCE screen and marks it as an overflow quote."* **Kathleen:** *"We want a one step process to Award the carrier from the quote. Yuri and team to advise."* *"Should we add another quote status for carrier history so quotes don't stay in review status?"*
+**Rationale:** Legacy separates award-to-LCE from tender; the PM wants the separation collapsed.
+**Source:** PRD 08/31, Feature 7.
+**Affects:** SPB-63's "Award and Tender" is the product intent; legacy parity is award → LCE option → manual tender. The status question touches the six-value lifecycle vocabulary canon §17.8 marks as ours.
+
+### SPB-80 — Overflow email footer carries the current corporate address and phone: 3545 Whitehall Park Drive, Charlotte NC 28273 · 704-808-7400
+**Decided:** 2026-09-06, Kathleen (relayed verbatim by Manuela) — **ruling**.
+**Previous state:** The shared email shell (`emailLayout.js`, S138) printed the legacy sample's footer — `4235 South Stream Blvd, STE 300, Charlotte NC 28217 · 1-888-352-4409` — lifted from the `.msg` samples in [[../data/quote-model|data/quote-model]] §7.1. The after-hours emergency line (`704-779-2110`) was never carried and remains out.
+**Decision:** Every overflow email (`CE-1`, `CE-2`, `IE-1`…`IE-6`) footers with **3545 Whitehall Park Drive, Charlotte NC 28273** and **704-808-7400**. Confidentiality sentence unchanged.
+**Rationale:** The sample footers reflect the legacy sender's stale address, not the current corporate one; the PM supplied the replacement.
+**Source:** Kathleen, 2026-09-06 (relayed).
+**Affects:** All eight templates through the one shell; the `/spot-emails` gallery renders the new footer without change.
+
+### SPB-81 — Flex dates built end to end on seeded calendars: Send stamps per-carrier allow-lists, the carrier picks inside them, Live Bids and Award carry the pick; window assumed ± N pending Kathleen
+**Decided:** 2026-09-07, build decision (Manuela + Claude) on [[#spb-69|SPB-69]] / [[#spb-73|SPB-73]].
+**Previous state:** SPB-69's delta (c) open — the carrier saw a `Flexible` badge and no date capture; CalendarPicker/DatePicker had gained `enabledDates` (D10, 2026-09-02) with no consumer.
+**Decision:** (1) `sendRFQ` computes `allowablePickupDates` / `allowableDeliveryDates` per carrier for each FLAGGED direction only: planned date ± N (N from the seeded OCM `flexConfig`) minus a seeded operating calendar (Sundays for all, Saturdays for about half the SCACs, four US holidays). The APEX algorithm is Yuri's; ours is a stand-in. (2) The bid page renders a `DatePicker` bounded by that list for a flagged direction, defaulted to the planned date when allowable; Submit waits for every flagged date. A flagged direction whose list is empty falls back to the read-only planned date. (3) `bid.pickupDate` / `bid.deliveryDate` (`MM/DD/YYYY`, date-only per Kathleen written answer #5) surface as Live Bids columns only on flexible quotes and replace the planned dates on the Award → Tender option. (4) DSM: `isDateEnabled(date)` predicate added beside `enabledDates` so local rules never hand-format lists; the array remains the API wire form.
+**Assumption flagged:** window is **± N around the planned date** — both legacy exhibits (`image (3)`, Doug's Teams calendar) show Earliest before and Latest after. Kathleen's 08/20 sentence reads *"number of days permitted before the requested pickup/delivery date."* One constant (`AFTER_DAYS_FACTOR`, `flexDates.js`) flips to before-only. **Ask Kathleen.**
+**Source:** SPB-69, SPB-73, PRD 08/31 Feature 1; user session 2026-09-07.
+**Affects:** CE-1 carrier email still prints one pickup date — on a flexible quote it should say the carrier chooses (next email pass). Angular twins owe `isDateEnabled`.
