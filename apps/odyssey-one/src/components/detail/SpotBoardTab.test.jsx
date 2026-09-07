@@ -496,10 +496,13 @@ describe('SpotBoardTab', () => {
             {
               scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van',
               incl: true, plannedPickup: '08/10/2026', plannedDelivery: '08/11/2026', flags: [], token: 'tok-odfl',
+              allowablePickupDates: ['2026-08-10'], allowableDeliveryDates: ['2026-08-11'],
               bid: { status: 'bid', linehaul: 1000, fuel: 60, accessorials: [], total: 1060, submittedBy: 'ops@odfl.example.com' },
             },
           ],
-          flexiblePickup: false,
+          flexiblePickup: true,
+          flexibleDelivery: true,
+          currency: 'CAD',
         })
       )
     }
@@ -538,6 +541,20 @@ describe('SpotBoardTab', () => {
       expect(screen.getByRole('button', { name: 'Setup & Carriers' }).className).toContain('tab--current')
       // The reseeded draft's carrier row shows up on Setup & Carriers.
       expect(screen.getByText('ODFL · Old Dominion')).toBeTruthy()
+
+      // Every Quote Setup term rides forward (S140 — flexibleDelivery and
+      // currency used to fall back to false / USD), and everything Send had
+      // stamped on the row is gone: the next Send re-mints and re-computes.
+      const draft = JSON.parse(localStorage.getItem(`spotboard:${shipment.sellShipment}`))
+      expect(draft.status).toBe('draft')
+      expect(draft.flexiblePickup).toBe(true)
+      expect(draft.flexibleDelivery).toBe(true)
+      expect(draft.currency).toBe('CAD')
+      const row = draft.carriers[0]
+      expect(row.bid).toBeUndefined()
+      expect(row.token).toBeUndefined()
+      expect(row.allowablePickupDates).toBeUndefined()
+      expect(row.allowableDeliveryDates).toBeUndefined()
     })
   })
 

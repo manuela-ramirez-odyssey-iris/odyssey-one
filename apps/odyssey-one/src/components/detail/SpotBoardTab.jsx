@@ -263,8 +263,17 @@ export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale =
       listId: prev.listId,
       listName: prev.listName,
       durationMin: prev.durationMin,
-      carriers: (prev.carriers ?? []).map(({ bid, ...c }) => c),
+      // Strip everything Send stamped on a row — the bid, the token, and the
+      // per-carrier flex allow-lists (SPB-69): the next Send re-mints and
+      // re-computes all of them off the possibly-edited planned dates.
+      carriers: (prev.carriers ?? []).map(
+        ({ bid, token, allowablePickupDates, allowableDeliveryDates, ...c }) => c,
+      ),
+      // Every term Quote Setup owns rides forward, not just one flag (S140 —
+      // flexibleDelivery and currency used to fall back to false / USD here).
       flexiblePickup: prev.flexiblePickup,
+      flexibleDelivery: prev.flexibleDelivery,
+      currency: prev.currency,
     })
     setSubTab('setup')
   }, [quote, clearQuote, saveDraft])
