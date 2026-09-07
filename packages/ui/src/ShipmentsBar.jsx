@@ -35,7 +35,10 @@ import Button from './Button.jsx'
  *   placeholder       — label when nothing is selected (default 'Select a Shipment').
  *   onPrevShipment / onNextShipment — arrow handlers; arrows render only when provided.
  *   prevDisabled / nextDisabled     — bound states for the arrows.
- *   tabs              — [{ key, label }]. Plain tabs only — the dropdown-tab face
+ *   tabs              — [{ key, label, indicators? }]. `indicators` is an optional
+ *                       ReactNode rendered after the label inside the tab button
+ *                       (S140: small status glyphs, e.g. the Tender tab's dropped-carrier
+ *                       and pending-order-change signals). Plain tabs otherwise — the dropdown-tab face
  *                       (prelabel + value + chevron) was retired S80 with the Figma
  *                       `State=Selected Dropdown` variant; ShipmentsBarTab is now
  *                       just Default|Selected. In-pane switchers (e.g. the Orders
@@ -227,6 +230,9 @@ export default function ShipmentsBar({
                 onClick={() => handleTabClick(tab)}
               >
                 {tab.label}
+                {tab.indicators && (
+                  <span className="shipments-bar__tab-indicators">{tab.indicators}</span>
+                )}
               </button>
             )
           })}

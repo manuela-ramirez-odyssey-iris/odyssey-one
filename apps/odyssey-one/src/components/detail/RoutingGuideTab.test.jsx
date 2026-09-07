@@ -848,13 +848,13 @@ describe('Process SCAC (LINX-13954)', () => {
     routeGroup: '--', rpcId: '--',
   }
 
-  // LINX-15075 mounted a SECOND "Process SCAC" button (the picker bar) on this
+  // LINX-15075 mounted a SECOND action button (the picker bar's "Add") on this
   // same screen — both doorways share the label by design. Scope these
   // dropped-carrier-doorway tests to DroppedCarrierSection's own table
   // (`data-dropped-carrier-table`, already on its GroupTable) so they keep
   // pinning THAT button rather than failing on the new ambiguity.
   const droppedProcessButton = () =>
-    within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Process SCAC' })
+    within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Reinstate' })
 
   it('a clean route copies the carrier into the Tender List and announces success; the row stays in the Dropped Carrier section too', async () => {
     const data = { options: [] }
@@ -915,7 +915,7 @@ describe('Process SCAC (LINX-13954)', () => {
     })
 
     expect(screen.getByText(
-      'The dropped carrier could not be processed. If the issue persists, please contact your system administrator.',
+      'The dropped carrier could not be added. If the issue persists, please contact your system administrator.',
     )).toBeTruthy()
     // Rolled back — no row survived in the Tender List.
     expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(0)
@@ -995,7 +995,7 @@ describe('Process SCAC (LINX-13954)', () => {
     })
 
     expect(screen.getByText(
-      'The dropped carrier could not be processed. If the issue persists, please contact your system administrator.',
+      'The dropped carrier could not be added. If the issue persists, please contact your system administrator.',
     )).toBeTruthy()
 
     // Both original rows survive, at their ORIGINAL ranks — SAIA must be back
@@ -1123,7 +1123,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' }))
     pickCarrier('KNGT', 'TL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
       await new Promise((r) => requestAnimationFrame(r))
     })
 
@@ -1142,7 +1142,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
     pickCarrier('KNGT', 'TL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     })
 
     // KNGT/TL lands at rank 3 (bottom of the AAAA/BBBB TL run); CCCC/LTL
@@ -1167,7 +1167,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
     pickCarrier('KNGT', 'TL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     })
 
     expect(screen.getByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeTruthy()
@@ -1184,8 +1184,8 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
 
     fireEvent.click(within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Add Carrier' })) // expand
     pickCarrier('KNGT', 'TL')
-    const pickerButton = within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Process' })
-    const droppedButton = within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Process SCAC' })
+    const pickerButton = within(document.querySelector('.process-scac-bar')).getByRole('button', { name: 'Add' })
+    const droppedButton = within(document.querySelector('[data-dropped-carrier-table]')).getByRole('button', { name: 'Reinstate' })
 
     expect(pickerButton.disabled).toBe(false)
     expect(droppedButton.disabled).toBe(false)
@@ -1208,7 +1208,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
     pickCarrier('EXLA', 'LTL')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     })
 
     expect(screen.getByText(

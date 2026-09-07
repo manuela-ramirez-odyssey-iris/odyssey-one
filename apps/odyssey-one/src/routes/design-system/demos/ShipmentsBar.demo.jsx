@@ -6,7 +6,7 @@ export const meta = {
   tier: 'organism',
   version: '1.5.0',
   createdVersion: '0.6.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }
@@ -17,6 +17,7 @@ export const props = [
   { name: 'placeholder', type: 'string', desc: "Lead label when nothing is selected. Default 'Select a Shipment'." },
   { name: 'onPrevShipment / onNextShipment', type: '() => void', desc: 'Prev/next arrows (20px, DSN/500) beside the ID — render only when provided; pair with prevDisabled/nextDisabled at list bounds.' },
   { name: 'tabs', type: '[{ key, label }]', desc: "The tab slots; overflow scrolls natively. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)" },
+  { name: 'tabs[].indicators', type: 'node', desc: 'S140 — optional ReactNode rendered after the tab label inside the tab button (.shipments-bar__tab-indicators, inline-flex, spacing-1 gap). Small status glyphs only: the Shipments Tender tab uses it for an orange truck (dropped carriers) and a purple package (pending order change). No Figma change proposed yet — flagged for Efrain.' },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
   { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ the fixed stage height (S93 three-stage model — the S79d adaptive content height + ratchet was retired; pane content scrolls within the stage height). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
   { name: 'stage / onStageChange', type: "'partial' | 'full' / (next) => void", desc: "S82 three-state expansion. 'partial' caps the open bar at --bottombar-partial (60dvh); 'full' fixes it at 100dvh − --navbar-height — every pixel between the navbar and the viewport bottom (2026-08-15; supersedes the earlier --bottombar-top-clearance mid-page-title cap). Definite heights — stage changes and open/close animate on the plain CSS drawer transition (S93). CollapseExpand walks closed → partial (arrow-up-to-line, fires onExpandedChange(true)) → full (chevrons-up, fires onStageChange('full')) → closed (chevrons-down, fires onClose). Consumers reset to 'partial' on a fresh open. Default 'full' (two-state back-compat)." },

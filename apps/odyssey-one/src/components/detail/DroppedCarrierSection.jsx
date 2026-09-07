@@ -1,5 +1,5 @@
-import { Check, CircleX } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
+import { Check, CircleX, Truck } from 'lucide-react'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
 
 /**
@@ -211,7 +211,7 @@ export default function DroppedCarrierSection({
         disabled={processingScac != null}
         onClick={() => onProcess(c)}
       >
-        Process SCAC
+        Reinstate
       </Button>
     ) : undefined,
   }))
@@ -226,6 +226,10 @@ export default function DroppedCarrierSection({
     <div className={locked ? 'dropped-carrier--locked' : undefined} aria-disabled={locked || undefined}>
       <SubAccordion
         title={`Dropped Carrier (${carriers.length})`}
+        // S140 — the section's own mark: an orange truck, replacing
+        // SubAccordion's default Info glyph. Same signal the Tender tab now
+        // carries when this shipment has dropped carriers.
+        icon={<Truck {...ICON_LG} style={{ color: 'var(--sunrise-yellow-600)' }} aria-hidden="true" />}
         defaultExpanded={defaultOpen}
         // Controlled + forced shut while locked. Passing `expanded` at all
         // switches SubAccordion out of its own internal (uncontrolled) state,
@@ -234,7 +238,6 @@ export default function DroppedCarrierSection({
         // <button>, so onToggle would still fire; simply not wiring onToggle
         // here means that click has nothing to call).
         expanded={locked ? false : undefined}
-        showIcon={false}
       >
         {carriers.length === 0 ? (
           <p className="dropped-carrier__empty text-label-sm-regular">

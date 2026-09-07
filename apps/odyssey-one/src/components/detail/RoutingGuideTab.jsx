@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, FileBox, TriangleAlert } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, PackageOpen, TriangleAlert } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
@@ -1283,7 +1283,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       setHighlightedRank(null)
       setProcessRank(null)
       setAddedRank(null)
-      setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
+      setProcessNotice('The dropped carrier could not be added. If the issue persists, please contact your system administrator.')
       setProcessingScac(null)
       return false   // S136 — write failure stays expanded too, retry with the same selections
     }
@@ -1637,10 +1637,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     <Button
       variant="secondary"
       size="lg"
-      // Purple FileBox (designer, S135) — deliberate exception to the
+      // Purple PackageOpen (designer, S140; was FileBox) — deliberate exception to the
       // icon-follows-label-color rule: purple is the review flow's
       // accent, same token the diff badges use.
-      icon={<FileBox size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
+      icon={<PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
       // No `tender-pane__review-oc` class any more (S137, caught in the
       // browser): that rule was `margin-left: auto` + `margin-bottom`, which
       // is how it right-aligned itself in the sub-tabs row it USED to live in.
@@ -1694,6 +1694,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
             aria-hidden={pendingOrderChange || undefined}
             inert={pendingOrderChange || undefined}
           >
+            {/* S140 — the card's own name. Same heading size SubAccordion
+                gives the Dropped Carrier section below, so the two read as
+                siblings rather than a titled section under an untitled one. */}
+            <div className="tender-pane__table-title text-heading-lg-semibold">Tender List</div>
             <div ref={tableRef}>
               <RoutingTable
             options={optionsWithPos}
@@ -1721,7 +1725,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
                 document.body at position:fixed (packages/ui/src/ComboBox.jsx),
                 so the card's overflow:hidden does not clip it — no workaround
                 needed. */}
-            <ProcessScacBar onProcess={handleProcessScac} processingScac={processingScac} />
+            <ProcessScacBar
+              onProcess={handleProcessScac}
+              processingScac={processingScac}
+              // A dropped carrier is reinstated from its own section, not
+              // re-added here — offering it twice only routes to the
+              // duplicate refusal.
+              excludeScacs={(shipmentDetails?.droppedCarriers || []).map((c) => c.scac)}
+            />
           </div>{/* /tender-pane__table-card-inner */}
           {pendingOrderChange && (
             <div className="tender-pane__oc-overlay">
@@ -1790,7 +1801,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
       {processNotice && (
         <ConfirmDialog
-          title="Process SCAC"
+          title="Add Carrier"
           message={processNotice}
           confirmLabel="OK"
           cancelLabel={null}

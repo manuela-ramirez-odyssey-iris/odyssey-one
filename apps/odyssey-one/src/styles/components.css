@@ -5820,6 +5820,12 @@ button.breadcrumb__label:focus-visible {
   white-space: nowrap;
   transition: background var(--transition-fast);
 }
+/* S140 — optional per-tab status glyphs, rendered after the label. */
+.shipments-bar__tab-indicators {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
 .shipments-bar__tab:hover:not(:disabled):not(.shipments-bar__tab--selected) {
   background: var(--deep-sea-neutral-50);
 }
@@ -6842,6 +6848,21 @@ button.breadcrumb__label:focus-visible {
 .odyssey-group-table--flat .odyssey-group-table__row td {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Selection column (`selectable`, flat mode) — only as wide as the 16px
+   control, centred against `.odyssey-group-table th/td`'s left default, and
+   with the horizontal padding tightened from the 16px column default so the
+   lane does not read as an empty first column. Deliberately NOT sticky here:
+   pinning it is a per-consumer call (a table that never scrolls sideways gains
+   nothing and pays a stacking context), so consumers that want the checkbox to
+   survive an h-scroll add `position: sticky; left: 0` plus their own opaque
+   background — see `.setup-carriers__group-table` in spotboard.css. */
+.odyssey-group-table .odyssey-group-table__select-cell {
+  width: 1%;
+  text-align: center;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
 }
 
 /* Footer row (TOTAL) — Figma TotalsRow: 48px, label/sm medium, Text/primary,

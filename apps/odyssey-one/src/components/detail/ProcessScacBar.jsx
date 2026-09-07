@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Truck } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Plus, Truck } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ComboBox, Button } from '@odyssey/ui'
 import { TENDER_SCAC_OPTIONS, equipmentForScac, EQUIPMENT_LABELS } from '../../data/master-data.js'
@@ -29,7 +29,7 @@ import { TENDER_SCAC_OPTIONS, equipmentForScac, EQUIPMENT_LABELS } from '../../d
 // Static for the app's lifetime — computed once, not per render.
 const SCAC_OPTIONS = TENDER_SCAC_OPTIONS.map((c) => ({ value: c.scac, label: `${c.scac} — ${c.name}` }))
 
-export default function ProcessScacBar({ onProcess, processingScac = null }) {
+export default function ProcessScacBar({ onProcess, processingScac = null, excludeScacs = [] }) {
   const [expanded, setExpanded] = useState(false)
   const [scac, setScac] = useState(null)
   const [equipment, setEquipment] = useState(null)
@@ -37,6 +37,14 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
   // otherwise drop the controls from the DOM on the same commit and there
   // would be nothing left to animate.
   const [collapsing, setCollapsing] = useState(false)
+
+  // A SCAC already dropped for this shipment has its own doorway (the Dropped
+  // Carrier section's Reinstate action) — offering it here too would be a
+  // second route to the same carrier, and the duplicate refusal downstream.
+  const scacOptions = useMemo(
+    () => SCAC_OPTIONS.filter((o) => !excludeScacs.includes(o.value)),
+    [excludeScacs],
+  )
 
   const finishCollapse = () => {
     setCollapsing(false)
@@ -55,16 +63,6 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
     setCollapsing(true)
   }
 
-  if (!expanded) {
-    return (
-      <div className="process-scac-bar">
-        <Button variant="secondary" size="sm" onClick={() => setExpanded(true)}>
-          Add Carrier
-        </Button>
-      </div>
-    )
-  }
-
   // PS2 — WERN legitimately resolves to []. No validation message for it: an
   // empty list rendering its own "no options" copy in the popover is not the
   // same thing as a form error, and the AC is explicit that this is not one.
@@ -75,69 +73,87 @@ export default function ProcessScacBar({ onProcess, processingScac = null }) {
   const carrierName = TENDER_SCAC_OPTIONS.find((c) => c.scac === scac)?.name ?? null
   const canProcess = !!scac && !!equipment && processingScac == null
 
-  return (
-    // The modifier drives the staggered slide (styles/panes/tender.css). It is
-    // on the container, not each control, because the stagger is nth-child
-    // based — the controls themselves stay unaware of it.
-    <div
-      className={`process-scac-bar process-scac-bar--${collapsing ? 'collapsing' : 'expanded'}`}
-      // animationend bubbles from each control, so this fires once per child.
-      // Under the reversed exit stagger the FIRST child (Cancel) leaves last,
-      // making its end the whole exit's end — no timer duplicating the CSS
-      // duration, and nothing to drift if that duration changes.
-      onAnimationEnd={(e) => {
-        if (collapsing && e.target === e.currentTarget.firstChild) finishCollapse()
-      }}
+  // ONE persistent toggle in both states — same element, label flips Add
+  // Carrier → Cancel. It deliberately sits OUTSIDE the animated wrapper: it is
+  // not arriving, it is the button that was already there.
+  const toggle = (
+    <Button
+      variant="secondary"
+      size="sm"
+      icon={expanded ? undefined : <Plus {...ICON_MD} aria-hidden="true" />}
+      onClick={expanded ? collapse : () => setExpanded(true)}
     >
-      <Button variant="secondary" size="sm" onClick={collapse}>
-        Cancel
-      </Button>
-      <div className="process-scac-bar__divider" />
-      <div className="process-scac-bar__field process-scac-bar__field--wide">
-        <ComboBox
-          variant="select"
-          placeholder="Select SCAC"
-          options={SCAC_OPTIONS}
-          value={SCAC_OPTIONS.find((o) => o.value === scac)?.label ?? ''}
-          // Selecting either SCAC or Carrier Name fills the pair — both live in
-          // one label, and ComboBox's default filter already matches on it.
-          onSelect={(value) => {
-            setScac(value)
-            // AC: Equipment resets whenever SCAC changes (including a clear).
-            setEquipment(null)
-          }}
-          onClear={() => {}}
-          emptyMessage="No matching SCACs"
-        />
-      </div>
-      <div className="process-scac-bar__field">
-        <ComboBox
-          variant="select"
-          placeholder="Equipment"
-          disabled={!scac}
-          options={equipmentOptions}
-          value={equipmentOptions.find((o) => o.value === equipment)?.label ?? ''}
-          // Never auto-selected, even with exactly one option — only a user
-          // pick lands here.
-          onSelect={(value) => setEquipment(value)}
-          onClear={() => {}}
-          emptyMessage="No equipment options"
-        />
-      </div>
-      <Button
-        variant="primary"
-        size="sm"
-        icon={<Truck {...ICON_MD} aria-hidden="true" />}
-        disabled={!canProcess}
-        onClick={async () => {
-          const added = await onProcess({ scac, carrierName, equipment })
-          // Duplicate/write-failure resolve false — stay put so the user can
-          // correct and retry without losing their picks.
-          if (added) collapse()
+      {expanded ? 'Cancel' : 'Add Carrier'}
+    </Button>
+  )
+
+  if (!expanded) {
+    return <div className="process-scac-bar">{toggle}</div>
+  }
+
+  return (
+    <div className="process-scac-bar">
+      {toggle}
+      {/* The modifier drives the staggered slide (styles/panes/tender.css). It
+          is on this wrapper, not each control, because the stagger is
+          nth-child based — the controls themselves stay unaware of it. */}
+      <div
+        className={`process-scac-bar__controls process-scac-bar__controls--${collapsing ? 'collapsing' : 'expanded'}`}
+        // animationend bubbles from each control, so this fires once per child.
+        // Under the reversed exit stagger the FIRST child (the divider) leaves
+        // last, making its end the whole exit's end — no timer duplicating the
+        // CSS duration, and nothing to drift if that duration changes.
+        onAnimationEnd={(e) => {
+          if (collapsing && e.target === e.currentTarget.firstChild) finishCollapse()
         }}
       >
-        Process
-      </Button>
+        <div className="process-scac-bar__divider" />
+        <div className="process-scac-bar__field process-scac-bar__field--wide">
+          <ComboBox
+            variant="select"
+            placeholder="Select SCAC"
+            options={scacOptions}
+            value={scacOptions.find((o) => o.value === scac)?.label ?? ''}
+            // Selecting either SCAC or Carrier Name fills the pair — both live in
+            // one label, and ComboBox's default filter already matches on it.
+            onSelect={(value) => {
+              setScac(value)
+              // AC: Equipment resets whenever SCAC changes (including a clear).
+              setEquipment(null)
+            }}
+            onClear={() => {}}
+            emptyMessage="No matching SCACs"
+          />
+        </div>
+        <div className="process-scac-bar__field">
+          <ComboBox
+            variant="select"
+            placeholder="Equipment"
+            disabled={!scac}
+            options={equipmentOptions}
+            value={equipmentOptions.find((o) => o.value === equipment)?.label ?? ''}
+            // Never auto-selected, even with exactly one option — only a user
+            // pick lands here.
+            onSelect={(value) => setEquipment(value)}
+            onClear={() => {}}
+            emptyMessage="No equipment options"
+          />
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Truck {...ICON_MD} aria-hidden="true" />}
+          disabled={!canProcess}
+          onClick={async () => {
+            const added = await onProcess({ scac, carrierName, equipment })
+            // Duplicate/write-failure resolve false — stay put so the user can
+            // correct and retry without losing their picks.
+            if (added) collapse()
+          }}
+        >
+          Add
+        </Button>
+      </div>
     </div>
   )
 }

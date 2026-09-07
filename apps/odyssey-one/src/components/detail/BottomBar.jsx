@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { PackageOpen, RefreshCw, Truck } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
@@ -295,10 +295,24 @@ export default function BottomBar({
   // If the active pane's tab was hidden by the arrangement, fall back to Orders.
   const shownTab = orderedTabs.some(t => t.key === activeTab) ? activeTab : 'order'
 
-  // Orders tab is now a plain tab — the order switcher lives inside the OrderTab
-  // pane as underline tabs, and the location/weight header row replaces the old
-  // dropdown label (S79 Figma: State=Selected Dropdown removed from ShipmentsBarTab).
-  const tabs = orderedTabs
+  // S140 — the Tender tab carries its own signals in the strip, so a planner
+  // sees there is something to look at without opening the pane: an orange
+  // truck for dropped carriers, a purple package for a pending order change
+  // (same two glyphs/colours those features use inside the pane).
+  const droppedCount = shownDetails?.droppedCarriers?.length ?? 0
+  const pendingOrderChange = !!(shownDetails?.orderChange && !shownDetails.orderChange.resolution)
+  const tabs = useMemo(() => orderedTabs.map((t) => {
+    if (t.key !== 'routing' || (!droppedCount && !pendingOrderChange)) return t
+    return {
+      ...t,
+      indicators: (
+        <>
+          {droppedCount > 0 && <Truck size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped carriers" />}
+          {pendingOrderChange && <PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} role="img" aria-label="Order change pending" />}
+        </>
+      ),
+    }
+  }), [orderedTabs, droppedCount, pendingOrderChange])
 
   const renderTabContent = () => {
     if (detailsError) {

@@ -274,3 +274,39 @@ describe('Fix C — a pane crash degrades only that pane', () => {
     await waitFor(() => expect(screen.getByTestId('order-pane').textContent).toBe('ORD-B'))
   })
 })
+
+// S140 — the Tender tab's strip signals (ShipmentsBar's optional per-tab
+// `indicators` slot). They must be readable without opening the pane.
+describe('S140 — Tender tab indicators', () => {
+  const renderBar = (details) =>
+    render(
+      <BottomBar
+        {...baseProps}
+        shipmentDetails={{ orderDetails: [{ orderNumber: 'ORD-A' }], ...details }}
+        detailsLoading={false}
+        detailsError={false}
+      />,
+    )
+  // Matched on text, not accessible name: the indicators' own aria-labels join
+  // the tab's name, and "Tender History" is a sibling tab.
+  const tenderTab = () =>
+    within(screen.getByRole('tablist')).getAllByRole('tab').find((t) => t.textContent === 'Tender')
+
+  test('a dropped carrier puts the truck glyph on the Tender tab', () => {
+    renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }] })
+    expect(within(tenderTab()).getByLabelText('Dropped carriers')).toBeTruthy()
+    expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
+  })
+
+  test('an unresolved order change puts the package glyph on the Tender tab', () => {
+    renderBar({ orderChange: { resolution: null } })
+    expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
+    expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
+  })
+
+  test('neither condition renders no indicators at all', () => {
+    renderBar({})
+    expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
+    expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
+  })
+})

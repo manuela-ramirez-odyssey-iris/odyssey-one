@@ -37,22 +37,18 @@ function getCombos() {
   return { scacInput, equipmentInput }
 }
 
-// The collapsed toggle reads "Add Carrier" — the expanded action button
-// underneath it still reads "Process SCAC" (that's Jana's own AC term for the
-// actual validate/insert/route action, shared with the dropped-carrier
-// doorway's button). Never both on screen at once, but keep the queries
-// distinct so a rename of one can't silently start matching the other.
+// S140 — ONE persistent toggle: the same button reads "Add Carrier" collapsed
+// and "Cancel" expanded. Keep the queries distinct so a rename of one can't
+// silently start matching the other.
 function getToggleButton() {
   return screen.getByRole('button', { name: 'Add Carrier' })
 }
 
-// The confirm button inside the expanded fields — "Process", primary variant.
-// Not "Process SCAC": once SCAC + Equipment are already visible as picked
-// fields in this row, restating "SCAC" in the button is redundant (user
-// ruling, 2026-09-01). The dropped-carrier doorway's own button keeps the
-// full "Process SCAC" name — it has no adjacent fields to lean on.
+// The confirm button inside the expanded fields — "Add", primary variant
+// (S140; was "Process"). Once SCAC + Equipment are already visible as picked
+// fields in this row, the button only has to name the outcome.
 function getConfirmButton() {
-  return screen.getByRole('button', { name: 'Process' })
+  return screen.getByRole('button', { name: 'Add' })
 }
 
 function expand() {
@@ -60,12 +56,12 @@ function expand() {
 }
 
 // Collapsing is animated, so the real unmount is keyed off the LAST control's
-// animationend (Cancel, the first child — it leaves last under the reversed
-// exit stagger). jsdom runs no animations and fires no animationend, so the
-// bar would sit in its collapsing state forever without this.
+// animationend (the divider, first child of the controls wrapper — it leaves
+// last under the reversed exit stagger). jsdom runs no animations and fires no
+// animationend, so the bar would sit in its collapsing state forever.
 function finishExitAnimation() {
-  const bar = document.querySelector('.process-scac-bar--collapsing')
-  if (bar) fireEvent.animationEnd(bar.firstChild)
+  const controls = document.querySelector('.process-scac-bar__controls--collapsing')
+  if (controls) fireEvent.animationEnd(controls.firstChild)
 }
 
 describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
@@ -74,6 +70,13 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     expect(getToggleButton()).toBeTruthy()
     expect(screen.queryAllByRole('combobox')).toHaveLength(0)
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
+  })
+
+  it('the toggle is the SAME element before and after expanding, only its label flips', () => {
+    render(<ProcessScacBar onProcess={() => {}} />)
+    const el = getToggleButton()
+    fireEvent.click(el)
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBe(el)
   })
 
   it('clicking the button reveals both fields and Cancel', () => {
@@ -118,7 +121,7 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
       // Gone on the same commit — no collapsing state, nothing to drive.
-      expect(document.querySelector('.process-scac-bar--collapsing')).toBeNull()
+      expect(document.querySelector('.process-scac-bar__controls--collapsing')).toBeNull()
       expect(screen.queryAllByRole('combobox')).toHaveLength(0)
       expect(getToggleButton()).toBeTruthy()
     } finally {
@@ -134,7 +137,7 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     selectAt(getCombos().equipmentInput, 0)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     })
 
     expect(onProcess).toHaveBeenCalledTimes(1)
@@ -151,7 +154,7 @@ describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
     selectAt(getCombos().equipmentInput, 0)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     })
 
     expect(onProcess).toHaveBeenCalledTimes(1)
@@ -241,12 +244,26 @@ describe('ProcessScacBar (LINX-15075) — expanded field behaviour', () => {
     const { scacInput } = getCombos()
     selectAt(scacInput, scacIndex('KNGT'))
     selectAt(getCombos().equipmentInput, 0)
-    fireEvent.click(screen.getByRole('button', { name: 'Process' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     expect(onProcess).toHaveBeenCalledTimes(1)
     const carrier = onProcess.mock.calls[0][0]
     expect(carrier.scac).toBe('KNGT')
     expect(carrier.carrierName).toBe(carrierName('KNGT'))
     expect(carrier.equipment).toBe(equipmentForScac('KNGT')[0])
+  })
+
+  it('excludeScacs removes those SCACs from the option list entirely', () => {
+    render(<ProcessScacBar onProcess={() => {}} excludeScacs={['ODFL']} />)
+    expand()
+    // The option ROWS are virtualized, so jsdom can't read them (see
+    // project_jsdom_test_ceilings) — filter instead: an excluded SCAC has no
+    // match left at all, while a kept one still does.
+    const input = getCombos().scacInput
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'ODFL' } })
+    expect(screen.getByText('No matching SCACs')).toBeTruthy()
+    fireEvent.change(input, { target: { value: 'KNGT' } })
+    expect(screen.queryByText('No matching SCACs')).toBeNull()
   })
 
   it('disables the button while a process is in flight, whichever SCAC is locked', () => {

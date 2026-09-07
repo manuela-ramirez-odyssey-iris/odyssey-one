@@ -171,7 +171,7 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
   // installed in this repo (only @testing-library/react + dom) — using
   // fireEvent.click (this file's existing pattern) and plain assertions
   // (toBeTruthy/toBeNull/.disabled) instead.
-  it('renders a Process SCAC button per carrier and reports which one was pressed', () => {
+  it('renders a Reinstate button per carrier and reports which one was pressed', () => {
     const onProcess = vi.fn()
     render(
       <DroppedCarrierSection
@@ -179,14 +179,14 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
         onProcess={onProcess}
       />,
     )
-    const buttons = screen.getAllByRole('button', { name: /Process SCAC/ })
+    const buttons = screen.getAllByRole('button', { name: /Reinstate/ })
     expect(buttons).toHaveLength(2)
     fireEvent.click(buttons[1])
     expect(onProcess).toHaveBeenCalledTimes(1)
     expect(onProcess.mock.calls[0][0].scac).toBe('RLCA')
   })
 
-  it('disables EVERY Process SCAC while one is in flight, not just the pressed one', () => {
+  it('disables EVERY Reinstate while one is in flight, not just the pressed one', () => {
     // AC: "Process SCAC shall be disabled (for the current SCAC and other
     // dropped carrier SCACs)" — only one may be processed at a time.
     render(
@@ -196,7 +196,7 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
         processingScac="JBHT"
       />,
     )
-    for (const b of screen.getAllByRole('button', { name: /Process SCAC/ })) {
+    for (const b of screen.getAllByRole('button', { name: /Reinstate/ })) {
       expect(b.disabled).toBe(true)
     }
   })
@@ -204,7 +204,7 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
   it('renders no action column at all when no handler is supplied', () => {
     // 13953 shipped read-only and must stay renderable that way.
     render(<DroppedCarrierSection carriers={[carrier]} />)
-    expect(screen.queryByRole('button', { name: /Process SCAC/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Reinstate/ })).toBeNull()
   })
 
   // S136 — an "already processed" tint on this button was tried and REVERTED
@@ -218,7 +218,7 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
         onProcess={() => {}}
       />,
     )
-    const buttons = screen.getAllByRole('button', { name: /Process SCAC/ })
+    const buttons = screen.getAllByRole('button', { name: /Reinstate/ })
     expect(buttons).toHaveLength(2)
     for (const b of buttons) {
       expect(b.style.background).toBe('')
