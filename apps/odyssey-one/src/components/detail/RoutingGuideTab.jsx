@@ -1649,7 +1649,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     <Button
       variant="secondary"
       size="lg"
-      // Purple PackageOpen (designer, S140; was FileBox) — deliberate exception to the
+      // Purple OctagonAlert (designer, S140; was FileBox, then PackageOpen) — deliberate exception to the
       // icon-follows-label-color rule: purple is the review flow's
       // accent, same token the diff badges use.
       icon={<OctagonAlert size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
