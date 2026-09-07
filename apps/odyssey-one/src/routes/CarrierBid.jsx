@@ -19,13 +19,11 @@ import { HERO_IMAGES_LAND, heroPosition } from '../heroImages'
 import { useHeroRotation } from '../hooks/useHeroRotation'
 import './carrierBid.css'
 
-// One currency for the WHOLE bid, selected once at bid level — never per
-// charge line (SPB-66, Kathleen email 2026-08-24 item #3: "USD and CAD for
-// now"). Each MeasureField's trailing edge just displays the bid currency
-// (single-option list = no per-line choice). Amounts are kept as typed when
-// the carrier switches currency mid-entry — whether they should convert or
-// clear is an open question Kathleen herself flagged (SPB-66).
-const CURRENCY_OPTIONS = [{ value: 'USD', label: 'USD' }, { value: 'CAD', label: 'CAD' }]
+// One currency for the WHOLE bid (SPB-66, Kathleen email 2026-08-24 item #3:
+// "USD and CAD for now"), chosen by the PLANNER in Quote Setup and read here
+// from the quote (S138). Every MeasureField's trailing edge displays it via a
+// single-option list, which is what locks the edge — the carrier never picks
+// it, so Kathleen's mid-entry-switch question never arises on this page.
 const round2 = (n) => Math.round(n * 100) / 100
 
 // TrailNav avatar (change 2) — initials from the first two words of the
@@ -425,8 +423,12 @@ export default function CarrierBid() {
   // shows once the carrier has LEFT the field (touched) — no red flash on a
   // pristine form — but the Submit button gates on validity from the start.
   const [linehaulTouched, setLinehaulTouched] = useState(() => priorBid?.linehaul != null)
-  // Bid-level currency (SPB-66) — one selector for the whole bid.
-  const [currency, setCurrency] = useState(() => priorBid?.currency ?? 'USD')
+  // Bid-level currency (SPB-66) is the PLANNER's choice, made in Quote Setup
+  // and stored on the quote (S138). The carrier sees it, never picks it —
+  // every amount field's trailing edge echoes it locked (user, 2026-09-07:
+  // the Linehaul edge had kept its dropdown after the move). A prior bid's
+  // currency is the same value by construction, so nothing reads it.
+  const currency = quote?.currency ?? 'USD'
   // %-of-linehaul fuel resolves ON BLUR of the base rate field (SPB-64), so
   // the resolved amount is state, not a render-time derivation — it must NOT
   // move while the carrier is still typing. A returning carrier's prior bid
@@ -749,20 +751,19 @@ export default function CarrierBid() {
               <section className="carrier-bid-bid__section">
                 <h3 className="text-label-base-semibold carrier-bid-bid__section-title">Base Charge</h3>
                 <div className="carrier-bid-card__grid">
-                  {/* ONE currency for the whole bid (SPB-66) — set from the
-                      Linehaul field's OWN trailing UoM button (no separate
-                      currency field: MeasureField already carries the
-                      selector, and Base Charge is the bid-level anchor).
-                      Every other amount field echoes it read-only via a
-                      single-option list, so the lines can never diverge. */}
+                  {/* ONE currency for the whole bid (SPB-66), chosen by the
+                      planner in Quote Setup. Linehaul's trailing edge shows
+                      it LOCKED like every other amount field — the single-
+                      option list is what makes MeasureField drop the chevron
+                      and the menu — so no line can diverge from the quote. */}
                   <MeasureField
                     id="cb-linehaul"
                     showLabel
                     label="Linehaul"
                     value={{ value: linehaulValue, uom: currency }}
-                    options={CURRENCY_OPTIONS}
+                    options={[{ value: currency, label: currency }]}
                     decimals={2}
-                    onChange={(v) => { setLinehaulValue(v.value); setCurrency(v.uom) }}
+                    onChange={(v) => setLinehaulValue(v.value)}
                     onBlur={handleLinehaulBlur}
                     // Required and > 0 (SPB-65) — message appears once the
                     // field has been left; Submit gates on it regardless.

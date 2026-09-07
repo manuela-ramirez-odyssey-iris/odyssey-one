@@ -853,6 +853,7 @@ Neither contains the other; both hang directly off the stored quote. **Our `/spo
 **Open, named by Kathleen herself:** placement of the selector, and *"what happens to entered amounts if the carrier switches currency partway through"* — with her own hedge that it may not need UX display at all: *"Not sure if we need to display this in the UX, just wanted to call it out."*
 **Rationale:** A bid is one offer in one currency; per-line currency implies cross-currency summing the quote total cannot support.
 **Source:** Kathleen email, 2026-08-24 (item #3).
+> **Appended 2026-09-07 (S140).** S138 moved the selector to the planner's Quote Setup (`quote.currency`), but the carrier page kept a live USD/CAD dropdown on Linehaul's trailing edge and initialised from the prior bid, never the quote. Fixed: the bid page reads the quote's currency and renders every edge locked; the carrier cannot pick. Kathleen's open "switch mid-entry" question is moot on the carrier side — only the planner can change it, before Send.
 **Affects:** `routes/CarrierBid.jsx` `USD_OPTIONS` and every per-line currency ComboBox; canon §22.2 row 3.
 
 ### SPB-67 — Mobile scope for MVP is the carrier quote-entry screen only

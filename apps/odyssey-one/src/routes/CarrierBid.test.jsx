@@ -295,26 +295,23 @@ describe('CarrierBid — open quote', () => {
     expect(screen.queryByText(/base rate greater than zero/i)).toBe(null)
   })
 
-  it('bid currency lives on the Linehaul trailing UoM button (SPB-66): switching to CAD retags every amount field and rides the submitted bid', async () => {
-    const quote = openQuote()
-    const token = tokenFor(quote, SCAC)
-    renderAt(`/spot-bid/${token}`)
+  it('bid currency is the PLANNER\'s (SPB-66): a CAD quote tags every amount field CAD, the edge is locked, and CAD rides the submitted bid', async () => {
+    saveDraft(SHIPMENT_ID, { listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 120, carriers: CARRIERS, currency: 'CAD' })
+    const quote = sendRFQ(SHIPMENT_ID, Date.now())
+    renderAt(`/spot-bid/${tokenFor(quote, SCAC)}`)
     await screen.findByText('Acme Houston Plant')
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
-    // No separate currency FIELD — the selector is the Linehaul field's own
-    // trailing button (MeasureField → FormField trailingSelect).
+    // No currency field of any kind — not a separate one, not a dropdown on
+    // Linehaul's trailing edge: the carrier never picks it (user, 2026-09-07).
     expect(within(bidSection).queryByLabelText('Bid Currency')).toBe(null)
-
-    // Open the trailing UoM dropdown and pick CAD (same recipe as
-    // QuoteModal.test.jsx — useAnchoredPortal renders it to document.body).
     const linehaulField = within(bidSection).getByLabelText(/linehaul/i).closest('.form-field')
-    fireEvent.click(within(linehaulField).getByRole('button'))
-    fireEvent.click(screen.getByRole('option', { name: 'CAD' }))
+    expect(within(linehaulField).queryByRole('button')).toBe(null)
+    expect(screen.queryByRole('option', { name: 'USD' })).toBe(null)
 
-    // Every amount field's trailing edge now reads CAD — the charge rows
-    // echo it read-only, so no line can diverge from the bid currency.
+    // Every amount field's trailing edge reads the quote's CAD.
     expect(within(bidSection).getAllByText('CAD').length).toBeGreaterThan(1)
+    expect(within(bidSection).queryByText('USD')).toBe(null)
 
     const linehaulInput = screen.getByLabelText(/linehaul/i)
     fireEvent.change(linehaulInput, { target: { value: '1000' } })
