@@ -3,11 +3,13 @@ title: SpotBoard — Domain Canon
 domain: spotboard
 type: canon
 tags: [spotboard, overflow, loadboard, tendering, carriers, bidding, carrier-portal, quotes, legacy-screens, auction, mffcofl, quote-viewer]
-date: 2026-08-24
+date: 2026-09-02
 status: active
 ---
 
-# SpotBoard — Domain Canon (v2.0)
+# SpotBoard — Domain Canon (v2.1)
+
+**v2.1 changelog (2026-09-02) — the PRD re-issued with Doug's answers, and the emails become real.** Three artifacts: PRD v2.0 "Last Updated 08/31/2026" (eight `Updated Answer from Doug` blocks, `OQ-2`/`OQ-12` resolved, Process SCAC clarified, email appendix), Kathleen's 2026-09-02 email (eleven Doug answers + sender/recipient/token notes + `TMS1.png`, the `MFFCONT` distribution-event screen), and **nine `.msg` samples of `CE-1`, `CE-2`, `IE-1`…`IE-6`** — the planner alerts planners *"continue to want to get"*. Tolerance basis closed (buy cost, `SPB-70`), affiliate extension out of MVP (`SPB-74`), OCM inheritance rule answered (`SPB-76`), `IE-4` proven to exist (`SPB-78`). Full treatment in **§23**; decisions `SPB-70`…`SPB-79`.
 
 **v2.0 changelog (2026-08-24) — Kathleen's story-writing corrections, and Doug on flex dates.** One email (seven numbered items, relayed by Manuela) + two exhibits (`Kathleen Doug discussion.png` — Doug Albritton's Teams answers and enabled-dates calendar; `TMS.png` — `MFFCOFL` with the dotted-circled `Flexible Delivery?` checkbox and the Base Charge + Fuel Quote Detail). Full treatment in **§22**, including a code-verified build delta (§22.2). Decisions [[decisions/decision-log|SPB-64]]…[[decisions/decision-log|SPB-69]] + an appended reaffirmation on [[decisions/decision-log|SPB-63]]. Headlines: **fuel becomes an OCM-fuel-schedule element with three states** (SPB-64, refining SPB-56); **base rate > 0 required** (SPB-65); **one bid-level currency, USD/CAD** (SPB-66); **mobile MVP = quote entry only** (SPB-67); **cost AND client cost on the planner surfaces** (SPB-68); and **flex dates corrected by Kathleen herself** — config-gated per-direction checkboxes, planner-toggleable, resolving to **per-carrier lists of discrete allowable dates** from operating calendars, no single N (SPB-69, superseding SPB-60's carrier-visible framing). *"This is the biggest change."*
 
@@ -1828,6 +1830,73 @@ Extends §20.5 (ground truth 2026-08-18); shipped state cited from that table an
 - **The un-occluded TMS screen** (SPB-68) — request the client-cost column exhibit.
 - **Mobile ownership** (SPB-67) — our responsive pass or Kathleen's new story; answer owed to her.
 - **Where the allowable-date lists come from at integration time** (SPB-69) — the algorithm lives in APEX; who exposes it to OdysseyONE is unaddressed by anyone.
+
+---
+
+## 23. The 2026-08-31 PRD revision, Doug's eleven answers, and the email samples (new at v2.1)
+
+**Why this section exists.** Kathleen is closing the PRD's open questions with **Doug Albritton** (TMS SME, author of the legacy overflow code) *before Yuri's developers take the stories*. Three artifacts arrive together on 2026-09-02: the **same PRD v2.0 re-issued with "Last Updated 08/31/2026"** (eight inline `08/31/2026: Updated Answer from Doug` blocks, `OQ-2`/`OQ-12` marked resolved, `OQ-15` partially, a Process SCAC clarification, and an **email-examples appendix**), **Kathleen's email of 2026-09-02** (eleven numbered Doug answers, plus the sender/recipient/token notes), and **nine `.msg` samples** forwarded from Doug — real 2023 sends of `CE-1`, `CE-2`, `IE-1`…`IE-6`. Her Teams message names the ask: *"what was missed is that there are emails sent to the planners (that they continue to want to get)… Do you want to set up the UX for the email verbiage for all emails?"* Cited as `(Kathleen email, 2026-09-02, #N)`, `(PRD 08/31, Feature N)`, `(Doug sample, Quote NNNNN)`, `(TMS1.png)`.
+
+### 23.1 What the samples add that no prior artifact had — the planner alerts are real, and their payloads are known
+
+Until now `IE-1`…`IE-6` were a PRD table ([[data/quote-model|data/quote-model]] §7). The nine samples (all `From: DOUGALBRITTON@…`, 2023-09-08, a QA send) give **subject and body verbatim** for every catalogue row — see [[data/quote-model|data/quote-model]] §7.1 for the field-level transcription. Findings:
+
+1. **One skeleton for all six planner alerts.** Subject = body headline = `Attention - Quote Request <n> <condition>.`; then `Reference#` (consolidation `C…` or load `L…`), `Order#` **only for single loads** (`L31429` → `ACME-09082023.001`), `Shipper`, `Ship From`, `Ship To`. **No link, no quote-level totals, no carrier list** — the email tells the planner *which* quote and *why*, and sends them to the screen.
+2. **A bid block appears when bids exist.** `IE-2` (14905) and one `IE-3` (14906) append `Lowest Cost Carrier: CCNI - TL` · `Quoted Amount: $2,925.05 CAD` · `Ship Date` · `Delivery Date`. The other `IE-3` (14907) has **no** bid block — so `IE-3` has **two shapes**, and the block is conditional on a lowest bid existing, not on the alert type. **[INFERENCE from two samples, flagged.]**
+3. **`IE-4` EXISTS.** Sample 14908 *"Cancelled, Consolidation Impacted by Order Change"* — body *"Your consolidation has changed. Your quote has been cancelled and is now invalid. Do not process any bids associated with this consolidation."* This **corrects** the PRD Feature 4 annotation *"(no notification for this today)"* and [[data/quote-model|data/quote-model]] §7's *"possible gap"* note — for **consolidations** the email is live; the single-load invalidation case remains unevidenced. [[decisions/decision-log|SPB-78]].
+4. **`CE-2` is two sentences and a header block.** *"Great news! Your all in rate of 2259.05 CAD has been approved. Please accept the EDI or email tender at your earliest convenience."* + `Quote#`, `Reference#`, Shipper, From/To. **It names the tender as a separate step in the carrier's own inbox** — first-hand corroboration of the PRD's *"award ≠ tender"* (§12) and [[decisions/decision-log|SPB-63]].
+5. **`CE-1` is a data sheet, not a letter.** `Offer Expires: 09/08/2023 11:44 EST` · Shipper · Carrier (`CCNI - Cardinal Freight`) · `Quote#` · `Equipment: TL - Truck Load` · `Weight: 10500 lb` · `Hazmat: No` · `Distance: 727 mi` · Ship From/To · `Pickup`/`Deliver` · **`Stop Offs` with `Stop Dates`** · one link (*"Click here to view your open quote requests"* → APEX `f?p=200:3…P1:CCNI`, i.e. **the list page, not the quote**) · legal footer + after-hours phone. **No Order/Load ID** — [[decisions/decision-log|SPB-05]] confirmed against a real send. Note the 2023 IE-warning banner (*"responses CANNOT be entered using Internet Explorer"*) — drop.
+6. **Planners want these.** Kathleen: *"typically sees are no carriers submitted bids and that bids received were out of tolerance"* — `IE-1` and `IE-2` are the two that matter operationally (Teams, 2026-09-02).
+7. **The PRD appendix omits `IE-2`'s sample and duplicates `IE-1`'s** — a paste error, not a scope statement; the `.msg` zip has all nine.
+
+### 23.2 Doug's eleven answers, against the canon
+
+| # | Answer (Kathleen email, 2026-09-02) | Canon effect |
+|---|---|---|
+| 1a–c | Calendar/permitted-date algorithm lives in **APEX**; OdysseyONE can call TMS package procedures for calendar reads but *"the UI/calendar logic will likely need to be implemented in OdysseyONE"*; Doug to hand code to **Yuri**. Hierarchy fallback consignor → owning org → client → root: *"we'll never not get an answer."* **Planner is NOT restricted to workdays** when editing dates before send; **carrier IS** — *"Dates available for selection are grey and dates selected appear in blue."* | Confirms [[decisions/decision-log|SPB-69]] (per-carrier discrete lists), **answers its open "who exposes the algorithm"** (Yuri, from Doug), and adds the first **visual rule** for the picker. Kills the planner-side calendar constraint nobody had asked for. [[decisions/decision-log|SPB-73]]. |
+| 2 | Fuel separate from the optional charge list. **Forced** → carrier does not enter it. **Not forced** → fuel *may* appear in the allowed charge list. Profile name still unconfirmed. | Refines [[decisions/decision-log|SPB-64]]: the "no schedule → no fuel section" state gains a sibling — no schedule but fuel in the charge list → carrier enters fuel **as an accessorial line**. Resolves the SPB-64 FSC conditional in the direction we read (seeded FSC never; carrier-added fuel only when the OCM list offers it). [[decisions/decision-log|SPB-71]]. |
+| 3 | Fuel uncalculable (no distance) → **do not block the bid**; planner notified, manual review fallback; fuel *"assumed to be included in the base."* Carrier **cannot** add charges outside the configured list — **613 codes** exist, TMS never exposes them; **90% of carriers add no extra charges.** | New rule for the bid page: no hard dependency on fuel. The planner notification here is **not** `IE-6` (that fires at close on tolerance) — a **seventh alert or an `IE-6` reuse; unspecified**. Charge list = configured OCM list only, confirming [[decisions/decision-log|SPB-55]]; the 90% figure argues for **accessorials collapsed by default** [INFERENCE, design]. [[decisions/decision-log|SPB-71]], [[decisions/decision-log|SPB-72]]. |
+| 4 | **Tolerance is on carrier buy cost, not client cost.** *"The overflow carrier screens operate on buy-side carrier costs. Markup is applied later when tendering."* | **Closes [[decisions/decision-log|SPB-68]]'s open question** — the ceiling evaluates cost. The shipped `evaluateTolerance` compares `lowestBid` (carrier cost) — **aligned**. ⚠️ **Tension recorded:** Kathleen's 08/24 ruling puts client cost **on** the planner screens; Doug says legacy screens are buy-side only. Both can be true (legacy shows buy; Kathleen wants sell added) — but the `Client Cost` column and `Markup` field we shipped rest on Kathleen alone. [[decisions/decision-log|SPB-70]]. |
+| 5 | Flex = OCM values, **separate pickup-days and delivery-days** (e.g. 3 / 5); unconfigured → no flex; planner always overrides dates; carrier flex only when enabled. | Confirms SPB-69 rules 1–2 and the SPB-60 config engine; makes the *"N bounds the window, calendars carve the dates"* inference in SPB-69 more likely (still unstated). |
+| 6 | Charge list is an OCM profile, **configured by equipment** in every production case Doug checked. | Confirms [[decisions/decision-log|SPB-55]] and [[data/ocm-profile-charges|data/ocm-profile-charges]]. |
+| 7 | Profile type 14 resolves by **walking the consignor hierarchy upward** — *"this applies to all Overflow OCM profiles, not just carrier lists."* | **Closes the v1.3 follow-up (3) "OCM profile inheritance rule"** — the highest-value configuration question was answered in one sentence. [[decisions/decision-log|SPB-76]]. |
+| 8 | Sender = **`FROMEMAIL` SystemProfile**, usually the **planning group's mailbox**; RFQ, award **and planner alerts** all send from it. Carrier recipients = **TMS carrier comms configuration**. | Sender is per planning group, not per client and not a product mailbox — the wireframe's `spotquotes@odysseylogistics.com` (§6, Screen 2) is **drift**. Recipient side = `MFFCONT` (below). [[decisions/decision-log|SPB-77]]. |
+| 9 | Mobile minimum — *"remains a design decision with Manuela."* | [[decisions/decision-log|SPB-67]] ownership answered: **ours**. |
+| 10 | `COFL_AFFLM` = 5 min, system-level, no org overrides, only **CTNS** configured. *"We do not want to give affiliates like 3TS extra time, at least not as part of our MVP… they do have a bot."* | **Closes §9.9 / follow-up (1)** — the affiliate extension is **out of MVP**. No affiliate-close concept in the prototype. [[decisions/decision-log|SPB-74]]. |
+| 11 | Force-close minimum threshold: **system-level**, not client-specific — *"the question may be based on a misunderstanding."* `OQ-2` resolved. | [[decisions/decision-log|SPB-75]]. Our `AwardModal` force-close view has no threshold at all — gap, small. |
+
+**Also in the 08/31 PRD, not in the email:** *Process SCAC* (Feature 7) — the overflow quote is **tolerance-checked, marked up, then copied onto the LCE screen flagged as an overflow quote; it does NOT tender** — the planner still selects the tender action. Kathleen's note: *"We want a one step process to Award the carrier from the quote. Yuri and team to advise."* And a new question in her voice: *"Should we add another quote status for carrier history so quotes don't stay in review status?"* [[decisions/decision-log|SPB-79]].
+
+### 23.3 The distribution side — `TMS1.png` and the token question
+
+`TMS1.png` is **`Maintain Contact Information (MFFCONT)`** for carrier `ARVY — Arrive Logistics`: a Contact grid (owning org × name × title, e.g. `*VALTRIS_CLT_01 · ANDREW SMITH · Tender`), a **Communication Address** grid (`TELEPHONE`, two `E-MAIL` rows with `PDF` format, destination `WORLD`), and a **Distribution Event** grid listing `LOAD TENDER` and `LOAD CANCEL` **only** — the overflow event row is absent (three empty yellow rows). Kathleen: *"setting is missing for Arrive and Valtris for Overflow… I have master data identifying carriers that need to be set up."* This is **the mechanism behind [[decisions/decision-log|SPB-61]]'s `No Distribution`** — a carrier with no overflow distribution event gets no `CE-1`. **Master data, fixed in TMS, not a UI concern** — but the prototype's `No Distribution` state should read as *"no overflow email configured for this carrier"*, and per Kathleen *"due to time, we will continue to access these profiles"* — so no OdysseyONE contact-management UI in MVP.
+
+**Token permissiveness** goes to **Thomas** (cc'd for the first time in any artifact we hold — still silent): *"some carriers may have group emails or forwarding for vacation coverage."* Consequence for [[decisions/decision-log|SPB-09]]/[[decisions/decision-log|SPB-16]]/[[decisions/decision-log|SPB-23]]: **the token identifies a recipient address, not a person**; one-time-submit and per-rep scoping assumptions must survive a shared inbox. Open.
+
+### 23.4 BUILD DELTA — verified in code, 2026-09-02
+
+| Ruling | Shipped state | Verdict |
+|---|---|---|
+| Tolerance on buy cost (SPB-70) | `tolerance.js` `evaluateTolerance({ lowestBid… })` — carrier cost | **aligned** |
+| Client cost display (SPB-68 vs Doug #4) | `LiveBids` `clientCost` column + `TolerancePanel` `Markup`/client fields shipped 08/24 | **keep, flag** — rests on Kathleen alone; ask her to confirm against Doug's "buy-side screens" |
+| Planner alert emails retained; verbatim payloads (SPB-78) | **Nothing.** `RfqLinksPanel` is token links only; no `CE-2`, no `IE-*` anywhere | **gap — the ask.** Eight templates + a preview surface |
+| Sender = planning-group `FROMEMAIL` (SPB-77) | Wireframe/canon §6 shows `spotquotes@…` | **drift** in canon only; fix at template design |
+| Fuel uncalculable does not block (SPB-71) | `fuelSchedule.js` three states; no "uncalculable" path | **gap — small** |
+| Carrier limited to configured list, no add (SPB-72) | Charge rows come from the seeded OCM list (SPB-55) | **aligned**; collapsed-default is a design change |
+| Picker grey/blue, planner unconstrained (SPB-73) | No carrier date picker yet (SPB-69 open item) | **specifies** the open build |
+| No affiliate extension (SPB-74) | No affiliate concept in code | **aligned by absence** |
+| Force-close system threshold (SPB-75) | `AwardModal` force-close has no minimum-time guard | **gap — small** |
+| Flex per direction (SPB-69/#5) | `SetupCarriers` still single `flexiblePickup` | **unchanged deviation** |
+
+### 23.5 Still open from this intake
+
+- **Client cost on planner screens** — Kathleen (08/24) vs Doug's buy-side description; one confirming question.
+- **The seventh alert** — what fires when fuel/per-mile cannot be calculated at bid time (Doug #3), and is it `IE-6`?
+- **Single-load quote invalidation email** — `IE-4` proven for consolidations only.
+- **Token vs shared mailboxes** — Thomas.
+- **One-step Award** from the quote (Kathleen → Yuri); **a post-review quote status** (Kathleen's own new question).
+- **Fuel profile name** — Doug hedged.
+- **Which grid flags to show** — `OQ-17`, Product/UX, still open; **shipment-level quote history** — `OQ-14`, Product/UX.
 
 ---
 

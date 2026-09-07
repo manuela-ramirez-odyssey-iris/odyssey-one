@@ -59,6 +59,9 @@ EXCLUDES=(
   # ~9MB of duplicate content in history permanently. Ship the zip over
   # Teams/e-mail; git keeps the folder. (S129.)
   ':(exclude,glob)docs/story-packs/*.zip'
+  # A tool wrote a screenshot into a literal `undefined/` directory (S140).
+  # Junk, never intended as repo content.
+  ':(exclude)undefined'
   # vault/00-inbox is a TRANSIENT drop zone and the vault is markdown-only by
   # architecture — raw binaries there are destined for vault-sources/ (already
   # excluded above), so committing them would put them in history permanently

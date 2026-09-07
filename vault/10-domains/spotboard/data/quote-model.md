@@ -3,7 +3,7 @@ title: SpotBoard — Quote Data Model, States & Notification Catalog
 domain: spotboard
 type: data-model
 tags: [spotboard, overflow, data-model, schema, states, notifications, ocm, mffcofl, legacy, quote-viewer]
-date: 2026-08-18
+date: 2026-09-02
 status: active
 ---
 
@@ -461,6 +461,67 @@ Two carrier-facing emails (`CE`) and six internal exception alerts (`IE`). *"Sub
 **Recipients** for IE-1…IE-6 are configurable per client and org via system profiles. In-app notification of the same six events is a **supplement to email, future scope** (PRD, Feature 4, Feature 11, §5).
 
 There is also an unlisted internal exception in Feature 4's trigger bullets — *"An order change or cancellation invalidates an open quote"* — annotated **"(no notification for this today)"**, i.e. a requirement without a catalog entry unless IE-4 is meant to cover it. IE-4's trigger names only the **consolidation** case, so single-load invalidation appears to have **no email**. **[Possible gap in the PRD, not in the conversion.]**
+
+> **v2.1 (2026-09-02):** the consolidation email **exists** — Doug sample 14908 is `IE-4` live (§7.1). The single-load case remains unevidenced. [[../decisions/decision-log|SPB-78]].
+
+### 7.1 Payloads, verbatim from real sends (new at v2.1)
+
+Source: nine `.msg` files from Doug Albritton, 2023-09-08 QA sends, forwarded by Kathleen 2026-09-02 (`vault-sources/10-domains/spotboard/sources/email-samples/`). Cited `(Doug sample, Quote NNNNN)`. All from `DOUGALBRITTON@ODYSSEYLOGISTICS.COM` — in production the From is the planning group's `FROMEMAIL` mailbox ([[../decisions/decision-log|SPB-77]]).
+
+**Planner alerts (`IE-*`) share one skeleton:**
+
+```
+Subject:  Attention - Quote Request <n> <condition>.
+Body:     <subject line repeated>
+          Reference#: C11562            ← consolidation id; L31429 for a single load
+          Order#: ACME-09082023.001     ← single loads only
+          Shipper: Acme Chemical Company
+          Ship From: <name / street / city ST zip CC>
+          Ship To:   <name / street / city ST zip CC>
+          [Lowest Cost Carrier: CCNI - TL          ← only when a lowest bid exists
+           Quoted Amount: $2,925.05 CAD
+           Ship Date: 09/20/2023
+           Delivery Date: 09/25/2023]
+```
+
+| ID | Sample | Subject condition (verbatim) | Bid block | Notes |
+|---|---|---|---|---|
+| IE-1 | 14904 | `closed with no carrier bids submitted.` | no | |
+| IE-2 | 14905 | `closed and the lowest cost carrier is out of tolerance.` | **yes** | `$151,259.05 CAD` — the out-of-tolerance figure is in the email |
+| IE-3 | 14906 | `closed and Manual Review = Yes.  Please review quote responses immediately.` | **yes** | |
+| IE-3 | 14907 | same | **no** | second shape — block is conditional on a bid existing **[INFERENCE from two samples]** |
+| IE-4 | 14908 | `Cancelled, Consolidation Impacted by Order Change` | no | body differs: *"Your consolidation has changed. Your quote has been cancelled and is now invalid. Do not process any bids associated with this consolidation. Review shipment details to determine next steps."* **Corrects §7's "possible gap" — this email exists for consolidations.** Single-load invalidation still unevidenced. |
+| IE-5 | 14909 | `closed and no costed LCE option exists to determine quote tolerance.` | no | single load: `Reference# L31429`, `Order# ACME-09082023.001`, Ship To in MX |
+| IE-6 | 14911 | `closed and no distance was found to calculate an estimated costed LCE option.` | no | single load, Ship To in GR |
+
+No planner alert carries a link, a bid list, or a total. **The alert names the quote and the reason; the screen does the rest.**
+
+**`CE-2` Quote Awarded (14903)** — subject `Quote Request 14903 Awarded`:
+> Great news!  Your all in rate of 2259.05 CAD has been approved.  Please accept the EDI or email tender at your earliest convenience.
+
+then `Quote#`, `Reference#`, `Shipper`, `Ship From`, `Ship To`. Names the tender as a **separate next step** — first-hand corroboration of "award ≠ tender" ([[../decisions/decision-log|SPB-63]]).
+
+**`CE-1` Request for Quote (14903)** — subject `Request for Quote to CCNI for Quote No: 14903, for ACME`. A **data sheet**:
+
+| Field | Sample value |
+|---|---|
+| Offer Expires | `09/08/2023 11:44 EST` |
+| Shipper | `Acme Chemical Company` |
+| Carrier | `CCNI - Cardinal Freight` |
+| Quote# | `14903` |
+| Equipment | `TL - Truck Load` |
+| Weight | `10500 lb` |
+| Hazmat | `No` |
+| Distance | `727 mi` |
+| Ship From / Ship To | name, street, city ST zip CC |
+| Pickup / Deliver | `09/20/2023` / `09/25/2023` |
+| Stop Offs / Stop Dates | `1 - Spartanburg SC 29301 US` / `Drop-off: 09/22/2023` |
+| Link | *"Click here to view your open quote requests"* → APEX `f?p=200:3:…:P1:CCNI` — **the carrier's list page, not this quote** |
+| Footer | corporate address, phone, confidentiality notice, *"FOR AFTER-HOURS EMERGENCIES… 704-779-2110"* |
+
+**No Order/Load ID** — [[../decisions/decision-log|SPB-05]] confirmed against a real send. Header banner *"responses CANNOT be entered using Internet Explorer"* is 2023 residue — drop. Under [[../decisions/decision-log|SPB-09]] the link becomes the per-recipient token link to the quote itself.
+
+**Subject-pattern correction:** the PRD says internal alerts use an `"Attention —"` prefix; the real sends use `Attention - ` (hyphen). Carrier subjects: `Request for Quote to <SCAC> for Quote No: <n>, for <SHIPPER>` and `Quote Request <n> Awarded`.
 
 ---
 
