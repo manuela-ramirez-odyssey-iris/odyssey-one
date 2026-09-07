@@ -50,11 +50,14 @@ Never let a batch merge while its canon has moved. **GATE C-merge is the check**
 is mechanical:
 
 ```bash
-node tools/release-parity-check.mjs <release-commit> --components <A,B,C>
+node tools/release-parity-check.mjs <ref> --components <A,B,C>
 ```
 
-It lists React commits touching any batch component after the release commit and exits 1
-on drift. Run it before merging the Angular PR, every time. It exists because on
+`<ref>` is the **newest React commit the PR's twins already incorporate** — the release
+commit on the first run, and the folded-in commit once you have folded drift in. It lists
+React commits touching any batch component after `<ref>` and exits 1 on drift. Run it
+before merging the Angular PR, every time, and re-run with the updated ref after folding
+until it passes. It exists because on
 2026-09-07 1.7.0 was cut at 12:22 and a parallel session changed GroupTable at 12:38 —
 the PR would have merged with a twin already behind its canon.
 

@@ -12,7 +12,12 @@
 // its source after the release commit. Anything reported must be folded into
 // the same PR (while it is open) or the component pulled from the batch.
 //
-//   node tools/release-parity-check.mjs <release-commit> --components <A,B,C>
+//   node tools/release-parity-check.mjs <ref> --components <A,B,C>
+//
+// <ref> is the NEWEST React commit the PR's twins already incorporate — the
+// release commit on a first run, and the folded-in commit after you fold drift
+// into the open PR. Re-run with the updated ref until it passes; a stale ref
+// reports drift you have already fixed.
 //
 // Exits 1 if any drift is found, so it can gate a merge.
 
@@ -22,12 +27,13 @@ const git = (...args) =>
   execFileSync('git', args, { encoding: 'utf8' }).trim();
 
 const argv = process.argv.slice(2);
-const releaseRef = argv[0];
+const releaseRef = argv[0];  // newest React commit the twins carry
 const ci = argv.indexOf('--components');
 const components = ci !== -1 ? (argv[ci + 1] ?? '').split(',').filter(Boolean) : [];
 
 if (!releaseRef || !components.length) {
-  console.error('usage: node tools/release-parity-check.mjs <release-commit> --components <A,B,C>');
+  console.error('usage: node tools/release-parity-check.mjs <ref> --components <A,B,C>');
+  console.error('  <ref> = newest React commit the PR\'s twins already incorporate');
   process.exit(2);
 }
 
@@ -65,7 +71,7 @@ if (cssLog) {
 
 console.log(
   drift
-    ? '\n✖ GATE C FAILED — fold these into the open PR, or pull the component from the batch.'
-    : '\n✓ GATE C passed — every batch component matches the release.'
+    ? '\n✖ GATE C FAILED — fold these into the open PR (then re-run with the folded-in commit as <ref>), or pull the component from the batch.'
+    : '\n✓ GATE C passed — every batch component matches what the twins carry.'
 );
 process.exit(drift ? 1 : 0);
