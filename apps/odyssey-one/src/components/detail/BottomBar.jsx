@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { PackageOpen, RefreshCw } from 'lucide-react'
+import { OctagonAlert, RefreshCw } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
@@ -317,7 +317,11 @@ export default function BottomBar({
     if (t.key === 'routing' && pendingOrderChange) {
       return {
         ...t,
-        indicators: <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><PackageOpen size={12} aria-hidden="true" /></span>,
+        // OctagonAlert (user, 2026-09-07): a stop sign — the tab is halted
+        // until the change is reviewed. Not TriangleAlert, which the app
+        // already spends on failures/warnings; not PackageOpen, which names
+        // the order-change CONCEPT on the review button rather than the alert.
+        indicators: <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><OctagonAlert size={12} aria-hidden="true" /></span>,
       }
     }
     return t
