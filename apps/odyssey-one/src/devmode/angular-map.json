@@ -1149,7 +1149,7 @@
   },
   "FilterButton": {
     "selector": "odyssey-filter-button",
-    "version": "0.2.0",
+    "version": "1.7.0",
     "normalizing": false,
     "props": [
       {
@@ -1355,7 +1355,7 @@
   },
   "GlobalSearch": {
     "selector": "odyssey-global-search",
-    "version": "1.5.0",
+    "version": "1.7.0",
     "normalizing": false,
     "props": [
       {
@@ -1412,6 +1412,11 @@
         "name": "showFilter",
         "type": "boolean",
         "desc": "Show the FilterButton at the right edge. Default true."
+      },
+      {
+        "name": "filterLabel",
+        "type": "string",
+        "desc": "FilterButton label. Default 'Filter' (user, 2026-09-07 — was 'Filters')."
       },
       {
         "name": "filterCount",
