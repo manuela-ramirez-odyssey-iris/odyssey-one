@@ -226,11 +226,35 @@ function groupFields(attrs) {
   for (const attr of attrs) {
     const prev = rows[rows.length - 1]
     const pairs =
-      PAIRABLE.has(attr.control) && prev?.length === 1 && prev[0].control === attr.control
+      PAIRABLE.has(attr.control) && prev?.length === 1 && prev[0].control === attr.control &&
+      // Never pair ACROSS a section boundary — a two-column row straddling
+      // two headings would sit under the wrong one.
+      prev[0].group === attr.group
     if (pairs) prev.push(attr)
     else rows.push([attr])
   }
   return rows
+}
+
+/**
+ * Rows → `[{ group, rows }]`, sections in the order the registry lists them
+ * (user, 2026-09-07 — "group order filters like we group in shipments"). The
+ * registry owns the names; this only splits on a change of `group`, so adding
+ * an attribute there is the whole edit.
+ */
+function sectionsOf(rows) {
+  const sections = []
+  for (const row of rows) {
+    const group = row[0].group ?? ''
+    const last = sections[sections.length - 1]
+    if (last?.group === group) last.rows.push(row)
+    else sections.push({ group, rows: [row] })
+  }
+  return sections
+}
+
+function SectionHeader({ children }) {
+  return <div className="orders-filters__section-title text-label-sm-semibold">{children}</div>
 }
 
 export default function OrdersFiltersView({ tab, filters, onApply, onClose }) {
@@ -238,7 +262,7 @@ export default function OrdersFiltersView({ tab, filters, onApply, onClose }) {
   // panel remounts (the host mounts it only while open), so reopening always
   // shows what's currently applied.
   const [draft, setDraft] = useState(() => ({ ...emptyState(tab), ...filters }))
-  const rows = useMemo(() => groupFields(attrsForTab(tab)), [tab])
+  const sections = useMemo(() => sectionsOf(groupFields(attrsForTab(tab))), [tab])
   const setField = (key, v) => setDraft((d) => ({ ...d, [key]: v }))
 
   const field = (attr) => (
@@ -265,11 +289,16 @@ export default function OrdersFiltersView({ tab, filters, onApply, onClose }) {
       onShowResults={() => onApply(draft)}
     >
       <div className="orders-filters__body">
-        {rows.map((row) =>
-          row.length === 1 ? field(row[0]) : (
-            <div key={row[0].key} className="orders-filters__grid-2">{row.map(field)}</div>
-          ),
-        )}
+        {sections.map((section) => (
+          <div key={section.group} className="orders-filters__section">
+            {section.group && <SectionHeader>{section.group}</SectionHeader>}
+            {section.rows.map((row) =>
+              row.length === 1 ? field(row[0]) : (
+                <div key={row[0].key} className="orders-filters__grid-2">{row.map(field)}</div>
+              ),
+            )}
+          </div>
+        ))}
       </div>
     </GlobalSearchPanel>
   )

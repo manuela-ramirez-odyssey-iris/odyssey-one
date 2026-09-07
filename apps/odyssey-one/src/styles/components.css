@@ -4875,7 +4875,16 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
   gap: var(--spacing-3);
 }
-.shipments-filters__section-title { color: var(--text-primary); }
+.shipments-filters__section-title,
+.orders-filters__section-title { color: var(--text-primary); }
+/* Orders groups its filter fields into titled sections (user, 2026-09-07),
+   the way the Shipments panel already does. The body's own gap separates the
+   sections; this stack is the gap WITHIN one. */
+.orders-filters__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
 .shipments-filters__field,
 .orders-filters__field {
   display: flex;

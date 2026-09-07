@@ -88,9 +88,16 @@ export const ERROR_COUNT_OPERATORS = [
   { value: 'lt', label: 'Less Than' },
 ]
 
+// `group` (user, 2026-09-07) — the panel renders one section per group, in
+// the order they first appear here, mirroring how the Shipments panel groups
+// its own progression. Vocabulary follows that file where the concept matches
+// (`Route & Geography` is verbatim) so a planner moving between the two
+// panels reads the same headings. Customer sits under Order Identifiers
+// rather than a one-field `Customers & Parties` twin.
 export const ORDERS_FILTER_ATTRS = [
   {
     key: 'orderNumber',
+    group: 'Order Identifiers',
     label: 'Order Number',
     control: 'text',
     dataKey: 'orderNumber',
@@ -98,6 +105,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'orderStatus',
+    group: 'Order Identifiers',
     label: 'Order Status',
     control: 'enum',
     // Draft excluded (D3): it has its own tab, and the Created population
@@ -107,6 +115,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'customer',
+    group: 'Order Identifiers',
     label: 'Customer',
     control: 'combobox',
     dataKey: 'customer',
@@ -114,6 +123,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'origin',
+    group: 'Route & Geography',
     label: 'Origin City, State, Country',
     control: 'location',
     dataKey: 'consignor',
@@ -122,6 +132,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'destination',
+    group: 'Route & Geography',
     label: 'Destination City, State, Country',
     control: 'location',
     dataKey: 'consignee',
@@ -130,30 +141,35 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'latestPickup',
+    group: 'Schedule',
     label: 'Latest Pickup Date',
     control: 'date-range',
     param: ['latestPickupDateFrom', 'latestPickupDateTo'],
   },
   {
     key: 'latestDelivery',
+    group: 'Schedule',
     label: 'Latest Delivery Date',
     control: 'date-range',
     param: ['latestDeliveryDateFrom', 'latestDeliveryDateTo'],
   },
   {
     key: 'createdDate',
+    group: 'Audit Trail',
     label: 'Created Date',
     control: 'date-range',
     param: ['createdDateFrom', 'createdDateTo'], // NEW
   },
   {
     key: 'lastEditDate',
+    group: 'Audit Trail',
     label: 'Last Edit Date',
     control: 'date-range',
     param: ['lastEditDateFrom', 'lastEditDateTo'], // NEW
   },
   {
     key: 'createdBy',
+    group: 'Audit Trail',
     label: 'Created By',
     control: 'combobox',
     dataKey: 'createdBy',
@@ -161,6 +177,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'lastEditedBy',
+    group: 'Audit Trail',
     label: 'Last Edited By',
     control: 'combobox',
     dataKey: 'lastEditedBy',
@@ -168,6 +185,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'draftOrderStatus',
+    group: 'Draft & Errors',
     // Renamed from 'Order Status' — with ONE panel shown on every tab, this
     // now sits next to `orderStatus`'s own 'Order Status' field and the two
     // must not share a label (matches the grid's VE column, ORD-23).
@@ -178,6 +196,7 @@ export const ORDERS_FILTER_ATTRS = [
   },
   {
     key: 'errorCount',
+    group: 'Draft & Errors',
     label: 'Errors Count', // matches the VE grid column (ORD-23)
     control: 'comparator',
     param: ['errorCountOperator', 'errorCountValue'], // NEW

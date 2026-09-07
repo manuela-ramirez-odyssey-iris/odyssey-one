@@ -54,6 +54,34 @@ describe('one field set on every tab', () => {
   })
 })
 
+// User ruling 2026-09-07: group the Orders filters the way Shipments groups
+// its own panel. Section names live in the registry, not here.
+describe('grouped sections', () => {
+  const sections = () =>
+    [...document.querySelectorAll('.orders-filters__section-title')].map(el => el.textContent)
+
+  it('renders one titled section per group, in registry order', () => {
+    setup('created')
+    expect(sections()).toEqual([
+      'Order Identifiers', 'Route & Geography', 'Schedule', 'Audit Trail', 'Draft & Errors',
+    ])
+  })
+
+  it('every field sits inside a section — none orphaned above the first heading', () => {
+    setup('created')
+    const loose = [...document.querySelectorAll('.orders-filters__body > .orders-filters__field')]
+    expect(loose).toHaveLength(0)
+    expect(labels().length).toBeGreaterThan(0)
+  })
+
+  it('a two-column pair never straddles a section boundary', () => {
+    setup('created')
+    for (const grid of document.querySelectorAll('.orders-filters__grid-2')) {
+      expect(grid.closest('.orders-filters__section')).toBeTruthy()
+    }
+  })
+})
+
 describe('footer actions (LINX-10285)', () => {
   it('applies the edited draft, not the live filters', () => {
     const onApply = vi.fn()
