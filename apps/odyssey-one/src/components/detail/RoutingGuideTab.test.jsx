@@ -789,7 +789,7 @@ describe('RoutingGuideTab — Dropped Carrier section (LINX-13953)', () => {
     }]
     const data = { options: [baseOption] }
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: dropped }} />)
-    expect(screen.getByText('Dropped Carrier (1)')).toBeTruthy()
+    expect(screen.getByText((_, el) => el.classList.contains('sub-accordion__title') && el.textContent === 'Dropped Carrier (1)')).toBeTruthy()
   })
 
   it("the dropped table does not answer to the tender table's collapse selector", () => {
@@ -1396,7 +1396,7 @@ describe('Order change blocks tendering actions (S137)', () => {
     render(<RoutingGuideTab {...baseProps()} />)
     // The section itself still renders (the count is real information — same
     // rule LINX-13953's empty state already follows) but its content isn't reachable.
-    expect(screen.getByText('Dropped Carrier (1)')).toBeTruthy()
+    expect(screen.getByText((_, el) => el.classList.contains('sub-accordion__title') && el.textContent === 'Dropped Carrier (1)')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /Dropped Carrier/ }))

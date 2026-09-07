@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { PackageOpen, RefreshCw, Truck } from 'lucide-react'
+import { ListX, PackageOpen, RefreshCw } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
@@ -307,7 +307,7 @@ export default function BottomBar({
       ...t,
       indicators: (
         <>
-          {droppedCount > 0 && <Truck size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped carriers" />}
+          {droppedCount > 0 && <ListX size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped carriers" />}
           {pendingOrderChange && <PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} role="img" aria-label="Order change pending" />}
         </>
       ),

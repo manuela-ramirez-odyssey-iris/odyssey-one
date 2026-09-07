@@ -1,4 +1,4 @@
-import { Check, CircleX, Truck } from 'lucide-react'
+import { Check, CircleX, ListX } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
 
@@ -225,11 +225,11 @@ export default function DroppedCarrierSection({
   return (
     <div className={locked ? 'dropped-carrier--locked' : undefined} aria-disabled={locked || undefined}>
       <SubAccordion
-        title={`Dropped Carrier (${carriers.length})`}
+        title={<>Dropped Carrier <span style={{ color: 'var(--sunrise-yellow-600)' }}>({carriers.length})</span></>}
         // S140 — the section's own mark: an orange truck, replacing
         // SubAccordion's default Info glyph. Same signal the Tender tab now
         // carries when this shipment has dropped carriers.
-        icon={<Truck {...ICON_LG} style={{ color: 'var(--sunrise-yellow-600)' }} aria-hidden="true" />}
+        icon={<ListX {...ICON_LG} style={{ color: 'var(--sunrise-yellow-600)' }} aria-hidden="true" />}
         defaultExpanded={defaultOpen}
         // Controlled + forced shut while locked. Passing `expanded` at all
         // switches SubAccordion out of its own internal (uncontrolled) state,
