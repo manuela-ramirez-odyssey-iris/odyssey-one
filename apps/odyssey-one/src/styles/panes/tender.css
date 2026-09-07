@@ -306,13 +306,13 @@
    motion would claim work is underway.
 
    Deliberately quieter and slower than the sheen: this is a locator, and the
-   user already knows they pressed the button. Three breaths and gone, ending on
+   user already knows they pressed the button. Four breaths and gone, ending on
    white like everything else that is not a tender status. */
 /* Per-CELL overlay, unlike the sheen's per-row one: Safari does not treat a
    positioned `tr` as a containing block, so a row-level `inset: 0` stretched
    to the table card and the whole table pulsed (user, 2026-09-07). A flat
    tint has no tile pattern to break at column edges, so cells are fine here.
-   Three breaths (user, 2026-09-07). */
+   Four breaths (user, 2026-09-07). */
 .tender-row-added > td {
   position: relative;
 }
@@ -326,7 +326,7 @@
      lets go. Not a tender status colour (STATUS_STYLES), so no residue. */
   background: var(--carolina-blue-100);
   opacity: 0;
-  animation: tender-row-added-pulse 1.6s ease-in-out 3 forwards;
+  animation: tender-row-added-pulse 1.6s ease-in-out 4 forwards;
 }
 @keyframes tender-row-added-pulse {
   0%, 100% { opacity: 0; }
