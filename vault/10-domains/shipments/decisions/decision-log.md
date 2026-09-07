@@ -836,7 +836,7 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 
 ### DEC-129: A dropped carrier already in the Tender List reads "Reinstated", disabled
 - **Previous:** Reinstate (LINX-13954 Process SCAC) COPIES — Jana, 2026-08-17 — so after one success the row stays in the Dropped Carrier section and a second press met the AC's duplicate dialog ("Carrier and Equipment combination … already in the list."). Correct per §4.8 and TMS parity, but the row gave no hint before the click.
-- **Decision (user, 2026-09-07):** the row's button becomes **Reinstated**, disabled, with a title "Already in the Tender List", whenever the SCAC + Equipment pair is in the live tender list (`isDuplicate`, the same rule). The dialog still guards any path that bypasses the button; it is no longer reachable from the row.
+- **Decision (user, 2026-09-07):** the row's button becomes **Reinstated**, disabled, whenever the SCAC + Equipment pair is in the live tender list (`isDuplicate`, the same rule). The dialog still guards any path that bypasses the button; it is no longer reachable from the row.
 - **Source:** shipment 10471649 after a persisted reinstate; canon [[../dropped-carrier]] §4.8, OQ-10 (copy vs move).
 
 ---

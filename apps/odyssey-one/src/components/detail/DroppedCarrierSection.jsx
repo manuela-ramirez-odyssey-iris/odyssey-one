@@ -211,7 +211,7 @@ export default function DroppedCarrierSection({
     // validates nothing and knows nothing about routing.
     action: onProcess ? (
       isDuplicate(c, tenderOptions) ? (
-        <Button size="sm" variant="secondary" disabled title="Already in the Tender List">
+        <Button size="sm" variant="secondary" disabled>
           Reinstated
         </Button>
       ) : (
