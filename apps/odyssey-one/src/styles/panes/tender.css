@@ -322,13 +322,16 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: var(--deep-sea-neutral-500);
+  /* Same tone the shipments grid paints a selected row (components.css
+     `tr[data-selected] td`, DSN-200) — at peak the row reads exactly like a
+     selection, then lets go (user, 2026-09-07). */
+  background: var(--deep-sea-neutral-200);
   opacity: 0;
   animation: tender-row-added-pulse 1.6s ease-in-out 3 forwards;
 }
 @keyframes tender-row-added-pulse {
   0%, 100% { opacity: 0; }
-  50%      { opacity: 0.12; }
+  50%      { opacity: 1; }
 }
 
 /* Shared scaffolding for both row overlays — see the sheen's note below for
