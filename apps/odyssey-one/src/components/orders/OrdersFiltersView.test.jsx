@@ -56,6 +56,35 @@ describe('one field set on every tab', () => {
 
 // User ruling 2026-09-07: group the Orders filters the way Shipments groups
 // its own panel. Section names live in the registry, not here.
+// User ruling 2026-09-07: the panel carries the same All/Saved pills as the
+// Shipments one. Saved is a placeholder — Orders has no saved-filter store.
+describe('All / Saved tabs', () => {
+  const pill = (name) => screen.getByRole('button', { name: new RegExp(`^${name}`) })
+
+  it('opens on All, with the field sections rendered', () => {
+    setup('created')
+    expect(document.querySelectorAll('.orders-filters__section-title').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Coming soon')).toBeNull()
+  })
+
+  it('Saved renders the coming-soon placeholder and no fields', () => {
+    setup('created')
+    fireEvent.click(pill('Saved'))
+    expect(screen.getByText('Coming soon')).toBeTruthy()
+    expect(labels()).toEqual([])
+  })
+
+  it("All's count tracks the draft, Saved's is always zero", () => {
+    setup('created')
+    // Draft keys, not wire params — the panel seeds `{...emptyState, ...filters}`.
+    expect(pill('All').textContent).toContain('0') // empty date/comparator objects must NOT count
+    cleanup()
+    setup('created', { filters: { orderNumber: '091000', orderStatus: ['Hold'] } })
+    expect(pill('All').textContent).toContain('2')
+    expect(pill('Saved').textContent).toContain('0')
+  })
+})
+
 describe('grouped sections', () => {
   const sections = () =>
     [...document.querySelectorAll('.orders-filters__section-title')].map(el => el.textContent)

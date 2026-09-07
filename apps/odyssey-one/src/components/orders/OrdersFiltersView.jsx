@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Badge, ComboBox, DatePicker, Dropdown, FormField, GlobalSearchPanel } from '@odyssey/ui'
+import { Badge, ComboBox, DatePicker, Dropdown, FormField, GlobalSearchPanel, PillTab } from '@odyssey/ui'
 import {
   ERROR_COUNT_OPERATORS,
   attrsForTab,
@@ -256,6 +256,13 @@ function sectionsOf(rows) {
   return sections
 }
 
+/** A draft field counts as set when a leaf actually carries something. */
+function hasValue(v) {
+  if (Array.isArray(v)) return v.length > 0
+  if (v && typeof v === 'object') return Object.values(v).some(Boolean)
+  return !!v
+}
+
 function SectionHeader({ children }) {
   return <div className="orders-filters__section-title text-label-sm-semibold">{children}</div>
 }
@@ -265,8 +272,23 @@ export default function OrdersFiltersView({ tab, filters, onApply, onClose }) {
   // panel remounts (the host mounts it only while open), so reopening always
   // shows what's currently applied.
   const [draft, setDraft] = useState(() => ({ ...emptyState(tab), ...filters }))
+  // All / Saved, the same two pills the Shipments panel carries (user,
+  // 2026-09-07). Saved is a PLACEHOLDER here: Orders has no saved-filter
+  // store yet (Shipments' lives in savedFilters.js + a user preference), so
+  // the tab exists, counts zero, and says so rather than pretending.
+  const [activeTab, setActiveTab] = useState('all')
   const sections = useMemo(() => sectionsOf(groupFields(attrsForTab(tab))), [tab])
   const setField = (key, v) => setDraft((d) => ({ ...d, [key]: v }))
+  // Counts the fields carrying a value, over the DRAFT so the pill tracks
+  // what is being edited. Shipments' one-liner (`filter(Boolean)`) does not
+  // port: `emptyState` seeds date-range as `{from:'',to:''}` and comparator as
+  // `{op:'',value:''}`, and an empty OBJECT is truthy — every panel would
+  // open reading 7. Look at the leaves instead.
+  const activeCount = Object.values(draft).filter(hasValue).length
+  const tabs = [
+    { key: 'all', label: 'All', count: activeCount },
+    { key: 'saved', label: 'Saved', count: 0 },
+  ]
 
   const field = (attr) => (
     <div key={attr.key} className="orders-filters__field">
@@ -291,8 +313,22 @@ export default function OrdersFiltersView({ tab, filters, onApply, onClose }) {
       primaryLabel="Show all results"
       onShowResults={() => onApply(draft)}
     >
+      <div className="orders-filters__tabs">
+        {tabs.map((t) => (
+          <PillTab
+            key={t.key}
+            label={t.label}
+            count={t.count}
+            selected={activeTab === t.key}
+            onClick={() => setActiveTab(t.key)}
+          />
+        ))}
+      </div>
+
       <div className="orders-filters__body">
-        {sections.map((section) => (
+        {activeTab === 'saved' ? (
+          <p className="orders-filters__empty text-label-sm-regular">Coming soon</p>
+        ) : sections.map((section) => (
           <div key={section.group} className="orders-filters__section">
             {section.group && <SectionHeader>{section.group}</SectionHeader>}
             {section.rows.map((row) =>

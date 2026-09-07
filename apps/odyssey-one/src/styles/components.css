@@ -4853,6 +4853,9 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-primary);
 }
 
+/* Orders carries the same All/Saved pills as Shipments (user, 2026-09-07) —
+   same inset so both panels' tabs line up under their title. */
+.orders-filters__tabs,
 .shipments-filters__tabs {
   display: flex;
   gap: var(--spacing-2);
@@ -4877,6 +4880,13 @@ button.breadcrumb__label:focus-visible {
 }
 .shipments-filters__section-title,
 .orders-filters__section-title { color: var(--text-primary); }
+/* Saved-tab placeholder — Orders has no saved-filter store yet. */
+.orders-filters__empty {
+  margin: 0;
+  padding: var(--spacing-5) var(--spacing-6);
+  text-align: center;
+  color: var(--text-tertiary);
+}
 /* Orders groups its filter fields into titled sections (user, 2026-09-07),
    the way the Shipments panel already does. The body's own gap separates the
    sections; this stack is the gap WITHIN one. */
