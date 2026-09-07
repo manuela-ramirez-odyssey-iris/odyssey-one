@@ -187,7 +187,7 @@ ${body.join('\n')}
 </table>
 </td></tr>
 <tr><td style="${FONT}font-size:11px;line-height:16px;text-align:center;color:${C.textTertiary};border-top:1px solid ${C.border};padding:20px 24px;">
-Odyssey Logistics &amp; Technology Corporation &middot; 4235 South Stream Blvd, STE 300, Charlotte NC 28217 &middot; 1-888-352-4409<br />
+Odyssey Logistics &amp; Technology Corporation &middot; 3545 Whitehall Park Drive, Charlotte NC 28273 &middot; 704-808-7400<br />
 This is a transactional message about a shipment you are configured to receive quotes for. It contains confidential information for the intended recipient only.
 </td></tr>
 </table>
