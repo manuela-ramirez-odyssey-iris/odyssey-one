@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Badge, Button, Checkbox, Dropdown, DurationPicker, ModalMedium, PillTab,
-  SubAccordion, TitleSubtitle,
+  Badge, Button, Checkbox, Dropdown, DurationPicker, GroupTable, ModalMedium,
+  PillTab, SubAccordion, TitleSubtitle,
 } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
 
@@ -62,8 +62,9 @@ const CURRENCY_OPTIONS = [
 // dropping them off the table entirely.
 const listIdOf = (row) => row.listId ?? MODES[0].id
 
+// The Incl. checkbox is NOT a column here: GroupTable's `selectable` prop owns
+// that lane, header control included, so declaring it would render two.
 const COLUMNS = [
-  { key: 'incl', label: null }, // select-all checkbox, rendered separately
   { key: 'carrier', label: 'Carrier (SCAC · Name)' },
   { key: 'equipment', label: 'Equip' },
   { key: 'email', label: 'Contact Email' },
@@ -80,11 +81,15 @@ const COLUMNS = [
  * `SpotSummaryStrip` rendered by the parent (SpotBoardTab, 2026-08-20) —
  * this component no longer takes a `summaryFields` prop.
  *
- * The table follows the Orders product-information recipe — a plain
- * `odyssey-table`, not DataTable or GroupTable — because the TL/LTL toggle
- * shows exactly one list at a time, leaving nothing to group. Rows for BOTH
- * lists are built and held in state regardless, so a planner's inclusions and
- * dates survive toggling back and forth.
+ * The table is a `GroupTable` in `flat` mode (2026-09-06), replacing the
+ * hand-rolled `odyssey-table` that preceded it. Nothing is grouped — the
+ * TL/LTL toggle shows exactly one list at a time — which is precisely what
+ * `flat` renders: one ordinary data row per `groups[]` entry, no chevrons, no
+ * expansion. Selection and inline editing stay this component's: they ride in
+ * as NODES (`col.label` for the select-all, `group.values` for each cell), so
+ * the swap added nothing to @odyssey/ui. Rows for BOTH lists are built and
+ * held in state regardless, so a planner's inclusions and dates survive
+ * toggling back and forth.
  *
  * `carrierOptions` arrives pre-resolved ({value: scac, label, meta: {mode}}
  * from the async `getLookupOptions('carrier', q)` pool) — the fetch is the
@@ -294,22 +299,12 @@ export default function SetupCarriers({
     setRows((rs) => rs.map((r) => (ids.has(r.scac) ? { ...r, incl: include } : r)))
   }
 
-  const renderCell = (row, col) => {
+  // GroupTable's flat mode reads each row's cells from `group.values`, keyed by
+  // column — so what used to be a `renderCell(row, col)` switch is now the same
+  // switch evaluated up front into an object. Every value may be a node, which
+  // is why the checkbox / DateField / Badge cells need no component support.
+  const cellFor = (row, col) => {
     switch (col.key) {
-      case 'incl':
-        return (
-          <Checkbox
-            checked={row.incl}
-            onChange={() => toggleIncl(row.scac)}
-            // The date gate blocks turning a carrier ON without planned dates —
-            // it must never block turning one OFF. Rows now arrive preselected
-            // (Kathleen [27:52]), so a flat `!isSelectable` would render them
-            // checked AND disabled: included, with no way to opt out.
-            disabled={readOnly || (!isSelectable(row) && !row.incl)}
-            showLabel={false}
-            aria-label={`Include ${row.scac}`}
-          />
-        )
       case 'carrier':
         return `${row.scac} · ${row.name}`
       case 'plannedPickup':
@@ -331,6 +326,9 @@ export default function SetupCarriers({
         return row[col.key] ?? '--'
     }
   }
+
+  const valuesFor = (row) =>
+    Object.fromEntries(COLUMNS.map((col) => [col.key, cellFor(row, col)]))
 
   // Inclusion spans BOTH modes — a planner can toggle to LTL, include a couple,
   // toggle back, and send them all together.
@@ -453,50 +451,74 @@ export default function SetupCarriers({
               </span>
             </div>
 
-            <div className="setup-carriers__table-wrap">
-              <table className="odyssey-table setup-carriers__table" aria-label="Carrier List">
-                <thead>
-                  <tr>
-                    <th className="setup-carriers__col-incl">
-                      <Checkbox
-                        checked={allChecked}
-                        indeterminate={someChecked}
-                        onChange={() => toggleAll(!allChecked)}
-                        disabled={readOnly || selectable.length === 0}
-                        showLabel={false}
-                        aria-label="Select all carriers"
-                      />
-                    </th>
-                    {COLUMNS.slice(1).map((col) => (
-                      <th key={col.key} className="text-label-sm-semibold">{col.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.length === 0 && (
-                    <tr>
-                      <td className="text-label-sm-regular" colSpan={COLUMNS.length}>
-                        No carriers in this list.
-                      </td>
-                    </tr>
-                  )}
-                  {visibleRows.map((row) => (
-                    <tr key={row.scac}>
-                      {COLUMNS.map((col) => (
-                        <td
-                          key={col.key}
-                          className={col.key === 'incl'
-                            ? 'setup-carriers__col-incl'
-                            : 'text-label-sm-regular'}
-                        >
-                          {renderCell(row, col)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* GroupTable in `flat` + `selectable` mode (2026-09-06) — the
+                hand-rolled <table> it replaces was already flat: one level, no
+                groups, no expansion.
+
+                `selectable` is GroupTable's own checkbox lane (user ruling: the
+                option belongs on the component, not re-hand-rolled per
+                consumer), but it is plumbing only — the RULES stay here, and
+                they are the reason a generic selection model could not have
+                worked: selecting is gated on a row having both planned dates,
+                deselecting is not, and select-all is scoped to whichever list
+                the TL/LTL pill is showing. GroupTable renders the controls and
+                derives the header's checked/indeterminate state; `onSelectAll`
+                hands us a direction, not a list of ids.
+
+                Every remaining cell (DateField, Badge) still rides in
+                `group.values` as a node — that part needed no component
+                support and still doesn't.
+
+                `headerStyle` is left at its default ('standard' — `flat` does
+                NOT imply the strip band, see resolveHeaderStyle), which is the
+                plain column header this table has always had. */}
+            <GroupTable
+              flat
+              selectable
+              className="setup-carriers__group-table"
+              // GroupTable spreads unknown props onto its ROOT SCROLLER, not the
+              // <table> — its only way to name the table itself is the visible
+              // `header` strip, which would duplicate the SubAccordion's own
+              // "Setup & Carriers" title. So the region is named instead of the
+              // table: `role="group"` is what makes the label readable at all
+              // (a bare div with aria-label is ignored).
+              role="group"
+              aria-label="Carrier List"
+              columns={COLUMNS}
+              groups={visibleRows.map((row) => ({
+                id: row.scac,
+                label: row.scac,
+                values: valuesFor(row),
+                // The date gate blocks turning a carrier ON without planned
+                // dates — it must never block turning one OFF. Rows arrive
+                // preselected (Kathleen [27:52]), so a flat `!isSelectable`
+                // would render them checked AND disabled: included, with no way
+                // to opt out.
+                selectDisabled: readOnly || (!isSelectable(row) && !row.incl),
+                // Out of select-all's maths without disabling the row's own
+                // control: an undated row that is already included must stay
+                // un-includable, but select-all has nothing it may turn ON, so
+                // it reads unchecked and disabled rather than "all selected".
+                selectAllExempt: !isSelectable(row),
+              }))}
+              selectedIds={visibleRows.filter((r) => r.incl).map((r) => r.scac)}
+              onSelect={(scac) => toggleIncl(scac)}
+              // GroupTable asks "moving to checked or unchecked?" and leaves the
+              // meaning of "all" here, which is the whole point: selecting spans
+              // only dated rows, deselecting spans every row on screen, and both
+              // are scoped to the TL/LTL pill's current view.
+              onSelectAll={toggleAll}
+              selectAllLabel="Select all carriers"
+              selectLabel={(group) => `Include ${group.id}`}
+            />
+            {visibleRows.length === 0 && (
+              // Sibling, not a colSpan row: GroupTable has no empty-state slot,
+              // and inventing one for a single consumer is the library change
+              // this swap exists to avoid.
+              <p className="setup-carriers__empty text-label-sm-regular">
+                No carriers in this list.
+              </p>
+            )}
           </div>
 
         </div>

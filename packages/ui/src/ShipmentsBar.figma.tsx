@@ -9,6 +9,11 @@ import ShipmentsBar from './ShipmentsBar'
 // content slot — the consumer renders the active pane as children while
 // expanded. Replaces the old BottomBar chrome (no close / scroll chevrons /
 // fullscreen).
+// `tabs[].indicators` (2026-09-07) has NO mapping here on purpose: it lives on
+// the child `ShipmentsBarTab` set 4105:1770 (`Show indicators` BOOLEAN +
+// `Indicator` INSTANCE_SWAP), which this file deliberately does not map
+// separately — tabs are code-side data, so the property is documented on the
+// tab master and in the DSM props table instead.
 figma.connect(
   ShipmentsBar,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4120-4623',

@@ -25,7 +25,7 @@ function DiffCell({ value }) {
 export const meta = {
   name: 'GroupTable',
   tier: 'organism',
-  version: '1.6.0',
+  version: '1.7.0',
   createdVersion: '0.7.0',
   normalizing: false,
   figmaNode: '4183:773',
@@ -58,6 +58,14 @@ export const props = [
   { name: 'header', type: '{ title, icon?, trail? }', desc: 'Optional 48px strip above the column-header row (Figma 4183:773 "Header" frame): icon + bold title left, empty trailing slot right. Presence renders the strip; omit it (the default) for the unchanged, released look. `icon` is a caller-supplied node (e.g. a lucide element) — the component hardcodes none. The table is `aria-labelledby` the title. (Figma: Group header BOOLEAN.) The strip itself is an INSTANCE of the standalone HeaderStrip master (5530:1140) — its `Title` / `Show icon` / `Icon` / `Show trail` properties are exposed straight through on GroupTable instances that carry the strip.' },
   { name: 'flat', type: 'boolean', desc: 'Default false. Table-level mode: every group renders as ONE ordinary data row (regular weight, one `<td>` per column via `groupHeaderValue`, lead column falling back to `group.label`) instead of the bold merged-label group-header row. Nothing expands — no chevron, no button, no row click, no aria-expanded, no child rows/detail band/note, regardless of `rows`/`detailRows`. Rows stay white (reuses the same white background as `striped={false}`). Does NOT touch the column-header row at all — that is `headerStyle`, which is fully independent and defaults to \'standard\' whether or not `flat` is on.' },
   { name: 'headerStyle', type: "'standard' | 'strip'", desc: 'The column-header row\'s style, independent of `flat`. **Default is always \'standard\'** — `flat` does NOT imply \'strip\' (user ruling 2026-08-31); the two are independent, exactly as Figma models them. Pass it explicitly to opt in, either way: `headerStyle="strip"` puts the HeaderStrip-look header (`--bg-secondary` tint + `text-label-base-semibold` typography) on an ordinary, still-expandable table; `flat headerStyle="strip"` is how a flat table gets the strip header. The strip tint also covers the PINNED first header cell in the nested flavour — that cell paints its own opaque background so content can scroll under it, and would otherwise stay white against the tinted rest. Never affects striping — `striped={false}` alone never produces a strip header. (Figma 4183:773: the independent boolean PAIR `Header strip style`, default false, and `Header standard style`, default true — set OPPOSITELY by the designer, since Figma has no inverse-binding mechanism.)' },
+  { name: 'selectable', type: 'boolean', desc: 'Default false. **Flat mode only** — ignored when `flat` is off, where the lead cell is a merged group label with nowhere to put a checkbox. Prepends a narrow lead column of row checkboxes with a select-all in its column header; the lane is INJECTED, so do NOT also declare a checkbox column or you get two. Deliberately PLUMBING ONLY: the component renders the controls and derives the header\'s checked/indeterminate state, and never holds selection, decides what "all" means, or filters rows — those rules are always the consumer\'s (SpotBid gates SELECTING on a row having both planned dates while leaving DESELECTING ungated, and scopes select-all to the list its TL/LTL pill is showing). For sorting or pagination alongside selection this is still the wrong component — use DataTable.' },
+  { name: 'selectedIds', type: 'string[] | Set', desc: 'The group ids that are checked. Controlled only — there is no uncontrolled mode, because selection always has an owner.' },
+  { name: 'onSelect', type: '(groupId, next) => void', desc: 'Fires on a ROW checkbox, with the id and the state it is moving to.' },
+  { name: 'onSelectAll', type: '(next) => void', desc: 'Fires on the HEADER checkbox. `next` is a DIRECTION — the state the header is moving to — not a list of ids, since what "all" covers is the consumer\'s call.' },
+  { name: 'selectAllLabel', type: 'string', desc: "Default 'Select all'. aria-label for the header checkbox, which has no visible text." },
+  { name: 'selectLabel', type: '(group) => string', desc: 'aria-label for a ROW checkbox. Default: `Select {group.label ?? group.id}`.' },
+  { name: 'groups[].selectDisabled', type: 'boolean', desc: "Disables that row's checkbox, and drops the row from the header's maths — otherwise one permanently-unselectable row pins select-all to indeterminate forever." },
+  { name: 'groups[].selectAllExempt', type: 'boolean', desc: 'Drops the row from the HEADER\'s maths WITHOUT disabling its own checkbox. "Can this row be selected?" and "is select-all meaningful?" are different questions and one flag cannot answer both: in SpotBid an undated row that is already included must keep an enabled checkbox so it can be un-included, while select-all reads unchecked-and-disabled, having nothing it may legally turn ON.' },
 ]
 
 export const tokens = [
@@ -426,6 +434,7 @@ function Schematic() {
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="root" tier="molecule">Presentational grouped table — <strong>read-only</strong> (vs <code>DataTable</code> = the interactive TanStack grid: sort/resize/paginate/select). Root owns horizontal scroll; the consumer&apos;s card owns the white surface.</LegendRow>
         <LegendRow part="header row" nested>Dark column labels (<code>--text-primary</code> semibold) over a <code>--border-subtle</code> hairline. 48px tall like every other row. <strong>Two styles, one prop:</strong> "standard" (this look) by default, or "strip" (<code>--bg-secondary</code> tint + <code>text-label-base-semibold</code>, matching <code>HeaderStrip</code>) via the independent <code>headerStyle</code> prop — see the Playground&apos;s <code>headerStyle</code> select. <code>flat</code> does not change it.</LegendRow>
+        <LegendRow part="select lane" nested>Optional, <strong>flat mode only</strong> (<code>selectable</code>): an INJECTED narrow lead column of row checkboxes with a select-all in its column header — not one of your <code>columns</code>. The component renders the controls and derives the header&apos;s checked/indeterminate state; it never holds selection. Not pinned by default — a consumer that h-scrolls adds <code>position: sticky</code> and its own opaque background.</LegendRow>
         <LegendRow part="group header row" nested>White band per group: chevron (<code>--text-tertiary</code>, rotates −90° collapsed) + bold group id. The FULL row is the toggle — a row-filling <code>&lt;button aria-expanded aria-controls&gt;</code> carries focus + Enter/Space.</LegendRow>
         <LegendRow part="group.values" nested>Optional per-column values on the group header (e.g. per-order AP/AR/Diff). Semibold, <code>col.align</code> respected; visible both collapsed and expanded. Omit for label-only headers (Product tab style).</LegendRow>
         <LegendRow part="child rows" nested>Contiguous light-gray bands (<code>--bg-secondary</code>, <code>--text-tertiary</code> body), separated by 1px <code>--border-subtle</code> hairlines — no white gaps. Lead cell emphasized (<code>--text-primary</code> medium). <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
@@ -482,6 +491,8 @@ function Playground() {
   const [narrow, setNarrow] = useState(false)
   const [showHeader, setShowHeader] = useState(false)
   const [flat, setFlat] = useState(false)
+  const [selectable, setSelectable] = useState(false)
+  const [selected, setSelected] = useState([])
   // undefined = derive from `flat` (the regression case); an explicit value
   // is independent of flat in both directions, so it must stay selectable
   // in flat mode too (unlike the toggles below it, which flat genuinely disables).
@@ -540,6 +551,13 @@ function Playground() {
       : undefined,
     flat,
     headerStyle,
+    selectable,
+    selectedIds: selected,
+    onSelect: (id, next) =>
+      setSelected((prev) => (next ? [...prev, id] : prev.filter((x) => x !== id))),
+    // The demo's own "all" rule, standing in for a consumer's: every group on
+    // screen. A real one is rarely this simple — see the prop table.
+    onSelectAll: (next) => setSelected(next ? activeGroups.map((g) => g.id) : []),
   }
 
   return (
@@ -586,6 +604,12 @@ function Playground() {
           label="flat (every group = one white data row, nothing expands — column-header style is separate, see headerStyle)"
           value={flat}
           set={setFlat}
+        />
+        <Toggle
+          label="selectable (checkbox lane + select-all — flat mode only)"
+          value={selectable}
+          set={setSelectable}
+          disabledReason={flat ? undefined : 'Applies to flat mode'}
         />
         {/* Independent of `flat` — stays enabled in flat mode on purpose: it's
             one of the few controls still relevant there, since an explicit

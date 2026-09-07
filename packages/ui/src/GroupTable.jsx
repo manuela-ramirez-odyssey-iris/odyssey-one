@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import Button from './Button.jsx'
+import Checkbox from './Checkbox.jsx'
 import HeaderStrip from './HeaderStrip.jsx'
 
 /**
@@ -130,13 +131,57 @@ import HeaderStrip from './HeaderStrip.jsx'
  *                       `rows`/`detailRows`. Reuses the `--flat` (non-striped) white
  *                       background so group rows never tint like child bands. `columns`,
  *                       `header`, `footerRow`, `stickyActions`/`group.action` all still work.
- *                       Sets the DEFAULT column-header style (see `headerStyle`) — it no
- *                       longer switches the header outright, since `headerStyle` can
- *                       override it in either direction.
+ *                       Does NOT change the column-header style: that is `headerStyle`'s
+ *                       alone, and its default is 'standard' whether or not `flat` is set
+ *                       (user ruling, D9).
+ * @param selectable    bool (default false) — FLAT MODE ONLY. Prepends a narrow lead
+ *                       column of row checkboxes, with a select-all checkbox in its
+ *                       column header. Ignored entirely when `flat` is false: the
+ *                       non-flat table's lead cell is a merged group label, and a
+ *                       checkbox has nowhere to sit in it (same "ignored outside its
+ *                       mode" shape `nesting` has in dev mode's flyout).
+ *
+ *                       This is the ONE interactive affordance GroupTable owns beyond
+ *                       expand/collapse, and it is deliberately PLUMBING ONLY — the
+ *                       component renders the controls and derives the header's
+ *                       checked/indeterminate state; it never holds selection, never
+ *                       decides what "all" means, and never filters rows. That stays
+ *                       the consumer's, because the interesting rules always are:
+ *                       SpotBid's Setup & Carriers, the first consumer, gates
+ *                       SELECTING on a row having both planned dates while leaving
+ *                       DESELECTING ungated, and scopes select-all to the rows the
+ *                       TL/LTL pill currently shows. No generic selection model can
+ *                       express that, so the component does not try.
+ *
+ *                       For sorting or pagination alongside selection, this is still
+ *                       the wrong component — use DataTable.
+ * @param selectedIds    array | Set of group ids that are checked (controlled; there is
+ *                       no uncontrolled mode — selection always has an owner).
+ * @param onSelect       (groupId, next: bool) — fires on a ROW checkbox.
+ * @param onSelectAll    (next: bool) — fires on the HEADER checkbox. `next` is the
+ *                       state the header is moving TO, not a list of ids: what "all"
+ *                       covers is the consumer's call (see above).
+ * @param selectAllLabel string (default 'Select all') — aria-label for the header
+ *                       checkbox, which has no visible text.
+ *                       Per-group `selectAllExempt: true` takes a row out of the
+ *                       HEADER's maths without disabling its own checkbox — the two
+ *                       are different questions and one flag cannot answer both. In
+ *                       SpotBid an undated row that is ALREADY included must keep an
+ *                       enabled checkbox (so it can be un-included), while select-all
+ *                       must read unchecked-and-disabled, having nothing it may
+ *                       legally turn ON. `selectDisabled` alone would have disabled
+ *                       the row's own control too.
+ * @param selectLabel    (group) => string — aria-label for a ROW checkbox.
+ *                       Default: `Select {group.label ?? group.id}`.
+ *                       Per-group `selectDisabled: true` disables that row's checkbox;
+ *                       a disabled row is also excluded from the header's
+ *                       checked/indeterminate maths, so a row nobody can select never
+ *                       holds select-all hostage.
  * @param headerStyle    'standard' | 'strip' — the column-header row's style, independent
- *                       of `flat`. Default: derived from `flat` (`flat` → 'strip', non-flat
- *                       → 'standard'), preserving prior behaviour when omitted. Passing it
- *                       explicitly always wins over the derivation, in both directions:
+ *                       of `flat`. Default: ALWAYS 'standard' — `flat` implies nothing here
+ *                       (user ruling, D9; the earlier "derived from `flat`" wording was
+ *                       stale, `resolveHeaderStyle` never read `flat`). Pass it to opt in,
+ *                       in either direction:
  *                       `headerStyle="strip"` on a non-flat table gets the strip header
  *                       (an ordinary expandable table with a HeaderStrip-look column row);
  *                       `flat headerStyle="standard"` gets flat rows with the ordinary
@@ -308,6 +353,12 @@ export default function GroupTable({
   header,
   flat = false,
   headerStyle,
+  selectable = false,
+  selectedIds,
+  onSelect,
+  onSelectAll,
+  selectAllLabel = 'Select all',
+  selectLabel,
   ...rest
 }) {
   const uid = useId()
@@ -324,6 +375,27 @@ export default function GroupTable({
     const next = e.currentTarget.scrollLeft > 0
     setScrolledX((prev) => (prev === next ? prev : next))
   }
+
+  // ── Selection (flat mode only) ───────────────────────────────────────────
+  // `selectable` outside flat mode is ignored rather than honoured-somehow: the
+  // non-flat lead cell is a merged group label spanning several columns, so
+  // there is no cell to put a checkbox in.
+  const selecting = flat && selectable
+  const selectedSet = selectedIds instanceof Set ? selectedIds : new Set(selectedIds || [])
+  const isSelected = (group) => selectedSet.has(group.id)
+  // A row whose checkbox is disabled is out of the header's maths entirely —
+  // otherwise one permanently-unselectable row pins select-all to
+  // indeterminate forever, and the control stops meaning anything. A row may
+  // also opt out of the maths WITHOUT being disabled (`selectAllExempt`): see
+  // the `selectable` docblock for why the two are separate questions.
+  const selectCandidates = groups.filter((g) => !g.selectDisabled && !g.selectAllExempt)
+  const selectedCandidates = selectCandidates.filter(isSelected)
+  const allSelected =
+    selectCandidates.length > 0 && selectedCandidates.length === selectCandidates.length
+  const someSelected = selectedCandidates.length > 0 && !allSelected
+  const selectCell = (node) => (
+    <td className="odyssey-group-table__select-cell">{node}</td>
+  )
 
   // The whole 68px action cell is the hit area, not just the ~28px control
   // inside it. Clicks land on the cell and are forwarded to the control —
@@ -363,8 +435,8 @@ export default function GroupTable({
     // Distinct from the class above on purpose: `--flat` is the overloaded
     // "unstriped" modifier (`!striped || flat`), so a `striped={false}`
     // non-flat table must NOT pick up the strip-style column header. This
-    // one is driven by the RESOLVED header style (`headerStyle` prop, falling
-    // back to `flat`) — see `resolveHeaderStyle`.
+    // one is driven by the RESOLVED header style (the `headerStyle` prop, which
+    // defaults to 'standard' regardless of `flat`) — see `resolveHeaderStyle`.
     resolveHeaderStyle(headerStyle) === 'strip' && 'odyssey-group-table--flat-head',
     nested && 'odyssey-group-table--nested',
     // A STATE HOOK only — the scrolling behaviour is keyed on the section (see
@@ -403,6 +475,18 @@ export default function GroupTable({
       >
         <thead>
           <tr>
+            {selecting && (
+              <th scope="col" className="odyssey-group-table__select-cell">
+                <Checkbox
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onChange={() => onSelectAll?.(!allSelected)}
+                  disabled={selectCandidates.length === 0}
+                  showLabel={false}
+                  aria-label={selectAllLabel}
+                />
+              </th>
+            )}
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -440,6 +524,17 @@ export default function GroupTable({
                    under their headers exactly like an ordinary row. No
                    chevron, no button, no onClick — see isGroupExpandable. */
                 <tr className="odyssey-group-table__row">
+                  {selecting && selectCell(
+                    <Checkbox
+                      checked={isSelected(group)}
+                      onChange={() => onSelect?.(group.id, !isSelected(group))}
+                      disabled={!!group.selectDisabled}
+                      showLabel={false}
+                      aria-label={
+                        selectLabel ? selectLabel(group) : `Select ${group.label ?? group.id}`
+                      }
+                    />
+                  )}
                   {columns.map((col, i) => {
                     const value = groupHeaderValue(group, col.key)
                     return (
@@ -654,6 +749,9 @@ export default function GroupTable({
         {footerRow && (
           <tfoot>
             <tr className="odyssey-group-table__footer-row">
+              {/* Blank lead cell so the totals stay under their own columns —
+                  a footer row is not selectable. */}
+              {selecting && <td className="odyssey-group-table__select-cell" />}
               {columns.map((col) => (
                 <td key={col.key} className={alignClass(col.align) || undefined}>
                   {footerRow[col.key] ?? ''}

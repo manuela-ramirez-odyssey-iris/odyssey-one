@@ -439,7 +439,7 @@
   "CalendarPicker": {
     "selector": "odyssey-calendar-picker",
     "version": "1.3.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "mode",
@@ -472,6 +472,16 @@
         "desc": "Upper bound — later days are disabled and month nav stops. Default 01/01/2120."
       },
       {
+        "name": "enabledDates",
+        "type": "Array<Date | 'YYYY-MM-DD'> | null",
+        "desc": "Allow-list of discrete selectable days on top of min/max. Days not listed render greyed and unclickable, in both modes, and are never painted as in-range. Omit for \"every in-bounds day is selectable\". Flex dates (SPB-69) resolve to a per-carrier list of individual dates, not a range. DatePicker forwards it and also rejects typed dates outside the list."
+      },
+      {
+        "name": "isDateEnabled",
+        "type": "(date: Date) => boolean | null",
+        "desc": "Predicate for rules the caller owns (weekends, a holiday set). Composed with min/max and enabledDates — a day must pass all that are given. Use this instead of hand-building a date list; use enabledDates for lists an API returns (SpotBid flex dates). DatePicker forwards it and rejects typed dates it refuses."
+      },
+      {
         "name": "className",
         "type": "string",
         "desc": "Extra class(es) on the root element."
@@ -496,7 +506,7 @@
   "Checkbox": {
     "selector": "odyssey-checkbox",
     "version": "0.2.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "checked",
@@ -527,6 +537,11 @@
         "name": "(change)",
         "type": "EventEmitter<Event>",
         "desc": "Native change event emitter. Consumer owns forms — no ControlValueAccessor."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible name for a checkbox with NO visible label (`showLabel=false`), bound to the native input as `aria-label`. Added 2026-09-07 for GroupTable's select lane; React gets the same via `...rest` → `aria-label`. (React: `aria-label`.)"
       }
     ]
   },
@@ -789,7 +804,7 @@
   "DatePicker": {
     "selector": "odyssey-date-picker",
     "version": "1.3.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "mode",
@@ -820,6 +835,16 @@
         "name": "maxDate",
         "type": "Date",
         "desc": "Upper bound — later days are disabled and month nav stops. Default 01/01/2120."
+      },
+      {
+        "name": "enabledDates",
+        "type": "Array<Date | 'YYYY-MM-DD'> | null",
+        "desc": "Allow-list of discrete selectable days on top of min/max. Days not listed render greyed and unclickable, in both modes, and are never painted as in-range. Omit for \"every in-bounds day is selectable\". Flex dates (SPB-69) resolve to a per-carrier list of individual dates, not a range. DatePicker forwards it and also rejects typed dates outside the list."
+      },
+      {
+        "name": "isDateEnabled",
+        "type": "(date: Date) => boolean | null",
+        "desc": "Predicate for rules the caller owns (weekends, a holiday set). Composed with min/max and enabledDates — a day must pass all that are given. Use this instead of hand-building a date list; use enabledDates for lists an API returns (SpotBid flex dates). DatePicker forwards it and rejects typed dates it refuses."
       },
       {
         "name": "className",
@@ -1612,7 +1637,7 @@
   "GroupTable": {
     "selector": "odyssey-group-table",
     "version": "1.6.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "columns",
@@ -1753,6 +1778,46 @@
         "name": "headerStyle",
         "type": "'standard' | 'strip'",
         "desc": "The column-header row's style, independent of `flat`. **Default is always 'standard'** — `flat` does NOT imply 'strip' (user ruling 2026-08-31); the two are independent, exactly as Figma models them (the independent boolean PAIR `Header strip style` / `Header standard style`, set oppositely by the designer). Pass it explicitly to opt in, either direction: `headerStyle=\"strip\"` puts the HeaderStrip-look header (`--bg-secondary` tint + `text-label-base-semibold` typography) on an ordinary, still-expandable table; a flat table gets it only when asked. The strip tint also covers the PINNED first header cell in the nested flavour, which otherwise paints its own opaque background. Never affects striping — `striped: false` alone never produces a strip header."
+      },
+      {
+        "name": "selectable",
+        "type": "boolean",
+        "desc": "Default false. **Flat mode only** — ignored when `flat` is off, where the lead cell is a merged group label with nowhere to put a checkbox. Prepends a narrow lead column of row checkboxes with a select-all in its column header; the lane is INJECTED, so do NOT also declare a checkbox column or you get two. Deliberately PLUMBING ONLY: the component renders the controls and derives the header's checked/indeterminate state, and never holds selection, decides what \"all\" means, or filters rows — those rules are always the consumer's (SpotBid gates SELECTING on a row having both planned dates while leaving DESELECTING ungated, and scopes select-all to the list its TL/LTL pill is showing). For sorting or pagination alongside selection this is still the wrong component — use DataTable."
+      },
+      {
+        "name": "selectedIds",
+        "type": "string[] | Set<string>",
+        "desc": "The group ids that are checked. Controlled only — there is no uncontrolled mode, because selection always has an owner."
+      },
+      {
+        "name": "(select)",
+        "type": "EventEmitter<{ groupId, next }>",
+        "desc": "Fires on a ROW checkbox, with the id and the state it is moving to."
+      },
+      {
+        "name": "(selectAll)",
+        "type": "EventEmitter<boolean>",
+        "desc": "Fires on the HEADER checkbox. `next` is a DIRECTION — the state the header is moving to — not a list of ids, since what \"all\" covers is the consumer's call."
+      },
+      {
+        "name": "selectAllLabel",
+        "type": "string",
+        "desc": "Default 'Select all'. aria-label for the header checkbox, which has no visible text."
+      },
+      {
+        "name": "selectLabel",
+        "type": "(group) => string",
+        "desc": "aria-label for a ROW checkbox. Default: `Select {group.label ?? group.id}`."
+      },
+      {
+        "name": "groups[].selectDisabled",
+        "type": "boolean",
+        "desc": "Disables that row's checkbox, and drops the row from the header's maths — otherwise one permanently-unselectable row pins select-all to indeterminate forever."
+      },
+      {
+        "name": "groups[].selectAllExempt",
+        "type": "boolean",
+        "desc": "Drops the row from the HEADER's maths WITHOUT disabling its own checkbox. \"Can this row be selected?\" and \"is select-all meaningful?\" are different questions and one flag cannot answer both: in SpotBid an undated row that is already included must keep an enabled checkbox so it can be un-included, while select-all reads unchecked-and-disabled, having nothing it may legally turn ON."
       }
     ]
   },
@@ -2999,7 +3064,7 @@
   "ShipmentsBar": {
     "selector": "odyssey-shipments-bar",
     "version": "1.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "shipmentId",
@@ -3029,7 +3094,12 @@
       {
         "name": "tabs",
         "type": "ShipmentsBarTab[]",
-        "desc": "Tab strip. Each entry: { key, label }. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)"
+        "desc": "Tab strip. Each entry: { key, label, indicators? }. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)"
+      },
+      {
+        "name": "tabs[].indicators",
+        "type": "TemplateRef<unknown>",
+        "desc": "Optional per-tab template rendered after the tab label inside the tab button (.shipments-bar__tab-indicators, inline-flex, spacing-1 gap). Small status glyphs that signal something about the tab's CONTENT — a generic per-tab slot, available on EVERY tab, not a Tender feature (user, 2026-09-07). First consumer: the Shipments Tender tab (S140) — a purple package for a pending order change, else an orange list-x for dropped carriers; one glyph at a time, because the order change blocks the whole tab. Angular deviation: React accepts any ReactNode; Angular takes a TemplateRef, matching the group-table template-slot convention — one or more glyphs can be composed inside the template. (Figma: ShipmentsBarTab `Show indicators` BOOLEAN + `Indicator` INSTANCE_SWAP, placeholder-16 by default — added 2026-09-07.)"
       },
       {
         "name": "activeTab / (tabChange)",

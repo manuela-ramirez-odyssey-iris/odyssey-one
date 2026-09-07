@@ -65,31 +65,40 @@
    matter from `.co-prod-table` are REPLICATED here rather than reusing that
    class: create-order.css is code-split with the Orders route, so on the
    shipment detail page the class would resolve to nothing (S112). */
-.setup-carriers__table-wrap {
-  overflow-x: auto;
-}
+/* The table is a GroupTable in `flat` mode now (D11) — it owns its own
+   horizontal scroller, its own 48px rows and its own hairlines, so the
+   `__table-wrap` scroller and the two border/padding patches that used to
+   re-create GroupTable's look on top of `.odyssey-table` are gone with it.
+   What remains below is only what is genuinely this consumer's. */
 
-/* Header rule matching the bottom one + tighter 8px vertical padding (the
-   .odyssey-table default is 14px). */
-.setup-carriers__table thead th {
+/* Closes the table at the TOP, the way the restored last-row rule closes it at
+   the bottom — GroupTable's th carries a border-bottom only, and without this
+   the header floats under the carrier count with no edge. */
+.setup-carriers__group-table .odyssey-group-table__table > thead th {
   border-top: 1px solid var(--border-subtle);
-  padding-top: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
 }
 
-/* The odyssey-table skin strips the last row's rule — restore it so the table
-   closes cleanly against the controls below. */
-.setup-carriers__table tbody tr:last-child td {
+/* GroupTable paints only the lead cell as primary/medium, on the assumption
+   that the lead column is the row's identity. Here the lead column is a
+   checkbox, so the identity is one column over — Carrier reads primary, and
+   the checkbox lane inherits nothing it can show. */
+.setup-carriers__group-table .odyssey-group-table__row td:nth-child(2) {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Closes the table against the controls below: GroupTable drops the final
+   row's hairline (its last tbody is `:last-child`), which is right when a card
+   border follows and wrong here, where the next thing is open space. */
+.setup-carriers__group-table .odyssey-group-table__table > tbody:last-child > tr:last-child > td {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Checkbox column: only as wide as the control, centered, and PINNED left so
-   the row's selection stays reachable while the rest of the table h-scrolls —
-   same treatment `.co-prod__line-col` gives the Line # column in the Orders
-   product grid. Needs an opaque background of its own, or the scrolled cells
-   show through it; the header keeps painting above via `.odyssey-table thead`
-   (z-index 2). Centering must out-rank `.odyssey-table th, td`'s left align,
-   hence the compound selectors. */
+.setup-carriers__empty {
+  padding: var(--spacing-4);
+  color: var(--text-tertiary);
+}
+
 /* TL/LTL/All pill band — round 2 (2026-08-21): back INSIDE the SubAccordion,
    a direct flex child of `.order-pane__block` alongside the toolbar and the
    table, so the block's own `gap: var(--spacing-3)` (components.css) spaces
@@ -127,16 +136,18 @@
    the control was measured for (one masked dd/mm/yyyy + calendar button), and
    anything past it is dead space in a 7-column table. Same token as the floor,
    so the two can never drift apart. */
-.setup-carriers__table .date-field {
+.setup-carriers__group-table .date-field {
   width: var(--date-picker-single-min);
 }
 
-.setup-carriers__table th.setup-carriers__col-incl,
-.setup-carriers__table td.setup-carriers__col-incl {
-  width: 1%;
-  text-align: center;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
+/* Checkbox column: PINNED left so the row's selection stays reachable while
+   the rest of the table h-scrolls — same treatment `.co-prod__line-col` gives
+   the Line # column in the Orders product grid. Width, centring and padding
+   now come from GroupTable's own `__select-cell` rule (`selectable`); pinning
+   stays here on purpose, being a per-consumer call — the library does not
+   assume every selectable table scrolls sideways. The opaque background is
+   what pinning requires, or the scrolled cells show through it. */
+.setup-carriers__group-table .odyssey-group-table__select-cell {
   position: sticky;
   left: 0;
   z-index: 1;

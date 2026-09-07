@@ -44,6 +44,15 @@ import GroupTable from './GroupTable'
 // mapping of its own: it is the redundant inverse the designer keeps in
 // sync by convention, not a second source of truth.
 //
+// `Show select column` BOOLEAN (default false, added 2026-09-07) → the
+// `selectable` prop. Same 1:many mismatch `Show Actions` carries and for the
+// same reason: Figma needs it set on this master (the header's select-all)
+// AND on each nested GroupTableGroup instance (the row checkboxes), because a
+// boolean cannot propagate into a nested instance; code has ONE `selectable`
+// prop driving both. The selection STATE has no Figma counterpart at all —
+// `selectedIds`/`onSelect`/`onSelectAll` are behaviour the component never
+// owns, so the snippet emits a static sample rather than inventing a mapping.
+//
 // `flat` and `groups[].expandable` have NO Figma property of their own —
 // CODE-ONLY / recipe-level, same treatment this file already gives the
 // nested-table flavor above. `flat` is expressible in Figma only as a
@@ -70,8 +79,9 @@ figma.connect(
         true: 'strip',
         false: 'standard',
       }),
+      selectable: figma.boolean('Show select column'),
     },
-    example: ({ footerRow, stickyActions, actionsHeader, header, headerStyle }) => (
+    example: ({ footerRow, stickyActions, actionsHeader, header, headerStyle, selectable }) => (
       <GroupTable
         columns={[
           { key: 'item', label: 'Item' },
@@ -93,6 +103,10 @@ figma.connect(
         actionsHeader={actionsHeader}
         header={header}
         headerStyle={headerStyle}
+        selectable={selectable}
+        selectedIds={['ORD-0001']}
+        onSelect={(id, next) => console.log(id, next)}
+        onSelectAll={(next) => console.log(next)}
         defaultExpanded
       />
     ),

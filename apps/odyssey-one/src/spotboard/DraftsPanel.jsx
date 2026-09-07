@@ -13,8 +13,9 @@ const COLUMNS = [
 
 /**
  * DraftsPanel — SpotBoard "Drafts" sub-tab: lists saved Setup & Carriers
- * snapshots (draftStore.js) with Restore/Delete row actions. Follows the same
- * plain `odyssey-table` idiom as SetupCarriers.
+ * snapshots (draftStore.js) with Restore/Delete row actions. Still the plain
+ * `odyssey-table` idiom — SetupCarriers moved to a flat GroupTable, this did
+ * not: three columns, no h-scroll, no selection, nothing the swap would buy.
  */
 export default function DraftsPanel({ drafts, restoreDisabled, onRestore, onDelete }) {
   return (

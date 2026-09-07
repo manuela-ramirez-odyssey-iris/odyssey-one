@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { ListX, PackageOpen, FileWarning } from 'lucide-react'
 import { ShipmentsBar } from '@odyssey/ui'
 
 export const meta = {
   name: 'ShipmentsBar',
   tier: 'organism',
-  version: '1.5.0',
+  version: '1.7.0',
   createdVersion: '0.6.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }
@@ -17,7 +18,7 @@ export const props = [
   { name: 'placeholder', type: 'string', desc: "Lead label when nothing is selected. Default 'Select a Shipment'." },
   { name: 'onPrevShipment / onNextShipment', type: '() => void', desc: 'Prev/next arrows (20px, DSN/500) beside the ID — render only when provided; pair with prevDisabled/nextDisabled at list bounds.' },
   { name: 'tabs', type: '[{ key, label }]', desc: "The tab slots; overflow scrolls natively. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)" },
-  { name: 'tabs[].indicators', type: 'node', desc: 'S140 — optional ReactNode rendered after the tab label inside the tab button (.shipments-bar__tab-indicators, inline-flex, spacing-1 gap). Small status glyphs only: the Shipments Tender tab uses it for an orange truck (dropped carriers) and a purple package (pending order change). No Figma change proposed yet — flagged for Efrain.' },
+  { name: 'tabs[].indicators', type: 'node', desc: 'Optional ReactNode rendered after the tab label inside the tab button (.shipments-bar__tab-indicators, inline-flex, spacing-1 gap). Small status glyphs that signal something about the tab\'s CONTENT — a generic per-tab slot, available on EVERY tab, not a Tender feature (user, 2026-09-07). First consumer: the Shipments Tender tab (S140) — a purple package for a pending order change, else an orange list-x for dropped carriers; one glyph at a time, because the order change blocks the whole tab. A node, so one glyph or several. (Figma: ShipmentsBarTab `Show indicators` BOOLEAN + `Indicator` INSTANCE_SWAP, placeholder-16 by default — added 2026-09-07.)' },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
   { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ the fixed stage height (S93 three-stage model — the S79d adaptive content height + ratchet was retired; pane content scrolls within the stage height). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
   { name: 'stage / onStageChange', type: "'partial' | 'full' / (next) => void", desc: "S82 three-state expansion. 'partial' caps the open bar at --bottombar-partial (60dvh); 'full' fixes it at 100dvh − --navbar-height — every pixel between the navbar and the viewport bottom (2026-08-15; supersedes the earlier --bottombar-top-clearance mid-page-title cap). Definite heights — stage changes and open/close animate on the plain CSS drawer transition (S93). CollapseExpand walks closed → partial (arrow-up-to-line, fires onExpandedChange(true)) → full (chevrons-up, fires onStageChange('full')) → closed (chevrons-down, fires onClose). Consumers reset to 'partial' on a fresh open. Default 'full' (two-state back-compat)." },
@@ -114,6 +115,7 @@ function Schematic() {
         <LegendRow part="bar" tier="organism">Docked bottom detail bar — 48px white strip (<code>--bottombar-collapsed</code>) over a <code>DSN/100</code> canvas; hairline per segment (selected tab breaks it). Expands to partial (<code>--bottombar-partial</code>) or full — full fills every pixel between the navbar and the viewport bottom, <code>100dvh − --navbar-height</code> (Figma: <code>State=Collapsed|Expanded</code>). <strong>Replaces the old BottomBar chrome</strong> — no close X, no scroll chevrons, no fullscreen.</LegendRow>
         <LegendRow part="current shipment" nested>Lead segment: prev/next arrows (<code>lucide/arrow-left|right</code>, 20px, <code>--deep-sea-neutral-500</code>) + shipment ID. With <code>onShipmentIdClick</code> (S93) the ID renders as a <strong>ButtonLink</strong> (<code>Button variant="link"</code>, default non-black tone, kept semibold) — the app opens the View Shipment Details modal; without it: plain <code>label/sm semibold</code> <code>--text-primary</code>. (Figma: Shipment ID TEXT — link face sync owed.)</LegendRow>
         <LegendRow part="tab slots" nested>Strip of <code>ShipmentsBarTab</code>s — <code>label/sm semibold</code>, padding 14/16; selected = <code>DSN/100</code> fill (real Selected state, not Hover); hover <code>DSN/50</code> code-only; overflow scrolls natively. Each tab is a content slot.</LegendRow>
+        <LegendRow part="tab indicators" nested>Optional 16px status glyph(s) after any tab&apos;s label (<code>tabs[].indicators</code>, gap <code>--spacing-1</code>) — signals something about that tab&apos;s <em>content</em> before it is opened. Generic per-tab slot; the Playground&apos;s toggle puts three different ones on three tabs. (Figma: <code>Show indicators</code> + <code>Indicator</code> swap on <code>ShipmentsBarTab</code>.)</LegendRow>
         <LegendRow part="PanelActions" nested>The ONLY controls (Figma 4095:3070), composing <code>Button Icon/sm</code>: <strong>TabArrangement</strong> (columns+cog — closest lucide is <code>columns-3-cog</code>; the mock draws 2 columns) + <strong>CollapseExpand</strong> — expanded → <code>chevrons-down</code> is a <strong>CLOSE</strong> gesture (fires <code>onClose</code>; the app deselects the row — S79c); the placeholder strip shows <code>chevrons-up</code>, disabled without a selection. Gap <code>--spacing-3</code>, padding 24/12.</LegendRow>
         <LegendRow part="Content slot" nested><code>children</code> — the active pane, rendered while expanded (see Playground). (Figma: native Content slot below the strip.)</LegendRow>
       </ul>
@@ -129,14 +131,28 @@ function Playground() {
   const shipments = ['B28826319', 'B28826320', 'B28826321']
   const activeLabel = TABS.find(t => t.key === activeTab)?.label
 
+  const [showIndicators, setShowIndicators] = useState(false)
+  // Three different signals on three different tabs — the point of the toggle
+  // is that the slot is per-tab and generic, not something Tender owns.
+  const INDICATORS = {
+    tender: <PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} role="img" aria-label="Order change pending" />,
+    stops: <ListX size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped stop" />,
+    documents: <FileWarning size={16} style={{ color: 'var(--text-error)' }} role="img" aria-label="Missing document" />,
+  }
   // Plain tabs only — the dropdown-tab face retired S80 with the Figma
   // `State=Selected Dropdown` variant; in-pane switchers live in the panes.
-  const tabs = TABS
+  const tabs = showIndicators
+    ? TABS.map((t) => (INDICATORS[t.key] ? { ...t, indicators: INDICATORS[t.key] } : t))
+    : TABS
 
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · the ID is a ButtonLink (in the app it opens View Shipment Details{idClicks > 0 ? ` — clicked ${idClicks}×` : ''}) · tabs switch the slot · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close and partial↔full ease on the drawer curve between the fixed stage heights (S93 — adaptive ratchet retired)</span>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showIndicators} onChange={(e) => setShowIndicators(e.target.checked)} />
+          tabs[].indicators (content signals on Stops / Tender / Documents)
+        </label>
       </div>
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar

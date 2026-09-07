@@ -982,7 +982,7 @@ describe('SetupCarriers', () => {
     // Below the table, NOT in the card header and NOT in the top toolbar row.
     expect(actions.closest('.sub-accordion__header-row')).toBeFalsy()
     expect(container.querySelector('.setup-carriers__toolbar-top').contains(actions)).toBe(false)
-    const table = container.querySelector('.setup-carriers__table-wrap')
+    const table = container.querySelector('.setup-carriers__group-table')
     expect(table.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
@@ -1021,7 +1021,7 @@ describe('SetupCarriers', () => {
     )
     const band = screen.getByRole('group', { name: 'Carrier list mode' })
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
-    const table = container.querySelector('.setup-carriers__table-wrap')
+    const table = container.querySelector('.setup-carriers__group-table')
 
     // All is the default mode — the count spans every built row.
     expect(within(toolbar).getByText(`${allRows.length} carriers`)).toBeTruthy()

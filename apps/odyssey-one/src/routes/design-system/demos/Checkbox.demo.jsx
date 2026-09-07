@@ -4,10 +4,11 @@ import { Checkbox } from '@odyssey/ui'
 export const meta = {
   name: 'Checkbox',
   tier: 'atom',
-  version: '0.2.0',
+  version: '1.7.0',
   createdVersion: '0.2.0',
   figmaNode: '2821:330',
   codeConnect: 'packages/ui/src/Checkbox.figma.tsx',
+  normalizing: false,
 }
 
 export const props = [
@@ -18,6 +19,7 @@ export const props = [
   { name: 'label', type: 'ReactNode', desc: 'Label text.' },
   { name: 'showLabel', type: 'boolean', desc: 'Toggle label visibility. Default true.' },
   { name: 'onChange', type: '(e) => void', desc: 'Native change handler.' },
+  { name: 'aria-label', type: 'string', desc: 'Accessible name for a checkbox with NO visible label (`showLabel={false}`) — spread onto the native input with the other `...rest` attributes, so it has always worked here. Documented 2026-09-07 because the Angular twin gained an explicit `ariaLabel` input for the same job (GroupTable\'s select lane needed it). (Angular: `ariaLabel`.)' },
 ]
 
 export const tokens = [
