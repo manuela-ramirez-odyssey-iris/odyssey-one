@@ -760,10 +760,87 @@ Every implemented decision with its previous state, source, and rationale. This 
 
 ---
 
+## Order Change (Direct) — DEC-114 … DEC-127
+
+Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycle. Canon: [[../order-change]].
+
+### DEC-114: The review decision is about one carrier — the tendered one
+- **Previous:** none (S134 build).
+- **Decision:** the Actions card presents the single Sent/Accepted carrier from the prior version, never rank 1 of the new list; the other carriers are reachable only by Cancel Tender → Tender screen.
+- **Source:** Jana, review call 2026-08-29 @09:27 *"the decision is about the prior carrier"*, @28:06; LINX-14513/14514.
+- **Affects:** `OrderChangeActionsCard`.
+
+### DEC-115: Not-returned carrier — blank route rank, rank at the bottom of its equipment group, New Cost greyed, Prior Cost auto-selected
+- **Previous:** S134 inserted at bottom of the whole list.
+- **Decision:** insertion rank = last position within the carrier's equipment group (same rule as Process SCAC); route rank stays empty; New Cost disabled; Prior Cost pre-selected. Returned carrier: New Cost pre-selected.
+- **Source:** Jana @11:42, @13:xx, @18:43; LINX-14513 Scenario 1/2.
+- **Affects:** `buildOrderChange` (verified 104/104 post-reseed), Actions card.
+
+### DEC-116: Prior/New cost are not editable; New Quote is the only editable path, and a quoted prior cost copies the whole quote
+- **Source:** Jana @14:11, @28:44–30:38; LINX-14513 note.
+- **Affects:** Actions card, `retender`/`bypass` persistence. QuoteModal closed without saving reverts the radio.
+
+### DEC-117: Cancel Tender lands on Tender Review with the shipment's Tender screen open
+- **Previous:** S134 landed on the Order Change tab.
+- **Source:** LINX-14514 *"presented with the Tender screen"*; Jana @27:31.
+- **Affects:** `landingFor` in `OrderChangeReviewRoute`.
+
+### DEC-118: Confirmation dialogs on all three resolution actions are ours
+- **Decision:** each dialog states that action's AC-defined consequence; Cancel Tender uses Yes/No so a "Cancel" button is never the destructive act. `ConfirmDialog` extracted to `components/common/`.
+- **Source:** no AC defines a dialog; designer, S135. Flagged as inference per [[feedback_cite_provenance_inline]].
+
+### DEC-119: New list above Prior list, both collapsed on landing; Pickup before Delivery in the carrier panels
+- **Source:** LINX-14511; Jana @31:14 *"it will be collapsed"*; deck s3 ordering (a field table is not an ordering rule).
+
+### DEC-120: Dropped carriers ride inside the review, derived from the re-route
+- **Decision:** a carrier is dropped exactly when it was in the prior list and absent from the new; shown as an amber badge on the New Tender List title + "Preview Dropped Carriers" → read-only ModalMedium. New-version drops only.
+- **Previous:** quiet note → standalone accordion (duplicated the Tender tab) → this.
+- **Source:** Jana @31:14 (added late: *"maybe I did not have it initially as part of the request"*); LINX-14510 per-version dropped list.
+
+### DEC-121: Order comparison is display-only, changed-first, with hazmat merged as per-line rows
+- **Decision:** 18 shipment fields + 11 hazmat fields, read from the shipment's own stops/customer/terms so the compare view cannot contradict the Stops tab; Flash Point derives from Boiling Point, Pkg Group tracks Class; changed/unchanged split is the ordering rule itself; every row carries its `source` (Routing/Order/Shipment) in the tooltip.
+- **Source:** LINX-14512; deck s5 "same as" notes; Jana @34:33 *"no action"*.
+- **Known gap:** seeded hazmat never differs, so highlight is unreachable (OC-open in canon).
+
+### DEC-122: Purple is the only review signal; no status colours in the tender lists
+- **Decision:** diff count and changed cells use the review accent; tender-status pills stay neutral inside the review. The Tender-tab entry button is secondary with a purple FileBox icon — a recorded exception to [[feedback_button_icon_color_rule]].
+- **Source:** designer, S135. Figma 1703-156564 (red highlights, band rows) is stale, not a ruling — Jana does not decide presentation ([[feedback_jana_does_not_decide_ui]]).
+
+### DEC-123: The lock covers every tendering action, not the entry point
+- **Decision:** routing table + Process SCAC row + Dropped Carrier are blurred, `inert`, `aria-hidden` while review is pending; Review Order Change button sits on the overlay centre. No dark scrim (blur + opacity already carry the effect; no light-scrim token exists). Blur per `tbody` so the header stays crisp.
+- **Source:** Jana via designer, S137; LINX-14509 *"tender-related actions shall remain unavailable"*.
+- **Tension:** LINX-14509 also says tender information stays viewable — see canon build-delta row 4.
+
+### DEC-124: View Tender deleted; filter chips and the List/Table toggle removed from the comparison card
+- **Decision:** the review's own lists plus the exception-tab origin replace the deck's View Tender jump; `ViewTenderModal` and `TableModeSide` deleted.
+- **Source:** user, S137. Deck s3 "View Tender" superseded.
+
+### DEC-125: Selected cost is a base rate; the New Tender List cell recomputes base + its own charges
+- **Decision:** `oc.prior.apCost` = `rateDetails.baseRate`; echoing it into the AP Cost column (totals) would read as a price drop, so the row recomputes. Label/unit mismatch flagged for Jana (OC-open-2).
+- **Source:** S137 measurement.
+
+### DEC-126: Seed re-rate must move `rateAmount`/`totalCostAmount` with `baseRate`
+- **Previous:** `shiftedOptions` perturbed only the base rate; 718/718 pairs left the derived figures unchanged, so LINX-14511's AP Cost difference badge could never fire.
+- **Decision:** derive AP/AR totals with the original formulas, zero new draws, id stream byte-identical. Reseeded 2026-09-02.
+- **Source:** S137; [[feedback_seeded_ids_are_load_bearing]].
+
+### DEC-127: Review entry is Sent/Accepted only in the seed — pending OC-open-1
+- **Decision:** `buildOrderChange` is reached only for Sent/Accepted shipments, matching Jana (disc @13:46) and LINX-8284 step 5. LINX-14509 adds To Be Tendered; not adopted until Jana confirms what "keep carrier" means with no tendered carrier.
+- **Source:** tension recorded in [[../order-change]] §2.
+
+### DEC-128: Tender tab vocabulary — "Add Carrier" everywhere the picker doorway speaks, "Reinstate" on a dropped carrier, "Tender List" names the table
+- **Previous:** LINX-15075's picker was labelled "Process SCAC" in its confirm/notice dialogs and its primary read "Process"; the dropped-carrier row action was also "Process SCAC" (LINX-13954), so two doorways with different meanings shared one legacy name. No table title. The picker offered every SCAC, including ones routing had just dropped.
+- **Decision (user, 2026-09-07):** the trailing-row doorway is **Add Carrier** (Plus icon; the same button flips to **Cancel** while expanded, primary reads **Add**), and its dialogs say Add Carrier. The dropped-carrier row action is **Reinstate** — the carrier already exists in the list's context; the verb names the return. The table is titled **Tender List**. Dropped SCACs are excluded from the Add Carrier picker: a dropped carrier comes back only through Reinstate, so the reason for the drop stays in view. "Process SCAC" survives only as the legacy TMS function name in canon.
+- **Signals:** the Tender tab in the ShipmentsBar carries a Truck (orange, `--sunrise-yellow-600`) when dropped carriers exist and a PackageOpen (purple, `--badge-purple-text`) when an order change is pending; the Dropped Carrier section title carries the same Truck; Review Order Change swaps FileBox for PackageOpen. Rationale: nothing on the tab strip said a shipment had dropped carriers or a pending change.
+- **Source:** user session S140, 2026-09-07. Presentation ruling (designer), not domain — Jana's process semantics unchanged.
+
+---
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 2, 2026 | DEC-114 through DEC-127 — Order Change (Direct) rulings from S134–S137 recorded at the `/analyze order-change` cycle: single-carrier decision, equipment-group insertion rank + auto-select, quote copy, Cancel landing, our confirm dialogs, list order/collapse, derived dropped carriers, display-only changed-first comparison with hazmat merged, purple-only signal, the full tendering lock, View Tender deleted, base-rate cost recompute, seed re-rate fix, and the To Be Tendered trigger tension held open |
 | Aug 17, 2026 | DEC-110 through DEC-113 — Dropped Carrier follow-up + the tender table restyle: **DEC-110** Reason Description leaves the column grid for a full-width wrapping row below the detail values (new generic `group.detailNote` slot on GroupTable), releasing the horizontal room the 360px column was eating; **DEC-111** no info icon on the section header; **DEC-112** the tender table adopts the canonical Cell contract (`.odyssey-table` + `.text-label-sm-*`) per Figma `1596:21526`, retiring inline 12px uppercase headers, with the row tint moved to the cell because the contract paints cells white; **DEC-113** column arrangement restored to the pinned header with **its own** ColumnPanel (per sub-tab, portaled past the bar's `clip-path`), reversing the 2026-08-10 removal on its own stated condition — and surfacing that `.odyssey-table__cell--title` had never won its specificity fight, so Title cells app-wide were rendering tertiary |
 | Aug 17, 2026 | DEC-106 through DEC-109 — Dropped Carrier display shipped (LINX-13953): **DEC-106** the data rides in the existing `shipments.detail` jsonb because `sellShipmentDetail()` returns it verbatim, so **no migration and no API change** (the forward risk is noted: `detail` is write-once, which only works because OQ-10 was ruled COPY); **DEC-107** an isolated Faker instance keeps the main draw sequence intact, **verified by a full-corpus diff** — 2200 ids, 5077 order numbers and every detail payload identical, with the one drifting field proved pre-existing by a control run of the OLD generator against itself; **DEC-108** the table is **deliberately mostly dashes** because routing returns five attributes for a dropped carrier, which the AC's blanket Null Handling rule already anticipates — correcting a blocker I raised that the ticket had answered all along; **DEC-109** the drop CODES are real (1 No Rates / 2 Prohibited Carrier / 23 Missing Transit Time) but the long descriptions are still ours pending Dave's TMS table |
 | Aug 16, 2026 | DEC-101 through DEC-105 — user rulings closing the Quote group's open questions: **DEC-101** `initialApAmount` = the AP total before the first user quote (retires the DEC-95 inference flag); **DEC-102** LINX-13897 wins over 13894 — Delete hidden on `Sent`/`Accepted`; **DEC-103** the Quote Entry "Page" is a modal in the Tender tab, "page" being Jana's vocabulary — and **LINX-3966 is prior art for this form**, not just a cross-reference; **DEC-104** currency must be explicitly selected, our `\|\| 'USD'` default having made an approved validation unreachable; **DEC-105** logged OPEN — 3966's missing-markup warning has no ruling for the tender-side page |
