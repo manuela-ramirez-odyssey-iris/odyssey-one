@@ -1637,7 +1637,7 @@
   "GroupTable": {
     "selector": "odyssey-group-table",
     "version": "1.7.0",
-    "normalizing": true,
+    "normalizing": false,
     "props": [
       {
         "name": "columns",

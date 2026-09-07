@@ -23,14 +23,54 @@ GATE B — User approves the running app behavior
    │
    ▼
 PHASE 3 — Sync Back  (Step 8 + 8a + 8b)
+   │
+   ▼
+BATCH LADDER — per component, IN THIS ORDER, no step skipped or reordered:
+   Figma master ──► Code Connect publish ──► GATE B (React approve)
+        ──► port ──► GATE C-twin (user reviews the Angular twin)
+        ──► batch release ──► GATE C-merge (parity re-check) ──► PR merge
 ```
+
+### The batch ladder is ordered and closed
+
+**Ordered.** Code Connect is published BEFORE the React approval, not at release — the
+user approves against a published map (user, 2026-09-07). Never bundle a normalization
+step into the release step.
+
+**Closed.** Batch membership is FIXED when the first component in it is released-bound.
+A component discovered mid-batch (an atom a port turns out to need — Checkbox's
+`ariaLabel`, 2026-09-07) may join, but it re-runs the WHOLE ladder from its own Figma
+step; it never inherits another component's position on it.
+
+**Frozen.** From `release.mjs` until the library PR merges, every component in the batch
+is FROZEN. If a parallel session changes one:
+  - PR still open  → fold the change + its twin into the SAME PR, version unchanged;
+  - PR merged      → the component is demoted and rides the NEXT batch.
+Never let a batch merge while its canon has moved. **GATE C-merge is the check**, and it
+is mechanical:
+
+```bash
+node tools/release-parity-check.mjs <release-commit> --components <A,B,C>
+```
+
+It lists React commits touching any batch component after the release commit and exits 1
+on drift. Run it before merging the Angular PR, every time. It exists because on
+2026-09-07 1.7.0 was cut at 12:22 and a parallel session changed GroupTable at 12:38 —
+the PR would have merged with a twin already behind its canon.
+
+**Never revert a staging flag you did not set.** A dirty `*.demo.meta.ts` in either repo
+is evidence, not noise: `git log` the component first. On 2026-09-07 a demotion written
+by the parallel session was reverted as "stray state" and then restored — the flip-flop
+is the confusion, not the flag.
 
 ### Hard rules
 
 1. **Never call `Edit`, `Write`, or `Bash` against `*.jsx`, `*.tsx`, `*.css`, `*.js`, `*.ts` until GATE A has been crossed.** If the user shared a Figma URL and you haven't yet (a) shown them the Figma changes and (b) received an explicit approval phrase, you are still in Phase 1. Code edits are forbidden.
 2. **Never call `connect:publish` or push to Figma library until GATE B has been crossed.** Phase 3 work is irreversible-ish (publish goes live, library push affects designers). Approval required.
 3. **Pre-flight check before every code-touching tool call**: ask yourself "did the user explicitly approve the Figma changes I made?" If you can't quote the phrase, stop and ask.
-4. **The default mode is Figma-first.** A Figma URL with no explicit override means: do Figma work first, screenshot, wait. The user opting into "code-first" is rare and must be stated in their words ("code-first", "skip Figma", "code only").
+4. **Never run `release.mjs` while any batch component has uncommitted changes or an open question.** A release freezes the batch (above); freezing an unsettled component is what creates a PR that cannot honestly merge.
+5. **Never merge the library PR without GATE C-merge passing.** `release-parity-check.mjs` exit 0, quoted.
+6. **The default mode is Figma-first.** A Figma URL with no explicit override means: do Figma work first, screenshot, wait. The user opting into "code-first" is rare and must be stated in their words ("code-first", "skip Figma", "code only").
 
 If you find yourself about to write code without a quotable approval phrase from the user, that's the violation. Stop, summarize what you intended to change, and ask for explicit go.
 
@@ -221,6 +261,7 @@ This creates the component stub (`packages/ui/src/<C>.jsx` with className passth
    **Asymmetric staging badges (2026-07-05, user decision):** the two explorers render staging differently.
    - **React** (canon lifecycle): NORMALIZING (yellow) → APPROVED (green, GATE B) → **PORTING** (purple, `meta.porting: true` while the port process runs — set at batch approval/port kickoff, removed when the twin lands) → **PORTED** (gray): the React canon **landed/updated successfully on the Angular side** (twin generated/updated + machine-verified) — a completion signal, not a label. For a modification to an already-ported component where the twin is updated in the same change, the badge may legitimately go straight to PORTED on re-approval.
    - **Angular** (twin review lifecycle): a freshly ported twin renders **REVIEW** (yellow, `ported && !approved`) → the user approves the twin in the Angular explorer → **APPROVED** (green). The Angular meta's `approved` flag means "the user visually approved this Angular twin" — it is NOT a mirror of React GATE B.
+   - **Before running the version routine, re-read "The batch ladder is ordered and closed" at the top of this file.** The release is the LAST step of the ladder, never a shortcut through it, and it freezes the batch until the PR merges.
    - **"Approve batch" resolution:** React batch not yet approved → the command is React GATE Batch-Approval (triggers the port). React already approved/PORTED → the command targets the **Angular** batch and IS final approval: clear the staging tab in BOTH DSMs + run the version routine (stamp `version` + `createdVersion`, tracker, CHANGELOG + version bump, commit + push both repos, Angular PR; no npm publish). **A release also deploys BOTH live DSMs — in the SAME step as the push, with no separate deploy permission ask (HARD RULE, user 2026-08-28, reaffirmed 2026-09-07: dev mode ships in the React bundle, so it updates with it)**: the Angular explorer to `odyssey-dsm-angular-stage.vercel.app` AND the React prototype (`vercel --prod` from the odyssey-one root, Homebrew binary) so `odyssey-one-stage.vercel.app/design-system` reflects the released metas — each verified by grepping its LIVE bundle.
    - **Side disambiguation:** if the user doesn't specify the side of an approval, ask one short question — or infer it when only one side has anything left to do.
    Delegating to a subagent is **optional** for demo files (they are small real-React modules, not token-heavy HTML concatenations).
