@@ -1025,29 +1025,69 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
   })
 })
 
-describe('CarrierBid — Flexible badges (Task 10)', () => {
-  it('shows a "Flexible" badge beside both Pickup and Delivery when quote.flexiblePickup is true', async () => {
-    saveDraft(SHIPMENT_ID, { listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 120, carriers: CARRIERS, flexiblePickup: true })
+describe('CarrierBid — Flexible dates (SPB-69/73)', () => {
+  // Wed 10/14/2026; ODFL's seeded calendar is off Sat+Sun, so ±N lists never
+  // include the 17th/18th. The picker is only offered for a flagged direction.
+  const DATED = CARRIERS.map((c) => ({ ...c, plannedPickup: '10/14/2026', plannedDelivery: '10/16/2026' }))
+  const open = async (flags) => {
+    saveDraft(SHIPMENT_ID, { listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 120, carriers: DATED, ...flags })
     const quote = sendRFQ(SHIPMENT_ID, Date.now())
-    const token = tokenFor(quote, SCAC)
-    renderAt(`/spot-bid/${token}`)
-
+    renderAt(`/spot-bid/${tokenFor(quote, SCAC)}`)
     await screen.findByText('Acme Houston Plant')
+    return screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
+  }
+  // The popover opens on the trailing calendar toggle (focus alone is not
+  // enough in jsdom) and CalendarPicker mounts on the VALUE's month.
+  const fieldOf = (detail, label) => within(detail).getByLabelText(label).closest('.date-picker')
+  const openCalendar = (field) => fireEvent.click(within(field).getByRole('button', { name: /open calendar/i }))
 
-    const detailSection = screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
-    // One "Flexible" badge each beside Pickup and Delivery.
-    expect(within(detailSection).getAllByText('Flexible')).toHaveLength(2)
+  it('pickup flagged: shows a Flexible badge and a Pickup date picker defaulted to the planned date; Delivery stays text', async () => {
+    const detail = await open({ flexiblePickup: true })
+    expect(within(detail).getAllByText('Flexible')).toHaveLength(1)
+    expect(within(detail).getByLabelText('Pickup').value).toBe('10/14/2026')
+    expect(within(detail).queryByLabelText('Delivery')).toBeNull()
   })
 
-  it('shows no "Flexible" badge when quote.flexiblePickup is false', async () => {
+  it('a day outside the carrier list is disabled in the calendar', async () => {
+    const detail = await open({ flexiblePickup: true })
+    openCalendar(fieldOf(detail, 'Pickup'))
+    expect(screen.getByLabelText('Sunday, October 18, 2026').disabled).toBe(true)
+    expect(screen.getByLabelText('Thursday, October 15, 2026').disabled).toBe(false)
+  })
+
+  it('submitting sends the chosen dates on the bid, and Submit is blocked while a flagged date is empty', async () => {
+    const detail = await open({ flexiblePickup: true, flexibleDelivery: true })
+    expect(within(detail).getByLabelText('Delivery').value).toBe('10/16/2026')
+    const pickup = within(detail).getByLabelText('Pickup')
+    // Clear the pickup date → Submit disabled even with a valid rate.
+    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1500' } })
+    fireEvent.blur(screen.getByLabelText(/linehaul/i))
+    fireEvent.focus(pickup)
+    fireEvent.change(pickup, { target: { value: '' } })
+    fireEvent.keyDown(pickup, { key: 'Enter' })
+    expect(screen.getByRole('button', { name: /^submit bid$/i }).disabled).toBe(true)
+    // Pick Thu 10/15 in the calendar (reopened on the planned month via typing
+    // is not needed — an empty value mounts the calendar on today, so type it).
+    fireEvent.focus(pickup)
+    fireEvent.change(pickup, { target: { value: '10/15/2026' } })
+    fireEvent.keyDown(pickup, { key: 'Enter' })
+    expect(within(detail).getByLabelText('Pickup').value).toBe('10/15/2026')
+    const submit = screen.getByRole('button', { name: /^submit bid$/i })
+    expect(submit.disabled).toBe(false)
+    fireEvent.click(submit)
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Submit Bid' })).getByRole('button', { name: /confirm/i }))
+    const c = getQuote(SHIPMENT_ID).carriers.find((x) => x.scac === SCAC)
+    expect(c.bid.pickupDate).toBe('10/15/2026')
+    expect(c.bid.deliveryDate).toBe('10/16/2026')
+  })
+
+  it('shows no "Flexible" badge and no picker when neither direction is flagged', async () => {
     const quote = openQuote() // flexiblePickup defaults to false (spotStore.saveDraft)
-    const token = tokenFor(quote, SCAC)
-    renderAt(`/spot-bid/${token}`)
-
+    renderAt(`/spot-bid/${tokenFor(quote, SCAC)}`)
     await screen.findByText('Acme Houston Plant')
-
-    const detailSection = screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
-    expect(within(detailSection).queryByText('Flexible')).toBe(null)
+    const detail = screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
+    expect(within(detail).queryByText('Flexible')).toBe(null)
+    expect(within(detail).queryByLabelText('Pickup')).toBeNull()
   })
 })
 

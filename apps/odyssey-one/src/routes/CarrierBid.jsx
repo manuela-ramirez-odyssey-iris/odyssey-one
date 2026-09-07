@@ -2,8 +2,9 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Badge, ComboBox, FormField, SubAccordion, TitleSubtitle, ModalMedium } from '@odyssey/ui'
+import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Badge, ComboBox, FormField, SubAccordion, TitleSubtitle, ModalMedium, DatePicker } from '@odyssey/ui'
 import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
+import { strToDate, dateToStr } from '../components/orders/create/fields/DateField.jsx'
 import { SummaryCard } from '../components/detail/QuoteModal.jsx'
 import { decodeToken } from '../spotboard/token.js'
 import { getQuote, submitBid, declineBid, hydrateQuote } from '../spotboard/spotStore.js'
@@ -405,6 +406,20 @@ export default function CarrierBid() {
   // since it also needs `order` itself as its gate.
   const services = order?.specialServices ?? []
 
+  // SPB-69/73: a flagged direction with a non-empty allow-list gets a picker,
+  // bounded to the list the store stamped at Send. Defaults to the planner's
+  // planned date when that date is itself allowable. Date-only, "MM/DD/YYYY"
+  // like the planner side (Kathleen written answer #5).
+  const pickupChoices = quote?.flexiblePickup ? (carrier?.allowablePickupDates ?? []) : []
+  const deliveryChoices = quote?.flexibleDelivery ? (carrier?.allowableDeliveryDates ?? []) : []
+  const pickupFlex = pickupChoices.length > 0
+  const deliveryFlex = deliveryChoices.length > 0
+  const isoOfMdy = (s) => { const d = strToDate(s); return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '' }
+  const defaultChoice = (planned, choices) => (choices.includes(isoOfMdy(planned)) ? planned : '')
+  const [pickupDate, setPickupDate] = useState(() => priorBid?.pickupDate ?? defaultChoice(carrier?.plannedPickup, pickupChoices))
+  const [deliveryDate, setDeliveryDate] = useState(() => priorBid?.deliveryDate ?? defaultChoice(carrier?.plannedDelivery, deliveryChoices))
+  const datesMissing = (pickupFlex && !pickupDate) || (deliveryFlex && !deliveryDate)
+
   const [linehaulValue, setLinehaulValue] = useState(() => String(priorBid?.linehaul ?? ''))
   // Base-rate validation (SPB-65): required and > 0. The error message only
   // shows once the carrier has LEFT the field (touched) — no red flash on a
@@ -636,7 +651,7 @@ export default function CarrierBid() {
     // `fuel` is the schedule-resolved amount (SPB-64) — 0 for an
     // unconfigured carrier, whose fuel (if any) rides in accessorials as a
     // manually-added charge. `currency` is bid-level (SPB-66).
-    const bid = { linehaul: linehaulNum, fuel: effectiveFuel, accessorials, total, currency, submittedBy: carrier.name }
+    const bid = { linehaul: linehaulNum, fuel: effectiveFuel, accessorials, total, currency, submittedBy: carrier.name, pickupDate: pickupFlex ? pickupDate : undefined, deliveryDate: deliveryFlex ? deliveryDate : undefined }
     setQuote(submitBid(shipmentId, scac, bid, Date.now()))
   }
   const handleDecline = () => {
@@ -680,12 +695,20 @@ export default function CarrierBid() {
                   pair in the same grid--pairs cell the bare TitleSubtitle
                   used to occupy — grid placement is unchanged. */}
               <div className="carrier-bid-card__date-group">
-                <TitleSubtitle title={order.earliestPickup} subtitle="Pickup" />
+                {pickupFlex ? (
+                  <DatePicker id="cb-pickup" label="Pickup" value={strToDate(pickupDate)} onChange={(d) => setPickupDate(dateToStr(d))} enabledDates={pickupChoices} />
+                ) : (
+                  <TitleSubtitle title={order.earliestPickup} subtitle="Pickup" />
+                )}
                 {quote.flexiblePickup && <Badge variant="blue">Flexible</Badge>}
               </div>
               <div className="carrier-bid-card__date-group">
-                <TitleSubtitle title={order.earliestDelivery} subtitle="Delivery" />
-                {quote.flexiblePickup && <Badge variant="blue">Flexible</Badge>}
+                {deliveryFlex ? (
+                  <DatePicker id="cb-delivery" label="Delivery" value={strToDate(deliveryDate)} onChange={(d) => setDeliveryDate(dateToStr(d))} enabledDates={deliveryChoices} />
+                ) : (
+                  <TitleSubtitle title={order.earliestDelivery} subtitle="Delivery" />
+                )}
+                {quote.flexibleDelivery && <Badge variant="blue">Flexible</Badge>}
               </div>
               <TitleSubtitle title={String(shipment.stopsData.stops.length)} subtitle="Stops" />
               <TitleSubtitle title={distanceDisplay} subtitle="Distance" />
@@ -903,7 +926,7 @@ export default function CarrierBid() {
                 </Button>
                 {/* Gated on a valid base rate (SPB-65) — the field-level
                     error above explains the disabled state once touched. */}
-                <Button variant="primary" size="lg" disabled={linehaulInvalid} onClick={() => setConfirmAction('submit')}>
+                <Button variant="primary" size="lg" disabled={linehaulInvalid || datesMissing} onClick={() => setConfirmAction('submit')}>
                   {confirmTitle}
                 </Button>
               </div>
