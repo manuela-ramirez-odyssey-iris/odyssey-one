@@ -316,14 +316,13 @@ export default function BottomBar({
     if (t.key === 'routing' && pendingOrderChange) {
       return {
         ...t,
-        // The shared icon-only purple Badge (user, 2026-09-07, final of four
-        // tries: inline glyph → floating corner circle → count → this).
-        // OctagonAlert reads "halted", which is what a pending order change
-        // does to this tab. Badge's icon-only shape is aria-hidden by design,
-        // so the wrapper carries the label.
+        // The shared purple Badge, OctagonAlert + "Review" (user,
+        // 2026-09-07). OctagonAlert reads "halted", which is what a pending
+        // order change does to this tab; the word names the way out. The
+        // wrapper's aria-label says WHY rather than repeating the verb.
         indicators: (
           <span role="img" aria-label="Order change pending">
-            <Badge variant="purple" iconOnly leftIcon={<OctagonAlert {...ICON_MD} aria-hidden="true" />} />
+            <Badge variant="purple" leftIcon={<OctagonAlert {...ICON_MD} aria-hidden="true" />}>Review</Badge>
           </span>
         ),
       }
