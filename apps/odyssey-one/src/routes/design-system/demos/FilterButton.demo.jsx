@@ -8,11 +8,12 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2347:325',
   codeConnect: 'packages/ui/src/FilterButton.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
   { name: 'active', type: 'boolean', desc: 'Persistent active state (drawer open / filters applied). Renders in Carolina Blue. Default false.' },
-  { name: 'label', type: 'string', desc: 'Button label. Default "Filters".' },
+  { name: 'label', type: 'string', desc: 'Button label. Default "Filter" (user, 2026-09-07 — was "Filters").' },
   { name: 'onClick', type: '() => void', desc: 'Click handler.' },
 ]
 

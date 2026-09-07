@@ -5844,7 +5844,7 @@ button.breadcrumb__label:focus-visible {
 .shipments-bar__tab-indicators {
   position: absolute;
   top: -7px;
-  right: -6px;
+  right: 2px; /* mostly within the tab's own width (user, 2026-09-07) */
   z-index: 1;
   display: inline-flex;
   align-items: center;

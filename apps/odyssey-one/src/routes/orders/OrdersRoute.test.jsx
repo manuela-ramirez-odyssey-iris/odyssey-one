@@ -76,7 +76,7 @@ describe('OrdersRoute — tab identity (ORD-24)', () => {
     renderOrders()
     await waitFor(() => expect(spy).toHaveBeenCalled())
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
     const field = await screen.findByPlaceholderText('Enter Order Number')
     fireEvent.change(field, { target: { value: '091000' } })
     fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))
@@ -130,7 +130,7 @@ describe('OrdersRoute — tab badges follow the criteria', () => {
 
     // Open the Filters panel from the bar's own FilterButton — the toolbar's
     // secondary Filters trigger is gone (ORD-23).
-    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
     const field = await screen.findByPlaceholderText('Enter Order Number')
     fireEvent.change(field, { target: { value: '091000' } })
     fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))

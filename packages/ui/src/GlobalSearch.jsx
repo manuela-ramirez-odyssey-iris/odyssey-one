@@ -64,7 +64,7 @@ function GlobalSearchSearch({
   onFilterClick,
   // FilterButton's own label. Domains pass 'Filter <Domain>' so the trigger
   // reads unambiguously when a page has more than one search bar.
-  filterLabel = 'Filters',
+  filterLabel = 'Filter',
   onFocus,
   onBlur,
   chips = [],

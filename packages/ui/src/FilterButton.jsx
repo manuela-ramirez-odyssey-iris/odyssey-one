@@ -7,7 +7,7 @@ import { ICON_MD } from '@odyssey/tokens'
 // / Active (Carolina Blue, persistent — `active` prop = drawer open).
 // The applied-filter count Badge is owned by GlobalSearch (rendered as a
 // sibling overlay), not by this atom.
-export default function FilterButton({ active = false, onClick, label = 'Filters' }) {
+export default function FilterButton({ active = false, onClick, label = 'Filter' }) {
   return (
     <button
       type="button"
