@@ -166,7 +166,6 @@
    for its title). */
 .tender-pane__table-title {
   padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
 }
 
