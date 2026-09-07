@@ -9,12 +9,12 @@ import OrdersTable from '../../components/orders/OrdersTable'
 import { primaryRowAction } from '../../components/orders/ordersColumns'
 import OrdersExportModal, { EXPORT_ROW_CAP } from '../../components/orders/OrdersExportModal'
 import OrdersGlobalSearch from '../../components/global-search/OrdersGlobalSearch'
-import { activeFilterCount, toRequestFilters } from '../../search/orders/toRequest'
+import { toRequestFilters } from '../../search/orders/toRequest'
 import { useOrderList } from '../../api/queries/useOrderList'
 import { useOrderTabCounts } from '../../api/queries/useOrderTabCounts'
 import { useSubmitDraftOrder } from '../../api/queries/useSubmitDraftOrder'
 import { useCancelOrder } from '../../api/queries/useCancelOrder'
-import { getOrderList, VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
+import { getOrderList } from '../../api/services/orderService'
 import { mapOrderListRow } from '../../api/mappers/mapOrderListRow'
 import { useCustomers } from '../../contexts/CustomersContext'
 import '../../components/orders/orders.css'
@@ -26,24 +26,32 @@ import '../../components/orders/orders.css'
  * instance). Mock-mode data layer shaped like POST /order-service/v3/order/list
  * (Phase-2 LLD) — live flip is an env var.
  */
-// Main tabs act as status filters (Shipments-pattern): All = unfiltered,
-// Draft = the Draft status, Validation Errors = the failure statuses (orders
-// needing error validation — VALIDATION_ERROR_STATUSES).
+// Main tabs are three disjoint POPULATIONS, not status filters over one list
+// (ORD-24, user ruling 2026-09-05 — supersedes the ORD-23 status-intersection
+// model this comment used to describe). The population predicate travels on
+// the request as `tab` (OrderListRequest.tab) and is applied SERVER-SIDE
+// (mock matcher + SQL) before the panel's own filters AND on top — see
+// orderService.ts's matchesTab / api/_lib/orders.mjs's TAB_PREDICATES.
 const MAIN_TABS = [
-  { key: 'all', label: 'All', statuses: null, countKey: 'all' },
-  { key: 'draft', label: 'Draft', statuses: ['Draft'], countKey: 'draft' },
-  { key: 'validation-errors', label: 'Validation Errors', statuses: VALIDATION_ERROR_STATUSES, countKey: 'validationErrors' },
+  { key: 'created', label: 'Created', countKey: 'created' },
+  { key: 'draft', label: 'Draft', countKey: 'draft' },
+  { key: 'validation-errors', label: 'Validation Errors', countKey: 'validationErrors' },
 ]
+
+// Legacy deep-link compatibility (ORD-24): old bookmarks/widgets sent
+// `state: { tab: 'all' }` before the All → Created rename. One-line map so a
+// stale link still lands on the right tab.
+const LEGACY_TAB_MAP = { all: 'created' }
 
 // Per-tab default header sort (S94 decision — Draft's is an inference, cheap
 // to change: lastEdit desc). Reapplied whenever the tab switches.
-// All defaults to newest-first (created_at DESC) — S113 Task 3 (Fix A). The
+// Created defaults to newest-first (created_at DESC) — S113 Task 3 (Fix A). The
 // prior default (idLabel/order_number DESC) lexicographically sorted a TEXT
 // column: letter-prefixed order numbers sort above every 13-digit zero-padded
 // number the server mints for a blank Order Number, burying a freshly created
 // order dozens of pages deep. Order Number stays selectable via its column header.
 const DEFAULT_SORT = {
-  all: [{ id: 'created', desc: true }],
+  created: [{ id: 'created', desc: true }],
   draft: [{ id: 'lastEdit', desc: true }],
   'validation-errors': [{ id: 'errorCount', desc: true }],
 }
@@ -62,25 +70,28 @@ export default function OrdersRoute() {
   // (CustomersContext.selectedDataIds → gridService customerIds).
   const { selectedDataIds } = useCustomers()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 }) // pageIndex 0-based (TanStack)
-  // Main tabs (Orders Tabs mock) — status filters over the same list query.
-  const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
+  // Main tabs (Orders Tabs mock) — three populations (ORD-24). LEGACY_TAB_MAP
+  // covers a deep link built before the All → Created rename.
+  const [activeTab, setActiveTab] = useState(() => {
+    const requested = location.state?.tab ?? 'created'
+    return LEGACY_TAB_MAP[requested] ?? requested
+  })
   // Header sorting (S94) — TanStack-shaped, lifted here so it can drive the
   // request; resets to the tab's default on every tab switch (handleTabSelect).
-  const [sorting, setSorting] = useState(() => DEFAULT_SORT[activeTab] ?? DEFAULT_SORT.all)
+  const [sorting, setSorting] = useState(() => DEFAULT_SORT[activeTab] ?? DEFAULT_SORT.created)
   // Submit/Cancel row actions confirm before mutating (LINX-11663/10258).
   const [confirmAction, setConfirmAction] = useState(null) // { type: 'submit' | 'cancel', row }
   const submitDraftOrder = useSubmitDraftOrder()
   const cancelOrder = useCancelOrder()
   // Export to Excel (LINX-9896 BR V) — toolbar Export opens the confirm modal.
   const [exportOpen, setExportOpen] = useState(false)
-  // Panel filters (LINX-10285/11663/11659), keyed BY TAB: the three tabs
-  // specify disjoint filter sets, so one shared bag would carry a value into a
-  // tab whose panel never shows that field — an invisible filter.
-  const [filtersByTab, setFiltersByTab] = useState({})
-  const tabFilters = filtersByTab[activeTab]
-  // Panel open state lives HERE, not in OrdersGlobalSearch: two triggers drive
-  // one panel — the navbar bar's FilterButton and the table toolbar's Filters
-  // button — and they sit in different subtrees, so neither can own it.
+  // Panel filters (LINX-10285/11663/11659). ONE shared bag now, not per-tab
+  // (user ruling, 2026-09-04, Ramesh meeting: "merge all filters into one so
+  // results are then applied to tabs" — overrides the old per-tab scoping).
+  // Survives a tab switch: switching tabs must not clear what the user typed.
+  const [filters, setFilters] = useState({})
+  // Panel open state lives HERE, not in OrdersGlobalSearch: the panel also
+  // opens from the results preview's "filters" link, a different subtree.
   const [filtersOpen, setFiltersOpen] = useState(false)
   // Committed GlobalSearch free text (S128). Deliberately NOT per-tab: a search
   // is a question about ORDERS, not about the tab you happen to be on, and the
@@ -88,34 +99,31 @@ export default function OrdersRoute() {
   // filter still applies on top, so the tab keeps its meaning.
   const [searchText, setSearchText] = useState('')
   // Committed bar CHIPS (S130) — the structured half of a search commit, the
-  // twin of `searchText`'s free half. A SEPARATE path from `filtersByTab`: the
-  // panel's fields are tab-scoped by ticket ruling while the bar is flat over
-  // the whole progression, so bar criteria cannot live in panel state without
-  // either being dropped on the wrong tab or forcing fields onto a tab
-  // LINX-10285 says should not have them. Not per-tab, for the same reason
-  // `searchText` isn't: a search is a question about ORDERS.
+  // twin of `searchText`'s free half. A SEPARATE path from `filters`: the
+  // panel writes a subset of its fields out as chips (panelChips.js), so bar
+  // criteria and panel state are two different shapes over the same fields,
+  // not one bag. Not per-tab, for the same reason `searchText` isn't: a
+  // search is a question about ORDERS.
   const [searchChips, setSearchChips] = useState([])
 
-  const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
   const sortField = SORT_FIELD_BY_COLUMN[sorting[0]?.id] ?? sorting[0]?.id ?? 'orderNumber'
+  const panelFilters = useMemo(() => toRequestFilters(activeTab, filters), [activeTab, filters])
+
   const request = useMemo(() => {
-    // Tab statuses first, panel filters over them. They can't collide: only the
-    // All tab exposes an Order Status field, and its tabStatuses is null; the
-    // VE tab's status filter is the separate `draftOrderStatuses`.
-    const filters = {
-      ...(tabStatuses ? { orderStatuses: tabStatuses } : {}),
-      ...toRequestFilters(activeTab, tabFilters),
+    const reqFilters = {
+      ...panelFilters,
       // Raw text; getOrderList resolves it into needles where the full dataset
       // is (mock) or by asking the server (live).
       ...(searchText ? { searchText } : {}),
       ...(searchChips.length ? { searchChips } : {}),
     }
     return {
+      tab: activeTab,
       pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
       sort: { field: sortField, direction: sorting[0]?.desc ? 'desc' : 'asc' },
-      ...(Object.keys(filters).length ? { filters } : {}),
+      ...(Object.keys(reqFilters).length ? { filters: reqFilters } : {}),
     }
-  }, [pagination, sortField, sorting, tabStatuses, activeTab, tabFilters, searchText, searchChips])
+  }, [activeTab, pagination, sortField, sorting, panelFilters, searchText, searchChips])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -124,15 +132,16 @@ export default function OrdersRoute() {
     setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
   }, [scopeKey])
 
-  // The badges count what the grid is filtered by, MINUS the tab's own status
-  // restriction — each tab applies its own, which is what makes the three
-  // numbers differ (S131: "tabs badge counters are not updating in orders").
-  // Panel params + bar chips + free text all ride along.
+  // The badges count what the grid is filtered by, WITHOUT any tab restriction
+  // — each badge applies its OWN population predicate over the same filtered
+  // set server-side (D1), which is what makes the three numbers differ
+  // (S131: "tabs badge counters are not updating in orders"). Panel params +
+  // bar chips + free text all ride along; no `tab` key here on purpose.
   const countFilters = useMemo(() => ({
-    ...toRequestFilters(activeTab, tabFilters),
+    ...panelFilters,
     ...(searchText ? { searchText } : {}),
     ...(searchChips.length ? { searchChips } : {}),
-  }), [activeTab, tabFilters, searchText, searchChips])
+  }), [panelFilters, searchText, searchChips])
 
   const { data, isPending, isFetching, isError, refetch } = useOrderList(request, selectedDataIds)
   const { data: tabCounts } = useOrderTabCounts(selectedDataIds, countFilters)
@@ -141,9 +150,9 @@ export default function OrdersRoute() {
     if (key === activeTab) return
     setActiveTab(key)
     setPagination(p => ({ ...p, pageIndex: 0 }))
-    setSorting(DEFAULT_SORT[key] ?? DEFAULT_SORT.all)
-    // OrdersGlobalSearch closes its own panel on a tab change — the field set
-    // changes with the tab, so an open panel would show the previous one.
+    setSorting(DEFAULT_SORT[key] ?? DEFAULT_SORT.created)
+    // Filters deliberately survive the switch (ORD-23) — one field set on
+    // every tab means the panel's criteria still make sense on the new one.
   }
 
   // A committed search re-ranks the whole list — page 5 of the old result set
@@ -203,9 +212,9 @@ export default function OrdersRoute() {
   }, [handleRowAction])
 
   const handleApplyFilters = useCallback((draft) => {
-    setFiltersByTab(prev => ({ ...prev, [activeTab]: draft }))
+    setFilters(draft)
     setPagination(p => ({ ...p, pageIndex: 0 })) // a narrowed list may have fewer pages than the current index
-  }, [activeTab])
+  }, [])
   // Paging during a background refetch is intentionally NOT gated: the @odyssey/ui
   // Paginator disables nav via getCan{Previous,Next}Page(), and
   // `placeholderData: keepPreviousData` keeps the current page visible during an
@@ -231,7 +240,7 @@ export default function OrdersRoute() {
     )
     const vms = res.orders.map(mapOrderListRow)
     const EXPORT_SHAPES = {
-      all: r => ({ 'Order Number': r.idLabel, Hazardous: r.hazardous ? 'Hazmat' : '-', 'Order Source': r.orderSource,
+      created: r => ({ 'Order Number': r.idLabel, Hazardous: r.hazardous ? 'Hazmat' : '-', 'Order Source': r.orderSource,
         'Order Status': r.status, Customer: r.customer, 'Ship Direction': r.shipDirection,
         'Freight Terms': r.freightTerms, Equipment: r.equipment,
         'Shipper Location': `${r.shipperLocation.id} ${r.shipperLocation.name} ${r.shipperLocation.address}`.trim(),
@@ -243,7 +252,7 @@ export default function OrdersRoute() {
       'validation-errors': r => ({ 'Order Number': r.idLabel, Customer: r.customer,
         'Draft Order Status': r.draftOrderStatus, 'Errors Count': r.errorCount ?? '' }),
     }
-    const shaped = vms.map(EXPORT_SHAPES[activeTab] ?? EXPORT_SHAPES.all)
+    const shaped = vms.map(EXPORT_SHAPES[activeTab] ?? EXPORT_SHAPES.created)
     const XLSX = await import('xlsx')
     const ws = XLSX.utils.json_to_sheet(shaped)
     const wb = XLSX.utils.book_new()
@@ -259,7 +268,7 @@ export default function OrdersRoute() {
       searchSlot={
         <OrdersGlobalSearch
           tab={activeTab}
-          filters={tabFilters}
+          filters={filters}
           onApply={handleApplyFilters}
           open={filtersOpen}
           onOpenChange={setFiltersOpen}
@@ -289,16 +298,12 @@ export default function OrdersRoute() {
           ))}
         </div>
 
-        {/* Filters here is a TRIGGER only — the panel renders in the
+        {/* The secondary Filters trigger is gone (ORD-23) — the bar's own
+            FilterButton is the only way in; the panel still renders in the
             GlobalSearch slot above, never next to the grid. */}
         <OrdersToolbar
           totalCount={data?.totalCount}
           onExportClick={() => setExportOpen(true)}
-          onFiltersClick={() => setFiltersOpen(o => !o)}
-          // Params AND committed chips (S131): the panel now applies most of
-          // its fields as bar chips, so counting only `tabFilters` would show 0
-          // right after the user applied a filter with this very button.
-          filterCount={activeFilterCount(activeTab, tabFilters) + searchChips.length}
         />
 
         {isError ? (

@@ -14,7 +14,7 @@ describe('mapOrderListRow', () => {
       weight: '4,300 lbs',   // thousands separator (S94 format change)
       volume: '730 cbf',
       equipment: 'TL',
-      status: 'Ready For Plan',
+      status: 'Ready for Planning',
       hazardous: false,
       orderSource: 'Integrated',
       shipDirection: 'Inbound',  // code → label at the grid seam
@@ -66,7 +66,7 @@ const baseRow = {
     city: 'Berwyn', state: 'IL', country: 'US',
     earliestDeliveryDateTime: '', latestDeliveryDateTime: '' },
   grossWeight: { value: 24530, uom: 'LB' }, volume: { value: 64, uom: 'cuft' },
-  commodity: 'Plastic', orderStatus: 'Ready For Plan',
+  commodity: 'Plastic', orderStatus: 'Ready for Planning',
   // createdBy/lastEditedBy are USERNAMES (R2-4), not display names; created/
   // lastEdit carry a sibling zone code (R2-3).
   hazardous: true, createdAt: '2026-06-08T08:45:00', createdBy: 'amy.cook', createdTimeZoneCode: 'CDT',

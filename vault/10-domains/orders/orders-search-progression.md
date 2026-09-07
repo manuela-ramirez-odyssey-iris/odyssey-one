@@ -3,7 +3,7 @@ title: Orders — Search Progression
 domain: orders
 type: canon
 tags: [orders, global-search, progression, attributes, search, filtering]
-date: 2026-08-24
+date: 2026-09-04
 status: active
 ---
 
@@ -40,19 +40,19 @@ The test also pins the shape: 9 groups, 20 attributes, unique keys, every attrib
 
 Three column headers map to a differently-worded attribute label; the test whitelists exactly those three (`Latest Pickup Date and Time` → `Latest Pickup Date`, same for delivery, and the Validation Errors tab's `Draft Order Status` staying its own attribute rather than folding into `Order Status`).
 
-## 2. Flat for the bar, tab-scoped for the panel
+## 2. Flat for the bar, flat for the panel; tabs are populations
 
-Orders has **two** filter vocabularies, and they are scoped differently on purpose.
+Orders has **two** filter vocabularies, and both are flat.
 
 | | Search **bar** (progression) | Filters **panel** (registry) |
 |---|---|---|
 | File | `search/orders/progression.js` | `search/orders/registry.js` |
-| Scoping | **flat** — one catalog, always all 20 | **tab-scoped** — `attrsForTab(tab)` |
-| Source | the grid columns (S130 ruling) | LINX-10285 / LINX-11663 / LINX-11659 AC |
+| Scoping | **flat** — one catalog, always all 20 | **flat** — all 13 fields on every tab (ORD-23) |
+| Source | the grid columns (S130 ruling) | LINX-10285 / LINX-11663 / LINX-11659 AC, merged |
 
-The panel's tab-scoping is an explicit ruling, not an oversight — LINX-10285 carries it with the strikethrough intact: *"Basic filters are applicable for ~~all 3~~ **'All' tab only**"*.
+The tabs are not filters over one list but three disjoint **populations** — Created (LINX-10777), Draft (LINX-11663), Validation Errors (LINX-11180) — sent as `request.tab` and applied server-side before `filters` ([[decisions/decision-log#ORD-24|ORD-24]]). Bar chips and panel fields AND onto whichever population the tab holds; a criterion the population cannot satisfy yields zero rows on that tab and a 0 badge. There is no per-tab special case anywhere in the client.
 
-The bar is not scoped, per the S130 ruling: searching for a Created By while the All tab is open must find the order, and a vocabulary that shifted under the user on every tab switch would be its own bug. **One catalog, two consumers with different scoping rules.**
+History: until S139 the panel was tab-scoped on the strength of LINX-10285's strikethrough (*"Basic filters are applicable for ~~all 3~~ 'All' tab only"*); the same story's description says filters "show/hide specific orders in each of the tabs", and the user ruled the per-tab grouping out after the 2026-09-04 meeting with Ramesh (ORD-23). The bar was never scoped (S130): searching for a Created By while the Created tab is open must find the order.
 
 ## 3. Group order is the drill-forward order
 
@@ -83,7 +83,7 @@ Three fields are stored as codes and one as a boolean, but the grid shows the la
 | Ship Direction | `'O'` / `'I'` | `Outbound` / `Inbound` |
 | Freight Terms | `'A'` `'T'` `'P'` `'N'` `'C'` | `Pre-Paid/Add` · `Third Party` · `Pre-Paid` · `No Charge` · `Collect` |
 | Order Source | `'INTEGRATED'` / `'MANUAL'` | `Integrated` / `Manual` |
-| Hazardous | `true` / `false` | `Yes` / `No` |
+| Hazardous | `true` / `false` | `Hazmat` / *(not indexable)* — the column renders a Hazmat badge or `-`, so that is the only value a user can read and type |
 
 **Why:** a chip has to read the way the column reads. The alternative — chip shows a label, matcher compares a code — needs a code↔label split in every consumer. Instead the *row* is projected to labels and the matcher compares labels, so the catalog and the row speak one language. `progression.test.js` guards this from both ends: `values` must equal `['Outbound','Inbound']` (not `['O','I']`), and every enum must be `exact: true` — a fixed catalog never substring-matches.
 
@@ -128,34 +128,34 @@ The panel filters a location as a City-State-Country triple (LINX-10285's own ma
 
 The bar uses the **column's** name because the column is what a user is reading when they type. Reconciling the two labels — and whether the panel's option set should carry the facility name too — is an open item for the Orders team (Ramesh), not a silent rename of either.
 
-Two smaller label drifts sit in the same bucket: the panel labels `draftOrderStatus` **"Order Status"** while the column and progression say **"Draft Order Status"**, and it labels `errorCount` **"Error Count"** / `lastEditedBy` **"Last Edit By"** against the columns' **"Errors Count"** / **"Last Edited By"**.
+~~Two smaller label drifts sat in the same bucket~~ — **closed by ORD-23 (2026-09-04):** the panel now says **Draft Order Status**, **Errors Count** and **Last Edited By**, matching the columns.
 
 ## 8. The attribute table
 
-Progression order. `match` and `exact` are the code's own fields; Panel column records what `registry.js` offers for the same concept, and on which tabs.
+Progression order. `match` and `exact` are the code's own fields; Panel column records what `registry.js` offers for the same concept (every field on every tab since ORD-23).
 
 | # | Group | Attribute | `dataKey` | `match` | Example (seeded) | Panel equivalent |
 |---:|---|---|---|---|---|---|
-| 1 | Order Identifiers | Order Number | `orderNumber` | both | `0000000091000` | text — all 3 tabs |
-| 2 | Customers & Parties | Customer | `customer` | letters | `WEYERH_01` | lazy ComboBox — all 3 tabs |
-| 3 | Route & Geography | Shipper Location | `shipperLocation` | letters | `G2O TECH SOLUTIONS, Bastrop, LA, US` | *Origin City, State, Country* — All ⚠ |
-| 4 | Route & Geography | Destination Location | `destinationLocation` | letters | `SOLVAY CHEMICALS PL, Green River, WY, US` | *Destination City, State, Country* — All ⚠ |
-| 5 | Schedule & Appointments | Latest Pickup Date | `latestPickup` | date | `6/5/2026` | date-range — All |
-| 6 | Schedule & Appointments | Latest Delivery Date | `latestDelivery` | date | `6/7/2026` | date-range — All |
+| 1 | Order Identifiers | Order Number | `orderNumber` | both | `0000000091000` | text |
+| 2 | Customers & Parties | Customer | `customer` | letters | `WEYERH_01` | lazy ComboBox |
+| 3 | Route & Geography | Shipper Location | `shipperLocation` | letters | `G2O TECH SOLUTIONS, Bastrop, LA, US` | *Origin City, State, Country* ⚠ |
+| 4 | Route & Geography | Destination Location | `destinationLocation` | letters | `SOLVAY CHEMICALS PL, Green River, WY, US` | *Destination City, State, Country* ⚠ |
+| 5 | Schedule & Appointments | Latest Pickup Date | `latestPickup` | date | `6/5/2026` | date-range |
+| 6 | Schedule & Appointments | Latest Delivery Date | `latestDelivery` | date | `6/7/2026` | date-range |
 | 7 | Transport & Equipment | Equipment | `equipment` | enum · exact (11) | `LTR` | — none |
 | 8 | Transport & Equipment | Ship Direction | `shipDirection` | enum · exact (2) | `Outbound` | — none |
 | 9 | Transport & Equipment | Freight Terms | `freightTerms` | enum · exact (5) | `Pre-Paid/Add` | — none |
-| 10 | Order Status & Source | Order Status | `orderStatus` | enum · exact (7) | `Load Planned` | enum chips — All only |
+| 10 | Order Status & Source | Order Status | `orderStatus` | enum · exact (8) | `Planned Load` | enum chips |
 | 11 | Order Status & Source | Order Source | `orderSource` | enum · exact (2) | `Integrated` | — none |
-| 12 | Order Status & Source | Draft Order Status | `draftOrderStatus` | enum · exact (3) | `Complete` | enum chips as *Order Status* — VE ⚠ |
-| 13 | Order Status & Source | Errors Count | `errorCount` | digits · exact | `1` | comparator as *Error Count* — VE |
-| 14 | Classification | Hazardous | `hazardous` | enum · exact (2) | `No` | — none |
+| 12 | Order Status & Source | Draft Order Status | `draftOrderStatus` | enum · exact (3) | `Complete` | enum chips (label aligned, ORD-23) |
+| 13 | Order Status & Source | Errors Count | `errorCount` | digits · exact | `1` | comparator |
+| 14 | Classification | Hazardous | `hazardous` | enum · exact (1) | `Hazmat` | — none |
 | 15 | Cargo & Handling | Gross Weight | `grossWeight` | digits | `6129` | — none |
 | 16 | Cargo & Handling | Volume | `volume` | digits | `166` | — none |
-| 17 | Created & Edited | Created | `createdDate` | date | `5/29/2026` | date-range as *Created Date* — Draft |
-| 18 | Created & Edited | Created By | `createdBy` | letters | `ben.planner` | lazy ComboBox — Draft |
-| 19 | Created & Edited | Last Edit | `lastEditDate` | date | `9/15/2026` | date-range as *Last Edit Date* — Draft |
-| 20 | Created & Edited | Last Edited By | `lastEditedBy` | letters | `cara.planner` | lazy ComboBox as *Last Edit By* — Draft |
+| 17 | Created & Edited | Created | `createdDate` | date | `5/29/2026` | date-range as *Created Date* |
+| 18 | Created & Edited | Created By | `createdBy` | letters | `ben.planner` | lazy ComboBox |
+| 19 | Created & Edited | Last Edit | `lastEditDate` | date | `9/15/2026` | date-range as *Last Edit Date* |
+| 20 | Created & Edited | Last Edited By | `lastEditedBy` | letters | `cara.planner` | lazy ComboBox (label aligned, ORD-23) |
 
 Examples are real values from the seeded `src/data/orders.json` (5,077 rows). ⚠ marks a label that does not agree with the panel (§7).
 
@@ -163,7 +163,7 @@ Examples are real values from the seeded `src/data/orders.json` (5,077 rows). �
 
 Bar-only does **not** mean unfilterable. All 20 attributes narrow the grid, through a criteria path that is separate from the panel's fields: a committed chip travels as `filters.searchChips` (`api/types/orderList.ts`), the mock evaluates it with `matchesChip` over the projected row, and the live path maps it to a column through `CHIP_COLS` in `api/_lib/orders.mjs`. That separation is what lets the bar stay flat while the panel stays tab-scoped per LINX-10285, without either one bending to the other. The two implementations are held together by `src/search/orders/chipParity.test.js` — the same server-twin arrangement the Shipments search registry has.
 
-Two consequences worth knowing. Enum chips carry the **display label** (`Outbound`, `Pre-Paid/Add`, `Hazmat`), so the live path maps label → stored code before comparing; a label outside the catalog matches nothing rather than falling through to the raw text. And the main **tab badges do not yet narrow** with bar criteria — `buildTabCountsQuery` takes only the customer scope, so the counts above the grid can disagree with the list below it. That gap predates the chip path (free text never narrowed them either) and is the next obvious slice; Shipments' own `buildCountsQuery` records the rule: *"Tab badges must narrow with the search, or they contradict the grid below them."*
+Two consequences worth knowing. Enum chips carry the **display label** (`Outbound`, `Pre-Paid/Add`, `Hazmat`), so the live path maps label → stored code before comparing; a label outside the catalog matches nothing rather than falling through to the raw text. And the main **tab badges narrow with the criteria** since S131 (ORD-22): `buildTabCountsQuery` runs the list's own `orderWhereClauses`, so the counts above the grid agree with the list below it.
 
 ## 9. Related
 

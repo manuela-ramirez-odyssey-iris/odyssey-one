@@ -17,32 +17,28 @@ import {
 } from './toRequest'
 import { ORDERS_FILTER_ATTRS, attrsForTab } from './registry'
 
-describe('per-tab field sets (LINX-10285 note: All tab only)', () => {
+// ORD-23 — one field set on every tab (user ruling, 2026-09-04: "merge all
+// filters into one so results are then applied to tabs"). Overrides the old
+// LINX-10285 per-tab note; `attrsForTab` now ignores its argument.
+describe('one field set on every tab (ORD-23)', () => {
   const keys = (tab) => attrsForTab(tab).map((a) => a.key)
+  const FULL_SET = [
+    'orderNumber', 'orderStatus', 'customer', 'origin', 'destination',
+    'latestPickup', 'latestDelivery', 'createdDate', 'lastEditDate',
+    'createdBy', 'lastEditedBy', 'draftOrderStatus', 'errorCount',
+  ]
 
-  it('All carries the 10285 set including both date ranges', () => {
-    expect(keys('all')).toEqual([
-      'orderNumber', 'orderStatus', 'customer', 'origin', 'destination',
-      'latestPickup', 'latestDelivery',
-    ])
-  })
-
-  it('Draft carries the 11663 set', () => {
-    expect(keys('draft')).toEqual([
-      'orderNumber', 'customer', 'createdDate', 'lastEditDate', 'createdBy', 'lastEditedBy',
-    ])
-  })
-
-  it('Validation Errors carries the 11659 set', () => {
-    expect(keys('validation-errors')).toEqual([
-      'orderNumber', 'customer', 'draftOrderStatus', 'errorCount',
-    ])
+  it('every tab carries the SAME full catalog', () => {
+    expect(keys('all')).toEqual(FULL_SET)
+    expect(keys('draft')).toEqual(FULL_SET)
+    expect(keys('validation-errors')).toEqual(FULL_SET)
   })
 
   it("VE status binds to draftOrderStatuses, never the lifecycle orderStatuses", () => {
     const ve = attrsForTab('validation-errors').find((a) => a.key === 'draftOrderStatus')
     expect(ve.param).toBe('draftOrderStatuses')
     expect(ve.values).toEqual(['Ready', 'Complete', 'Purge'])
+    expect(ve.label).toBe('Draft Order Status') // distinct from orderStatus's 'Order Status'
   })
 })
 
@@ -118,10 +114,12 @@ describe('toRequestFilters', () => {
     expect(f({ op: 'lt', value: '1.5' })).toEqual({}) // AC: no decimals
   })
 
-  it('ignores state left over from another tab', () => {
-    // `orderStatus` is an All-tab field; carrying it into Draft must not filter.
+  it('applies every field regardless of tab (ORD-23 — one field set)', () => {
+    // orderStatus used to be an All-only field; the merged catalog now applies
+    // it on the Draft tab's request too (OrdersRoute layers the tab's own
+    // status restriction — draft/'Draft' — on top; see OrdersRoute.test.jsx).
     expect(toRequestFilters('draft', { orderStatus: ['Cancelled'], customer: ['X'] }))
-      .toEqual({ customers: ['X'] })
+      .toEqual({ orderStatuses: ['Cancelled'], customers: ['X'] })
   })
 })
 
@@ -234,7 +232,7 @@ describe('filterChips (S130 bar wiring)', () => {
     expect(filterChips('validation-errors', state)).toEqual([])
     expect(toRequestFilters('validation-errors', state)).toEqual({})
     const filled = { ...emptyState('validation-errors'), errorCount: { op: 'gt', value: '5' } }
-    expect(filterChips('validation-errors', filled)[0].label).toBe('Error Count: Greater Than 5')
+    expect(filterChips('validation-errors', filled)[0].label).toBe('Errors Count: Greater Than 5')
   })
 
   it('counts the same fields activeFilterCount does', () => {

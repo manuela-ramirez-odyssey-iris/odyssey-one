@@ -37,7 +37,7 @@ export interface OrderListRow {
   grossWeight: { value: number; uom: string }   // { 4300, "lbs" }
   volume: { value: number; uom: string }        // { 730, "cbf" }
   commodity: string                 // "Plastic"
-  orderStatus: string               // DISPLAY LABEL on the row ("Ready For Plan"), not a code
+  orderStatus: string               // DISPLAY LABEL on the row ("Ready for Planning"), not a code
   hazardous?: boolean               // ≥1 hazardous line item (LINX-12102)
   createdAt?: string                // ISO — first draft/creation timestamp (Draft tab "Created")
   createdBy?: string                // "amy.cook" — Odyssey USERNAME, not display name (R2-4,
@@ -52,11 +52,12 @@ export interface OrderListRow {
 }
 
 // /order-status/lookup enum (LLD) + DRAFT (create-order remark).
-// NOTE: HOLD is NOT a status — it's a boolean orderHoldStatus flag on the order
-// (LLD; resolves the old Hold-status question).
+// ORD-24 (user ruling 2026-09-05): HOLD IS a status in our vocabulary now —
+// the earlier note treating it as a boolean orderHoldStatus flag is
+// superseded; domain-analysis §4 lists it alongside the other seven labels.
 export type OrderStatusCode =
   | 'DRAFT' | 'RD_4_PLNNG' | 'PLN_LD' | 'PLNED_SHIP'
-  | 'PLNNG_FAIL' | 'SHIP_FAIL' | 'CAN'
+  | 'PLNNG_FAIL' | 'SHIP_FAIL' | 'HOLD' | 'CAN'
 
 /** One City-State-Country selection from the Origin/Destination filter. */
 export interface LocationTriple {
@@ -81,6 +82,13 @@ export interface OrderSearchChip {
 }
 
 export interface OrderListRequest {
+  /**
+   * The active tab as a POPULATION, applied server-side (mock + SQL) BEFORE
+   * `filters` — a plain AND, never a client-side status intersection (ORD-24,
+   * user ruling 2026-09-05, supersedes ORD-23). Absent = no restriction
+   * (Home widgets / the tab-counts helpers rely on this).
+   */
+  tab?: 'created' | 'draft' | 'validation-errors'
   pagination: {
     pageNumber: number              // LLD list example is 1-BASED ("pageNumber": 1) but the sibling
                                     // lookup example is 0-based — discrepancy tracked in Q29

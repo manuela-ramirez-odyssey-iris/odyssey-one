@@ -1427,7 +1427,7 @@ export default function Home() {
     }
     setWidgets((prev) =>
       prev.map((w) => {
-        if (w.id === 'orders-all' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.all.toLocaleString() } }
+        if (w.id === 'orders-all' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.created.toLocaleString() } }
         if (w.id === 'orders-draft' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.draft.toLocaleString() } }
         if (w.id === 'orders-validation-errors' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.validationErrors.toLocaleString() } }
         if (w.id === 'shipments-exceptions') return { ...w, props: chartProps(excCounts, w.props, excTotal) }

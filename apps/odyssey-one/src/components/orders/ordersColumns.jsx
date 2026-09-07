@@ -14,7 +14,6 @@ const col = createColumnHelper()
 // because this module has always been where the grid imports them from.
 export { ORDER_STATUS_VARIANT, DRAFT_ORDER_STATUS_VARIANT } from '../../search/orders/registry'
 import { ORDER_STATUS_VARIANT, DRAFT_ORDER_STATUS_VARIANT } from '../../search/orders/registry'
-import { VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
 
 const statusBadge = (label, map) =>
   label ? <Badge variant={map[label] ?? 'gray'}>{label}</Badge> : '--'
@@ -27,7 +26,7 @@ const locationCell = (loc) => (
   </div>
 )
 
-// ── All tab (Figma: 14 data columns, flat header) ──
+// ── Created tab (Figma: 14 data columns, flat header) ──
 export const ALL_COLUMNS = [
   col.accessor('idLabel', { header: 'Order Number' }),
   col.accessor('hazardous', {
@@ -98,12 +97,12 @@ export const VALIDATION_COLUMNS = [
 ]
 
 export const TAB_COLUMNS = {
-  all: ALL_COLUMNS,
+  created: ALL_COLUMNS,
   draft: DRAFT_COLUMNS,
   'validation-errors': VALIDATION_COLUMNS,
 }
 
-// All-tab ⋮ options are per-row (LINX-10233): Edit/Cancel are Manual-only;
+// Created-tab ⋮ options are per-row (LINX-10233): Edit/Cancel are Manual-only;
 // Restore only on Cancelled orders.
 export function allTabActionLabels(row) {
   if (row.status === 'Cancelled') return ['View', 'Copy', 'Restore']
@@ -137,7 +136,9 @@ export const DRAFT_ACTION_LABELS = ['Edit', 'Submit', 'Cancel']
  * preview maps onto that shape at the call site.
  */
 export function primaryRowAction(row) {
-  const erroring = VALIDATION_ERROR_STATUSES.includes(row?.status ?? '')
+  // ORD-24: VE is `draftOrderStatus != null` — the lifecycle failure statuses
+  // (Planning Failed / Shipment Failed) are ordinary Created-tab rows now.
+  const erroring = row?.draftOrderStatus != null
   if (erroring && row?.draftOrderStatus === 'Ready') return 'Resolve'
   const unfinished = erroring || row?.status === 'Draft'
   if (unfinished && allTabActionLabels(row ?? {}).includes('Edit')) return 'Edit'

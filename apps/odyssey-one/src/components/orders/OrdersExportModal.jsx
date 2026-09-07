@@ -6,7 +6,7 @@ export const EXPORT_ROW_CAP = 25000
 export const EXPORT_CAP_MESSAGE =
   'Exporting is limited to 25000 rows. Please apply additional filters to fetch upto 25000 rows for download'
 
-const TAB_LABELS = { all: 'All', draft: 'Draft', 'validation-errors': 'Validation Errors' }
+const TAB_LABELS = { created: 'Created', draft: 'Draft', 'validation-errors': 'Validation Errors' }
 
 /**
  * OrdersExportModal — LINX-9896 BR V: export the CURRENT tab's rows to Excel,

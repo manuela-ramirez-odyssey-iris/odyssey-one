@@ -26,7 +26,7 @@ vi.mock('../../contexts/CustomersContext', () => ({ useCustomers: () => ({ selec
 vi.mock('../../data/orders', () => ({
   getAllOrders: () => [{
     orderNumber: 'AAA1', customer: 'BASF_CHM_01', equipment: 'LTR',
-    orderStatus: 'Load Planned', orderSource: 'INTEGRATED', hazardous: false,
+    orderStatus: 'Planned Load', orderSource: 'INTEGRATED', hazardous: false,
     consignor: { name: 'Geismar Works', city: 'Geismar', state: 'LA', country: 'US' },
     consignee: { name: 'Chicago DC', city: 'Chicago', state: 'IL', country: 'US' },
   }],
@@ -208,7 +208,7 @@ describe('OrdersGlobalSearch — suggestions + results preview', () => {
     expect(onMatchClick).toHaveBeenCalledTimes(1)
     const match = onMatchClick.mock.calls[0][0]
     expect(match.id).toBe('AAA1')
-    expect(match['data-order-status']).toBe('Load Planned')
+    expect(match['data-order-status']).toBe('Planned Load')
     expect(document.querySelector('.orders-results-panel')).toBeNull()
   })
 

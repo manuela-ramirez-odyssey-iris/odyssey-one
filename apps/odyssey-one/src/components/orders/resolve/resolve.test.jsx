@@ -19,13 +19,14 @@ import ordersFixture from '../../../data/orders.json'
 // value, which used to invalidate a pinned order number on every generator
 // edit (re-pinned in S100, S101, and twice on 2026-07-30 before this).
 // Criteria = exactly what the assertions below need:
-//   errorCount 5 · Shipment Failed · draftOrderStatus Ready
+//   errorCount 5 · orderStatus null (ORD-24: VE never entered the lifecycle)
+//   · draftOrderStatus Ready
 //   seeded errors spanning general.* AND consignor.postal (the flip field)
 const FLIP_PATH = 'pickupDelivery.consignor.postal'
 const ORDER = (() => {
   const rows = Array.isArray(ordersFixture) ? ordersFixture : (ordersFixture.orders ?? [])
   const hit = rows.find((r) => {
-    if (r.errorCount !== 5 || r.orderStatus !== 'Shipment Failed' || r.draftOrderStatus !== 'Ready') return false
+    if (r.errorCount !== 5 || r.orderStatus !== null || r.draftOrderStatus !== 'Ready') return false
     const paths = deriveValidationErrors(r.orderNumber, 5, {}).errors.map((e) => e.path)
     return paths.includes(FLIP_PATH) && paths.some((p) => p.startsWith('general.'))
   })
@@ -154,8 +155,10 @@ describe('resolve mode — alert + accordions', () => {
 })
 
 describe('resolve mode — save/purge transition', () => {
-  // The row's status is the whole transition: 'Ready For Plan' is outside
-  // VALIDATION_ERROR_STATUSES, so the row leaves the Validation Errors tab.
+  // ORD-24: the transition is the status flip AND losing the VE marker
+  // (draftOrderStatus) in the same write — that marker IS the Validation
+  // Errors population predicate now, so the row leaves that tab and lands in
+  // Created only because both change together.
   async function statusOf(orderNumber) {
     const { getOrderList } = await import('../../../api/services/orderService')
     const res = await getOrderList({
@@ -165,14 +168,14 @@ describe('resolve mode — save/purge transition', () => {
     return res.orders.find((r) => r.orderNumber === orderNumber)?.orderStatus
   }
 
-  test('Purge: confirm modal → status flips to Ready For Plan and navigates back', async () => {
+  test('Purge: confirm modal → status flips to Ready for Planning and navigates back', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Purge' }))
     expect(await screen.findByText('Are you sure you want to purge this Order?')).toBeTruthy()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes' }))
     await waitFor(() => expect(screen.getByText('orders list')).toBeTruthy())
-    expect(await statusOf(ORDER)).toBe('Ready For Plan')
+    expect(await statusOf(ORDER)).toBe('Ready for Planning')
   })
 
   test('Purge modal Cancel closes without transition', async () => {
@@ -183,7 +186,9 @@ describe('resolve mode — save/purge transition', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
     await waitFor(() => expect(screen.queryByText('Are you sure you want to purge this Order?')).toBeNull())
     expect(screen.queryByText('orders list')).toBeNull()
-    expect(await statusOf(ORDER)).toBe('Shipment Failed')
+    // Unchanged: still a VE row (orderStatus null — ORD-24, it never entered
+    // the lifecycle) until Purge is actually confirmed.
+    expect(await statusOf(ORDER)).toBe(null)
   })
 
   test('Save is disabled until all errors are resolved', async () => {

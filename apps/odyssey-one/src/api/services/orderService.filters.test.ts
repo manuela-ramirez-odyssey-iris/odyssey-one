@@ -31,7 +31,7 @@ function mk(orderNumber: string, extra: Record<string, unknown> = {}) {
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
     commodity: 'Plastic',
-    orderStatus: 'Ready For Plan',
+    orderStatus: 'Ready for Planning',
     ...extra,
   }
 }
@@ -205,7 +205,7 @@ describe('searchChips — the flat criteria path', () => {
   })
 
   it('an exact chip does not substring-match a sibling value', async () => {
-    // 'Ready For Plan' must not be reached by a chip for 'Ready'.
+    // 'Ready for Planning' must not be reached by a chip for 'Ready'.
     expect(await byChips([{ key: 'order-status', dataKey: 'orderStatus', queryValue: 'Ready', exact: true }]))
       .toEqual([])
   })

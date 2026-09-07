@@ -29,12 +29,12 @@ describe('orderService.createOrder (mock)', () => {
     expect(res.data!.orderNumber).toBe('ORD-1001')
   })
 
-  it('appends a Ready For Plan row the Summary grid can see', async () => {
+  it('appends a Ready for Planning row the Summary grid can see', async () => {
     await createOrder(mapFormToOrderInterface(sample()))
     const list = await getOrderList(page())
     const row = list.orders.find(o => o.orderNumber === 'ORD-1001')
     expect(row).toBeDefined()
-    expect(row!.orderStatus).toBe('Ready For Plan')
+    expect(row!.orderStatus).toBe('Ready for Planning')
     expect(row!.orderSource).toBe('MANUAL')
     expect(row!.customer).toBe('ERCO_SYS_01')
     expect(row!.consignor.locationId).toBe('EW-TX-001')

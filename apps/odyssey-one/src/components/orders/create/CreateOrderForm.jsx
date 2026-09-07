@@ -426,7 +426,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   }, [navigate])
 
   // Resolution exit (LINX-11137): Save-with-all-resolved and Purge share one
-  // path — status → 'Ready For Plan', which drops the row out of the Validation
+  // path — status → 'Ready for Planning', which drops the row out of the Validation
   // Errors tab, then back to the list.
   const finishResolve = useCallback(async () => {
     // a failed status PATCH keeps the user on the form with their edits intact

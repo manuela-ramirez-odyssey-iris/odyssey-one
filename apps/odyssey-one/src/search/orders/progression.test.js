@@ -60,7 +60,7 @@ describe('orderSearchRow', () => {
     shipDirection: 'O',
     freightTerms: 'A',
     equipment: 'LTR',
-    orderStatus: 'Load Planned',
+    orderStatus: 'Planned Load',
     draftOrderStatus: 'Ready',
     errorCount: 3,
     hazardous: false,

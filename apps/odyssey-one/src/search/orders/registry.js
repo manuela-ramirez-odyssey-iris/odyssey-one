@@ -1,10 +1,12 @@
 /**
  * Orders filter registry — the Orders domain's filter vocabulary.
  *
- * ONE catalog, tab-tagged. The three stories specify three DIFFERENT filter
- * sets, and LINX-10285's note settles that this is deliberate, not an
- * oversight: "Basic filters are applicable for ~~all 3~~ **'All' tab only**"
- * (strikethrough in the ticket). So `tabs` is a ruling, not an inference.
+ * ONE catalog, ONE field set shown on every tab (user ruling, 2026-09-04,
+ * Ramesh meeting): "Orders filters are grouped based on each tab, which is
+ * not ideal — merge all filters into one so results are then applied to
+ * tabs." This overrides LINX-10285's note ("Basic filters are applicable for
+ * ~~all 3~~ **'All' tab only**"), which used to make `tabs` a per-attribute
+ * ruling — the field is gone; `attrsForTab` now ignores its argument.
  *
  * Sources (AC read verbatim from customfield_10032, 2026-08-20):
  *   all                → LINX-10285
@@ -39,13 +41,16 @@
  */
 import { getAllOrders } from '../../data/orders'
 
-// LINX-10285 "Order Status" — the All tab's 7 lifecycle DISPLAY labels, matching
-// what the mock service stores on the row (code→label mapping is still deferred;
-// see orderService's oneOf comment). Sourced from the seeded status set, which
-// is itself the /order-status/lookup enum minus the codes.
+// The full lifecycle vocabulary — the eight canon labels (domain-analysis §4,
+// ORD-24 user ruling 2026-09-05): Draft plus the seven non-Draft statuses a
+// created order can carry, Hold included. This is the search bar's catalog
+// (progression.js's 'order-status' chip attribute uses it whole, Draft
+// included — a chip can commit any status the row can carry). The Created
+// tab's own Order Status FILTER strips Draft back out below (D3: Draft has
+// its own tab, so it is never a Created-tab filter option).
 export const ORDER_STATUS_VALUES = [
-  'Draft', 'Ready For Plan', 'Load Planned', 'Shipment Planned',
-  'Planning Failed', 'Shipment Failed', 'Cancelled',
+  'Draft', 'Ready for Planning', 'Planned Load', 'Planned Shipment',
+  'Planning Failed', 'Shipment Failed', 'Hold', 'Cancelled',
 ]
 
 // LINX-11659 verbatim: "options are Complete, Ready & Purge". This is
@@ -58,20 +63,23 @@ export const DRAFT_ORDER_STATUS_VALUES = ['Ready', 'Complete', 'Purge']
 // Status → Badge variant. Lives HERE rather than in ordersColumns.jsx so the
 // search layer can render the same badge without importing a React module for a
 // colour map; ordersColumns re-exports these, so the grid and the search preview
-// can never disagree about what colour a status is. Figma pins New=blue,
-// Ready for Planning=green, Rating/Routing Failed=red; our label vocabulary maps
-// onto the same tones.
+// can never disagree about what colour a status is. Tone vocabulary (user
+// ruling, 2026-09-05): gray = inert, green = ready/done, blue = in progress,
+// amber = needs attention (Hold; Ready = ready to be RESOLVED, the
+// action-required state — Resolve is enabled only there), red = failed.
+// Figma pins kept: Ready for Planning = green, failures = red.
 export const ORDER_STATUS_VARIANT = {
   'Draft': 'gray',
-  'Ready For Plan': 'green',
-  'Shipment Planned': 'green',
-  'Load Planned': 'blue',
+  'Ready for Planning': 'green',
+  'Planned Load': 'blue',
+  'Planned Shipment': 'blue',
   'Planning Failed': 'red',
   'Shipment Failed': 'red',
+  'Hold': 'amber',
   'Cancelled': 'gray',
 }
 
-export const DRAFT_ORDER_STATUS_VARIANT = { Ready: 'green', Complete: 'blue', Purge: 'red' }
+export const DRAFT_ORDER_STATUS_VARIANT = { Ready: 'amber', Complete: 'green', Purge: 'gray' }
 
 // LINX-11659 verbatim — the Error Count operator dropdown.
 export const ERROR_COUNT_OPERATORS = [
@@ -87,15 +95,15 @@ export const ORDERS_FILTER_ATTRS = [
     control: 'text',
     dataKey: 'orderNumber',
     param: 'orderNumbers',
-    tabs: ['all', 'draft', 'validation-errors'],
   },
   {
     key: 'orderStatus',
     label: 'Order Status',
     control: 'enum',
-    values: ORDER_STATUS_VALUES,
+    // Draft excluded (D3): it has its own tab, and the Created population
+    // predicate (D1) already never contains a Draft row.
+    values: ORDER_STATUS_VALUES.filter((v) => v !== 'Draft'),
     param: 'orderStatuses',
-    tabs: ['all'],
   },
   {
     key: 'customer',
@@ -103,7 +111,6 @@ export const ORDERS_FILTER_ATTRS = [
     control: 'combobox',
     dataKey: 'customer',
     param: 'customers',
-    tabs: ['all', 'draft', 'validation-errors'],
   },
   {
     key: 'origin',
@@ -112,7 +119,6 @@ export const ORDERS_FILTER_ATTRS = [
     dataKey: 'consignor',
     param: 'originLocations',
     lldParams: ['originCities', 'originStates', 'originCountries'],
-    tabs: ['all'],
   },
   {
     key: 'destination',
@@ -121,35 +127,30 @@ export const ORDERS_FILTER_ATTRS = [
     dataKey: 'consignee',
     param: 'destinationLocations',
     lldParams: ['destinationCities', 'destinationStates', 'destinationCountries'],
-    tabs: ['all'],
   },
   {
     key: 'latestPickup',
     label: 'Latest Pickup Date',
     control: 'date-range',
     param: ['latestPickupDateFrom', 'latestPickupDateTo'],
-    tabs: ['all'],
   },
   {
     key: 'latestDelivery',
     label: 'Latest Delivery Date',
     control: 'date-range',
     param: ['latestDeliveryDateFrom', 'latestDeliveryDateTo'],
-    tabs: ['all'],
   },
   {
     key: 'createdDate',
     label: 'Created Date',
     control: 'date-range',
     param: ['createdDateFrom', 'createdDateTo'], // NEW
-    tabs: ['draft'],
   },
   {
     key: 'lastEditDate',
     label: 'Last Edit Date',
     control: 'date-range',
     param: ['lastEditDateFrom', 'lastEditDateTo'], // NEW
-    tabs: ['draft'],
   },
   {
     key: 'createdBy',
@@ -157,36 +158,40 @@ export const ORDERS_FILTER_ATTRS = [
     control: 'combobox',
     dataKey: 'createdBy',
     param: 'createdBy', // NEW
-    tabs: ['draft'],
   },
   {
     key: 'lastEditedBy',
-    label: 'Last Edit By',
+    label: 'Last Edited By',
     control: 'combobox',
     dataKey: 'lastEditedBy',
     param: 'lastEditedBy', // NEW
-    tabs: ['draft'],
   },
   {
     key: 'draftOrderStatus',
-    label: 'Order Status',
+    // Renamed from 'Order Status' — with ONE panel shown on every tab, this
+    // now sits next to `orderStatus`'s own 'Order Status' field and the two
+    // must not share a label (matches the grid's VE column, ORD-23).
+    label: 'Draft Order Status',
     control: 'enum',
     values: DRAFT_ORDER_STATUS_VALUES,
     param: 'draftOrderStatuses', // NEW
-    tabs: ['validation-errors'],
   },
   {
     key: 'errorCount',
-    label: 'Error Count',
+    label: 'Errors Count', // matches the VE grid column (ORD-23)
     control: 'comparator',
     param: ['errorCountOperator', 'errorCountValue'], // NEW
-    tabs: ['validation-errors'],
   },
 ]
 
-/** The attributes one tab shows, in catalog order. */
-export function attrsForTab(tab) {
-  return ORDERS_FILTER_ATTRS.filter((a) => a.tabs.includes(tab))
+/**
+ * The attributes shown in the panel. Takes `tab` for call-site compatibility
+ * (six call sites across registry/toRequest/panelChips/OrdersFiltersView) but
+ * ignores it — every tab shows the full catalog now (user ruling, 2026-09-04:
+ * "merge all filters into one so results are then applied to tabs").
+ */
+export function attrsForTab(_tab) {
+  return ORDERS_FILTER_ATTRS
 }
 
 // ── Value suggestions (LAZY, PAGED) ────────────────────────────────────────

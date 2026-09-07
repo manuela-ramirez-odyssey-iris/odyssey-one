@@ -25,6 +25,42 @@ test('tab counts: single grouped query, scoped', () => {
   assert.deepEqual(q.values, [['VALTRIS_01']])
 })
 
+// ORD-24 (D1, user ruling 2026-09-05) — tabs are populations, applied BEFORE
+// filters as a plain AND. Each predicate exactly.
+test('order list: tab population predicates', () => {
+  const created = buildOrderListQuery({ tab: 'created' })
+  assert.match(created.text, /order_status != 'Draft' AND draft_order_status IS NULL/)
+  const draft = buildOrderListQuery({ tab: 'draft' })
+  assert.match(draft.text, /WHERE.*order_status = 'Draft'/)
+  const ve = buildOrderListQuery({ tab: 'validation-errors' })
+  assert.match(ve.text, /draft_order_status IS NOT NULL/)
+})
+
+// D1/D3: a filter on a field the tab's population lacks is a plain AND, not a
+// special case — Order Status = Planned Load on the Draft tab combines into a
+// WHERE that can never be true, i.e. zero rows, no client-side guard needed.
+test('order list: a filter outside the tab population ANDs to zero rows', () => {
+  const q = buildOrderListQuery({ tab: 'draft', filters: { orderStatuses: ['Planned Load'] } })
+  assert.match(q.text, /order_status = 'Draft'/)
+  assert.match(q.text, /order_status = ANY/)
+})
+
+test('order list: absent/unknown tab restricts nothing', () => {
+  const noTab = buildOrderListQuery({})
+  assert.doesNotMatch(noTab.text, /draft_order_status IS/)
+  const unknown = buildOrderListQuery({ tab: 'bogus' })
+  assert.doesNotMatch(unknown.text, /draft_order_status IS/)
+})
+
+// Tab counts key rename (D1): all → created, plus the same three predicates
+// as FILTER clauses — criteria-aware, no tab restriction of its own.
+test('tab counts: three keys, criteria-aware, same predicates as the list', () => {
+  const q = buildTabCountsQuery({})
+  assert.match(q.text, /count\(\*\) FILTER \(WHERE \(order_status != 'Draft' AND draft_order_status IS NULL\)\)::int AS created/)
+  assert.match(q.text, /count\(\*\) FILTER \(WHERE order_status = 'Draft'\)::int AS draft/)
+  assert.match(q.text, /count\(\*\) FILTER \(WHERE draft_order_status IS NOT NULL\)::int AS "validationErrors"/)
+})
+
 test('order list: date range filters (inclusive upper bound)', () => {
   const q = buildOrderListQuery({
     filters: { earliestPickupDateFrom: '2026-04-01', earliestPickupDateTo: '2026-04-30' },
@@ -89,21 +125,21 @@ test('order view: by number, by pending id, missing key', async () => {
 })
 
 test('update status: builder by number and by pending id', () => {
-  const q = buildUpdateOrderStatusQuery('ORD-123', 'Ready For Plan')
+  const q = buildUpdateOrderStatusQuery('ORD-123', 'Ready for Planning')
   assert.match(q.text, /UPDATE orders SET order_status = \$1 WHERE order_number = \$2/)
-  assert.deepEqual(q.values, ['Ready For Plan', 'ORD-123'])
+  assert.deepEqual(q.values, ['Ready for Planning', 'ORD-123'])
   const p = buildUpdateOrderStatusQuery('pending-42', 'Cancelled')
   assert.match(p.text, /order_number = '' AND order_id = \$2/)
   assert.deepEqual(p.values, ['Cancelled', 42])
 })
 
 test('update status: whitelist, missing key, missing row', async () => {
-  await assert.rejects(() => updateOrderStatus({ body: { status: 'Ready For Plan' }, db: null }), (e) => e.status === 400)
+  await assert.rejects(() => updateOrderStatus({ body: { status: 'Ready for Planning' }, db: null }), (e) => e.status === 400)
   await assert.rejects(() => updateOrderStatus({ body: { orderNumber: 'x', status: 'Shipped; DROP TABLE' }, db: null }), (e) => e.status === 400)
   const dbMiss = { query: async () => ({ rows: [] }) }
   await assert.rejects(() => updateOrderStatus({ body: { orderNumber: 'x', status: 'Cancelled' }, db: dbMiss }), (e) => e.status === 404)
   const dbHit = { query: async () => ({ rows: [{ order_number: 'x' }] }) }
-  assert.deepEqual(await updateOrderStatus({ body: { orderNumber: 'x', status: 'Ready For Plan' }, db: dbHit }), { success: true })
+  assert.deepEqual(await updateOrderStatus({ body: { orderNumber: 'x', status: 'Ready for Planning' }, db: dbHit }), { success: true })
 })
 
 test('update order: manual_order stored whole, grid projection re-derived', () => {
@@ -175,13 +211,13 @@ test('create order: a user-supplied order number is stored as-is (no lpad substi
   assert.equal(q.values[0], 'ORD-777')
 })
 
-test('create order: DRAFT orderStatusCode -> Draft, anything else -> Ready For Plan', () => {
+test('create order: DRAFT orderStatusCode -> Draft, anything else -> Ready for Planning', () => {
   const draft = buildCreateOrderQuery({ orderStatus: { orderStatusCode: 'DRAFT' }, orderLines: [] })
   assert.ok(draft.values.includes('Draft'))
   const ready = buildCreateOrderQuery({ orderStatus: { orderStatusCode: 'RD_4_PLNNG' }, orderLines: [] })
-  assert.ok(ready.values.includes('Ready For Plan'))
+  assert.ok(ready.values.includes('Ready for Planning'))
   const absent = buildCreateOrderQuery({ orderLines: [] })
-  assert.ok(absent.values.includes('Ready For Plan')) // no orderStatus at all → not a draft
+  assert.ok(absent.values.includes('Ready for Planning')) // no orderStatus at all → not a draft
 })
 
 test('create order: identity columns written once — created_at/created_by/created_tz, honest NULL', () => {
@@ -219,7 +255,7 @@ test('create order: NOT NULL columns satisfied — consignor/consignee/order_sta
   const idx = { consignor: 5, consignee: 6, status: 11 }
   assert.equal(JSON.parse(q.values[idx.consignor]).country, 'US') // default fallback, not just truthy
   assert.equal(JSON.parse(q.values[idx.consignee]).country, 'US')
-  assert.equal(q.values[idx.status], 'Ready For Plan')
+  assert.equal(q.values[idx.status], 'Ready for Planning')
 })
 
 test('create order: handler assembles the exact mock response shape', async () => {

@@ -1,35 +1,23 @@
-import { SlidersHorizontal, Upload } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
+import { Upload } from 'lucide-react'
 import { Button } from '@odyssey/ui'
 
 /**
- * OrdersToolbar — count · Filters · Export (LINX-9896 BR V — current tab → Excel).
+ * OrdersToolbar — count · Export (LINX-9896 BR V — current tab → Excel).
  * The old direction-only sort toggle is gone — header sorting owns it (S94).
  *
- * Filters is a TRIGGER only — it does not host the panel. The panel always
- * renders in the GlobalSearch place (beneath the navbar bar), so this button
- * and the bar's own FilterButton are two ways into ONE panel in ONE place
- * (user ruling, 2026-08-20). `data-filters-trigger` keeps OrdersGlobalSearch's
- * outside-click dismissal from firing on this button — without it, mousedown
- * would close the panel and the click would immediately reopen it, so the
- * button could never close what it opened.
+ * The secondary Filters button is gone (user ruling, 2026-09-04, Ramesh
+ * meeting) — the bar's own FilterButton is now the ONLY way into the panel
+ * (plus the results preview's "filters" link). It used to be a second trigger
+ * into the same panel (user ruling, 2026-08-20); that duplication is what got
+ * removed.
  */
-export default function OrdersToolbar({ totalCount, onExportClick, onFiltersClick, filterCount = 0 }) {
+export default function OrdersToolbar({ totalCount, onExportClick }) {
   return (
     <div className="orders-toolbar">
       <span className="orders-toolbar__count text-label-sm-regular">
         {totalCount == null ? '—' : `${totalCount.toLocaleString('en-US')} items`}
       </span>
       <div className="orders-toolbar__right">
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<SlidersHorizontal {...ICON_MD} />}
-          onClick={onFiltersClick}
-          data-filters-trigger=""
-        >
-          {filterCount > 0 ? `Filters (${filterCount})` : 'Filters'}
-        </Button>
         <Button
           variant="secondary"
           size="sm"

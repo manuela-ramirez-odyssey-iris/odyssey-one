@@ -41,32 +41,37 @@ describe('panelStateToChips — what leaves the panel as a chip', () => {
     })
   })
 
-  it('is tab-scoped — the VE tab owns its own status vocabulary', () => {
+  it('both status fields chip independently — one panel, no tab scoping (ORD-23)', () => {
     const { chips } = panelStateToChips('validation-errors', {
       draftOrderStatus: ['Purge'],
-      orderStatus: ['Draft'], // not a field on this tab
+      orderStatus: ['Draft'],
     })
-    expect(chips.map((c) => c.key)).toEqual(['draft-order-status'])
+    expect(chips.map((c) => c.key).sort()).toEqual(['draft-order-status', 'order-status'])
   })
 })
 
 describe('chipsToPanelState — what the panel shows when it opens', () => {
   it('seeds each control in its own value shape', () => {
+    // 'Cancelled', not 'Draft' — Draft is excluded from the Created tab's
+    // Order Status catalog (D3, ORD-24): it has its own tab.
     expect(chipsToPanelState('all', [
       chip('order-number', '091000'),
       chip('customer', 'BASF'),
-      chip('order-status', 'Draft'),
+      chip('order-status', 'Cancelled'),
       chip('latest-pickup', '5/29/2026'),
     ])).toEqual({
       orderNumber: '091000',
       customer: ['BASF'],
-      orderStatus: ['Draft'],
+      orderStatus: ['Cancelled'],
       latestPickup: { from: '2026-05-29', to: '2026-05-29' },
     })
   })
 
-  it('ignores chips this tab has no field for', () => {
-    expect(chipsToPanelState('all', [chip('equipment', 'LTR'), chip('created-by', 'jdoe')])).toEqual({})
+  it('ignores a chip with no panel twin at all', () => {
+    // Equipment has no CHIP_TWINS/DATE_TWINS entry — it stays bar-only on
+    // every tab, unlike Created By which IS a panel field now (ORD-23).
+    expect(chipsToPanelState('all', [chip('equipment', 'LTR'), chip('created-by', 'jdoe')]))
+      .toEqual({ createdBy: ['jdoe'] })
   })
 
   it('drops an enum value that is not in the catalog', () => {
@@ -74,7 +79,7 @@ describe('chipsToPanelState — what the panel shows when it opens', () => {
   })
 
   it('round-trips a panel draft through the bar unchanged', () => {
-    const draft = { orderNumber: '091000', customer: ['BASF_CHM_01'], orderStatus: ['Draft'] }
+    const draft = { orderNumber: '091000', customer: ['BASF_CHM_01'], orderStatus: ['Cancelled'] }
     const { chips } = panelStateToChips('all', draft)
     expect(chipsToPanelState('all', chips)).toEqual(draft)
   })

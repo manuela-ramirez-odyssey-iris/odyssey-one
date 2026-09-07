@@ -3,10 +3,18 @@
 // input reaches SQL ONLY through $N parameters; sort/filter columns come ONLY
 // from the whitelist maps below — never from raw request keys.
 
-// The "Validation Errors" main tab filters to these display-label statuses.
-// Mirror of VALIDATION_ERROR_STATUSES in src/api/services/orderService.ts:50
-// (ORD-03) — keep in lockstep with that source const.
-const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
+// The three Orders tabs as POPULATIONS, not status filters (ORD-24, user
+// ruling 2026-09-05 — supersedes ORD-23's client-side status intersection,
+// corrects ORD-18's premise that Validation Errors was the lifecycle failure
+// statuses). Mirror of `matchesTab` in src/api/services/orderService.ts —
+// keep in lockstep with that source. `draft_order_status` is the VE marker
+// (LINX-11137's OIF validation state), set ONLY on VE rows — no separate
+// flag. A VE row's order_status is NULL (it never entered the lifecycle).
+const TAB_PREDICATES = {
+  created: `(order_status != 'Draft' AND draft_order_status IS NULL)`,
+  draft: `order_status = 'Draft'`,
+  'validation-errors': `draft_order_status IS NOT NULL`,
+}
 
 // Row projection: DB snake_case → OrderListRow camelCase (src/api/types/orderList.ts).
 // consignor/consignee/grossWeight/volume are JSONB columns returned as-is.
@@ -298,9 +306,13 @@ export function orderWhereClauses(filters = {}, values = []) {
   return where
 }
 
-export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}) {
+export function buildOrderListQuery({ pagination = {}, filters = {}, sort, tab } = {}) {
   const values = []
   const where = orderWhereClauses(filters, values)
+  // Population restriction (D1) — applied BEFORE filters, i.e. ANDed onto the
+  // same WHERE as everything else; absent/unknown tab restricts nothing.
+  const tabClause = TAB_PREDICATES[tab]
+  if (tabClause) where.unshift(tabClause)
 
   const pageNumber = pagination.pageNumber ?? 1        // 1-based per LLD (Q29)
   const pageSize = pagination.pageSize ?? 50
@@ -331,18 +343,13 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
   }
 }
 
-// PG array literal for the validation-error statuses. Constant module data (no
-// user input), so it's interpolated, not parameterized — this keeps values ===
-// [customerIds] for the scope-only contract. Elements are double-quoted because
-// they contain spaces ('{"Planning Failed","Shipment Failed"}').
-const VALIDATION_ERROR_ARRAY_LITERAL = `{${VALIDATION_ERROR_STATUSES.map((s) => `"${s}"`).join(',')}}`
-
 /**
  * The three tab badges. Criteria-aware since S131: the SAME `orderWhereClauses`
  * the list runs, so a badge can never claim rows the grid beneath it isn't
- * showing. The caller sends the criteria WITHOUT the active tab's own status
- * restriction — each count applies its own (that's what makes them three
- * different numbers).
+ * showing. The caller sends the criteria WITHOUT any tab restriction (D1
+ * paragraph 3) — each count applies its OWN population predicate (the same
+ * TAB_PREDICATES the list query uses) as a FILTER clause over that one
+ * filtered row set, which is what makes them three different numbers.
  */
 export function buildTabCountsQuery({ customerIds, filters } = {}) {
   const values = []
@@ -353,10 +360,9 @@ export function buildTabCountsQuery({ customerIds, filters } = {}) {
   }
   const scopeSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   return {
-    // "all" is a SQL reserved word — quote the alias.
-    text: `SELECT count(*)::int AS "all",
-                  count(*) FILTER (WHERE order_status = 'Draft')::int AS draft,
-                  count(*) FILTER (WHERE order_status = ANY('${VALIDATION_ERROR_ARRAY_LITERAL}'))::int AS "validationErrors"
+    text: `SELECT count(*) FILTER (WHERE ${TAB_PREDICATES.created})::int AS created,
+                  count(*) FILTER (WHERE ${TAB_PREDICATES.draft})::int AS draft,
+                  count(*) FILTER (WHERE ${TAB_PREDICATES['validation-errors']})::int AS "validationErrors"
            FROM orders ${scopeSql}`,
     values,
   }
@@ -402,7 +408,7 @@ export async function orderTabCounts({ query, db }) {
     if (filters && typeof filters !== 'object') filters = undefined
   }
   const { rows: [counts] } = await db.query(buildTabCountsQuery({ customerIds, filters }))
-  return counts   // { all, draft, validationErrors }
+  return counts   // { created, draft, validationErrors }
 }
 
 // Order view (slice 3b): the list-row projection + the manual_order enrichment
@@ -523,9 +529,9 @@ export async function updateOrder({ body, db }) {
 
 // ── Status update (DB ledger row 9) ─────────────────────────────────────────
 // PATCH /order-service/v3/order/status — the write path behind the three UI
-// flows (Draft submit → Ready For Plan, OIF resolve/purge → Ready For Plan,
+// flows (Draft submit → Ready for Planning, OIF resolve/purge → Ready for Planning,
 // cancel → Cancelled). Status values come ONLY from this whitelist.
-const ALLOWED_STATUS_UPDATES = ['Ready For Plan', 'Cancelled']
+const ALLOWED_STATUS_UPDATES = ['Ready for Planning', 'Cancelled']
 
 export function buildUpdateOrderStatusQuery(key, status) {
   const pendingId = key.startsWith('pending-') ? key.slice('pending-'.length) : null
@@ -567,9 +573,9 @@ export function buildCreateOrderQuery(mo, userId) {
   const orderNumber = (mo.orderNumber ?? '').trim()
   // 'DRAFT' is the only code the mapper ever stamps for a draft save
   // (mapFormToOrderInterface.ts:132-134); anything else (including absent,
-  // e.g. a hand-built test payload) is a real create → 'Ready For Plan',
+  // e.g. a hand-built test payload) is a real create → 'Ready for Planning',
   // matching the mock's createOrder status label (orderService.ts:281).
-  const status = mo.orderStatus?.orderStatusCode === 'DRAFT' ? 'Draft' : 'Ready For Plan'
+  const status = mo.orderStatus?.orderStatusCode === 'DRAFT' ? 'Draft' : 'Ready for Planning'
   return {
     // id: orders.id (serial PK) is otherwise unused by app logic (ROW_COLUMNS
     // never selects it) — resolving it from Postgres's own sequence up front

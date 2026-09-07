@@ -25,7 +25,7 @@ function mk(orderNumber: string, extra: Record<string, unknown> = {}) {
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
     commodity: 'Plastic',
-    orderStatus: 'Ready For Plan',
+    orderStatus: 'Ready for Planning',
     ...extra,
   }
 }
@@ -152,9 +152,9 @@ describe('orderService.getOrderList (mock)', () => {
   })
 
   // LINX-11663: Submit copies a base Draft row into the overlay under 'Ready
-  // For Plan' — it must vanish from the Draft-tab filter and reappear in All
-  // with the new status, exactly how the route's tab filters read it.
-  it('submitDraftOrder moves a Draft row out of the draft tab into All as Ready For Plan', async () => {
+  // for Planning' — it must vanish from the Draft-tab filter and reappear in
+  // Created with the new status, exactly how the route's tab filters read it.
+  it('submitDraftOrder moves a Draft row out of the draft tab into Created as Ready for Planning', async () => {
     __resetOrderWriteState()
     STORE.push(mk('GGG100009', { orderStatus: 'Draft' }))
     try {
@@ -165,7 +165,7 @@ describe('orderService.getOrderList (mock)', () => {
 
       const allTab = await getOrderList(page())
       const row = allTab.orders.find(o => o.orderNumber === 'GGG100009')
-      expect(row?.orderStatus).toBe('Ready For Plan')
+      expect(row?.orderStatus).toBe('Ready for Planning')
     } finally {
       STORE.pop()
       __resetOrderWriteState()
@@ -186,17 +186,67 @@ describe('orderService.getOrderList (mock)', () => {
   })
 })
 
-describe('orderService.getOrderTabCounts (mock)', () => {
-  it('buckets All / Draft / Validation Errors, honors customer scope', async () => {
+// ORD-24 (D1, user ruling 2026-09-05) — tabs are populations, applied via
+// `request.tab` BEFORE `filters`. Mock twin of the SQL predicate tests in
+// api/_lib/orders.test.mjs.
+describe('orderService.getOrderList — tab populations (mock)', () => {
+  it('a Planning Failed row is in Created, not Validation Errors', async () => {
+    STORE.push(mk('PPP100010', { orderStatus: 'Planning Failed' }))
+    try {
+      const created = await getOrderList({ ...page(), tab: 'created' } as never)
+      expect(created.orders.map(o => o.orderNumber)).toContain('PPP100010')
+      const ve = await getOrderList({ ...page(), tab: 'validation-errors' } as never)
+      expect(ve.orders.map(o => o.orderNumber)).not.toContain('PPP100010')
+    } finally {
+      STORE.pop()
+    }
+  })
+
+  it('a VE row is in neither Created nor Draft', async () => {
+    STORE.push(mk('QQQ100011', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 2 }))
+    try {
+      const created = await getOrderList({ ...page(), tab: 'created' } as never)
+      expect(created.orders.map(o => o.orderNumber)).not.toContain('QQQ100011')
+      const draft = await getOrderList({ ...page(), tab: 'draft' } as never)
+      expect(draft.orders.map(o => o.orderNumber)).not.toContain('QQQ100011')
+      const ve = await getOrderList({ ...page(), tab: 'validation-errors' } as never)
+      expect(ve.orders.map(o => o.orderNumber)).toContain('QQQ100011')
+    } finally {
+      STORE.pop()
+    }
+  })
+
+  it('an absent tab restricts nothing', async () => {
     STORE.push(
+      mk('QQQ100011', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 2 }),
       mk('DDD100006', { orderStatus: 'Draft' }),
-      mk('EEE100007', { orderStatus: 'Shipment Failed' }),
-      mk('FFF100008', { customer: 'BASF_CHM_01', orderStatus: 'Planning Failed' }),
     )
     try {
-      expect(await getOrderTabCounts()).toEqual({ all: 8, draft: 1, validationErrors: 2 })
-      expect(await getOrderTabCounts(['ERCO_SYS_01'])).toEqual({ all: 5, draft: 1, validationErrors: 1 })
-      expect(await getOrderTabCounts([])).toEqual({ all: 0, draft: 0, validationErrors: 0 })
+      const noTab = await getOrderList(page() as never)
+      expect(noTab.pagination.totalCount).toBe(STORE.length)
+    } finally {
+      STORE.splice(-2)
+    }
+  })
+})
+
+describe('orderService.getOrderTabCounts (mock)', () => {
+  // ORD-24 (user ruling 2026-09-05): VE is `draftOrderStatus != null` with
+  // `orderStatus: null` — not a lifecycle status. Created excludes Draft AND
+  // any VE row; the lifecycle failure statuses (Planning Failed/Shipment
+  // Failed) are ordinary Created rows now, unlike the old model.
+  it('buckets Created / Draft / Validation Errors, honors customer scope', async () => {
+    STORE.push(
+      mk('DDD100006', { orderStatus: 'Draft' }),
+      mk('EEE100007', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 3 }),
+      mk('FFF100008', { customer: 'BASF_CHM_01', orderStatus: null, draftOrderStatus: 'Complete', errorCount: 1 }),
+    )
+    try {
+      // 5 base rows (none Draft, none VE) + 3 pushed.
+      expect(await getOrderTabCounts()).toEqual({ created: 5, draft: 1, validationErrors: 2 })
+      // Scoped to ERCO_SYS_01: 3 base + DDD100006 (draft) + EEE100007 (VE).
+      expect(await getOrderTabCounts(['ERCO_SYS_01'])).toEqual({ created: 3, draft: 1, validationErrors: 1 })
+      expect(await getOrderTabCounts([])).toEqual({ created: 0, draft: 0, validationErrors: 0 })
     } finally {
       STORE.splice(-3)
     }
@@ -207,24 +257,26 @@ describe('orderService.getOrderTabCounts (mock)', () => {
   it('applies panel filters, bar chips and free text', async () => {
     STORE.push(
       mk('DDD100006', { orderStatus: 'Draft', customer: 'BASF_CHM_01' }),
-      mk('EEE100007', { orderStatus: 'Shipment Failed', customer: 'BASF_CHM_01' }),
+      mk('EEE100007', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 3, customer: 'BASF_CHM_01' }),
     )
     try {
       const unfiltered = await getOrderTabCounts()
       // A panel param.
       const basf = await getOrderTabCounts(undefined, { customers: ['BASF_CHM_01'] } as never)
-      expect(basf.all).toBeLessThan(unfiltered.all)
+      expect(basf.created).toBeLessThan(unfiltered.created)
       expect(basf.draft).toBe(1)
       expect(basf.validationErrors).toBe(1)
-      // A bar chip — the OTHER criteria path, same badges.
+      // A bar chip — the OTHER criteria path, same badges. Narrows to the
+      // single Draft row, which is excluded from Created by its own predicate.
       const chipped = await getOrderTabCounts(undefined, {
         searchChips: [{ key: 'order-status', dataKey: 'orderStatus', queryValue: 'Draft', exact: true }],
       } as never)
-      expect(chipped.all).toBe(chipped.draft)
+      expect(chipped.created).toBe(0)
+      expect(chipped.draft).toBe(1)
       expect(chipped.validationErrors).toBe(0)
-      // Free text.
+      // Free text — narrows to the same single Draft row.
       const texted = await getOrderTabCounts(undefined, { searchText: 'DDD100006' } as never)
-      expect(texted.all).toBe(1)
+      expect(texted.created).toBe(0)
       expect(texted.draft).toBe(1)
     } finally {
       STORE.splice(-2)
@@ -246,7 +298,7 @@ describe('orderService.getOrderTabCounts (live)', () => {
 
   it('sends the scope and the criteria, passing the response through', async () => {
     mode.mockReturnValue('live')
-    const counts = { all: 3, draft: 1, validationErrors: 0 }
+    const counts = { created: 3, draft: 1, validationErrors: 0 }
     get.mockResolvedValue(counts)
     const filters = { customers: ['A_01'], searchChips: [{ key: 'customer', queryValue: 'BASF' }] }
     expect(await getOrderTabCounts(['A_01'], filters as never)).toEqual(counts)
@@ -263,7 +315,7 @@ describe('orderService.getOrderTabCounts (live)', () => {
   // so they would silently disappear until the next deploy.
   it('keeps the deployed contract — GET, same path, criteria only additive', async () => {
     mode.mockReturnValue('live')
-    get.mockResolvedValue({ all: 5, draft: 0, validationErrors: 0 })
+    get.mockResolvedValue({ created: 5, draft: 0, validationErrors: 0 })
     await getOrderTabCounts(['A_01'], { customers: ['A_01'] } as never)
     expect(post).not.toHaveBeenCalled()
     const [path] = (get.mock.calls[0][0] as string).split('?')
@@ -272,13 +324,13 @@ describe('orderService.getOrderTabCounts (live)', () => {
 
   it('short-circuits an empty scope to zeros without an HTTP call', async () => {
     mode.mockReturnValue('live')
-    expect(await getOrderTabCounts([])).toEqual({ all: 0, draft: 0, validationErrors: 0 })
+    expect(await getOrderTabCounts([])).toEqual({ created: 0, draft: 0, validationErrors: 0 })
     expect(get).not.toHaveBeenCalled()
   })
 
   it('sends no params at all when there is neither scope nor criteria', async () => {
     mode.mockReturnValue('live')
-    get.mockResolvedValue({ all: 5, draft: 0, validationErrors: 0 })
+    get.mockResolvedValue({ created: 5, draft: 0, validationErrors: 0 })
     await getOrderTabCounts()
     expect(get).toHaveBeenCalledWith('/order-service/v3/order/tab-counts')
   })
@@ -287,10 +339,10 @@ describe('orderService.getOrderTabCounts (live)', () => {
   // different search than the rows below them.
   it('runs the phrase-then-code-list two-step for free text', async () => {
     mode.mockReturnValue('live')
-    get.mockResolvedValueOnce({ all: 0, draft: 0, validationErrors: 0 })   // phrase misses
-    get.mockResolvedValueOnce({ all: 7, draft: 2, validationErrors: 1 })   // code list hits
+    get.mockResolvedValueOnce({ created: 0, draft: 0, validationErrors: 0 })   // phrase misses
+    get.mockResolvedValueOnce({ created: 7, draft: 2, validationErrors: 1 })   // code list hits
     const counts = await getOrderTabCounts(undefined, { searchText: 'AAA1 BBB2' } as never)
-    expect(counts.all).toBe(7)
+    expect(counts.created).toBe(7)
     const terms = (call: number) =>
       JSON.parse(new URL(get.mock.calls[call][0] as string, 'http://x').searchParams.get('filters')!).searchTerms
     expect(terms(0)).toEqual(['aaa1 bbb2'])
@@ -308,9 +360,9 @@ describe('live status writes (ledger row 9)', () => {
     patch.mockResolvedValue({ success: true })
 
     await submitDraftOrder('ORD-1')
-    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-1', status: 'Ready For Plan' })
+    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-1', status: 'Ready for Planning' })
     await resolveOrder('ORD-2')
-    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-2', status: 'Ready For Plan' })
+    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-2', status: 'Ready for Planning' })
     await cancelOrder('ORD-3')
     expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-3', status: 'Cancelled' })
   })

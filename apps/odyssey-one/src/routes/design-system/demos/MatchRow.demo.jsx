@@ -94,7 +94,7 @@ const ROWS = [
       { label: 'PO #', value: '1BD9TCAJ5' },
       { label: 'Equipment', value: 'LTR' },
     ],
-    source: { label: 'Load Planned', variant: 'blue' }, iconType: 'package',
+    source: { label: 'Planned Load', variant: 'blue' }, iconType: 'package',
   },
 ]
 

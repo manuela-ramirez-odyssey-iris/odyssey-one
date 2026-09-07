@@ -15,15 +15,11 @@ import { FIELD_POPOVER_SELECTOR } from './fieldPopovers'
  * Clicks that are outside this wrapper in the DOM but NOT "outside the panel"
  * to a user. Everything here must be exempt from the dismissal below.
  *
- * `[data-filters-trigger]` — the table toolbar's Filters button. Without the
- *   exemption, mousedown closes the panel and the click reopens it, so the
- *   button could never close what it opened.
- *
  * The field popovers are the shared half — see fieldPopovers.js. Shipments hit
  * the identical bug (S130) with the same two components, which is why that
  * selector now lives in one place instead of being copied per host.
  */
-const KEEP_OPEN_SELECTOR = `[data-filters-trigger], ${FIELD_POPOVER_SELECTOR}`
+const KEEP_OPEN_SELECTOR = FIELD_POPOVER_SELECTOR
 
 /**
  * OrdersGlobalSearch — the Orders domain's navbar search slot.
@@ -32,11 +28,11 @@ const KEEP_OPEN_SELECTOR = `[data-filters-trigger], ${FIELD_POPOVER_SELECTOR}`
  * `AppShell searchSlot` → the bar sits in the navbar, and the panel drops
  * beneath it (`.orders-results-panel`, sharing the Shipments placement rule).
  *
- * TWO triggers, ONE panel, ONE place (user ruling, 2026-08-20): the bar's own
- * FilterButton and the table toolbar's Filters button. Open state is therefore
- * CONTROLLED by OrdersRoute — the toolbar button lives in a different subtree
- * and could not otherwise drive it. Both stay in sync because neither owns the
- * state.
+ * ONE panel, ONE place, ONE trigger (user ruling, 2026-09-04): the bar's own
+ * FilterButton — the table toolbar's Filters button is gone (it used to be a
+ * second trigger into the same panel, user ruling 2026-08-20). Open state
+ * still lives in OrdersRoute, not here, since the panel also opens from the
+ * results preview's "filters" link.
  *
  * FREE-TEXT SEARCH (S128, user ruling 2026-08-20) is live: typing an order
  * number and pressing Enter commits it as a query badge and filters the table.
@@ -224,10 +220,6 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
     }
   }, [open, setOpen])
 
-  // Switching tabs changes the whole field set, so a panel left open would show
-  // the previous tab's fields and could Apply against the new one.
-  useEffect(() => { setOpen(false) }, [tab, setOpen])
-
   // Enter anywhere in the bar commits, mirroring the Shipments wrapper-level
   // handler. Ignored while the FILTERS panel is open: Enter there belongs to
   // whatever field has focus, not to the search bar behind it.
@@ -245,7 +237,7 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
         value={value}
         onChange={onChange}
         onClear={clearAll}
-        placeholder="Search order number or customer"
+        placeholder="Search in Orders"
         onFocus={onFocus}
         onBlur={onBlur}
         chips={barChips}
@@ -297,10 +289,9 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
 
       {open && (
         <div className="orders-results-panel">
-          {/* Keyed by tab so the panel remounts against the new field set and
-              that tab's own applied values. */}
+          {/* Not keyed by tab — the field set no longer changes with the tab
+              (ORD-23), so a tab switch must not remount/reset the draft. */}
           <OrdersFiltersView
-            key={tab}
             tab={tab}
             filters={panelFilters}
             onApply={applyPanel}

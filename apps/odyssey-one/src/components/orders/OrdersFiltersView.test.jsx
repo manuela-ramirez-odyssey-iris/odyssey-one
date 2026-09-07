@@ -22,53 +22,58 @@ const setup = (tab, props = {}) =>
 const labels = () =>
   [...document.querySelectorAll('.orders-filters__label')].map(el => el.textContent)
 
-describe('per-tab field sets', () => {
-  it('All renders the LINX-10285 set, both date ranges included', () => {
-    setup('all')
-    expect(labels()).toEqual([
-      'Order Number', 'Order Status', 'Customer',
-      'Origin City, State, Country', 'Destination City, State, Country',
-      'Latest Pickup Date', 'Latest Delivery Date',
-    ])
-  })
+// ORD-23 — one field set on every tab (user ruling, 2026-09-04: "merge
+// all filters into one so results are then applied to tabs").
+describe('one field set on every tab', () => {
+  const FULL_SET = [
+    'Order Number', 'Order Status', 'Customer',
+    'Origin City, State, Country', 'Destination City, State, Country',
+    'Latest Pickup Date', 'Latest Delivery Date', 'Created Date', 'Last Edit Date',
+    'Created By', 'Last Edited By', 'Draft Order Status', 'Errors Count',
+  ]
 
-  it('Draft renders the LINX-11663 set and no Order Status', () => {
+  it('All, Draft and Validation Errors all render the SAME full set', () => {
+    setup('created')
+    expect(labels()).toEqual(FULL_SET)
+    cleanup()
     setup('draft')
-    expect(labels()).toEqual([
-      'Order Number', 'Customer', 'Created Date', 'Last Edit Date', 'Created By', 'Last Edit By',
-    ])
-    expect(labels()).not.toContain('Order Status')
+    expect(labels()).toEqual(FULL_SET)
+    cleanup()
+    setup('validation-errors')
+    expect(labels()).toEqual(FULL_SET)
   })
 
-  it('Validation Errors renders the LINX-11659 set', () => {
-    setup('validation-errors')
-    expect(labels()).toEqual(['Order Number', 'Customer', 'Order Status', 'Error Count'])
-    // The three OIF statuses, not the 7 lifecycle ones.
+  it('renders both status enums, distinctly labelled and each with its own vocabulary', () => {
+    setup('created')
+    // Order Status: the 7 lifecycle values.
+    expect(screen.getByRole('button', { name: 'Planned Shipment' })).toBeTruthy()
+    // Draft Order Status: the 3 OIF values, not the lifecycle ones.
     for (const v of ['Ready', 'Complete', 'Purge']) {
       expect(screen.getByRole('button', { name: v })).toBeTruthy()
     }
-    expect(screen.queryByRole('button', { name: 'Shipment Planned' })).toBeNull()
   })
 })
 
 describe('footer actions (LINX-10285)', () => {
   it('applies the edited draft, not the live filters', () => {
     const onApply = vi.fn()
-    setup('all', { onApply })
-    fireEvent.click(screen.getByRole('button', { name: 'Draft' }))
+    setup('created', { onApply })
+    // Draft is not a Created-tab Order Status option (D3 — it has its own
+    // tab); 'Cancelled' is one of the seven non-Draft labels.
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelled' }))
     // Editing alone must not call onApply — the grid refetches on Apply only.
     expect(onApply).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Show all results' }))
     expect(onApply).toHaveBeenCalledTimes(1)
-    expect(onApply.mock.calls[0][0].orderStatus).toEqual(['Draft'])
+    expect(onApply.mock.calls[0][0].orderStatus).toEqual(['Cancelled'])
   })
 
   it('Clear all empties the draft without applying', () => {
     const onApply = vi.fn()
-    setup('all', { filters: { orderStatus: ['Draft'] }, onApply })
-    expect(screen.getByRole('button', { name: 'Draft' }).getAttribute('aria-pressed')).toBe('true')
+    setup('created', { filters: { orderStatus: ['Cancelled'] }, onApply })
+    expect(screen.getByRole('button', { name: 'Cancelled' }).getAttribute('aria-pressed')).toBe('true')
     fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
-    expect(screen.getByRole('button', { name: 'Draft' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Cancelled' }).getAttribute('aria-pressed')).toBe('false')
     expect(onApply).not.toHaveBeenCalled()
   })
 
@@ -81,7 +86,7 @@ describe('footer actions (LINX-10285)', () => {
 
 describe('control types (user ruling, 2026-08-20)', () => {
   it('Order Number is a plain text input, not a picker', () => {
-    setup('all')
+    setup('created')
     const input = screen.getByPlaceholderText('Enter Order Number')
     expect(input.tagName).toBe('INPUT')
     expect(input.readOnly).toBe(false)
@@ -91,14 +96,14 @@ describe('control types (user ruling, 2026-08-20)', () => {
 
   it('typing an Order Number lands in the applied draft as a string', () => {
     const onApply = vi.fn()
-    setup('all', { onApply })
+    setup('created', { onApply })
     fireEvent.change(screen.getByPlaceholderText('Enter Order Number'), { target: { value: 'AAA1, BBB2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Show all results' }))
     expect(onApply.mock.calls[0][0].orderNumber).toBe('AAA1, BBB2')
   })
 
   it('Customer is a lazy picker fed by the paged loader', () => {
-    setup('all')
+    setup('created')
     // The select face renders; options arrive asynchronously via loadOptions,
     // which jsdom cannot scroll — the loader itself is covered in registry.test.js.
     expect(screen.getByPlaceholderText('Select Customer')).toBeTruthy()
@@ -108,7 +113,7 @@ describe('control types (user ruling, 2026-08-20)', () => {
 describe('error count comparator (LINX-11659)', () => {
   it('rejects decimals and zero inline', () => {
     setup('validation-errors')
-    const input = screen.getByPlaceholderText('Enter Error Count')
+    const input = screen.getByPlaceholderText('Enter Errors Count')
     // FormField format="integer" strips the dot at the source, so "1.5" can
     // only ever land as "15" — the remaining invalid case is 0.
     fireEvent.change(input, { target: { value: '1.5' } })
@@ -119,7 +124,7 @@ describe('error count comparator (LINX-11659)', () => {
 
   it('accepts a valid count', () => {
     setup('validation-errors')
-    fireEvent.change(screen.getByPlaceholderText('Enter Error Count'), { target: { value: '10' } })
+    fireEvent.change(screen.getByPlaceholderText('Enter Errors Count'), { target: { value: '10' } })
     expect(screen.queryByText('Whole number, 1 or greater')).toBeNull()
   })
 })
@@ -130,7 +135,7 @@ describe('error count comparator (LINX-11659)', () => {
 // selected"), which nothing in Shipments does.
 describe('single-value pickers (S130 — aligned with Shipments)', () => {
   it('a committed value renders IN the field, with nothing below it', () => {
-    setup('all', { filters: { customer: ['BASF_CHM_01'] } })
+    setup('created', { filters: { customer: ['BASF_CHM_01'] } })
     expect(screen.getByPlaceholderText('Select Customer').value).toBe('BASF_CHM_01')
     // The removable value-chips are gone; the only chips left are the Order
     // Status enum toggles, which have no remove button.
@@ -139,20 +144,20 @@ describe('single-value pickers (S130 — aligned with Shipments)', () => {
   })
 
   it('a location shows its display label, not the stored pipe-joined value', () => {
-    setup('all', { filters: { origin: ['Chicago|IL|US'] } })
+    setup('created', { filters: { origin: ['Chicago|IL|US'] } })
     expect(screen.getByPlaceholderText('Select Origin City, State, Country').value)
       .toBe('Chicago, IL, US')
   })
 
   it('Clear all empties a committed picker', () => {
-    setup('all', { filters: { customer: ['BASF_CHM_01'] } })
+    setup('created', { filters: { customer: ['BASF_CHM_01'] } })
     fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
     expect(screen.getByPlaceholderText('Select Customer').value).toBe('')
   })
 
   it('applies the value as a one-entry array — the wire format is unchanged', () => {
     const onApply = vi.fn()
-    setup('all', { filters: { customer: ['BASF_CHM_01'] }, onApply })
+    setup('created', { filters: { customer: ['BASF_CHM_01'] }, onApply })
     fireEvent.click(screen.getByRole('button', { name: 'Show all results' }))
     expect(onApply.mock.calls[0][0].customer).toEqual(['BASF_CHM_01'])
   })

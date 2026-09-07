@@ -131,15 +131,28 @@ function mockScopedRows(customerIds?: string[]): OrderListRow[] {
 }
 
 /**
- * Statuses the "Validation Errors" main tab filters to (display labels — the
- * mock service matches labels; code→label mapping deferred, plan decision 8).
- * Inferred from the Orders Tabs mock: the failure statuses are the "orders that
- * need error validation".
+ * The three Orders tabs as POPULATIONS, not status filters (ORD-24, user
+ * ruling 2026-09-05 — supersedes ORD-23's client-side status intersection and
+ * corrects ORD-18's premise that Validation Errors was the lifecycle failure
+ * statuses). `draftOrderStatus` is the VE marker — the OIF validation state
+ * (LINX-11137), set ONLY on VE rows; there is no separate flag. A VE row's
+ * `orderStatus` is null (it has not entered the lifecycle), so `created`
+ * excludes it explicitly rather than relying on a status list.
+ *
+ *   created              — orderStatus != 'Draft' AND draftOrderStatus == null
+ *   draft                — orderStatus === 'Draft'
+ *   validation-errors     — draftOrderStatus != null
+ *   (tab absent/unknown)  — no restriction (Home widgets / counts rely on this)
  */
-export const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
+export function matchesTab(row: OrderListRow, tab?: OrderListRequest['tab']): boolean {
+  if (tab === 'created') return row.orderStatus !== 'Draft' && row.draftOrderStatus == null
+  if (tab === 'draft') return row.orderStatus === 'Draft'
+  if (tab === 'validation-errors') return row.draftOrderStatus != null
+  return true
+}
 
 export interface OrderTabCounts {
-  all: number
+  created: number
   draft: number
   validationErrors: number
 }
@@ -168,7 +181,7 @@ export async function getOrderTabCounts(
   customerIds?: string[],
   filters?: OrderListRequest['filters'],
 ): Promise<OrderTabCounts> {
-  if (customerIds && customerIds.length === 0) return { all: 0, draft: 0, validationErrors: 0 }
+  if (customerIds && customerIds.length === 0) return { created: 0, draft: 0, validationErrors: 0 }
   const searchText = filters?.searchText?.trim()
   if (getApiMode() === 'live') {
     const fetchCounts = (searchTerms?: string[]) => {
@@ -184,15 +197,18 @@ export async function getOrderTabCounts(
     // read the query the way the list does, or the badges describe a different
     // search than the rows.
     const phrase = await fetchCounts([searchText.toLowerCase()])
-    if (phrase.all > 0) return phrase
+    if (phrase.created > 0) return phrase
     const tokens = tokenizeText(searchText)
     return tokens.length >= 2 ? fetchCounts(tokens) : phrase
   }
+  // Filters ONLY — no tab restriction (D1 paragraph 3): each count applies its
+  // OWN population predicate over the same filtered set, which is what makes
+  // the three badges different numbers.
   const rows = applyMockFilters(mockScopedRows(customerIds), filters, searchText)
   return {
-    all: rows.length,
-    draft: rows.filter(r => r.orderStatus === 'Draft').length,
-    validationErrors: rows.filter(r => VALIDATION_ERROR_STATUSES.includes(r.orderStatus ?? '')).length,
+    created: rows.filter(r => matchesTab(r, 'created')).length,
+    draft: rows.filter(r => matchesTab(r, 'draft')).length,
+    validationErrors: rows.filter(r => matchesTab(r, 'validation-errors')).length,
   }
 }
 
@@ -332,7 +348,10 @@ export async function getOrderList(
     return tokens.length >= 2 ? post(tokens) : phrase
   }
 
-  let rows = applyMockFilters(mockScopedRows(customerIds), request.filters, searchText)
+  // Tab is a POPULATION restriction applied BEFORE filters (D1) — a plain
+  // AND, no client-side intersection.
+  const tabRows = mockScopedRows(customerIds).filter(r => matchesTab(r, request.tab))
+  let rows = applyMockFilters(tabRows, request.filters, searchText)
   // The same needles the filter pass used — relevance ranks by them below.
   const mockNeedles = mockSearchNeedles(searchText)
 
@@ -411,15 +430,19 @@ export function __resetOrderWriteState(): void {
   draftSeq = 0
 }
 
-// Shared by submitDraftOrder/cancelOrder: shadow the row into the overlay
-// (copying it from the base seed the first time it's touched, same as
-// saveDraft/createOrder above) and stamp the new status label.
-function overlayUpdateStatus(orderNumber: string, status: string): void {
+// Shared by submitDraftOrder/resolveOrder/cancelOrder: shadow the row into
+// the overlay (copying it from the base seed the first time it's touched,
+// same as saveDraft/createOrder above) and stamp the new status label.
+// `extra` lets resolveOrder also clear the VE marker fields (below) — without
+// it a resolved row would keep `draftOrderStatus` set and satisfy BOTH the
+// Created predicate (real orderStatus) and the Validation Errors one
+// (draftOrderStatus != null), showing up on both tabs at once.
+function overlayUpdateStatus(orderNumber: string, status: string, extra: Partial<OrderListRow> = {}): void {
   const existing = overlayRows.find(r => r.orderNumber === orderNumber)
   const base = existing ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
   if (!base) return
   overlayRows = [
-    { ...base, orderStatus: status },
+    { ...base, orderStatus: status, ...extra },
     ...overlayRows.filter(r => r.orderNumber !== orderNumber),
   ]
 }
@@ -430,22 +453,27 @@ async function patchOrderStatus(orderNumber: string, status: string): Promise<vo
   await apiPatch('/order-service/v3/order/status', { orderNumber, status })
 }
 
-/** Draft-tab Submit (LINX-11663): Draft → 'Ready For Plan'; row moves to All. */
+/** Draft-tab Submit (LINX-11663): Draft → 'Ready for Planning'; row moves to All. */
 export async function submitDraftOrder(orderNumber: string): Promise<void> {
-  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready For Plan')
-  overlayUpdateStatus(orderNumber, 'Ready For Plan')
+  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready for Planning')
+  overlayUpdateStatus(orderNumber, 'Ready for Planning')
 }
 
 /**
  * OIF resolution (LINX-11137): Save-with-all-resolved and Purge both send the
- * order to the re-processing queue → 'Ready For Plan' (the AC's "Ready for
- * Planning" in app vocabulary). The status flip alone moves the row out of the
- * status-filtered Validation Errors tab into All. Live mode writes the status
- * directly — there is no dedicated OIF endpoint yet.
+ * order to the re-processing queue → 'Ready for Planning' (the AC's "Ready for
+ * Planning" in app vocabulary). ORD-24: the row must also lose its VE marker
+ * (draftOrderStatus/errorCount) — that field IS the Validation Errors
+ * population predicate now, so leaving it set would keep the row in BOTH
+ * Created (real status) and Validation Errors (draftOrderStatus != null) at
+ * once. Live mode writes the status directly — there is no dedicated OIF
+ * endpoint yet; clearing draft_order_status/error_count server-side is a
+ * known gap, tracked as an open item (this PATCH shares its status whitelist
+ * with submit, so it can't yet tell a resolve apart from a submit).
  */
 export async function resolveOrder(orderNumber: string): Promise<void> {
-  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready For Plan')
-  overlayUpdateStatus(orderNumber, 'Ready For Plan')
+  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready for Planning')
+  overlayUpdateStatus(orderNumber, 'Ready for Planning', { draftOrderStatus: undefined, errorCount: undefined })
 }
 
 /** Cancel (LINX-10258 soft delete): status → 'Cancelled'. */
@@ -498,7 +526,7 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   const orderId = 90000 + createSeq
   const orderNumber = mo.orderNumber?.trim() || String(orderId).padStart(13, '0') // 13-digit external-ID form, matches seeded shape
   overlayRows = [
-    manualOrderToListRow(mo, orderNumber, 'Ready For Plan'),
+    manualOrderToListRow(mo, orderNumber, 'Ready for Planning'),
     ...overlayRows.filter(r => r.orderNumber !== orderNumber),
   ]
   return {

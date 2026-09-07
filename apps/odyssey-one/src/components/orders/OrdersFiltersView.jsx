@@ -12,10 +12,11 @@ import { emptyState, parseErrorCount } from '../../search/orders/toRequest'
  * OrdersFiltersView — the Orders table filter panel.
  *
  * Rendered by OrdersGlobalSearch in the GlobalSearch panel place (beneath the
- * navbar bar), opened by either of two triggers — the bar's FilterButton or the
- * table toolbar's Filters button. Fields come from `attrsForTab`: each of the
- * three tabs specifies its OWN set, which LINX-10285's note settles as
- * intentional, not an oversight.
+ * navbar bar), opened by the bar's FilterButton. Fields come from
+ * `attrsForTab`, which now returns the SAME field set on every tab (user
+ * ruling, 2026-09-04, Ramesh meeting: "merge all filters into one so results
+ * are then applied to tabs") — this overrides LINX-10285's note that each of
+ * the three tabs specified its own set.
  *
  * Scope is LEAN by decision: fields + Show all results / Clear all.
  * No Saved tab, no shared filters, no edit-profile mode — none of the three

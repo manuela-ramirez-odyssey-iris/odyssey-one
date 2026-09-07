@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const ROWS = [
   {
     orderNumber: '0000000091000', customer: 'WEYERH_01', orderSource: 'INTEGRATED',
-    shipDirection: 'O', freightTerms: 'A', equipment: 'LTR', orderStatus: 'Load Planned',
+    shipDirection: 'O', freightTerms: 'A', equipment: 'LTR', orderStatus: 'Planned Load',
     draftOrderStatus: 'Ready', errorCount: 3, hazardous: false,
     grossWeight: { value: 42000, uom: 'LBS' }, volume: { value: 900, uom: 'CUFT' },
     consignor: { name: 'Longview Plant', city: 'Longview', state: 'WA', country: 'US', latestPickupDateTime: '2026-05-29T04:45:00' },
@@ -114,7 +114,7 @@ describe('getSuggestions — "What is it?"', () => {
   })
 
   it('carries `exact` onto enum items so the chip never substring-matches', async () => {
-    const item = items(await adapter.getSuggestions('Load Planned')).find((i) => i.key === 'order-status')
+    const item = items(await adapter.getSuggestions('Planned Load')).find((i) => i.key === 'order-status')
     expect(item.exact).toBe(true)
   })
 })
@@ -147,7 +147,7 @@ describe('search', () => {
   })
 
   it('an exact enum chip does not substring-match a sibling value', async () => {
-    // 'Load Planned' must not be reached by a chip for 'Planned'.
+    // 'Planned Load' must not be reached by a chip for 'Planned'.
     const loose = await adapter.search([chip('order-status', 'orderStatus', 'Planned', 'Order Status & Source', true)])
     expect(loose.total).toBe(0)
   })
@@ -156,7 +156,7 @@ describe('search', () => {
     const { results } = await adapter.search([], 'WEYERH_01')
     expect(results[0].route).toBe('Longview, WA → Freeport, TX')
     expect(results[0].customer).toBe('WEYERH_01')
-    expect(results[0].source).toEqual({ label: 'Load Planned', variant: 'blue' })
+    expect(results[0].source).toEqual({ label: 'Planned Load', variant: 'blue' })
     expect(results[0].iconType).toBe('package')
   })
 

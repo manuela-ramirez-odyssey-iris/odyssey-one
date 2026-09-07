@@ -23,7 +23,7 @@ const SEEDED = [
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
     commodity: 'Plastic',
-    orderStatus: 'Ready For Plan',
+    orderStatus: 'Ready for Planning',
   },
   // R2-7 / LINX-12102: lean rows (no manual_order enrichment) still carry the
   // grid's derived row.hazardous — the seam under test.
@@ -47,7 +47,7 @@ const SEEDED = [
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
     commodity: 'Sulfuric Acid',
-    orderStatus: 'Ready For Plan',
+    orderStatus: 'Ready for Planning',
     hazardous: true,
   },
   {
@@ -70,7 +70,7 @@ const SEEDED = [
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
     commodity: 'Plastic',
-    orderStatus: 'Ready For Plan',
+    orderStatus: 'Ready for Planning',
     hazardous: false,
   },
 ]
@@ -153,7 +153,7 @@ describe('orderService.getOrderView (mock)', () => {
     expect(vm!.products[0].description).toBe('Edited Commodity')
     const { orders } = await getOrderList({ pagination: { pageNumber: 1, pageSize: 50 } })
     const row = orders.find(o => o.orderNumber === 'AAA100001')
-    expect(row?.orderStatus).toBe('Ready For Plan') // status untouched by the edit
+    expect(row?.orderStatus).toBe('Ready for Planning') // status untouched by the edit
     expect(row?.commodity).toBe('Edited Commodity')
     expect(orders.filter(o => o.orderNumber === 'AAA100001')).toHaveLength(1) // no duplicate row
   })

@@ -31,7 +31,7 @@ function mk(orderNumber: string, customer = 'ERCO_SYS_01') {
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
     commodity: 'Plastic',
-    orderStatus: 'Ready For Plan',
+    orderStatus: 'Ready for Planning',
   }
 }
 

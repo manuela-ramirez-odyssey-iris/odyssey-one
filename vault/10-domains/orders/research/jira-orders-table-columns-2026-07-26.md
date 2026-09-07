@@ -14,7 +14,7 @@ Purpose: full Jira extraction for the Orders Overview/Summary grid (3 tabs) ahea
 ## Structure
 - Epic LINX-7557 "Order Overview and Actions" owns the grid. LINX-9896 (umbrella story, Blocked) split into 3 tab stories: LINX-11658 "All", LINX-11663 "Draft", LINX-11659 "Validation Errors" (all Blocked).
 - QA test cases LINX-13571–13590 (all Todo) encode All-tab behavior.
-- Jira QA naming: tabs are "All", "Draft", "Data Validation Errors" (LINX-13572). Our code says "Validation Errors" — label drift to reconcile.
+- Jira QA naming: tabs are "All", "Draft", "Data Validation Errors" (LINX-13572). Our code says "Validation Errors" — label drift to reconcile. **Update 2026-09-05 (ORD-24):** our "All" is now "Created" — deliberate, the tab holds only LINX-10777's successfully created orders; QA cases 13571–13590 need the rename.
 - All tab is default-selected (LINX-13571). Tab counts update dynamically (LINX-13574).
 - Efrain linked the Figma on all 3 tab tickets on 2026-07-22: https://www.figma.com/design/29IXNDEmyPekpvSrGrEcm7/Orders---OdysseyONE?node-id=5777-21538 — THE frame for the contrast session.
 - Attachments on all 3: "Linx_EU_Feedback_VD_V7_21st_May_2025 1.pdf", "LINX - Phase II_Screens_14th_July_2025 4 (1).pdf" (reference only).

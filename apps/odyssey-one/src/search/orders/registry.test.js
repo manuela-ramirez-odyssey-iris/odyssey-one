@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // 60 distinct customers + one location pool, so paging is exercised past the
 // 25-row page size rather than fitting in a single page.
@@ -80,6 +83,42 @@ describe('location triples (LINX-10285 matching rule)', () => {
 
   it('de-duplicates repeated triples', async () => {
     expect(allAttributeValues(origin, '').filter((o) => o.value === 'Miami|Florida|US')).toHaveLength(1)
+  })
+})
+
+// ORD-24 (user ruling 2026-09-05): the three old status labels are gone
+// everywhere, not just in registry.js. A plain source-tree grep is cheaper
+// and harder to dodge than enumerating every call site.
+describe('vocabulary (ORD-24 rename)', () => {
+  const OLD_LABELS = ['Ready For Plan', 'Load Planned', 'Shipment Planned']
+  const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+  const SCAN_DIRS = ['src', 'api', 'tools']
+  const EXTS = ['.js', '.jsx', '.ts', '.tsx', '.mjs']
+
+  function walk(dir) {
+    let files = []
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) files = files.concat(walk(full))
+      else if (EXTS.some((ext) => entry.name.endsWith(ext))) files.push(full)
+    }
+    return files
+  }
+
+  it('no source file contains an old Order Status label', () => {
+    const self = fileURLToPath(import.meta.url) // this file NAMES the old labels on purpose
+    const offenders = []
+    for (const dir of SCAN_DIRS) {
+      for (const file of walk(join(appRoot, dir))) {
+        if (file === self) continue
+        const text = readFileSync(file, 'utf8')
+        for (const label of OLD_LABELS) {
+          if (text.includes(label)) offenders.push(`${file}: "${label}"`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
   })
 })
 

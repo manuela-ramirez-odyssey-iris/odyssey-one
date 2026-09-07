@@ -595,6 +595,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
         onFocus={handleFocus}
         onBlur={onBlur}
         onCopy={handleCopy}
+        placeholder="Search in Shipments"
         chips={barChips}
         onChipRemove={handleChipRemove}
         onChipClick={() => setResultsOpen(true)}

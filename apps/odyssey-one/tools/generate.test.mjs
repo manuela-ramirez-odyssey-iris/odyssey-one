@@ -25,9 +25,14 @@ test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftO
   for (const d of drafts) {
     assert.ok(d.createdAt && d.createdBy && d.lastEditAt)
   }
-  const ve = orders.filter(o => ['Planning Failed', 'Shipment Failed'].includes(o.orderStatus))
+  // ORD-24 (user ruling 2026-09-05): VE is a population marker
+  // (draftOrderStatus != null), not a lifecycle status — independent of
+  // Planning Failed/Shipment Failed, which are ordinary Created-tab rows now.
+  const ve = orders.filter(o => o.draftOrderStatus != null)
   assert.ok(ve.length > 0)
   for (const o of ve) {
+    assert.equal(o.orderSource, 'INTEGRATED')
+    assert.equal(o.orderStatus, null)
     assert.ok(['Ready', 'Complete', 'Purge'].includes(o.draftOrderStatus))
     assert.ok(Number.isInteger(o.errorCount) && o.errorCount >= 1 && o.errorCount <= 12)
   }
@@ -35,6 +40,17 @@ test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftO
     assert.equal(typeof o.hazardous, 'boolean')
     assert.ok(o.consignor.name !== undefined && o.consignor.address !== undefined)
   }
+})
+
+// ORD-24 (D4/D3, user ruling 2026-09-05): VE share stays in the 5-8% band,
+// and Hold is a seeded, reachable Created-tab status.
+test('VE share stays within 5-8% of the dataset; Hold rows are seeded', () => {
+  const { orders } = buildDataset()
+  const ve = orders.filter((o) => o.draftOrderStatus != null)
+  const share = ve.length / orders.length
+  assert.ok(share >= 0.05 && share <= 0.08, `VE share ${(share * 100).toFixed(1)}% out of band`)
+  const hold = orders.filter((o) => o.orderStatus === 'Hold')
+  assert.ok(hold.length > 0, 'no Hold rows seeded')
 })
 
 test('I11: generator is deterministic for the new fields', () => {
@@ -738,9 +754,11 @@ test('history coherence: every identifier named in details belongs to that shipm
 })
 
 // ── Failure-scenario pass (2026-08-10, same-day follow-up to DEC-80) ───────
-// Mirrors VALIDATION_ERROR_STATUSES in generate.mjs (not exported — see the
-// same duplication rationale already used above for I10, line 28).
-const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
+// The lifecycle failure statuses — unrelated to Validation Errors since
+// ORD-24 (user ruling 2026-09-05): these are ordinary Created-tab rows now,
+// this list exists only to check the PGI-errors history entry lines up with
+// a real Planning/Shipment-Failed order below.
+const LIFECYCLE_FAILURE_STATUSES = ['Planning Failed', 'Shipment Failed']
 
 test('every history entry carries a valid outcome (success | failure | update | neutral | info)', () => {
   const ds = buildDataset({ totalShipments: 300 })
@@ -871,7 +889,7 @@ test('PGI validation-errors variant only appears on shipments that actually carr
     const orderIds = d.orderList.map((o) => o.orderNumber)
     const ownOrders = ds.orders.filter((o) => orderIds.includes(o.orderNumber))
     assert.ok(ownOrders.length > 0, `shipment ${s.buyShipment} has a PGI-errors entry but no matching order rows found`)
-    assert.ok(ownOrders.every((o) => VALIDATION_ERROR_STATUSES.includes(o.orderStatus)), `shipment ${s.buyShipment} has a PGI-errors entry but its orders aren't in a validation-error status`)
+    assert.ok(ownOrders.every((o) => LIFECYCLE_FAILURE_STATUSES.includes(o.orderStatus)), `shipment ${s.buyShipment} has a PGI-errors entry but its orders aren't in a lifecycle failure status`)
     checked++
   }
   assert.ok(checked > 0, 'no PGI-errors entries found — widen totalShipments if this flakes')

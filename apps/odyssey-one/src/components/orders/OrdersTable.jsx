@@ -18,7 +18,7 @@ const buildActions = (labels, row, onRowAction) =>
   labels.map((label) => ({ label, onSelect: () => onRowAction?.(label, row) }))
 
 export default function OrdersTable({
-  tab = 'all',
+  tab = 'created',
   rows,
   pagination,
   onPaginationChange,
@@ -34,7 +34,7 @@ export default function OrdersTable({
   const [stickyTop, setStickyTop] = useState(0)
 
   const columns = useMemo(() => {
-    const dataCols = TAB_COLUMNS[tab] ?? TAB_COLUMNS.all
+    const dataCols = TAB_COLUMNS[tab] ?? TAB_COLUMNS.created
     if (tab === 'validation-errors') {
       // Direct Resolve button (Figma) — enabled only while status is Ready.
       return [...dataCols, columnHelper.display({

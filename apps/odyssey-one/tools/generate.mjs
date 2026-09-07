@@ -33,9 +33,10 @@
 //  I5 Weights    — order gross/tare/net/volume ROLL UP from its lines; stop
 //                  weight = Σ of its orders; shipment grossWeight = Σ orders.
 //  I6 Status     — shipped orders derive status from the tender outcome
-//                  (Accepted→Shipment Planned, Sent→Load Planned, exceptions→
+//                  (Accepted→Planned Shipment, Sent→Planned Load, exceptions→
 //                  Shipment Failed); unshipped orders keep pre-plan statuses
-//                  (Ready For Plan / Draft / Planning Failed / Cancelled).
+//                  (Ready for Planning / Draft / Planning Failed / Cancelled /
+//                  Hold — D3, ORD-24).
 //  I7 Commodity  — order row commodity = first order line's description;
 //                  equipment = the detail order header's equipmentCode.
 //  I8 Enrichment — src/data/order-details.json holds ManualOrder-shaped detail
@@ -47,11 +48,16 @@
 //                  they can never appear on a shipment.
 //  I10 Tab fields — every order row carries createdAt/createdBy/lastEditAt
 //                  (Draft-tab columns) regardless of status; Draft-status rows
-//                  additionally get a lastEdit ≥ created; Validation-Errors
-//                  statuses (Planning Failed/Shipment Failed) additionally get
+//                  additionally get a lastEdit ≥ created. Validation Errors
+//                  (ORD-24, user ruling 2026-09-05) is a POPULATION, not a
+//                  status: a small share of INTEGRATED, non-Draft orders is
+//                  picked AFTER every order row exists and stamped with
 //                  draftOrderStatus (Ready/Complete/Purge) + a numeric
-//                  errorCount — the per-tab grid (S94) reads these directly,
-//                  no join required. row.hazardous (LINX-12102, S95) is DERIVED
+//                  errorCount + orderStatus: null (it never entered the
+//                  lifecycle) — independent of Planning Failed/Shipment
+//                  Failed, which stay ordinary Created-tab statuses now. The
+//                  per-tab grid (S94) reads draftOrderStatus directly, no join
+//                  required. row.hazardous (LINX-12102, S95) is DERIVED
 //                  from the order's lines (some(l => hazmat)), never an
 //                  independent draw — must agree with shipment detail line
 //                  items' hazmat fields, which share the same product.hazmat source.
@@ -515,14 +521,29 @@ function pickCustomer() {
 // errorCount weighted LOW (DB ledger row 7 — user flagged too many 12s):
 // most orders 1–4 errors, thin tail to 8, rare 9–12. Cap 12 stays under the
 // OIF RESOLVE_POOL size (15) so the resolve view can always seed them.
+// Factored out of genErrorCount so the ORD-24 independent-RNG post-pass
+// (buildDataset) can weight-pick a count WITHOUT touching the shared faker.
+const ERROR_COUNT_WEIGHTS = [
+  { value: 1, weight: 28 }, { value: 2, weight: 24 }, { value: 3, weight: 18 },
+  { value: 4, weight: 12 }, { value: 5, weight: 7 },  { value: 6, weight: 4 },
+  { value: 7, weight: 3 },  { value: 8, weight: 2 },
+  { value: 9, weight: 0.6 }, { value: 10, weight: 0.5 },
+  { value: 11, weight: 0.5 }, { value: 12, weight: 0.4 },
+];
 function genErrorCount() {
-  return faker.helpers.weightedArrayElement([
-    { value: 1, weight: 28 }, { value: 2, weight: 24 }, { value: 3, weight: 18 },
-    { value: 4, weight: 12 }, { value: 5, weight: 7 },  { value: 6, weight: 4 },
-    { value: 7, weight: 3 },  { value: 8, weight: 2 },
-    { value: 9, weight: 0.6 }, { value: 10, weight: 0.5 },
-    { value: 11, weight: 0.5 }, { value: 12, weight: 0.4 },
-  ])
+  return faker.helpers.weightedArrayElement(ERROR_COUNT_WEIGHTS);
+}
+// Weighted pick against an independent RNG (rnd() in [0,1)) — same shape as
+// faker.helpers.weightedArrayElement, used by the ORD-24 post-pass so it
+// never draws from the shared faker stream (see mulberry32 comment above).
+function rndWeighted(rnd, items) {
+  const total = items.reduce((sum, item) => sum + item.weight, 0);
+  let r = rnd() * total;
+  for (const item of items) {
+    r -= item.weight;
+    if (r <= 0) return item.value;
+  }
+  return items[items.length - 1].value;
 }
 
 function fmt(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -1679,10 +1700,9 @@ function generateShipment(index, chainOverride) {
     // gated on a REAL signal rather than another random draw: this
     // shipment's own orders resolve orderStatus to 'Shipment Failed'
     // whenever !hasAccepted && !hasSent (see orderStatusLabel a few hundred
-    // lines below — VALIDATION_ERROR_STATUSES includes 'Shipment Failed'),
-    // which is exactly the condition guarding this whole branch (isReview
-    // Terminal). So every shipment that reaches here really does carry a
-    // validation-error order; the PGI-errors variant is unconditional here,
+    // lines below), which is exactly the condition guarding this whole branch
+    // (isReviewTerminal). So every shipment that reaches here really does
+    // carry a Shipment-Failed order; the PGI-errors variant is unconditional here,
     // not a coin flip.
     advanceClock(1, 24);
     pushHistory('PGI Response Received', 'completion', 'ERP',
@@ -1707,7 +1727,7 @@ function generateShipment(index, chainOverride) {
     // things that you need as you feel" ruling; no design implied or built.
     // Accepted shipments always get the clean PGI success text here — the
     // validation-errors variant above is reachable only via the tenderFailed
-    // (Review) branch, matching the real VALIDATION_ERROR_STATUSES gate.
+    // (Review) branch, matching the real Shipment-Failed gate.
     advanceClock(12, 72);
     pushHistory('PGI Response Received', 'completion', 'ERP',
       'PGI received and execution updates applied to orders and shipment.',
@@ -2041,7 +2061,7 @@ function generateShipment(index, chainOverride) {
 
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
   // an orders.json row with the SAME id, customer, locations, dates, weights.
-  const orderStatusLabel = hasAccepted ? 'Shipment Planned' : hasSent ? 'Load Planned' : 'Shipment Failed'; // I6
+  const orderStatusLabel = hasAccepted ? 'Planned Shipment' : hasSent ? 'Planned Load' : 'Shipment Failed'; // I6
   orders.forEach((ord, oi) => {
     const h = orderHeaders[oi];
     const w = ord.window;
@@ -2089,7 +2109,10 @@ function generateShipment(index, chainOverride) {
       // flagged for the orders decision log.
       createdTimeZoneCode: tzAbbrev(deriveTimezone(from.city) || 'America/Chicago', createdInstant),
     };
-    if (VALIDATION_ERROR_STATUSES.includes(orderRow.orderStatus)) {
+    // Legacy draw for RNG parity only — see LEGACY_DRAW_STATUSES. Real VE
+    // membership (ORD-24) is decided by the independent-RNG post-pass at the
+    // end of buildDataset, which overwrites/clears these fields for every row.
+    if (LEGACY_DRAW_STATUSES.includes(orderRow.orderStatus)) {
       orderRow.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
       orderRow.errorCount = genErrorCount();
     }
@@ -2265,6 +2288,20 @@ function mulberry32(seed) {
   };
 }
 const seedFrom = (str) => [...String(str)].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7);
+// Sample up to n distinct items from arr against an independent rnd() — a
+// deterministic partial shuffle, no replacement. Used by the ORD-24 VE/Hold
+// post-pass so it never draws from the shared faker stream.
+function rndSample(rnd, arr, n) {
+  const pool = arr.slice();
+  const count = Math.min(n, pool.length);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor(rnd() * pool.length);
+    out.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  return out;
+}
 
 /**
  * Builds detail.orderChange for a shipment seeded into the 'order-change'
@@ -2577,9 +2614,17 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
 // follow the same invariants (line roll-ups, ordered date windows, shared
 // location ids) so the create-form contract can explain every row.
 
-// Weighted pre-plan statuses (I6) — HOLD is a flag, not a status.
+// Weighted pre-plan statuses (I6). Composition (counts, order, length) is
+// UNCHANGED from pre-ORD-24 on purpose — pick() maps a shared-faker draw to
+// an array index, so resizing this pool would shift which status every
+// unshipped order gets, which cascades (the Draft branch below draws two
+// MORE faker values) into a different orders.json AND shifts every draw
+// after it, silently re-numbering seeded shipment/order ids downstream.
+// Hold (D3, ORD-24, user ruling 2026-09-05 — supersedes the earlier "Hold is
+// a flag" note) is assigned in the independent-RNG post-pass in
+// buildDataset() instead, so it never touches this pool or the shared stream.
 const UNSHIPPED_STATUS_POOL = [
-  ...Array(50).fill('Ready For Plan'),
+  ...Array(50).fill('Ready for Planning'),
   ...Array(20).fill('Draft'),
   ...Array(18).fill('Planning Failed'),
   ...Array(12).fill('Cancelled'),
@@ -2592,8 +2637,17 @@ const UNSHIPPED_STATUS_POOL = [
 // in `users`; the invented names are replaced when the user-management domain
 // arrives (user, 2026-08-02).
 const ORDER_USERS = ORDER_AUTHOR_USERNAMES;
-const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed'];
 const DRAFT_ORDER_STATUS_POOL = ['Ready', 'Ready', 'Ready', 'Complete', 'Complete', 'Purge'];
+// VE share of the total dataset (D4: keep within 5-8%, today's ballpark).
+const VE_SHARE = 0.06;
+// ponytail: pre-ORD-24 VE was `VALIDATION_ERROR_STATUSES.includes(orderStatus)`
+// (deleted per D1 — real VE membership is decided by the independent-RNG
+// post-pass in buildDataset() now). Kept here ONLY to reproduce the exact two
+// shared-faker draws (pick + genErrorCount) HEAD made at those two call
+// sites, so shipments.json/order-details.json stay byte-identical — a new
+// draw or a skipped one re-numbers every subsequent seeded id. The post-pass
+// deletes whatever this writes before deciding VE for real.
+const LEGACY_DRAW_STATUSES = ['Planning Failed', 'Shipment Failed'];
 
 // Long, MULTILINE-worthy instruction bodies for the rich unshipped orders.
 const LONG_INSTRUCTIONS = [
@@ -2682,7 +2736,7 @@ function generateUnshippedOrder(n, pending) {
     grossWeight: { value: gross, uom: 'lbs' },
     volume: { value: volume, uom: 'cbf' },
     commodity: lines[0].itemDescription,
-    orderStatus: pending ? 'Ready For Plan' : pick(UNSHIPPED_STATUS_POOL),
+    orderStatus: pending ? 'Ready for Planning' : pick(UNSHIPPED_STATUS_POOL),
     hazardous: lines.some(l => l.hazmat), // LINX-12102 — derived from lines, not an independent draw
     createdAt: toIsoLocal(createdInstant),
     createdBy: pick(ORDER_USERS),
@@ -2695,7 +2749,10 @@ function generateUnshippedOrder(n, pending) {
     row.lastEditTimeZoneCode = tzAbbrev(zone, new Date(row.lastEditAt));
     row.lastEditedBy = pick(ORDER_USERS);
   }
-  if (VALIDATION_ERROR_STATUSES.includes(row.orderStatus)) {
+  // Legacy draw for RNG parity only — see LEGACY_DRAW_STATUSES. Real VE
+  // membership (ORD-24) is decided by the independent-RNG post-pass at the
+  // end of buildDataset, which overwrites/clears these fields for every row.
+  if (LEGACY_DRAW_STATUSES.includes(row.orderStatus)) {
     row.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
     row.errorCount = genErrorCount();
   }
@@ -2895,6 +2952,51 @@ export function buildDataset({
 
   for (let n = 0; n < unshippedOrders; n++) orderRows.push(generateUnshippedOrder(n, false));
   for (let n = 0; n < pendingOrders; n++) orderRows.push(generateUnshippedOrder(n, true));
+
+  // ── Validation Errors (VE) + Hold selection — ORD-24 (user ruling 2026-09-05) ─
+  // Runs on its OWN mulberry32 stream (seeded off 42, but a distinct constant
+  // so it can't collide with anything else), started only AFTER every base
+  // draw (shipments, orders, enrichments) is done. That's deliberate: this
+  // used to reuse the shared `faker`/`pick`, which re-numbered every
+  // subsequent seeded id — shipment ids Neon already holds are load-bearing,
+  // so shipments.json/order-details.json must reproduce byte-identically.
+  // Only orderRows' orderStatus/draftOrderStatus/errorCount are touched here.
+  const veHoldRnd = mulberry32(seedFrom('ORD-24:ve-hold:42'));
+
+  // First, wipe the legacy draws the two LEGACY_DRAW_STATUSES call sites made
+  // (kept only for shared-stream parity — see their comments). Real VE
+  // membership is decided fresh, below, independent of orderStatus.
+  for (const row of orderRows) {
+    delete row.draftOrderStatus;
+    delete row.errorCount;
+  }
+
+  // VE is a POPULATION marker (draftOrderStatus != null), not a lifecycle
+  // status — picked from INTEGRATED order rows, independent of most of
+  // orderStatus's vocabulary. Two exclusions (D4): Draft (a manually-saved
+  // draft never went through OIF intake, so it can't carry an OIF validation
+  // state) and Planning Failed/Shipment Failed (D4 keeps those AS lifecycle
+  // failure statuses — they stay ordinary Created-tab rows; PGI-errors
+  // history entries are keyed to a real Shipment-Failed order, so pulling
+  // one into VE — orderStatus: null — would strand that history entry).
+  const veEligible = orderRows.filter((o) =>
+    o.orderSource === 'INTEGRATED' &&
+    !['Draft', 'Planning Failed', 'Shipment Failed'].includes(o.orderStatus));
+  const veCount = Math.round(orderRows.length * VE_SHARE);
+  for (const row of rndSample(veHoldRnd, veEligible, veCount)) {
+    row.draftOrderStatus = rndWeighted(veHoldRnd, DRAFT_ORDER_STATUS_POOL.map((v) => ({ value: v, weight: 1 })));
+    row.errorCount = rndWeighted(veHoldRnd, ERROR_COUNT_WEIGHTS);
+    row.orderStatus = null; // never entered the lifecycle (D1)
+  }
+
+  // Hold (D3) — a real pre-plan status, weighted for ~2-3% of the dataset.
+  // Drawn from the same independent stream, from whatever's left of the
+  // Ready for Planning pool (VE selection above already removed some).
+  const holdEligible = orderRows.filter((o) => o.orderStatus === 'Ready for Planning');
+  const holdCount = Math.round(orderRows.length * 0.025);
+  for (const row of rndSample(veHoldRnd, holdEligible, holdCount)) {
+    row.orderStatus = 'Hold';
+  }
 
   // orderRows / orderEnrichments are the module accumulators generateShipment +
   // generateUnshippedOrder pushed into — hand them back as the dataset's orders.

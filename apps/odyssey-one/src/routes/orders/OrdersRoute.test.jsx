@@ -34,9 +34,65 @@ function renderOrders() {
   )
 }
 
-afterEach(cleanup)
+// vi.spyOn on the same method returns the SAME spy across the whole file
+// (no clearMocks/restoreMocks in vite.config.js) — a test reading
+// spy.mock.calls[0] as "the first call THIS test made" silently reads a
+// previous test's leftover history without this.
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
-describe('OrdersRoute — All tab default sort (S113 Task 3, Fix A)', () => {
+// ORD-24 (user ruling 2026-09-05) — tabs are populations sent as `request.tab`.
+describe('OrdersRoute — tab identity (ORD-24)', () => {
+  test('defaults to the Created tab', async () => {
+    const spy = vi.spyOn(orderService, 'getOrderList')
+    renderOrders()
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    expect(spy.mock.calls[0][0].tab).toBe('created')
+  })
+
+  test('a legacy state.tab of "all" (pre-rename deep link) lands on Created', async () => {
+    const spy = vi.spyOn(orderService, 'getOrderList')
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <EditModeProvider>
+          <CreateOrderModeProvider>
+            <CustomersProvider>
+              <MemoryRouter initialEntries={[{ pathname: '/orders', state: { tab: 'all' } }]}>
+                <Routes>
+                  <Route path="/orders" element={<OrdersRoute />} />
+                </Routes>
+              </MemoryRouter>
+            </CustomersProvider>
+          </CreateOrderModeProvider>
+        </EditModeProvider>
+      </QueryClientProvider>,
+    )
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    expect(spy.mock.calls[0][0].tab).toBe('created')
+  })
+
+  test('filters survive a tab switch (kept from ORD-23)', async () => {
+    const spy = vi.spyOn(orderService, 'getOrderList')
+    renderOrders()
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }))
+    const field = await screen.findByPlaceholderText('Enter Order Number')
+    fireEvent.change(field, { target: { value: '091000' } })
+    fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))
+
+    spy.mockClear()
+    fireEvent.click(await screen.findByRole('button', { name: 'Draft' }))
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    const last = spy.mock.calls.at(-1)[0]
+    expect(last.tab).toBe('draft')
+    // Order Number is a CHIP_TWINS field (panelChips.js) — it rides as a bar
+    // chip, not a filters.orderNumbers param.
+    expect(last.filters?.searchChips?.map(c => [c.key, c.queryValue])).toEqual([['order-number', '091000']])
+  })
+})
+
+describe('OrdersRoute — Created tab default sort (S113 Task 3, Fix A)', () => {
   test('first-load request sorts by created, desc (newest first)', async () => {
     const spy = vi.spyOn(orderService, 'getOrderList')
     renderOrders()
@@ -72,8 +128,9 @@ describe('OrdersRoute — tab badges follow the criteria', () => {
     // First call: no criteria yet.
     expect(counts.mock.calls[0][1]).toEqual({})
 
-    // Open the Filters panel from the toolbar trigger and apply an Order Number.
-    fireEvent.click(await screen.findByRole('button', { name: /Filters/ }))
+    // Open the Filters panel from the bar's own FilterButton — the toolbar's
+    // secondary Filters trigger is gone (ORD-23).
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }))
     const field = await screen.findByPlaceholderText('Enter Order Number')
     fireEvent.change(field, { target: { value: '091000' } })
     fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))

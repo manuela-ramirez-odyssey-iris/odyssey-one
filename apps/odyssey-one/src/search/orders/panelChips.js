@@ -65,12 +65,13 @@ const mdyToIso = (value) => {
 }
 
 /**
- * Committed bar chips → the panel field values that REPRESENT them, for one
- * tab's fields. This is what makes opening the panel show the criteria already
- * on the bar instead of an empty form.
+ * Committed bar chips → the panel field values that REPRESENT them. This is
+ * what makes opening the panel show the criteria already on the bar instead of
+ * an empty form.
  *
- * Chips whose attribute this tab has no field for are simply absent — they stay
- * bar-only criteria, which is the flat-vs-tab-scoped split LINX-10285 forces.
+ * Chips with no panel twin at all (CHIP_TWINS/DATE_TWINS) are simply absent —
+ * they stay bar-only criteria (e.g. Equipment). Since one panel now shows every
+ * field on every tab (ORD-23), `tab` no longer narrows which twins apply.
  */
 export function chipsToPanelState(tab, chips = []) {
   const byKey = new Map(chips.map((c) => [c.key, c]))

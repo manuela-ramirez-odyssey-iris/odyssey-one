@@ -48,9 +48,12 @@ export function splitTextValues(text) {
 }
 
 /**
- * Build the `filters` object for ONE tab's state. Attributes not on that tab
- * are ignored even if state lingers for them, so a stale value can never filter
- * a tab whose panel doesn't show the field.
+ * Build the `filters` object from the panel's draft state. One field set on
+ * every tab now (user ruling, 2026-09-04) — `tab` stays in the signature for
+ * call-site compatibility with `attrsForTab` (which ignores it, same reason),
+ * not because the field set varies. The tab itself now travels separately, as
+ * `OrderListRequest.tab` (ORD-24, user ruling 2026-09-05) — a population
+ * restriction applied server-side, never folded into these filters.
  */
 export function toRequestFilters(tab, state = {}) {
   const filters = {}
@@ -178,7 +181,7 @@ export function filterChips(tab, state = {}) {
   return chips
 }
 
-/** Blank state for a tab — every field cleared to its control's empty value. */
+/** Blank state — every field cleared to its control's empty value. */
 export function emptyState(tab) {
   const state = {}
   for (const attr of attrsForTab(tab)) {
@@ -190,7 +193,3 @@ export function emptyState(tab) {
   return state
 }
 
-/** Every tab key the registry knows about — used to seed per-tab state. */
-export const ORDERS_FILTER_TABS = [
-  ...new Set(ORDERS_FILTER_ATTRS.flatMap((a) => a.tabs)),
-]

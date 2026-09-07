@@ -180,7 +180,9 @@ export function orderSearchRow(row) {
     equipment: row.equipment,
     shipDirection: shipDirectionLabel(row.shipDirection),
     freightTerms: freightTermLabel(row.freightTerms),
-    orderStatus: row.orderStatus,
+    // VE rows carry orderStatus: null (ORD-24, D1) — never entered the
+    // lifecycle. '' matches nothing, same rule every other blank field here follows.
+    orderStatus: row.orderStatus ?? '',
     orderSource: row.orderSource ? row.orderSource[0] + row.orderSource.slice(1).toLowerCase() : '',
     draftOrderStatus: row.draftOrderStatus ?? '',
     errorCount: row.errorCount == null ? '' : String(row.errorCount),
