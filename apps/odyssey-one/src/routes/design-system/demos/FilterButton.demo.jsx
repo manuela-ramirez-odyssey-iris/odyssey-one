@@ -12,7 +12,7 @@ export const meta = {
 
 export const props = [
   { name: 'active', type: 'boolean', desc: 'Persistent active state (drawer open / filters applied). Renders in Carolina Blue. Default false.' },
-  { name: 'label', type: 'string', desc: 'Button label. Default "Filter".' },
+  { name: 'label', type: 'string', desc: 'Button label. Default "Filters".' },
   { name: 'onClick', type: '() => void', desc: 'Click handler.' },
 ]
 

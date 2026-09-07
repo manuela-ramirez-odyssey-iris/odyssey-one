@@ -62,6 +62,9 @@ function GlobalSearchSearch({
   filterCount = 0,
   filterActive,
   onFilterClick,
+  // FilterButton's own label. Domains pass 'Filter <Domain>' so the trigger
+  // reads unambiguously when a page has more than one search bar.
+  filterLabel = 'Filters',
   onFocus,
   onBlur,
   chips = [],
@@ -417,7 +420,7 @@ function GlobalSearchSearch({
         </button>
 
         {showFilter && (
-          <FilterButton active={active} onClick={handleFilterClick} />
+          <FilterButton active={active} onClick={handleFilterClick} label={filterLabel} />
         )}
 
         {/* Count badge — sibling overlay so it can overhang the bar's

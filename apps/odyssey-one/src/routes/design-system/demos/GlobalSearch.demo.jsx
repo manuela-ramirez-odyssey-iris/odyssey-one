@@ -23,6 +23,7 @@ export const props = [
   { name: 'minWidth', type: 'number', desc: 'Minimum bar width in px. Default 590.' },
   { name: 'maxWidth', type: 'number', desc: 'Maximum bar width in px. Default 900.' },
   { name: 'showFilter', type: 'boolean', desc: 'Show the FilterButton at the right edge. Default true.' },
+  { name: 'filterLabel', type: 'string', desc: "FilterButton label. Default 'Filters'." },
   { name: 'filterCount', type: 'number', desc: 'Active-filter count shown on the count Badge overlay. Default 0.' },
   { name: 'filterActive', type: 'boolean', desc: 'Controlled filter-drawer open state (optional). Uncontrolled when omitted.' },
   { name: 'onFilterClick', type: '(next: boolean) => void', desc: 'Called when FilterButton is clicked; receives the next active state.' },
