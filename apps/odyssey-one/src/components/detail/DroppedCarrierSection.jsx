@@ -225,10 +225,11 @@ export default function DroppedCarrierSection({
   return (
     <div className={locked ? 'dropped-carrier--locked' : undefined} aria-disabled={locked || undefined}>
       <SubAccordion
-        title={<>Dropped Carrier <span style={{ color: 'var(--sunrise-yellow-600)' }}>({carriers.length})</span></>}
+        title={`Dropped Carrier (${carriers.length})`}
         // S140 — the section's own mark: an orange truck, replacing
         // SubAccordion's default Info glyph. Same signal the Tender tab now
         // carries when this shipment has dropped carriers.
+        showIcon={carriers.length > 0}
         icon={<ListX {...ICON_LG} style={{ color: 'var(--sunrise-yellow-600)' }} aria-hidden="true" />}
         defaultExpanded={defaultOpen}
         // Controlled + forced shut while locked. Passing `expanded` at all
