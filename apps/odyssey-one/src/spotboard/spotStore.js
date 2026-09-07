@@ -18,6 +18,8 @@
 // overwrites it. Hydration writes go through writeLocal (no PUT) so a
 // DB->local sync never echoes straight back to the DB.
 import { mintToken } from './token.js'
+import { getFlexConfig } from './flexConfig.js'
+import { allowableDates } from './flexDates.js'
 import { getApiMode } from '../api/config'
 import { fetchSpotState, putSpotState, deleteSpotState } from './spotApi.js'
 
@@ -81,6 +83,7 @@ export function saveDraft(
 export function sendRFQ(shipmentId, nowMs) {
   const quote = read(shipmentId)
   if (!quote || quote.status !== 'draft') return quote ?? null
+  const flex = getFlexConfig(shipmentId)
 
   return write({
     ...quote,
@@ -90,7 +93,17 @@ export function sendRFQ(shipmentId, nowMs) {
     // Mint once, here, at the draft->open transition — the single mint
     // point. Never mint in a render path (RfqLinksPanel renders repeatedly);
     // that would orphan already-sent links with a fresh token each render.
-    carriers: quote.carriers.map((c) => ({ ...c, token: mintToken(shipmentId, c.scac) })),
+    // SPB-69/73: a flagged direction gets a per-carrier allow-list, computed
+    // once here at Send (same moment the token is minted) off the planner's
+    // planned date. Unflagged directions carry no list — the bid page shows
+    // the planned date read-only. N comes from the same seeded OCM config
+    // that gated the checkbox in Quote Setup.
+    carriers: quote.carriers.map((c) => ({
+      ...c,
+      token: mintToken(shipmentId, c.scac),
+      ...(quote.flexiblePickup ? { allowablePickupDates: allowableDates(c.plannedPickup, flex.pickupDays, c.scac) } : {}),
+      ...(quote.flexibleDelivery ? { allowableDeliveryDates: allowableDates(c.plannedDelivery, flex.deliveryDays, c.scac) } : {}),
+    })),
   })
 }
 
@@ -103,6 +116,7 @@ export function submitBid(shipmentId, scac, bid, nowMs) {
   // linehaul is a no-op here too rather than trusting the UI alone.
   if (!(bid?.linehaul > 0)) return quote
 
+  // bid may carry pickupDate/deliveryDate ("MM/DD/YYYY") when the quote is flexible (SPB-69).
   return write({
     ...quote,
     carriers: quote.carriers.map((c) =>

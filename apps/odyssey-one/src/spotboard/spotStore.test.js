@@ -318,3 +318,30 @@ describe('subscribe', () => {
     globalThis.window = originalWindow
   })
 })
+
+describe('flex dates (SPB-69)', () => {
+  // A shipment id whose seeded OCM profile actually configures both
+  // directions (getFlexConfig is a hash of the id — SHIPMENT_ID above is a
+  // "no flex configured" one, which would make every allow-list empty).
+  const FLEX_SHIPMENT_ID = '0000000091104'
+  const dated = CARRIERS.map((c) => ({ ...c, plannedPickup: '10/14/2026', plannedDelivery: '10/16/2026' }))
+
+  it('sendRFQ stamps per-carrier allowable lists only for flagged directions', () => {
+    saveDraft(FLEX_SHIPMENT_ID, { listId: 'tl-se', listName: 'TL', durationMin: 30, carriers: dated, flexiblePickup: true, flexibleDelivery: false })
+    const q = sendRFQ(FLEX_SHIPMENT_ID, Date.now())
+    const saia = q.carriers.find((c) => c.scac === 'SAIA')
+    expect(saia.allowablePickupDates).toContain('2026-10-14')
+    expect(saia.allowablePickupDates.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))).toBe(true)
+    expect(saia.allowableDeliveryDates).toBeUndefined()
+  })
+
+  it('submitBid keeps the carrier-chosen dates on the bid', () => {
+    saveDraft(FLEX_SHIPMENT_ID, { listId: 'tl-se', listName: 'TL', durationMin: 30, carriers: dated, flexiblePickup: true })
+    const now = Date.now()
+    sendRFQ(FLEX_SHIPMENT_ID, now)
+    const q = submitBid(FLEX_SHIPMENT_ID, 'SAIA', { linehaul: 1000, fuel: 0, accessorials: [], total: 1000, currency: 'USD', pickupDate: '10/15/2026', deliveryDate: '10/16/2026' }, now + 1000)
+    const saia = q.carriers.find((c) => c.scac === 'SAIA')
+    expect(saia.bid.pickupDate).toBe('10/15/2026')
+    expect(saia.bid.deliveryDate).toBe('10/16/2026')
+  })
+})
