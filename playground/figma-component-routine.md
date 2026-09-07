@@ -33,6 +33,18 @@ BATCH LADDER — per component, IN THIS ORDER, no step skipped or reordered:
 
 ### The batch ladder is ordered and closed
 
+**Where is everything right now?** Don't reconstruct it from git or from this file:
+
+```bash
+node tools/batch-status.mjs                      # everything in flight + the NEXT action
+node tools/batch-status.mjs --components A,B,C   # just these
+```
+
+It reads the ladder position out of both DSMs' metas and names the next step per
+component. `release.mjs` calls its `assertReleasable()` and **exits 1** on anything not
+through the ladder (`--force` overrides, loudly) — because this file's prose is what
+failed on 2026-09-07, so the rule is now a throw rather than a paragraph.
+
 **Ordered.** Code Connect is published BEFORE the React approval, not at release — the
 user approves against a published map (user, 2026-09-07). Never bundle a normalization
 step into the release step.
