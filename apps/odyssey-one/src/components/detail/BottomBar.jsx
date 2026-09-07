@@ -305,12 +305,11 @@ export default function BottomBar({
     if (t.key !== 'routing' || (!droppedCount && !pendingOrderChange)) return t
     return {
       ...t,
-      indicators: (
-        <>
-          {droppedCount > 0 && <ListX size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped carriers" />}
-          {pendingOrderChange && <PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} role="img" aria-label="Order change pending" />}
-        </>
-      ),
+      // One glyph, not two (user, 2026-09-07): a pending order change blocks
+      // the whole tab, so it overrides the dropped-carrier signal.
+      indicators: pendingOrderChange
+        ? <PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} role="img" aria-label="Order change pending" />
+        : <ListX size={16} style={{ color: 'var(--sunrise-yellow-600)' }} role="img" aria-label="Dropped carriers" />,
     }
   }), [orderedTabs, droppedCount, pendingOrderChange])
 

@@ -292,7 +292,7 @@ describe('S140 — Tender tab indicators', () => {
   const tenderTab = () =>
     within(screen.getByRole('tablist')).getAllByRole('tab').find((t) => t.textContent === 'Tender')
 
-  test('a dropped carrier puts the truck glyph on the Tender tab', () => {
+  test('a dropped carrier puts the list-x glyph on the Tender tab', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }] })
     expect(within(tenderTab()).getByLabelText('Dropped carriers')).toBeTruthy()
     expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
@@ -300,6 +300,12 @@ describe('S140 — Tender tab indicators', () => {
 
   test('an unresolved order change puts the package glyph on the Tender tab', () => {
     renderBar({ orderChange: { resolution: null } })
+    expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
+    expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
+  })
+
+  test('an order change overrides the dropped-carrier glyph — one signal, never two', () => {
+    renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }], orderChange: { resolution: null } })
     expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
     expect(within(tenderTab()).queryByLabelText('Dropped carriers')).toBeNull()
   })

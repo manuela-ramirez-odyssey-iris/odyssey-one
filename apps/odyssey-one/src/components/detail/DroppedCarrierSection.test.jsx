@@ -40,7 +40,7 @@ const rich = {
 describe('DroppedCarrierSection (LINX-13953)', () => {
   it('names the section and counts the carriers', () => {
     render(<DroppedCarrierSection carriers={[carrier, rich]} />)
-    expect(screen.getByText('Dropped Carrier (2)')).toBeTruthy()
+    expect(screen.getByText((_, el) => el.classList.contains('sub-accordion__title') && el.textContent === 'Dropped Carrier (2)')).toBeTruthy()
   })
 
   it('renders an empty state rather than disappearing when routing dropped nobody', () => {
