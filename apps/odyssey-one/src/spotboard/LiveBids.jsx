@@ -331,13 +331,14 @@ export default function LiveBids({
     },
     {
       label: 'Actions',
-      // "Award" opens the confirmation (user, 2026-08-24) — it never awards
-      // directly. The close+selection gate lives on the modal's own Confirm,
-      // so a planner can always OPEN the dialog and reach Force Close from
-      // it; a disabled trigger would have hidden that exit.
+      // "Close/Award" (user, 2026-09-07; was "Award") opens the confirmation
+      // — it never awards directly. The label names both exits the dialog
+      // offers: the close+selection gate lives on the modal's own Confirm,
+      // and Force Close is reachable from it too, so a planner can always
+      // OPEN the dialog; a disabled trigger would have hidden that exit.
       value: (
         <Button size="sm" variant="primary" onClick={() => setStaging(true)}>
-          Award
+          Close/Award
         </Button>
       ),
     },

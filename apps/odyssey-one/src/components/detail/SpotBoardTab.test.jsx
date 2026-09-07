@@ -510,7 +510,7 @@ describe('SpotBoardTab', () => {
     function openAwardModal() {
       render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
       fireEvent.click(screen.getAllByText('Live Bids')[0])
-      fireEvent.click(screen.getByRole('button', { name: 'Award' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Close/Award' }))
       // Modify & Resend / Clear & Start Over live on the modal's forceClose
       // view (AwardModal.jsx), reached via Force Close from the confirm view.
       fireEvent.click(screen.getByRole('button', { name: 'Force Close' }))
