@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { runAction, printResults, ANGULAR_ROOT } from './dsm-flags.mjs';
+import { assertReleasable } from './batch-status.mjs';
 
 const PKG_PATH = join(ANGULAR_ROOT, 'projects/odyssey-ui/package.json');
 const CHANGELOG_PATH = join(ANGULAR_ROOT, 'CHANGELOG.md');
@@ -52,6 +53,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (a === '--components') components = args[++i].split(',').map((s) => s.trim()).filter(Boolean);
     else if (a === '--date') date = args[++i];
     else if (a === '--dry-run') dryRun = true;
+    else if (a === '--force') { /* handled above */ }
     else if (a.startsWith('--')) { console.error(`unknown flag ${a}`); process.exit(1); }
     else version = a;
   }
@@ -60,6 +62,19 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
   date ??= execSync('date +%F').toString().trim();
+  // GATE: a component that has not finished the batch ladder cannot be
+  // released. Prose in figma-component-routine.md did not stop this on
+  // 2026-09-07; a throw does. Bypass only with --force, which prints why.
+  if (!process.argv.includes('--force')) {
+    try {
+      assertReleasable(components);
+    } catch (e) {
+      console.error(`\u2716 ${e.message}`);
+      console.error('  (--force overrides, deliberately loud)');
+      process.exit(1);
+    }
+  }
+
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     console.error(`--date must be YYYY-MM-DD (got '${date}')`);
     process.exit(1);
