@@ -5795,10 +5795,6 @@ button.breadcrumb__label:focus-visible {
   flex: 1;
   min-width: 0;
   height: 100%;
-  /* Headroom for the floating tab alerts — see .shipments-bar__tab-indicators. */
-  box-sizing: content-box;
-  padding-top: 12px;
-  margin-top: -12px;
   /* Overflow scrolls natively — the old bar's scroll-chevron buttons are gone.
      The right padding lets the last tab scroll clear of the PanelActions
      overlay (its ~120px footprint). */
@@ -5825,45 +5821,16 @@ button.breadcrumb__label:focus-visible {
   transition: background var(--transition-fast);
 }
 /* S140 — optional per-tab status glyphs, rendered after the label. */
-/* Tab alerts (user, 2026-09-07): a small circle badge FLOATING over the
-   tab's top-right corner and past the bar's top edge — the same float the
-   Filters count badge does on GlobalSearch (`.global-search-badge`,
-   top -5 / right -8). `.shipments-bar__tabs` scrolls natively (overflow-x),
-   which would clip the overhang, so the scroll box is given headroom: 12px
-   of top padding pulled back up with a matching negative margin
-   (content-box, so the tabs' own 100% height is untouched). `.shipments-bar`
-   already clips nothing above itself (clip-path inset -40px). */
-.shipments-bar__tab {
-  position: relative;
-}
-.shipments-bar__tab-trailing {
-  display: inline-flex;
-  align-items: center;
-  margin-left: var(--spacing-1);
-}
+/* Tab indicators (user, 2026-09-07): INLINE after the label — a small badge
+   or live dot that signals something about the tab's CONTENT. The floating
+   corner-alert variant was tried and dropped the same day; this is the shape
+   Figma's `Show indicators` + `Indicator` swap already models. */
 .shipments-bar__tab-indicators {
-  position: absolute;
-  top: -10px;
-  right: 2px; /* mostly within the tab's own width (user, 2026-09-07) */
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
-  pointer-events: none;
+  margin-left: var(--spacing-1);
 }
-/* White tile, small shadow, the COLOUR on the glyph (user, 2026-09-07 — was
-   a filled purple circle with a white 12px glyph). Sized for a 20px icon. */
-.shipments-bar__tab-alert {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
-}
-.shipments-bar__tab-alert--purple { color: var(--badge-purple-text); }
 .shipments-bar__tab:hover:not(:disabled):not(.shipments-bar__tab--selected) {
   background: var(--deep-sea-neutral-50);
 }

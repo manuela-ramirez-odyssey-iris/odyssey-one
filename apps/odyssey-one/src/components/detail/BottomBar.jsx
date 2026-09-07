@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
 import { OctagonAlert, RefreshCw } from 'lucide-react'
-import { ICON_LG, ICON_MD } from '@odyssey/tokens'
-import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
+import { ICON_MD } from '@odyssey/tokens'
+import { ShipmentsBar, Badge, Button, Spinner } from '@odyssey/ui'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
 import LiveBidDot from '../../spotboard/LiveBidDot.jsx'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
@@ -307,8 +307,7 @@ export default function BottomBar({
   const { quote: spotQuote } = useSpotQuote(shipment?.sellShipment)
   const spotLive = spotQuote?.status === 'open'
   const tabs = useMemo(() => orderedTabs.map((t) => {
-    // Inline beside the label (user, 2026-09-07), not a corner alert.
-    if (t.key === 'spot' && spotLive) return { ...t, trailing: <LiveBidDot quote={spotQuote} /> }
+    if (t.key === 'spot' && spotLive) return { ...t, indicators: <LiveBidDot quote={spotQuote} /> }
     // ONE corner alert, for the one thing that blocks the tab: a pending
     // order change. Dropped carriers are informational (canon: nothing about
     // them demands action, and routing drops some on nearly every shipment),
@@ -317,11 +316,16 @@ export default function BottomBar({
     if (t.key === 'routing' && pendingOrderChange) {
       return {
         ...t,
-        // OctagonAlert (user, 2026-09-07): a stop sign — the tab is halted
-        // until the change is reviewed. Not TriangleAlert, which the app
-        // already spends on failures/warnings; not PackageOpen, which names
-        // the order-change CONCEPT on the review button rather than the alert.
-        indicators: <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><OctagonAlert {...ICON_LG} aria-hidden="true" /></span>,
+        // The shared icon-only purple Badge (user, 2026-09-07, final of four
+        // tries: inline glyph → floating corner circle → count → this).
+        // OctagonAlert reads "halted", which is what a pending order change
+        // does to this tab. Badge's icon-only shape is aria-hidden by design,
+        // so the wrapper carries the label.
+        indicators: (
+          <span role="img" aria-label="Order change pending">
+            <Badge variant="purple" iconOnly leftIcon={<OctagonAlert {...ICON_MD} aria-hidden="true" />} />
+          </span>
+        ),
       }
     }
     return t

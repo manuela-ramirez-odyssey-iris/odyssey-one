@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, OctagonAlert, TriangleAlert } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, PackageOpen, TriangleAlert } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
@@ -1649,10 +1649,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     <Button
       variant="secondary"
       size="lg"
-      // Purple OctagonAlert (designer, S140; was FileBox, then PackageOpen) — deliberate exception to the
+      // Purple PackageOpen (designer, S140; was FileBox, previewing again) — deliberate exception to the
       // icon-follows-label-color rule: purple is the review flow's
       // accent, same token the diff badges use.
-      icon={<OctagonAlert size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
+      icon={<PackageOpen size={16} style={{ color: 'var(--badge-purple-text)' }} aria-hidden="true" />}
       // No `tender-pane__review-oc` class any more (S137, caught in the
       // browser): that rule was `margin-left: auto` + `margin-bottom`, which
       // is how it right-aligned itself in the sub-tabs row it USED to live in.
