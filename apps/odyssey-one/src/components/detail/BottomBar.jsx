@@ -301,7 +301,6 @@ export default function BottomBar({
   // sees there is something to look at without opening the pane: an orange
   // truck for dropped carriers, a purple package for a pending order change
   // (same two glyphs/colours those features use inside the pane).
-  const droppedCount = shownDetails?.droppedCarriers?.length ?? 0
   const pendingOrderChange = !!(shownDetails?.orderChange && !shownDetails.orderChange.resolution)
   // SpotBid: a live dot while this shipment's quote is open (user,
   // 2026-09-07) — the same LiveBidDot the pane's Live Bids sub-tab wears.
@@ -310,16 +309,19 @@ export default function BottomBar({
   const tabs = useMemo(() => orderedTabs.map((t) => {
     // Inline beside the label (user, 2026-09-07), not a corner alert.
     if (t.key === 'spot' && spotLive) return { ...t, trailing: <LiveBidDot quote={spotQuote} /> }
-    if (t.key !== 'routing' || (!droppedCount && !pendingOrderChange)) return t
-    // Corner alert badges (user, 2026-09-07). One glyph, not two: a pending
-    // order change blocks the whole tab, so it overrides the dropped signal.
-    return {
-      ...t,
-      indicators: pendingOrderChange
-        ? <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><PackageOpen size={12} aria-hidden="true" /></span>
-        : <span className="shipments-bar__tab-alert shipments-bar__tab-alert--orange text-label-xs-semibold" role="img" aria-label={`${droppedCount} dropped carrier${droppedCount === 1 ? '' : 's'}`}>{droppedCount}</span>,
+    // ONE corner alert, for the one thing that blocks the tab: a pending
+    // order change. Dropped carriers are informational (canon: nothing about
+    // them demands action, and routing drops some on nearly every shipment),
+    // so they get no badge (user, 2026-09-07 — reversing the same morning's
+    // count badge).
+    if (t.key === 'routing' && pendingOrderChange) {
+      return {
+        ...t,
+        indicators: <span className="shipments-bar__tab-alert shipments-bar__tab-alert--purple" role="img" aria-label="Order change pending"><PackageOpen size={12} aria-hidden="true" /></span>,
+      }
     }
-  }), [orderedTabs, droppedCount, pendingOrderChange, spotLive, spotQuote])
+    return t
+  }), [orderedTabs, pendingOrderChange, spotLive, spotQuote])
 
   const renderTabContent = () => {
     if (detailsError) {

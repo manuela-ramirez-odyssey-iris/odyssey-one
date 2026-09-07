@@ -294,11 +294,9 @@ describe('S140 — Tender tab indicators', () => {
     within(screen.getByRole('tablist')).getAllByRole('tab')
       .find((t) => t.textContent.startsWith('Tender') && !t.textContent.includes('History'))
 
-  test('a dropped carrier puts its COUNT badge on the Tender tab', () => {
+  test('a dropped carrier puts NOTHING on the Tender tab — informational, not an alert (user, 2026-09-07)', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }] })
-    const badge = within(tenderTab()).getByLabelText('1 dropped carrier')
-    expect(badge.textContent).toBe('1') // the count IS the badge (user, 2026-09-07), no glyph
-    expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
+    expect(tenderTab().querySelector('.shipments-bar__tab-indicators')).toBeNull()
   })
 
   test('an unresolved order change puts the package glyph on the Tender tab', () => {
@@ -307,7 +305,7 @@ describe('S140 — Tender tab indicators', () => {
     expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
   })
 
-  test('an order change overrides the dropped-carrier glyph — one signal, never two', () => {
+  test('an order change is the only Tender alert, dropped carriers or not', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }], orderChange: { resolution: null } })
     expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
     expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
