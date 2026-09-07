@@ -1030,7 +1030,7 @@ describe('Process SCAC (LINX-13954)', () => {
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)
 
     fireEvent.click(droppedProcessButton())
-    expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Reinstate Dropped Carrier' })).toBeTruthy()
 
     // Deliberately far-future so the past-check in ManualDatesModal never fires.
     // DatePicker + TimePicker pair per field (2026-08-18); each commits on blur.
@@ -1055,10 +1055,10 @@ describe('Process SCAC (LINX-13954)', () => {
     render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)
 
     fireEvent.click(droppedProcessButton())
-    expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Reinstate Dropped Carrier' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(screen.queryByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Reinstate Dropped Carrier' })).toBeNull()
     expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(0)
     expect(droppedProcessButton().disabled).toBe(false)
   })
@@ -1219,7 +1219,7 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     expect(rows).toHaveLength(1)
     expect(screen.getByText('EXLA')).toBeTruthy()
     // No ManualDatesModal — 15076 has no manual date entry.
-    expect(screen.queryByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Reinstate Dropped Carrier' })).toBeNull()
     // No success message alongside the failure one.
     expect(screen.queryByText('Routing completed successfully.')).toBeNull()
   })

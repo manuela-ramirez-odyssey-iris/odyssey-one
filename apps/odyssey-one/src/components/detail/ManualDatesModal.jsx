@@ -78,9 +78,9 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
 
   return createPortal(
     <ModalMedium
-      title="Manual Pickup and Delivery Entry"
+      title="Reinstate Dropped Carrier"
       onClose={onCancel}
-      ariaLabel="Manual Pickup and Delivery Entry"
+      ariaLabel="Reinstate Dropped Carrier"
       footer={
         <>
           <Button variant="secondary" size="lg" onClick={onCancel}>Cancel</Button>

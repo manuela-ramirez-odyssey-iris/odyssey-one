@@ -979,6 +979,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   const [processingScac, setProcessingScac] = useState(null)
   const [manualDatesFor, setManualDatesFor] = useState(null)
   const [processNotice, setProcessNotice] = useState(null)   // OK-only dialog
+  // Title of that dialog names the doorway it came from (user, 2026-09-07):
+  // a dropped carrier (has a dropCode) is being REINSTATED, a picked one ADDED.
+  const [processNoticeTitle, setProcessNoticeTitle] = useState('Add Carrier')
   const [processSuccess, setProcessSuccess] = useState(null) // auto-dismissing
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   // LINX-13894 — rank pending the "contracted rate already exists" confirm,
@@ -1180,6 +1183,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   // drifts (PS1).
   const runProcessScac = useCallback(async (carrier, dates) => {
     const steps = planProcessScac(carrier, options)
+    setProcessNoticeTitle(carrier.dropCode ? 'Reinstate Dropped Carrier' : 'Add Carrier')
 
     if (steps[0] === 'duplicate') {
       setProcessNotice('Carrier and Equipment combination (SCAC/Equipment) already in the list.')
@@ -1801,7 +1805,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
       {processNotice && (
         <ConfirmDialog
-          title="Add Carrier"
+          title={processNoticeTitle}
           message={processNotice}
           confirmLabel="OK"
           cancelLabel={null}
