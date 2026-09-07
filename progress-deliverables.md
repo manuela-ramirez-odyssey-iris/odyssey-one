@@ -20,6 +20,7 @@
 - **HARD RULE, user 2026-09-07: the release push deploys BOTH DSMs + dev mode in the same step — no per-deploy permission ask.** I paused for a go I already had ("I don't wanna have to repeat that"). Written into memory ([[deploy-both-dsms-on-batch-close]]) and `figma-component-routine.md`. The npm publish (Cognizant, on PR merge) is a separate track and never gates it.
 - **Code Connect publish is a normalization step, not a release step** — the user expects Figma → Code Connect → approve → port, so they can approve against a published map. I had bundled it into the release; corrected on the spot.
 - **"Approve all" when I can't identify one component's delta = look it up, don't guess.** CalendarPicker was NORMALIZING from another session; `git log` on its demo found S140's `a1d8868` in one call. The tracker's "OWED since D10" line was wrong for it.
+- **GroupTable is NORMALIZING again, correctly — not this session's doing.** `591836c` (S140) touched its pinned action cell AFTER the 1.7.0 release and demoted it in both DSMs. At wrap I mistook the Angular meta's flip for stray state and reverted it, then re-applied it once the React side showed the same flag. The next batch carries it.
 - **The other thread is behind.** ~25 `S140:` commits sit on `main` from the parallel product session (flex dates SPB-69/73/81, Tender tab DEC-128/129, Reinstate, added-row pulse, email footer SPB-80) — pushed by this session's wrap alongside D11's. `progress.md` has no S140 entry yet; its numbering gap is that session's to close.
 
 ### Carry-forwards
