@@ -6659,7 +6659,7 @@ button.breadcrumb__label:focus-visible {
   align-items: center;
   gap: var(--spacing-2);
   /* The band's own block padding is a flat 4px: it exists only to clear a
-     40px trail (the mock's two lg Buttons) inside the 48px band. The
+     32px trail (two `variant="icon"` Buttons) inside the 48px band. The
      asymmetric 12 top / 8 bottom that both Figma sources read — GroupTable's
      Header frame 5478:5447 and the standalone TableSubheader 1943:11132 — is
      the DESIGN and is still applied, but on `.header-strip__group` below, so

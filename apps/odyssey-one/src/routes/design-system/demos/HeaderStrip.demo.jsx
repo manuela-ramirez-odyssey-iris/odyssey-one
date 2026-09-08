@@ -28,7 +28,7 @@ export const props = [
 export const tokens = [
   { token: '--bg-secondary', resolves: 'band tint', usage: 'root background' },
   { token: '--border-subtle', resolves: '1px hairline', usage: 'root bottom border' },
-  { token: '--spacing-1 / --spacing-4', resolves: '4 / 16', usage: 'root padding (block / inline). The block value is only what a 40px trail needs to clear inside the 48px band.' },
+  { token: '--spacing-1 / --spacing-4', resolves: '4 / 16', usage: 'root padding (block / inline). The block value is only what a 32px icon-button trail needs to clear inside the 48px band.' },
   { token: '--spacing-2 / --spacing-1', resolves: '8 / 4', usage: 'title-group block padding — carries the asymmetric 12 top / 8 bottom optical offset both Figma sources read, without constraining the trail.' },
   { token: '--spacing-2', resolves: '8px', usage: 'gap between icon / title / trail' },
   { token: 'label/base semibold', resolves: '16 / 24 / 600', usage: 'title typography (text-label-base-semibold utility)' },
@@ -60,8 +60,8 @@ export default function HeaderStripDemo() {
             badge={<Badge variant="green">Pickup</Badge>}
             trail={
               <span style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
-                <Button variant="secondary" size="lg" aria-label="Move up"><ArrowUp {...ICON_MD} aria-hidden="true" /></Button>
-                <Button variant="secondary" size="lg" aria-label="Move down"><ArrowDown {...ICON_MD} aria-hidden="true" /></Button>
+                <Button variant="icon" size="sm" aria-label="Move up"><ArrowUp {...ICON_MD} aria-hidden="true" /></Button>
+                <Button variant="icon" size="sm" aria-label="Move down"><ArrowDown {...ICON_MD} aria-hidden="true" /></Button>
               </span>
             }
           />
@@ -84,8 +84,8 @@ function Playground() {
 
   const trail = (
     <span style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
-      <Button variant="secondary" size="lg" aria-label="Move up"><ArrowUp {...ICON_MD} aria-hidden="true" /></Button>
-      <Button variant="secondary" size="lg" aria-label="Move down"><ArrowDown {...ICON_MD} aria-hidden="true" /></Button>
+      <Button variant="icon" size="sm" aria-label="Move up"><ArrowUp {...ICON_MD} aria-hidden="true" /></Button>
+      <Button variant="icon" size="sm" aria-label="Move down"><ArrowDown {...ICON_MD} aria-hidden="true" /></Button>
     </span>
   )
 

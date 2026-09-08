@@ -28,8 +28,9 @@
  * Block padding (2026-09-08): the band itself is a flat 4px and the optical
  * title offset (12 top / 8 bottom) is carried by `.header-strip__group`
  * instead. Same rendered result for a title-only strip — the title still sits
- * 14px from the top — but it lets a 40px trail (the mock's two lg Buttons)
- * fit the 48px band, which 12/8 on the band could not.
+ * 14px from the top — but it lets a 32px trail (two `variant="icon"` Buttons,
+ * the library's square icon-only button) fit the 48px band, which 12/8 on
+ * the band could not.
  */
 export default function HeaderStrip({
   title,
