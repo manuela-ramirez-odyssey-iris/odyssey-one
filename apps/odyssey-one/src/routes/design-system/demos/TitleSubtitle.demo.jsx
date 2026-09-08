@@ -1,19 +1,20 @@
 import { useState } from 'react'
-import { TitleSubtitle } from '@odyssey/ui'
+import { Badge, TitleSubtitle } from '@odyssey/ui'
 
 export const meta = {
   name: 'TitleSubtitle',
   tier: 'molecule',
   version: '0.5.0',
   createdVersion: '0.5.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '3016:2056',
   codeConnect: 'packages/ui/src/TitleSubtitle.figma.tsx',
 }
 
 export const props = [
-  { name: 'title', type: 'string', desc: 'Primary line (label/sm medium, text/primary). Wraps. (Figma: Title TEXT prop.)' },
+  { name: 'title', type: 'string', desc: 'Primary line (label/sm medium, text/primary). Wraps. Optional — omit it to leave a subtitle over a badge alone, which is what Figma\'s `Show Text` BOOLEAN switches off. (Figma: Title TEXT prop.)' },
   { name: 'subtitle', type: 'string', desc: 'Eyebrow line above the title (label/xs medium, text/tertiary). Wraps. Omit to hide. (Figma: Subtitle TEXT prop.)' },
+  { name: 'badge', type: 'node', desc: 'Optional Badge (or any node) on the TITLE row, after the title and before the trailing icon — it qualifies the title, so it shares the title\'s row rather than the eyebrow\'s. Figma gates it with `Show Badge` and EXPOSES the nested Badge, so its Variant dropdown appears on every instance (an instance-swap cannot do that — its picker lists components, not variants). In code the variant is a property of the Badge you pass.' },
   { name: 'showIcon', type: 'boolean', desc: 'Renders the trailing icon (md, 16px, tertiary, non-interactive). Default false. (Figma: Show Icon BOOLEAN.)' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
 ]
@@ -59,7 +60,7 @@ function Schematic() {
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)' }}>
       {/* Static annotated instance in a fixed-width holder so wrapping reads correctly. */}
       <div style={{ flex: '0 0 auto', width: 220, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-4)' }}>
-        <TitleSubtitle title="Title" subtitle="Subtitle" showIcon />
+        <TitleSubtitle title="Title" subtitle="Subtitle" badge={<Badge variant="purple">Text</Badge>} showIcon />
       </div>
 
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
@@ -68,6 +69,7 @@ function Schematic() {
         </LegendRow>
         <LegendRow part="subtitle" nested>Eyebrow — <code>label/xs medium</code>, <code>--text-tertiary</code>. Omit <code>subtitle</code> to hide.</LegendRow>
         <LegendRow part="title" nested>Primary line — <code>label/sm medium</code>, <code>--text-primary</code>.</LegendRow>
+        <LegendRow part="badge" nested>Optional Badge after the title, before the icon. Shown when <code>badge</code> is passed; its variant is the Badge's own.</LegendRow>
         <LegendRow part="icon" nested>Trailing <code>info</code> glyph (md, 16px), <code>--text-tertiary</code>, non-interactive. Shown when <code>showIcon</code>.</LegendRow>
       </ul>
     </div>
@@ -102,6 +104,7 @@ function Playground() {
   const [title, setTitle] = useState('Shipment #SHP-40021')
   const [subtitle, setSubtitle] = useState('Reference')
   const [showIcon, setShowIcon] = useState(true)
+  const [badgeVariant, setBadgeVariant] = useState('purple')
 
   return (
     <div>
@@ -109,10 +112,22 @@ function Playground() {
         <Field label="title" value={title} set={setTitle} />
         <Field label="subtitle" value={subtitle} set={setSubtitle} />
         <Toggle label="show icon" value={showIcon} set={setShowIcon} />
+        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
+          badge
+          <select value={badgeVariant} onChange={(e) => setBadgeVariant(e.target.value)}>
+            <option value="">none</option>
+            {['amber', 'blue', 'green', 'red', 'purple', 'gray'].map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </label>
       </div>
       {/* Fixed-width holder to show wrapping; the component itself fills it. */}
       <div style={{ width: 240, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-4)' }}>
-        <TitleSubtitle title={title} subtitle={subtitle || undefined} showIcon={showIcon} />
+        <TitleSubtitle
+          title={title}
+          subtitle={subtitle || undefined}
+          badge={badgeVariant ? <Badge variant={badgeVariant}>Text</Badge> : undefined}
+          showIcon={showIcon}
+        />
       </div>
     </div>
   )
