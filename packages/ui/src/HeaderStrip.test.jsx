@@ -46,4 +46,16 @@ describe('HeaderStrip', () => {
     expect(root.getAttribute('data-testid')).toBe('strip')
     expect(root.getAttribute('aria-label')).toBe('Header')
   })
+
+  test('badge renders inside the title group, not the trail', () => {
+    const { container } = render(
+      <HeaderStrip title="Stop 3" badge={<span data-testid="badge">Pickup</span>} />,
+    )
+    const group = container.querySelector('.header-strip__group')
+    // Glued to the text it qualifies: if it ever lands outside the group it
+    // would drift toward the trail, which is the bug this pins.
+    expect(group.contains(screen.getByTestId('badge'))).toBe(true)
+    expect(container.querySelector('.header-strip__trail')).toBeNull()
+  })
+
 })

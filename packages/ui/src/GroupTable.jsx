@@ -115,7 +115,7 @@ import HeaderStrip from './HeaderStrip.jsx'
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
  *                       column-arrange Button)
- * @param header         { title, icon?, trail? } — optional 48px strip ABOVE the column-header
+ * @param header         { title, icon?, badge?, trail? } — optional 48px strip ABOVE the column-header
  *                       row (Figma 4183:773 "Header" frame): icon + bold title on the left, an
  *                       empty trailing slot on the right. Presence renders the strip; omit it
  *                       (the default) and the table renders exactly as before — this is a
@@ -465,6 +465,7 @@ export default function GroupTable({
           className="odyssey-group-table__header"
           title={header.title}
           icon={header.icon}
+          badge={header.badge}
           trail={header.trail}
           titleId={headerTitleId}
         />

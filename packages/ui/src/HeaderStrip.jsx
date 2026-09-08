@@ -24,10 +24,21 @@
  * right border is NOT baked in: it exists there because the strip sits in a
  * grid cell, which is a layout fact of that context, not of this component.
  * Add it via `className` where needed.
+ *
+ * Block padding (2026-09-08): the band itself is a flat 4px and the optical
+ * title offset (12 top / 8 bottom) is carried by `.header-strip__group`
+ * instead. Same rendered result for a title-only strip — the title still sits
+ * 14px from the top — but it lets a 40px trail (the mock's two lg Buttons)
+ * fit the 48px band, which 12/8 on the band could not.
  */
 export default function HeaderStrip({
   title,
   icon,
+  // Optional inline Badge (or any node) immediately AFTER the title. It lives
+  // inside the title group rather than beside the trail so it stays glued to
+  // the text it qualifies and never competes with the trail for space —
+  // Figma's `Show badge` on master 5530:1140, from mock 5937:8641.
+  badge,
   trail,
   // Lets an ancestor (e.g. GroupTable) put the `aria-labelledby` id on the
   // TITLE element itself rather than the root — the id needs to reach the
@@ -39,8 +50,11 @@ export default function HeaderStrip({
   return (
     <div className={`header-strip${className ? ` ${className}` : ''}`} {...rest}>
       {icon}
-      <span id={titleId} className="header-strip__title text-label-base-semibold">
-        {title}
+      <span className="header-strip__group">
+        <span id={titleId} className="header-strip__title text-label-base-semibold">
+          {title}
+        </span>
+        {badge}
       </span>
       {trail != null && <span className="header-strip__trail">{trail}</span>}
     </div>

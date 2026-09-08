@@ -1,5 +1,6 @@
 import figma from '@figma/code-connect'
 import HeaderStrip from './HeaderStrip'
+import Badge from './Badge'
 
 // Master: `HeaderStrip` 5530:1140 (Components-Molecules) — extracted 2026-08-28
 // from GroupTable's `header` prop (see GroupTable.figma.tsx) so any surface
@@ -7,6 +8,10 @@ import HeaderStrip from './HeaderStrip'
 // `Show icon` BOOLEAN + `Icon` INSTANCE_SWAP → `icon`: no ternary (parser
 // trap, S130) — a boolean value mapping to either the swapped instance or
 // `undefined`, same idiom GroupTable already uses for `footerRow`.
+// `Show badge` BOOLEAN → `badge`: the master's Badge is a plain nested
+// instance gated by `visible`, NOT an INSTANCE_SWAP property, so there is no
+// `figma.instance('Badge')` to read — it maps to a sample Badge node (true) /
+// `undefined` (false), the same shape `trail` already uses.
 // `Show trail` BOOLEAN → `trail`: the master has no INSTANCE_SWAP for the
 // trailing slot, so there is nothing to swap in — mapped to a sample node
 // (true) / `undefined` (false), same boolean-value-mapping shape.
@@ -19,11 +24,15 @@ figma.connect(
   HeaderStrip,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=5530-1140',
   {
-    imports: ["import { HeaderStrip } from '@odyssey/ui'"],
+    imports: ["import { HeaderStrip, Badge } from '@odyssey/ui'"],
     props: {
       title: figma.string('Title'),
       icon: figma.boolean('Show icon', {
         true: figma.instance('Icon'),
+        false: undefined,
+      }),
+      badge: figma.boolean('Show badge', {
+        true: <Badge variant="green">Pickup</Badge>,
         false: undefined,
       }),
       trail: figma.boolean('Show trail', {
@@ -31,8 +40,8 @@ figma.connect(
         false: undefined,
       }),
     },
-    example: ({ title, icon, trail }) => (
-      <HeaderStrip title={title} icon={icon} trail={trail} />
+    example: ({ title, icon, badge, trail }) => (
+      <HeaderStrip title={title} icon={icon} badge={badge} trail={trail} />
     ),
   },
 )

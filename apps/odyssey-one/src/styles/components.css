@@ -6658,21 +6658,35 @@ button.breadcrumb__label:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  /* Asymmetric block padding is the DESIGN, not a slip: both Figma sources
-     (GroupTable's Header frame 5478:5447 and the standalone TableSubheader
-     1943:11132) read 12 top / 8 bottom, which optically centres the title
-     against the hairline underneath it. min-height pins the 48px band Figma
-     fixes — raw px, like every other row height in this family (no
-     row-height token exists). */
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
+  /* The band's own block padding is a flat 4px: it exists only to clear a
+     40px trail (the mock's two lg Buttons) inside the 48px band. The
+     asymmetric 12 top / 8 bottom that both Figma sources read — GroupTable's
+     Header frame 5478:5447 and the standalone TableSubheader 1943:11132 — is
+     the DESIGN and is still applied, but on `.header-strip__group` below, so
+     it centres the title optically without also constraining the trail.
+     min-height pins the 48px band Figma fixes — raw px, like every other row
+     height in this family (no row-height token exists). */
+  padding: var(--spacing-1) var(--spacing-4);
   min-height: 48px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
   box-sizing: border-box;
 }
-.header-strip__title {
+/* Title + optional badge travel together and share the band's optical offset
+   (12 top / 8 bottom — see `.header-strip` above). `min-width: 0` has to be
+   on BOTH this group and the title inside it, or the flex default of
+   `min-width: auto` stops the title ellipsizing and pushes the badge out. */
+.header-strip__group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
   flex: 1 1 auto;
+  min-width: 0;
+  padding-block: var(--spacing-2) var(--spacing-1);
+}
+.header-strip__title {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
