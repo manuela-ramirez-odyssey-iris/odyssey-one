@@ -18,7 +18,7 @@ export const meta = {
 export const props = [
   { name: 'title', type: 'node | string', desc: 'The strip\'s text. Truncates with an ellipsis rather than wrapping or growing the band.' },
   { name: 'icon', type: 'node', desc: 'Optional leading icon — caller-supplied (e.g. a lucide element); never hardcoded here.' },
-  { name: 'badge', type: 'node', desc: 'Optional Badge (or any node) rendered immediately AFTER the title, inside the same group — so it stays glued to the text it qualifies rather than drifting toward the trail. Figma `Show badge`; the variant is chosen on the Badge you pass, not by a prop here.' },
+  { name: 'badge', type: 'node', desc: 'Optional Badge (or any node) rendered immediately AFTER the title, inside the same group — so it stays glued to the text it qualifies rather than drifting toward the trail. Figma pairs `Show badge` with a `Badge` instance-swap whose preferred values are the whole Badge set, so any variant is selectable there; in code the variant is simply a property of the Badge you pass, never a prop here.' },
   { name: 'trail', type: 'node', desc: 'Optional trailing slot, right-aligned. Omitted entirely (not just empty) when not passed.' },
   { name: 'titleId', type: 'string', desc: 'Id placed on the TITLE element (not the root) — for consumers that need `aria-labelledby` to point at the text itself, e.g. GroupTable labelling its <table>.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root. Layout concerns specific to a host (e.g. GroupTable\'s sticky-left pin, or a right border) are expected to arrive this way rather than as component props.' },
@@ -74,11 +74,15 @@ export default function HeaderStripDemo() {
   )
 }
 
+// The Figma master's Badge swap offers the whole Badge set, so the demo has
+// to let you see more than the green one the source mock happened to draw.
+const BADGE_VARIANTS = ['amber', 'blue', 'green', 'red', 'purple', 'gray']
+
 // Badge and trail are independently optional, and the title has to keep
 // ellipsizing whatever else is switched on — that is the thing worth driving
 // by hand rather than enumerating as fixed cases.
 function Playground() {
-  const [showBadge, setShowBadge] = useState(true)
+  const [badgeVariant, setBadgeVariant] = useState('green')
   const [showTrail, setShowTrail] = useState(true)
   const [longTitle, setLongTitle] = useState(false)
 
@@ -93,7 +97,13 @@ function Playground() {
     <div className="ds-demo-section">
       <h4 className="ds-demo-section__title">Playground — toggle badge, trail, long title</h4>
       <div style={{ display: 'flex', gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)' }}>
-        <label><input type="checkbox" checked={showBadge} onChange={(e) => setShowBadge(e.target.checked)} /> Badge</label>
+        <label>
+          Badge{' '}
+          <select value={badgeVariant} onChange={(e) => setBadgeVariant(e.target.value)}>
+            <option value="">none</option>
+            {BADGE_VARIANTS.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </label>
         <label><input type="checkbox" checked={showTrail} onChange={(e) => setShowTrail(e.target.checked)} /> Trail</label>
         <label><input type="checkbox" checked={longTitle} onChange={(e) => setLongTitle(e.target.checked)} /> Long title</label>
       </div>
@@ -101,7 +111,7 @@ function Playground() {
         <HeaderStrip
           style={{ width: 420 }}
           title={longTitle ? 'A very long title that will not fit and must ellipsize instead of wrapping' : 'Stop 3'}
-          badge={showBadge ? <Badge variant="green">Pickup</Badge> : undefined}
+          badge={badgeVariant ? <Badge variant={badgeVariant}>Pickup</Badge> : undefined}
           trail={showTrail ? trail : undefined}
         />
       </div>
