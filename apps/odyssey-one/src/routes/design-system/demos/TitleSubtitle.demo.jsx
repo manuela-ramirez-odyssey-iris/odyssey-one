@@ -9,6 +9,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '3016:2056',
   codeConnect: 'packages/ui/src/TitleSubtitle.figma.tsx',
+  approved: true,
 }
 
 export const props = [
