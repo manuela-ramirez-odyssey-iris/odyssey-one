@@ -7,10 +7,12 @@ import HeaderStrip from './HeaderStrip'
 // `Show icon` BOOLEAN + `Icon` INSTANCE_SWAP → `icon`: no ternary (parser
 // trap, S130) — a boolean value mapping to either the swapped instance or
 // `undefined`, same idiom GroupTable already uses for `footerRow`.
-// `Show badge` BOOLEAN + `Badge` INSTANCE_SWAP → `badge`: same pair as
-// `Show icon` + `Icon`. The swap's preferredValues point at the whole Badge
-// set, so the chosen VARIANT (green, red, amber, …) comes through the swapped
-// instance — the code prop takes any node, so nothing here pins a colour.
+// `Show badge` BOOLEAN + `Badge` INSTANCE_SWAP → `badge`: the same pair as
+// `Show icon` + `Icon`. The swap is scoped to the Badge set, so the panel
+// offers the variants and nothing else — exposing the nested instance was
+// tried and rejected, being all-or-nothing (it drags Shape, Show dot and
+// both icon slots along). No colour is pinned in code: `badge` takes any
+// node, and the variant rides the swapped instance.
 // `Show trail` BOOLEAN → `trail`: the master has no INSTANCE_SWAP for the
 // trailing slot, so there is nothing to swap in — mapped to a sample node
 // (true) / `undefined` (false), same boolean-value-mapping shape.
