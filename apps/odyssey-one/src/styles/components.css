@@ -7510,3 +7510,163 @@ button.breadcrumb__label:focus-visible {
     width: auto;
   }
 }
+
+/* === LeadNav menu button ==================================================
+   The navbar hamburger is a TOGGLE for the Sidebar rail, so its ON state is
+   persistent and lives in Figma (`Menu state=Off|On`, 5902:1145). Hover is
+   code-only and lightens the OFF icon; while ON the icon keeps Carolina
+   Blue/400 — there is no Carolina Blue/300 primitive, and dimming the only
+   active signal on hover would read as switching it off. */
+.lead-nav__menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: var(--spacing-2);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--deep-sea-neutral-500);
+  transition: color var(--transition-fast);
+}
+.lead-nav__menu:hover { color: var(--deep-sea-neutral-300); }
+.lead-nav__menu[data-active],
+.lead-nav__menu[data-active]:hover { color: var(--carolina-blue-400); }
+
+/* === Sidebar / SidebarButton =============================================
+   Left navigation rail. Two widths (64 collapsed / 240 expanded), both a real
+   flex child of the AppShell row — expanding pushes <main>, never overlays it.
+   Figma: Sidebar set 5890:8098 (Expanded bool), SidebarButton set 514:2479
+   (Type=Collapsed|Domain|Submenu × State). */
+.sidebar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: var(--sidebar-width);
+  height: 100%;
+  padding: var(--spacing-3);
+  background: var(--deep-sea-neutral-200);
+  transition: width var(--transition-panel);
+}
+.sidebar--expanded { width: var(--sidebar-width-expanded); }
+
+.sidebar__nav { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+.sidebar__group { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.sidebar__group--top { padding-bottom: var(--spacing-6); }
+.sidebar__group--bottom {
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--border-default);
+}
+/* Collapsed rows are 40px squares; centre them in the 40px-wide rail column. */
+.sidebar:not(.sidebar--expanded) .sidebar__group { align-items: center; }
+/* Expanded groups sit tighter — a domain row and its submenu card read as one block. */
+.sidebar--expanded .sidebar__group--bottom { gap: var(--spacing-1); }
+
+.sidebar__submenu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding-left: 32px;
+}
+.sidebar__flyout-anchor { position: relative; }
+/* Level 3 opens to the right of its row rather than indenting further — a
+   240px rail has no room for a third indent. Absolute (not a portal) because
+   the AppShell row it escapes into is only clipped horizontally at the
+   viewport edge, and a portal would need live scroll tracking the rail
+   doesn't have. */
+/* Offset 8 from a 12px-inset rail row lands the card 4px OVER the rail's edge,
+   which is the tuck the mocks draw (rail 240 -> card 236, rail 64 -> card 60).
+   It reads as attached rather than as a separate floating panel. */
+.sidebar__flyout {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: var(--spacing-2);
+  z-index: 40;
+  min-width: 200px;
+}
+/* A card hanging off a row INSIDE another card keeps a real gap instead: the
+   row is already inset by its card's padding, so clear that first, then gap. */
+.dropdown-menu .sidebar__flyout-anchor > .sidebar__flyout {
+  margin-left: calc(var(--spacing-3) + var(--spacing-2));
+}
+
+.sidebar-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  border-radius: var(--radius-lg);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.sidebar-button--collapsed {
+  width: 40px;
+  height: 40px;
+  padding: var(--spacing-2);
+  justify-content: center;
+}
+.sidebar-button--domain {
+  height: 40px;
+  padding: var(--spacing-2) var(--spacing-3) var(--spacing-2) var(--spacing-2);
+}
+.sidebar-button--submenu {
+  height: 36px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+}
+/* 2px inset around a 20px glyph — keeps the icon on the same optical centre in
+   both widths (collapsed 8+2, domain 8+2). */
+.sidebar-button__icon { display: inline-flex; flex-shrink: 0; padding: 2px; }
+.sidebar-button__label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+}
+.sidebar-button--submenu .sidebar-button__label {
+  font-weight: var(--font-weight-regular);
+}
+.sidebar-button__count {
+  flex-shrink: 0;
+  padding: 2px var(--spacing-2);
+  border-radius: var(--radius-lg);
+  background: var(--deep-sea-neutral-300);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-medium);
+}
+.sidebar-button__chevron { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary); }
+
+/* Hover darkens the CONTENT only — icon, label and chevron — never a fill.
+   The label and chevron set their own colours, so they need saying explicitly;
+   inheriting currentColor from the row would leave them at rest. */
+.sidebar-button:hover,
+.sidebar-button[data-state='hover'] { color: var(--text-primary); }
+.sidebar-button:hover .sidebar-button__label,
+.sidebar-button:hover .sidebar-button__chevron,
+.sidebar-button[data-state='hover'] .sidebar-button__label,
+.sidebar-button[data-state='hover'] .sidebar-button__chevron { color: var(--text-primary); }
+.sidebar-button[data-state='selected'] {
+  background: var(--deep-sea-neutral-300);
+  color: var(--text-primary);
+}
+/* On a selected row the badge's own DSN/300 would vanish into the fill. */
+.sidebar-button[data-state='selected'] .sidebar-button__count {
+  background: var(--deep-sea-neutral-200);
+}
+
+/* The rail's NavLinks are layout-transparent wrappers, not visual rows. */
+.sidebar a { display: block; text-decoration: none; }
+

@@ -7,7 +7,7 @@ import { useCreateOrderMode } from '../../contexts/CreateOrderModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useNotificationCount } from '../../utils/notifications'
 
-const Navbar = React.memo(function Navbar({ searchSlot, titleMode } = {}) {
+const Navbar = React.memo(function Navbar({ searchSlot, titleMode, onMenuClick, menuActive = false } = {}) {
   const [searchValue, setSearchValue] = useState('')
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const profileDropdownRef = useRef(null)
@@ -93,7 +93,7 @@ const Navbar = React.memo(function Navbar({ searchSlot, titleMode } = {}) {
 
   return (
     <NavbarShell
-      lead={<LeadNav />}
+      lead={<LeadNav onMenuClick={onMenuClick} active={menuActive} />}
       search={
         searchSlot ?? (
           <GlobalSearch

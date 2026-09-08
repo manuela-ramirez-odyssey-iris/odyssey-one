@@ -12,16 +12,22 @@ import { ICON_MD } from '@odyssey/tokens'
  * that can be reordered/dragged — e.g. the WidgetsLeftMenu catalog. It composes
  * with `selected` + `disabled`; it is NOT a competing semantic variant.
  *
+ * `trailingIcon` puts a glyph on the trailing edge — a drill-in chevron for a
+ * row that opens a further menu, which is what the Sidebar's floating submenu
+ * cards use. It shares that edge with `draggable`'s grip, so the two are
+ * mutually exclusive and the grip wins.
+ *
  * `selected` marks the chosen row (DSN/100 bg). `disabled` mutes the label/icon
  * (DSN/400) and suppresses the click. Hover / pressed are runtime CSS.
  * Library-pure: renders a `<div>` (not a button) so consumers can wrap it with a
  * DnD adapter. Figma master: `MenuRow` set 1973:87 (Type=Select + Draggable
- * boolean), Components-Molecules.
+ * and `Show trailing icon` booleans), Components-Atoms.
  */
 export default function MenuRow({
   label,
   selected = false,
   leadingIcon = null,
+  trailingIcon = null,
   draggable = false,
   onClick,
   disabled = false,
@@ -49,9 +55,9 @@ export default function MenuRow({
         )}
         <span className="menu-row__label">{label}</span>
       </span>
-      {draggable && (
+      {(draggable || trailingIcon) && (
         <span className="menu-row__trailing" aria-hidden="true">
-          <GripVertical {...ICON_MD} />
+          {draggable ? <GripVertical {...ICON_MD} /> : trailingIcon}
         </span>
       )}
     </div>

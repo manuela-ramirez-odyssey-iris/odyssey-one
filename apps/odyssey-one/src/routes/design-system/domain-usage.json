@@ -31,6 +31,7 @@
     "MultiSelect",
     "PageHeader",
     "Paginator",
+    "PillTab",
     "Radio",
     "StepperButtonsFooter",
     "SubAccordion",
@@ -101,6 +102,7 @@
     "PageHeader"
   ],
   "global-search": [
+    "Badge",
     "Button",
     "ComboBox",
     "FormField",

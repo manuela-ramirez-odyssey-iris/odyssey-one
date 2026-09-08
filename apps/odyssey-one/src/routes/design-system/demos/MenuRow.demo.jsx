@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { MenuRow } from '@odyssey/ui'
-import { ICON_LG } from '@odyssey/tokens'
-import { Truck } from 'lucide-react'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
+import { Truck, ChevronRight } from 'lucide-react'
 
 export const meta = {
   name: 'MenuRow',
   tier: 'atom',
-  version: '0.4.0',
+  version: '0.5.0',
   createdVersion: '0.2.0',
   figmaNode: '1973:87',
   codeConnect: 'packages/ui/src/MenuRow.figma.tsx',
+  normalizing: true,
+  approved: true,
 }
 
 export const props = [
@@ -17,13 +19,14 @@ export const props = [
   { name: 'selected', type: 'boolean', desc: 'Marks the chosen row — DSN/100 background. Default false.' },
   { name: 'draggable', type: 'boolean', desc: 'Adds a trailing grip + grab cursor for reorderable single-select rows (e.g. the WidgetsLeftMenu catalog). Composes with selected/disabled. Default false.' },
   { name: 'leadingIcon', type: 'ReactNode', desc: 'Optional leading icon (20px slot). Pass a sized lucide icon, e.g. <Truck {...ICON_LG} />.' },
+  { name: 'trailingIcon', type: 'ReactNode', desc: 'Optional trailing icon (16px) — a drill-in chevron for a row that opens a further menu, as the Sidebar\'s floating cards use. Shares the trailing edge with draggable\'s grip, which wins. (Figma: Show trailing icon + Trailing icon)' },
   { name: 'onClick', type: '() => void', desc: 'Click handler. Suppressed when disabled.' },
   { name: 'disabled', type: 'boolean', desc: 'Mutes the label + icon + grip (DSN/400) and suppresses the click. Default false.' },
 ]
 
 export const tokens = [
   { token: '--text-secondary', resolves: 'Text/secondary (DSN/700)', usage: 'label + leading icon color' },
-  { token: '--text-tertiary', resolves: 'Text/tertiary (DSN/500)', usage: 'trailing grip (draggable) color' },
+  { token: '--text-tertiary', resolves: 'Text/tertiary (DSN/500)', usage: 'trailing grip / trailing icon color' },
   { token: '--text-placeholder', resolves: 'Text/placeholder (DSN/400)', usage: 'disabled label + icon + grip color' },
   { token: '--deep-sea-neutral-100', resolves: 'DSN/100', usage: 'hover bg + selected bg' },
   { token: '--deep-sea-neutral-200', resolves: 'DSN/200', usage: 'active / dragging bg' },
@@ -42,6 +45,7 @@ export default function MenuRowDemo() {
   const [disabled, setDisabled] = useState(false)
   const [draggable, setDraggable] = useState(false)
   const [withIcon, setWithIcon] = useState(false)
+  const [withTrail, setWithTrail] = useState(false)
   const [lastClicked, setLastClicked] = useState(null)
 
   return (
@@ -51,7 +55,10 @@ export default function MenuRowDemo() {
         component: single → MenuRow, single + drill-in → <strong>MenuRowRadio</strong>,
         multi-select + reorder → <strong>MenuRowCheckbox</strong>. <code>draggable</code> is an
         orthogonal capability (trailing grip + grab cursor) for reorderable single-select rows.
-        Hover, pressed, and selected are CSS-driven — hover the rows below.
+        <code>trailingIcon</code> is a second orthogonal capability — a drill-in chevron for a
+        row that opens a further menu, which is how the Sidebar's floating cards are built. It
+        shares the trailing edge with the grip, and the grip wins. Hover, pressed, and selected
+        are CSS-driven — hover the rows below.
       </p>
 
       <div className="ds-demo-section">
@@ -82,6 +89,15 @@ export default function MenuRowDemo() {
       </div>
 
       <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Trailing icon (16px) — drill-in rows</h4>
+        <Frame>
+          <MenuRow label="Users Accounts" trailingIcon={<ChevronRight {...ICON_MD} />} />
+          <MenuRow label="Access Management" trailingIcon={<ChevronRight {...ICON_MD} />} selected />
+          <MenuRow label="Grip wins over trailingIcon" draggable trailingIcon={<ChevronRight {...ICON_MD} />} />
+        </Frame>
+      </div>
+
+      <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive playground</h4>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
           <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -96,6 +112,9 @@ export default function MenuRowDemo() {
           <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input type="checkbox" checked={withIcon} onChange={(e) => setWithIcon(e.target.checked)} /> leadingIcon
           </label>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input type="checkbox" checked={withTrail} onChange={(e) => setWithTrail(e.target.checked)} /> trailingIcon
+          </label>
         </div>
         <Frame>
           <MenuRow
@@ -104,6 +123,7 @@ export default function MenuRowDemo() {
             disabled={disabled}
             draggable={draggable}
             leadingIcon={withIcon ? <Truck {...ICON_LG} /> : null}
+            trailingIcon={withTrail ? <ChevronRight {...ICON_MD} /> : null}
             onClick={() => setLastClicked(new Date().toLocaleTimeString())}
           />
         </Frame>

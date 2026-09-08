@@ -87,7 +87,12 @@ export default function App() {
         <Route path="/spotbid/:quoteId" element={<SpotBidDetailRoute />} />
         <Route path="/spotboard" element={<Navigate to="/spotbid" replace />} />
         <Route path="/tracking" element={<Tracking />} />
-        <Route path="/users" element={<Users />} />
+        {/* User Management: the two bare paths are disclosures in the sidebar,
+            not destinations, so a direct URL lands on the first real section. */}
+        <Route path="/users" element={<Navigate to="/users/accounts" replace />} />
+        <Route path="/users/accounts" element={<Users />} />
+        <Route path="/users/access" element={<Navigate to="/users/access/domains" replace />} />
+        <Route path="/users/access/:section" element={<Users />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/button-demo" element={<ButtonDemo />} />
         <Route path="/design-system" element={<DesignSystem />} />

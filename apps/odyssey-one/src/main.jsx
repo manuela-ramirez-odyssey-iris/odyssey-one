@@ -14,6 +14,7 @@ import App from './App.jsx'
 import { EditModeProvider } from './contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from './contexts/CreateOrderModeContext.jsx'
 import { CustomersProvider } from './contexts/CustomersContext.jsx'
+import { SidebarProvider } from './contexts/SidebarContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -21,7 +22,9 @@ createRoot(document.getElementById('root')).render(
       <EditModeProvider>
         <CreateOrderModeProvider>
           <CustomersProvider>
-            <App />
+            <SidebarProvider>
+              <App />
+            </SidebarProvider>
           </CustomersProvider>
         </CreateOrderModeProvider>
       </EditModeProvider>

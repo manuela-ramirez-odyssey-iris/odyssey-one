@@ -17,13 +17,18 @@ figma.connect(
         false: undefined,
       }),
       draggable: figma.boolean('Draggable'),
+      trailingIcon: figma.boolean('Show trailing icon', {
+        true: figma.instance('Trailing icon'),
+        false: undefined,
+      }),
       selected: figma.enum('State', { Selected: true }),
       disabled: figma.enum('State', { Disable: true }),
     },
-    example: ({ label, leadingIcon, draggable, selected, disabled }) => (
+    example: ({ label, leadingIcon, draggable, selected, disabled, trailingIcon }) => (
       <MenuRow
         label={label}
         draggable={draggable}
+        trailingIcon={trailingIcon}
         selected={selected}
         disabled={disabled}
         leadingIcon={leadingIcon}

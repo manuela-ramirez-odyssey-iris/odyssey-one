@@ -1893,7 +1893,7 @@
   "LeadNav": {
     "selector": "odyssey-lead-nav",
     "version": "1.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "hasCustomLogo",
@@ -2091,7 +2091,7 @@
   "MenuRow": {
     "selector": "odyssey-menu-row",
     "version": "0.4.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "label",
@@ -3104,7 +3104,7 @@
       {
         "name": "tabs[].indicators",
         "type": "TemplateRef<unknown>",
-        "desc": "Optional per-tab template rendered after the tab label inside the tab button (.shipments-bar__tab-indicators, inline-flex, spacing-1 gap). Small status glyphs that signal something about the tab's CONTENT — a generic per-tab slot, available on EVERY tab, not a Tender feature (user, 2026-09-07). First consumer: the Shipments Tender tab (S140) — a purple package for a pending order change, else an orange list-x for dropped carriers; one glyph at a time, because the order change blocks the whole tab. Angular deviation: React accepts any ReactNode; Angular takes a TemplateRef, matching the group-table template-slot convention — one or more glyphs can be composed inside the template. (Figma: ShipmentsBarTab `Show indicators` BOOLEAN + `Indicator` INSTANCE_SWAP, placeholder-16 by default — added 2026-09-07.)"
+        "desc": "Optional per-tab template rendered INLINE after the tab label (.shipments-bar__tab-indicators, inline-flex, spacing-1 gap). Small status signals about the tab's CONTENT — a generic per-tab slot on EVERY tab, not a Tender feature. Consumers (S140): the Tender tab shows a purple icon-only Badge (OctagonAlert) while an order change is pending — the one thing that BLOCKS the tab; the SpotBid tab shows a pulsing live dot while its quote is open. A floating corner-alert variant was tried and dropped the same day (user, 2026-09-07). Angular deviation: React accepts any ReactNode; Angular takes a TemplateRef, matching the group-table template-slot convention — one or more glyphs can be composed inside the template. (Figma: ShipmentsBarTab `Show indicators` BOOLEAN + `Indicator` INSTANCE_SWAP, placeholder-16 by default.)"
       },
       {
         "name": "activeTab / (tabChange)",
@@ -3156,7 +3156,7 @@
   "Sidebar": {
     "selector": "odyssey-sidebar",
     "version": "0.2.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "topItems",
@@ -3193,7 +3193,7 @@
   "SidebarButton": {
     "selector": "odyssey-sidebar-button",
     "version": "0.2.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "<ng-content>",

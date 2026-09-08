@@ -252,6 +252,7 @@
   --field-height: 36px;
   --navbar-height: 64px;
   --sidebar-width: 64px;
+  --sidebar-width-expanded: 240px;
   --bottombar-collapsed: 48px;
   /* the bar's middle (partial) expansion height — S82 three-state bar. This is
      the stage consumers open to on selection, so it IS the default open height.
