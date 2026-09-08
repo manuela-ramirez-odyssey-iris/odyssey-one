@@ -9,6 +9,13 @@ import SubAccordion from './SubAccordion'
 // (placeholder-20 in Figma; code defaults to lucide/info when omitted);
 // `Content` SLOT → children. The chevron is always present on the collapsible
 // states; the expand/collapse animation is code-only.
+//
+// The header actions are NOT mapped. `Show Expand All` + the `Expand All`
+// INSTANCE_SWAP (ButtonLink or Button in one slot) correspond to `onToggleAll`
+// + `toggleAllVariant`, but the code prop is driven by a CALLBACK's presence,
+// not by the boolean, and reading a variant name back out of a swapped
+// instance is not something figma.instance() can do. `Show Button` → `action`
+// is the same shape. Both are documented in the demo instead.
 figma.connect(
   SubAccordion,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4083-5044',

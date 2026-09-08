@@ -26,12 +26,18 @@ import Button from './Button.jsx'
  * The chevron rotates 180° on expand — at rest the rendered geometry matches
  * the Figma chevron-down / chevron-up masters exactly.
  *
- * Optional expand-all action (S79h): pass `onToggleAll` to render a
- * `Button variant="link"` on the right of the header row ("Expand All"
- * chevrons-up-down / "Collapse All" chevrons-down-up, 16px), a SIBLING of the
- * header toggle (never a nested button). Consumer-controlled via `allExpanded`
- * — the consumer tracks what's expanded inside the slot. (Figma: `Show Expand
- * All` BOOLEAN, default false.)
+ * Optional expand-all action (S79h): pass `onToggleAll` to render a control on
+ * the right of the header row ("Expand All" chevrons-up-down / "Collapse All"
+ * chevrons-down-up, 16px), a SIBLING of the header toggle (never a nested
+ * button). Consumer-controlled via `allExpanded` — the consumer tracks what's
+ * expanded inside the slot. (Figma: `Show Expand All` BOOLEAN, default false.)
+ *
+ * `toggleAllVariant` picks WHICH control that is: `'link'` (default, the
+ * historic `Button variant="link"`) or `'secondary'`, a `Button
+ * variant="secondary" size="sm"` for sections that need more weight. This is
+ * the code side of Figma's `Expand All` INSTANCE_SWAP, which offers the
+ * ButtonLink and Button masters in that one slot. Only the chrome changes —
+ * label, icons, callback and Static-only placement are identical either way.
  *
  * Optional primary action (S80): pass `action` (a ReactNode — by convention a
  * `Button variant="primary" size="sm"`) to render it at the end of the header
@@ -49,6 +55,7 @@ export default function SubAccordion({
   onToggle,
   allExpanded = false,
   onToggleAll,
+  toggleAllVariant = 'link',
   action,
   children,
   className = '',
@@ -95,7 +102,9 @@ export default function SubAccordion({
         </HeaderTag>
         {!collapsible && onToggleAll && (
           <Button
-            variant="link"
+            {...(toggleAllVariant === 'secondary'
+              ? { variant: 'secondary', size: 'sm' }
+              : { variant: 'link' })}
             icon={allExpanded ? <ListChevronsDownUp size={16} /> : <ListChevronsUpDown size={16} />}
             onClick={(e) => {
               e.stopPropagation()
