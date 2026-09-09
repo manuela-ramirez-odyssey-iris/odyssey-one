@@ -9,6 +9,7 @@ import ConfirmDialog from '../../common/ConfirmDialog.jsx'
 import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
 import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop,
   isRoutable, markRouted, totals, priorDiff, toDto,
@@ -29,6 +30,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // so a new shipment gets a fresh instance (and a fresh sandbox) instead of
   // this one re-initializing mid-life.
   const [initial] = useState(() => initSandbox({ stops, consolidation, orders }))
+  const orderById = useMemo(() => new Map(orders.map((o) => [o.orderNumber, o])), [orders])
   const [sb, setSb] = useState(initial)
   const [view, setView] = useState('first') // 'first' = New, 'second' = Prior
   const [errorMsg, setErrorMsg] = useState(null)
@@ -137,7 +139,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                     // ponytail: no order drill-in yet — deferred, wire up when the
                     // Order Compare / detail surface has a route for this VM.
                     : (
-                      <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>
+                      <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
                         <Button variant="link" onClick={() => {}}>{id}</Button>
                       </TooltipTrigger>
                     )}
@@ -214,7 +216,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               <div className="edit-stops__pending-row" key={id}>
                 {/* ponytail: no order drill-in yet — deferred, wire up when the
                     Order Compare / detail surface has a route for this VM. */}
-                <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>
+                <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>
                   <Button variant="link" onClick={() => {}}>{id}</Button>
                 </TooltipTrigger>
                 <Button variant="secondary" icon={<Plus {...ICON_MD} />} disabled={isPrior} onClick={() => handleAddTo(id)}>Add to</Button>

@@ -165,3 +165,10 @@ it('Add New Order is disabled', () => {
   setup()
   expect(screen.getByRole('button', { name: 'Add New Order' }).disabled).toBe(true)
 })
+
+it('hovering an order link shows the order Tooltip with the stop leg date (VD 2143-11775)', () => {
+  setup({ orders: orders.map((o) => ({ ...o, planningType: 'SSD', earliestPickup: '06/04/2026', earliestDelivery: '06/06/2026' })) })
+  fireEvent.mouseEnter(screen.getAllByRole('button', { name: 'C' })[0].parentElement)  // C's only pickup row (P2)
+  expect(screen.getByRole('tooltip').textContent).toContain('Order Number: C')
+  expect(screen.getByRole('tooltip').textContent).toContain('Pickup Date Time06/04/2026')
+})
