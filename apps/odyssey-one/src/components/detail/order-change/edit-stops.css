@@ -103,3 +103,11 @@
 .edit-stops .btn:disabled {
   pointer-events: none;
 }
+
+/* AddOrdersModal — VD 2137-59231. */
+.modal-medium.add-orders { max-width: min(1648px, 96vw); }   /* override .modal-medium's 920px cap for the 11-column grid */
+.add-orders__toolbar { display: flex; align-items: center; gap: var(--spacing-3); padding-bottom: var(--spacing-3); }
+.add-orders__search { width: 389px; }
+.add-orders__filters { width: 640px; }
+.add-orders__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4); }
+.add-orders__blocked { color: var(--text-tertiary); }
