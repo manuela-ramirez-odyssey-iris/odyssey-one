@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Alert, Button, ComboBox, DatePicker, Dropdown, FilterButton, FormField, GroupTable, ModalMedium, Spinner } from '@odyssey/ui'
+import { Alert, Button, ComboBox, DatePicker, Dropdown, FormField, GroupTable, ModalMedium, Spinner } from '@odyssey/ui'
 import { EMPTY_FILTERS, SHIPMENT_STATUSES, TENDER_STATUSES, MOVE_BLOCKED_TOOLTIP, filterCandidates } from '../../../../api/_lib/candidateOrders.mjs'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import { rowsToFlatGroups } from '../../shipments/order-change/comparisonHelpers.jsx'
@@ -73,11 +73,15 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
         </>)}>
         <div className="add-orders__toolbar">
           <ComboBox variant="search" placeholder="Search" value={q} onChange={setQ} onClear={() => setQ('')} className="add-orders__search" />
-          <FilterButton active={filtersOpen} onClick={openFilters} />
+          {/* FilterButton is reserved for GlobalSearch (user ruling) — a plain
+              secondary Button stands in here. Its `active` toggle state goes
+              away with it; the inner Filters modal already makes that state
+              obvious, so nothing is lost. */}
+          <Button variant="secondary" onClick={openFilters}>Filter</Button>
           <Button variant="secondary" onClick={clearAll}>Clear All</Button>
         </div>
         {capped && <Alert variant="warning" onClose={() => setCapped(false)}>{CAP_MSG}</Alert>}
-        {isPending ? <Spinner /> : isError ? <Alert variant="error" showClose={false}>Could not load orders.</Alert> : (
+        {isPending ? <div className="add-orders__spinner"><Spinner size={24} /></div> : isError ? <Alert variant="error" showClose={false}>Could not load orders.</Alert> : (
           <GroupTable flat selectable header={{ title: `Results (${rows.length})` }} columns={COLUMNS}
             groups={rowsToFlatGroups(rows, COLUMNS, cell).map((g, i) => ({ ...g, id: rows[i].orderNumber, selectDisabled: rows[i].blocked }))}
             selectedIds={selected} onSelect={select} onSelectAll={selectAll} selectLabel={(g) => `Select order ${g.id}`} />

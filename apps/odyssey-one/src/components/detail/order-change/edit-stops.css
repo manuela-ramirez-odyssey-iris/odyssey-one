@@ -71,7 +71,20 @@
   padding: 0 var(--spacing-4) var(--spacing-4);
 }
 
+/* User ruling 2026-09-09: "Move To Pending" was sitting right after the order
+   link instead of the row's trailing edge. `justify-content: space-between`
+   on the row itself (not `margin-left: auto` on the button — an earlier
+   session, S137, put a bare auto-margin on a moved button and it rendered
+   529px off-centre in its new flex parent) with the label+link grouped in
+   their own child so they read together on the left. */
 .edit-stops__order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.edit-stops__order-lead {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
@@ -133,8 +146,17 @@
 .add-orders__search { width: 389px; }
 .add-orders__filters { width: 640px; }
 .add-orders__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4); }
+.add-orders__spinner { display: flex; justify-content: center; padding: var(--spacing-6) 0; }
+/* User ruling 2026-09-09: results-table row text read too faint. Root cause:
+   `.odyssey-group-table__row td` (components.css) paints every column
+   --text-tertiary and reserves --text-primary for the lead (first) column
+   only — correct for the library's default row, but this table's rows are
+   all-data (no lead label), so every value looked washed out. Scoped to this
+   table only, not packages/ui. */
+.add-orders .odyssey-group-table__row td { color: var(--text-primary); }
 /* ponytail: no --opacity-disabled token exists yet; flat 0.45 matches the
-   dim treatment on .edit-stops__pending--muted above — GroupTable's flat
-   cells already paint --text-tertiary by default, so color alone was a
-   no-op here; opacity is what actually dims the row. */
+   dim treatment on .edit-stops__pending--muted above. Re-checked against the
+   darker --text-primary above: 0.45 of --text-primary still reads visibly
+   dimmer than the darker unblocked rows (contrast ratio ~5.6:1 between the
+   two), so the value carries over unchanged. */
 .add-orders__blocked { opacity: 0.45; }

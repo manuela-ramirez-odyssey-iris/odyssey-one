@@ -77,14 +77,14 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
 
 it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reordering after a move', () => {
   setup()
-  expect(screen.getByLabelText('P1 — completed')).toBeTruthy()
-  expect(screen.getByLabelText('P2 — completed')).toBeTruthy()
-  expect(screen.getByLabelText('D1 — completed')).toBeTruthy()
+  expect(screen.getByLabelText('P1 — changed')).toBeTruthy()
+  expect(screen.getByLabelText('P2 — changed')).toBeTruthy()
+  expect(screen.getByLabelText('D1 — changed')).toBeTruthy()
   // Move stop 1 (P1) down over stop 2 (P2, also a pickup) — legal, and the
   // rail's badge order should follow (P1 now labels the second card).
   fireEvent.click(screen.getAllByRole('button', { name: 'Move stop down' })[0])
-  const badges = screen.getAllByLabelText(/^P\d — completed$/)
-  expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual(['P1 — completed', 'P2 — completed'])
+  const badges = screen.getAllByLabelText(/^P\d — changed$/)
+  expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual(['P1 — changed', 'P2 — changed'])
   // P2 (Y, Town) is now first, so "Stop 1" (the rail's position label) carries it.
   expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('Y, Town')
 })
@@ -178,8 +178,8 @@ it('Prior toggle disabled until dirty; in Prior view the title, alert copy, mute
   fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[2])
   expect(screen.getByRole('button', { name: 'Prior' }).disabled).toBe(false)
   fireEvent.click(screen.getByRole('button', { name: 'Prior' }))
-  expect(screen.getByText('All Stops - Prior Changes')).toBeTruthy()
-  expect(screen.getByText('Prior changes view mode')).toBeTruthy()
+  expect(screen.getByText('All Stops - Prior to changes')).toBeTruthy()
+  expect(screen.getByText('Stops and orders prior to changes')).toBeTruthy()
   expect(screen.getByText('Removed')).toBeTruthy()
 })
 

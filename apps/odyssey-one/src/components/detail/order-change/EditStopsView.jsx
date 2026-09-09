@@ -123,8 +123,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const weightChanged = curTotals.grossWeight !== initialTotals.grossWeight
   const volumeChanged = curTotals.volume !== initialTotals.volume
 
-  const alertVariant = isPrior ? 'info' : (errorMsg ? 'error' : 'info')
-  const alertText = isPrior ? 'Prior changes view mode' : (errorMsg || HINT)
+  const alertVariant = isPrior ? 'warning' : (errorMsg ? 'error' : 'info')
+  const alertText = isPrior ? 'Stops and orders prior to changes' : (errorMsg || HINT)
 
   const items = displayStops.map((s, i) => {
     const label = labels[i]
@@ -139,7 +139,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     return {
       key: s.key,
       label,
-      status: 'completed', // no per-stop status on this VM; VD shows a plain rail
+      // User ruling 2026-09-09: purple ('changed'), not the plain green rail —
+      // this editor already reads P/D badges as change markers alongside the
+      // amber Removed/Moved badges above, so the rail follows suit.
+      status: 'changed',
       content: (
         <div className="edit-stops__card">
           <HeaderStrip
@@ -178,16 +181,18 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               const isRemovedOrder = diff.removedOrderIds.includes(id)
               return (
                 <div className="edit-stops__order-row" key={id}>
-                  <span className="edit-stops__order-label text-label-sm-medium">Order #</span>
-                  {isRemovedOrder
-                    ? <Badge variant="amber">{id}</Badge>
-                    // ponytail: no order drill-in yet — deferred, wire up when the
-                    // Order Compare / detail surface has a route for this VM.
-                    : (
-                      <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
-                        <Button variant="link" onClick={() => {}}>{id}</Button>
-                      </TooltipTrigger>
-                    )}
+                  <div className="edit-stops__order-lead">
+                    <span className="edit-stops__order-label text-label-sm-medium">Order #</span>
+                    {isRemovedOrder
+                      ? <Badge variant="amber">{id}</Badge>
+                      // ponytail: no order drill-in yet — deferred, wire up when the
+                      // Order Compare / detail surface has a route for this VM.
+                      : (
+                        <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
+                          <Button variant="link" onClick={() => {}}>{id}</Button>
+                        </TooltipTrigger>
+                      )}
+                  </div>
                   {singleOrderLeft ? (
                     <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
                       <Button variant="secondary" icon={<ClipboardList {...ICON_MD} />} disabled>Move To Pending</Button>
@@ -214,8 +219,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   return (
     <div className="edit-stops">
       <SubAccordion
-        title={isPrior ? 'All Stops - Prior Changes' : 'All Stops'}
+        title={isPrior ? 'All Stops - Prior to changes' : 'All Stops'}
         collapsible={false}
+        // User ruling 2026-09-09: Prior header carries no icon (SubAccordion's
+        // Info glyph defaults on) — non-Prior keeps it.
+        showIcon={!isPrior}
         buttonToggle={(
           <ButtonToggle
             firstLabel="New"
