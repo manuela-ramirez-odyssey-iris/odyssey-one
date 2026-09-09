@@ -300,6 +300,10 @@ const OC_OUTCOMES = {
 // The API does the merge because it, not the client, has the full prior
 // stop (detail.shipmentStopList) and the orders (detail.orderList) to pull
 // those from and recompute totals against. Pure/testable: no DB access.
+// Order identity varies by source (seed orderId vs. live orderNumber) — one
+// helper, used everywhere an order record needs to be matched by id.
+const idOf = (o) => o.orderId ?? o.orderNumber
+
 export function mergeStops(detail, rows) {
   const orderList = detail.orderList ?? []
   const stopList = detail.shipmentStopList ?? []
@@ -308,7 +312,7 @@ export function mergeStops(detail, rows) {
       ? (stopList.find((s) => s.stopSequence === row.sourceStopSequence) ?? {})
       : {}
     const orderIds = row.orderIds ?? []
-    const stopOrders = orderList.filter((o) => orderIds.includes(o.orderId ?? o.orderNumber))
+    const stopOrders = orderList.filter((o) => orderIds.includes(idOf(o)))
     // I5 (generate.mjs) — a stop's totals are always the sum of its orders;
     // recomputed here rather than trusted from the client for the same
     // coherence reason the seed data sums them instead of hardcoding.
@@ -370,7 +374,7 @@ async function pullExternalOrders(db, externalOrders) {
   const records = []
   for (const { orderNumber, sourceSellShipment } of deduped) {
     const src = bySell.get(sourceSellShipment)
-    const rec = src?.detail?.orderList?.find((o) => (o.orderNumber ?? o.orderId) === orderNumber)
+    const rec = src?.detail?.orderList?.find((o) => idOf(o) === orderNumber)
     if (!src || !rec || MOVE_BLOCKED_STATUS.includes(src.shipmentStatus) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus)) {
       blocked.push(orderNumber)
       continue
@@ -391,7 +395,7 @@ async function pullExternalOrders(db, externalOrders) {
 // can never disagree with its remaining orders either.
 export function removeOrdersFromSource(detail, movedIds) {
   const gone = new Set(movedIds)
-  const orderList = (detail.orderList ?? []).filter((o) => !gone.has(o.orderNumber ?? o.orderId))
+  const orderList = (detail.orderList ?? []).filter((o) => !gone.has(idOf(o)))
   const rows = (detail.shipmentStopList ?? [])
     .map((s) => ({ ...s, orderIds: (s.orderIds ?? []).filter((id) => !gone.has(id)) }))
     .filter((s) => s.orderIds.length > 0)
@@ -495,7 +499,7 @@ export async function resolveOrderChange({ params, body, db }) {
     const { records: external, sources } = await pullExternalOrders(db, body.externalOrders)
     const onStops = new Set(body.stops.flatMap((s) => s.orderIds ?? []))
     // D2 — the confirm dialog's promise: orders left pending leave the shipment.
-    const orderList = [...(detail.orderList ?? []), ...external].filter((o) => onStops.has(o.orderNumber ?? o.orderId))
+    const orderList = [...(detail.orderList ?? []), ...external].filter((o) => onStops.has(idOf(o)))
     const merged = mergeStops({ ...detail, orderList }, body.stops)
 
     // ponytail: first BEGIN/COMMIT in this file — the AC (LINX-15872) demands
@@ -509,6 +513,18 @@ export async function resolveOrderChange({ params, body, db }) {
     try {
       await client.query('BEGIN')
       await client.query(buildSaveStopsQuery(sellShipment, merged, orderList))
+      // LINX-15872 "Remove the order from its source shipment" / OC-open-22:
+      // the `orders` table row itself still points at the OLD shipment until
+      // this repoints it — the two JSONB detail blobs (this save + the
+      // source save below) are the app's own denormalized view, not the
+      // system of record for which shipment owns the order.
+      const movedOrderNumbers = external.map(idOf).filter((id) => onStops.has(id))
+      if (movedOrderNumbers.length) {
+        await client.query({
+          text: 'UPDATE orders SET shipment_sell_id = $1 WHERE order_number = ANY($2)',
+          values: [sellShipment, movedOrderNumbers],
+        })
+      }
       for (const src of sources) {
         const movedIds = (body.externalOrders ?? [])
           .filter((e) => e.sourceSellShipment === src.sellShipment)

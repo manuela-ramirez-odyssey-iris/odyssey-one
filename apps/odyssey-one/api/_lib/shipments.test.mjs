@@ -635,7 +635,27 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     assert.deepEqual(sourceSave.stops.map((s) => [s.stopSequence, s.orderIds]), [[1, ['F']], [2, ['F']]]) // emptied P1 dropped, renumbered
     assert.equal(sourceSave.stops[1].grossWeightValue, 1) // recomputed from its remaining order
     assert.deepEqual(sourceSave.ids, ['F'])
+    // LINX-15872 "Remove the order from its source shipment" / OC-open-22 —
+    // the `orders` table row (the system of record for who owns an order,
+    // not just the two JSONB detail blobs above) gets repointed in the SAME
+    // transaction: between BEGIN and COMMIT, not before/after it.
+    const orderMove = calls.find((q) => /UPDATE orders SET shipment_sell_id/.test(q.text))
+    assert.ok(orderMove, 'orders.shipment_sell_id repointed')
+    assert.deepEqual(orderMove.values, ['9', ['E']])
+    const moveIdx = calls.indexOf(orderMove)
+    assert.ok(moveIdx > beginIdx && moveIdx < calls.length - 1)
     assert.ok(state.released, 'client released back to the pool')
+  })
+
+  it('does not touch orders.shipment_sell_id when externalOrders is empty', async () => {
+    const plainBody = {
+      action: 'save-stops', priorTenderStatus: 'Sent',
+      stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A'], sourceStopSequence: null }],
+      externalOrders: [],
+    }
+    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: source })
+    await resolveOrderChange({ params: ['9'], body: plainBody, db })
+    assert.ok(!calls.some((q) => /UPDATE orders SET shipment_sell_id/.test(q.text ?? '')))
   })
 
   it('a failing write rolls back and writes nothing further', async () => {

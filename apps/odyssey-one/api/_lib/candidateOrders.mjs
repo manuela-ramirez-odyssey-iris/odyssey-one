@@ -63,7 +63,6 @@ export function filterCandidates(rows, { q = '', filters = EMPTY_FILTERS }) {
     if (!inRange(r.deliveryDate, f.deliveryDate)) return false
     if (f.shipmentStatus && r.shipmentStatus !== f.shipmentStatus) return false
     if (f.tenderStatus && r.tenderStatus !== f.tenderStatus) return false
-    if (f.shipmentType && r.shipmentType !== f.shipmentType) return false
     return true
   })
 }
