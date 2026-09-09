@@ -41,7 +41,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const allOrders = useMemo(() => [...orders, ...extraOrders], [orders, extraOrders])
   const orderById = useMemo(() => new Map(allOrders.map((o) => [o.orderNumber, o])), [allOrders])
   const [sb, setSb] = useState(initial)
-  const [view, setView] = useState('first') // 'first' = New, 'second' = Prior
+  const [view, setView] = useState('first') // 'first' = Current, 'second' = Prior change
   const [errorMsg, setErrorMsg] = useState(null)
   const [modal, setModal] = useState(null) // 'planning' | 'routing' | 'discard' | 'confirm' | 'add-orders'
 
@@ -232,8 +232,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         showIcon={false}
         buttonToggle={(
           <ButtonToggle
-            firstLabel="New"
-            secondLabel="Prior"
+            firstLabel="Current"
+            secondLabel="Prior change"
             selected={view}
             onChange={handleViewChange}
             disabled={!sb.dirty}

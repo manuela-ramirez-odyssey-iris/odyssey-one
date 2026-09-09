@@ -170,14 +170,14 @@ it('Approve Changes stays disabled while saving even once routed', () => {
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
-it('Prior toggle disabled until dirty; in Prior view the title, alert copy, muted pending column, disabled controls and gray badges for removed/moved appear', () => {
+it('Prior change toggle disabled until dirty; in Prior view the title, alert copy, muted pending column, disabled controls and gray badges for removed/moved appear', () => {
   setup()
-  const priorBtn = screen.getByRole('button', { name: 'Prior' })
+  const priorBtn = screen.getByRole('button', { name: 'Prior change' })
   expect(priorBtn.disabled).toBe(true)
   // Stop 2 (P2) holds only order C — pending it empties and removes the stop.
   fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[2])
-  expect(screen.getByRole('button', { name: 'Prior' }).disabled).toBe(false)
-  fireEvent.click(screen.getByRole('button', { name: 'Prior' }))
+  expect(screen.getByRole('button', { name: 'Prior change' }).disabled).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: 'Prior change' }))
   expect(screen.getByText('All Stops - Prior to changes')).toBeTruthy()
   const banner = screen.getByText('Stops and orders prior to changes')
   expect(banner.closest('.alert').className).toContain('alert--info')
