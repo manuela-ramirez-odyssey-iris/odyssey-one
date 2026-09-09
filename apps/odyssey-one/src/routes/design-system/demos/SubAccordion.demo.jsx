@@ -12,6 +12,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
+  approved: true,
 }
 
 export const props = [
