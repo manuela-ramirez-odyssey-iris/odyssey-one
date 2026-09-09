@@ -668,7 +668,7 @@ test('candidateOrders handler builds rows through buildCandidateRows', async () 
     sellShipment: '1', buyShipment: '900', customerId: 'ERCO', customerName: 'Erco', orders: ['A', 'B'],
     shipmentStatus: 'Review', tenderStatus: 'Sent', shipmentType: 'Consolidation',
   }] }) }
-  const rows = await candidateOrders({ params: ['9'], query: { exclude: 'B' }, db })
+  const rows = await candidateOrders({ params: ['9'], query: new URLSearchParams('exclude=B'), db })
   assert.equal(rows.length, 1)
   assert.equal(rows[0].origin, 'Atlanta, GA US')
   assert.deepEqual(rows[0].ordersInShipment, ['A', 'B'])

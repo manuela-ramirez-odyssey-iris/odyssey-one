@@ -505,7 +505,7 @@ export async function saveTender({ params, body, db }) {
 // the SAME builder the mock uses runs here — one place for the row shape.
 export function buildCandidateOrdersQuery(sellShipment) {
   return {
-    text: `SELECT o.order_number AS "orderNumber", o.customer, o.consignor, o.consignee,
+    text: `SELECT o.order_number AS "orderNumber", o.consignor, o.consignee,
                   o.gross_weight AS "grossWeight", o.volume,
                   s.sell_shipment AS "sellShipment", s.buy_shipment AS "buyShipment", s.customer_id AS "customerId",
                   s.customer_name AS "customerName", s.orders, s.shipment_status AS "shipmentStatus",
@@ -520,10 +520,7 @@ export function buildCandidateOrdersQuery(sellShipment) {
 export async function candidateOrders({ params, query, db }) {
   const sellShipment = params[0]
   const { rows } = await db.query(buildCandidateOrdersQuery(sellShipment))
-  // Real router passes URLSearchParams (query.get); the plain-object shape
-  // below is only what unit tests pass directly to this handler.
-  const excludeRaw = typeof query?.get === 'function' ? query.get('exclude') : query?.exclude
-  const exclude = String(excludeRaw ?? '').split(',').filter(Boolean)
+  const exclude = (query.get('exclude') ?? '').split(',').filter(Boolean)
   // Split the joined row back into its two shapes — the builder joins them by
   // shipment.orders, exactly as the mock does over the two JSON files.
   const shipments = [...new Map(rows.map((r) => [r.sellShipment, r])).values()]

@@ -19,6 +19,12 @@ const place = (a) => (a ? `${a.city}, ${a.state} ${a.country}` : '--')
 const measure = (m) => (m && m.value != null ? `${m.value} ${m.uom}` : '--')
 const day = (iso) => (iso ? String(iso).slice(0, 10) : '')
 
+/**
+ * @param {{ shipments: object[], orders: object[], customerId: string, sellShipment: string, excludeOrderIds?: string[] }} args
+ * @returns {{ orderNumber: string, sourceSellShipment: string, customer: string, origin: string, destination: string,
+ *   weight: string, volume: string, buyShipment: string, shipmentStatus: string, tenderStatus: string,
+ *   shipmentType: string, ordersInShipment: string[], shipDate: string, deliveryDate: string, blocked: boolean }[]}
+ */
 export function buildCandidateRows({ shipments, orders, customerId, sellShipment, excludeOrderIds = [] }) {
   const skip = new Set(excludeOrderIds)
   const byNumber = new Map(orders.map((o) => [o.orderNumber, o]))

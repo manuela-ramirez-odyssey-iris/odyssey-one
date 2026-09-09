@@ -3,7 +3,6 @@ import { apiGet, apiPatch, apiPut } from '../client'
 import { mapSellShipmentOutToDetail } from '../mappers/mapSellShipmentOutToDetail'
 import type { SellShipmentOut, SellShipmentStop } from '../types/sellShipmentOut'
 import type { ShipmentDetailVM } from '../types/shipmentDetail'
-// same builder runs mock (here) and live (api/_lib/shipments.mjs candidateOrders); untyped .mjs, cast below
 import { buildCandidateRows } from '../../../api/_lib/candidateOrders.mjs'
 import { getAllShipments } from '../../data'
 import { getAllOrders } from '../../data/orders'
@@ -103,9 +102,7 @@ export async function getCandidateOrders(
   excludeOrderIds: string[],
 ): Promise<CandidateOrderRow[]> {
   if (getApiMode() !== 'live') {
-    return (buildCandidateRows as (args: {
-      shipments: unknown[]; orders: unknown[]; customerId: string; sellShipment: string; excludeOrderIds: string[]
-    }) => CandidateOrderRow[])({ shipments: getAllShipments(), orders: getAllOrders(), customerId, sellShipment, excludeOrderIds })
+    return buildCandidateRows({ shipments: getAllShipments(), orders: getAllOrders(), customerId, sellShipment, excludeOrderIds })
   }
   const qs = excludeOrderIds.length ? `?exclude=${encodeURIComponent(excludeOrderIds.join(','))}` : ''
   return apiGet(`/shipment-service/v1/sell-shipment-out/${sellShipment}/candidate-orders${qs}`)
