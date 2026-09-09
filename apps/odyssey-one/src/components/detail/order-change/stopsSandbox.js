@@ -147,16 +147,29 @@ export function moveToPending(sb, id) {
   return { ...sb, stops, pending: [...sb.pending, id], dirty: true, routed: false }
 }
 
-// LINX-15871: put a pending order back — pickup by ship-from, delivery by ship-to.
-export function addToStop(sb, id, orders) {
+// LINX-15871 + VD 2076-8110: put a pending order back. With `stopKey` the
+// planner chose the stop (Add to → Stop N): the order joins THAT stop as its
+// type's leg and only the other leg is matched-or-created. Without it (or an
+// unknown key) both legs place automatically (DEC-138 fallback).
+export function addToStop(sb, id, orders, stopKey) {
   const order = orders.find((o) => o.orderNumber === id)
   if (!order) return sb
   const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   let seq = sb.seq
-  placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`, orders)
-  placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`, orders)
+  const chosen = stopKey ? stops.find((s) => s.key === stopKey) : null
+  if (chosen && !chosen.orderIds.includes(id)) chosen.orderIds.push(id)
+  if (chosen?.type !== 'pickup') placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`, orders)
+  if (chosen?.type !== 'delivery') placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`, orders)
   const pending = sb.pending.filter((p) => p !== id)
   return { ...sb, stops, pending, seq, dirty: true, routed: false }
+}
+
+// LINX-15870: orders picked in Search & Add land in the pending column with
+// their own Add action. Not a stop edit — dirty/routed untouched.
+export function addPending(sb, ids) {
+  const onStops = new Set(sb.stops.flatMap((s) => s.orderIds))
+  const add = ids.filter((id, i) => !onStops.has(id) && !sb.pending.includes(id) && ids.indexOf(id) === i)
+  return add.length ? { ...sb, pending: [...sb.pending, ...add] } : sb
 }
 
 // Gate for LINX-15670/15869/15871: routable iff no unsequenced stop and every stop has a date.
