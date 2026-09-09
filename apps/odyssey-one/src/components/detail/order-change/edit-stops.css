@@ -52,7 +52,11 @@
 .edit-stops__card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-subtle);
+  /* User ruling 2026-09-09: the gray frame around each stop card was ours,
+     not in the VD — removed. border-radius + overflow:hidden are kept: they
+     still clip HeaderStrip's own tinted band (--bg-secondary) to rounded top
+     corners against the page background, which reads fine as a plain
+     rounded-header card with no frame needed to bound it. */
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
