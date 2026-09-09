@@ -183,6 +183,12 @@ export function toDto(sb) {
     const idx = s.location.indexOf(', ')
     const facilityName = idx === -1 ? s.location : s.location.slice(0, idx)
     const city = idx === -1 ? '' : s.location.slice(idx + 2)
+    // Pre-existing stop keys are `s<originalStopSequence>`; created stops key
+    // as `new:<type>:<n>`. The server (mergeStops) needs the ORIGINAL sequence
+    // to pull region/postal/timezone etc. off detail.shipmentStopList — this
+    // client-only sandbox never carries those fields at all.
+    const m = /^s(\d+)$/.exec(s.key)
+    const sourceStopSequence = m ? Number(m[1]) : null
     return {
       stopSequence: i + 1,
       stopType: s.type,
@@ -191,6 +197,7 @@ export function toDto(sb) {
       city,
       address1: s.address,
       scheduledDateTime: s.date,
+      sourceStopSequence,
     }
   })
 }

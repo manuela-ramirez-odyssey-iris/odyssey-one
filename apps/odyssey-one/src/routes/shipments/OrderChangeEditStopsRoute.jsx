@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
-import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
+import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import EditStopsView from '../../components/detail/order-change/EditStopsView.jsx'
 import ReviewKpiStrip from '../../components/detail/order-change/ReviewKpiStrip.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
+import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
 import '../../components/shipments/order-change/order-change.css'
 
 // Edit Shipment Stops — /shipments/order-change/:sellShipment/stops,
@@ -30,7 +32,12 @@ export default function OrderChangeEditStopsRoute() {
   const location = useLocation()
   const buyShipment = location.state?.buyShipment
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
+  const resolve = useResolveOrderChange()
   const headerTitle = buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
+
+  // Same convention as OrderChangeReviewRoute's resolveError — a failed save
+  // shouldn't settle silently (Task 11 lesson).
+  const [saveError, setSaveError] = useState('')
 
   // Exit back to this shipment's Stops tab (LINX-15667 — "cancel returns to
   // the review screen") — ShipmentsRoute.jsx:41-46 reads exactly these four
@@ -58,28 +65,33 @@ export default function OrderChangeEditStopsRoute() {
   const ACTIVE = ['To Be Tendered', 'Sent', 'Accepted']
   const tender = detail?.orderChange?.prior?.tenderStatus ?? null
 
-  // TODO(S143 Task 3): PATCH save-stops — replace this no-op with the real
-  // persistence call once the endpoint lands; everything else in
-  // handleApprove (the navigation branch) is final for this task.
-  function persistStops(stopsDto) {
-    // no-op — Task 3 wires this to the save-stops endpoint.
-  }
-
+  // S143 Task 3 — PATCH save-stops. The navigation branch below (Scenario
+  // A/B) only fires on success; a failed save leaves the planner on this
+  // screen with the Alert below rather than navigating them away from an
+  // edit that never persisted.
   function handleApprove(stopsDto) {
-    persistStops(stopsDto)
-    if (ACTIVE.includes(tender)) {
-      // Scenario A — a tender is already active: land back on the Direct
-      // review screen so the planner can resolve it with the new stops plan.
-      // No `from` key — the Direct route only reads 'from-tender' semantics
-      // via from === 'tender', which this exit isn't.
-      navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment } })
-    } else {
-      // Scenario B — no active tender yet: send the planner to Tender to
-      // start one on the finalized plan, still parked on the Order Change tab.
-      navigate('/shipments', {
-        state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
-      })
-    }
+    setSaveError('')
+    resolve.mutate(
+      { sellShipment, action: 'save-stops', stops: stopsDto, priorTenderStatus: tender, cost: null, priorScac: null },
+      {
+        onSuccess: () => {
+          if (ACTIVE.includes(tender)) {
+            // Scenario A — a tender is already active: land back on the
+            // Direct review screen so the planner can resolve it with the
+            // new stops plan. No `from` key — the Direct route only reads
+            // 'from-tender' semantics via from === 'tender', which this exit isn't.
+            navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment } })
+          } else {
+            // Scenario B — no active tender yet: send the planner to Tender
+            // to start one on the finalized plan, still parked on the Order Change tab.
+            navigate('/shipments', {
+              state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
+            })
+          }
+        },
+        onError: (e) => setSaveError(e.message),
+      },
+    )
   }
 
   return (
@@ -108,6 +120,12 @@ export default function OrderChangeEditStopsRoute() {
         ) : (
           <div className="order-change__content">
             <PageHeader title={headerTitle} />
+
+            {saveError && (
+              <Alert variant="error" onClose={() => setSaveError('')}>
+                {saveError}
+              </Alert>
+            )}
 
             <ReviewKpiStrip summary={detail.stopsData.summary} changes={c.summaryChanges} />
 

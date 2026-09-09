@@ -1,7 +1,7 @@
 import { getApiMode } from '../config'
 import { apiGet, apiPatch, apiPut } from '../client'
 import { mapSellShipmentOutToDetail } from '../mappers/mapSellShipmentOutToDetail'
-import type { SellShipmentOut } from '../types/sellShipmentOut'
+import type { SellShipmentOut, SellShipmentStop } from '../types/sellShipmentOut'
 import type { ShipmentDetailVM } from '../types/shipmentDetail'
 
 export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailVM> {
@@ -73,6 +73,8 @@ export async function resolveOrderChange(
     priorTenderStatus: string | null
     cost: { choice: string; amount: number } | null
     priorScac: string | null
+    // S143 Task 3 — save-stops only; see ResolveOrderChangeInput's comment.
+    stops?: Array<Partial<SellShipmentStop> & { stopSequence: number; stopType: string; sourceStopSequence: number | null }>
   },
 ): Promise<void> {
   if (getApiMode() !== 'live') return

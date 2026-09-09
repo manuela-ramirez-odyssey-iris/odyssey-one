@@ -1,15 +1,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { resolveOrderChange } from '../services/shipmentService'
+import type { SellShipmentStop } from '../types/sellShipmentOut'
 
 export interface ResolveOrderChangeInput {
   sellShipment: string
-  action: 'retender' | 'bypass' | 'cancel'
+  action: 'retender' | 'bypass' | 'cancel' | 'save-stops'
   priorTenderStatus: string | null
   cost: { choice: 'prior' | 'new' | 'quote'; amount: number } | null
   // S137 — the carrier whose tender row gets the selected cost written onto
   // it (resolveOrderChange, retender/bypass only). Identifies the row by
   // scac, not rank: rank is unstable across a re-route.
   priorScac: string | null
+  // S143 Task 3 — save-stops only: the finalized stop rows off Edit Shipment
+  // Stops' Approve Changes (stopsSandbox.js toDto). Only a subset of
+  // SellShipmentStop — the sandbox can't produce region/postal/timezone/
+  // totals — plus sourceStopSequence, which the server needs to pull those
+  // from detail.shipmentStopList (api/_lib/shipments.mjs mergeStops).
+  stops?: Array<Partial<SellShipmentStop> & { stopSequence: number; stopType: string; sourceStopSequence: number | null }>
 }
 
 // LINX-14509…14515 — planner's Tender Resolution Action off the Review Order
@@ -34,8 +41,8 @@ export interface ResolveOrderChangeInput {
 export function useResolveOrderChange() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac }: ResolveOrderChangeInput) =>
-      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac }),
+    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac, stops }: ResolveOrderChangeInput) =>
+      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac, stops }),
     onSuccess: (_data, { sellShipment }) => {
       queryClient.invalidateQueries({ queryKey: ['shipment', 'detail', sellShipment] })
       queryClient.invalidateQueries({ queryKey: ['shipment-error-list'] })

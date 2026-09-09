@@ -138,10 +138,16 @@ describe('gate, totals, prior diff, dto', () => {
     s = moveStop(s, 0, 'down')
     const dto = toDto(s)
     expect(dto.map((d) => [d.stopSequence, d.stopType, d.orderIds])).toEqual([[1, 'pickup', ['C']], [2, 'pickup', ['A', 'B']], [3, 'delivery', ['A', 'B', 'C']]])
-    expect(dto[0]).toMatchObject({ facilityName: 'Y', city: 'Town', scheduledDateTime: 'June 4, 2026 08:00 CDT' })
+    expect(dto[0]).toMatchObject({ facilityName: 'Y', city: 'Town', scheduledDateTime: 'June 4, 2026 08:00 CDT', sourceStopSequence: 2 })
   })
   it('toDto falls back to the whole location as facilityName when there is no comma', () => {
     const s = initSandbox({ stops: [stop({ location: 'Warehouse' })], consolidation: noChange, orders })
     expect(toDto(s)[0]).toMatchObject({ facilityName: 'Warehouse', city: '' })
+  })
+  it('toDto sets sourceStopSequence null for a created (unsequenced) stop', () => {
+    let s = initSandbox({ stops, consolidation: noChange, orders })
+    s = addToStop(moveToPending(s, 'C'), 'C', orders)
+    const created = toDto(s).find((d) => d.orderIds.includes('C') && d.stopType === 'pickup')
+    expect(created.sourceStopSequence).toEqual(null)
   })
 })

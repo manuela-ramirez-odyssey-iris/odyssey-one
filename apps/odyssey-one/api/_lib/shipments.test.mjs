@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -508,6 +508,90 @@ describe('resolveOrderChange', () => {
       db,
     })
     assert.equal(seen.length, 1)
+  })
+
+  // ── S143 Task 3: save-stops (Edit Shipment Stops → Approve Changes) ──────
+  it('save-stops rejects an empty stops array with 400', async () => {
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['S1'], body: { action: 'save-stops', stops: [] }, db: { query: async () => ({ rows: [] }) } }),
+      (e) => /stops/.test(e.message) && e.status === 400,
+    )
+  })
+
+  it('save-stops with an active prior tender status refiles WITHOUT stamping a resolution', async () => {
+    const seen = []
+    const detail = { orderList: [], shipmentStopList: [] }
+    const db = { query: async (q) => { seen.push(q); return { rows: [{ detail }] } } }
+    const stops = [{ stopSequence: 1, stopType: 'pickup', orderIds: [], sourceStopSequence: null }]
+    const res = await resolveOrderChange({
+      params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Sent', stops }, db,
+    })
+    assert.deepEqual(res, { success: true })
+    assert.equal(seen.length, 3, 'detail read, stop write, refile — no resolution write')
+    assert.match(seen[0].text, /SELECT detail FROM shipments/)
+    assert.match(seen[1].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
+    assert.match(seen[2].text, /UPDATE shipments SET tender_status/)
+    assert.ok(!/resolution/.test(seen[2].text))
+    assert.deepEqual(seen[2].values, ['Sent', 'exceptions', 'order-change', 'S1'])
+  })
+
+  it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution', async () => {
+    const seen = []
+    const detail = { orderList: [], shipmentStopList: [] }
+    const db = { query: async (q) => { seen.push(q); return { rows: [{ detail }] } } }
+    const stops = [{ stopSequence: 1, stopType: 'pickup', orderIds: [], sourceStopSequence: null }]
+    const res = await resolveOrderChange({
+      params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Cancelled', stops }, db,
+    })
+    assert.deepEqual(res, { success: true })
+    assert.equal(seen.length, 3, 'detail read, stop write, resolve write')
+    assert.match(seen[2].text, /detail = jsonb_set\(detail, '\{orderChange,resolution\}'/)
+    const values = seen[2].values
+    assert.ok(values.includes('Cancelled') && values.includes('monitoring') && values.includes('sent'))
+    assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"save-stops"')))
+  })
+})
+
+describe('mergeStops', () => {
+  const detail = {
+    shipmentStopList: [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A'], facilityName: 'Old Whse', city: 'Chicago', address1: '1 St', region: 'IL', postal: '60601', timeZone: 'America/Chicago', scheduledDateTime: '2026-06-01', appointmentTime: '08:00 CDT', country: 'US', pickupNumber: 'PU-1' },
+    ],
+    orderList: [
+      { orderId: 'A', grossWeightValue: 500, volumeValue: 10, orderLines: [{ packageCount: 3 }], pickupNumber: 'PU-1' },
+      { orderId: 'B', grossWeightValue: 700, volumeValue: 20, orderLines: [{ packageCount: 4 }, { packageCount: 1 }], pickupNumber: 'PU-2' },
+    ],
+  }
+
+  it('an existing stop keeps region/postal/timezone from the base row and gets recomputed totals', () => {
+    const [merged] = mergeStops(detail, [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], sourceStopSequence: 1 },
+    ])
+    assert.equal(merged.region, 'IL')
+    assert.equal(merged.postal, '60601')
+    assert.equal(merged.timeZone, 'America/Chicago')
+    assert.equal(merged.grossWeightValue, 1200)
+    assert.equal(merged.volumeValue, 30)
+    assert.equal(merged.packageCount, 8)
+    assert.equal(merged.grossWeightUomCode, 'LB')
+    assert.equal(merged.volumeUomCode, 'cuft')
+    assert.equal(merged.pickupNumber, 'PU-1')
+  })
+
+  it('a created stop (sourceStopSequence null) takes the submitted location and recomputed totals', () => {
+    const [merged] = mergeStops(detail, [
+      { stopSequence: 2, stopType: 'delivery', orderIds: ['B'], facilityName: 'New Whse', city: 'Denver', address1: '2 Ave', scheduledDateTime: '2026-06-02', sourceStopSequence: null },
+    ])
+    assert.equal(merged.facilityName, 'New Whse')
+    assert.equal(merged.city, 'Denver')
+    assert.equal(merged.address1, '2 Ave')
+    assert.equal(merged.scheduledDateTime, '2026-06-02')
+    assert.equal(merged.appointmentTime, null)
+    assert.equal(merged.country, 'US')
+    assert.equal(merged.grossWeightValue, 700)
+    assert.equal(merged.volumeValue, 20)
+    assert.equal(merged.packageCount, 5)
+    assert.equal(merged.pickupNumber, null, 'delivery stops never carry a pickupNumber')
   })
 })
 

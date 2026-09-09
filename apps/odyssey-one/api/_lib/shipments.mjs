@@ -263,6 +263,9 @@ export async function saveShipmentOverrides({ params, body, db }) {
 // planner's decision into detail.orderChange.resolution and re-files the
 // shipment: retender/bypass leave the review for monitoring, cancel stays in
 // exceptions so the planner is dropped back on Tender Review to choose again.
+// Tender statuses a shipment can be resolved OUT of by retender/bypass/save-stops.
+const OC_ACTIVE_TENDER_STATUSES = ['To Be Tendered', 'Sent', 'Accepted']
+
 const OC_OUTCOMES = {
   // retender re-solicits the carrier regardless of prior status — an
   // Accepted tender goes back to Sent, not back to Accepted (call w/ Jana).
@@ -279,6 +282,56 @@ const OC_OUTCOMES = {
     tenderStatus: 'Cancelled', panel: 'exceptions', category: 'tender-review',
     validationMessage: 'User to review the current tender options and take appropriate action.',
   }),
+  // save-stops (LINX-15671 Scenario A/B) — Approve Changes on Edit Shipment
+  // Stops. Scenario A (a tender is already active) leaves the shipment right
+  // where it was: the planner still owes the Direct Actions card a tender
+  // decision on the new stops plan, so the row stays in Order Change
+  // exceptions with no outcome change at all. Scenario B (no active tender)
+  // behaves exactly like bypass — nothing to re-solicit, the plan is just final.
+  'save-stops': (prior) => OC_ACTIVE_TENDER_STATUSES.includes(prior)
+    ? { tenderStatus: prior, panel: 'exceptions', category: 'order-change', validationMessage: null }
+    : OC_OUTCOMES.bypass(prior),
+}
+
+// S143 Task 3 — Edit Shipment Stops "Approve Changes" (LINX-15667…15671).
+// The client sandbox (stopsSandbox.js toDto) can only emit what it holds —
+// sequence/type/orderIds/location/date — never region/postal/timezone/totals.
+// The API does the merge because it, not the client, has the full prior
+// stop (detail.shipmentStopList) and the orders (detail.orderList) to pull
+// those from and recompute totals against. Pure/testable: no DB access.
+export function mergeStops(detail, rows) {
+  const orderList = detail.orderList ?? []
+  const stopList = detail.shipmentStopList ?? []
+  return rows.map((row) => {
+    const base = row.sourceStopSequence != null
+      ? (stopList.find((s) => s.stopSequence === row.sourceStopSequence) ?? {})
+      : {}
+    const stopOrders = orderList.filter((o) => row.orderIds.includes(o.orderId ?? o.orderNumber))
+    // I5 (generate.mjs) — a stop's totals are always the sum of its orders;
+    // recomputed here rather than trusted from the client for the same
+    // coherence reason the seed data sums them instead of hardcoding.
+    const grossWeightValue = stopOrders.reduce((t, o) => t + (o.grossWeightValue ?? 0), 0)
+    const volumeValue = stopOrders.reduce((t, o) => t + (o.volumeValue ?? 0), 0)
+    const packageCount = stopOrders.reduce(
+      (t, o) => t + (o.orderLines ?? []).reduce((s, l) => s + (l.packageCount ?? 0), 0), 0,
+    )
+    return {
+      ...base,
+      stopSequence: row.stopSequence,
+      stopType: row.stopType,
+      orderIds: row.orderIds,
+      facilityName: base.facilityName ?? row.facilityName,
+      city: base.city ?? row.city,
+      address1: base.address1 ?? row.address1,
+      scheduledDateTime: base.scheduledDateTime ?? row.scheduledDateTime,
+      appointmentTime: base.appointmentTime ?? null,
+      country: base.country ?? 'US',
+      grossWeightValue, grossWeightUomCode: 'LB',
+      volumeValue, volumeUomCode: 'cuft',
+      packageCount,
+      pickupNumber: row.stopType === 'pickup' ? (stopOrders[0]?.pickupNumber ?? null) : null,
+    }
+  })
 }
 
 export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) {
@@ -291,6 +344,34 @@ export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) 
       outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
       JSON.stringify(resolution), sellShipment,
     ],
+  }
+}
+
+// save-stops Scenario A only — re-files the row WITHOUT touching
+// detail.orderChange.resolution, because the tender decision is still
+// pending on the Direct Actions card (LINX-15671); that card's own
+// retender/bypass action is what stamps resolution, through
+// buildOrderChangeResolveQuery above.
+export function buildSaveStopsRefileQuery(sellShipment, outcome) {
+  return {
+    text: `UPDATE shipments SET tender_status = $1, panel = $2, category = $3
+           WHERE sell_shipment = $4 RETURNING sell_shipment`,
+    values: [outcome.tenderStatus, outcome.panel, outcome.category, sellShipment],
+  }
+}
+
+export function buildDetailReadQuery(sellShipment) {
+  return { text: 'SELECT detail FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
+}
+
+// Whole-array replace of shipmentStopList, same "send the finalized whole" as
+// buildOverridesQuery — the merged rows already carry everything the sandbox
+// changed plus everything it couldn't (mergeStops above).
+export function buildSaveStopsQuery(sellShipment, stops) {
+  return {
+    text: `UPDATE shipments SET detail = jsonb_set(detail, '{shipmentStopList}', $1::jsonb)
+           WHERE sell_shipment = $2 RETURNING sell_shipment`,
+    values: [JSON.stringify(stops), sellShipment],
   }
 }
 
@@ -326,12 +407,33 @@ export async function resolveOrderChange({ params, body, db }) {
   if (!outcomeFor) {
     const e = new Error(`Unknown order-change action: ${action ?? '(none)'}`); e.status = 400; throw e
   }
+  const sellShipment = params[0]
   const outcome = outcomeFor(body?.priorTenderStatus)
+
+  if (action === 'save-stops') {
+    if (!Array.isArray(body?.stops) || body.stops.length === 0) {
+      const e = new Error('stops array required'); e.status = 400; throw e
+    }
+    const { rows } = await db.query(buildDetailReadQuery(sellShipment))
+    if (rows.length === 0) { const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e }
+    const merged = mergeStops(rows[0].detail, body.stops)
+    await db.query(buildSaveStopsQuery(sellShipment, merged))
+    if (OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
+      // Scenario A — leave orderChange.resolution untouched; see the query's comment.
+      await db.query(buildSaveStopsRefileQuery(sellShipment, outcome))
+    } else {
+      // Scenario B — same "final decision" stamp as retender/bypass/cancel.
+      const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
+      await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
+    }
+    return { success: true }
+  }
+
   const cost = body?.cost ?? null
   const resolution = { action, cost, resolvedAt: new Date().toISOString() }
-  const { rowCount } = await db.query(buildOrderChangeResolveQuery(params[0], outcome, resolution))
+  const { rowCount } = await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
   if (rowCount === 0) {
-    const e = new Error(`No shipment: ${params[0]}`); e.status = 404; throw e
+    const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e
   }
   // Cancel drops the tender — there's no carrier left to apply a cost to, so
   // only retender/bypass (which keep a carrier) write the tender-row update.

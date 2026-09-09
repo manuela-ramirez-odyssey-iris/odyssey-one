@@ -13,8 +13,9 @@ import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.j
 
 vi.mock('../../api/services/shipmentService', () => ({
   getSellShipmentDetail: vi.fn(),
+  resolveOrderChange: vi.fn(),
 }))
-import { getSellShipmentDetail } from '../../api/services/shipmentService'
+import { getSellShipmentDetail, resolveOrderChange } from '../../api/services/shipmentService'
 
 const SELL_SHIPMENT = '25319141'
 const BUY_SHIPMENT = '87654321'
@@ -89,6 +90,7 @@ function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment, shipmentsEleme
 afterEach(() => {
   cleanup()
   getSellShipmentDetail.mockReset()
+  resolveOrderChange.mockReset()
 })
 
 describe('OrderChangeEditStopsRoute', () => {
@@ -129,8 +131,9 @@ describe('OrderChangeEditStopsRoute', () => {
   })
 
   test.each(['To Be Tendered', 'Sent', 'Accepted'])(
-    'Approve with an active tender (%s) navigates back to the review screen (LINX-15671 Scenario A)',
+    'Approve with an active tender (%s) saves stops then navigates back to the review screen (LINX-15671 Scenario A)',
     async (priorTenderStatus) => {
+      resolveOrderChange.mockResolvedValue(undefined)
       getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus }))
       renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
       await screen.findByRole('button', { name: 'View Routing' })
@@ -142,10 +145,19 @@ describe('OrderChangeEditStopsRoute', () => {
       expect(probe.textContent).toContain(`"buyShipment":"${BUY_SHIPMENT}"`)
       // No `from` key — the Direct route only special-cases from === 'tender'.
       expect(probe.textContent).not.toContain('"from"')
+
+      expect(resolveOrderChange).toHaveBeenCalledTimes(1)
+      const [calledSellShipment, body] = resolveOrderChange.mock.calls[0]
+      expect(calledSellShipment).toBe(SELL_SHIPMENT)
+      expect(body.action).toBe('save-stops')
+      expect(Array.isArray(body.stops)).toBe(true)
+      expect(body.stops[0]).toMatchObject({ stopSequence: 1 })
+      expect(body.stops[0]).toHaveProperty('sourceStopSequence')
     },
   )
 
-  test('Approve with no active tender navigates to /shipments Tender tab, still on the Order Change tab (LINX-15671 Scenario B)', async () => {
+  test('Approve with no active tender saves stops then navigates to /shipments Tender tab, still on the Order Change tab (LINX-15671 Scenario B)', async () => {
+    resolveOrderChange.mockResolvedValue(undefined)
     getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: null }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
     await screen.findByRole('button', { name: 'View Routing' })
@@ -158,5 +170,20 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(probe.textContent).toContain('"key":"routing"')
     expect(probe.textContent).toContain('"panel":"exceptions"')
     expect(probe.textContent).toContain('"tab":"order-change"')
+    expect(resolveOrderChange).toHaveBeenCalledTimes(1)
+    expect(resolveOrderChange.mock.calls[0][1].action).toBe('save-stops')
+  })
+
+  test('Approve shows an error and does not navigate when the save fails', async () => {
+    resolveOrderChange.mockRejectedValue(new Error('Network error'))
+    getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'View Routing' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+
+    expect(await screen.findByText('Network error')).toBeTruthy()
+    expect(screen.queryByText(/landed at/)).toBeNull()
   })
 })
