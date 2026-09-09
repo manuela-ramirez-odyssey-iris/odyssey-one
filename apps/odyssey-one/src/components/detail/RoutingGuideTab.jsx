@@ -173,6 +173,12 @@ const stickyLastCol = {
    for the same reason. */
 const ACTION_LANE = { width: 68, minWidth: 68, maxWidth: 68, padding: '0 var(--spacing-2)', textAlign: 'center' }
 
+/* The right half's floor: the pinned Actions lane plus one readable data column.
+   Below this the Actions lane itself would start getting squeezed, so the left
+   half yields first (it can scroll) instead (user, 2026-09-09 — left table
+   pushing Actions off the clipped card edge). */
+const RIGHT_MIN = ACTION_LANE.width + 120
+
 /* Header cells are a FIXED two-line box in both halves of the split table (user,
    2026-08-17): Route Rank and Tender Status read better stacked, and the moment one
    header wraps the other half has to match it or the two halves of one table
@@ -610,8 +616,8 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
        surface (2xl + shadow-sm), and the mock shows one frame, not two. */
     <div data-routing-container style={{ display: 'flex', overflow: 'hidden' }}>
       {/* ── LEFT TABLE + TOGGLE: fixed container with shadow ── */}
-      <div style={{ flexShrink: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 3 }}>
-      <div data-left-table style={{ flexShrink: 0 }}>
+      <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 3 }}>
+      <div data-left-table style={{ overflowX: 'auto', minWidth: 0 }}>
         <table className="odyssey-table">
           <thead>
             <tr>
@@ -759,7 +765,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
       </div>
 
       {/* ── RIGHT TABLE: tab-specific columns + actions ── */}
-      <div ref={rightTableRef} data-right-table style={{ flex: 1, overflowX: 'auto', minWidth: 100 }}>
+      <div ref={rightTableRef} data-right-table style={{ flex: `1 0 ${RIGHT_MIN}px`, overflowX: 'auto', minWidth: RIGHT_MIN }}>
         <table className="odyssey-table">
           <thead>
             <tr>

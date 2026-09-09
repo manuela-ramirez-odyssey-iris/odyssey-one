@@ -801,6 +801,19 @@ describe('RoutingGuideTab — Dropped Carrier section (LINX-13953)', () => {
     expect(container.querySelectorAll('[data-routing-container]').length).toBeLessThanOrEqual(1)
   })
 
+  it('caps the right table to the Actions-lane floor and lets the left table scroll instead of clip (user, 2026-09-09)', () => {
+    // jsdom has no layout engine, so it can't reproduce the actual push-out —
+    // that only shows up with a real narrow window on the Tender tab. This
+    // just pins the inline contract: left half scrolls, right half never
+    // shrinks below its Actions-lane + one-column floor.
+    const data = { options: [baseOption] }
+    const { container } = render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [] }} />)
+    const leftTable = container.querySelector('[data-left-table]')
+    const rightTable = container.querySelector('[data-right-table]')
+    expect(leftTable.style.overflowX).toBe('auto')
+    expect(rightTable.style.minWidth).toBe('188px') // ACTION_LANE.width (68) + 120
+  })
+
   describe('column arrangement (2026-08-17)', () => {
     const DEFS = [
       { key: 'transit', label: 'Transit Time' },
