@@ -51,7 +51,7 @@ function validSequence(stops) {
 }
 
 // LINX-15668: on open, relocate every order whose location changed.
-export function initSandbox({ stops, consolidation, orders }) {
+export function initSandbox({ stops, consolidation, orders: _orders }) {
   const sbStops = stops.map((s) => ({
     key: `s${s.stopNumber}`,
     type: s.type,
@@ -72,8 +72,9 @@ export function initSandbox({ stops, consolidation, orders }) {
     if (!locField) continue
     const src = sbStops.find((st) => st.key === `s${stopNumStr}`)
     if (!src) continue
+    if (locField.new === src.location) continue // no-op: nothing actually moved
     const type = src.type
-    for (const orderId of change.changedOrderIds) {
+    for (const orderId of change.changedOrderIds ?? []) {
       if (!src.orderIds.includes(orderId)) continue
       placeOrder(sbStops, orderId, type, locField.new, () => `new:${type}:${++seq}`)
       src.orderIds = src.orderIds.filter((id) => id !== orderId)
@@ -88,16 +89,18 @@ export function labelsOf(sb) {
   let p = 0
   let d = 0
   return sb.stops.map((s) => {
+    if (s.unsequenced) return s.type === 'pickup' ? 'P?' : 'D?'
     if (s.type === 'pickup') {
       p += 1
-      return s.unsequenced ? 'P?' : `P${p}`
+      return `P${p}`
     }
     d += 1
-    return s.unsequenced ? 'D?' : `D${d}`
+    return `D${d}`
   })
 }
 
 export function canMoveStop(sb, i, dir) {
+  if (i < 0 || i >= sb.stops.length) return { ok: false, reason: 'Already at the edge.' }
   const j = dir === 'up' ? i - 1 : i + 1
   if (j < 0 || j >= sb.stops.length) return { ok: false, reason: 'Already at the edge.' }
   const stops = sb.stops.slice()
@@ -110,7 +113,7 @@ export function moveStop(sb, i, dir) {
   const check = canMoveStop(sb, i, dir)
   if (!check.ok) return sb
   const j = dir === 'up' ? i - 1 : i + 1
-  const stops = sb.stops.map((s) => ({ ...s }))
+  const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   ;[stops[i], stops[j]] = [stops[j], stops[i]]
   stops[j].unsequenced = false
   return { ...sb, stops, dirty: true, routed: false }
@@ -120,7 +123,7 @@ export function moveStop(sb, i, dir) {
 export function moveToPending(sb, id) {
   const allIds = new Set()
   sb.stops.forEach((s) => s.orderIds.forEach((o) => allIds.add(o)))
-  if (allIds.size <= 1) return sb
+  if (!allIds.has(id) || allIds.size <= 1) return sb
   const stops = sb.stops
     .map((s) => ({ ...s, orderIds: s.orderIds.filter((o) => o !== id) }))
     .filter((s) => s.orderIds.length > 0)

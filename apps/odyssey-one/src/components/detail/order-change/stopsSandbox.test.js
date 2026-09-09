@@ -35,6 +35,27 @@ describe('initSandbox', () => {
     expect(labelsOf(s)).toEqual(['P1', 'D1'])
     expect(s.stops[0].orderIds).toEqual(['A', 'B', 'C'])
   })
+  it('a no-op location change (new equals current) leaves stops untouched', () => {
+    const c = { ...locChange, stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'Y, Town' } } } } }
+    const s = initSandbox({ stops, consolidation: c, orders })
+    expect(labelsOf(s)).toEqual(['P1', 'P2', 'D1'])
+    expect(s.stops[1].orderIds).toEqual(['C'])
+  })
+  it('handles both a pickup and a delivery location change in one open (LINX-15668)', () => {
+    const c = { ...noChange, stopChanges: {
+      '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'Q, Burg' } } },
+      '3': { changedOrderIds: ['A'], fields: { location: { prior: 'Z, Ville', new: 'R, Newtown' } } },
+    } }
+    const s = initSandbox({ stops, consolidation: c, orders })
+    expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1', 'D?'])
+  })
+  it('a delivery-side location change creates D? at the end of the delivery group', () => {
+    const c = { ...noChange, stopChanges: { '3': { changedOrderIds: ['A'], fields: { location: { prior: 'Z, Ville', new: 'R, Newtown' } } } } }
+    const s = initSandbox({ stops, consolidation: c, orders })
+    expect(labelsOf(s)).toEqual(['P1', 'P2', 'D1', 'D?'])
+    expect(s.stops[3]).toMatchObject({ type: 'delivery', unsequenced: true, orderIds: ['A'], location: 'R, Newtown' })
+    expect(s.stops[2].orderIds).toEqual(['B', 'C'])
+  })
 })
 describe('moveStop', () => {
   it('moves up/down, renumbers, and sequences a P? once placed', () => {
@@ -52,6 +73,12 @@ describe('moveStop', () => {
     const s = initSandbox({ stops, consolidation: noChange, orders })
     expect(canMoveStop(s, 0, 'up').ok).toBe(false); expect(canMoveStop(s, 2, 'down').ok).toBe(false)
   })
+  it('does not let an unsequenced P? consume a stop number', () => {
+    let s = initSandbox({ stops, consolidation: locChange, orders })
+    expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1'])
+    s = moveStop(s, 0, 'down')
+    expect(labelsOf(s)).toEqual(['P?', 'P1', 'D1'])
+  })
 })
 describe('moveToPending / addToStop', () => {
   it('removes the order from every stop, drops emptied stops, renumbers without gaps (LINX-15869)', () => {
@@ -64,6 +91,10 @@ describe('moveToPending / addToStop', () => {
     const one = initSandbox({ stops: [stop({ orderIds: ['A'] }), stop({ type: 'delivery', stopNumber: 2, orderIds: ['A'] })], consolidation: noChange, orders: orders.slice(0, 1) })
     expect(moveToPending(one, 'A')).toBe(one)
   })
+  it('is a no-op for an id not on any stop', () => {
+    const s = initSandbox({ stops, consolidation: noChange, orders })
+    expect(moveToPending(s, 'ZZZ')).toBe(s)
+  })
   it('addToStop matches existing stops by location, else creates P?/D? (LINX-15871)', () => {
     let s = initSandbox({ stops, consolidation: noChange, orders })
     s = moveToPending(s, 'C')
@@ -72,6 +103,10 @@ describe('moveToPending / addToStop', () => {
     expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1'])
     expect(s.stops[1]).toMatchObject({ orderIds: ['C'], location: 'Y, Town', unsequenced: true })
     expect(s.stops[2].orderIds).toEqual(['A', 'B', 'C'])
+  })
+  it('addToStop is a no-op for an unknown order id', () => {
+    const s = initSandbox({ stops, consolidation: noChange, orders })
+    expect(addToStop(s, 'ZZZ', orders)).toBe(s)
   })
 })
 describe('gate, totals, prior diff, dto', () => {
@@ -83,6 +118,11 @@ describe('gate, totals, prior diff, dto', () => {
   it('totals sum the orders on pickup stops with thousands separators', () => {
     const s = initSandbox({ stops, consolidation: noChange, orders })
     expect(totals(s, orders)).toEqual({ grossWeight: '1,015 LB', volume: '3 cuft' })
+  })
+  it('totals excludes orders that have been moved to pending', () => {
+    let s = initSandbox({ stops, consolidation: noChange, orders })
+    s = moveToPending(s, 'C')
+    expect(totals(s, orders)).toEqual({ grossWeight: '10 LB', volume: '2 cuft' })
   })
   it('priorDiff reports removed orders and removed/added/moved stops relative to open', () => {
     let s = initSandbox({ stops, consolidation: noChange, orders })
@@ -99,5 +139,9 @@ describe('gate, totals, prior diff, dto', () => {
     const dto = toDto(s)
     expect(dto.map((d) => [d.stopSequence, d.stopType, d.orderIds])).toEqual([[1, 'pickup', ['C']], [2, 'pickup', ['A', 'B']], [3, 'delivery', ['A', 'B', 'C']]])
     expect(dto[0]).toMatchObject({ facilityName: 'Y', city: 'Town', scheduledDateTime: 'June 4, 2026 08:00 CDT' })
+  })
+  it('toDto falls back to the whole location as facilityName when there is no comma', () => {
+    const s = initSandbox({ stops: [stop({ location: 'Warehouse' })], consolidation: noChange, orders })
+    expect(toDto(s)[0]).toMatchObject({ facilityName: 'Warehouse', city: '' })
   })
 })
