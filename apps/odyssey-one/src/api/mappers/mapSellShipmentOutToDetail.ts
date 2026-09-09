@@ -798,6 +798,8 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     ratingStatus: orDash(dto.ratingStatus),
     // LINX-14509 "Direct only" — the Review Order Change entry branches on it.
     shipmentType: orDash(dto.shipmentType),
+    customerId: dto.customerId ?? '',
+    customerName: dto.customerName ?? '',
     trackingUrl: dto.trackingUrl ?? '',
     orderDetails: (dto.orderList ?? []).map((o) => mapOrder(o, dto)),
     stopsData: mapStops(dto),

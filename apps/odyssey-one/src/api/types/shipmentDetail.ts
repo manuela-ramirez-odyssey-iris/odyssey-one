@@ -427,6 +427,9 @@ export interface ShipmentDetailVM {
   ratingStatus: string
   /** LINX-14509 "Direct only" — the Review Order Change entry branches on it. */
   shipmentType: string
+  /** LINX-15870 — locks the Search & Add Orders candidate scope to this customer. */
+  customerId: string
+  customerName: string
   /** Tracking Link URL, or '' when absent — the strip renders '--' for empty. */
   trackingUrl: string
   orderDetails: OrderDetailVM[]

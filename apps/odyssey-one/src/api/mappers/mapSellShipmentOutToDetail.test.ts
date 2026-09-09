@@ -10,6 +10,11 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(vm.orderDetails).toHaveLength(2)
   })
 
+  it('maps customerId + customerName for the candidate-orders scope (LINX-15870)', () => {
+    expect(vm.customerId).toBe(sellShipmentOutSample.customerId)
+    expect(vm.customerName).toBe(sellShipmentOutSample.customerName)
+  })
+
   it('maps identity + reference fields from the order', () => {
     const o = vm.orderDetails[0]
     expect(o.orderNumber).toBe('SO-660001')

@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -650,4 +650,26 @@ describe('buildOrderChangeCostQuery', () => {
     assert.match(q.text, /WHERE shipment_sell_id = \$3 AND scac = \$4/)
     assert.deepEqual(q.values, [1234.56, '1234.56', 'S1', 'ABCD'])
   })
+})
+
+test('candidate orders: one query joining orders to their shipment, scoped to the customer, excluding the current shipment', () => {
+  const q = buildCandidateOrdersQuery('9')
+  assert.match(q.text, /FROM orders o JOIN shipments s ON s\.sell_shipment = o\.shipment_sell_id/)
+  assert.match(q.text, /s\.customer_id = \(SELECT customer_id FROM shipments WHERE sell_shipment = \$1\)/)
+  assert.match(q.text, /s\.sell_shipment <> \$1/)
+  assert.deepEqual(q.values, ['9'])
+})
+
+test('candidateOrders handler builds rows through buildCandidateRows', async () => {
+  const db = { query: async () => ({ rows: [{
+    orderNumber: 'A', customer: 'ERCO', consignor: { city: 'Atlanta', state: 'GA', country: 'US', earliestPickupDateTime: '2026-06-04T08:00:00' },
+    consignee: { city: 'Minneapolis', state: 'MN', country: 'US', earliestDeliveryDateTime: '2026-06-06T10:00:00' },
+    grossWeight: { value: 500, uom: 'lbs' }, volume: { value: 40, uom: 'cbf' },
+    sellShipment: '1', buyShipment: '900', customerId: 'ERCO', customerName: 'Erco', orders: ['A', 'B'],
+    shipmentStatus: 'Review', tenderStatus: 'Sent', shipmentType: 'Consolidation',
+  }] }) }
+  const rows = await candidateOrders({ params: ['9'], query: { exclude: 'B' }, db })
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].origin, 'Atlanta, GA US')
+  assert.deepEqual(rows[0].ordersInShipment, ['A', 'B'])
 })

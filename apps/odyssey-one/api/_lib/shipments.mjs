@@ -4,6 +4,7 @@
 // from the whitelist maps below — never from raw request keys.
 
 import { buildRankedSubquery, resolveNeedles } from './search.mjs'
+import { buildCandidateRows } from './candidateOrders.mjs'
 
 // Sentinel `sortBy` meaning "order by search relevance, no column drives".
 // Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
@@ -496,4 +497,36 @@ export async function saveTender({ params, body, db }) {
   const updated = await db.query(buildTenderUpdateQuery(sellShipment, option))
   if (updated.rows.length === 0) await db.query(buildTenderInsertQuery(sellShipment, option))
   return { success: true, rank: option.rank }
+}
+
+// LINX-15870 — GET /shipment-service/v1/sell-shipment-out/:id/candidate-orders?exclude=a,b
+// One query: every order of another shipment of the SAME customer. The rows
+// come back in the orders.json / shipments.json shapes (jsonb parsed by pg), so
+// the SAME builder the mock uses runs here — one place for the row shape.
+export function buildCandidateOrdersQuery(sellShipment) {
+  return {
+    text: `SELECT o.order_number AS "orderNumber", o.customer, o.consignor, o.consignee,
+                  o.gross_weight AS "grossWeight", o.volume,
+                  s.sell_shipment AS "sellShipment", s.buy_shipment AS "buyShipment", s.customer_id AS "customerId",
+                  s.customer_name AS "customerName", s.orders, s.shipment_status AS "shipmentStatus",
+                  s.tender_status AS "tenderStatus", s.shipment_type AS "shipmentType"
+           FROM orders o JOIN shipments s ON s.sell_shipment = o.shipment_sell_id
+           WHERE s.customer_id = (SELECT customer_id FROM shipments WHERE sell_shipment = $1)
+             AND s.sell_shipment <> $1`,
+    values: [sellShipment],
+  }
+}
+
+export async function candidateOrders({ params, query, db }) {
+  const sellShipment = params[0]
+  const { rows } = await db.query(buildCandidateOrdersQuery(sellShipment))
+  // Real router passes URLSearchParams (query.get); the plain-object shape
+  // below is only what unit tests pass directly to this handler.
+  const excludeRaw = typeof query?.get === 'function' ? query.get('exclude') : query?.exclude
+  const exclude = String(excludeRaw ?? '').split(',').filter(Boolean)
+  // Split the joined row back into its two shapes — the builder joins them by
+  // shipment.orders, exactly as the mock does over the two JSON files.
+  const shipments = [...new Map(rows.map((r) => [r.sellShipment, r])).values()]
+  const customerId = shipments[0]?.customerId
+  return buildCandidateRows({ shipments, orders: rows, customerId, sellShipment, excludeOrderIds: exclude })
 }

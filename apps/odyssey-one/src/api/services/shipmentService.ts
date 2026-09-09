@@ -3,6 +3,10 @@ import { apiGet, apiPatch, apiPut } from '../client'
 import { mapSellShipmentOutToDetail } from '../mappers/mapSellShipmentOutToDetail'
 import type { SellShipmentOut, SellShipmentStop } from '../types/sellShipmentOut'
 import type { ShipmentDetailVM } from '../types/shipmentDetail'
+// same builder runs mock (here) and live (api/_lib/shipments.mjs candidateOrders); untyped .mjs, cast below
+import { buildCandidateRows } from '../../../api/_lib/candidateOrders.mjs'
+import { getAllShipments } from '../../data'
+import { getAllOrders } from '../../data/orders'
 
 export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailVM> {
   const mode = getApiMode()
@@ -79,4 +83,30 @@ export async function resolveOrderChange(
 ): Promise<void> {
   if (getApiMode() !== 'live') return
   await apiPatch(`/shipment-service/v1/sell-shipment-out/${sellShipment}/order-change`, body)
+}
+
+export interface CandidateOrderRow {
+  orderNumber: string; sourceSellShipment: string; customer: string; origin: string; destination: string
+  weight: string; volume: string; buyShipment: string; shipmentStatus: string; tenderStatus: string
+  shipmentType: string; ordersInShipment: string[]; shipDate: string; deliveryDate: string; blocked: boolean
+}
+
+/**
+ * LINX-15870 — candidates for Search & Add Orders: every order of another
+ * shipment of the SAME customer, minus the ones already on this shipment.
+ * Mock runs the shared builder over the two local datasets; live asks the
+ * endpoint, which runs the identical builder server-side over one SQL join.
+ */
+export async function getCandidateOrders(
+  sellShipment: string,
+  customerId: string,
+  excludeOrderIds: string[],
+): Promise<CandidateOrderRow[]> {
+  if (getApiMode() !== 'live') {
+    return (buildCandidateRows as (args: {
+      shipments: unknown[]; orders: unknown[]; customerId: string; sellShipment: string; excludeOrderIds: string[]
+    }) => CandidateOrderRow[])({ shipments: getAllShipments(), orders: getAllOrders(), customerId, sellShipment, excludeOrderIds })
+  }
+  const qs = excludeOrderIds.length ? `?exclude=${encodeURIComponent(excludeOrderIds.join(','))}` : ''
+  return apiGet(`/shipment-service/v1/sell-shipment-out/${sellShipment}/candidate-orders${qs}`)
 }
