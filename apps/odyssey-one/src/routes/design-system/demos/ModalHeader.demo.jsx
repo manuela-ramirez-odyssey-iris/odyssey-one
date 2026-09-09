@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Badge, ModalHeader } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'ModalHeader',
@@ -45,15 +46,6 @@ function Frame({ children }) {
   )
 }
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 export default function ModalHeaderDemo() {
   const [name, setName] = useState('Default Exceptions')
   const [editing, setEditing] = useState(false)
@@ -74,12 +66,12 @@ export default function ModalHeaderDemo() {
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Playground — toggle the parts; pencil renames the title in place</h4>
-        <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-          <Toggle label="back" value={showBack} set={setShowBack} />
-          <Toggle label="editable title" value={editable} set={setEditable} />
-          <Toggle label="subtitle" value={showSub} set={setShowSub} />
-          <Toggle label="trail slot" value={showTrail} set={setShowTrail} />
-        </div>
+        <DemoControls>
+          <DemoToggle label="back" value={showBack} onChange={setShowBack} />
+          <DemoToggle label="editable title" value={editable} onChange={setEditable} />
+          <DemoToggle label="subtitle" value={showSub} onChange={setShowSub} />
+          <DemoToggle label="trail slot" value={showTrail} onChange={setShowTrail} />
+        </DemoControls>
         <Frame>
           <ModalHeader
             title={name}

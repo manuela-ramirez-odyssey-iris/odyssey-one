@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TriangleAlert, TruckElectric, Columns3Cog } from 'lucide-react'
 import { GroupTable, Badge, Button, ActionMenu } from '@odyssey/ui'
 import { ICON_LG } from '@odyssey/tokens'
+import { DemoControls, DemoToggle, DemoNumber } from '../demoControls.jsx'
 
 // Lightweight colored Diff cell (mirrors CostAllocationTab's DiffCell).
 function DiffCell({ value }) {
@@ -452,28 +453,6 @@ function Schematic() {
 // explaining why, opacity on the wrapper, `disabled` on the input. A
 // disappearing control is worse than a dimmed one for a designer trying to
 // understand what the component can do.
-function Toggle({ label, value, set, disabledReason }) {
-  return (
-    <label
-      title={disabledReason || undefined}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        fontSize: 'var(--font-size-sm)',
-        cursor: disabledReason ? 'not-allowed' : 'pointer',
-        opacity: disabledReason ? 0.4 : 1,
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={value}
-        disabled={!!disabledReason}
-        onChange={(e) => set(e.target.checked)}
-      />
-      {label}
-    </label>
-  )
-}
-
 // The three flavors are mutually exclusive (each needs its own sample data +
 // expansion keys), so they're one selector rather than three toggles.
 const FLAVORS = {
@@ -562,7 +541,7 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+      <DemoControls>
         {/* The flavor switch drives the whole demo, so it reads as a control
             rather than another checkbox — same treatment as the DSM header's
             own selects (.ds-domain__select). */}
@@ -590,26 +569,28 @@ function Playground() {
             expand/collapse do nothing while it's on. Dimmed + disabled with a
             `title`, not removed — house precedent: devmode/DevToggle.jsx
             dims its Nesting options the same way when they don't apply. */}
-        <Toggle
+        <DemoToggle
           label="striped"
           value={striped}
-          set={setStriped}
-          disabledReason={flat ? 'Not applicable in flat mode — flat rows are always white' : undefined}
+          onChange={setStriped}
+          disabled={flat}
+          hint={flat ? 'Not applicable in flat mode — flat rows are always white' : undefined}
         />
-        <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
-        <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
-        <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
-        <Toggle label="header (title strip above column headers)" value={showHeader} set={setShowHeader} />
-        <Toggle
+        <DemoToggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} onChange={setShowFooter} />
+        <DemoToggle label="stickyActions (pinned action column)" value={stickyActions} onChange={setStickyActions} />
+        <DemoToggle label="narrow container (h-scroll)" value={narrow} onChange={setNarrow} />
+        <DemoToggle label="header (title strip above column headers)" value={showHeader} onChange={setShowHeader} />
+        <DemoToggle
           label="flat (every group = one white data row, nothing expands — column-header style is separate, see headerStyle)"
           value={flat}
-          set={setFlat}
+          onChange={setFlat}
         />
-        <Toggle
+        <DemoToggle
           label="selectable (checkbox lane + select-all — flat mode only)"
           value={selectable}
-          set={setSelectable}
-          disabledReason={flat ? undefined : 'Applies to flat mode'}
+          onChange={setSelectable}
+          disabled={!flat}
+          hint={flat ? undefined : 'Applies to flat mode'}
         />
         {/* Independent of `flat` — stays enabled in flat mode on purpose: it's
             one of the few controls still relevant there, since an explicit
@@ -633,67 +614,58 @@ function Playground() {
           </select>
         </label>
         {flavor === 'nested' && (
-          <Toggle
+          <DemoToggle
             label="detailNote (per-group note row)"
             value={showDetailNote}
-            set={setShowDetailNote}
-            disabledReason={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            onChange={setShowDetailNote}
+            disabled={flat}
+            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
           />
         )}
         {flavor === 'sections' && visibleSections.map((sec) => (
-          <Toggle
+          <DemoToggle
             key={sec.key}
             /* Named for the TABLE it adds a row to, not as an API path: the key is
                the consumer's own string, and `detailNotes.routing` read like a
                property the component defines (user, 2026-08-26). */
             label={`note in ${sec.title}`}
             value={noteKeys.includes(sec.key)}
-            set={(on) => setNoteKeys((prev) =>
+            onChange={(on) => setNoteKeys((prev) =>
               on ? [...prev, sec.key] : prev.filter((k) => k !== sec.key))}
-            disabledReason={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            disabled={flat}
+            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
           />
         ))}
         {(flavor === 'nested' || flavor === 'sections') && (
-          <Toggle
+          <DemoToggle
             label="detailScroll (independent nested h-scroll)"
             value={detailScroll}
-            set={setDetailScroll}
-            disabledReason={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            onChange={setDetailScroll}
+            disabled={flat}
+            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
           />
         )}
         {flavor === 'sections' && (
-          <label
-            title={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', opacity: flat ? 0.4 : 1, cursor: flat ? 'not-allowed' : 'default' }}
-          >
-            detailSections (sibling tables)
-            <input
-              type="number"
-              min="1"
-              max={ROUTE_DETAIL_SECTION_POOL.length}
-              value={sectionCount}
-              disabled={flat}
-              onChange={(e) => setSectionCount(Math.min(ROUTE_DETAIL_SECTION_POOL.length, Math.max(1, Number(e.target.value))))}
-              style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}
-            />
-          </label>
+          <DemoNumber
+            label="detailSections (sibling tables)"
+            min={1}
+            max={ROUTE_DETAIL_SECTION_POOL.length}
+            value={sectionCount}
+            disabled={flat}
+            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            onChange={(v) => setSectionCount(Math.min(ROUTE_DETAIL_SECTION_POOL.length, Math.max(1, v)))}
+          />
         )}
         {((flavor === 'nested' && showDetailNote) || (flavor === 'sections' && noteKeys.length > 0)) && (
-          <label
-            title={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', opacity: flat ? 0.4 : 1, cursor: flat ? 'not-allowed' : 'default' }}
-          >
-            noteLines (0 = no clamp)
-            <input
-              type="number"
-              min="0"
-              max="10"
-              value={noteLines}
-              disabled={flat}
-              onChange={(e) => setNoteLines(Math.min(10, Math.max(0, Number(e.target.value))))}
-              style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}
-            />
-          </label>
+          <DemoNumber
+            label="noteLines (0 = no clamp)"
+            min={0}
+            max={10}
+            value={noteLines}
+            disabled={flat}
+            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            onChange={(v) => setNoteLines(Math.min(10, Math.max(0, v)))}
+          />
         )}
         <Button
           variant="link"
@@ -703,7 +675,7 @@ function Playground() {
         >
           {allExpanded ? 'Collapse All' : 'Expand All'}
         </Button>
-      </div>
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <div style={{ maxWidth: narrow ? 480 : undefined, background: 'var(--bg-primary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-4) var(--spacing-6)' }}>
           {flavor === 'cost' && (

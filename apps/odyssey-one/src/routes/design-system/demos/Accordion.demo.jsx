@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Accordion, Button, FormField, Checkbox } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect, DemoField, DemoNumber } from '../demoControls.jsx'
 
 export const meta = {
   name: 'Accordion',
@@ -95,27 +96,9 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-function Field({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-      {label}
-      <input value={value} onChange={(e) => set(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }} />
-    </label>
-  )
-}
-
 // The controls drive the FIRST card in a live 3-card stack (start/mid/end) so
 // the connector lines stay visible while you edit props. `position` moves the
 // controlled card through the stack; the other two fill the remaining slots.
-const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
 
 function ExampleBody({ onCollapse }) {
   const [value, setValue] = useState('')
@@ -173,40 +156,17 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          position
-          <select value={position} onChange={(e) => setPosition(e.target.value)} style={inputStyle}>
-            <option value="start">start</option>
-            <option value="mid">mid</option>
-            <option value="end">end</option>
-          </select>
-        </label>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          status
-          <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
-            <option value="off">off</option>
-            <option value="on">on</option>
-            <option value="error">error</option>
-          </select>
-        </label>
+      <DemoControls>
+        <DemoSelect label="position" value={position} onChange={setPosition} options={['start', 'mid', 'end']} />
+        <DemoSelect label="status" value={status} onChange={setStatus} options={['off', 'on', 'error']} />
         {status !== 'off' && (
-          <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-            errorCount
-            <input
-              type="number"
-              min="0"
-              value={errorCount}
-              onChange={(e) => setErrorCount(Math.max(0, Number(e.target.value)))}
-              style={{ ...inputStyle, width: 72 }}
-            />
-          </label>
+          <DemoNumber label="errorCount" value={errorCount} min={0} onChange={(v) => setErrorCount(Math.max(0, v))} />
         )}
-        <Field label="title" value={title} set={setTitle} />
-        <Field label="description" value={description} set={setDescription} />
-        <Toggle label="show supporting text" value={showDescription} set={setShowDescription} />
-        <Toggle label="expanded" value={expanded} set={setExpanded} />
-      </div>
+        <DemoField label="title" value={title} onChange={setTitle} />
+        <DemoField label="description" value={description} onChange={setDescription} />
+        <DemoToggle label="show supporting text" value={showDescription} onChange={setShowDescription} />
+        <DemoToggle label="expanded" value={expanded} onChange={setExpanded} />
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>{cards}</div>
       </div>

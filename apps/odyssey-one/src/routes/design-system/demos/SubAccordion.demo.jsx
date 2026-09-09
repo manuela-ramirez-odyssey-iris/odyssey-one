@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Info, Package, ClipboardList, Plus } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Button, SubAccordion, TitleSubtitle } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
 
 export const meta = {
   name: 'SubAccordion',
@@ -109,22 +110,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-function Toggle({ label, value, set, disabled }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} disabled={disabled} />
-      {label}
-    </label>
-  )
-}
-function Field({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-      {label}
-      <input value={value} onChange={(e) => set(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }} />
-    </label>
-  )
-}
 
 // Real slot content echoing Efrain's usage mock (4077:3120): a "General"
 // sub-heading + a TitleSubtitle field row.
@@ -169,27 +154,22 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Field label="title" value={title} set={setTitle} />
-        <Toggle label="showIcon" value={showIcon} set={setShowIcon} />
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          icon
-          <select value={iconKey} onChange={(e) => setIconKey(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }}>
-            {Object.keys(ICON_OPTIONS).map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-        </label>
-        <Toggle label="collapsible" value={collapsible} set={setCollapsible} />
-        <Toggle label="expanded" value={expanded} set={setExpanded} disabled={!collapsible} />
-        <Toggle label="onToggleAll (expand-all action, Static-only)" value={showToggleAll} set={setShowToggleAll} disabled={collapsible} />
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          toggleAllVariant
-          <select value={toggleAllVariant} onChange={(e) => setToggleAllVariant(e.target.value)} disabled={collapsible || !showToggleAll}>
-            <option value="link">link</option>
-            <option value="secondary">secondary</option>
-          </select>
-        </label>
-        <Toggle label="action (primary sm, Static-only)" value={showAction} set={setShowAction} disabled={collapsible} />
-      </div>
+      <DemoControls>
+        <DemoField label="title" value={title} onChange={setTitle} />
+        <DemoToggle label="showIcon" value={showIcon} onChange={setShowIcon} />
+        <DemoSelect label="icon" value={iconKey} onChange={setIconKey} options={Object.keys(ICON_OPTIONS)} />
+        <DemoToggle label="collapsible" value={collapsible} onChange={setCollapsible} />
+        <DemoToggle label="expanded" value={expanded} onChange={setExpanded} disabled={!collapsible} />
+        <DemoToggle label="onToggleAll (expand-all action, Static-only)" value={showToggleAll} onChange={setShowToggleAll} disabled={collapsible} />
+        <DemoSelect
+          label="toggleAllVariant"
+          value={toggleAllVariant}
+          onChange={setToggleAllVariant}
+          options={['link', 'secondary']}
+          disabled={collapsible || !showToggleAll}
+        />
+        <DemoToggle label="action (primary sm, Static-only)" value={showAction} onChange={setShowAction} disabled={collapsible} />
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <SubAccordion
           title={title}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TimePicker } from '@odyssey/ui'
+import { DemoControls, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'TimePicker',
@@ -72,9 +73,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
-const labelStyle = { display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }
-
 function Playground() {
   const [format, setFormat] = useState('standard')
   const [step, setStep] = useState(30)
@@ -82,27 +80,27 @@ function Playground() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={labelStyle}>
-          format
-          <select value={format} onChange={(e) => setFormat(e.target.value)} style={inputStyle}>
-            <option value="standard">standard (12h)</option>
-            <option value="international">international (24h)</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          step
-          <select value={step} onChange={(e) => setStep(Number(e.target.value))} style={inputStyle}>
-            <option value={15}>15</option>
-            <option value={30}>30</option>
-            <option value={60}>60</option>
-          </select>
-        </label>
+      <DemoControls>
+        <DemoSelect
+          label="format"
+          value={format}
+          onChange={setFormat}
+          options={[
+            { value: 'standard', label: 'standard (12h)' },
+            { value: 'international', label: 'international (24h)' },
+          ]}
+        />
+        <DemoSelect
+          label="step"
+          value={String(step)}
+          onChange={(v) => setStep(Number(v))}
+          options={['15', '30', '60']}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>value (canonical 24h)</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{value || '—'}</code>
         </div>
-      </div>
+      </DemoControls>
 
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 300 }}>
         <TimePicker

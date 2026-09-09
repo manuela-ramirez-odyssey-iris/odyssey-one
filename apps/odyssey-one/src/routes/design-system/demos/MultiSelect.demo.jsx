@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MultiSelect } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'MultiSelect',
@@ -95,10 +96,9 @@ function Playground() {
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>selected</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>{selected.length ? selected.join(', ') : '—'}</code>
         </div>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}>
-          <input type="checkbox" checked={showEmptyTable} onChange={(e) => setShowEmptyTable(e.target.checked)} />
-          emptyTableMessage (trash all rows to see the empty table)
-        </label>
+        <DemoControls>
+          <DemoToggle label="emptyTableMessage (trash all rows to see the empty table)" value={showEmptyTable} onChange={setShowEmptyTable} />
+        </DemoControls>
       </div>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 320 }}>
         <MultiSelect

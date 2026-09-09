@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DropdownButton } from '@odyssey/ui'
+import { DemoControls, DemoSelect, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'DropdownButton',
@@ -65,23 +66,11 @@ export default function DropdownButtonDemo() {
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive playground</h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            value:
-            <select value={value} onChange={(e) => setValue(e.target.value)}>
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={open} onChange={(e) => setOpen(e.target.checked)} /> open
-          </label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} /> disabled
-          </label>
-        </div>
+        <DemoControls>
+          <DemoSelect label="value" value={value} onChange={setValue} options={['10', '25', '50', '100']} />
+          <DemoToggle label="open" value={open} onChange={setOpen} />
+          <DemoToggle label="disabled" value={disabled} onChange={setDisabled} />
+        </DemoControls>
         <DropdownButton
           value={value}
           open={open}

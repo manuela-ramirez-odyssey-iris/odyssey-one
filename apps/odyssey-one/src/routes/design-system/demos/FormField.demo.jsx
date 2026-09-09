@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { FormField, Badge, useAnchoredPortal } from '@odyssey/ui'
 import { Search, Calendar } from 'lucide-react'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'FormField',
@@ -59,15 +60,6 @@ function LiveField({ initial = '', clearable = true, ...props }) {
       onChange={(e) => setV(e.target.value)}
       onClear={clearable && !props.disabled ? () => setV('') : undefined}
     />
-  )
-}
-
-function Toggle({ label, value, set, disabled = false }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 }}>
-      <input type="checkbox" checked={value} disabled={disabled} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
   )
 }
 
@@ -203,38 +195,32 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Toggle label="showLabel" value={showLabel} set={setShowLabel} />
-        <Toggle label="showInfo" value={showInfo} set={setShowInfo} />
-        <Toggle label="required" value={required} set={setRequired} />
-        <Toggle label="error" value={error} set={setError} />
-        <Toggle label="validated" value={validated} set={setValidated} />
-        <Toggle label="disabled" value={disabled} set={setDisabled} />
-        <Toggle label="onClear" value={clearable} set={setClearable} />
-        <Toggle label="showCounter (30)" value={showCounter} set={setShowCounter} />
-        <Toggle label="leadingIcon" value={leadingIcon} set={setLeadingIcon} />
-        <Toggle label="trailingIcon" value={trailingIcon} set={setTrailingIcon} />
-        <Toggle label="labelBadge" value={labelBadge} set={setLabelBadge} />
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
-          format
-          <select value={format} onChange={(e) => { setFormat(e.target.value); setValue('') }}>
-            <option value="text">text</option>
-            <option value="integer">integer</option>
-            <option value="decimal">decimal</option>
-            <option value="phone">phone</option>
-          </select>
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
-          edge select
-          <select value={edge} onChange={(e) => setEdge(e.target.value)}>
-            <option value="none">none</option>
-            <option value="leading">leading</option>
-            <option value="trailing">trailing</option>
-            <option value="both">both</option>
-          </select>
-        </label>
-        <Toggle label="locked" value={locked} set={setLocked} disabled={edge === 'none'} />
-      </div>
+      <DemoControls>
+        <DemoToggle label="showLabel" value={showLabel} onChange={setShowLabel} />
+        <DemoToggle label="showInfo" value={showInfo} onChange={setShowInfo} />
+        <DemoToggle label="required" value={required} onChange={setRequired} />
+        <DemoToggle label="error" value={error} onChange={setError} />
+        <DemoToggle label="validated" value={validated} onChange={setValidated} />
+        <DemoToggle label="disabled" value={disabled} onChange={setDisabled} />
+        <DemoToggle label="onClear" value={clearable} onChange={setClearable} />
+        <DemoToggle label="showCounter (30)" value={showCounter} onChange={setShowCounter} />
+        <DemoToggle label="leadingIcon" value={leadingIcon} onChange={setLeadingIcon} />
+        <DemoToggle label="trailingIcon" value={trailingIcon} onChange={setTrailingIcon} />
+        <DemoToggle label="labelBadge" value={labelBadge} onChange={setLabelBadge} />
+        <DemoSelect
+          label="format"
+          value={format}
+          onChange={(v) => { setFormat(v); setValue('') }}
+          options={['text', 'integer', 'decimal', 'phone']}
+        />
+        <DemoSelect
+          label="edge select"
+          value={edge}
+          onChange={setEdge}
+          options={['none', 'leading', 'trailing', 'both']}
+        />
+        <DemoToggle label="locked" value={locked} onChange={setLocked} disabled={edge === 'none'} />
+      </DemoControls>
 
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <div style={{ maxWidth: 360 }}>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FieldSearchResults } from '@odyssey/ui'
+import { DemoControls, DemoSelect, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'FieldSearchResults',
@@ -89,20 +90,23 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          state
-          <select value={state} onChange={(e) => setState(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }}>
-            <option value="populated">populated</option>
-            <option value="empty">empty (no match)</option>
-            <option value="alert">alert (error)</option>
-          </select>
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={twoColumn} onChange={(e) => setTwoColumn(e.target.checked)} />
-          Two-column (columnHeaders + rowHeight 40 + rowProps.twoColumn)
-        </label>
-      </div>
+      <DemoControls>
+        <DemoSelect
+          label="state"
+          value={state}
+          onChange={setState}
+          options={[
+            { value: 'populated', label: 'populated' },
+            { value: 'empty', label: 'empty (no match)' },
+            { value: 'alert', label: 'alert (error)' },
+          ]}
+        />
+        <DemoToggle
+          label="Two-column (columnHeaders + rowHeight 40 + rowProps.twoColumn)"
+          value={twoColumn}
+          onChange={setTwoColumn}
+        />
+      </DemoControls>
       <div style={{ width: 460, maxWidth: '100%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <FieldSearchResults
           matches={matches}

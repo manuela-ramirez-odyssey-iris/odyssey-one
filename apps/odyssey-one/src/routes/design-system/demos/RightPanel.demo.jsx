@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { RightPanel, MenuRowRadio, IconButtonGhost } from '@odyssey/ui'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'RightPanel',
@@ -198,15 +199,6 @@ function Schematic() {
 // One interactive panel exercising everything: back / subtitle / editable title / footer
 // toggles, plus a Drawer switch that docks it right with an Open/Close button (the slide-in).
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 function Playground() {
   const [showBack, setShowBack] = useState(true)
   const [showSubtitle, setShowSubtitle] = useState(true)
@@ -243,12 +235,12 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-        <Toggle label="back" value={showBack} set={setShowBack} />
-        <Toggle label="subtitle" value={showSubtitle} set={setShowSubtitle} />
-        <Toggle label="editable title" value={editable} set={setEditable} />
-        <Toggle label="footer" value={footerOn} set={setFooterOn} />
-        <Toggle label="drawer (animated)" value={drawer} set={(v) => { setDrawer(v); setOpen(false) }} />
+      <DemoControls>
+        <DemoToggle label="back" value={showBack} onChange={setShowBack} />
+        <DemoToggle label="subtitle" value={showSubtitle} onChange={setShowSubtitle} />
+        <DemoToggle label="editable title" value={editable} onChange={setEditable} />
+        <DemoToggle label="footer" value={footerOn} onChange={setFooterOn} />
+        <DemoToggle label="drawer (animated)" value={drawer} onChange={(v) => { setDrawer(v); setOpen(false) }} />
         {drawer && !open && (
           <button
             type="button"
@@ -263,7 +255,7 @@ function Playground() {
             open — click outside or the ✕ to close
           </span>
         )}
-      </div>
+      </DemoControls>
 
       {/* Drawer mode docks right + clips the off-screen slide; static mode renders inline. */}
       <div style={{ height: 560, display: 'flex', justifyContent: drawer ? 'flex-end' : 'flex-start', overflow: 'hidden', background: 'var(--bg-secondary)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-md)' }}>

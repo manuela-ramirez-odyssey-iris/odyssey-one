@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StopBadge } from '@odyssey/ui'
+import { DemoControls, DemoField, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'StopBadge',
@@ -65,8 +66,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
-
 function Playground() {
   const [label, setLabel] = useState('P1')
   const [status, setStatus] = useState('completed')
@@ -76,28 +75,20 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          label
-          <input value={label} onChange={(e) => setLabel(e.target.value)} style={{ ...inputStyle, width: 64 }} />
-        </label>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          status
-          <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
-            <option value="completed">completed</option>
-            <option value="issue">issue</option>
-            <option value="pending">pending</option>
-          </select>
-        </label>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          showStatusBadge
-          <select value={circle} onChange={(e) => setCircle(e.target.value)} style={inputStyle}>
-            <option value="default">default (hidden only for pending)</option>
-            <option value="shown">true</option>
-            <option value="hidden">false</option>
-          </select>
-        </label>
-      </div>
+      <DemoControls>
+        <DemoField label="label" value={label} onChange={setLabel} />
+        <DemoSelect label="status" value={status} onChange={setStatus} options={['completed', 'issue', 'pending']} />
+        <DemoSelect
+          label="showStatusBadge"
+          value={circle}
+          onChange={setCircle}
+          options={[
+            { value: 'default', label: 'default (hidden only for pending)' },
+            { value: 'shown', label: 'true' },
+            { value: 'hidden', label: 'false' },
+          ]}
+        />
+      </DemoControls>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-8)' }}>
         <StopBadge label={label || 'P1'} status={status} showStatusBadge={showStatusBadge} />
       </div>

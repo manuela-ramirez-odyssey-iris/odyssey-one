@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MatchSimpleRow } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'MatchSimpleRow',
@@ -82,15 +83,6 @@ const ROWS = [
   { matchId: '61-CU0000010488', customer: 'Pacific Cargo Group', address: '4200 W Valley Blvd, Los Angeles, CA 90032, USA', iconType: 'handshake' },
 ]
 
-function Toggle({ label, checked, onChange, disabled = false }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.45 : 1 }}>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
-      <code>{label}</code>
-    </label>
-  )
-}
-
 function Playground() {
   const [twoColumn, setTwoColumn] = useState(false)
   const [showAvatar, setShowAvatar] = useState(true)
@@ -100,11 +92,11 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-        <Toggle label="twoColumn" checked={twoColumn} onChange={setTwoColumn} />
-        <Toggle label="showAvatar" checked={showAvatar} onChange={setShowAvatar} disabled={twoColumn} />
-        <Toggle label="showInfo" checked={showInfo} onChange={setShowInfo} disabled={twoColumn} />
-      </div>
+      <DemoControls>
+        <DemoToggle label="twoColumn" value={twoColumn} onChange={setTwoColumn} />
+        <DemoToggle label="showAvatar" value={showAvatar} onChange={setShowAvatar} disabled={twoColumn} />
+        <DemoToggle label="showInfo" value={showInfo} onChange={setShowInfo} disabled={twoColumn} />
+      </DemoControls>
       {plainList && (
         <p style={{ margin: '0 0 var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
           Plain list (derived, no prop): with no avatar and no info line the ID drops semibold → 14px/400 regular.

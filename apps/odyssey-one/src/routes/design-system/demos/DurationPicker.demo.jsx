@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DurationPicker } from '@odyssey/ui'
+import { DemoControls, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'DurationPicker',
@@ -74,7 +75,6 @@ function Schematic() {
 
 // ── Playground ──────────────────────────────────────────────────────────────
 const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
-const labelStyle = { display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }
 
 function Playground() {
   const [unit, setUnit] = useState('minutes')
@@ -95,21 +95,20 @@ function Playground() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={labelStyle}>
-          unit
-          <select value={unit} onChange={(e) => { setUnit(e.target.value); setValue('') }} disabled={running} style={inputStyle}>
-            <option value="hours">hours</option>
-            <option value="minutes">minutes</option>
-            <option value="seconds">seconds</option>
-          </select>
-        </label>
+      <DemoControls>
+        <DemoSelect
+          label="unit"
+          value={unit}
+          onChange={(v) => { setUnit(v); setValue('') }}
+          disabled={running}
+          options={['hours', 'minutes', 'seconds']}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>value</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{value === '' ? '—' : value}</code>
         </div>
         <button type="button" onClick={toggleRunning} style={inputStyle}>{running ? 'Stop' : 'Start countdown'}</button>
-      </div>
+      </DemoControls>
 
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 200 }}>
         <DurationPicker

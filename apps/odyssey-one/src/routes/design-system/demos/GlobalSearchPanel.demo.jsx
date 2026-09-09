@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'GlobalSearchPanel',
@@ -115,15 +116,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 function Playground() {
   const [showHeader, setShowHeader] = useState(false)
   const [showLink, setShowLink] = useState(false)
@@ -133,12 +125,12 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-        <Toggle label="header" value={showHeader} set={setShowHeader} />
-        <Toggle label="link (Save Filters)" value={showLink} set={setShowLink} />
-        <Toggle label="secondary (lead)" value={showSecondary} set={setShowSecondary} />
-        <Toggle label="trail secondary" value={showTrailSecondary} set={setShowTrailSecondary} />
-      </div>
+      <DemoControls>
+        <DemoToggle label="header" value={showHeader} onChange={setShowHeader} />
+        <DemoToggle label="link (Save Filters)" value={showLink} onChange={setShowLink} />
+        <DemoToggle label="secondary (lead)" value={showSecondary} onChange={setShowSecondary} />
+        <DemoToggle label="trail secondary" value={showTrailSecondary} onChange={setShowTrailSecondary} />
+      </DemoControls>
       <div style={{ maxWidth: 620 }}>
         {/* Playground fills the slot with the real GlobalSearchResults (not the placeholder). */}
         <GlobalSearchPanel

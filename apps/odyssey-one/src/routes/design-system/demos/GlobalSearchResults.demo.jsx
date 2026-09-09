@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { GlobalSearchResults } from '@odyssey/ui'
+import { DemoControls, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'GlobalSearchResults',
@@ -88,16 +89,18 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          state
-          <select value={state} onChange={(e) => setState(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }}>
-            <option value="populated">populated (14 → capped at 12, scrolls)</option>
-            <option value="empty">empty (no match)</option>
-            <option value="alert">alert (error)</option>
-          </select>
-        </label>
-      </div>
+      <DemoControls>
+        <DemoSelect
+          label="state"
+          value={state}
+          onChange={setState}
+          options={[
+            { value: 'populated', label: 'populated (14 → capped at 12, scrolls)' },
+            { value: 'empty', label: 'empty (no match)' },
+            { value: 'alert', label: 'alert (error)' },
+          ]}
+        />
+      </DemoControls>
       <div style={{ width: 560, maxWidth: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <GlobalSearchResults
           matches={matches}

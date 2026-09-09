@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Alert } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoNumber } from '../demoControls.jsx'
 
 export const meta = {
   name: 'Alert',
@@ -83,14 +84,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-function Toggle({ label, value, set, disabled }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} disabled={disabled} />
-      {label}
-    </label>
-  )
-}
 const VARIANTS = [
   { variant: 'info', message: 'A new shipment needs your attention.' },
   { variant: 'success', message: 'Shipment created successfully.' },
@@ -127,21 +120,27 @@ function ValidationPlayground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Toggle label="docked (sticky morph)" value={docked} set={setDocked} />
-        <Toggle label="expanded" value={expanded} set={setExpanded} disabled={docked} />
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
-          errored fields
-          <input type="number" min="1" max={DEMO_ERROR_POOL.length} value={errorCount} onChange={(e) => setErrorCount(Math.min(DEMO_ERROR_POOL.length, Math.max(1, Number(e.target.value))))} style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }} />
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
-          resolvedCount
-          <input type="number" min="0" max={errorCount} value={resolvedCount} onChange={(e) => setResolvedCount(Math.min(errorCount, Math.max(0, Number(e.target.value))))} style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }} />
-        </label>
+      <DemoControls>
+        <DemoToggle label="docked (sticky morph)" value={docked} onChange={setDocked} />
+        <DemoToggle label="expanded" value={expanded} onChange={setExpanded} disabled={docked} />
+        <DemoNumber
+          label="errored fields"
+          min={1}
+          max={DEMO_ERROR_POOL.length}
+          value={errorCount}
+          onChange={(v) => setErrorCount(Math.min(DEMO_ERROR_POOL.length, Math.max(1, v)))}
+        />
+        <DemoNumber
+          label="resolvedCount"
+          min={0}
+          max={errorCount}
+          value={resolvedCount}
+          onChange={(v) => setResolvedCount(Math.min(errorCount, Math.max(0, v)))}
+        />
         <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
           {lastNav == null ? 'onErrorNav: —' : `onErrorNav → ${lastNav}: ${errors[lastNav]?.field ?? '?'}`}
         </span>
-      </div>
+      </DemoControls>
       <Alert
         errors={errors}
         contextText="ORD-D78120458 · Integrated from ACME"
@@ -181,10 +180,13 @@ function ListPlayground() {
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
-          items
-          <input type="number" min="1" max={DEMO_LINK_POOL.length} value={count} onChange={(e) => setCount(Math.min(DEMO_LINK_POOL.length, Math.max(1, Number(e.target.value))))} style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }} />
-        </label>
+        <DemoNumber
+          label="items"
+          min={1}
+          max={DEMO_LINK_POOL.length}
+          value={count}
+          onChange={(v) => setCount(Math.min(DEMO_LINK_POOL.length, Math.max(1, v)))}
+        />
       </div>
       <Alert
         variant="success"
@@ -204,10 +206,10 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Toggle label="showLink" value={showLink} set={setShowLink} />
-        <Toggle label="showClose" value={showClose} set={setShowClose} />
-      </div>
+      <DemoControls>
+        <DemoToggle label="showLink" value={showLink} onChange={setShowLink} />
+        <DemoToggle label="showClose" value={showClose} onChange={setShowClose} />
+      </DemoControls>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
         {VARIANTS.map((v) => (
           <Alert

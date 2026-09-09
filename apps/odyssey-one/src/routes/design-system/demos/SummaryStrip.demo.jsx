@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SummaryStrip } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
 
 export const meta = {
   name: 'SummaryStrip',
@@ -75,16 +76,6 @@ function Schematic() {
 
 // ── Playground ──────────────────────────────────────────────────────────────
 const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
-const labelStyle = { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)', cursor: 'pointer' }
-
-function Field({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-      {label}
-      <input value={value} onChange={(e) => set(e.target.value)} style={inputStyle} />
-    </label>
-  )
-}
 
 function Playground() {
   const [items, setItems] = useState([
@@ -118,39 +109,33 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-6)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={truncationTooltip} onChange={(e) => setTruncationTooltip(e.target.checked)} />
-          truncationTooltip
-        </label>
-      </div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          cell
-          <select value={sel} onChange={(e) => setSel(Number(e.target.value))} style={inputStyle}>
-            {items.map((it, i) => <option key={i} value={i}>{i + 1} — {it.label}</option>)}
-          </select>
-        </label>
-        <Field label="label" value={current.label} set={(v) => patch(sel, { label: v })} />
-        <Field label="value (empty → --)" value={current.value} set={(v) => patch(sel, { value: v })} />
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          tone
-          <select value={current.tone || 'default'} onChange={(e) => patch(sel, { tone: e.target.value === 'default' ? undefined : e.target.value })} style={inputStyle}>
-            <option value="default">default</option>
-            <option value="positive">positive</option>
-            <option value="negative">negative</option>
-          </select>
-        </label>
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          truncate
-          <select value={current.truncate || 'none'} onChange={(e) => patch(sel, { truncate: e.target.value === 'none' ? undefined : e.target.value })} style={inputStyle}>
-            <option value="none">none</option>
-            <option value="lead">lead</option>
-          </select>
-        </label>
+      <DemoControls>
+        <DemoToggle label="truncationTooltip" value={truncationTooltip} onChange={setTruncationTooltip} />
+      </DemoControls>
+      <DemoControls>
+        <DemoSelect
+          label="cell"
+          value={sel}
+          onChange={(v) => setSel(Number(v))}
+          options={items.map((it, i) => ({ value: i, label: `${i + 1} — ${it.label}` }))}
+        />
+        <DemoField label="label" value={current.label} onChange={(v) => patch(sel, { label: v })} />
+        <DemoField label="value (empty → --)" value={current.value} onChange={(v) => patch(sel, { value: v })} />
+        <DemoSelect
+          label="tone"
+          value={current.tone || 'default'}
+          onChange={(v) => patch(sel, { tone: v === 'default' ? undefined : v })}
+          options={['default', 'positive', 'negative']}
+        />
+        <DemoSelect
+          label="truncate"
+          value={current.truncate || 'none'}
+          onChange={(v) => patch(sel, { truncate: v === 'none' ? undefined : v })}
+          options={['none', 'lead']}
+        />
         <button type="button" onClick={addCell} style={{ ...inputStyle, cursor: 'pointer' }}>+ cell</button>
         <button type="button" onClick={removeCell} disabled={items.length <= 1} style={{ ...inputStyle, cursor: items.length <= 1 ? 'default' : 'pointer', opacity: items.length <= 1 ? 0.4 : 1 }}>− cell</button>
-      </div>
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6) 0' }}>
         <SummaryStrip items={items} truncationTooltip={truncationTooltip} aria-label="Playground summary" />
       </div>

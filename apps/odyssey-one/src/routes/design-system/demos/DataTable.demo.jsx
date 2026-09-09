@@ -9,6 +9,7 @@ import {
 import { EllipsisVertical, Plus, Upload } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { DataTable, Paginator, Checkbox, Badge, ActionMenu, Button } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'DataTable',
@@ -174,7 +175,6 @@ function makeData(n, longContent) {
 }
 
 const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
-const labelStyle = { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)', cursor: 'pointer' }
 
 // Playground: the API's feature switches + data population, live.
 function LiveDataTable() {
@@ -230,63 +230,25 @@ function LiveDataTable() {
   })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-6)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={sortable} onChange={(e) => setSortable(e.target.checked)} />
-          sortable
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={truncationTooltip} onChange={(e) => setTruncationTooltip(e.target.checked)} />
-          truncationTooltip
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={selectable} onChange={(e) => setSelectable(e.target.checked)} />
-          selectable
-        </label>
-        <label style={labelStyle}>
-          rows
-          <select value={rowCount} onChange={(e) => setRowCount(Number(e.target.value))} style={inputStyle}>
-            {[32, 200, 1000, 5000].map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={longContent} onChange={(e) => setLongContent(e.target.checked)} />
-          long content (290px cap + tooltip)
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={loading} onChange={(e) => setLoading(e.target.checked)} />
-          loading (whole-table Spinner — first mount)
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={loadingRows} onChange={(e) => setLoadingRows(e.target.checked)} />
-          loadingRows (per-cell "Loading…" — tab-change/refetch)
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={showActions} onChange={(e) => setShowActions(e.target.checked)} />
-          actions (the Table Actions row)
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={stickyActions} disabled={!showActions} onChange={(e) => setStickyActions(e.target.checked)} />
-          actionsRow.stickyTop (pins the row; absent = scrolls away)
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={twoButtons} disabled={!showActions} onChange={(e) => setTwoButtons(e.target.checked)} />
-          two trailing buttons
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={errorState} onChange={(e) => setErrorState(e.target.checked)} />
-          error (third body state — outranks compose, yields to loading)
-        </label>
-        <label style={labelStyle}>
-          <input type="checkbox" checked={compose} onChange={(e) => { setCompose(e.target.checked); setComposed([]) }} />
-          composeRows (empties the table; row 2+ comes from the actions row's own button)
-        </label>
+      <DemoControls>
+        <DemoToggle label="sortable" value={sortable} onChange={setSortable} />
+        <DemoToggle label="truncationTooltip" value={truncationTooltip} onChange={setTruncationTooltip} />
+        <DemoToggle label="selectable" value={selectable} onChange={setSelectable} />
+        <DemoSelect label="rows" value={String(rowCount)} onChange={(v) => setRowCount(Number(v))} options={[32, 200, 1000, 5000].map((n) => ({ value: String(n), label: String(n) }))} />
+        <DemoToggle label="long content (290px cap + tooltip)" value={longContent} onChange={setLongContent} />
+        <DemoToggle label="loading (whole-table Spinner — first mount)" value={loading} onChange={setLoading} />
+        <DemoToggle label='loadingRows (per-cell "Loading…" — tab-change/refetch)' value={loadingRows} onChange={setLoadingRows} />
+        <DemoToggle label="actions (the Table Actions row)" value={showActions} onChange={setShowActions} />
+        <DemoToggle label="actionsRow.stickyTop (pins the row; absent = scrolls away)" value={stickyActions} onChange={setStickyActions} disabled={!showActions} />
+        <DemoToggle label="two trailing buttons" value={twoButtons} onChange={setTwoButtons} disabled={!showActions} />
+        <DemoToggle label="error (third body state — outranks compose, yields to loading)" value={errorState} onChange={setErrorState} />
+        <DemoToggle label="composeRows (empties the table; row 2+ comes from the actions row's own button)" value={compose} onChange={(v) => { setCompose(v); setComposed([]) }} />
         {compose && (
           <button type="button" style={inputStyle} onClick={() => setComposed([])}>
             reset composed rows ({composed.length})
           </button>
         )}
-      </div>
+      </DemoControls>
       <DataTable
         table={table}
         sortable={sortable}

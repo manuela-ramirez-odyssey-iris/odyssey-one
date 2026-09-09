@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ListX, PackageOpen, FileWarning } from 'lucide-react'
 import { ShipmentsBar } from '@odyssey/ui'
+import { DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'ShipmentsBar',
@@ -149,10 +150,7 @@ function Playground() {
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · the ID is a ButtonLink (in the app it opens View Shipment Details{idClicks > 0 ? ` — clicked ${idClicks}×` : ''}) · tabs switch the slot · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close and partial↔full ease on the drawer curve between the fixed stage heights (S93 — adaptive ratchet retired)</span>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={showIndicators} onChange={(e) => setShowIndicators(e.target.checked)} />
-          tabs[].indicators (content signals on Stops / Tender / Documents)
-        </label>
+        <DemoToggle label="tabs[].indicators (content signals on Stops / Tender / Documents)" value={showIndicators} onChange={setShowIndicators} />
       </div>
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar

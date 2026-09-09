@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { ComboBox, FieldSearchResults } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'ComboBox',
@@ -118,15 +119,6 @@ const LOCATIONS = [
   { matchId: '61-CU0000010512', customer: 'Kemira Americas', address: '90 State St, Albany, NY 12207, USA', iconType: 'container' },
 ]
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 function SlotPlayground() {
   const [value, setValue] = useState('Chile')
   const [showLabel, setShowLabel] = useState(true)
@@ -153,12 +145,12 @@ function SlotPlayground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-        <Toggle label="label" value={showLabel} set={setShowLabel} />
-        <Toggle label="info icon" value={showInfoIcon} set={setShowInfoIcon} />
-        <Toggle label="simulate error" value={simulateError} set={setSimulateError} />
-        <Toggle label="disabled" value={disabled} set={setDisabled} />
-      </div>
+      <DemoControls>
+        <DemoToggle label="label" value={showLabel} onChange={setShowLabel} />
+        <DemoToggle label="info icon" value={showInfoIcon} onChange={setShowInfoIcon} />
+        <DemoToggle label="simulate error" value={simulateError} onChange={setSimulateError} />
+        <DemoToggle label="disabled" value={disabled} onChange={setDisabled} />
+      </DemoControls>
       <div style={{ maxWidth: 420 }}>
         <ComboBox
           value={value}
@@ -180,9 +172,6 @@ function SlotPlayground() {
 }
 
 // ── Section B — Typeahead playground ─────────────────────────────────────────
-
-const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
-const labelStyle = { display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }
 
 const SIZES = [
   { label: '10',   count: 10 },
@@ -255,69 +244,70 @@ function TypeaheadPlayground() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
       {/* Controls */}
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={labelStyle}>
-          Options size
-          <select value={sizeIdx} onChange={(e) => { setSizeIdx(Number(e.target.value)); setValue(null) }} style={inputStyle}>
-            {SIZES.map((s, i) => <option key={i} value={i}>{s.label}</option>)}
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Source
-          <select value={source} onChange={(e) => { setSource(e.target.value); setValue(null) }} style={inputStyle}>
-            <option value="static">Static options</option>
-            <option value="async">Async paged (300ms)</option>
-            <option value="api">API (dummyjson products)</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Variant
-          <select value={variant} onChange={(e) => setVariant(e.target.value)} style={inputStyle}>
-            <option value="search">Search (leading icon)</option>
-            <option value="select">Select (trailing chevron)</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Data-entry mode
-          <select
-            value={typable ? 'typable' : 'pick-only'}
-            onChange={(e) => {
-              const t = e.target.value === 'typable'
-              setTypable(t)
-              if (!t) setVariant('select') // pick-only reads as a select face
-              setValue(null)
-            }}
-            style={inputStyle}
-          >
-            <option value="typable">Typable (filters as you type)</option>
-            <option value="pick-only">Pick-only (typable=false — former SelectField)</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Field state
-          <select value={fieldState} onChange={(e) => setFieldState(e.target.value)} style={inputStyle}>
-            <option value="default">Default</option>
-            <option value="error">Error</option>
-            <option value="validated">Validated</option>
-          </select>
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
-          required
-        </label>
+      <DemoControls>
+        <DemoSelect
+          label="Options size"
+          value={sizeIdx}
+          onChange={(v) => { setSizeIdx(Number(v)); setValue(null) }}
+          options={SIZES.map((s, i) => ({ value: i, label: s.label }))}
+        />
+        <DemoSelect
+          label="Source"
+          value={source}
+          onChange={(v) => { setSource(v); setValue(null) }}
+          options={[
+            { value: 'static', label: 'Static options' },
+            { value: 'async', label: 'Async paged (300ms)' },
+            { value: 'api', label: 'API (dummyjson products)' },
+          ]}
+        />
+        <DemoSelect
+          label="Variant"
+          value={variant}
+          onChange={setVariant}
+          options={[
+            { value: 'search', label: 'Search (leading icon)' },
+            { value: 'select', label: 'Select (trailing chevron)' },
+          ]}
+        />
+        <DemoSelect
+          label="Data-entry mode"
+          value={typable ? 'typable' : 'pick-only'}
+          onChange={(v) => {
+            const t = v === 'typable'
+            setTypable(t)
+            if (!t) setVariant('select') // pick-only reads as a select face
+            setValue(null)
+          }}
+          options={[
+            { value: 'typable', label: 'Typable (filters as you type)' },
+            { value: 'pick-only', label: 'Pick-only (typable=false — former SelectField)' },
+          ]}
+        />
+        <DemoSelect
+          label="Field state"
+          value={fieldState}
+          onChange={setFieldState}
+          options={[
+            { value: 'default', label: 'Default' },
+            { value: 'error', label: 'Error' },
+            { value: 'validated', label: 'Validated' },
+          ]}
+        />
+        <DemoToggle label="required" value={required} onChange={setRequired} />
         {source !== 'static' && (
-          <label style={labelStyle}>
-            Chunk size (limit)
-            <select value={chunk} onChange={(e) => setChunk(Number(e.target.value))} style={inputStyle}>
-              {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
+          <DemoSelect
+            label="Chunk size (limit)"
+            value={chunk}
+            onChange={(v) => setChunk(Number(v))}
+            options={[10, 20, 50, 100].map((n) => ({ value: n, label: String(n) }))}
+          />
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>Selected value</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{value ?? '—'}</code>
         </div>
-      </div>
+      </DemoControls>
 
       {/* ComboBox in typeahead mode + anatomy legend */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 400 }}>

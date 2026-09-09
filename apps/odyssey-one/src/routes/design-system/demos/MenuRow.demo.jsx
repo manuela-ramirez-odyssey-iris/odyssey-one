@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MenuRow } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Truck, ChevronRight } from 'lucide-react'
 
@@ -99,23 +100,13 @@ export default function MenuRowDemo() {
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive playground</h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={selected} onChange={(e) => setSelected(e.target.checked)} /> selected
-          </label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} /> disabled
-          </label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={draggable} onChange={(e) => setDraggable(e.target.checked)} /> draggable
-          </label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={withIcon} onChange={(e) => setWithIcon(e.target.checked)} /> leadingIcon
-          </label>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" checked={withTrail} onChange={(e) => setWithTrail(e.target.checked)} /> trailingIcon
-          </label>
-        </div>
+        <DemoControls>
+          <DemoToggle label="selected" value={selected} onChange={setSelected} />
+          <DemoToggle label="disabled" value={disabled} onChange={setDisabled} />
+          <DemoToggle label="draggable" value={draggable} onChange={setDraggable} />
+          <DemoToggle label="leadingIcon" value={withIcon} onChange={setWithIcon} />
+          <DemoToggle label="trailingIcon" value={withTrail} onChange={setWithTrail} />
+        </DemoControls>
         <Frame>
           <MenuRow
             label="Playground row"

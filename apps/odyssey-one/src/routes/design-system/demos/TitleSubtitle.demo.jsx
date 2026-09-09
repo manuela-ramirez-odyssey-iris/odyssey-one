@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Badge, TitleSubtitle } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
 
 export const meta = {
   name: 'TitleSubtitle',
@@ -79,28 +80,6 @@ function Schematic() {
 
 // ── Playground ────────────────────────────────────────────────────────────────────
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
-function Field({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-      {label}
-      <input
-        value={value}
-        onChange={(e) => set(e.target.value)}
-        style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }}
-      />
-    </label>
-  )
-}
-
 function Playground() {
   const [title, setTitle] = useState('Shipment #SHP-40021')
   const [subtitle, setSubtitle] = useState('Reference')
@@ -109,18 +88,19 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Field label="title" value={title} set={setTitle} />
-        <Field label="subtitle" value={subtitle} set={setSubtitle} />
-        <Toggle label="show icon" value={showIcon} set={setShowIcon} />
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          badge
-          <select value={badgeVariant} onChange={(e) => setBadgeVariant(e.target.value)}>
-            <option value="">none</option>
-            {['amber', 'blue', 'green', 'red', 'purple', 'gray'].map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </label>
-      </div>
+      <DemoControls>
+        <DemoField label="title" value={title} onChange={setTitle} />
+        <DemoField label="subtitle" value={subtitle} onChange={setSubtitle} />
+        <DemoToggle label="show icon" value={showIcon} onChange={setShowIcon} />
+        <DemoSelect
+          label="badge"
+          value={badgeVariant}
+          onChange={setBadgeVariant}
+          options={['amber', 'blue', 'green', 'red', 'purple', 'gray']}
+          allowNone
+          noneLabel="none"
+        />
+      </DemoControls>
       {/* Fixed-width holder to show wrapping; the component itself fills it. */}
       <div style={{ width: 240, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-4)' }}>
         <TitleSubtitle

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StepperButtonsFooter } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'StepperButtonsFooter',
@@ -83,25 +84,16 @@ function Schematic() {
   )
 }
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 function Playground() {
   const [showSave, setShowSave] = useState(true)
   const [primaryDisabled, setPrimaryDisabled] = useState(false)
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-        <Toggle label="show Save" value={showSave} set={setShowSave} />
-        <Toggle label="primary disabled" value={primaryDisabled} set={setPrimaryDisabled} />
-      </div>
+      <DemoControls>
+        <DemoToggle label="show Save" value={showSave} onChange={setShowSave} />
+        <DemoToggle label="primary disabled" value={primaryDisabled} onChange={setPrimaryDisabled} />
+      </DemoControls>
       <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <StepperButtonsFooter
           showSave={showSave}

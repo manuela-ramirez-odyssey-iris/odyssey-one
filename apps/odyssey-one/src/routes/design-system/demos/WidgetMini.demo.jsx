@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { WidgetMini } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'WidgetMini',
@@ -69,15 +70,6 @@ function Schematic() {
   )
 }
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 // The real consumer shape: a category row where exactly one card is the active
 // filter — clicking a card selects it (that IS the component's intent).
 const CATEGORIES = [
@@ -94,10 +86,10 @@ function Playground() {
   const total = 376
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Toggle label="showChart" value={showChart} set={setShowChart} />
+      <DemoControls>
+        <DemoToggle label="showChart" value={showChart} onChange={setShowChart} />
         <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>click a card to select it — percentage = share of the panel total</span>
-      </div>
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', display: 'flex', gap: 'var(--spacing-3)' }}>
         {CATEGORIES.map(c => (
           <WidgetMini

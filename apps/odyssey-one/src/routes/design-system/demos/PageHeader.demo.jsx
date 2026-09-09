@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, ButtonToggle, PageHeader } from '@odyssey/ui'
 import { Plus, ArrowRight, SlidersHorizontal, Route } from 'lucide-react'
+import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
 
 export const meta = {
   name: 'PageHeader',
@@ -75,23 +76,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-function Toggle({ label, value, set, disabled }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} disabled={disabled} />
-      {label}
-    </label>
-  )
-}
-function Field({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-      {label}
-      <input value={value} onChange={(e) => set(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }} />
-    </label>
-  )
-}
-
 function Playground() {
   const [title, setTitle] = useState('Home')
   const [mode, setMode] = useState('default') // 'default' | 'lastUpdate'
@@ -105,25 +89,27 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Field label="title" value={title} set={setTitle} />
-        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-          Type
-          <select value={mode} onChange={(e) => setMode(e.target.value)} style={{ padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }}>
-            <option value="default">Default (actions)</option>
-            <option value="lastUpdate">Last update</option>
-          </select>
-        </label>
+      <DemoControls>
+        <DemoField label="title" value={title} onChange={setTitle} />
+        <DemoSelect
+          label="Type"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'default', label: 'Default (actions)' },
+            { value: 'lastUpdate', label: 'Last update' },
+          ]}
+        />
         {lastUpdate ? (
-          <Field label="supporting text" value={supportingText} set={setSupportingText} />
+          <DemoField label="supporting text" value={supportingText} onChange={setSupportingText} />
         ) : (
           <>
-            <Toggle label="toggle" value={showToggle} set={setShowToggle} />
-            <Toggle label="link" value={showLink} set={setShowLink} />
-            <Toggle label="button" value={showButton} set={setShowButton} />
+            <DemoToggle label="toggle" value={showToggle} onChange={setShowToggle} />
+            <DemoToggle label="link" value={showLink} onChange={setShowLink} />
+            <DemoToggle label="button" value={showButton} onChange={setShowButton} />
           </>
         )}
-      </div>
+      </DemoControls>
       <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-4)' }}>
         {lastUpdate ? (
           <PageHeader title={title} supportingText={supportingText} style={{ width: '100%' }} />

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ModalFooter } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'ModalFooter',
@@ -55,18 +56,12 @@ export default function ModalFooterDemo() {
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Playground — pick a type</h4>
-        <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap' }}>
-          {TYPES.map((t) => (
-            <label key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-              <input type="radio" name="mf-type" checked={type === t} onChange={() => setType(t)} /> {t}
-            </label>
-          ))}
+        <DemoControls>
+          <DemoSelect label="type" value={type} onChange={setType} options={TYPES} />
           {type === 'confirm' && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={clearAll} onChange={(e) => setClearAll(e.target.checked)} /> Clear all (tertiary)
-            </label>
+            <DemoToggle label="Clear all (tertiary)" value={clearAll} onChange={setClearAll} />
           )}
-        </div>
+        </DemoControls>
         <Frame>
           <ModalFooter
             type={type}

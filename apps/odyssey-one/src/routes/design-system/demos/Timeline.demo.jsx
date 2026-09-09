@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Timeline } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   name: 'Timeline',
@@ -83,15 +84,6 @@ function Schematic() {
 // ── Playground ──────────────────────────────────────────────────────────────
 const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 const STOPS = [
   { key: 'p1', label: 'P1', title: 'Pickup — Charlotte, NC' },
   { key: 'p2', label: 'P2', title: 'Pickup — Greenville, SC' },
@@ -119,20 +111,19 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <DemoControls>
         {STOPS.map((stop, i) => (
-          <label key={stop.key} style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
-            {stop.label}
-            <select value={statuses[i]} onChange={(e) => patch(i, e.target.value)} style={inputStyle}>
-              <option value="completed">completed</option>
-              <option value="issue">issue</option>
-              <option value="pending">pending</option>
-            </select>
-          </label>
+          <DemoSelect
+            key={stop.key}
+            label={stop.label}
+            value={statuses[i]}
+            onChange={(v) => patch(i, v)}
+            options={['completed', 'issue', 'pending']}
+          />
         ))}
-        <Toggle label="animate" value={animate} set={(v) => { setAnimate(v); setRun((r) => r + 1) }} />
+        <DemoToggle label="animate" value={animate} onChange={(v) => { setAnimate(v); setRun((r) => r + 1) }} />
         <button type="button" onClick={() => setRun((r) => r + 1)} style={{ ...inputStyle, cursor: 'pointer' }}>replay (remount)</button>
-      </div>
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <div style={{ maxWidth: 480, background: 'var(--bg-primary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-6)' }}>
           <Timeline key={run} items={items} animate={animate} />

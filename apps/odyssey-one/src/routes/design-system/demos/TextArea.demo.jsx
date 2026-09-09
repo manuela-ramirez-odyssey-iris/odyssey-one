@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TextArea } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'TextArea',
@@ -75,15 +76,6 @@ function Schematic() {
   )
 }
 
-function Toggle({ label, value, set }) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} />
-      {label}
-    </label>
-  )
-}
-
 function Playground() {
   const [value, setValue] = useState('Deliver to the rear dock; call the site contact 30 minutes ahead.')
   const [showLabel, setShowLabel] = useState(true)
@@ -94,14 +86,14 @@ function Playground() {
 
   return (
     <div>
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Toggle label="showLabel" value={showLabel} set={setShowLabel} />
-        <Toggle label="maxLength (200)" value={withMax} set={setWithMax} />
-        <Toggle label="error" value={withError} set={setWithError} />
-        <Toggle label="disabled" value={disabled} set={setDisabled} />
-        <Toggle label="resize: none" value={fixed} set={setFixed} />
+      <DemoControls>
+        <DemoToggle label="showLabel" value={showLabel} onChange={setShowLabel} />
+        <DemoToggle label="maxLength (200)" value={withMax} onChange={setWithMax} />
+        <DemoToggle label="error" value={withError} onChange={setWithError} />
+        <DemoToggle label="disabled" value={disabled} onChange={setDisabled} />
+        <DemoToggle label="resize: none" value={fixed} onChange={setFixed} />
         <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>type to watch the count · drag the corner grip</span>
-      </div>
+      </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <TextArea
           label="Special instructions"

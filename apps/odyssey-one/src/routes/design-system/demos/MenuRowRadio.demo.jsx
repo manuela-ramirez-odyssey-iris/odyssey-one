@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MenuRowRadio } from '@odyssey/ui'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'MenuRowRadio',
@@ -60,12 +61,10 @@ export default function MenuRowRadioDemo() {
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Playground — radio picks, row body navigates</h4>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-          <input type="checkbox" checked={draggable} onChange={(e) => setDraggable(e.target.checked)} />
-          draggable
-          <input type="checkbox" checked={badge} onChange={(e) => setBadge(e.target.checked)} style={{ marginLeft: 'var(--spacing-4)' }} />
-          badge
-        </label>
+        <DemoControls>
+          <DemoToggle label="draggable" value={draggable} onChange={setDraggable} />
+          <DemoToggle label="badge" value={badge} onChange={setBadge} />
+        </DemoControls>
         <div className="ds-demo-col" style={{ width: 240, gap: 'var(--spacing-2)' }}>
           {options.map((o) => (
             <MenuRowRadio

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { House, ClipboardList, Container, Route, Truck, UserCog, Handshake } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Sidebar } from '@odyssey/ui'
+import { DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'Sidebar',
@@ -95,14 +96,7 @@ export default function SidebarDemo() {
             />
           </div>
           <div className="ds-demo-col" style={{ gap: 8 }}>
-            <label className="ds-demo-label">
-              <input
-                type="checkbox"
-                checked={expanded}
-                onChange={(e) => setExpanded(e.target.checked)}
-              />{' '}
-              expanded
-            </label>
+            <DemoToggle label="expanded" value={expanded} onChange={setExpanded} />
             <span className="ds-demo-label">active: {activeId}</span>
             <span className="ds-demo-label" style={{ maxWidth: 260 }}>
               Click <strong>User Management</strong>, then <em>hover</em>{' '}

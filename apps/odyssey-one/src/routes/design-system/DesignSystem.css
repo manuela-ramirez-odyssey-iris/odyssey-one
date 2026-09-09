@@ -538,3 +538,59 @@
 .ds-modal__title { margin: 0; font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
 .ds-modal__close { background: transparent; border: 0; cursor: pointer; font-size: var(--font-size-lg); color: var(--text-tertiary); line-height: 1; }
 .ds-modal__body { padding: var(--spacing-6); overflow-y: auto; }
+
+/* ── Playground controls ────────────────────────────────────────────────────
+   Shared chrome for every demo's Playground (see demoControls.jsx). The
+   controls are never the subject of a demo, so they stay quiet: small type,
+   secondary label, no borders competing with the component on show. */
+.ds-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-2) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.ds-control {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+/* A checkbox reads as one line with its label, not a stacked field. */
+.ds-control:has(.ds-control__checkbox) {
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+.ds-control--disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ds-control__label {
+  white-space: nowrap;
+}
+.ds-control__input {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  min-width: 0;
+}
+.ds-control__input--number {
+  width: 5rem;
+}
+.ds-control__checkbox {
+  cursor: inherit;
+  margin: 0;
+}

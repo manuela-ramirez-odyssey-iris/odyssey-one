@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CalendarPicker, DatePicker } from '@odyssey/ui'
+import { DemoControls, DemoSelect } from '../demoControls.jsx'
 
 export const meta = {
   // One demo, two exports: CalendarPicker (the Figma-mastered calendar card) +
@@ -79,9 +80,6 @@ function Schematic() {
 }
 
 // ── Playground ──────────────────────────────────────────────────────────────
-const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
-const labelStyle = { display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }
-
 function fmt(d) {
   if (!d) return '—'
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -114,31 +112,28 @@ function Playground() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
       {/* Controls */}
-      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={labelStyle}>
-          mode
-          <select value={mode} onChange={e => reset(e.target.value)} style={inputStyle}>
-            <option value="single">single</option>
-            <option value="range">range</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          date gating
-          <select
-            value={gate}
-            onChange={e => { setGate(e.target.value); setValue(mode === 'single' ? null : { start: null, end: null }) }}
-            style={inputStyle}
-          >
-            <option value="none">none (every day)</option>
-            <option value="flex">enabledDates — carrier flex dates (5)</option>
-            <option value="weekdays">isDateEnabled — weekdays only</option>
-          </select>
-        </label>
+      <DemoControls>
+        <DemoSelect
+          label="mode"
+          value={mode}
+          onChange={reset}
+          options={['single', 'range']}
+        />
+        <DemoSelect
+          label="date gating"
+          value={gate}
+          onChange={(v) => { setGate(v); setValue(mode === 'single' ? null : { start: null, end: null }) }}
+          options={[
+            { value: 'none', label: 'none (every day)' },
+            { value: 'flex', label: 'enabledDates — carrier flex dates (5)' },
+            { value: 'weekdays', label: 'isDateEnabled — weekdays only' },
+          ]}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>value</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{valueReadout}</code>
         </div>
-      </div>
+      </DemoControls>
 
       {/* DatePicker composite */}
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 440 }}>

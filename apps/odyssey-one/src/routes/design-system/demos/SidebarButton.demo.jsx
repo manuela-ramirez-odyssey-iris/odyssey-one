@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SidebarButton } from '@odyssey/ui'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 import { ICON_LG } from '@odyssey/tokens'
 import { House, Container, Truck, UserCog } from 'lucide-react'
 
@@ -89,33 +90,12 @@ export default function SidebarButtonDemo() {
               chevron={chevron || null}
             />
           </div>
-          <div className="ds-demo-col" style={{ gap: 8 }}>
-            <label className="ds-demo-label">
-              type{' '}
-              <select value={type} onChange={(e) => setType(e.target.value)}>
-                {TYPES.map((t) => <option key={t}>{t}</option>)}
-              </select>
-            </label>
-            <label className="ds-demo-label">
-              state{' '}
-              <select value={state} onChange={(e) => setState(e.target.value)}>
-                {STATES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </label>
-            <label className="ds-demo-label">
-              chevron{' '}
-              <select value={chevron} onChange={(e) => setChevron(e.target.value)}>
-                <option value="">none</option>
-                <option value="up">up</option>
-                <option value="down">down</option>
-                <option value="right">right</option>
-              </select>
-            </label>
-            <label className="ds-demo-label">
-              <input type="checkbox" checked={count} onChange={(e) => setCount(e.target.checked)} />{' '}
-              count badge (domain only)
-            </label>
-          </div>
+          <DemoControls>
+            <DemoSelect label="type" value={type} onChange={setType} options={TYPES} />
+            <DemoSelect label="state" value={state} onChange={setState} options={STATES} />
+            <DemoSelect label="chevron" value={chevron} onChange={setChevron} options={['up', 'down', 'right']} allowNone noneLabel="none" />
+            <DemoToggle label="count badge (domain only)" value={count} onChange={setCount} />
+          </DemoControls>
         </div>
       </div>
 

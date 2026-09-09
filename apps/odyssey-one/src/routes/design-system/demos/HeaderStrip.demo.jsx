@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, TruckElectric } from 'lucide-react'
 import { Badge, Button, HeaderStrip } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
+import { DemoControls, DemoToggle, DemoSelect } from '../demoControls.jsx'
 
 // Extracted 2026-08-30 from GroupTable's `header` prop (Figma 4183:773); the
 // standalone master 5530:1140 was created the same day on Components-Molecules.
@@ -97,17 +98,11 @@ function Playground() {
   return (
     <div className="ds-demo-section">
       <h4 className="ds-demo-section__title">Playground — toggle badge, trail, long title</h4>
-      <div style={{ display: 'flex', gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)' }}>
-        <label>
-          Badge{' '}
-          <select value={badgeVariant} onChange={(e) => setBadgeVariant(e.target.value)}>
-            <option value="">none</option>
-            {BADGE_VARIANTS.map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </label>
-        <label><input type="checkbox" checked={showTrail} onChange={(e) => setShowTrail(e.target.checked)} /> Trail</label>
-        <label><input type="checkbox" checked={longTitle} onChange={(e) => setLongTitle(e.target.checked)} /> Long title</label>
-      </div>
+      <DemoControls>
+        <DemoSelect label="Badge" value={badgeVariant} onChange={setBadgeVariant} options={BADGE_VARIANTS} allowNone noneLabel="none" />
+        <DemoToggle label="Trail" value={showTrail} onChange={setShowTrail} />
+        <DemoToggle label="Long title" value={longTitle} onChange={setLongTitle} />
+      </DemoControls>
       <div className="ds-demo-cell" style={{ justifyContent: 'flex-start' }}>
         <HeaderStrip
           style={{ width: 420 }}
