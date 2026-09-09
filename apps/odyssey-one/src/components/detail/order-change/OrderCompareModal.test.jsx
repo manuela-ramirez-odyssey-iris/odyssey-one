@@ -20,6 +20,7 @@ it('titles the dialog, names the order, and lists changed rows before unchanged 
 it('Go Back closes; empty rows render both bands without crashing', () => {
   const onClose = vi.fn()
   render(<OrderCompareModal orderId="1" rows={[]} onClose={onClose} />)
+  expect(screen.getAllByText('(No Differences)')).toHaveLength(2)
   fireEvent.click(screen.getByText('Go Back'))
   expect(onClose).toHaveBeenCalled()
 })
