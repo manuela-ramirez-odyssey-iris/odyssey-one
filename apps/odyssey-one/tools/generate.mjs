@@ -1197,7 +1197,13 @@ function generateShipment(index, chainOverride) {
     if (orders.length > 1) {
       orderChangePayload.consolidation = buildConsolidationChange(sellShipment, orders, stops, {
         tenderStatus, priorApCost: orderChangePayload.prior.apCost, newApCost: orderChangePayload.newOption.apCost,
-        grossWeight, totalVolume, distanceMiles: parseFloat(distance.toFixed(2)), baseDate, originTz, freightTerms,
+        grossWeight, totalVolume,
+        // Must match mapStops' currentTenderOption (mapSellShipmentOutToDetail.ts)
+        // — the plain Stops tab reads Distance off the option carrying the
+        // live tenderStatus, not the shipment header's distance. Same rule
+        // buildOrderChange's own `prior` uses (~L2390).
+        distanceMiles: (routingOptions.find(o => o.status === tenderStatus) ?? routingOptions[0])?.distanceMiles ?? distance,
+        baseDate, originTz, freightTerms,
       });
     }
   }
@@ -2661,9 +2667,23 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   // this round-trips through JSON (a consumer must `Number(seq)` back).
   const stopChanges = {};
 
+  // Preserve the real "HH:00 TZ" suffix rather than assuming a fixed-width
+  // date prefix — scheduledDateTime's date portion is formatDate's long
+  // form ("September 8, 2026"), not MM/DD/YYYY, so a fixed slice would cut
+  // mid-string on differing month-name lengths. Guarded: fall back to ''
+  // rather than throw if a future format ever drops the suffix.
+  const dateSuffixRe = / \d{2}:00 \S+$/;
+  const shiftStopDate = (st, shiftDays) => {
+    const timeSuffix = st.scheduledDateTime.match(dateSuffixRe)?.[0] ?? '';
+    const datePart = st.scheduledDateTime.slice(0, st.scheduledDateTime.length - timeSuffix.length);
+    const at = genDate(new Date(datePart), shiftDays);
+    return { prior: st.scheduledDateTime, new: `${formatDate(at)}${timeSuffix}` };
+  };
+
   // A changed ORDER is always referenced by the stop(s) that carry it: walk
   // every real stop and pull in only the changed orders it already lists
   // (st.orderIds), never invent a stop/order pairing that doesn't exist.
+  const changedStops = [];
   for (const st of stops) {
     const ids = st.orderIds.filter(id => changedOrderIds.includes(id));
     if (!ids.length) continue;
@@ -2674,28 +2694,34 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
       volume: { prior: st.volumeValue, new: st.volumeValue + sum('volume') },
       packageCount: { prior: st.packageCount, new: st.packageCount + sum('packages') },
     };
-    // One dateShiftDays draw per STOP (not per order) — every order on this
-    // stop reads the same shifted date back, so two orders sharing a stop
-    // can't show two different "new" pickup dates for it.
-    const dateShiftDays = 1 + Math.floor(rnd() * 3);
-    // Preserve the real "HH:00 TZ" suffix rather than assuming a fixed-width
-    // date prefix — scheduledDateTime's date portion is formatDate's long
-    // form ("September 8, 2026"), not MM/DD/YYYY, so a fixed slice would cut
-    // mid-string on differing month-name lengths. Guarded: fall back to ''
-    // rather than throw if a future format ever drops the suffix.
-    const timeSuffix = st.scheduledDateTime.match(/ \d{2}:00 \S+$/)?.[0] ?? '';
-    let at = genDate(baseDate, dateShiftDays);
-    // The shift is measured from the shipment's baseDate, but a delivery
-    // stop's own date is offset from deliveryDate instead — the two can land
-    // on the same calendar day by coincidence, which would make "prior" and
-    // "new" print identically despite a real change happening. Nudge one day
-    // further in that case rather than drawing a second opinion from rnd.
-    if (`${formatDate(at)}${timeSuffix}` === st.scheduledDateTime) at = genDate(at, 1);
-    fields.date = { prior: st.scheduledDateTime, new: `${formatDate(at)}${timeSuffix}` };
     if (locationChange && st.stopType === 'pickup') {
       const loc = rndPick(rnd, LOCATIONS.filter(l => l.city !== st.city));
       fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
     }
+    changedStops.push({ st, ids, fields });
+  }
+
+  // Dates: shift each stop off ITS OWN scheduledDateTime (not the shipment's
+  // baseDate) so prior/new always land on the stop's real timeline, and shift
+  // pickups first so delivery shifts can be forced ≥ the largest pickup shift
+  // — a changed delivery can never land at/before a changed pickup (measured:
+  // 87/131 payloads did before this fix, e.g. sell 25003258). Every rnd()
+  // draw stays unconditional-per-changed-stop so the seed stream is
+  // deterministic regardless of which stops happen to be changed.
+  let maxPickupShift = 0;
+  for (const { st, fields } of changedStops) {
+    if (st.stopType !== 'pickup') continue;
+    const shift = 1 + Math.floor(rnd() * 3);
+    maxPickupShift = Math.max(maxPickupShift, shift);
+    fields.date = shiftStopDate(st, shift);
+  }
+  for (const { st, fields } of changedStops) {
+    if (st.stopType === 'pickup') continue;
+    const shift = maxPickupShift + Math.floor(rnd() * 2);
+    fields.date = shiftStopDate(st, shift);
+  }
+
+  for (const { st, ids, fields } of changedStops) {
     stopChanges[st.stopSequence] = { changedOrderIds: ids, fields };
   }
 

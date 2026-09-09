@@ -1215,6 +1215,49 @@ test('multi-order order-change shipments carry a coherent orderChange.consolidat
   assert.ok(withLocation > 0 && withLocation < multi, `both locationChange values must occur, got ${withLocation}/${multi}`)
 })
 
+test('consolidation distance.prior matches the live-tenderStatus routing option (agrees with mapStops currentTenderOption)', () => {
+  const ds = buildDataset()
+  let checked = 0
+  for (const s of ds.shipments.filter(s => s.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c?.summaryChanges.distance) continue
+    const option = d.shippingOptionList.find(o => o.status === s.tenderStatus) ?? d.shippingOptionList[0]
+    assert.equal(c.summaryChanges.distance.prior, option.distanceMiles, `${s.sellShipment}: distance.prior must equal the tenderStatus-matching routing option's distanceMiles`)
+    checked++
+  }
+  assert.ok(checked > 0, 'expected at least one consolidated payload with a distance change')
+})
+
+test('consolidation dates: a changed delivery stop never lands at/before any pickup stop', () => {
+  const dateSuffixRe = / \d{2}:00 \S+$/
+  const parseStopDate = (dt) => {
+    const suffix = dt.match(dateSuffixRe)?.[0] ?? ''
+    return new Date(dt.slice(0, dt.length - suffix.length))
+  }
+  const ds = buildDataset()
+  let checkedStops = 0
+  for (const s of ds.shipments.filter(s => s.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c) continue
+    const pickupNewDates = d.shipmentStopList
+      .filter(st => st.stopType === 'pickup')
+      .map(st => {
+        const sc = c.stopChanges[st.stopSequence]
+        return sc?.fields.date ? parseStopDate(sc.fields.date.new) : parseStopDate(st.scheduledDateTime)
+      })
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      const st = d.shipmentStopList.find(x => x.stopSequence === Number(seq))
+      if (st.stopType === 'pickup' || !sc.fields.date) continue
+      const deliveryNew = parseStopDate(sc.fields.date.new)
+      for (const pickupNew of pickupNewDates) assert.ok(deliveryNew > pickupNew, `${s.sellShipment} stop ${seq}: changed delivery date ${deliveryNew} must be after pickup date ${pickupNew}`)
+      checkedStops++
+    }
+  }
+  assert.ok(checkedStops > 0, 'expected at least one changed delivery stop')
+})
+
 test('consolidation payload is deterministic across builds and ids match the pre-consolidation baseline', () => {
   const a = buildDataset({ totalShipments: 400 }), b = buildDataset({ totalShipments: 400 })
   assert.deepEqual(a.shipments.map(s => s.sellShipment), b.shipments.map(s => s.sellShipment))
