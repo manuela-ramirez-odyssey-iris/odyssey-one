@@ -146,7 +146,16 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             title={`Stop ${i + 1}`}
             badge={(
               <>
-                <Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+                {/* User ruling 2026-09-09: purple, not green — this editor
+                    already carries purple/amber change badges (Removed/Moved
+                    below), so the stop-type badge picks up the same purple
+                    used elsewhere on this surface. Canon reserves purple for
+                    the customer's change / amber for the planner's
+                    (vault/10-domains/shipments/order-change.md §10.3,
+                    DEC-136); the type badge is not a change signal, so this
+                    is a deliberate, user-ruled reuse of the color — do not
+                    "fix" it back to the canon mapping. */}
+                <Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
                 {removed && <Badge variant="amber">Removed</Badge>}
                 {moved && <Badge variant="amber">Moved</Badge>}
               </>

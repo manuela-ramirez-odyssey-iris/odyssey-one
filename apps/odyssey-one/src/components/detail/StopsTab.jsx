@@ -77,7 +77,10 @@ function StopContent({ stop }) {
   const isPickup = stop.type === 'pickup'
   return (
     <>
-      {/* Header: "stop N" + type badge — both types green per the mock */}
+      {/* Header: "stop N" + type badge — green per the mock. Plain mode has
+          no purple change badges on this surface (unlike review mode below),
+          so a purple type badge here would falsely signal a change; user
+          ruling 2026-09-09 keeps this one green. */}
       <div className="stops-item__header">
         <span className="stops-item__stop-label">stop {stop.stopNumber}</span>
         <Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
@@ -111,7 +114,16 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
   return (
     <div className="stops-item">
       <div className="stops-item__main">
-        <HeaderStrip title={`Stop ${stop.stopNumber}`} badge={<Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
+        {/* User ruling 2026-09-09: purple here (not green) — this surface
+            already carries purple change badges (Changed/OrderField above),
+            so the stop-type badge picks up the same color. Canon reserves
+            purple for the customer's change / amber for the planner's
+            (vault/10-domains/shipments/order-change.md §10.3, DEC-136); the
+            type badge is not a change signal, so this is a deliberate,
+            user-ruled reuse of the color — do not "fix" it back to the
+            canon mapping. Plain mode below stays green: no purple badges
+            exist there, so purple would falsely imply a change. */}
+        <HeaderStrip title={`Stop ${stop.stopNumber}`} badge={<Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
         <div className="stops-item__fields">
           <ReviewField label="Location"      value={stop.location} change={fields.location} />
           <ReviewField label="Date"          value={stop.date} change={fields.date} />

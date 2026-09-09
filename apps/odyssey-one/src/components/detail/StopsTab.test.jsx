@@ -48,6 +48,12 @@ describe('StopsTab — plain mode', () => {
     expect(screen.queryByText('Affected Orders')).toBeNull()
     expect(screen.getByText('COLUMBUS PL, Kansas City')).toBeTruthy()
   })
+  // User ruling 2026-09-09: plain mode has no purple change badges on this
+  // surface, so the type badge stays green (only review mode goes purple).
+  it('keeps the stop type badge green', () => {
+    renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={null} />)
+    expect(screen.getByText('Pickup').style.background).toContain('badge-green-bg')
+  })
   it('stays plain once the review is resolved', () => {
     renderReview({ orderChange: { ...oc, resolution: { action: 'approve-plan' } } })
     expect(screen.queryByText('Approve Plan')).toBeNull()
@@ -122,5 +128,13 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     // class and an aria-label of "<label> — <status text>".
     expect(document.querySelector('.stop-badge--issue')?.getAttribute('aria-label')).toBe('P1 — issue reported')
     expect(document.querySelector('.stop-badge--completed')?.getAttribute('aria-label')).toBe('D1 — completed')
+  })
+  // User ruling 2026-09-09: review mode already carries purple change
+  // badges, so the type badge picks up purple too (not the canon
+  // customer-change color mapping — a deliberate reuse here).
+  it('makes the stop type badge purple in review mode', () => {
+    renderReview()
+    const stop1 = screen.getByText('Stop 1').closest('.odyssey-timeline__row')
+    expect(within(stop1).getByText('Pickup').style.background).toContain('badge-purple-bg')
   })
 })

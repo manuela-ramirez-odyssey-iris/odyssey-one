@@ -69,6 +69,10 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(screen.getByText('Stop 3')).toBeTruthy()
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
+  // User ruling 2026-09-09: this editor already carries purple/amber change
+  // badges, so the stop-type badge is purple here too (not the canon
+  // customer-change color mapping — a deliberate reuse).
+  expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
 })
 
 it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reordering after a move', () => {

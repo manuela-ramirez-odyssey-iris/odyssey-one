@@ -111,7 +111,21 @@
 }
 .stops-review__costs {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-6);
+}
+/* User ruling 2026-09-09: "New Consolidated Cost" was wrapping to two lines.
+   Root cause: TitleSubtitle is `width:100%; min-width:0` with
+   `overflow-wrap:anywhere` on the subtitle (components.css ~2267-2291) — as
+   flex items here it shrinks to fit the row and the longest label wraps.
+   Size each item to its content instead of forcing nowrap, so a genuinely
+   long value can still wrap; flex-wrap above drops a field to the next line
+   on a narrow pane rather than overflowing.
+   // ponytail: app-level override, not a packages/ui fix — the eventual DSM
+   fix is a nowrap/auto-width variant on TitleSubtitle itself. */
+.stops-review__costs > * {
+  flex: 0 0 auto;
+  width: auto;
 }
 
 /* Per-stop review card: fields | 227px Affected Orders aside */
