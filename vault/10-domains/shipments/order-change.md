@@ -2,8 +2,8 @@
 title: Order Change
 domain: shipments
 type: canon
-tags: [order-change, tender, direct-shipment, consolidation, multi-stop, linx-14509, linx-14515, linx-8820, linx-8284]
-date: 2026-09-02
+tags: [order-change, tender, direct-shipment, consolidation, multi-stop, compare-screen, linx-14509, linx-14515, linx-15435, linx-15872, linx-8820, linx-8284]
+date: 2026-09-08
 status: active
 ---
 
@@ -12,7 +12,7 @@ status: active
 Canon for **Review Order Change**: what happens to a shipment when the customer's system updates an order that is already planned and tendered, and how the planner reviews it. Two halves with very different maturity:
 
 - **Direct shipment** (one order, one pickup, one delivery) — seven Jira stories (LINX-14509…14515), a Figma mock by Laura, and a screen shipped in S134–S137. **Settled behaviour.**
-- **Consolidation / multi-stop** — no stories. Jana's deck carries the intent, and the second half of that deck is pasted LLM output. **Design intent only.**
+- **Consolidation / multi-stop** — thirteen stories (LINX-15435…15438, 15667…15671, 15869…15872), Laura's VDs for the Stops-tab half, shipped in S142. The Compare Screen half awaits its VDs. **Settled behaviour for Surface A; specced-not-built for Surface B.**
 
 Sources, read together per [[feedback_multi_source_truth]]:
 
@@ -22,6 +22,8 @@ Sources, read together per [[feedback_multi_source_truth]]:
 | Jana's review of Laura's mock, 2026-08-29 (37 min) | `review @mm:ss` | Rulings on the Direct screen; the walkthrough the build was measured against |
 | Deck *Order changes – Direct and Consolidation – Mock design*, 2026-08-12 | `deck sN` | Layout/field source for Direct; Consolidation slides 8–13 are LLM output (see §8) |
 | Jira ACs LINX-14509…14516 + context LINX-8820/8284/8253/8252 | `LINX-nnnnn` | Primary per [[feedback_stories_are_primary_source]] |
+| Jira ACs LINX-15435…15872 (consolidation, 13 stories, fetched 2026-09-08) | `LINX-nnnnn` | Primary; supersede deck slides 8–13 |
+| Laura's VDs — Stops Consolidated `1910-31512`, Planning Dates `2102-10502`, View Routing `2108-14708`, per-order compare `2107-12719` | `VD nnnn` | Layout of record for Surface A; copy normalized to AC wording |
 | Raw archive | `vault-sources/10-domains/shipments/{sources,screenshots/order-change}/` | |
 
 Related canon: [[dropped-carrier]] (the dropped list rides inside the review), [[domain-analysis]] §Tender, [[decisions/decision-log]] DEC-114…DEC-127.
@@ -150,38 +152,47 @@ The legacy TMS **Compare** screen (`deck s4` image8: Compare Item | Prior Detail
 
 `deck s2` (*Buy Shipment View*) and `disc @01:04:01–01:09:49`: the shipment details view should expose the **cost breakdown** (Base, FSC, Accessorials, AP Total, AR Total, Margin, Direct Cost) and Stops/UDF/Customer Reference Values. The designer objected to duplicating the Cost tab; Jana accepted a **"view more" that routes to the existing details** — *"I'm not asking you to display it all the time. This is summary"* (`disc @01:09:19`). Same rule for Stops (*"picked up from this location to this location… click and it takes them"*).
 
-## 10. Consolidation / multi-stop — intent only
+## 10. Consolidation / multi-stop (LINX-15435…15872)
 
-**Status: no Jira stories** (*"I don't have the stories, but I have the design"*, `disc @01:17:15`). Backend contract is only LINX-8284 step 3 (flag for user review). Jana's priority: Quote → Drop Carrier → OC Direct → **OC Consolidation last** (`disc @01:19:06`). Everything below is Jana's proposal, offered as *"my idea… if you find a better idea, welcome"* (`disc @36:55`).
+**Status: 13 stories, three passes, all `VD_Pending`; LINX-15435/15436 On Hold `optmizer_pending`.** Fetched verbatim 2026-09-08 → `vault-sources/10-domains/shipments/sources/linx-order-change-consolidation-ac-2026-09-08.md`. They supersede the deck-derived sketch this section used to hold (slides 8–13 remain LLM output — see the provenance warning in the S134 canon, now archived in git history) and close OC-open-5. Laura's VDs: Stops Consolidated `1910-31512`, Planning Dates `2102-10502`, View Routing `2108-14708`, per-order compare `2107-12719`; the Compare Screen VDs are still owed.
 
-**Deck provenance warning.** Slides 8–13 (`image13`–`image26`) are ASCII mock-ups in a code-block viewer with "Show less" chrome and a closing slide titled *"Recommended Final UX — If I were building this for Odyssey, I would use:"*. They are pasted LLM output, not Jana's drawings. Slide 7's screenshots (`image9`, `image10`) are our own prototype's Stops tab. Treat 8–13 as a sketch of the idea, never as a spec.
+**Trigger.** Any TR change on any order of a multi-order shipment flags the whole shipment for user review (LINX-8284 step 3; `disc @16:xx`). LINX-14509's Direct flow "applies only to Direct Shipments" — so a consolidated shipment never enters the Direct review route ([[decisions/decision-log#DEC-132]]).
 
-**Trigger differs from Direct.** Any order in any stop can change; *"this does not matter if the shipment is tendered, not tendered"* (`disc @16:xx`). Whole shipment is flagged for review.
+**Two surfaces, not one.** The deck blurred them; the stories separate them cleanly.
 
-**Summary screen (the "before edit" view).**
-- Stop-level flag: e.g. `P2 Atlanta [UPDATED]` with a change summary (*1 Location Change · 2 Date Changes · 1 Weight Change · 4 Orders Changed*, `image11`) — tooltip or inline, *"I leave it to your design"* (`disc @21:xx`).
-- Per-order list of changes (`image12`: `Order 108497 [LOCATION CHANGE]`…), each opening the **same compare screen as Direct** (§8) for that order.
-- Weight/Volume changes get an indicator on the stop; warning triangle suggested.
-- Two new stop fields: **Planning Date Type** (SSD vs RDD) and **Anchor Date** (the date sent to routing) — `deck s7`, `disc @15:xx`.
-- Two actions: **Approve Plan** (also the approval step for Optimizer recommendations) or **Edit Shipment & Stops**.
+### 10.1 Surface A — the Stops tab *is* the review (LINX-15435–15438)
 
-**Editor — three sections** (`disc @24:xx–34:xx`, `image14`, `image16`):
+Read-only. The Stops tab is selected by default when the shipment is opened from the Order Change exception (15435).
 
-| Section | Contents | Actions |
+| Element | Rule | Source |
 |---|---|---|
-| **Stops** | P1/P2/…/D1 with drag handles; orders as chips under each | **drag to reorder** (renumbers: P2 dragged above P1 becomes P1); **Add Pickup Stop / Add Delivery Stop** (appended at the bottom of its type, renumbered, `image18`) |
-| **Stop details** | orders on the selected stop (P1 auto-selected); stop weight and volume | **Move** (drag an order to another stop); **Remove** (order leaves the shipment entirely and goes to Available Orders so it can be re-added; confirm dialog `image17`) |
-| **Available orders** | search across all shipments, monitoring and exceptions | columns Customer, Origin, Destination, Order #, Buy Shipment, Shipment Status, Tender Status (`deck s11`); **cannot add an order whose shipment is Tender Sent or Accepted**; added orders can then be dragged onto any stop |
+| Header strip | Distance · Gross Weight · Volume show **Prior and New only when changed**, else the current value; then Accepted Carrier, Seed Equipment, Utilization | 15435 |
+| Costs | **Prior Cost** (current tender cost once tendering started; preferred-carrier AP before; blank when exhausted) · **New Direct Cost** (Σ per-order direct costs from routing) · **New Consolidated Cost** (preferred-carrier AP from routing — **only when no location changed**) | 15435, 15438 |
+| Planning dates | per order: Planning Type (RDD/SSD), Earliest/Latest Ship, Earliest/Latest Delivery — surfaced as the *View Planning Dates* modal | 15435, VD 2102-10502 |
+| Highlighting | 14 stop-level fields (Site ID, Address 1–3, City, State/Province, Zip, Country, Date, Appointment, Orders, Weight, Volume, Package Count); each stop says which of its orders changed; changed orders distinguished from unchanged | 15436 |
+| Per-order compare | click a changed order → prior/new side-by-side, changed first = the LINX-14512 view (§8) for that order | 15437, VD 2107-12719 |
+| Auto-routing | non-location changes (weight, volume, package count, pickup/delivery date, appointment) re-route automatically; routing returns updated options + consolidated cost | 15438 |
+| View Routing | Prior Tender, New Tender (New above Prior, §7), **Dropped Carriers**, the three costs. **Disabled while a site/location change is unfinalized** | 15438, VD 2108-14708 |
+| Actions | **Edit Shipment Stops** (→ Surface B) · **View Routing** · **Approve Plan** (new list becomes V2 on the Tender tab; V1 = prior) | 15435, 15438 note |
 
-Jana kept stop-actions and order-actions in separate sections on purpose: *"I don't want to put everything in one thing"* (`disc @33:48`).
+### 10.2 Surface B — the Compare Screen sandbox (LINX-15667–15671, 15869–15872)
 
-**Validation** (deck s9, `image25`): delivery cannot precede pickup of the same order; an order cannot sit in delivery without a pickup or vice versa; at least one order per stop before finalizing; pickup date within requested window; equipment capacity. LLM slide 11 adds a stop-matching rule (match Location ID + address → reuse stop, else create and flag "New Stop") — unconfirmed by Jana.
+Opened by *Edit Shipment Stops*. **Nothing touches the database until Save** (15667 note: "Entire screen is like Sandbox"). Three sections: **Stops · Orders · Search & Add Orders.**
 
-**Finalize** (`image23`): a change summary (*Order 108499 moved P2 → P1 · Added Pickup Stop P3 · Order 108501 added · …*), shipment impact (weight, volume, current carrier), validation results, then **Approve Plan**.
+- **Automatic stop creation (15668).** On a location change the system matches Location ID + address against existing stops of the same type; reuse if matched, else create a stop labelled **`P?` / `D?`** appended at the end of its type group. The order leaves its previous stop; empty stops are removed. **Finalization cannot happen with a `P?`/`D?` left** — placing it is what numbers it.
+- **Reposition + validate (15669).** Every order's pickup precedes its delivery; all pickups on a multi-order delivery stop precede that delivery. Per stop **Planned Date / Time / Time Zone** are editable (TZ defaults from the address) and all three are required before routing. Order date-window violations are **highlighted, informational only**.
+- **Remove orders (15869).** Removed orders drop into Search & Add and can come back; stops renumber without gaps. **The last order can never be removed** — button disabled with tooltip *"The last remaining order cannot be removed from the shipment."*
+- **Search & add (15870, 15871).** Search is locked to the current shipment's customer, excludes its own orders, max **five** selected per action, 11-column grid sorted by Buy Shipment. *Add* attaches the order to a matching stop or creates `P?`/`D?`; the source shipment is untouched until Save.
+- **The gate (stated in 15669, 15670, 15869, 15871, 15872).** Routing is enabled only when no `P?`/`D?` remains and every stop has Date/Time/TZ; **Save is disabled until routing succeeds; any subsequent edit invalidates routing and re-disables Save.**
+- **Save (15671 + 15872).** External orders are revalidated (source status Approved/Done/SpotBid/Bid Review, or an active tender/bid, blocks the move); the move is all-or-nothing; then: **Scenario A** — an active tender (To Be Tendered/Sent/Accepted) → the **Current Tender Decision** = the Direct §6 actions verbatim; **Scenario B** — no active tender → close, land on the Tender tab, new list as V2 above V1, status stays Review, no auto-tender.
 
-**Feasibility escalation on record.** The designer, `disc @34:23–46:19`: *"It's not going to be an improvement. It's going to be a restructure later"*; asks for user research on what an MVP truly needs. Jana concedes complexity, confirms Laurie and Nirab know, date held at October, and routes the concern to Laurie. Unactioned as of 2026-09-02. Jana's own defence: the concepts (move stop, remove order, add order) all exist in legacy TMS, only drag-and-drop is new (`disc @45:12`).
+**Naming.** 15669 calls the sandbox button *Call Routing*; 15670/15869/15871 and the VD say *View Routing*. Name follows purpose ([[decisions/decision-log#DEC-135]]): the Stops tab **views** results that already exist; the sandbox **calls** routing on a structure nothing has routed yet.
 
----
+**Feasibility escalation (2026-08-14)** — still on record; the ACs do not mandate drag-and-drop ("reposition"/"move"), which is the designer's leverage.
+
+### 10.3 Shipped (S142, 2026-09-08) — Surface A
+
+Seed: 131 of the 218 order-change shipments are multi-order and now carry `orderChange.consolidation` (id-stable, zero faker draws). Entry: the row action and the Tender-tab button branch on `shipmentType` — Consolidation opens the bottom bar on the Stops tab, Direct keeps its route. Stops tab review mode: KPI prior/new pairs, cost row, purple change badges (the Direct review's `DiffValue`, with the VD's warning triangle), Affected Orders column, rail status `issue` on changed stops; Planning Dates modal; View Routing modal (New / Prior / Dropped Carriers, symmetric cost badges); per-order compare modal reusing the §8 section uncarded. **Rendered but disabled:** Edit Shipment Stops (Surface B not built) and Approve Plan (OC-open-8).
 
 ## 11. Build-delta — shipped (S134–S137) vs sources
 
@@ -212,6 +223,10 @@ Jana kept stop-actions and order-actions in separate sections on purpose: *"I do
 - **OC-open-2** — Unit/label mismatch on the cost radios vs the AP Cost column (S137). Ask Jana whether the radios should show totals.
 - **OC-open-3** — Editable pickup/delivery dates when routing returns none (row 10). AC-required, unbuilt.
 - **OC-open-4** — Tender Option Version history (row 11). AC-required, unbuilt.
-- **OC-open-5** — Consolidation stories do not exist; Jana will not write them until a design exists (`disc @01:17:35`); the designer will not design until scope is researched. Deadlock routed to Laurie.
+- **OC-open-5** — CLOSED 2026-09-08: the 13 consolidation stories exist (§10). VDs for Surface A delivered; Surface B VDs still owed.
 - **OC-open-6** — Is the Tender tab supposed to stay *readable* while locked (row 4)?
 - **OC-open-7** — Figma 1703-156564 out of sync with shipped purple/segment presentation and with S137's lock overlay.
+- **OC-open-8** — What happens after **Approve Plan** on the Stops tab when a Sent/Accepted tender exists? 15671 Scenario A routes the sandbox's *Save* to the Current Tender Decision; nothing says whether Approve Plan does the same or approves silently. Waiting on Laura's post-approval VD; the button ships disabled.
+- **OC-open-9** — Per-order compare modal title: VD 2107-12719 reads "Planning Dates" (copy leftover from the sibling modal); shipped as **"Order Changes"** pending Laura.
+- **OC-open-10** — 15435/15436 are On Hold `optmizer_pending`: the two foundation stories are gated on the Optimizer. Surface A is built on them regardless; confirm with Ramesh/Jana that the hold is scheduling, not scope.
+- **OC-open-11** — 15870 lets the planner *search* orders whose shipment is Approved/Done/SpotBid/Bid Review; 15872 *blocks the move* at Save. Validate-late by design, but the planner does all the work before being refused — recommend surfacing ineligibility in the grid. Also contradicts the deck's "cannot add an order whose shipment is Tender Sent or Accepted".
