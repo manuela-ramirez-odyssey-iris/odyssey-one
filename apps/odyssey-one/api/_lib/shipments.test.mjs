@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -518,7 +518,7 @@ describe('resolveOrderChange', () => {
     )
   })
 
-  it('save-stops with an active prior tender status refiles WITHOUT stamping a resolution', async () => {
+  it('save-stops with an active prior tender status writes only the stop merge — no refile, no resolution', async () => {
     const seen = []
     const detail = { orderList: [], shipmentStopList: [] }
     const db = { query: async (q) => { seen.push(q); return { rows: [{ detail }] } } }
@@ -527,12 +527,17 @@ describe('resolveOrderChange', () => {
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Sent', stops }, db,
     })
     assert.deepEqual(res, { success: true })
-    assert.equal(seen.length, 3, 'detail read, stop write, refile — no resolution write')
+    assert.equal(seen.length, 2, 'detail read, stop write — no refile query, no resolution write')
     assert.match(seen[0].text, /SELECT detail FROM shipments/)
     assert.match(seen[1].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
-    assert.match(seen[2].text, /UPDATE shipments SET tender_status/)
-    assert.ok(!/resolution/.test(seen[2].text))
-    assert.deepEqual(seen[2].values, ['Sent', 'exceptions', 'order-change', 'S1'])
+    assert.ok(!/resolution/.test(seen[1].text))
+  })
+
+  it('save-stops resets orderChange.consolidation.stopChanges/locationChange in the same write', () => {
+    const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }])
+    assert.match(q.text, /'\{orderChange,consolidation,stopChanges\}', '\{\}'::jsonb/)
+    assert.match(q.text, /'\{orderChange,consolidation,locationChange\}', 'false'::jsonb/)
+    assert.deepEqual(q.values, [JSON.stringify([{ stopSequence: 1 }]), 'S1'])
   })
 
   it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution', async () => {
@@ -592,6 +597,48 @@ describe('mergeStops', () => {
     assert.equal(merged.volumeValue, 20)
     assert.equal(merged.packageCount, 5)
     assert.equal(merged.pickupNumber, null, 'delivery stops never carry a pickupNumber')
+  })
+
+  it('pickupNumber scans every order on the stop, not just the first (generate.mjs R2-2 rule)', () => {
+    const d = {
+      ...detail,
+      orderList: [
+        { orderId: 'A', grossWeightValue: 500, volumeValue: 10, orderLines: [], pickupNumber: null },
+        { orderId: 'B', grossWeightValue: 700, volumeValue: 20, orderLines: [], pickupNumber: 'PU-2' },
+      ],
+    }
+    const [merged] = mergeStops(d, [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], sourceStopSequence: 1 },
+    ])
+    assert.equal(merged.pickupNumber, 'PU-2')
+  })
+
+  it('UoM codes are base-wins, not hardcoded — the base stop keeps its own unit', () => {
+    const d = {
+      ...detail,
+      shipmentStopList: [{ ...detail.shipmentStopList[0], grossWeightUomCode: 'KG', volumeUomCode: 'cbm' }],
+    }
+    const [merged] = mergeStops(d, [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A'], sourceStopSequence: 1 },
+    ])
+    assert.equal(merged.grossWeightUomCode, 'KG')
+    assert.equal(merged.volumeUomCode, 'cbm')
+  })
+
+  it('a created stop with no base falls back to LB/cuft', () => {
+    const [merged] = mergeStops(detail, [
+      { stopSequence: 2, stopType: 'delivery', orderIds: ['B'], sourceStopSequence: null },
+    ])
+    assert.equal(merged.grossWeightUomCode, 'LB')
+    assert.equal(merged.volumeUomCode, 'cuft')
+  })
+
+  it('guards a row with no orderIds instead of throwing', () => {
+    const [merged] = mergeStops(detail, [
+      { stopSequence: 1, stopType: 'pickup', sourceStopSequence: 1 },
+    ])
+    assert.deepEqual(merged.orderIds, [])
+    assert.equal(merged.grossWeightValue, 0)
   })
 })
 

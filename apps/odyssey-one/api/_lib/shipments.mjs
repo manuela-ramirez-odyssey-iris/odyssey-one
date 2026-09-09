@@ -306,7 +306,8 @@ export function mergeStops(detail, rows) {
     const base = row.sourceStopSequence != null
       ? (stopList.find((s) => s.stopSequence === row.sourceStopSequence) ?? {})
       : {}
-    const stopOrders = orderList.filter((o) => row.orderIds.includes(o.orderId ?? o.orderNumber))
+    const orderIds = row.orderIds ?? []
+    const stopOrders = orderList.filter((o) => orderIds.includes(o.orderId ?? o.orderNumber))
     // I5 (generate.mjs) — a stop's totals are always the sum of its orders;
     // recomputed here rather than trusted from the client for the same
     // coherence reason the seed data sums them instead of hardcoding.
@@ -319,17 +320,22 @@ export function mergeStops(detail, rows) {
       ...base,
       stopSequence: row.stopSequence,
       stopType: row.stopType,
-      orderIds: row.orderIds,
+      orderIds,
       facilityName: base.facilityName ?? row.facilityName,
       city: base.city ?? row.city,
       address1: base.address1 ?? row.address1,
       scheduledDateTime: base.scheduledDateTime ?? row.scheduledDateTime,
       appointmentTime: base.appointmentTime ?? null,
       country: base.country ?? 'US',
-      grossWeightValue, grossWeightUomCode: 'LB',
-      volumeValue, volumeUomCode: 'cuft',
+      grossWeightValue, grossWeightUomCode: base.grossWeightUomCode ?? 'LB',
+      volumeValue, volumeUomCode: base.volumeUomCode ?? 'cuft',
       packageCount,
-      pickupNumber: row.stopType === 'pickup' ? (stopOrders[0]?.pickupNumber ?? null) : null,
+      // Copied from the orders on THIS stop (generate.mjs:885's R2-2 rule) —
+      // taking only stopOrders[0] blanked pickupNumber whenever the first
+      // order on a merged/reordered stop happened to carry none (66 seeded
+      // stops hit this before R2-2; the same coin-flip bug reappears here
+      // if this pulls from just one order instead of scanning all of them).
+      pickupNumber: row.stopType === 'pickup' ? (stopOrders.map((o) => o.pickupNumber).find(Boolean) ?? null) : null,
     }
   })
 }
@@ -347,19 +353,6 @@ export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) 
   }
 }
 
-// save-stops Scenario A only — re-files the row WITHOUT touching
-// detail.orderChange.resolution, because the tender decision is still
-// pending on the Direct Actions card (LINX-15671); that card's own
-// retender/bypass action is what stamps resolution, through
-// buildOrderChangeResolveQuery above.
-export function buildSaveStopsRefileQuery(sellShipment, outcome) {
-  return {
-    text: `UPDATE shipments SET tender_status = $1, panel = $2, category = $3
-           WHERE sell_shipment = $4 RETURNING sell_shipment`,
-    values: [outcome.tenderStatus, outcome.panel, outcome.category, sellShipment],
-  }
-}
-
 export function buildDetailReadQuery(sellShipment) {
   return { text: 'SELECT detail FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
 }
@@ -367,9 +360,24 @@ export function buildDetailReadQuery(sellShipment) {
 // Whole-array replace of shipmentStopList, same "send the finalized whole" as
 // buildOverridesQuery — the merged rows already carry everything the sandbox
 // changed plus everything it couldn't (mergeStops above).
+//
+// Also resets orderChange.consolidation.stopChanges/locationChange in the
+// SAME write: those fields are keyed to the OLD stop sequences, and this
+// write renumbers shipmentStopList — left alone, the Stops tab's review
+// badges land on the wrong stops and locationChange keeps reporting a
+// change that's now baked into the plan. The plan is finalized at this
+// point, so both reset to their "nothing pending" values; everything else
+// on consolidation (summaryChanges/changedOrderIds/orderComparisons/costs)
+// is the customer-facing diff and stays untouched.
 export function buildSaveStopsQuery(sellShipment, stops) {
   return {
-    text: `UPDATE shipments SET detail = jsonb_set(detail, '{shipmentStopList}', $1::jsonb)
+    text: `UPDATE shipments SET detail = jsonb_set(
+             jsonb_set(
+               jsonb_set(detail, '{shipmentStopList}', $1::jsonb),
+               '{orderChange,consolidation,stopChanges}', '{}'::jsonb
+             ),
+             '{orderChange,consolidation,locationChange}', 'false'::jsonb
+           )
            WHERE sell_shipment = $2 RETURNING sell_shipment`,
     values: [JSON.stringify(stops), sellShipment],
   }
@@ -418,10 +426,12 @@ export async function resolveOrderChange({ params, body, db }) {
     if (rows.length === 0) { const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e }
     const merged = mergeStops(rows[0].detail, body.stops)
     await db.query(buildSaveStopsQuery(sellShipment, merged))
-    if (OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
-      // Scenario A — leave orderChange.resolution untouched; see the query's comment.
-      await db.query(buildSaveStopsRefileQuery(sellShipment, outcome))
-    } else {
+    // Scenario A (active tender) writes nothing further: the row is already
+    // exceptions/order-change at this tender status (that's what "active"
+    // means), and orderChange.resolution stays untouched — the tender
+    // decision is still pending on the Direct Actions card (LINX-15671).
+    // A refile query here would just re-set the same values it already has.
+    if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
       // Scenario B — same "final decision" stamp as retender/bypass/cancel.
       const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
       await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
