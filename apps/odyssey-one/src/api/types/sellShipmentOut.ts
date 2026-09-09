@@ -411,6 +411,10 @@ export interface SellShipmentOrderChange {
   consolidation?: SellShipmentConsolidationChange | null
 }
 
+/** LINX-15435…15438 — which stop-change field changed. `location` only
+ * exists on location-change pickup stops — Partial keeps that honest. */
+export type StopChangeField = 'weight' | 'volume' | 'packageCount' | 'date' | 'location'
+
 /** LINX-15435…15438 — consolidated half of an order change; seeded only when
  * the shipment has >1 order (generate.mjs buildConsolidationChange). */
 export interface SellShipmentConsolidationChange {
@@ -419,7 +423,10 @@ export interface SellShipmentConsolidationChange {
   /** keyed by stopSequence — a number in the seed, a string after JSON */
   stopChanges: Record<
     string,
-    { changedOrderIds: string[]; fields: Record<string, { prior: string | number; new: string | number }> }
+    {
+      changedOrderIds: string[]
+      fields: Partial<Record<StopChangeField, { prior: string | number; new: string | number }>>
+    }
   >
   orderComparisons: Record<string, SellShipmentOrderChangeComparisonRow[]>
   summaryChanges: {

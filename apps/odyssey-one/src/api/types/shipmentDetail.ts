@@ -1,6 +1,6 @@
 // The detail view-model the existing tabs consume. The mapper outputs this.
 
-import type { ShipmentOverridesDTO } from './sellShipmentOut'
+import type { ShipmentOverridesDTO, StopChangeField } from './sellShipmentOut'
 
 
 export interface AddressVM {
@@ -414,7 +414,7 @@ export interface OrderChangeVM {
 export interface ConsolidationChangeVM {
   locationChange: boolean
   changedOrderIds: string[]
-  stopChanges: Record<string, { changedOrderIds: string[]; fields: Record<string, { prior: string; new: string }> }>
+  stopChanges: Record<string, { changedOrderIds: string[]; fields: Partial<Record<StopChangeField, { prior: string; new: string }>> }>
   orderComparisons: Record<string, OrderChangeComparisonRowVM[]>
   summaryChanges: { distance?: { prior: string; new: string }; grossWeight?: { prior: string; new: string }; volume?: { prior: string; new: string } }
   costs: { prior: string; newDirect: string; newConsolidated: string }

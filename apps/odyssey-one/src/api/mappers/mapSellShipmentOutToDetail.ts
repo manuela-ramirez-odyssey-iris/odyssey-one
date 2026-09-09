@@ -12,6 +12,7 @@ import type {
   SellShipmentOrderChangeHazmatLine,
   SellShipmentOrderChangeDroppedCarrier,
   SellShipmentConsolidationChange,
+  StopChangeField,
 } from '../types/sellShipmentOut'
 import type {
   ConsolidationChangeVM,
@@ -169,8 +170,10 @@ function mapStop(s: SellShipmentStop): StopVM {
     weight: s.grossWeightValue != null
       ? `${fmtInt(s.grossWeightValue)} ${s.grossWeightUomCode ?? 'LB'}`
       : DASH,
+    // S142 — the review-mode change badges format weight/volume through
+    // fmtInt; the same stop must not render two spellings of the same number.
     volume: s.volumeValue != null
-      ? `${s.volumeValue} ${s.volumeUomCode ?? 'cuft'}`
+      ? `${fmtInt(s.volumeValue)} ${s.volumeUomCode ?? 'cuft'}`
       : DASH,
     packageCount: s.packageCount != null ? String(s.packageCount) : DASH,
     pickupNo: orDash(s.pickupNumber),
@@ -529,7 +532,9 @@ function mapOrderChangeDroppedCarrier(
 // LINX-15435…15438 — numbers → the display strings the Stops-tab review
 // renders verbatim (VD 1910-31512: "1500 USD", "70,907 LB", "450 cuft").
 // Deliberately NOT fmtDollar (which emits "$1,234.56") — costs here read
-// "1,500.00 USD" per VD 1910-31512.
+// "1,500.00 USD" per VD 1910-31512. The Cost Allocation tab keeps the $
+// prefix (mapCostOrder, `${fmtDollar(x)} USD`); this surface deliberately
+// does not.
 function fmtUsd(v: number | null | undefined): string {
   if (v == null) return DASH
   return `${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
@@ -542,13 +547,13 @@ function fmtPair(
   return p ? { prior: `${fmtInt(p.prior)} ${unit}`, new: `${fmtInt(p.new)} ${unit}` } : undefined
 }
 
-const STOP_FIELD_UNIT: Record<string, string> = { weight: 'LB', volume: 'cuft' }
+const STOP_FIELD_UNIT: Partial<Record<StopChangeField, string>> = { weight: 'LB', volume: 'cuft' }
 
 function mapConsolidationChange(
   c: SellShipmentConsolidationChange | null | undefined,
 ): ConsolidationChangeVM | null {
   if (!c) return null
-  const fmtField = (k: string, v: string | number): string =>
+  const fmtField = (k: StopChangeField, v: string | number): string =>
     typeof v === 'number' ? `${fmtInt(v)}${STOP_FIELD_UNIT[k] ? ` ${STOP_FIELD_UNIT[k]}` : ''}` : v
   return {
     locationChange: !!c.locationChange,
@@ -561,7 +566,7 @@ function mapConsolidationChange(
           fields: Object.fromEntries(
             Object.entries(sc.fields ?? {}).map(([k, f]) => [
               k,
-              { prior: fmtField(k, f.prior), new: fmtField(k, f.new) },
+              { prior: fmtField(k as StopChangeField, f!.prior), new: fmtField(k as StopChangeField, f!.new) },
             ]),
           ),
         },

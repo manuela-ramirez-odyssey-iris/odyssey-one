@@ -980,7 +980,7 @@ describe('mapSellShipmentOutToDetail', () => {
     it('maps orderChange.consolidation into display strings and shipmentType/planningType through', () => {
       const consolidation = {
         locationChange: false, changedOrderIds: ['A'],
-        stopChanges: { '1': { changedOrderIds: ['A'], fields: { weight: { prior: 100, new: 120 }, packageCount: { prior: 3, new: 4 }, date: { prior: 'June 4, 2026 03:00 PDT', new: 'June 5, 2026 03:00 PDT' } } } },
+        stopChanges: { '1': { changedOrderIds: ['A'], fields: { weight: { prior: 100, new: 120 }, packageCount: { prior: 3, new: 4 }, date: { prior: 'June 4, 2026 03:00 PDT', new: 'June 5, 2026 03:00 PDT' }, location: { prior: 'A, X', new: 'B, Y' } } } },
         orderComparisons: { A: [{ field: 'Gross Weight', source: 'Order', prior: '100 LB', new: '120 LB', changed: true }] },
         summaryChanges: { grossWeight: { prior: 200, new: 220 }, volume: { prior: 10, new: 12 } },
         costs: { prior: 1500, newDirect: 2000, newConsolidated: 3000 },
@@ -1003,6 +1003,7 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(c.stopChanges['1'].fields.weight).toEqual({ prior: '100 LB', new: '120 LB' })
       expect(c.stopChanges['1'].fields.packageCount).toEqual({ prior: '3', new: '4' })
       expect(c.stopChanges['1'].fields.date).toEqual({ prior: 'June 4, 2026 03:00 PDT', new: 'June 5, 2026 03:00 PDT' })
+      expect(c.stopChanges['1'].fields.location).toEqual({ prior: 'A, X', new: 'B, Y' })
       expect(c.summaryChanges.grossWeight).toEqual({ prior: '200 LB', new: '220 LB' })
       expect(c.summaryChanges.volume).toEqual({ prior: '10 cuft', new: '12 cuft' })
       expect(c.summaryChanges.distance).toBeUndefined()
