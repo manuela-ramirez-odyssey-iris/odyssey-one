@@ -154,6 +154,8 @@ describe('OrderChangeEditStopsRoute', () => {
       expect(Array.isArray(body.stops)).toBe(true)
       expect(body.stops[0]).toMatchObject({ stopSequence: 1 })
       expect(body.stops[0]).toHaveProperty('sourceStopSequence')
+      // S144 — nothing added via Search & Add on this pass; forwarded as [].
+      expect(body.externalOrders).toEqual([])
     },
   )
 

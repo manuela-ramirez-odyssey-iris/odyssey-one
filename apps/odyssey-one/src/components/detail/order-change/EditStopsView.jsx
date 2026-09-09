@@ -8,10 +8,12 @@ import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
 import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
+import AddOrdersModal from './AddOrdersModal.jsx'
+import { getSellShipmentDetail } from '../../../api/services/shipmentService'
 import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
-  initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop,
+  initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop, addPending,
   isRoutable, markRouted, totals, priorDiff, toDto,
 } from './stopsSandbox.js'
 import './edit-stops.css'
@@ -25,22 +27,27 @@ const CONFIRM_BODY = 'Any orders left pending for assignment will be removed fro
 // LINX-15667…15671/15869/15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
 // Editor over the pure stopsSandbox model — every mutation here goes through
 // the sandbox's own functions so the reducer logic stays independently tested.
-export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, onApprove, onCancel }) {
+export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, onApprove, onCancel, sellShipment, customerId, customerName }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
   // (OrderChangeEditStopsRoute.jsx) mounts this with `key={sellShipment}`,
   // so a new shipment gets a fresh instance (and a fresh sandbox) instead of
   // this one re-initializing mid-life.
   const [initial] = useState(() => initSandbox({ stops, consolidation, orders }))
-  const orderById = useMemo(() => new Map(orders.map((o) => [o.orderNumber, o])), [orders])
+  // D7 — orders pulled in via Add New Order (OrderDetailVM + sourceSellShipment,
+  // read off the SOURCE shipment's own detail so they carry the same shape
+  // as this shipment's own orders).
+  const [extraOrders, setExtraOrders] = useState([])
+  const allOrders = useMemo(() => [...orders, ...extraOrders], [orders, extraOrders])
+  const orderById = useMemo(() => new Map(allOrders.map((o) => [o.orderNumber, o])), [allOrders])
   const [sb, setSb] = useState(initial)
   const [view, setView] = useState('first') // 'first' = New, 'second' = Prior
   const [errorMsg, setErrorMsg] = useState(null)
-  const [modal, setModal] = useState(null) // 'planning' | 'routing' | 'discard'
+  const [modal, setModal] = useState(null) // 'planning' | 'routing' | 'discard' | 'confirm' | 'add-orders'
 
   const isPrior = view === 'second'
   const initialTotals = useMemo(() => totals(initial, orders), [initial, orders])
-  const curTotals = totals(sb, orders)
+  const curTotals = totals(sb, allOrders)
   const diff = priorDiff(sb)
   const displayStops = isPrior ? sb.prior : sb.stops
   const labels = labelsOf({ stops: displayStops })
@@ -61,7 +68,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   }
   const handleAddTo = (id, stopKey) => {
     setErrorMsg(null)
-    setSb((s) => addToStop(s, id, orders, stopKey))
+    setSb((s) => addToStop(s, id, allOrders, stopKey))
   }
   const handleViewChange = (next) => {
     setErrorMsg(null)
@@ -77,15 +84,33 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
   const liveOrderIds = new Set()
   sb.stops.forEach((s) => s.orderIds.forEach((id) => liveOrderIds.add(id)))
-  const planningOrders = orders.filter((o) => liveOrderIds.has(o.orderNumber))
+  const planningOrders = allOrders.filter((o) => liveOrderIds.has(o.orderNumber))
 
   const handleCancel = () => {
     if (sb.dirty) { setModal('discard'); return }
     onCancel?.()
   }
 
-  // Task 7 fills this from orders added via Search & Add.
-  const externalOrdersOnStops = []
+  // D7: the record comes off the SOURCE shipment's detail through the same
+  // mapper the shipment's own orders use — same fmtLocation, so Add to's
+  // match-or-create sees the same strings.
+  const handleAddOrders = async (rows) => {
+    setModal(null)
+    const fetched = await Promise.all(rows.map(async (r) => {
+      const d = await getSellShipmentDetail(r.sourceSellShipment)
+      const vm = d.orderDetails.find((o) => o.orderNumber === r.orderNumber)
+      return vm ? { ...vm, sourceSellShipment: r.sourceSellShipment } : null
+    }))
+    const recs = fetched.filter(Boolean)
+    setExtraOrders((prev) => [...prev, ...recs.filter((r) => !prev.some((p) => p.orderNumber === r.orderNumber))])
+    setSb((s) => addPending(s, recs.map((r) => r.orderNumber)))
+  }
+
+  // D8 — external orders that made it onto a stop ride Approve's second arg
+  // to Save; ones left pending are dropped by the confirm's promise (D2).
+  const externalOrdersOnStops = extraOrders
+    .filter((r) => liveOrderIds.has(r.orderNumber))
+    .map((r) => ({ orderNumber: r.orderNumber, sourceSellShipment: r.sourceSellShipment }))
 
   const distance = consolidation?.summaryChanges?.distance?.new ?? summary?.distance
   const distanceChanged = !!consolidation?.summaryChanges?.distance
@@ -214,9 +239,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
           <div className={`edit-stops__pending${isPrior ? ' edit-stops__pending--muted' : ''}`}>
             <HeaderStrip title="Orders Pending To Assign" />
-            <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>
-              <Button variant="secondary" disabled className="edit-stops__add-new">Add New Order</Button>
-            </TooltipTrigger>
+            <Button variant="secondary" disabled={isPrior} className="edit-stops__add-new" onClick={() => setModal('add-orders')}>Add New Order</Button>
             {sb.pending.map((id) => (
               <div className="edit-stops__pending-row" key={id}>
                 {/* ponytail: no order drill-in yet — deferred, wire up when the
@@ -229,7 +252,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                   : (
                     <ActionMenu
                       label="Add to"
-                      ariaLabel={`Add ${id} to a stop`}
+                      ariaLabel={`Add to stop — order ${id}`}
                       align="right"
                       // D3 — the planner chooses; type + location make the choice readable.
                       // VD 2076-8110 / DEC-140: the pending column is a buffer pool, not
@@ -254,6 +277,16 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} onClose={() => setModal(null)} />}
       {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}
+      {modal === 'add-orders' && (
+        <AddOrdersModal
+          sellShipment={sellShipment}
+          customerId={customerId}
+          customerName={customerName}
+          excludeOrderIds={[...liveOrderIds, ...sb.pending]}
+          onAdd={handleAddOrders}
+          onClose={() => setModal(null)}
+        />
+      )}
       {modal === 'discard' && (
         <ConfirmDialog
           title="Discard changes?"

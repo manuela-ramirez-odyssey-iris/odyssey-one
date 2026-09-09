@@ -4,7 +4,7 @@
 // from the whitelist maps below — never from raw request keys.
 
 import { buildRankedSubquery, resolveNeedles } from './search.mjs'
-import { buildCandidateRows } from './candidateOrders.mjs'
+import { buildCandidateRows, MOVE_BLOCKED_STATUS, MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
 
 // Sentinel `sortBy` meaning "order by search relevance, no column drives".
 // Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
@@ -341,6 +341,61 @@ export function mergeStops(detail, rows) {
   })
 }
 
+// LINX-15872 — moving an external order in at Save. Same blocked vocabulary
+// Search & Add greys out client-side (candidateOrders.mjs), re-checked here
+// against the source shipment's LATEST status (it can change between search
+// and Save).
+const MOVE_MESSAGE = 'The selected order cannot be moved because its current shipment is approved, completed, or involved in an active tender or bid process. Edit the source shipment or cancel the applicable tender or bid action before moving the order.'
+
+export function buildSourceShipmentsQuery(sellShipments) {
+  return {
+    text: `SELECT sell_shipment AS "sellShipment", shipment_status AS "shipmentStatus",
+             tender_status AS "tenderStatus", detail
+           FROM shipments WHERE sell_shipment = ANY($1)`,
+    values: [sellShipments],
+  }
+}
+
+// Revalidates every external order against its source shipment's current
+// status; any single failure blocks the WHOLE save (nothing written) — runs
+// BEFORE the transaction so a validation failure never opens one.
+async function pullExternalOrders(db, externalOrders) {
+  if (!externalOrders?.length) return { records: [], sources: [] }
+  const { rows } = await db.query(buildSourceShipmentsQuery([...new Set(externalOrders.map((e) => e.sourceSellShipment))]))
+  const bySell = new Map(rows.map((r) => [r.sellShipment, r]))
+  const blocked = []
+  const records = []
+  for (const { orderNumber, sourceSellShipment } of externalOrders) {
+    const src = bySell.get(sourceSellShipment)
+    const rec = src?.detail?.orderList?.find((o) => (o.orderNumber ?? o.orderId) === orderNumber)
+    if (!src || !rec || MOVE_BLOCKED_STATUS.includes(src.shipmentStatus) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus)) {
+      blocked.push(orderNumber)
+      continue
+    }
+    records.push(rec)
+  }
+  if (blocked.length) {
+    const e = new Error(`${MOVE_MESSAGE} Order impacted: ${blocked.join(', ')}`)
+    e.status = 400
+    throw e
+  }
+  return { records, sources: rows }
+}
+
+// LINX-15872 "Source Shipment Update": the moved orders leave the source's
+// orderList and every stop; emptied stops drop, the rest renumber, totals
+// recompute — through the same mergeStops the target uses, so a source stop
+// can never disagree with its remaining orders either.
+export function removeOrdersFromSource(detail, movedIds) {
+  const gone = new Set(movedIds)
+  const orderList = (detail.orderList ?? []).filter((o) => !gone.has(o.orderNumber ?? o.orderId))
+  const rows = (detail.shipmentStopList ?? [])
+    .map((s) => ({ ...s, orderIds: (s.orderIds ?? []).filter((id) => !gone.has(id)) }))
+    .filter((s) => s.orderIds.length > 0)
+    .map((s, i) => ({ stopSequence: i + 1, stopType: s.stopType, orderIds: s.orderIds, sourceStopSequence: s.stopSequence }))
+  return { orderList, stops: mergeStops({ ...detail, orderList }, rows) }
+}
+
 export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) {
   return {
     text: `UPDATE shipments
@@ -370,17 +425,23 @@ export function buildDetailReadQuery(sellShipment) {
 // point, so both reset to their "nothing pending" values; everything else
 // on consolidation (summaryChanges/changedOrderIds/orderComparisons/costs)
 // is the customer-facing diff and stays untouched.
-export function buildSaveStopsQuery(sellShipment, stops) {
+// `orderList`/`orders`/`order_count` land in the SAME write (LINX-15872 —
+// an external order copied in, or a pending one dropped, has to change the
+// shipment's order roster in lockstep with its stops). `resetChanges: false`
+// skips the consolidation-badge reset for a SOURCE shipment in the 15872
+// move — its own review state (if any) isn't this save's business.
+export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChanges = true } = {}) {
+  const ids = orderList.map((o) => o.orderNumber ?? String(o.orderId))
+  const base = `jsonb_set(jsonb_set(detail, '{shipmentStopList}', $1::jsonb), '{orderList}', $2::jsonb)`
+  // The target's own consolidation badges are stale after a save (S143);
+  // a SOURCE shipment keeps whatever review state it had.
+  const detailSql = resetChanges
+    ? `jsonb_set(jsonb_set(${base}, '{orderChange,consolidation,stopChanges}', '{}'::jsonb), '{orderChange,consolidation,locationChange}', 'false'::jsonb)`
+    : base
   return {
-    text: `UPDATE shipments SET detail = jsonb_set(
-             jsonb_set(
-               jsonb_set(detail, '{shipmentStopList}', $1::jsonb),
-               '{orderChange,consolidation,stopChanges}', '{}'::jsonb
-             ),
-             '{orderChange,consolidation,locationChange}', 'false'::jsonb
-           )
-           WHERE sell_shipment = $2 RETURNING sell_shipment`,
-    values: [JSON.stringify(stops), sellShipment],
+    text: `UPDATE shipments SET detail = ${detailSql}, orders = $3, order_count = $4
+           WHERE sell_shipment = $5 RETURNING sell_shipment`,
+    values: [JSON.stringify(stops), JSON.stringify(orderList), ids, String(ids.length), sellShipment],
   }
 }
 
@@ -425,17 +486,42 @@ export async function resolveOrderChange({ params, body, db }) {
     }
     const { rows } = await db.query(buildDetailReadQuery(sellShipment))
     if (rows.length === 0) { const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e }
-    const merged = mergeStops(rows[0].detail, body.stops)
-    await db.query(buildSaveStopsQuery(sellShipment, merged))
-    // Scenario A (active tender) writes nothing further: the row is already
-    // exceptions/order-change at this tender status (that's what "active"
-    // means), and orderChange.resolution stays untouched — the tender
-    // decision is still pending on the Direct Actions card (LINX-15671).
-    // A refile query here would just re-set the same values it already has.
-    if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
-      // Scenario B — same "final decision" stamp as retender/bypass/cancel.
-      const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
-      await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
+    const detail = rows[0].detail
+    // Revalidated + read BEFORE the transaction opens — a blocked source
+    // order 400s here with nothing written, no BEGIN ever issued.
+    const { records: external, sources } = await pullExternalOrders(db, body.externalOrders)
+    const onStops = new Set(body.stops.flatMap((s) => s.orderIds ?? []))
+    // D2 — the confirm dialog's promise: orders left pending leave the shipment.
+    const orderList = [...(detail.orderList ?? []), ...external].filter((o) => onStops.has(o.orderNumber ?? o.orderId))
+    const merged = mergeStops({ ...detail, orderList }, body.stops)
+
+    // ponytail: first BEGIN/COMMIT in this file — the AC (LINX-15872) demands
+    // one Save transaction now that a save-stops can touch more than one
+    // shipment (this target + every source an order moved from).
+    await db.query('BEGIN')
+    try {
+      await db.query(buildSaveStopsQuery(sellShipment, merged, orderList))
+      for (const src of sources) {
+        const movedIds = (body.externalOrders ?? [])
+          .filter((e) => e.sourceSellShipment === src.sellShipment)
+          .map((e) => e.orderNumber)
+        const next = removeOrdersFromSource(src.detail, movedIds)
+        await db.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, { resetChanges: false }))
+      }
+      // Scenario A (active tender) writes nothing further: the row is already
+      // exceptions/order-change at this tender status (that's what "active"
+      // means), and orderChange.resolution stays untouched — the tender
+      // decision is still pending on the Direct Actions card (LINX-15671).
+      // A refile query here would just re-set the same values it already has.
+      if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
+        // Scenario B — same "final decision" stamp as retender/bypass/cancel.
+        const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
+        await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
+      }
+      await db.query('COMMIT')
+    } catch (e) {
+      await db.query('ROLLBACK')
+      throw e
     }
     return { success: true }
   }

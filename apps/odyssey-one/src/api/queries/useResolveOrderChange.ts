@@ -17,6 +17,10 @@ export interface ResolveOrderChangeInput {
   // totals — plus sourceStopSequence, which the server needs to pull those
   // from detail.shipmentStopList (api/_lib/shipments.mjs mergeStops).
   stops?: Array<Partial<SellShipmentStop> & { stopSequence: number; stopType: string; sourceStopSequence: number | null }>
+  // LINX-15872 — orders pulled in via Add New Order that landed on a stop;
+  // the server revalidates each source shipment and moves the order record
+  // in, all inside the same save-stops transaction (api/_lib/shipments.mjs).
+  externalOrders?: Array<{ orderNumber: string; sourceSellShipment: string }>
 }
 
 // LINX-14509…14515 — planner's Tender Resolution Action off the Review Order
@@ -41,8 +45,8 @@ export interface ResolveOrderChangeInput {
 export function useResolveOrderChange() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac, stops }: ResolveOrderChangeInput) =>
-      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac, stops }),
+    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac, stops, externalOrders }: ResolveOrderChangeInput) =>
+      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac, stops, externalOrders }),
     onSuccess: (_data, { sellShipment }) => {
       queryClient.invalidateQueries({ queryKey: ['shipment', 'detail', sellShipment] })
       queryClient.invalidateQueries({ queryKey: ['shipment-error-list'] })

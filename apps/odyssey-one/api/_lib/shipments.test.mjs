@@ -527,17 +527,25 @@ describe('resolveOrderChange', () => {
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Sent', stops }, db,
     })
     assert.deepEqual(res, { success: true })
-    assert.equal(seen.length, 2, 'detail read, stop write — no refile query, no resolution write')
+    assert.equal(seen.length, 4, 'detail read, BEGIN, stop write, COMMIT — no refile query, no resolution write')
     assert.match(seen[0].text, /SELECT detail FROM shipments/)
-    assert.match(seen[1].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
-    assert.ok(!/resolution/.test(seen[1].text))
+    assert.equal(seen[1], 'BEGIN')
+    assert.match(seen[2].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
+    assert.ok(!/resolution/.test(seen[2].text))
+    assert.equal(seen[3], 'COMMIT')
   })
 
   it('save-stops resets orderChange.consolidation.stopChanges/locationChange in the same write', () => {
-    const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }])
+    const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }])
     assert.match(q.text, /'\{orderChange,consolidation,stopChanges\}', '\{\}'::jsonb/)
     assert.match(q.text, /'\{orderChange,consolidation,locationChange\}', 'false'::jsonb/)
-    assert.deepEqual(q.values, [JSON.stringify([{ stopSequence: 1 }]), 'S1'])
+    assert.deepEqual(q.values, [JSON.stringify([{ stopSequence: 1 }]), JSON.stringify([{ orderNumber: 'A' }]), ['A'], '1', 'S1'])
+  })
+
+  it('save-stops with resetChanges:false skips the consolidation-badge reset (source shipment in the 15872 move)', () => {
+    const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }], { resetChanges: false })
+    assert.ok(!/stopChanges/.test(q.text))
+    assert.ok(!/locationChange/.test(q.text))
   })
 
   it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution', async () => {
@@ -549,11 +557,93 @@ describe('resolveOrderChange', () => {
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Cancelled', stops }, db,
     })
     assert.deepEqual(res, { success: true })
-    assert.equal(seen.length, 3, 'detail read, stop write, resolve write')
-    assert.match(seen[2].text, /detail = jsonb_set\(detail, '\{orderChange,resolution\}'/)
-    const values = seen[2].values
+    assert.equal(seen.length, 5, 'detail read, BEGIN, stop write, resolve write, COMMIT')
+    assert.equal(seen[1], 'BEGIN')
+    assert.match(seen[3].text, /detail = jsonb_set\(detail, '\{orderChange,resolution\}'/)
+    const values = seen[3].values
     assert.ok(values.includes('Cancelled') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"save-stops"')))
+    assert.equal(seen[4], 'COMMIT')
+  })
+})
+
+describe('save-stops with externalOrders (LINX-15872 slice)', () => {
+  const target = { orderList: [{ orderNumber: 'A', grossWeightValue: 5 }, { orderNumber: 'B', grossWeightValue: 5 }], shipmentStopList: [] }
+  const source = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }] }
+  // failWrite lets a test make the FIRST shipmentStopList write throw, so the
+  // ROLLBACK path is exercised without relying on the (pre-transaction)
+  // validation failure — that path never opens a transaction to roll back.
+  const mk = (srcRow, { failWrite = false } = {}) => {
+    const calls = []
+    const db = {
+      query: async (q) => {
+        calls.push(q)
+        const text = typeof q === 'string' ? q : q.text
+        if (/SELECT detail FROM shipments WHERE sell_shipment = \$1/.test(text)) return { rows: [{ detail: target }] }
+        if (/sell_shipment = ANY/.test(text)) return { rows: [srcRow] }
+        if (failWrite && /shipmentStopList/.test(text)) throw new Error('write failed')
+        return { rows: [], rowCount: 1 }
+      },
+    }
+    return { db, calls }
+  }
+  const body = {
+    action: 'save-stops', priorTenderStatus: 'Sent',
+    stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'E'], sourceStopSequence: null }],
+    externalOrders: [{ orderNumber: 'E', sourceSellShipment: '77' }],
+  }
+
+  it('copies the external record in, drops pending B, writes orderList + orders + order_count, and removes E from its source — one transaction', async () => {
+    const src = {
+      orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'F', grossWeightValue: 1 }],
+      shipmentStopList: [
+        { stopSequence: 1, stopType: 'pickup', orderIds: ['E'], facilityName: 'X', grossWeightValue: 7 },
+        { stopSequence: 2, stopType: 'pickup', orderIds: ['F'], facilityName: 'Y', grossWeightValue: 1 },
+        { stopSequence: 3, stopType: 'delivery', orderIds: ['E', 'F'], facilityName: 'Z', grossWeightValue: 8 },
+      ],
+    }
+    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    await resolveOrderChange({ params: ['9'], body, db })
+    const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
+    // Deviation from the plan draft: the detail read + source revalidation
+    // query both run BEFORE BEGIN (by design — a validation failure must
+    // never open a transaction), so BEGIN is not texts[0]. Assert instead
+    // that BEGIN opens once, COMMIT closes, and every stop write sits
+    // between them — the "one transaction" guarantee the AC asks for.
+    const beginIdx = texts.indexOf('BEGIN')
+    assert.ok(beginIdx > -1, 'BEGIN issued')
+    assert.equal(texts[texts.length - 1], 'COMMIT')
+    const saves = calls.filter((q) => /shipmentStopList/.test(q.text))
+    assert.equal(saves.length, 2) // target + source
+    assert.ok(calls.every((q, i) => !/shipmentStopList/.test(q.text ?? '') || (i > beginIdx && i < calls.length - 1)))
+    const [targetSave, sourceSave] = saves.map((q) => ({ q, stops: JSON.parse(q.values[0]), orderList: JSON.parse(q.values[1]), ids: q.values[2], sell: q.values[4] }))
+    assert.equal(targetSave.sell, '9')
+    assert.equal(targetSave.stops[0].grossWeightValue, 12) // A(5) + E(7): the copied record counted
+    assert.deepEqual(targetSave.orderList.map((o) => o.orderNumber), ['A', 'E']) // B was pending → dropped
+    assert.deepEqual(targetSave.ids, ['A', 'E'])
+    assert.equal(sourceSave.sell, '77')
+    assert.deepEqual(sourceSave.orderList.map((o) => o.orderNumber), ['F']) // E left its source (LINX-15872 "Source Shipment Update")
+    assert.deepEqual(sourceSave.stops.map((s) => [s.stopSequence, s.orderIds]), [[1, ['F']], [2, ['F']]]) // emptied P1 dropped, renumbered
+    assert.equal(sourceSave.stops[1].grossWeightValue, 1) // recomputed from its remaining order
+    assert.deepEqual(sourceSave.ids, ['F'])
+  })
+
+  it('a failing write rolls back and writes nothing further', async () => {
+    const src = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }], shipmentStopList: [] }
+    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src }, { failWrite: true })
+    await assert.rejects(() => resolveOrderChange({ params: ['9'], body, db }))
+    const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
+    assert.equal(texts[texts.length - 1], 'ROLLBACK')
+  })
+
+  it('refuses when the source shipment is Done or has an active tender, naming the order — nothing written, no transaction opened', async () => {
+    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Done', tenderStatus: 'Cancelled', detail: source })
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['9'], body, db }),
+      (e) => e.status === 400 && /cannot be moved/.test(e.message) && /Order impacted: E/.test(e.message),
+    )
+    assert.ok(!calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
+    assert.ok(!calls.some((q) => /shipmentStopList/.test(q.text ?? '')))
   })
 })
 

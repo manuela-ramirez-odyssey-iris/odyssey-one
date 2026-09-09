@@ -78,6 +78,8 @@ export async function resolveOrderChange(
     priorScac: string | null
     // S143 Task 3 — save-stops only; see ResolveOrderChangeInput's comment.
     stops?: Array<Partial<SellShipmentStop> & { stopSequence: number; stopType: string; sourceStopSequence: number | null }>
+    // S144 — save-stops only; see ResolveOrderChangeInput's comment.
+    externalOrders?: Array<{ orderNumber: string; sourceSellShipment: string }>
   },
 ): Promise<void> {
   if (getApiMode() !== 'live') return

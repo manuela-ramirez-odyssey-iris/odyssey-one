@@ -69,10 +69,10 @@ export default function OrderChangeEditStopsRoute() {
   // A/B) only fires on success; a failed save leaves the planner on this
   // screen with the Alert below rather than navigating them away from an
   // edit that never persisted.
-  function handleApprove(stopsDto) {
+  function handleApprove(stopsDto, externalOrders = []) {
     setSaveError('')
     resolve.mutate(
-      { sellShipment, action: 'save-stops', stops: stopsDto, priorTenderStatus: tender, cost: null, priorScac: null },
+      { sellShipment, action: 'save-stops', stops: stopsDto, externalOrders, priorTenderStatus: tender, cost: null, priorScac: null },
       {
         onSuccess: () => {
           if (ACTIVE.includes(tender)) {
@@ -139,6 +139,9 @@ export default function OrderChangeEditStopsRoute() {
               saving={resolve.isPending}
               onApprove={handleApprove}
               onCancel={exit}
+              sellShipment={sellShipment}
+              customerId={detail.customerId}
+              customerName={detail.customerName}
             />
           </div>
         )}
