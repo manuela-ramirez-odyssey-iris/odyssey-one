@@ -21,6 +21,9 @@ export interface SpecialServiceVM {
 
 export interface OrderDetailVM {
   orderNumber: string
+  /** LINX-15435 Planning Dates table — per-order RDD/SSD; distinct from the
+   * shipment-level StopsSummaryVM.planningType. */
+  planningType: string
   shipDirection: string
   orderDate: string
   paymentTerms: string
@@ -402,6 +405,19 @@ export interface OrderChangeVM {
   hazmat: { prior: OrderChangeHazmatLineVM; new: OrderChangeHazmatLineVM }[]
   droppedCarriers: { prior: OrderChangeDroppedCarrierVM[]; new: OrderChangeDroppedCarrierVM[] }
   resolution?: { action: string; cost: { choice: string; amount: number } | null; resolvedAt: string } | null
+  consolidation: ConsolidationChangeVM | null
+}
+
+/** LINX-15435…15438 — consolidated half of an order change; numbers arrive
+ * pre-formatted into the display strings the Stops-tab review renders
+ * verbatim (VD 1910-31512). */
+export interface ConsolidationChangeVM {
+  locationChange: boolean
+  changedOrderIds: string[]
+  stopChanges: Record<string, { changedOrderIds: string[]; fields: Record<string, { prior: string; new: string }> }>
+  orderComparisons: Record<string, OrderChangeComparisonRowVM[]>
+  summaryChanges: { distance?: { prior: string; new: string }; grossWeight?: { prior: string; new: string }; volume?: { prior: string; new: string } }
+  costs: { prior: string; newDirect: string; newConsolidated: string }
 }
 
 // ── Top-level VM ─────────────────────────────────────────────
@@ -409,6 +425,8 @@ export interface ShipmentDetailVM {
   /* Shipment header field — on the wire since S92 but never mapped until the
      Shipment Details modal needed it (2026-07-30). */
   ratingStatus: string
+  /** LINX-14509 "Direct only" — the Review Order Change entry branches on it. */
+  shipmentType: string
   /** Tracking Link URL, or '' when absent — the strip renders '--' for empty. */
   trackingUrl: string
   orderDetails: OrderDetailVM[]

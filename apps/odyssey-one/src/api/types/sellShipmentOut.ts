@@ -408,6 +408,26 @@ export interface SellShipmentOrderChange {
     new: SellShipmentOrderChangeDroppedCarrier[]
   }
   resolution?: SellShipmentOrderChangeResolution | null
+  consolidation?: SellShipmentConsolidationChange | null
+}
+
+/** LINX-15435…15438 — consolidated half of an order change; seeded only when
+ * the shipment has >1 order (generate.mjs buildConsolidationChange). */
+export interface SellShipmentConsolidationChange {
+  locationChange: boolean
+  changedOrderIds: string[]
+  /** keyed by stopSequence — a number in the seed, a string after JSON */
+  stopChanges: Record<
+    string,
+    { changedOrderIds: string[]; fields: Record<string, { prior: string | number; new: string | number }> }
+  >
+  orderComparisons: Record<string, SellShipmentOrderChangeComparisonRow[]>
+  summaryChanges: {
+    distance?: { prior: number; new: number }
+    grossWeight?: { prior: number; new: number }
+    volume?: { prior: number; new: number }
+  }
+  costs: { prior: number | null; newDirect: number; newConsolidated: number | null }
 }
 
 export interface SellShipmentOut {

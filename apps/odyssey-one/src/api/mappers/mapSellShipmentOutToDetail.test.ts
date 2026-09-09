@@ -976,5 +976,56 @@ describe('mapSellShipmentOutToDetail', () => {
     it('orderChange absent → null', () => {
       expect(mapSellShipmentOutToDetail(sellShipmentOutSample).orderChange).toBeNull()
     })
+
+    it('maps orderChange.consolidation into display strings and shipmentType/planningType through', () => {
+      const consolidation = {
+        locationChange: false, changedOrderIds: ['A'],
+        stopChanges: { '1': { changedOrderIds: ['A'], fields: { weight: { prior: 100, new: 120 }, packageCount: { prior: 3, new: 4 }, date: { prior: 'June 4, 2026 03:00 PDT', new: 'June 5, 2026 03:00 PDT' } } } },
+        orderComparisons: { A: [{ field: 'Gross Weight', source: 'Order', prior: '100 LB', new: '120 LB', changed: true }] },
+        summaryChanges: { grossWeight: { prior: 200, new: 220 }, volume: { prior: 10, new: 12 } },
+        costs: { prior: 1500, newDirect: 2000, newConsolidated: 3000 },
+      }
+      const orders = sellShipmentOutSample.orderList ?? []
+      const orderList = orders.length
+        ? [{ ...orders[0], planningDateType: 'RDD' }, ...orders.slice(1)]
+        : orders
+      const vm = mapSellShipmentOutToDetail({
+        ...sellShipmentOutSample,
+        orderList,
+        shipmentType: 'Consolidation',
+        orderChange: { ...orderChange, consolidation },
+      } as never)
+      expect(vm.shipmentType).toBe('Consolidation')
+      expect(vm.orderDetails[0].planningType).toBe('RDD')
+      const c = vm.orderChange!.consolidation!
+      expect(c.locationChange).toBe(false)
+      expect(c.changedOrderIds).toEqual(['A'])
+      expect(c.stopChanges['1'].fields.weight).toEqual({ prior: '100 LB', new: '120 LB' })
+      expect(c.stopChanges['1'].fields.packageCount).toEqual({ prior: '3', new: '4' })
+      expect(c.stopChanges['1'].fields.date).toEqual({ prior: 'June 4, 2026 03:00 PDT', new: 'June 5, 2026 03:00 PDT' })
+      expect(c.summaryChanges.grossWeight).toEqual({ prior: '200 LB', new: '220 LB' })
+      expect(c.summaryChanges.volume).toEqual({ prior: '10 cuft', new: '12 cuft' })
+      expect(c.summaryChanges.distance).toBeUndefined()
+      expect(c.costs).toEqual({ prior: '1,500.00 USD', newDirect: '2,000.00 USD', newConsolidated: '3,000.00 USD' })
+      expect(c.orderComparisons.A[0]).toMatchObject({ field: 'Gross Weight', changed: true })
+    })
+
+    it('consolidation: location change blanks the consolidated cost and formats distance', () => {
+      const consolidation = {
+        locationChange: true, changedOrderIds: [], stopChanges: {}, orderComparisons: {},
+        summaryChanges: { grossWeight: { prior: 1, new: 2 }, volume: { prior: 1, new: 2 }, distance: { prior: 100, new: 150.5 } },
+        costs: { prior: null, newDirect: 10, newConsolidated: null },
+      }
+      const c = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, orderChange: { ...orderChange, consolidation } } as never).orderChange!.consolidation!
+      expect(c.costs.prior).toBe('--')
+      expect(c.costs.newConsolidated).toBe('--')
+      expect(c.summaryChanges.distance!.new).toBe('150.50 mi')
+    })
+
+    it('consolidation absent → null; shipmentType absent → --', () => {
+      const vm = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, shipmentType: undefined, orderChange } as never)
+      expect(vm.orderChange!.consolidation).toBeNull()
+      expect(vm.shipmentType).toBe('--')
+    })
   })
 })

@@ -11,8 +11,10 @@ import type {
   SellShipmentOrderChangeComparisonRow,
   SellShipmentOrderChangeHazmatLine,
   SellShipmentOrderChangeDroppedCarrier,
+  SellShipmentConsolidationChange,
 } from '../types/sellShipmentOut'
 import type {
+  ConsolidationChangeVM,
   CostOrderVM,
   CostSummaryVM,
   DroppedCarrierVM,
@@ -79,6 +81,8 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
   const uom = order.grossWeightUomCode
   return {
     orderNumber: order.orderNumber ?? order.orderId,
+    // LINX-15435 Planning Dates table — per-order RDD/SSD.
+    planningType: order.planningDateType ?? DASH,
     shipDirection: order.shipDirectionCode ? shipDirectionLabel(order.shipDirectionCode) : DASH,
     orderDate: DASH,
     paymentTerms: header.freightTerms ? freightTermLabel(header.freightTerms) : DASH,
@@ -522,6 +526,65 @@ function mapOrderChangeDroppedCarrier(
   }
 }
 
+// LINX-15435…15438 — numbers → the display strings the Stops-tab review
+// renders verbatim (VD 1910-31512: "1500 USD", "70,907 LB", "450 cuft").
+// Deliberately NOT fmtDollar (which emits "$1,234.56") — costs here read
+// "1,500.00 USD" per VD 1910-31512.
+function fmtUsd(v: number | null | undefined): string {
+  if (v == null) return DASH
+  return `${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+}
+
+function fmtPair(
+  p: { prior: number; new: number } | undefined,
+  unit: string,
+): { prior: string; new: string } | undefined {
+  return p ? { prior: `${fmtInt(p.prior)} ${unit}`, new: `${fmtInt(p.new)} ${unit}` } : undefined
+}
+
+const STOP_FIELD_UNIT: Record<string, string> = { weight: 'LB', volume: 'cuft' }
+
+function mapConsolidationChange(
+  c: SellShipmentConsolidationChange | null | undefined,
+): ConsolidationChangeVM | null {
+  if (!c) return null
+  const fmtField = (k: string, v: string | number): string =>
+    typeof v === 'number' ? `${fmtInt(v)}${STOP_FIELD_UNIT[k] ? ` ${STOP_FIELD_UNIT[k]}` : ''}` : v
+  return {
+    locationChange: !!c.locationChange,
+    changedOrderIds: c.changedOrderIds ?? [],
+    stopChanges: Object.fromEntries(
+      Object.entries(c.stopChanges ?? {}).map(([seq, sc]) => [
+        seq,
+        {
+          changedOrderIds: sc.changedOrderIds ?? [],
+          fields: Object.fromEntries(
+            Object.entries(sc.fields ?? {}).map(([k, f]) => [
+              k,
+              { prior: fmtField(k, f.prior), new: fmtField(k, f.new) },
+            ]),
+          ),
+        },
+      ]),
+    ),
+    orderComparisons: Object.fromEntries(
+      Object.entries(c.orderComparisons ?? {}).map(([id, rows]) => [id, rows.map(mapOrderChangeComparisonRow)]),
+    ),
+    summaryChanges: {
+      distance: c.summaryChanges?.distance
+        ? { prior: fmtDistance(c.summaryChanges.distance.prior), new: fmtDistance(c.summaryChanges.distance.new) }
+        : undefined,
+      grossWeight: fmtPair(c.summaryChanges?.grossWeight, 'LB'),
+      volume: fmtPair(c.summaryChanges?.volume, 'cuft'),
+    },
+    costs: {
+      prior: fmtUsd(c.costs?.prior),
+      newDirect: fmtUsd(c.costs?.newDirect),
+      newConsolidated: fmtUsd(c.costs?.newConsolidated),
+    },
+  }
+}
+
 function mapOrderChange(dto: SellShipmentOut): ShipmentDetailVM['orderChange'] {
   const oc = dto.orderChange
   if (!oc) return null
@@ -545,6 +608,7 @@ function mapOrderChange(dto: SellShipmentOut): ShipmentDetailVM['orderChange'] {
     resolution: oc.resolution
       ? { action: oc.resolution.action, cost: oc.resolution.cost, resolvedAt: oc.resolution.resolvedAt }
       : null,
+    consolidation: mapConsolidationChange(oc.consolidation),
   }
 }
 
@@ -727,6 +791,8 @@ function mapUserDefined(dto: SellShipmentOut): ShipmentDetailVM['userDefinedData
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
   return {
     ratingStatus: orDash(dto.ratingStatus),
+    // LINX-14509 "Direct only" — the Review Order Change entry branches on it.
+    shipmentType: orDash(dto.shipmentType),
     trackingUrl: dto.trackingUrl ?? '',
     orderDetails: (dto.orderList ?? []).map((o) => mapOrder(o, dto)),
     stopsData: mapStops(dto),
