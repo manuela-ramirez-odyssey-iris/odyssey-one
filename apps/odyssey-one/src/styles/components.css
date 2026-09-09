@@ -6504,6 +6504,11 @@ button.breadcrumb__label:focus-visible {
   color: var(--deep-sea-neutral-400);
   border: 1.5px solid var(--deep-sea-neutral-400);
 }
+/* Changed — the one status that inverts: pale fill, dark ink. No purple 600
+   primitive exists to sit beside caribbean-green-600 / bittersweet-600, and
+   this pair is already what the app means by "changed" (Badge variant purple
+   resolves to the same Purple/100 + /800). */
+.stop-badge--changed { background: var(--purple-100); color: var(--purple-800); }
 .stop-badge__status {
   position: absolute;
   top: -4px;
@@ -6519,6 +6524,9 @@ button.breadcrumb__label:focus-visible {
 }
 .stop-badge--completed .stop-badge__status { background: var(--caribbean-green-600); color: var(--white); }
 .stop-badge--issue     .stop-badge__status { background: var(--bittersweet-600);     color: var(--white); }
+/* The ring's job is separating the circle from the pill under it. White does
+   that on a saturated pill; on a pale one only the dark ink can. */
+.stop-badge--changed   .stop-badge__status { background: var(--purple-100); color: var(--purple-800); border-color: var(--purple-800); }
 /* pending renders no status circle (not reached yet — Figma Pending variant) */
 
 .odyssey-timeline {

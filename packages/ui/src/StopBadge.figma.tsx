@@ -2,7 +2,8 @@ import figma from '@figma/code-connect'
 import StopBadge from './StopBadge'
 
 // Master: `StopBadge` set 4279:5101 (Components-Atoms › Badges) — the stop-marker
-// pill for the shipment Timeline. `Status` VARIANT {Completed, Issue, Pending} →
+// pill for the shipment Timeline. `Status` VARIANT {Completed, Issue, Pending,
+// Changed} →
 // `status`; `Label` TEXT → `label` ("P1"/"D2"…); `Show Status Badge` BOOLEAN →
 // `showStatusBadge` (the 10px overlapping circle). NOTE: the Figma boolean
 // defaults TRUE set-wide — designers switch it off on Pending instances, while
@@ -18,6 +19,7 @@ figma.connect(
         Completed: 'completed',
         Issue: 'issue',
         Pending: 'pending',
+        Changed: 'changed',
       }),
       showStatusBadge: figma.boolean('Show Status Badge'),
     },

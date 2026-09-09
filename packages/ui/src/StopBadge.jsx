@@ -9,6 +9,15 @@
  *   issue     → Bittersweet/600 pill,     circle = red disc + white "!"
  *   pending   → white pill, 1.5px DSN/400 border + DSN/400 label; NO circle
  *               (not reached yet — matches the Figma Pending variant)
+ *   changed   → Purple/100 pill + Purple/800 label, circle = Purple/100 with
+ *               a Purple/800 ring and a Purple/800 dot — an order change
+ *               (2026-09-09). INVERTED against completed/issue: pale fill,
+ *               dark ink, where they put white on a 600 fill. There is no
+ *               purple 600 primitive, and this matches how the app already
+ *               signals a changed field (Badge variant="purple", the same
+ *               Purple/100 + /800 pair). The ring is Purple/800, not white,
+ *               because on a pale pill only the dark ink separates the circle
+ *               from the pill beneath it.
  * `showStatusBadge={false}` force-hides the circle on completed/issue.
  *
  * The circle glyphs are bespoke 10px micro-SVGs traced from the Figma
@@ -19,6 +28,7 @@ const STATUS_LABEL = {
   completed: 'completed',
   issue: 'issue reported',
   pending: 'pending',
+  changed: 'changed',
 }
 
 function MiniCheck() {
@@ -38,6 +48,17 @@ function MiniExclamation() {
   )
 }
 
+/* A dot, not a glyph with strokes: the ring leaves ~6px, where a 24-grid
+   lucide master turns to mush. It also says "this changed" without implying
+   good or bad, which a check or a "!" both would. */
+function MiniDot() {
+  return (
+    <svg width="3" height="3" viewBox="0 0 3 3" aria-hidden="true">
+      <circle cx="1.5" cy="1.5" r="1.5" fill="currentColor" />
+    </svg>
+  )
+}
+
 export default function StopBadge({ label, status = 'completed', showStatusBadge, className = '', ...rest }) {
   const showCircle = status !== 'pending' && (showStatusBadge ?? true)
   return (
@@ -49,7 +70,9 @@ export default function StopBadge({ label, status = 'completed', showStatusBadge
       <span className="stop-badge__label" aria-hidden="true">{label}</span>
       {showCircle && (
         <span className="stop-badge__status" aria-hidden="true">
-          {status === 'issue' ? <MiniExclamation /> : <MiniCheck />}
+          {status === 'issue' ? <MiniExclamation />
+            : status === 'changed' ? <MiniDot />
+            : <MiniCheck />}
         </span>
       )}
     </span>
