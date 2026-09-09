@@ -891,6 +891,26 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision (S143):** *Approve Changes* is not on hold — LINX-15671 spells out both exits. The client sends the sandbox's rows (with `sourceStopSequence` for pre-existing stops); the API merges each onto its source stop (address, timezone kept) and **recomputes weight/volume/packages from the stop's orders** so a saved stop can never disagree with its orders (coherence rule), then: active tender (To Be Tendered/Sent/Accepted) → row stays in Order Change and the planner lands on the Direct Actions card to Cancel / Re-Tender / Bypass; no active tender → re-filed like Bypass, planner lands on the Tender tab. Footer keeps the VD's "Approve Changes" label (OC-open-16).
 - **Source:** LINX-15671 Scenario A/B, 15872 (external move deferred); DEC-106 passthrough.
 
+### DEC-140: *Add to* = a stop picker, not automatic placement
+- **Previous:** DEC-138 — *Add to* matches the order's own pickup/delivery location against existing stops, else creates `P?`/`D?`; no picker. That rule now applies only to the leg the planner did NOT choose.
+- **Decision (user, 2026-09-09):** the pending column is a buffer pool; the planner chooses where an order goes. *Add to* opens an `ActionMenu` of `Stop N · Pickup|Delivery · <location>` rows (VD `2076-8110`'s bare "Stop 1/2/3" is an example, not the copy). Picking a stop seats the order there as that stop's leg; the order's OTHER leg still places by the DEC-138 match-or-create rule, now demoted to a fallback. A per-order *Move to* to re-place that other leg by hand is not built (OC-open-21).
+- **Source:** VD `2076-8110`; user ruling 2026-09-09. Closes OC-open-14.
+
+### DEC-141: Approve Changes opens a confirm; pending orders are dropped at Save
+- **Previous:** DEC-139 — Approve Changes saves immediately (the 15671 Save); no confirm step, and pending orders stayed on the shipment untouched.
+- **Decision (S144):** Approve Changes opens `ConfirmDialog` "Approve Shipment Change" with the VD's body verbatim, Cancel / **Approve** (the VD's primary label "Remove Order" is a copy leftover — OC-open-18). Confirming saves; the server keeps only orders that sit on a stop, dropping every pending order from `orderList` — the confirm body's own promise. 15869's Phase-1 "new shipment for the removed order" is unspecified and unbuilt (OC-open-19).
+- **Source:** VD `2066-77150`; AC 15869.
+
+### DEC-142: Order hover = the canon Tooltip, not the VD's light card
+- **Previous:** no hover treatment shipped in slice 1 ("Coming soon" placeholder).
+- **Decision (S144):** hovering an order link on a stop row or pending row shows the normalized `Tooltip` (dark card, header + subtitle/content groups): header "Order Number: N", groups Planning Type · Pickup/Delivery Date Time (the stop's leg; both dates on a pending row) · Gross Weight · Volume · Origin · Destination. The VD (`2143-11775`, frame "Should Be In A ToolTip") draws a light table card with a "Details" strip; the Tooltip is the normalized equivalent of that intent and the "Details" strip has no counterpart, so it is dropped. Gross Weight isn't in the VD but is kept — Jana's deck (2026-08-12) lists it.
+- **Source:** VD `2143-11775`.
+
+### DEC-143: Search & Add Orders modal, inner Filters, and the 15872 move at Save
+- **Previous:** DEC-138 — *Add New Order* ships disabled, no VD, no external orders reachable.
+- **Decision (S144):** `AddOrdersModal` (VD `2137-59231`, LINX-15870): search + Filter + Clear All over a flat selectable `GroupTable`, customer locked to this shipment, this shipment's own orders excluded, the VD's 11 columns, default sort Buy Shipment ascending, a five-pick cap. Filters opens as a second `ModalMedium` with a back chevron (the DSM's modal navigation stack); draft filters apply only on Apply. Rows whose shipment would fail the 15872 Save check ship greyed and unselectable with an explanatory Tooltip (user ruling, closes OC-open-11). At Save, each picked external order is moved: the source shipment is revalidated, its order record copied into this shipment's `orderList`, then removed from the source (stops renumbered, totals recomputed) — all in one transaction.
+- **Source:** VD `2137-59231`; AC 15870, 15872. Closes OC-open-15.
+
 ---
 
 ## Changelog
