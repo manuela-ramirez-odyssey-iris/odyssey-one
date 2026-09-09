@@ -2311,6 +2311,9 @@ function rndSample(rnd, arr, n) {
   }
   return out;
 }
+// One-off pick against an explicit rnd() — shared by buildOrderChange and
+// buildConsolidationChange so neither keeps its own identical local closure.
+function rndPick(rnd, arr) { return arr[Math.floor(rnd() * arr.length)]; }
 
 /**
  * Builds detail.orderChange for a shipment seeded into the 'order-change'
@@ -2376,7 +2379,6 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   // stream while staying id-keyed (still zero faker draws, still stable
   // under a category reshuffle).
   const rnd = mulberry32(seedFrom(sellShipment + ':oc'));
-  const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
   const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
   // prior = the option that actually carries the shipment's real, live
   // tenderStatus (LINX-14511 "Prior Options") — NOT routingOptions[0]: the
@@ -2459,7 +2461,7 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   // same way), so the two surfaces speak one vocabulary.
   const reasonPool = DROP_REASONS.flatMap(r => Array(r.weight).fill(r));
   const newDropped = shiftedOptions.filter(o => droppedScacs.has(o.scac)).map(o => {
-    const reason = pickR(reasonPool);
+    const reason = rndPick(rnd, reasonPool);
     return {
       scac: o.scac, carrierName: o.carrierName, equipment: o.equipmentCode,
       routeRank: o.routeRank, apCost: o.rateDetails.baseRate,
@@ -2590,7 +2592,7 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     hazmat: Array.from({ length: 1 + Math.floor(rnd() * 2) }, (_, i) => {
       const line = 87000 + Math.floor(rnd() * 999) + i;
       const boilingPoint = `${150 + Math.floor(rnd() * 250)} F`; // same convention as order-line hazmat rows (~line 733)
-      const hazmatClass = pickR(['I', 'II', 'III']);
+      const hazmatClass = rndPick(rnd, ['I', 'II', 'III']);
       const row = {
         line,
         boilingPoint,
@@ -2603,12 +2605,12 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
         // numeral packing group, so it tracks the class rather than varying
         // independently.
         hazmatPkgGroup: hazmatClass,
-        hazmatDescription: pickR(['Flammable Liquid', 'Corrosive', 'Oxidizer']),
+        hazmatDescription: rndPick(rnd, ['Flammable Liquid', 'Corrosive', 'Oxidizer']),
         itemDescription: `UN000${10 + Math.floor(rnd() * 89)}`,
         marinePollutant: rnd() < 0.5 ? 'Y' : 'N',
-        shippingClass: pickR(SHIP_CLASS_CODES),
-        tunnelCode: pickR(['1', '2', '3', '4']),
-        wgkClass: pickR(['I', 'II', 'III']),
+        shippingClass: rndPick(rnd, SHIP_CLASS_CODES),
+        tunnelCode: rndPick(rnd, ['1', '2', '3', '4']),
+        wgkClass: rndPick(rnd, ['I', 'II', 'III']),
       };
       return { prior: row, new: { ...row } }; // identical both sides in v1
     }),
@@ -2623,38 +2625,45 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
 // change shipments (orderList.length === 1) never get this key — "did the
 // route change" is meaningless for a single order.
 //
+// Dates are ONE fact per STOP, read back by the orders on it — not one fact
+// per order. `dateShiftDays` is drawn once per stop-with-changed-orders
+// (inside the stops loop below), never per order, so an order's own
+// "Pickup Date/Time" row is built from `stopChanges[pickupStop].fields.date`
+// rather than re-deriving a second, possibly-disagreeing shift.
+//
 // Own id-keyed PRNG (`sellShipment + ':occ'`, distinct from buildOrderChange's
 // own `:oc` salt) — zero faker draws, zero calls to `pick()`, so a reseed
-// can't renumber shipment ids just because this feature exists.
+// can't renumber shipment ids just because this feature exists. rnd draw
+// ORDER only has to stay stable within this function (it doesn't feed id
+// allocation), so reordering draws below is safe.
 function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   const { tenderStatus, priorApCost, newApCost, grossWeight, totalVolume, distanceMiles, baseDate, originTz, freightTerms } = ctx;
   const rnd = mulberry32(seedFrom(sellShipment + ':occ'));
-  const choose = (arr) => arr[Math.floor(rnd() * arr.length)];
-  // Sample WITHOUT replacement off the id-keyed rnd (Fisher-Yates-style pop),
-  // never faker.helpers.arrayElements.
-  const pickN = (arr, n) => { const a = [...arr]; const out = []; while (out.length < n && a.length) out.push(a.splice(Math.floor(rnd() * a.length), 1)[0]); return out; };
 
   // A location change suppresses the "stay Consolidated" cost (project rule)
   // — re-routing through a different facility invalidates the existing
   // consolidated rate, so there's nothing to re-quote there.
   const locationChange = rnd() < 0.35;
-  const changedOrders = pickN(orders, 1 + Math.floor(rnd() * Math.min(2, orders.length)));
+  // Capped at 1-2 changed orders — keeps the review readable and matches
+  // Jana's typical case (disc @21:xx), not every order on a consolidation.
+  const changedOrders = rndSample(rnd, orders, 1 + Math.floor(rnd() * Math.min(2, orders.length)));
   const changedOrderIds = changedOrders.map(o => o.orderId);
 
   // Per-order deltas drawn ONCE, then read back everywhere (stop roll-ups,
   // orderComparisons rows) — so two surfaces can't disagree about the same
-  // order's change.
+  // order's change. Date shift lives on the STOP now (see docblock), not here.
   const delta = Object.fromEntries(changedOrders.map(o => [o.orderId, {
     weight: Math.max(1, Math.round(o.orderGross * (0.05 + rnd() * 0.25))),
     volume: Math.max(1, Math.round(o.orderVolume * (0.05 + rnd() * 0.2))),
     packages: 1 + Math.floor(rnd() * 3),
-    dateShiftDays: 1 + Math.floor(rnd() * 3),
-  }])),
+  }]));
+  // Keys are stopSequence NUMBERS here, but arrive as object-key STRINGS once
+  // this round-trips through JSON (a consumer must `Number(seq)` back).
+  const stopChanges = {};
 
   // A changed ORDER is always referenced by the stop(s) that carry it: walk
   // every real stop and pull in only the changed orders it already lists
   // (st.orderIds), never invent a stop/order pairing that doesn't exist.
-  stopChanges = {};
   for (const st of stops) {
     const ids = st.orderIds.filter(id => changedOrderIds.includes(id));
     if (!ids.length) continue;
@@ -2665,12 +2674,17 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
       volume: { prior: st.volumeValue, new: st.volumeValue + sum('volume') },
       packageCount: { prior: st.packageCount, new: st.packageCount + sum('packages') },
     };
+    // One dateShiftDays draw per STOP (not per order) — every order on this
+    // stop reads the same shifted date back, so two orders sharing a stop
+    // can't show two different "new" pickup dates for it.
+    const dateShiftDays = 1 + Math.floor(rnd() * 3);
     // Preserve the real "HH:00 TZ" suffix rather than assuming a fixed-width
     // date prefix — scheduledDateTime's date portion is formatDate's long
     // form ("September 8, 2026"), not MM/DD/YYYY, so a fixed slice would cut
-    // mid-string on differing month-name lengths.
-    const timeSuffix = st.scheduledDateTime.match(/ \d{2}:00 \S+$/)[0];
-    let at = genDate(baseDate, delta[ids[0]].dateShiftDays);
+    // mid-string on differing month-name lengths. Guarded: fall back to ''
+    // rather than throw if a future format ever drops the suffix.
+    const timeSuffix = st.scheduledDateTime.match(/ \d{2}:00 \S+$/)?.[0] ?? '';
+    let at = genDate(baseDate, dateShiftDays);
     // The shift is measured from the shipment's baseDate, but a delivery
     // stop's own date is offset from deliveryDate instead — the two can land
     // on the same calendar day by coincidence, which would make "prior" and
@@ -2679,7 +2693,7 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     if (`${formatDate(at)}${timeSuffix}` === st.scheduledDateTime) at = genDate(at, 1);
     fields.date = { prior: st.scheduledDateTime, new: `${formatDate(at)}${timeSuffix}` };
     if (locationChange && st.stopType === 'pickup') {
-      const loc = choose(LOCATIONS.filter(l => l.city !== st.city));
+      const loc = rndPick(rnd, LOCATIONS.filter(l => l.city !== st.city));
       fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
     }
     stopChanges[st.stopSequence] = { changedOrderIds: ids, fields };
@@ -2688,15 +2702,25 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   const pickupOf = (o) => stops.find(s => s.stopType === 'pickup' && s.orderIds.includes(o.orderId));
   const orderComparisons = Object.fromEntries(changedOrders.map(o => {
     const d = delta[o.orderId];
+    const pickupStop = pickupOf(o);
+    const pickupChange = stopChanges[pickupStop?.stopSequence];
     const rows = [
       { field: 'Gross Weight', source: 'Order', prior: `${fmtInt(o.orderGross)} LB`, new: `${fmtInt(o.orderGross + d.weight)} LB`, changed: true },
       { field: 'Volume', source: 'Order', prior: `${fmtInt(o.orderVolume)} cuft`, new: `${fmtInt(o.orderVolume + d.volume)} cuft`, changed: true },
       { field: 'Package Count', source: 'Order', prior: String(o.orderPackages), new: String(o.orderPackages + d.packages), changed: true },
-      { field: 'Pickup Date/Time', source: 'Routing', prior: formatDateTime(baseDate, originTz), new: formatDateTime(genDate(baseDate, d.dateShiftDays), originTz), changed: true },
+      // Read back from the STOP this order actually picks up at (LINX-15435
+      // fix) — the exact same strings the stop card shows, so the two
+      // surfaces can't disagree about when this order now moves.
+      {
+        field: 'Pickup Date/Time', source: 'Routing',
+        prior: pickupStop ? pickupStop.scheduledDateTime : formatDateTime(baseDate, originTz),
+        new: pickupChange ? pickupChange.fields.date.new : formatDateTime(baseDate, originTz),
+        changed: true,
+      },
       { field: 'Incoterm', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
       { field: 'Order Requested Date', source: 'Order', prior: o.planningDateType, new: o.planningDateType, changed: false },
     ];
-    const loc = stopChanges[pickupOf(o)?.stopSequence]?.fields.location;
+    const loc = pickupChange?.fields.location;
     if (loc) rows.unshift({ field: 'Ship From', source: 'Order', prior: loc.prior, new: loc.new, changed: true });
     return [o.orderId, rows];
   }));
@@ -2711,19 +2735,20 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   };
   if (locationChange) summaryChanges.distance = { prior: distanceMiles, new: Math.round(distanceMiles * (1.1 + rnd() * 0.5) * 100) / 100 };
 
-  // LINX-15435 Prior Cost: current tender cost while a tender is live (Sent /
-  // Accepted / To Be Tendered), blank when exhausted. New Direct Cost = a
-  // re-quote spread around the prior/new rate. New Consolidated Cost =
-  // preferred-carrier AP, but only when no location changed (LINX-15435 last
-  // bullet — see locationChange above).
-  const activeTender = ['To Be Tendered', 'Sent', 'Accepted'].includes(tenderStatus);
+  // LINX-15435's "blank when exhausted / preferred-carrier AP before
+  // tendering" Prior Cost branches are unreachable in this seed — the
+  // order-change population is diverted from Sent/Accepted only (see the
+  // diversion gate ~L1160), so `prior` is always the live tender's cost.
+  // New Direct Cost = a re-quote spread around that same base. New
+  // Consolidated Cost = the same base, but only when no location changed
+  // (LINX-15435 last bullet — see locationChange above).
   const base = newApCost ?? priorApCost;
   const newDirect = Math.round(base * (1.15 + rnd() * 0.5) * 100) / 100;
-  const newConsolidated = locationChange ? null : Math.round((newApCost ?? priorApCost) * (0.95 + rnd() * 0.15) * 100) / 100;
+  const newConsolidated = locationChange ? null : Math.round(base * (0.95 + rnd() * 0.15) * 100) / 100;
 
   return {
     locationChange, changedOrderIds, stopChanges, orderComparisons, summaryChanges,
-    costs: { prior: activeTender ? priorApCost : null, newDirect, newConsolidated },
+    costs: { prior: priorApCost, newDirect, newConsolidated },
   };
 }
 

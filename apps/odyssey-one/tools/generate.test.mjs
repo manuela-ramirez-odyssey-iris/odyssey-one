@@ -1215,9 +1215,13 @@ test('multi-order order-change shipments carry a coherent orderChange.consolidat
   assert.ok(withLocation > 0 && withLocation < multi, `both locationChange values must occur, got ${withLocation}/${multi}`)
 })
 
-test('consolidation payload is id-stable across builds and leaves ids untouched', () => {
+test('consolidation payload is deterministic across builds and ids match the pre-consolidation baseline', () => {
   const a = buildDataset({ totalShipments: 400 }), b = buildDataset({ totalShipments: 400 })
   assert.deepEqual(a.shipments.map(s => s.sellShipment), b.shipments.map(s => s.sellShipment))
+  // Golden id captured from buildDataset() BEFORE this feature existed (S142) —
+  // a stray faker/pick() draw anywhere in the consolidation path would
+  // renumber every shipment id and fail this pin.
+  assert.equal(a.shipments[0].sellShipment, '25969909')
   const s = a.shipments.find(x => x.category === 'order-change' && a.details.get(x.sellShipment).orderList.length > 1)
   assert.ok(s)
   assert.deepEqual(a.details.get(s.sellShipment).orderChange.consolidation, b.details.get(s.sellShipment).orderChange.consolidation)
