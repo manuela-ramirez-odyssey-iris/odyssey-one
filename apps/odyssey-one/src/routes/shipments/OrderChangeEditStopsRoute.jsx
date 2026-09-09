@@ -51,11 +51,12 @@ export default function OrderChangeEditStopsRoute() {
   const empty = !isPending && !isError && (!c || detail.orderChange.resolution)
 
   // LINX-15671 Scenario A/B — where Approve lands depends on whether a
-  // tender is already active. `routingData.options` is the same array
-  // RoutingGuideTab renders rows from (`option.status`); ACTIVE mirrors the
-  // three statuses that count as "a tender is in flight" for this decision.
+  // tender is already active. Same source the Direct route reads for its
+  // own resolution payload (OrderChangeReviewRoute.jsx: priorTenderStatus =
+  // oc?.prior?.tenderStatus) — NOT routingData.options, whose statuses never
+  // include 'To Be Tendered'.
   const ACTIVE = ['To Be Tendered', 'Sent', 'Accepted']
-  const tender = detail?.routingData?.options?.find((o) => ACTIVE.includes(o.status))?.status ?? null
+  const tender = detail?.orderChange?.prior?.tenderStatus ?? null
 
   // TODO(S143 Task 3): PATCH save-stops — replace this no-op with the real
   // persistence call once the endpoint lands; everything else in
@@ -69,11 +70,15 @@ export default function OrderChangeEditStopsRoute() {
     if (ACTIVE.includes(tender)) {
       // Scenario A — a tender is already active: land back on the Direct
       // review screen so the planner can resolve it with the new stops plan.
-      navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, from: 'stops' } })
+      // No `from` key — the Direct route only reads 'from-tender' semantics
+      // via from === 'tender', which this exit isn't.
+      navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment } })
     } else {
       // Scenario B — no active tender yet: send the planner to Tender to
-      // start one on the finalized plan.
-      navigate('/shipments', { state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' } } })
+      // start one on the finalized plan, still parked on the Order Change tab.
+      navigate('/shipments', {
+        state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
+      })
     }
   }
 

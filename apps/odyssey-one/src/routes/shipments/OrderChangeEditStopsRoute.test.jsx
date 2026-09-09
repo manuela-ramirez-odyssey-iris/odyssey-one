@@ -38,14 +38,18 @@ const consolidation = {
   summaryChanges: {}, costs: { prior: '$1,000.00', newDirect: '$1,100.00', newConsolidated: '$1,050.00' },
 }
 
-function makeDetail({ consolidationOverride = consolidation, resolution = null, options = [] } = {}) {
+function makeDetail({ consolidationOverride = consolidation, resolution = null, priorTenderStatus = null } = {}) {
   return {
     stopsData: { summary: { distance: '364.14 mi' }, stops },
     orderDetails,
-    routingData: { options },
+    // routingData.options intentionally left empty here — the route's
+    // tender derivation reads orderChange.prior.tenderStatus (the Direct
+    // route's own source), NOT routingData.options.
+    routingData: { options: [] },
     orderChange: consolidationOverride ? {
       consolidation: consolidationOverride,
       resolution,
+      prior: { tenderStatus: priorTenderStatus },
       newTenderList: [],
       priorTenderList: [],
       droppedCarriers: { prior: [], new: [] },
@@ -124,21 +128,25 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(probe.textContent).toContain('"key":"stops"')
   })
 
-  test('Approve with an active tender (Accepted) navigates back to the review screen (LINX-15671 Scenario A)', async () => {
-    getSellShipmentDetail.mockResolvedValue(makeDetail({ options: [{ status: 'Accepted' }] }))
-    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-    await screen.findByRole('button', { name: 'View Routing' })
+  test.each(['To Be Tendered', 'Sent', 'Accepted'])(
+    'Approve with an active tender (%s) navigates back to the review screen (LINX-15671 Scenario A)',
+    async (priorTenderStatus) => {
+      getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus }))
+      renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+      await screen.findByRole('button', { name: 'View Routing' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+      fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
 
-    const probe = await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
-    expect(probe.textContent).toContain(`"buyShipment":"${BUY_SHIPMENT}"`)
-    expect(probe.textContent).toContain('"from":"stops"')
-  })
+      const probe = await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
+      expect(probe.textContent).toContain(`"buyShipment":"${BUY_SHIPMENT}"`)
+      // No `from` key — the Direct route only special-cases from === 'tender'.
+      expect(probe.textContent).not.toContain('"from"')
+    },
+  )
 
-  test('Approve with no active tender navigates to /shipments Tender tab (LINX-15671 Scenario B)', async () => {
-    getSellShipmentDetail.mockResolvedValue(makeDetail({ options: [] }))
+  test('Approve with no active tender navigates to /shipments Tender tab, still on the Order Change tab (LINX-15671 Scenario B)', async () => {
+    getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: null }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
     await screen.findByRole('button', { name: 'View Routing' })
 
@@ -148,5 +156,7 @@ describe('OrderChangeEditStopsRoute', () => {
     const probe = await screen.findByText(/landed at \/shipments with state/)
     expect(probe.textContent).toContain(`"selectedShipmentId":"${SELL_SHIPMENT}"`)
     expect(probe.textContent).toContain('"key":"routing"')
+    expect(probe.textContent).toContain('"panel":"exceptions"')
+    expect(probe.textContent).toContain('"tab":"order-change"')
   })
 })

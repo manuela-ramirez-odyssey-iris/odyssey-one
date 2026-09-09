@@ -55,6 +55,7 @@
     "HeaderStrip",
     "MenuRowCheckbox",
     "MenuRowRadio",
+    "ModalFooter",
     "ModalMedium",
     "PageHeader",
     "Paginator",

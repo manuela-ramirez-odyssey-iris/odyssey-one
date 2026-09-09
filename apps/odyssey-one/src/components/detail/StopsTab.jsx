@@ -196,6 +196,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                     Approve Plan stays on hold pending a VD. */}
                 <Button
                   variant="secondary"
+                  disabled={!shipment}
                   onClick={() => navigate(`/shipments/order-change/${shipment.sellShipment}/stops`, {
                     state: { buyShipment: shipment.buyShipment, from: 'stops' },
                   })}
