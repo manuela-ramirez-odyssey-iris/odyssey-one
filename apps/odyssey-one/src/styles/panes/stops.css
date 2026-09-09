@@ -148,3 +148,8 @@
 .stops-item__affected-row:last-child {
   border-bottom: none;
 }
+
+/* LINX-15438 View Routing modal — space the three stacked GroupTables. */
+.view-routing-modal .odyssey-group-table + .odyssey-group-table {
+  margin-top: var(--spacing-4);
+}
