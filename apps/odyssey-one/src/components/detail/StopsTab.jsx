@@ -246,8 +246,6 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
         </div>
       </div>
 
-      {/* Test-observable marker for which modal is open. */}
-      {modal && <div hidden data-open-modal={typeof modal === 'string' ? modal : `order:${modal.order}`} />}
       {modal === 'planning' && <PlanningDatesModal orders={orderDetails} onClose={() => setModal(null)} />}
       {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}
       {modal?.order && <OrderCompareModal orderId={modal.order} rows={c?.orderComparisons?.[modal.order] ?? []} onClose={() => setModal(null)} />}

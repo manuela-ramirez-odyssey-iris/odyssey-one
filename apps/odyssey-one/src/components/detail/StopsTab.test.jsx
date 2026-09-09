@@ -71,8 +71,8 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     expect(within(stop1).getByText('Affected Orders')).toBeTruthy()
     const link = within(stop1).getByRole('button', { name: /B/ })
     fireEvent.click(link)
-    // OrderCompareModal is a stub in this task; assert the click reached state via a data-attr the tab sets
-    expect(document.querySelector('[data-open-modal="order:B"]')).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Order Changes' })).toBeTruthy()
+    expect(screen.getByText('Order Number: B')).toBeTruthy()
   })
   it('disables View Routing while a location change is unfinalized (LINX-15438)', () => {
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true } } })
