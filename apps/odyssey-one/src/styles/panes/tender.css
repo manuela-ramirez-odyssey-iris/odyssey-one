@@ -430,7 +430,7 @@
   display: flex;
   gap: var(--spacing-3);
   align-items: flex-start;
-  max-width: 420px;
+  max-width: 600px;
 }
 
 /* Equal halves. `min-width: 0` because DatePicker/TimePicker carry their own

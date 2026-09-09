@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button, DatePicker, ModalMedium, TimePicker } from '@odyssey/ui'
+import TimezoneSelect from '../orders/create/fields/TimezoneSelect'
 
 /**
  * LINX-13954 — Manual Pickup and Delivery Entry.
@@ -31,8 +32,14 @@ import { Button, DatePicker, ModalMedium, TimePicker } from '@odyssey/ui'
  * cut. Both components are already normalized in @odyssey/ui — used on their
  * own contracts, no wrappers, no escape hatches.
  *
- * The `onConfirm` payload is UNCHANGED ("MM/DD/YYYY HH:MM" strings), so
- * processScac and every downstream reader are untouched by this swap.
+ * ── TIME ZONE (Soni, S144, LINX-13954) ─────────────────────────────────────
+ * A `TimezoneSelect` (reused as-is, no wrapper) sits beside each Date/Time
+ * pair so the planner can say which zone the entered times are in. The
+ * `onConfirm` payload strings now carry that zone as a suffix — "MM/DD/YYYY
+ * HH:MM CST" — same format `dates.js`'s `splitDateTime` already parses and
+ * `processScac.test.js` already exercises (line ~182). Default is 'CST',
+ * matching `splitDateTime`'s own fallback. The zone is a LABEL on the
+ * payload only — it is not applied to the past/order Date comparisons below.
  */
 
 export const PICKUP_PAST_ERROR = 'Pickup Date/Time cannot be in the past.'
@@ -59,8 +66,10 @@ function format(d) {
 export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel }) {
   const [pickupDate, setPickupDate] = useState(null)
   const [pickupTime, setPickupTime] = useState('')
+  const [pickupTz, setPickupTz] = useState('CST')
   const [deliveryDate, setDeliveryDate] = useState(null)
   const [deliveryTime, setDeliveryTime] = useState('')
+  const [deliveryTz, setDeliveryTz] = useState('CST')
 
   const pickup = combine(pickupDate, pickupTime)
   const delivery = combine(deliveryDate, deliveryTime)
@@ -73,7 +82,10 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
 
   const handleConfirm = () => {
     if (!valid) return
-    onConfirm({ pickupDateTime: format(pickup), deliveryDateTime: format(delivery) })
+    onConfirm({
+      pickupDateTime: pickupTz ? `${format(pickup)} ${pickupTz}` : format(pickup),
+      deliveryDateTime: deliveryTz ? `${format(delivery)} ${deliveryTz}` : format(delivery),
+    })
   }
 
   return createPortal(
@@ -105,6 +117,12 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
           value={pickupTime}
           onChange={setPickupTime}
         />
+        <TimezoneSelect
+          id="manual-dates-pickup-tz"
+          label="Pickup Time Zone"
+          value={pickupTz}
+          onChange={setPickupTz}
+        />
       </div>
       <div className="manual-dates__row">
         <DatePicker
@@ -119,6 +137,12 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
           label="Delivery Time"
           value={deliveryTime}
           onChange={setDeliveryTime}
+        />
+        <TimezoneSelect
+          id="manual-dates-delivery-tz"
+          label="Delivery Time Zone"
+          value={deliveryTz}
+          onChange={setDeliveryTz}
         />
       </div>
     </ModalMedium>,

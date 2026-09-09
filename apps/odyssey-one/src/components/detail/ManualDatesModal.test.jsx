@@ -86,8 +86,31 @@ describe('ManualDatesModal (LINX-13954)', () => {
     expect(okButton().disabled).toBe(false)
     fireEvent.click(okButton())
     expect(onConfirm).toHaveBeenCalledWith({
-      pickupDateTime: '09/02/2026 08:00',
-      deliveryDateTime: '09/04/2026 16:00',
+      pickupDateTime: '09/02/2026 08:00 CST',
+      deliveryDateTime: '09/04/2026 16:00 CST',
+    })
+  })
+
+  // TimezoneSelect's options render through FieldSearchResults' virtualized
+  // list, which lays out against real element height — 0 under jsdom, so the
+  // opened listbox renders zero rows (confirmed by manual probe: `role=
+  // "listbox"` appears with an empty `field-search-results__list`). Same
+  // ceiling as the popover calendar/time-listbox above and the project's
+  // documented jsdom limits (virtualized options). So this only asserts the
+  // default suffix and that both labelled Time Zone controls are present —
+  // picking a different zone is covered by TimezoneSelect's own consumers'
+  // browser-driven verification, not re-provable here.
+  it('defaults both zones to CST and exposes a labelled Time Zone control per row', () => {
+    const { onConfirm } = setup()
+    expect(screen.getByText('Pickup Time Zone')).toBeTruthy()
+    expect(screen.getByText('Delivery Time Zone')).toBeTruthy()
+
+    fillPickup('09/02/2026 08:00')
+    fillDelivery('09/04/2026 16:00')
+    fireEvent.click(okButton())
+    expect(onConfirm).toHaveBeenCalledWith({
+      pickupDateTime: '09/02/2026 08:00 CST',
+      deliveryDateTime: '09/04/2026 16:00 CST',
     })
   })
 
