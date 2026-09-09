@@ -59,6 +59,11 @@ it('a blocked row is not selectable and explains why on hover', () => {
   const o7 = screen.getAllByText('O7').find((el) => el.closest('[data-tooltip-trigger]'))
   fireEvent.mouseEnter(o7.closest('[data-tooltip-trigger]'))
   expect(screen.getByRole('tooltip').textContent).toContain('cannot be moved')
+  // jsdom ceiling: opacity is a computed-style effect jsdom won't assert on —
+  // this checks the class that carries it lands on the blocked row's cells
+  // (buyShipment '700', unique to the blocked row) and not on a sibling row's.
+  expect(screen.getByText('700').classList.contains('add-orders__blocked')).toBe(true)
+  expect(screen.getByText('600').classList.contains('add-orders__blocked')).toBe(false)
 })
 
 it('Filter opens the inner Filters modal (back arrow); Apply filters the grid; Clear resets', () => {

@@ -120,4 +120,8 @@
 .add-orders__search { width: 389px; }
 .add-orders__filters { width: 640px; }
 .add-orders__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4); }
-.add-orders__blocked { color: var(--text-tertiary); }
+/* ponytail: no --opacity-disabled token exists yet; flat 0.45 matches the
+   dim treatment on .edit-stops__pending--muted above — GroupTable's flat
+   cells already paint --text-tertiary by default, so color alone was a
+   no-op here; opacity is what actually dims the row. */
+.add-orders__blocked { opacity: 0.45; }
