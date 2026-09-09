@@ -69,3 +69,82 @@
   line-height: var(--line-height-sm);
   word-break: break-word;
 }
+
+/* ── Review mode (S142/LINX-15435/15436) — consolidated order-change review ─
+   Scoped under .stops-timeline--review / stops-review__* so plain-mode
+   markup/styles above stay untouched. */
+
+/* KPI cell Prior/New pair (SummaryStrip value slot) */
+.stops-kpi__pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.stops-kpi__pair-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* All Stops card header actions (Edit Shipment Stops / Approve Plan) */
+.stops-review__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+/* Second head row: Prior/New/Consolidated cost trio + View Planning
+   Dates/View Routing */
+.stops-review__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: var(--spacing-4);
+}
+.stops-review__costs {
+  display: flex;
+  gap: var(--spacing-6);
+}
+
+/* Per-stop review card: fields | 227px Affected Orders aside */
+.stops-timeline--review .stops-item {
+  display: grid;
+  grid-template-columns: 1fr 227px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.stops-item__main {
+  display: flex;
+  flex-direction: column;
+}
+.stops-timeline--review .stops-item__fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-3) var(--spacing-5);
+  padding: var(--spacing-4);
+}
+.stops-item__affected {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-subtle);
+}
+.stops-order-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-1);
+}
+.stops-item__affected-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  height: 48px;
+  padding: 0 var(--spacing-4);
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.stops-item__affected-row:last-child {
+  border-bottom: none;
+}

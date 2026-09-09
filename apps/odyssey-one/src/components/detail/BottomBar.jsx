@@ -403,7 +403,7 @@ export default function BottomBar({
           />
         )
       }
-      case 'stops': return <StopsTab data={shownDetails.stopsData} />
+      case 'stops': return <StopsTab data={shownDetails.stopsData} orderChange={shownDetails.orderChange} orderDetails={shownDetails.orderDetails} shipment={shipment} />
       case 'product': return <ProductTab data={shownDetails.productData} />
       // No onToggleColumnPanel here (Fix 3, 2026-08-10) — it used to be the SAME
       // handler ShipmentTable uses, so the Routing Guide's gear opened the
