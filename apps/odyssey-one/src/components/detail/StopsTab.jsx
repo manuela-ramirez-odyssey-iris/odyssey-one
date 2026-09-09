@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TriangleAlert, ArrowRight } from 'lucide-react'
-import { Badge, Button, HeaderStrip, SummaryStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
+import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
@@ -8,6 +9,7 @@ import { DiffValue } from '../shipments/order-change/comparisonHelpers.jsx'
 import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
 import ViewRoutingModal from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
+import KpiStrip from './order-change/ReviewKpiStrip.jsx'
 
 // Stops pane — All Stops card per Figma 4273:15227 (S80 redesign, sourced
 // from Tracking's old-library screen): @odyssey/ui Timeline (StopBadge rail +
@@ -33,35 +35,6 @@ const Changed = ({ children }) => (
 const ComingSoon = ({ children }) => (
   <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>{children}</TooltipTrigger>
 )
-
-// ── KPI strip (SummaryStrip staging, S79e — Figma `Overview` 4178:8365) ─────
-function KpiStrip({ summary, changes }) {
-  // LINX-15435: "Distance, Gross Weight, and Volume shall display Prior and
-  // New values when changed. If a value has not changed, only the current
-  // value shall be displayed."
-  const cell = (key, label, value) => {
-    const c = changes?.[key]
-    if (!c) return { label, value }
-    return {
-      label,
-      value: (
-        <span className="stops-kpi__pair">
-          <span className="stops-kpi__pair-row"><Badge variant="gray">Prior</Badge>{c.prior}</span>
-          <span className="stops-kpi__pair-row"><Badge variant="purple">New</Badge>{c.new}</span>
-        </span>
-      ),
-    }
-  }
-  const items = [
-    cell('distance', 'Distance', summary.distance),
-    cell('grossWeight', 'Gross Weight', summary.grossWeight),
-    cell('volume', 'Volume', summary.volume),
-    { label: 'Accepted Carrier', value: summary.acceptedCarrier },
-    { label: 'Seed Equipment', value: summary.seedEquipment },
-    { label: 'Utilization', value: summary.utilization },
-  ]
-  return <SummaryStrip items={items} aria-label="Shipment KPIs" />
-}
 
 // ── Field (label + value pair) — plain mode only, untouched ─────────────────
 function Field({ label, value }) {
@@ -170,8 +143,9 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
 }
 
 // ── Main export ────────────────────────────────────────────────────────────
-const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [] }) {
+const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [], shipment }) {
   const [modal, setModal] = useState(null) // 'planning' | 'routing' | { order: id }
+  const navigate = useNavigate()
   if (!data) return <PaneEmpty message="No stops data available." col="medium" />
 
   const { summary, stops } = data
@@ -215,8 +189,19 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
             <h2 className="pane-card__title">All Stops</h2>
             {review && (
               <div className="stops-review__actions">
-                {/* Part 2 — Edit Shipment Stops; on hold pending a VD — Approve Plan */}
-                <ComingSoon><Button variant="secondary" disabled>Edit Shipment Stops</Button></ComingSoon>
+                {/* S143 Task 2b — Edit Shipment Stops now opens the standalone
+                    editor route (OrderChangeEditStopsRoute), keyed on the
+                    sell shipment; buyShipment threads through nav state the
+                    same way the Direct route's row-menu entry does (Task 8).
+                    Approve Plan stays on hold pending a VD. */}
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate(`/shipments/order-change/${shipment.sellShipment}/stops`, {
+                    state: { buyShipment: shipment.buyShipment, from: 'stops' },
+                  })}
+                >
+                  Edit Shipment Stops
+                </Button>
                 <ComingSoon><Button variant="primary" disabled>Approve Plan</Button></ComingSoon>
               </div>
             )}

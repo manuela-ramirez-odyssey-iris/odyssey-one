@@ -4,8 +4,26 @@
 // ManualDatesModal.test.jsx / DroppedCarrierSection.test.jsx.
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import StopsTab from './StopsTab'
 afterEach(cleanup)
+
+// StopsTab now navigates (Edit Shipment Stops, S143 Task 2b) — it needs a
+// Router ancestor same as ShipmentTable.test.jsx's row-menu tests.
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="nav-probe">{location.pathname} {JSON.stringify(location.state)}</div>
+}
+function renderWithRouter(ui) {
+  return render(
+    <MemoryRouter initialEntries={['/shipments']}>
+      <Routes>
+        <Route path="/shipments" element={ui} />
+        <Route path="/shipments/order-change/:sellShipment/stops" element={<LocationProbe />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
 
 const summary = { distance: '364.14 mi', grossWeight: '54,907 LB', volume: '226 cuft', acceptedCarrier: 'SEFL - LTL', seedEquipment: 'LTH', utilization: '--' }
 const stops = [
@@ -20,11 +38,12 @@ const consolidation = {
   costs: { prior: '1,500.00 USD', newDirect: '2,000.00 USD', newConsolidated: '3,000.00 USD' },
 }
 const oc = { scenario: 'returned', prior: {}, newOption: {}, priorTenderList: [], newTenderList: [], comparison: [], hazmat: [], droppedCarriers: { prior: [], new: [] }, resolution: null, consolidation }
-const renderReview = (extra = {}) => render(<StopsTab data={{ summary, stops }} orderChange={oc} orderDetails={[]} {...extra} />)
+const shipment = { sellShipment: '25319141', buyShipment: '87654321' }
+const renderReview = (extra = {}) => renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={oc} orderDetails={[]} shipment={shipment} {...extra} />)
 
 describe('StopsTab — plain mode', () => {
   it('renders as before without a consolidation payload', () => {
-    render(<StopsTab data={{ summary, stops }} orderChange={null} />)
+    renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={null} />)
     expect(screen.queryByText('Approve Plan')).toBeNull()
     expect(screen.queryByText('Affected Orders')).toBeNull()
     expect(screen.getByText('COLUMBUS PL, Kansas City')).toBeTruthy()
@@ -47,12 +66,23 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
   })
   it('renders the four actions and three costs with AC wording', () => {
     renderReview()
-    expect(screen.getByRole('button', { name: 'Edit Shipment Stops' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Edit Shipment Stops' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Approve Plan' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'View Planning Dates' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(false)
     expect(screen.getByText('New Consolidated Cost')).toBeTruthy()
     expect(screen.getByText('3,000.00 USD')).toBeTruthy()
+  })
+  // S143 Task 2b (LINX-15667…15671) — replaces the old "is disabled" coverage:
+  // the button now navigates into the standalone editor route, carrying
+  // buyShipment through nav state the same way the Direct route's row-menu
+  // entry does.
+  it('Edit Shipment Stops navigates to the stops editor route with buyShipment in state', () => {
+    renderReview()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Shipment Stops' }))
+    const probe = screen.getByTestId('nav-probe')
+    expect(probe.textContent).toContain(`/shipments/order-change/${shipment.sellShipment}/stops`)
+    expect(probe.textContent).toContain(JSON.stringify({ buyShipment: shipment.buyShipment, from: 'stops' }))
   })
   it('badges changed stop fields and changed orders; unchanged stay plain', () => {
     renderReview()

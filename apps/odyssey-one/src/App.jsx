@@ -13,6 +13,7 @@ import Users from './routes/Users.jsx'
 import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
 import OrderChangeReviewRoute from './routes/shipments/OrderChangeReviewRoute.jsx'
+import OrderChangeEditStopsRoute from './routes/shipments/OrderChangeEditStopsRoute.jsx'
 import SpotBidRoute from './routes/spotbid/SpotBidRoute.jsx'
 import SpotBidDetailRoute from './routes/spotbid/SpotBidDetailRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
@@ -82,6 +83,7 @@ export default function App() {
             v6 ranks routes by specificity, not declaration order, so a dynamic
             segment here already outranks the splat below regardless of position. */}
         <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
+        <Route path="/shipments/order-change/:sellShipment/stops" element={<OrderChangeEditStopsRoute />} />
         <Route path="/shipments/*" element={<ShipmentsRoute />} />
         <Route path="/spotbid" element={<SpotBidRoute />} />
         <Route path="/spotbid/:quoteId" element={<SpotBidDetailRoute />} />
