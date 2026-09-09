@@ -28,10 +28,10 @@
   padding-top: var(--spacing-4);
 }
 
+/* Timeline (@odyssey/ui) owns the rail's own flex-column + connector; only
+   the width-sharing with the pending column belongs here — no gap override,
+   or the continuous connector line between badges would break. */
 .edit-stops__rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -78,6 +78,8 @@
 }
 
 .edit-stops__pending--muted {
+  /* ponytail: no --opacity-disabled token exists yet; flat 0.6 matches the
+     dim treatment used elsewhere for read-only sections. */
   opacity: 0.6;
 }
 
@@ -93,10 +95,11 @@
   padding: 0 var(--spacing-4);
 }
 
-/* .btn:disabled sets pointer-events:none, which stops hover from reaching a
-   TooltipTrigger wrapper around a disabled Button — re-enable events on the
-   wrapper itself so the tooltip still opens (View Routing / Move To Pending /
-   Add New Order disabled states). */
-.edit-stops [data-tooltip-trigger] {
-  pointer-events: auto;
+/* Native `disabled` suppresses mouse events on the button itself, so a
+   hover never reaches TooltipTrigger's wrapper div (mouseenter fires on the
+   wrapper, not the button) — the View Routing / Move To Pending / Add New
+   Order tooltips would never show. Same construction as
+   stops.css's .stops-review__actions .btn:disabled. */
+.edit-stops .btn:disabled {
+  pointer-events: none;
 }

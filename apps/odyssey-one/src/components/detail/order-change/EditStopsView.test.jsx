@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import EditStopsView from './EditStopsView'
 
@@ -56,6 +56,20 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(screen.getByText('Stop 3')).toBeTruthy()
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
+})
+
+it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reordering after a move', () => {
+  setup()
+  expect(screen.getByLabelText('P1 — completed')).toBeTruthy()
+  expect(screen.getByLabelText('P2 — completed')).toBeTruthy()
+  expect(screen.getByLabelText('D1 — completed')).toBeTruthy()
+  // Move stop 1 (P1) down over stop 2 (P2, also a pickup) — legal, and the
+  // rail's badge order should follow (P1 now labels the second card).
+  fireEvent.click(screen.getAllByRole('button', { name: 'Move stop down' })[0])
+  const badges = screen.getAllByLabelText(/^P\d — completed$/)
+  expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual(['P1 — completed', 'P2 — completed'])
+  // P2 (Y, Town) is now first, so "Stop 1" (the rail's position label) carries it.
+  expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('Y, Town')
 })
 
 it('arrows reorder and renumber; an illegal move shows the 15669 message in an error alert', () => {
@@ -137,7 +151,7 @@ it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when 
   const dirty = setup()
   fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[0])
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-  expect(screen.getByText('Unsaved changes')).toBeTruthy()
+  expect(screen.getByText('Discard changes?')).toBeTruthy()
   expect(dirty.onCancel).not.toHaveBeenCalled()
 })
 

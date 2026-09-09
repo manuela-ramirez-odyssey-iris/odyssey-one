@@ -5588,6 +5588,14 @@ button.breadcrumb__label:focus-visible {
 .button-toggle__label {
   white-space: nowrap;
 }
+/* Code-only disabled state (ButtonToggle.jsx, S143 — not in Figma, control-
+   state rule): locks the segments without a separate visual ladder.
+   ponytail: no dimming token exists yet; flat 0.5 matches other disabled
+   affordances (e.g. .btn:disabled below) until one is added. */
+.button-toggle__segment:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .accordion__reveal,
