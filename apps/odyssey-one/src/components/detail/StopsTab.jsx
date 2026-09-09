@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { AlertTriangle, ArrowRight } from 'lucide-react'
+import { TriangleAlert, ArrowRight } from 'lucide-react'
 import { Badge, Button, HeaderStrip, SummaryStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
+import { DiffValue } from '../shipments/order-change/comparisonHelpers.jsx'
 import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
 import ViewRoutingModal from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
@@ -23,12 +24,14 @@ import OrderCompareModal from './order-change/OrderCompareModal.jsx'
 // `resolution` is set (or there's no consolidation at all) the tab renders
 // exactly as before — plain-mode markup below is untouched.
 
-// Purple + warning triangle = the order-change diff signal, same token the
-// Direct review's DiffValue uses (LINX-15436 "visually highlight").
-const Changed = ({ children }) => <Badge variant="purple" leftIcon={<AlertTriangle {...ICON_MD} />}>{children}</Badge>
+// Warning-triangle DiffValue — the Stops-tab review's own diff signal on top
+// of the Direct review's shared purple-badge helper (comparisonHelpers.jsx).
+const Changed = ({ children }) => (
+  <DiffValue value={children} changed leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />
+)
 
 const ComingSoon = ({ children }) => (
-  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}><span>{children}</span></TooltipTrigger>
+  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>{children}</TooltipTrigger>
 )
 
 // ── KPI strip (SummaryStrip staging, S79e — Figma `Overview` 4178:8365) ─────
@@ -71,6 +74,8 @@ function Field({ label, value }) {
 }
 
 // ── Review-mode field (TitleSubtitle; badges the value when changed) ───────
+// `change.prior` is intentionally not rendered here — the prior value lives
+// in the KPI band per the VD, not repeated on every per-stop field.
 function ReviewField({ label, value, change }) {
   return change
     ? <TitleSubtitle subtitle={label} badge={<Changed>{change.new}</Changed>} />
@@ -94,37 +99,38 @@ function OrderField({ orderIds, changedIds }) {
   )
 }
 
-// ── Per-stop content block (right of the Timeline rail) ────────────────────
-function StopContent({ stop, review, stopChange, onOpenOrder }) {
+// ── Per-stop content block (right of the Timeline rail) — plain mode ───────
+function StopContent({ stop }) {
   const isPickup = stop.type === 'pickup'
+  return (
+    <>
+      {/* Header: "stop N" + type badge — both types green per the mock */}
+      <div className="stops-item__header">
+        <span className="stops-item__stop-label">stop {stop.stopNumber}</span>
+        <Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+      </div>
 
-  if (!review) {
-    return (
-      <>
-        {/* Header: "stop N" + type badge — both types green per the mock */}
-        <div className="stops-item__header">
-          <span className="stops-item__stop-label">stop {stop.stopNumber}</span>
-          <Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
-        </div>
+      {/* 3-col field grid, rows: Location/Date/Appointment · Order/Address/
+          Weight · Volume/PackageCount/PickupNo (mock order) */}
+      <div className="stops-item__fields">
+        <Field label="Location"      value={stop.location} />
+        <Field label="Date"          value={stop.date} />
+        <Field label="Appointment"   value={stop.appointment} />
+        <Field label="Order"         value={stop.order} />
+        <Field label="Address"       value={stop.address} />
+        <Field label="Weight"        value={stop.weight} />
+        <Field label="Volume"        value={stop.volume} />
+        <Field label="Package Count" value={stop.packageCount} />
+        {isPickup && <Field label="Pickup No." value={stop.pickupNo} />}
+      </div>
+    </>
+  )
+}
 
-        {/* 3-col field grid, rows: Location/Date/Appointment · Order/Address/
-            Weight · Volume/PackageCount/PickupNo (mock order) */}
-        <div className="stops-item__fields">
-          <Field label="Location"      value={stop.location} />
-          <Field label="Date"          value={stop.date} />
-          <Field label="Appointment"   value={stop.appointment} />
-          <Field label="Order"         value={stop.order} />
-          <Field label="Address"       value={stop.address} />
-          <Field label="Weight"        value={stop.weight} />
-          <Field label="Volume"        value={stop.volume} />
-          <Field label="Package Count" value={stop.packageCount} />
-          {isPickup && <Field label="Pickup No." value={stop.pickupNo} />}
-        </div>
-      </>
-    )
-  }
-
-  // Review mode (LINX-15435/15436): stop card + 227px "Affected Orders" aside.
+// ── Per-stop content block — review mode: stop card + 227px "Affected
+// Orders" aside (LINX-15435/15436). ───────────────────────────────────────
+function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
+  const isPickup = stop.type === 'pickup'
   const fields = stopChange?.fields || {}
   const changedIds = stopChange?.changedOrderIds || []
   const affected = (stop.orderIds || []).filter((id) => changedIds.includes(id))
@@ -132,7 +138,7 @@ function StopContent({ stop, review, stopChange, onOpenOrder }) {
   return (
     <div className="stops-item">
       <div className="stops-item__main">
-        <HeaderStrip title={`Stop ${stop.stopNumber}`} trail={<Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
+        <HeaderStrip title={`Stop ${stop.stopNumber}`} badge={<Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
         <div className="stops-item__fields">
           <ReviewField label="Location"      value={stop.location} change={fields.location} />
           <ReviewField label="Date"          value={stop.date} change={fields.date} />
@@ -147,13 +153,17 @@ function StopContent({ stop, review, stopChange, onOpenOrder }) {
       </div>
       <div className="stops-item__affected">
         <HeaderStrip title="Affected Orders" />
-        <div className="stops-order-list">
-          {affected.map((id) => (
-            <div className="stops-item__affected-row" key={id}>
-              <Button variant="link" iconRight={<ArrowRight {...ICON_MD} />} onClick={() => onOpenOrder(id)}>{id}</Button>
-            </div>
-          ))}
-        </div>
+        {affected.length > 0 ? (
+          <div className="stops-item__order-list">
+            {affected.map((id) => (
+              <div className="stops-item__affected-row" key={id}>
+                <Button variant="link" iconRight={<ArrowRight {...ICON_MD} />} onClick={() => onOpenOrder(id)}>{id}</Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="stops-item__affected-empty">--</span>
+        )}
       </div>
     </div>
   )
@@ -186,14 +196,9 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
       key: stop.stopNumber ?? idx,
       label: isPickup ? `P${pCount}` : `D${dCount}`,
       status: stopChange ? 'issue' : (stop.status || 'completed'),
-      content: (
-        <StopContent
-          stop={stop}
-          review={review}
-          stopChange={stopChange}
-          onOpenOrder={(id) => setModal({ order: id })}
-        />
-      ),
+      content: review
+        ? <ReviewStopContent stop={stop} stopChange={stopChange} onOpenOrder={(id) => setModal({ order: id })} />
+        : <StopContent stop={stop} />,
     }
   })
 
@@ -220,15 +225,15 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
           {review && (
             <div className="stops-review__head">
               <div className="stops-review__costs">
-                <TitleSubtitle subtitle="Prior Cost" title={c.costs.prior} />
-                <TitleSubtitle subtitle="New Direct Cost" title={c.costs.newDirect} />
-                <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs.newConsolidated} />
+                <TitleSubtitle subtitle="Prior Cost" title={c.costs?.prior} />
+                <TitleSubtitle subtitle="New Direct Cost" title={c.costs?.newDirect} />
+                <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs?.newConsolidated} />
               </div>
               <div className="stops-review__actions">
                 <Button variant="secondary" onClick={() => setModal('planning')}>View Planning Dates</Button>
                 {routingBlocked ? (
                   <TooltipTrigger tooltipProps={{ groups: [{ content: 'Finalize stop changes in Edit Shipment Stops first' }] }}>
-                    <span><Button variant="secondary" disabled>View Routing</Button></span>
+                    <Button variant="secondary" disabled>View Routing</Button>
                   </TooltipTrigger>
                 ) : (
                   <Button variant="secondary" onClick={() => setModal('routing')}>View Routing</Button>
@@ -241,8 +246,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
         </div>
       </div>
 
-      {/* Test-observable marker for which modal is open — replaced by the
-          real modals as Tasks 5–7 land. */}
+      {/* Test-observable marker for which modal is open. */}
       {modal && <div hidden data-open-modal={typeof modal === 'string' ? modal : `order:${modal.order}`} />}
       {modal === 'planning' && <PlanningDatesModal orders={orderDetails} onClose={() => setModal(null)} />}
       {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}

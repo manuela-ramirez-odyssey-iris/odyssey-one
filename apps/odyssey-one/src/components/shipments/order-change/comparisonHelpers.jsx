@@ -12,9 +12,13 @@ import { Badge } from '@odyssey/ui'
 // unconditionally.
 export const val = (v) => (v === null || v === undefined || v === '' ? '--' : v)
 
-export function DiffValue({ value, changed, asBadge = false }) {
+export function DiffValue({ value, changed, asBadge = false, leftIcon }) {
   const display = val(value)
-  if (changed) return <Badge variant="purple">{display}</Badge>
+  // `leftIcon` passthrough to Badge, default undefined (every existing Direct-
+  // review caller is unaffected) — the Stops-tab review badges (VD
+  // 1910-31512) carry a warning triangle that this component's own callers
+  // never show.
+  if (changed) return <Badge variant="purple" leftIcon={leftIcon}>{display}</Badge>
   return asBadge ? <Badge variant="gray">{display}</Badge> : <span>{display}</span>
 }
 

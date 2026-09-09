@@ -1,5 +1,5 @@
 import { Button, GroupTable, ModalMedium } from '@odyssey/ui'
-import { rowsToFlatGroups } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
 // LINX-15435 "Planning information shall be displayed for all orders in the
 // shipment (data will be from order)" — VD 2102-10502. Planning Type is the
@@ -20,7 +20,7 @@ const COLUMNS = [
 export default function PlanningDatesModal({ orders = [], onClose }) {
   const rows = orders.map((o) => ({
     order: o.orderNumber,
-    planningType: o.planningType ?? '--',
+    planningType: o.planningType,
     earliestShip: o.earliestPickup,
     latestShip: o.latestPickup,
     earliestDelivery: o.earliestDelivery,
@@ -33,7 +33,7 @@ export default function PlanningDatesModal({ orders = [], onClose }) {
       onClose={onClose}
       footer={<Button variant="secondary" onClick={onClose}>Go Back</Button>}
     >
-      <GroupTable flat columns={COLUMNS} groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => r[c.key] ?? '--')} />
+      <GroupTable flat columns={COLUMNS} groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => val(r[c.key]))} />
     </ModalMedium>
   )
 }

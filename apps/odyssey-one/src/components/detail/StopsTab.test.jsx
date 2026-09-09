@@ -78,4 +78,12 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true } } })
     expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(true)
   })
+  it('flags a changed stop as issue on the rail; leaves an unchanged stop alone', () => {
+    renderReview()
+    // Stop 1 (P1) carries a stopChanges entry, stop 2 (D1) doesn't — StopBadge
+    // (packages/ui/src/StopBadge.jsx) renders status via a `stop-badge--<status>`
+    // class and an aria-label of "<label> — <status text>".
+    expect(document.querySelector('.stop-badge--issue')?.getAttribute('aria-label')).toBe('P1 — issue reported')
+    expect(document.querySelector('.stop-badge--completed')?.getAttribute('aria-label')).toBe('D1 — completed')
+  })
 })

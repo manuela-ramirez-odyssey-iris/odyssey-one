@@ -114,28 +114,27 @@
   border-radius: var(--radius-md);
   overflow: hidden;
 }
-.stops-item__main {
+.stops-timeline--review .stops-item__main {
   display: flex;
   flex-direction: column;
 }
+/* Field grid itself (display/columns/gap) is the shared plain-mode rule
+   above — review only adds the card's inner padding. */
 .stops-timeline--review .stops-item__fields {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-3) var(--spacing-5);
   padding: var(--spacing-4);
 }
-.stops-item__affected {
+.stops-timeline--review .stops-item__affected {
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border-subtle);
 }
-.stops-order-list {
+.stops-timeline--review .stops-item__order-list {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--spacing-1);
 }
-.stops-item__affected-row {
+.stops-timeline--review .stops-item__affected-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
@@ -145,8 +144,12 @@
   box-sizing: border-box;
   border-bottom: 1px solid var(--border-subtle);
 }
-.stops-item__affected-row:last-child {
+.stops-timeline--review .stops-item__affected-row:last-child {
   border-bottom: none;
+}
+.stops-timeline--review .stops-item__affected-empty {
+  padding: var(--spacing-4);
+  color: var(--text-tertiary);
 }
 
 /* LINX-15438 View Routing modal — space the three stacked GroupTables. */
