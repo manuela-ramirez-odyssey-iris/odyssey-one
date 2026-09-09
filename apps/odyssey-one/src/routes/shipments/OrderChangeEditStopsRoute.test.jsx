@@ -140,6 +140,7 @@ describe('OrderChangeEditStopsRoute', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
       fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
       const probe = await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
       expect(probe.textContent).toContain(`"buyShipment":"${BUY_SHIPMENT}"`)
@@ -164,6 +165,7 @@ describe('OrderChangeEditStopsRoute', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
     fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
     const probe = await screen.findByText(/landed at \/shipments with state/)
     expect(probe.textContent).toContain(`"selectedShipmentId":"${SELL_SHIPMENT}"`)
@@ -183,6 +185,7 @@ describe('OrderChangeEditStopsRoute', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
     fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true))
     resolveSave(undefined)
@@ -197,6 +200,7 @@ describe('OrderChangeEditStopsRoute', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
     fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
     expect(await screen.findByText('Network error')).toBeTruthy()
     expect(screen.queryByText(/landed at/)).toBeNull()

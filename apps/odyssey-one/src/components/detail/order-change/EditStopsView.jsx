@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowUp, ArrowDown, ClipboardList, Plus, TriangleAlert } from 'lucide-react'
 import {
-  Alert, Badge, Button, HeaderStrip, ModalFooter, SubAccordion, TitleSubtitle, ButtonToggle, Timeline,
+  Alert, Badge, Button, HeaderStrip, ModalFooter, SubAccordion, TitleSubtitle, ButtonToggle, Timeline, ActionMenu,
 } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
@@ -19,6 +19,8 @@ import './edit-stops.css'
 const HINT = 'Use the (↑ ↓) arrow buttons on each stop to move the entire stop (including all its orders) to a different position.'
 const LAST_ORDER_TOOLTIP = 'The last remaining order cannot be removed from the shipment.'
 const ROUTING_TOOLTIP = 'Place every P? / D? stop first'
+const CONFIRM_TITLE = 'Approve Shipment Change'
+const CONFIRM_BODY = 'Any orders left pending for assignment will be removed from this shipment when you approve it.'
 
 // LINX-15667…15671/15869/15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
 // Editor over the pure stopsSandbox model — every mutation here goes through
@@ -57,9 +59,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     setErrorMsg(null)
     setSb((s) => moveToPending(s, id))
   }
-  const handleAddTo = (id) => {
+  const handleAddTo = (id, stopKey) => {
     setErrorMsg(null)
-    setSb((s) => addToStop(s, id, orders))
+    setSb((s) => addToStop(s, id, orders, stopKey))
   }
   const handleViewChange = (next) => {
     setErrorMsg(null)
@@ -81,6 +83,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     if (sb.dirty) { setModal('discard'); return }
     onCancel?.()
   }
+
+  // Task 7 fills this from orders added via Search & Add.
+  const externalOrdersOnStops = []
 
   const distance = consolidation?.summaryChanges?.distance?.new ?? summary?.distance
   const distanceChanged = !!consolidation?.summaryChanges?.distance
@@ -219,7 +224,19 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>
                   <Button variant="link" onClick={() => {}}>{id}</Button>
                 </TooltipTrigger>
-                <Button variant="secondary" icon={<Plus {...ICON_MD} />} disabled={isPrior} onClick={() => handleAddTo(id)}>Add to</Button>
+                {isPrior
+                  ? <Button variant="secondary" icon={<Plus {...ICON_MD} />} disabled>Add to</Button>
+                  : (
+                    <ActionMenu
+                      label="Add to"
+                      ariaLabel={`Add ${id} to a stop`}
+                      align="right"
+                      // D3 — the planner chooses; type + location make the choice readable.
+                      // VD 2076-8110 / DEC-140: the pending column is a buffer pool, not
+                      // an auto-matcher — Add to opens a menu of stops instead of guessing one.
+                      options={sb.stops.map((s, i) => ({ id: s.key, label: `Stop ${i + 1} · ${s.type === 'pickup' ? 'Pickup' : 'Delivery'} · ${s.location || '--'}`, onSelect: () => handleAddTo(id, s.key) }))}
+                    />
+                  )}
               </div>
             ))}
           </div>
@@ -232,7 +249,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         saveLabel="Approve Changes"
         saveDisabled={!sb.routed || isPrior || saving}
         onCancel={handleCancel}
-        onSave={() => onApprove?.(toDto(sb))}
+        onSave={() => setModal('confirm')}
       />
 
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} onClose={() => setModal(null)} />}
@@ -244,6 +261,19 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           confirmLabel="Discard"
           cancelLabel="Keep editing"
           onConfirm={() => { setModal(null); onCancel?.() }}
+          onCancel={() => setModal(null)}
+        />
+      )}
+      {modal === 'confirm' && (
+        // VD 2066-77150 / DEC-141: Approve Changes confirms before committing —
+        // any orders still sitting in the pending buffer are dropped from the
+        // shipment on approval, so the planner gets one last chance to back out.
+        <ConfirmDialog
+          title={CONFIRM_TITLE}
+          message={CONFIRM_BODY}
+          confirmLabel="Approve"
+          cancelLabel="Cancel"
+          onConfirm={() => { setModal(null); onApprove?.(toDto(sb), externalOrdersOnStops) }}
           onCancel={() => setModal(null)}
         />
       )}

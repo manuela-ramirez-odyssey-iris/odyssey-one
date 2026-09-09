@@ -89,19 +89,33 @@ it('Move To Pending moves the order to the pending column; the last remaining or
   setup()
   const moveToPendingButtons = screen.getAllByRole('button', { name: 'Move To Pending' })
   fireEvent.click(moveToPendingButtons[0]) // pends A
-  expect(screen.getByRole('button', { name: 'Add to' })).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Add A to a stop' })).toBeTruthy()
   const pendingLink = screen.getAllByRole('button').find((b) => b.textContent === 'A')
   expect(pendingLink).toBeTruthy()
 })
 
-it('Add to returns a pending order to a matched stop', () => {
+it('Add to opens a Stop N menu; picking a stop puts the order there (VD 2076-8110)', () => {
   setup()
-  const moveToPendingButtons = screen.getAllByRole('button', { name: 'Move To Pending' })
-  fireEvent.click(moveToPendingButtons[0]) // pends A
-  const addTo = screen.getAllByRole('button', { name: 'Add to' })
-  fireEvent.click(addTo[0])
-  // A is back on a stop — pending column should no longer list it as a row link/badge
-  expect(screen.queryAllByRole('button', { name: 'Add to' }).length).toBe(0)
+  fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[2])   // C off P2/D1
+  fireEvent.click(screen.getByRole('button', { name: 'Add C to a stop' }))
+  const items = screen.getAllByRole('menuitem')
+  expect(items.map((i) => i.textContent)).toEqual(['Stop 1 · Pickup · X, City', 'Stop 2 · Delivery · Z, Ville'])   // P1, D1 after P2 emptied
+  fireEvent.click(items[0])
+  expect(screen.queryByRole('button', { name: 'Add C to a stop' })).toBeNull()
+  expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('C')
+})
+
+it('Approve Changes asks for confirmation, then calls onApprove (VD 2066-77150)', () => {
+  const { onApprove } = setup()
+  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Go Back' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  expect(onApprove).not.toHaveBeenCalled()
+  expect(screen.getByText('Approve Shipment Change')).toBeTruthy()
+  expect(screen.getByText(/Any orders left pending for assignment will be removed/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+  expect(onApprove).toHaveBeenCalledTimes(1)
+  expect(onApprove.mock.calls[0][1]).toEqual([])                                     // externalOrders — Task 7 fills it
 })
 
 it('View Routing disabled while a P? exists; enabled otherwise; clicking marks routed and enables Approve Changes; a further edit disables Approve again', () => {
@@ -145,6 +159,7 @@ it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when 
   const { onApprove, onCancel } = setup()
   fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   expect(onApprove).toHaveBeenCalledTimes(1)
   expect(onApprove.mock.calls[0][0][0]).toHaveProperty('stopSequence', 1)
 
