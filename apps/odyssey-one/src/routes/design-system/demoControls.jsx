@@ -21,6 +21,24 @@ export function DemoControls({ children, className = '' }) {
   return <div className={`ds-controls${className ? ` ${className}` : ''}`}>{children}</div>
 }
 
+/**
+ * A named cluster of related controls inside a DemoControls bar, separated
+ * from its neighbours by a rule.
+ *
+ * A component with more than a handful of props gives you a long undifferentiated
+ * row where nothing says which switch belongs with which — the reader has to
+ * infer the grouping from prop names. Group by what the controls DO (content,
+ * state, header actions), not by their type.
+ */
+export function DemoControlGroup({ label, children }) {
+  return (
+    <div className="ds-control-group">
+      {label && <span className="ds-control-group__label">{label}</span>}
+      <div className="ds-control-group__items">{children}</div>
+    </div>
+  )
+}
+
 function Control({ label, hint, disabled, children }) {
   return (
     <label className={`ds-control${disabled ? ' ds-control--disabled' : ''}`} title={hint || undefined}>

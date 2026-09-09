@@ -554,6 +554,39 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
+/* A named cluster. The rule sits on the lead edge of every group but the
+   first, so groups read as separated without boxing each one. */
+.ds-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding-left: var(--spacing-4);
+  border-left: 1px solid var(--border-subtle);
+}
+.ds-control-group:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.ds-control-group__label {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.ds-control-group__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-2) var(--spacing-4);
+}
+/* Grouped bars align their groups at the top so the labels line up. */
+.ds-controls:has(.ds-control-group) {
+  align-items: flex-start;
+  gap: var(--spacing-4);
+}
+
 .ds-control {
   display: inline-flex;
   flex-direction: column;

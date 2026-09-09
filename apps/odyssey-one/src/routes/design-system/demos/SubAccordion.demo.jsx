@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Info, Package, ClipboardList, Plus, LayoutGrid, List } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Button, ButtonToggle, SubAccordion, TitleSubtitle } from '@odyssey/ui'
-import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
+import { DemoControls, DemoControlGroup, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
 
 export const meta = {
   name: 'SubAccordion',
@@ -169,21 +169,61 @@ function Playground() {
   return (
     <div>
       <DemoControls>
-        <DemoField label="title" value={title} onChange={setTitle} />
-        <DemoToggle label="showIcon" value={showIcon} onChange={setShowIcon} />
-        <DemoSelect label="icon" value={iconKey} onChange={setIconKey} options={Object.keys(ICON_OPTIONS)} />
-        <DemoToggle label="collapsible" value={collapsible} onChange={setCollapsible} />
-        <DemoToggle label="expanded" value={expanded} onChange={setExpanded} disabled={!collapsible} />
-        <DemoToggle label="buttonToggle (Static-only)" value={showButtonToggle} onChange={setShowButtonToggle} disabled={collapsible} hint={collapsible ? 'Header actions are Static-only' : undefined} />
-        <DemoToggle label="onToggleAll (expand-all action, Static-only)" value={showToggleAll} onChange={setShowToggleAll} disabled={collapsible} />
-        <DemoSelect
-          label="toggleAllVariant"
-          value={toggleAllVariant}
-          onChange={setToggleAllVariant}
-          options={['link', 'secondary']}
-          disabled={collapsible || !showToggleAll}
-        />
-        <DemoToggle label="action (primary sm, Static-only)" value={showAction} onChange={setShowAction} disabled={collapsible} />
+        <DemoControlGroup label="Content">
+          <DemoField label="title" value={title} onChange={setTitle} />
+          <DemoToggle label="showIcon" value={showIcon} onChange={setShowIcon} />
+          <DemoSelect
+            label="icon"
+            value={iconKey}
+            onChange={setIconKey}
+            options={Object.keys(ICON_OPTIONS)}
+            disabled={!showIcon}
+            hint={!showIcon ? 'No icon is rendered while showIcon is off' : undefined}
+          />
+        </DemoControlGroup>
+
+        <DemoControlGroup label="State">
+          <DemoToggle label="collapsible" value={collapsible} onChange={setCollapsible} />
+          <DemoToggle
+            label="expanded"
+            value={expanded}
+            onChange={setExpanded}
+            disabled={!collapsible}
+            hint={!collapsible ? 'Static content is always revealed' : undefined}
+          />
+        </DemoControlGroup>
+
+        <DemoControlGroup label="Header actions (Static only)">
+          <DemoToggle
+            label="buttonToggle"
+            value={showButtonToggle}
+            onChange={setShowButtonToggle}
+            disabled={collapsible}
+            hint={collapsible ? 'Header actions are Static-only' : undefined}
+          />
+          <DemoToggle
+            label="onToggleAll"
+            value={showToggleAll}
+            onChange={setShowToggleAll}
+            disabled={collapsible}
+            hint={collapsible ? 'Header actions are Static-only' : undefined}
+          />
+          <DemoSelect
+            label="toggleAllVariant"
+            value={toggleAllVariant}
+            onChange={setToggleAllVariant}
+            options={['link', 'secondary']}
+            disabled={collapsible || !showToggleAll}
+            hint={collapsible ? 'Header actions are Static-only' : (!showToggleAll ? 'No expand-all control is rendered' : undefined)}
+          />
+          <DemoToggle
+            label="action (primary sm)"
+            value={showAction}
+            onChange={setShowAction}
+            disabled={collapsible}
+            hint={collapsible ? 'Header actions are Static-only' : undefined}
+          />
+        </DemoControlGroup>
       </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <SubAccordion
