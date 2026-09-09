@@ -69,7 +69,7 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(screen.getByText('Stop 3')).toBeTruthy()
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
-  // User ruling 2026-09-09: this editor already carries purple/amber change
+  // User ruling 2026-09-09: this editor already carries purple/gray change
   // badges, so the stop-type badge is purple here too (not the canon
   // customer-change color mapping — a deliberate reuse).
   expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
@@ -170,7 +170,7 @@ it('Approve Changes stays disabled while saving even once routed', () => {
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
-it('Prior toggle disabled until dirty; in Prior view the title, alert copy, muted pending column, disabled controls and amber badges for removed/moved appear', () => {
+it('Prior toggle disabled until dirty; in Prior view the title, alert copy, muted pending column, disabled controls and gray badges for removed/moved appear', () => {
   setup()
   const priorBtn = screen.getByRole('button', { name: 'Prior' })
   expect(priorBtn.disabled).toBe(true)
@@ -179,8 +179,11 @@ it('Prior toggle disabled until dirty; in Prior view the title, alert copy, mute
   expect(screen.getByRole('button', { name: 'Prior' }).disabled).toBe(false)
   fireEvent.click(screen.getByRole('button', { name: 'Prior' }))
   expect(screen.getByText('All Stops - Prior to changes')).toBeTruthy()
-  expect(screen.getByText('Stops and orders prior to changes')).toBeTruthy()
-  expect(screen.getByText('Removed')).toBeTruthy()
+  const banner = screen.getByText('Stops and orders prior to changes')
+  expect(banner.closest('.alert').className).toContain('alert--info')
+  // User ruling 2026-09-09: Prior banner reads calm (info/blue, not warning/amber)
+  // and the planner-edit badges (Removed/Moved) go gray, not amber.
+  expect(screen.getByText('Removed').style.background).toContain('badge-gray-bg')
 })
 
 it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when clean and opens Discard when dirty', () => {

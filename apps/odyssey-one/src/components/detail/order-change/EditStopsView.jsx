@@ -123,7 +123,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const weightChanged = curTotals.grossWeight !== initialTotals.grossWeight
   const volumeChanged = curTotals.volume !== initialTotals.volume
 
-  const alertVariant = isPrior ? 'warning' : (errorMsg ? 'error' : 'info')
+  const alertVariant = isPrior ? 'info' : (errorMsg ? 'error' : 'info')
   const alertText = isPrior ? 'Stops and orders prior to changes' : (errorMsg || HINT)
 
   const items = displayStops.map((s, i) => {
@@ -150,17 +150,22 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             badge={(
               <>
                 {/* User ruling 2026-09-09: purple, not green — this editor
-                    already carries purple/amber change badges (Removed/Moved
+                    already carries purple/gray change badges (Removed/Moved
                     below), so the stop-type badge picks up the same purple
                     used elsewhere on this surface. Canon reserves purple for
-                    the customer's change / amber for the planner's
-                    (vault/10-domains/shipments/order-change.md §10.3,
-                    DEC-136); the type badge is not a change signal, so this
+                    the customer's change (vault/10-domains/shipments/order-change.md
+                    §10.3, DEC-136); the type badge is not a change signal, so this
                     is a deliberate, user-ruled reuse of the color — do not
-                    "fix" it back to the canon mapping. */}
+                    "fix" it back to the canon mapping.
+                    Also per the 2026-09-09 ruling: Prior mode's planner-edit
+                    badges (Removed/Moved here, and the removed-order pill
+                    below) are `gray`, not `amber` — the amber treatment read
+                    too strong in Prior. Canon's "amber = what the planner
+                    changed" (§10.3/DEC-136) is stale for this surface pending
+                    a docs pass. */}
                 <Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
-                {removed && <Badge variant="amber">Removed</Badge>}
-                {moved && <Badge variant="amber">Moved</Badge>}
+                {removed && <Badge variant="gray">Removed</Badge>}
+                {moved && <Badge variant="gray">Moved</Badge>}
               </>
             )}
             trail={(
@@ -184,7 +189,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                   <div className="edit-stops__order-lead">
                     <span className="edit-stops__order-label text-label-sm-medium">Order #</span>
                     {isRemovedOrder
-                      ? <Badge variant="amber">{id}</Badge>
+                      ? <Badge variant="gray">{id}</Badge>
                       // ponytail: no order drill-in yet — deferred, wire up when the
                       // Order Compare / detail surface has a route for this VM.
                       : (
