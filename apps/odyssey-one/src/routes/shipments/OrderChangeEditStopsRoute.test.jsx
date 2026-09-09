@@ -3,7 +3,7 @@
 // the SERVICE layer, not the query hook — same convention as
 // OrderChangeReviewRoute.test.jsx.
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderChangeEditStopsRoute from './OrderChangeEditStopsRoute.jsx'
@@ -172,6 +172,21 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(probe.textContent).toContain('"tab":"order-change"')
     expect(resolveOrderChange).toHaveBeenCalledTimes(1)
     expect(resolveOrderChange.mock.calls[0][1].action).toBe('save-stops')
+  })
+
+  test('Approve Changes disables itself while the save is in flight (saving prop wired through)', async () => {
+    let resolveSave
+    resolveOrderChange.mockReturnValue(new Promise((res) => { resolveSave = res }))
+    getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'View Routing' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true))
+    resolveSave(undefined)
+    await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
   })
 
   test('Approve shows an error and does not navigate when the save fails', async () => {

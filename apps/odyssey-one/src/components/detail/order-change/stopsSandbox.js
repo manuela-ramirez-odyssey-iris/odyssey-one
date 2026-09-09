@@ -6,9 +6,24 @@
 
 const parseNum = (s) => Number(String(s).replace(/[^0-9.]/g, '')) || 0
 
+const orDash = (v) => (v === '--' ? '' : (v ?? ''))
+
+// LINX-15669 wants the planner to enter Planned Date/Time/TZ on a created
+// stop; until that control exists (OC-open-13) the order's earliest window
+// date is the only coherent default — anything else leaves isRoutable's
+// date gate permanently unreachable for every location-change shipment.
+// ponytail: order-window date only, upgrade path = a real per-stop Planned
+// Date/Time/TZ control (OC-open-13).
+function defaultsFor(order, type) {
+  if (!order) return { date: '', address: '' }
+  return type === 'pickup'
+    ? { date: orDash(order.earliestPickup), address: orDash(order.shipFrom?.address) }
+    : { date: orDash(order.earliestDelivery), address: orDash(order.shipTo?.address) }
+}
+
 // ponytail: location match is plain string equality on the display location.
 // The AC calls for a Location-ID + full-address match; upgrade when that data is on the VM.
-function placeOrder(list, orderId, type, location, makeKey) {
+function placeOrder(list, orderId, type, location, makeKey, orders) {
   const idx = list.findIndex((s) => s.type === type && s.location === location)
   if (idx !== -1) {
     if (!list[idx].orderIds.includes(orderId)) list[idx].orderIds.push(orderId)
@@ -16,13 +31,15 @@ function placeOrder(list, orderId, type, location, makeKey) {
   }
   let lastIdx = -1
   for (let i = 0; i < list.length; i++) if (list[i].type === type) lastIdx = i
+  const order = orders?.find((o) => o.orderNumber === orderId)
+  const { date, address } = defaultsFor(order, type)
   const newStop = {
     key: makeKey(),
     type,
     orderIds: [orderId],
     location,
-    address: '',
-    date: '',
+    address,
+    date,
     weight: '',
     volume: '',
     packageCount: '',
@@ -51,7 +68,7 @@ function validSequence(stops) {
 }
 
 // LINX-15668: on open, relocate every order whose location changed.
-export function initSandbox({ stops, consolidation, orders: _orders }) {
+export function initSandbox({ stops, consolidation, orders }) {
   const sbStops = stops.map((s) => ({
     key: `s${s.stopNumber}`,
     type: s.type,
@@ -76,7 +93,7 @@ export function initSandbox({ stops, consolidation, orders: _orders }) {
     const type = src.type
     for (const orderId of change.changedOrderIds ?? []) {
       if (!src.orderIds.includes(orderId)) continue
-      placeOrder(sbStops, orderId, type, locField.new, () => `new:${type}:${++seq}`)
+      placeOrder(sbStops, orderId, type, locField.new, () => `new:${type}:${++seq}`, orders)
       src.orderIds = src.orderIds.filter((id) => id !== orderId)
     }
   }
@@ -136,8 +153,8 @@ export function addToStop(sb, id, orders) {
   if (!order) return sb
   const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   let seq = sb.seq
-  placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`)
-  placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`)
+  placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`, orders)
+  placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`, orders)
   const pending = sb.pending.filter((p) => p !== id)
   return { ...sb, stops, pending, seq, dirty: true, routed: false }
 }

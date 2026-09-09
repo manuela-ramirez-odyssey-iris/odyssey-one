@@ -22,7 +22,7 @@ const ROUTING_TOOLTIP = 'Place every P? / D? stop first'
 // LINX-15667…15671/15869/15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
 // Editor over the pure stopsSandbox model — every mutation here goes through
 // the sandbox's own functions so the reducer logic stays independently tested.
-export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, onApprove, onCancel }) {
+export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, onApprove, onCancel }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
   // (OrderChangeEditStopsRoute.jsx) mounts this with `key={sellShipment}`,
@@ -136,7 +136,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                     ? <Badge variant="amber">{id}</Badge>
                     // ponytail: no order drill-in yet — deferred, wire up when the
                     // Order Compare / detail surface has a route for this VM.
-                    : <Button variant="link" onClick={() => {}}>{id}</Button>}
+                    : (
+                      <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>
+                        <Button variant="link" onClick={() => {}}>{id}</Button>
+                      </TooltipTrigger>
+                    )}
                   {singleOrderLeft ? (
                     <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
                       <Button variant="secondary" icon={<ClipboardList {...ICON_MD} />} disabled>Move To Pending</Button>
@@ -210,7 +214,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               <div className="edit-stops__pending-row" key={id}>
                 {/* ponytail: no order drill-in yet — deferred, wire up when the
                     Order Compare / detail surface has a route for this VM. */}
-                <Button variant="link" onClick={() => {}}>{id}</Button>
+                <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>
+                  <Button variant="link" onClick={() => {}}>{id}</Button>
+                </TooltipTrigger>
                 <Button variant="secondary" icon={<Plus {...ICON_MD} />} disabled={isPrior} onClick={() => handleAddTo(id)}>Add to</Button>
               </div>
             ))}
@@ -222,7 +228,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         type="confirm"
         cancelLabel="Cancel"
         saveLabel="Approve Changes"
-        saveDisabled={!sb.routed || isPrior}
+        saveDisabled={!sb.routed || isPrior || saving}
         onCancel={handleCancel}
         onSave={() => onApprove?.(toDto(sb))}
       />

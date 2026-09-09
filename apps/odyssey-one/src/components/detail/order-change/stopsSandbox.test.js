@@ -57,6 +57,43 @@ describe('initSandbox', () => {
     expect(s.stops[2].orderIds).toEqual(['B', 'C'])
   })
 })
+describe('created-stop defaults (S143 — order window date/address)', () => {
+  const ordersWithWindow = orders.map((o) => (o.orderNumber !== 'C' ? o : {
+    ...o,
+    earliestPickup: 'June 5, 2026 09:00 CDT',
+    earliestDelivery: 'June 7, 2026 09:00 CDT',
+    shipFrom: { ...o.shipFrom, address: '123 Main St' },
+    shipTo: { ...o.shipTo, address: '456 Oak St' },
+  }))
+  it("a location-change created P? takes the order's earliest pickup date/address; sandbox is routable once placed", () => {
+    let s = initSandbox({ stops, consolidation: locChange, orders: ordersWithWindow })
+    expect(s.stops[1]).toMatchObject({ date: 'June 5, 2026 09:00 CDT', address: '123 Main St' })
+    s = moveStop(s, 1, 'up') // sequences the P? into place, same as the moveStop suite below
+    expect(isRoutable(s)).toBe(true)
+  })
+  it("an addToStop-created delivery stop takes the order's earliest delivery date/address", () => {
+    const orderD = {
+      orderNumber: 'D',
+      shipFrom: { location: 'X, City', address: '1 First St' },
+      shipTo: { location: 'W, Newplace', address: '99 New Ave' },
+      grossWeight: '1 LB',
+      totalVolume: '1 cuft',
+      earliestPickup: 'June 4, 2026 08:00 CDT',
+      earliestDelivery: 'June 8, 2026 10:00 CDT',
+    }
+    const allOrders = [...orders, orderD]
+    const s0 = initSandbox({ stops, consolidation: noChange, orders: allOrders })
+    const s = addToStop(s0, 'D', allOrders)
+    const created = s.stops.find((st) => st.type === 'delivery' && st.orderIds.includes('D') && st.location === 'W, Newplace')
+    expect(created).toMatchObject({ date: 'June 8, 2026 10:00 CDT', address: '99 New Ave', unsequenced: true })
+  })
+  it('an order with no earliest-pickup window ("--") yields an empty date, not "--" — the routing gate stays closed', () => {
+    const ordersNoWindow = orders.map((o) => (o.orderNumber === 'C' ? { ...o, earliestPickup: '--' } : o))
+    const s = initSandbox({ stops, consolidation: locChange, orders: ordersNoWindow })
+    expect(s.stops[1].date).toBe('')
+    expect(isRoutable(s)).toBe(false)
+  })
+})
 describe('moveStop', () => {
   it('moves up/down, renumbers, and sequences a P? once placed', () => {
     let s = initSandbox({ stops, consolidation: locChange, orders })

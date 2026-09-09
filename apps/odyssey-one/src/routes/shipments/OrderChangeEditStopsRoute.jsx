@@ -136,6 +136,7 @@ export default function OrderChangeEditStopsRoute() {
               orders={detail.orderDetails}
               orderChange={detail.orderChange}
               summary={detail.stopsData.summary}
+              saving={resolve.isPending}
               onApprove={handleApprove}
               onCancel={exit}
             />

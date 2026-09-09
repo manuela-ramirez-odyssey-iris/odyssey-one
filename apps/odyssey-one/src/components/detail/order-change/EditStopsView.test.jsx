@@ -122,6 +122,12 @@ it('View Routing disabled while a P? exists; enabled otherwise; clicking marks r
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
+it('Approve Changes stays disabled while saving even once routed', () => {
+  setup({ saving: true })
+  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
+  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
+})
+
 it('Prior toggle disabled until dirty; in Prior view the title, alert copy, muted pending column, disabled controls and amber badges for removed/moved appear', () => {
   setup()
   const priorBtn = screen.getByRole('button', { name: 'Prior' })
