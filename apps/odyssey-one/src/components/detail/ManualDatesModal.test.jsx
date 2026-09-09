@@ -105,6 +105,12 @@ describe('ManualDatesModal (LINX-13954)', () => {
     expect(screen.getByText('Pickup Time Zone')).toBeTruthy()
     expect(screen.getByText('Delivery Time Zone')).toBeTruthy()
 
+    // `short` (S144, user ruling) — the modal's zone selects show the
+    // abbreviation, not the long "(UTC-06:00) Central Time (US & Canada)"
+    // label Orders uses, since a third-width field would ellipsize it.
+    expect(document.getElementById('manual-dates-pickup-tz').value).toBe('CST')
+    expect(document.getElementById('manual-dates-delivery-tz').value).toBe('CST')
+
     fillPickup('09/02/2026 08:00')
     fillDelivery('09/04/2026 16:00')
     fireEvent.click(okButton())

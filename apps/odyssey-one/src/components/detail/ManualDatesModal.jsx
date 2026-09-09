@@ -122,6 +122,7 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
           label="Pickup Time Zone"
           value={pickupTz}
           onChange={setPickupTz}
+          short
         />
       </div>
       <div className="manual-dates__row">
@@ -143,6 +144,7 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
           label="Delivery Time Zone"
           value={deliveryTz}
           onChange={setDeliveryTz}
+          short
         />
       </div>
     </ModalMedium>,
