@@ -202,6 +202,15 @@ describe('OrderChangeTenderDetails — computeHazmatDiffs (ported from OrderChan
   })
 })
 
+describe('OrderChangeTenderDetails — bare mode (per-order compare modal, LINX-15437)', () => {
+  test('bare renders the two bands with no card title/collapse', () => {
+    render(<OrderChangeTenderDetails oc={makeOc()} bare />)
+    expect(screen.queryByText('Preview Tender Details')).toBeNull()
+    expect(screen.getByRole('columnheader', { name: 'Changed Fields' })).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: 'Unchanged Fields' })).toBeTruthy()
+  })
+})
+
 describe('OrderChangeTenderDetails — List rendering basics', () => {
   test('renders two 3-column tables with strip-style Prior/New headers', () => {
     const { container } = renderCard(makeOc())

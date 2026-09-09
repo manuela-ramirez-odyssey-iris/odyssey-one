@@ -15,6 +15,7 @@ it('titles the dialog, names the order, and lists changed rows before unchanged 
   expect(!!(gw.compareDocumentPosition(inc) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true)
   expect(screen.getByText('120 LB').closest('.text-badge')).toBeTruthy()
   expect(screen.getAllByText('FOB')[0].closest('.text-badge')).toBeNull()
+  expect(screen.queryByText('Preview Tender Details')).toBeNull()
 })
 it('Go Back closes; empty rows render both bands without crashing', () => {
   const onClose = vi.fn()

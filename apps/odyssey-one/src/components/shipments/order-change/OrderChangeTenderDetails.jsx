@@ -165,7 +165,15 @@ function ListSegment({ label, rows }) {
   return <GroupTable className="oc-tender-table" columns={columns} groups={groups} flat headerStyle="strip" />
 }
 
-export default function OrderChangeTenderDetails({ oc }) {
+// `bare` (default false) — the Direct review lands this section COLLAPSED
+// inside a ComparisonPreviewCard (S135 ruling: title + difference count +
+// chevron). The consolidated per-order compare modal (LINX-15437, VD
+// 2107-12719) shows the same two Changed/Unchanged bands uncarded, directly
+// under its own HeaderStrip — the modal already owns the chrome, so a
+// second nested title/collapse would be redundant. `bare` skips
+// ComparisonPreviewCard and returns the stack directly; the non-bare path is
+// untouched.
+export default function OrderChangeTenderDetails({ oc, bare = false }) {
   const rows = [...(oc?.comparison ?? []), ...flattenHazmat(oc?.hazmat ?? [])]
   // Distinct changed FIELDS, not one entry per hazmat line (a field changed
   // on one of several lines must count once) — a Set over the merged list
@@ -173,12 +181,18 @@ export default function OrderChangeTenderDetails({ oc }) {
   // so this only actually de-dupes the hazmat side.
   const tags = [...new Set(rows.filter((r) => r.changed).map((r) => r.field))]
 
+  const stack = (
+    <div className="comparison-preview__stack">
+      <ListSegment label="Changed Fields" rows={rows.filter((r) => r.changed)} />
+      <ListSegment label="Unchanged Fields" rows={rows.filter((r) => !r.changed)} />
+    </div>
+  )
+
+  if (bare) return stack
+
   return (
     <ComparisonPreviewCard title="Preview Tender Details" differences={tags} defaultExpanded={false}>
-      <div className="comparison-preview__stack">
-        <ListSegment label="Changed Fields" rows={rows.filter((r) => r.changed)} />
-        <ListSegment label="Unchanged Fields" rows={rows.filter((r) => !r.changed)} />
-      </div>
+      {stack}
     </ComparisonPreviewCard>
   )
 }
