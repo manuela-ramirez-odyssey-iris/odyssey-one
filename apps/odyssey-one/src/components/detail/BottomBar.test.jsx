@@ -293,16 +293,26 @@ describe('S140 — Tender tab indicators', () => {
   const tenderTab = () =>
     within(screen.getByRole('tablist')).getAllByRole('tab')
       .find((t) => t.textContent.startsWith('Tender') && !t.textContent.includes('History'))
+  const stopsTab = () =>
+    within(screen.getByRole('tablist')).getAllByRole('tab')
+      .find((t) => t.textContent.trim() === 'Stops')
 
   test('a dropped carrier puts NOTHING on the Tender tab — informational, not an alert (user, 2026-09-07)', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }] })
     expect(tenderTab().querySelector('.shipments-bar__tab-indicators')).toBeNull()
   })
 
-  test('an unresolved order change puts the package glyph on the Tender tab', () => {
+  test('an unresolved Direct order change puts the triangle badge on the Tender tab', () => {
     renderBar({ orderChange: { resolution: null } })
     expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
     expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
+    expect(within(stopsTab()).queryByLabelText('Consolidated order change pending')).toBeNull()
+  })
+
+  test('DEC-132: an unresolved Consolidated order change badges Stops, not Tender', () => {
+    renderBar({ orderChange: { resolution: null, consolidation: { locationChange: false } } })
+    expect(within(stopsTab()).getByLabelText('Consolidated order change pending')).toBeTruthy()
+    expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
   })
 
   test('an order change is the only Tender alert, dropped carriers or not', () => {

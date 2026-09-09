@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { OctagonAlert, RefreshCw } from 'lucide-react'
+import { TriangleAlert, RefreshCw } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Badge, Button, Spinner } from '@odyssey/ui'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
@@ -302,6 +302,11 @@ export default function BottomBar({
   // truck for dropped carriers, a purple package for a pending order change
   // (same two glyphs/colours those features use inside the pane).
   const pendingOrderChange = !!(shownDetails?.orderChange && !shownDetails.orderChange.resolution)
+  // DEC-132: a Direct change is reviewed on Tender, a Consolidated one on
+  // Stops (StopsTab's own `review` guard) — the badge follows the tab where
+  // the review actually happens, never both, so the planner isn't pointed at
+  // two tabs for one change (user, 2026-09-09).
+  const isConsolidatedChange = pendingOrderChange && !!shownDetails.orderChange.consolidation
   // SpotBid: a live dot while this shipment's quote is open (user,
   // 2026-09-07) — the same LiveBidDot the pane's Live Bids sub-tab wears.
   const { quote: spotQuote } = useSpotQuote(shipment?.sellShipment)
@@ -313,23 +318,40 @@ export default function BottomBar({
     // them demands action, and routing drops some on nearly every shipment),
     // so they get no badge (user, 2026-09-07 — reversing the same morning's
     // count badge).
-    if (t.key === 'routing' && pendingOrderChange) {
+    if (t.key === 'routing' && pendingOrderChange && !isConsolidatedChange) {
       return {
         ...t,
         // The shared icon-only purple Badge (user, 2026-09-07, final of four
         // tries: inline glyph → floating corner circle → count → this).
-        // OctagonAlert reads "halted", which is what a pending order change
-        // does to this tab. Badge's icon-only shape is aria-hidden by design,
-        // so the wrapper carries the label.
+        // TriangleAlert (swapped from OctagonAlert, user, 2026-09-09): the
+        // triangle is this app's standing change/attention signal — it's
+        // what DiffValue puts on every changed value across the order-change
+        // surfaces (comparisonHelpers.jsx, StopsTab's `Changed`), so the tab
+        // badge now matches the glyph the review screens already use. Badge's
+        // icon-only shape is aria-hidden by design, so the wrapper carries
+        // the label.
         indicators: (
           <span role="img" aria-label="Order change pending">
-            <Badge variant="purple" iconOnly leftIcon={<OctagonAlert {...ICON_MD} aria-hidden="true" />} />
+            <Badge variant="purple" iconOnly leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />
+          </span>
+        ),
+      }
+    }
+    // DEC-132: a Consolidated change is reviewed on Stops, not Tender (that
+    // tab's tendering actions are locked while review is pending) — so this
+    // is the one tab that gets the signal for a consolidated change.
+    if (t.key === 'stops' && isConsolidatedChange) {
+      return {
+        ...t,
+        indicators: (
+          <span role="img" aria-label="Consolidated order change pending">
+            <Badge variant="purple" iconOnly leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />
           </span>
         ),
       }
     }
     return t
-  }), [orderedTabs, pendingOrderChange, spotLive, spotQuote])
+  }), [orderedTabs, pendingOrderChange, isConsolidatedChange, spotLive, spotQuote])
 
   const renderTabContent = () => {
     if (detailsError) {
