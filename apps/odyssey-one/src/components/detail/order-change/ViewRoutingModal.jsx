@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Badge, Button, GroupTable, ModalMedium } from '@odyssey/ui'
 import { DiffValue, rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
@@ -55,7 +56,9 @@ export default function ViewRoutingModal({ orderChange: oc, onClose }) {
   const newList = oc?.newTenderList ?? []
   const dropped = oc?.droppedCarriers?.new ?? []
 
-  return (
+  // Portalled to document.body — the bottom bar's own box clips this modal
+  // when the bar is partially open (user, 2026-09-09).
+  return createPortal(
     <ModalMedium
       title="View Routing"
       ariaLabel="View Routing"
@@ -72,6 +75,7 @@ export default function ViewRoutingModal({ orderChange: oc, onClose }) {
         columns={DROP_COLS}
         groups={rowsToFlatGroups(dropped, DROP_COLS, (r, c) => val(r[c.key]))}
       />
-    </ModalMedium>
+    </ModalMedium>,
+    document.body,
   )
 }

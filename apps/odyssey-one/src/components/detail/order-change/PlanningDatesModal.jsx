@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Button, GroupTable, ModalMedium } from '@odyssey/ui'
 import { rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
@@ -26,7 +27,9 @@ export default function PlanningDatesModal({ orders = [], onClose }) {
     earliestDelivery: o.earliestDelivery,
     latestDelivery: o.latestDelivery,
   }))
-  return (
+  // Portalled to document.body — the bottom bar's own box clips this modal
+  // when the bar is partially open (user, 2026-09-09).
+  return createPortal(
     <ModalMedium
       title="Planning Dates"
       ariaLabel="Planning Dates"
@@ -34,6 +37,7 @@ export default function PlanningDatesModal({ orders = [], onClose }) {
       footer={<Button variant="secondary" onClick={onClose}>Go Back</Button>}
     >
       <GroupTable flat columns={COLUMNS} groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => val(r[c.key]))} />
-    </ModalMedium>
+    </ModalMedium>,
+    document.body,
   )
 }

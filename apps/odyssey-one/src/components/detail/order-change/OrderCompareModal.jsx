@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Button, HeaderStrip, ModalMedium } from '@odyssey/ui'
 import OrderChangeTenderDetails from '../../shipments/order-change/OrderChangeTenderDetails.jsx'
 import '../../shipments/order-change/order-change.css'
@@ -11,7 +12,9 @@ import '../../shipments/order-change/order-change.css'
 // "Planning Dates" (copy leftover from the sibling modal); "Order Changes"
 // until the designer confirms (OC-open-9 / Q6).
 export default function OrderCompareModal({ orderId, rows = [], onClose }) {
-  return (
+  // Portalled to document.body — the bottom bar's own box clips this modal
+  // when the bar is partially open (user, 2026-09-09).
+  return createPortal(
     <ModalMedium
       title="Order Changes"
       ariaLabel="Order Changes"
@@ -25,6 +28,7 @@ export default function OrderCompareModal({ orderId, rows = [], onClose }) {
           the VD's Boiling Point / Flash Point rows stay unreachable until the
           seed grows a per-order hazmat pair. Logged as OC-open-12. */}
       <OrderChangeTenderDetails oc={{ comparison: rows, hazmat: [] }} bare />
-    </ModalMedium>
+    </ModalMedium>,
+    document.body,
   )
 }
