@@ -408,7 +408,7 @@ export default function BottomBar({
       // No onToggleColumnPanel here (Fix 3, 2026-08-10) — it used to be the SAME
       // handler ShipmentTable uses, so the Routing Guide's gear opened the
       // shipments-LIST column panel, not one of its own. Removed at the source.
-      case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} />
+      case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} onRequestTab={handleTabChange} />
       // detailsStale (isPlaceholderData) threaded through so SetupCarriers can
       // defer its one-shot carrier-row build until shipmentDetails genuinely
       // belongs to the SELECTED shipment — see SetupCarriers.jsx's comment on

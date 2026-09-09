@@ -1359,6 +1359,17 @@ describe('Review Order Change entry (LINX-14509)', () => {
     render(<RoutingGuideTab {...props} />)
     expect(screen.queryByRole('button', { name: 'Review Order Change' })).toBeNull()
   })
+
+  // LINX-15435 — a consolidated shipment reviews on its Stops tab, not the
+  // Direct-only review route.
+  it('routes a Consolidation shipment to the Stops tab via onRequestTab instead of navigating', () => {
+    const onRequestTab = vi.fn()
+    const props = baseProps()
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null }, shipmentType: 'Consolidation' }
+    render(<RoutingGuideTab {...props} onRequestTab={onRequestTab} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Review Order Change' }))
+    expect(onRequestTab).toHaveBeenCalledWith('stops')
+  })
 })
 
 // S137 — domain ruling (Jana via designer): a pending order change blocks

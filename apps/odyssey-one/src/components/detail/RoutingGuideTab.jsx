@@ -915,7 +915,7 @@ function RoutingSubTabs({ activeSubTab, onTabChange }) {
    Section 8 — Main Component
    ═══════════════════════════════════════════════════════════ */
 
-export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
+export default function RoutingGuideTab({ data, shipmentDetails, shipment, onRequestTab }) {
   const currentUser = useCurrentUser()
   const [activeSubTab, setActiveSubTab] = useState('routing-options')
   const [highlightedRank, setHighlightedRank] = useState(null)
@@ -1660,7 +1660,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       // Carried onto the overlay, the auto margin beats the overlay's own
       // `justify-content: center` — the button rendered 529px right of centre,
       // hard against the table's right edge. The rule went with the old home.
-      onClick={() => navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
+      // LINX-14509: the Direct review route is "Direct Shipments only". A
+      // consolidated shipment reviews on its Stops tab instead (LINX-15435
+      // "Stops tab shall be selected by default when accessed from an Order
+      // Change exception").
+      onClick={() => shipmentDetails?.shipmentType === 'Consolidation'
+        ? onRequestTab?.('stops')
+        : navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
     >
       Review Order Change
     </Button>

@@ -289,7 +289,17 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                   // row VM does. Lossy (gone on refresh/pasted URL) — the route
                   // degrades to the honest "Shipment {sellShipment}" label when
                   // state is absent rather than mislabeling the sell id as "Buy".
-                  { label: 'Review Order Change', onSelect: () => navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment } }) },
+                  // LINX-14509: the Direct review route is "Direct Shipments only". A
+                  // consolidated shipment reviews on its Stops tab instead (LINX-15435
+                  // "Stops tab shall be selected by default when accessed from an Order
+                  // Change exception") — same doorway a mapped cell click uses
+                  // (onRowSelect + tab key).
+                  {
+                    label: 'Review Order Change',
+                    onSelect: () => row.original.shipmentType === 'Consolidation'
+                      ? onRowSelect(row.original.id, 'stops', false)
+                      : navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment } }),
+                  },
                   ...SHIPMENT_ACTIONS,
                 ]
               : SHIPMENT_ACTIONS

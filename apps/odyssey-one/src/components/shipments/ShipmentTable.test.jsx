@@ -91,7 +91,11 @@ describe('ShipmentTable — error state', () => {
 describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', () => {
   const orderChangeRow = {
     id: '0000000012345', sellShipment: '0000000012345', buyShipment: '0000000054321',
-    category: 'order-change', orders: [],
+    category: 'order-change', shipmentType: 'Direct', orders: [],
+  }
+  const consolidationOrderChangeRow = {
+    id: '0000000067890', sellShipment: '0000000067890', buyShipment: '0000000098765',
+    category: 'order-change', shipmentType: 'Consolidation', orders: [],
   }
   const dateIssueRow = {
     id: '0000000099999', sellShipment: '0000000099999', buyShipment: '0000000011111',
@@ -139,5 +143,32 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
     expect(screen.getByTestId('nav-probe').textContent).toBe(
       JSON.stringify({ buyShipment: orderChangeRow.buyShipment }),
     )
+  })
+
+  // LINX-15435 — "Stops tab shall be selected by default when accessed from
+  // an Order Change exception" for a CONSOLIDATED shipment; the Direct route
+  // (LINX-14509) is Direct-only. Same doorway a mapped cell click already
+  // uses: onRowSelect(id, tab, expandGeneral).
+  test('Review Order Change on a Consolidation row selects the row on the Stops tab instead of navigating (LINX-15435)', () => {
+    const onRowSelect = vi.fn()
+    function LocationProbe() {
+      const location = useLocation()
+      return <div data-testid="nav-probe">{JSON.stringify(location.state)}</div>
+    }
+    render(
+      <MemoryRouter initialEntries={['/shipments']}>
+        <Routes>
+          <Route
+            path="/shipments"
+            element={<ShipmentTable {...baseProps} shipments={[consolidationOrderChangeRow]} onRowSelect={onRowSelect} />}
+          />
+          <Route path="/shipments/order-change/:sellShipment" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Review Order Change' }))
+    expect(onRowSelect).toHaveBeenCalledWith(consolidationOrderChangeRow.id, 'stops', false)
+    expect(screen.queryByTestId('nav-probe')).toBeFalsy()
   })
 })
