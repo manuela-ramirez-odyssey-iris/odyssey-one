@@ -43,7 +43,8 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
   const [capped, setCapped] = useState(false)
 
   const rows = useMemo(() => filterCandidates(data ?? [], { q, filters }), [data, q, filters])
-  const byId = useMemo(() => new Map(rows.map((r) => [r.orderNumber, r])), [rows])
+  // Unfiltered — a pick made before a later search/filter narrows the grid must still resolve.
+  const byId = useMemo(() => new Map((data ?? []).map((r) => [r.orderNumber, r])), [data])
 
   const select = (id, next) => {
     if (!next) { setSelected((s) => s.filter((x) => x !== id)); setCapped(false); return }
@@ -90,6 +91,7 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
             <Button variant="primary" size="lg" onClick={apply}>Apply</Button>
           </>)}>
           <div className="add-orders__grid">
+            {/* ponytail: FormField has no readOnly, only disabled; onChange is inert since disabled already blocks input. */}
             <FormField id="add-orders-customer" label="Customer" value={customerName} disabled onChange={() => {}} />
             <FormField id="add-orders-order-number" label="Order #" value={draft.orderNumber} onChange={setField('orderNumber')} />
             <FormField id="add-orders-buy-shipment" label="Buy Shipment" value={draft.buyShipment} onChange={setField('buyShipment')} />
@@ -97,8 +99,9 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
             <DatePicker mode="range" label="Delivery Date" value={{ start: isoToDate(draft.deliveryDate.from), end: isoToDate(draft.deliveryDate.to) }} onChange={setRange('deliveryDate')} />
             <FormField id="add-orders-origin" label="Origin" placeholder="Site ID, City, State, ZIP or Country" value={draft.origin} onChange={setField('origin')} />
             <FormField id="add-orders-destination" label="Destination" placeholder="Site ID, City, State, ZIP or Country" value={draft.destination} onChange={setField('destination')} />
-            <label className="text-label-xs-medium" htmlFor="add-orders-shipment-status">Shipment Status<Dropdown id="add-orders-shipment-status" value={draft.shipmentStatus} options={opts(SHIPMENT_STATUSES)} onChange={setPick('shipmentStatus')} /></label>
-            <label className="text-label-xs-medium" htmlFor="add-orders-tender-status">Tender Status<Dropdown id="add-orders-tender-status" value={draft.tenderStatus} options={opts(TENDER_STATUSES)} onChange={setPick('tenderStatus')} /></label>
+            {/* No htmlFor/id: Dropdown's id lands on a non-labelable span, not the trigger button — the wrapping label implicitly labels the inner control instead. */}
+            <label className="text-label-xs-medium">Shipment Status<Dropdown value={draft.shipmentStatus} options={opts(SHIPMENT_STATUSES)} onChange={setPick('shipmentStatus')} /></label>
+            <label className="text-label-xs-medium">Tender Status<Dropdown value={draft.tenderStatus} options={opts(TENDER_STATUSES)} onChange={setPick('tenderStatus')} /></label>
           </div>
         </ModalMedium>
       )}

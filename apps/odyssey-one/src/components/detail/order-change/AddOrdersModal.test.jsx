@@ -34,6 +34,14 @@ it('search narrows the grid; Clear All restores it', () => {
   expect(screen.getByText('Results (7)')).toBeTruthy()
 })
 
+it('selection survives a later search that hides the picked row', () => {
+  const { onAdd } = setup()
+  fireEvent.click(screen.getAllByRole('checkbox')[1])   // pick O1
+  fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'bost' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Add Order(s)' }))
+  expect(onAdd.mock.calls[0][0].map((r) => r.orderNumber)).toEqual(['O1'])
+})
+
 it('caps selection at five with an inline message; Add Order(s) returns the picked rows', () => {
   const { onAdd } = setup()
   const boxes = screen.getAllByRole('checkbox').slice(1)   // [0] = header select-all
