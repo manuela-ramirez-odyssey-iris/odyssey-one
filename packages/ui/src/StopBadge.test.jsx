@@ -37,6 +37,14 @@ describe('StopBadge', () => {
     expect(circle.querySelector('path')).toBeNull()
   })
 
+  test('showStatusBadge cannot ADD a circle to pending — it only force-hides', () => {
+    // The prop table promised a "gray-outline" pending circle until
+    // 2026-09-09. It never existed: the pending check short-circuits before
+    // the flag is consulted, and there is no pending-circle CSS either.
+    const { container } = render(<StopBadge label="D2" status="pending" showStatusBadge />)
+    expect(container.querySelector('.stop-badge__status')).toBeNull()
+  })
+
   test('showStatusBadge={false} force-hides the circle on changed', () => {
     const { container } = render(<StopBadge label="P1" status="changed" showStatusBadge={false} />)
     expect(container.querySelector('.stop-badge__status')).toBeNull()
