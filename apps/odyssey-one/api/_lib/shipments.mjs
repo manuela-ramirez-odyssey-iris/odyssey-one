@@ -361,11 +361,14 @@ export function buildSourceShipmentsQuery(sellShipments) {
 // BEFORE the transaction so a validation failure never opens one.
 async function pullExternalOrders(db, externalOrders) {
   if (!externalOrders?.length) return { records: [], sources: [] }
-  const { rows } = await db.query(buildSourceShipmentsQuery([...new Set(externalOrders.map((e) => e.sourceSellShipment))]))
+  // ponytail: dedupe by orderNumber — a repeated Add New Order pick (or a
+  // retried client) shouldn't double-count the same order into orderList.
+  const deduped = [...new Map(externalOrders.map((e) => [e.orderNumber, e])).values()]
+  const { rows } = await db.query(buildSourceShipmentsQuery([...new Set(deduped.map((e) => e.sourceSellShipment))]))
   const bySell = new Map(rows.map((r) => [r.sellShipment, r]))
   const blocked = []
   const records = []
-  for (const { orderNumber, sourceSellShipment } of externalOrders) {
+  for (const { orderNumber, sourceSellShipment } of deduped) {
     const src = bySell.get(sourceSellShipment)
     const rec = src?.detail?.orderList?.find((o) => (o.orderNumber ?? o.orderId) === orderNumber)
     if (!src || !rec || MOVE_BLOCKED_STATUS.includes(src.shipmentStatus) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus)) {
@@ -497,16 +500,21 @@ export async function resolveOrderChange({ params, body, db }) {
 
     // ponytail: first BEGIN/COMMIT in this file — the AC (LINX-15872) demands
     // one Save transaction now that a save-stops can touch more than one
-    // shipment (this target + every source an order moved from).
-    await db.query('BEGIN')
+    // shipment (this target + every source an order moved from). `db` is a
+    // pg.Pool: pool.query('BEGIN') would check out a client, run it, and
+    // release it — the following writes would then land on ARBITRARY
+    // connections (no atomicity) and leave that first client idle-in-
+    // transaction in the pool. One client, checked out for the whole block.
+    const client = await db.connect()
     try {
-      await db.query(buildSaveStopsQuery(sellShipment, merged, orderList))
+      await client.query('BEGIN')
+      await client.query(buildSaveStopsQuery(sellShipment, merged, orderList))
       for (const src of sources) {
         const movedIds = (body.externalOrders ?? [])
           .filter((e) => e.sourceSellShipment === src.sellShipment)
           .map((e) => e.orderNumber)
         const next = removeOrdersFromSource(src.detail, movedIds)
-        await db.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, { resetChanges: false }))
+        await client.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, { resetChanges: false }))
       }
       // Scenario A (active tender) writes nothing further: the row is already
       // exceptions/order-change at this tender status (that's what "active"
@@ -516,12 +524,14 @@ export async function resolveOrderChange({ params, body, db }) {
       if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
         // Scenario B — same "final decision" stamp as retender/bypass/cancel.
         const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
-        await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
+        await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
       }
-      await db.query('COMMIT')
+      await client.query('COMMIT')
     } catch (e) {
-      await db.query('ROLLBACK')
+      try { await client.query('ROLLBACK') } catch {}
       throw e
+    } finally {
+      client.release()
     }
     return { success: true }
   }

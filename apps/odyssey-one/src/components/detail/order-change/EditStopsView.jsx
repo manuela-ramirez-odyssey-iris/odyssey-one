@@ -96,14 +96,20 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // match-or-create sees the same strings.
   const handleAddOrders = async (rows) => {
     setModal(null)
-    const fetched = await Promise.all(rows.map(async (r) => {
-      const d = await getSellShipmentDetail(r.sourceSellShipment)
-      const vm = d.orderDetails.find((o) => o.orderNumber === r.orderNumber)
-      return vm ? { ...vm, sourceSellShipment: r.sourceSellShipment } : null
-    }))
-    const recs = fetched.filter(Boolean)
-    setExtraOrders((prev) => [...prev, ...recs.filter((r) => !prev.some((p) => p.orderNumber === r.orderNumber))])
-    setSb((s) => addPending(s, recs.map((r) => r.orderNumber)))
+    // Fired from an onClick — a rejected fetch here is an unhandled
+    // rejection with nothing on screen unless it's caught and surfaced.
+    try {
+      const fetched = await Promise.all(rows.map(async (r) => {
+        const d = await getSellShipmentDetail(r.sourceSellShipment)
+        const vm = d.orderDetails.find((o) => o.orderNumber === r.orderNumber)
+        return vm ? { ...vm, sourceSellShipment: r.sourceSellShipment } : null
+      }))
+      const recs = fetched.filter(Boolean)
+      setExtraOrders((prev) => [...prev, ...recs.filter((r) => !prev.some((p) => p.orderNumber === r.orderNumber))])
+      setSb((s) => addPending(s, recs.map((r) => r.orderNumber)))
+    } catch {
+      setErrorMsg('Could not load the selected orders. Try again.')
+    }
   }
 
   // D8 — external orders that made it onto a stop ride Approve's second arg

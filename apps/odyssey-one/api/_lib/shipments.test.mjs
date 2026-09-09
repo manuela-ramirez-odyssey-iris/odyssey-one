@@ -520,8 +520,10 @@ describe('resolveOrderChange', () => {
 
   it('save-stops with an active prior tender status writes only the stop merge — no refile, no resolution', async () => {
     const seen = []
+    let released = false
     const detail = { orderList: [], shipmentStopList: [] }
-    const db = { query: async (q) => { seen.push(q); return { rows: [{ detail }] } } }
+    const query = async (q) => { seen.push(q); return { rows: [{ detail }] } }
+    const db = { query, connect: async () => ({ query, release: () => { released = true } }) }
     const stops = [{ stopSequence: 1, stopType: 'pickup', orderIds: [], sourceStopSequence: null }]
     const res = await resolveOrderChange({
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Sent', stops }, db,
@@ -533,6 +535,7 @@ describe('resolveOrderChange', () => {
     assert.match(seen[2].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
     assert.ok(!/resolution/.test(seen[2].text))
     assert.equal(seen[3], 'COMMIT')
+    assert.ok(released, 'client released back to the pool')
   })
 
   it('save-stops resets orderChange.consolidation.stopChanges/locationChange in the same write', () => {
@@ -550,8 +553,10 @@ describe('resolveOrderChange', () => {
 
   it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution', async () => {
     const seen = []
+    let released = false
     const detail = { orderList: [], shipmentStopList: [] }
-    const db = { query: async (q) => { seen.push(q); return { rows: [{ detail }] } } }
+    const query = async (q) => { seen.push(q); return { rows: [{ detail }] } }
+    const db = { query, connect: async () => ({ query, release: () => { released = true } }) }
     const stops = [{ stopSequence: 1, stopType: 'pickup', orderIds: [], sourceStopSequence: null }]
     const res = await resolveOrderChange({
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Cancelled', stops }, db,
@@ -564,6 +569,7 @@ describe('resolveOrderChange', () => {
     assert.ok(values.includes('Cancelled') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"save-stops"')))
     assert.equal(seen[4], 'COMMIT')
+    assert.ok(released, 'client released back to the pool')
   })
 })
 
@@ -575,17 +581,20 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
   // validation failure — that path never opens a transaction to roll back.
   const mk = (srcRow, { failWrite = false } = {}) => {
     const calls = []
-    const db = {
-      query: async (q) => {
-        calls.push(q)
-        const text = typeof q === 'string' ? q : q.text
-        if (/SELECT detail FROM shipments WHERE sell_shipment = \$1/.test(text)) return { rows: [{ detail: target }] }
-        if (/sell_shipment = ANY/.test(text)) return { rows: [srcRow] }
-        if (failWrite && /shipmentStopList/.test(text)) throw new Error('write failed')
-        return { rows: [], rowCount: 1 }
-      },
+    const state = { released: false }
+    const query = async (q) => {
+      calls.push(q)
+      const text = typeof q === 'string' ? q : q.text
+      if (/SELECT detail FROM shipments WHERE sell_shipment = \$1/.test(text)) return { rows: [{ detail: target }] }
+      if (/sell_shipment = ANY/.test(text)) return { rows: [srcRow] }
+      if (failWrite && /shipmentStopList/.test(text)) throw new Error('write failed')
+      return { rows: [], rowCount: 1 }
     }
-    return { db, calls }
+    // db is a pg.Pool stand-in: plain queries (detail read, source
+    // revalidation) go through db.query; the transaction checks out ONE
+    // client via connect() and runs every write on it, same as the real code.
+    const db = { query, connect: async () => ({ query, release: () => { state.released = true } }) }
+    return { db, calls, state }
   }
   const body = {
     action: 'save-stops', priorTenderStatus: 'Sent',
@@ -602,7 +611,7 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
         { stopSequence: 3, stopType: 'delivery', orderIds: ['E', 'F'], facilityName: 'Z', grossWeightValue: 8 },
       ],
     }
-    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    const { db, calls, state } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
     await resolveOrderChange({ params: ['9'], body, db })
     const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
     // Deviation from the plan draft: the detail read + source revalidation
@@ -626,14 +635,16 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     assert.deepEqual(sourceSave.stops.map((s) => [s.stopSequence, s.orderIds]), [[1, ['F']], [2, ['F']]]) // emptied P1 dropped, renumbered
     assert.equal(sourceSave.stops[1].grossWeightValue, 1) // recomputed from its remaining order
     assert.deepEqual(sourceSave.ids, ['F'])
+    assert.ok(state.released, 'client released back to the pool')
   })
 
   it('a failing write rolls back and writes nothing further', async () => {
     const src = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }], shipmentStopList: [] }
-    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src }, { failWrite: true })
+    const { db, calls, state } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src }, { failWrite: true })
     await assert.rejects(() => resolveOrderChange({ params: ['9'], body, db }))
     const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
     assert.equal(texts[texts.length - 1], 'ROLLBACK')
+    assert.ok(state.released, 'client released back to the pool even on the throwing path')
   })
 
   it('refuses when the source shipment is Done or has an active tender, naming the order — nothing written, no transaction opened', async () => {

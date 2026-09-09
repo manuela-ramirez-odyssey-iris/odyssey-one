@@ -47,8 +47,10 @@ export function useResolveOrderChange() {
   return useMutation({
     mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac, stops, externalOrders }: ResolveOrderChangeInput) =>
       resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac, stops, externalOrders }),
-    onSuccess: (_data, { sellShipment }) => {
-      queryClient.invalidateQueries({ queryKey: ['shipment', 'detail', sellShipment] })
+    onSuccess: () => {
+      // Prefix, not the exact key: a 15872 move also changes SOURCE
+      // shipments' cached detail (their orderList/stops), not just this one.
+      queryClient.invalidateQueries({ queryKey: ['shipment', 'detail'] })
       queryClient.invalidateQueries({ queryKey: ['shipment-error-list'] })
       queryClient.invalidateQueries({ queryKey: ['shipment-category-counts'] })
     },

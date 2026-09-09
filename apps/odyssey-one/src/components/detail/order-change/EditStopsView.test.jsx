@@ -7,15 +7,16 @@ vi.mock('./AddOrdersModal', () => ({
   default: ({ onAdd }) => <button onClick={() => onAdd([{ orderNumber: 'E', sourceSellShipment: '77' }])}>mock-add</button>,
 }))
 vi.mock('../../../api/services/shipmentService', () => ({
-  getSellShipmentDetail: async () => ({
+  getSellShipmentDetail: vi.fn(async () => ({
     orderDetails: [{
       orderNumber: 'E', planningType: 'SSD', shipFrom: { location: 'X, City' }, shipTo: { location: 'Z, Ville' },
       grossWeight: '7 LB', totalVolume: '2 cuft', earliestPickup: '06/04/2026', earliestDelivery: '06/06/2026',
     }],
-  }),
+  })),
 }))
+import { getSellShipmentDetail } from '../../../api/services/shipmentService'
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); getSellShipmentDetail.mockClear() })
 
 const stop = (over) => ({
   type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St',
@@ -216,6 +217,15 @@ it('Add New Order opens the modal; added orders land in pending with Add to; a p
   fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   expect(onApprove.mock.calls[0][1]).toEqual([{ orderNumber: 'E', sourceSellShipment: '77' }])
+})
+
+it('a rejecting getSellShipmentDetail surfaces an Alert instead of an unhandled rejection; nothing lands in pending', async () => {
+  getSellShipmentDetail.mockRejectedValueOnce(new Error('network down'))
+  setup({ sellShipment: '9', customerId: 'ERCO', customerName: 'Erco' })
+  fireEvent.click(screen.getByRole('button', { name: 'Add New Order' }))
+  fireEvent.click(screen.getByText('mock-add'))
+  expect(await screen.findByText('Could not load the selected orders. Try again.')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'E' })).toBeNull()
 })
 
 it('hovering an order link shows the order Tooltip with the stop leg date (VD 2143-11775)', () => {
