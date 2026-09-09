@@ -5,13 +5,11 @@ import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls
 export const meta = {
   name: 'TitleSubtitle',
   tier: 'molecule',
-  version: '0.5.0',
+  version: '1.8.0',
   createdVersion: '0.5.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '3016:2056',
   codeConnect: 'packages/ui/src/TitleSubtitle.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

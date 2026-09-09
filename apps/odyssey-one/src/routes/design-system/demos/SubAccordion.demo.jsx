@@ -7,13 +7,11 @@ import { DemoControls, DemoControlGroup, DemoToggle, DemoSelect, DemoField } fro
 export const meta = {
   name: 'SubAccordion',
   tier: 'molecule',
-  version: '0.7.0',
+  version: '1.8.0',
   createdVersion: '0.6.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

@@ -4,13 +4,11 @@ import { LeadNav } from '@odyssey/ui'
 export const meta = {
   name: 'LeadNav',
   tier: 'molecule',
-  version: '1.6.0',
+  version: '1.8.0',
   createdVersion: '0.2.0',
   figmaNode: '5902:1145',
   codeConnect: 'packages/ui/src/LeadNav.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

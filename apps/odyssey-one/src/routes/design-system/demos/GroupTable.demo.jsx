@@ -30,13 +30,11 @@ function DiffCell({ value }) {
 export const meta = {
   name: 'GroupTable',
   tier: 'organism',
-  version: '1.7.0',
+  version: '1.8.0',
   createdVersion: '0.7.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

@@ -7,12 +7,10 @@ import { DemoToggle } from '../demoControls.jsx'
 export const meta = {
   name: 'Sidebar',
   tier: 'organism',
-  version: '0.3.0',
+  version: '1.8.0',
   createdVersion: '0.2.0',
   figmaNode: '5890:8098',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

@@ -7,13 +7,11 @@ import { House, Container, Truck, UserCog } from 'lucide-react'
 export const meta = {
   name: 'SidebarButton',
   tier: 'atom',
-  version: '0.3.0',
+  version: '1.8.0',
   createdVersion: '0.2.0',
   figmaNode: '514:2479',
   codeConnect: 'packages/ui/src/SidebarButton.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [
