@@ -190,9 +190,17 @@ Opened by *Edit Shipment Stops*. **Nothing touches the database until Save** (15
 
 **Feasibility escalation (2026-08-14)** — still on record; the ACs do not mandate drag-and-drop ("reposition"/"move"), which is the designer's leverage.
 
-### 10.3 Shipped (S142, 2026-09-08) — Surface A
+### 10.3 Shipped — Surface A (S142) and Surface B slice 1 (S143), 2026-09-08
 
-Seed: 131 of the 218 order-change shipments are multi-order and now carry `orderChange.consolidation` (id-stable, zero faker draws). Entry: the row action and the Tender-tab button branch on `shipmentType` — Consolidation opens the bottom bar on the Stops tab, Direct keeps its route. Stops tab review mode: KPI prior/new pairs, cost row, purple change badges (the Direct review's `DiffValue`, with the VD's warning triangle), Affected Orders column, rail status `issue` on changed stops; Planning Dates modal; View Routing modal (New / Prior / Dropped Carriers, symmetric cost badges); per-order compare modal reusing the §8 section uncarded. **Rendered but disabled:** Edit Shipment Stops (Surface B not built) and Approve Plan (OC-open-8).
+**Surface A (S142).** Seed: 131 of the 218 order-change shipments are multi-order and carry `orderChange.consolidation` (id-stable, zero faker draws). Entry: the row action and the Tender-tab button branch on `shipmentType` — Consolidation opens the bottom bar on the Stops tab, Direct keeps its route. Stops tab review mode: KPI prior/new pairs, cost row, purple change badges (the Direct review's `DiffValue`, with the VD's warning triangle), Affected Orders column, rail status `issue` on changed stops; Planning Dates modal; View Routing modal (New / Prior / Dropped Carriers, symmetric cost badges); per-order compare modal reusing the §8 section uncarded. **Approve Plan** renders disabled (OC-open-8).
+
+**Surface B slice 1 (S143) — Edit Shipment Stops is its own page**, `/shipments/order-change/:id/stops` (user ruling: *"shown in its own page like we did with direct order change, with a breadcrumb"*), VD `2134-53584`:
+- A pure **sandbox model** (`stopsSandbox.js`) implements 15668 placement (`P?`/`D?` appended per type, emptied stops removed), 15669 reorder validation (pickup before delivery — blocked with the AC's message), 15869 remove (last order refused), 15871 add (match location, else create), the routing→save gate, and a prior diff.
+- Reorder is **↑/↓ arrows**, not drag ([[decisions/decision-log#DEC-137]]). *Add to* places automatically ([[decisions/decision-log#DEC-138]]). *Add New Order* ships disabled — the 15870 search grid has no VD.
+- **Prior toggle** ([[decisions/decision-log#DEC-136]]): disabled until the planner edits; Prior view is read-only, titled "All Stops - Prior Changes", Alert "Prior changes view mode", pending column muted, and **amber** marks what the planner changed (moved/removed stops, removed orders) — purple stays the customer's change.
+- Two metric rows on purpose: the KPI strip shows the **customer's** change (prior → new from the order update); the card head shows the **plan's** live totals as the planner edits.
+- **Approve Changes** = 15671 Save ([[decisions/decision-log#DEC-139]]): `save-stops` merges the finalized structure onto `detail.shipmentStopList` (server recomputes stop weight/volume/packages from its orders), then Scenario A (active tender → the Direct Actions card, row stays in Order Change until that decision) / Scenario B (→ Tender tab, status Review).
+- **Not in this slice:** per-stop Planned Date/Time/TZ editing (15669 §3–5, OC-open-13), Search & Add Orders (15870, OC-open-15), external-order move at Save (15872).
 
 ## 11. Build-delta — shipped (S134–S137) vs sources
 
@@ -230,4 +238,9 @@ Seed: 131 of the 218 order-change shipments are multi-order and now carry `order
 - **OC-open-9** — Per-order compare modal title: VD 2107-12719 reads "Planning Dates" (copy leftover from the sibling modal); shipped as **"Order Changes"** pending Laura.
 - **OC-open-10** — 15435/15436 are On Hold `optmizer_pending`: the two foundation stories are gated on the Optimizer. Surface A is built on them regardless; confirm with Ramesh/Jana that the hold is scheduling, not scope.
 - **OC-open-11** — 15870 lets the planner *search* orders whose shipment is Approved/Done/SpotBid/Bid Review; 15872 *blocks the move* at Save. Validate-late by design, but the planner does all the work before being refused — recommend surfacing ineligibility in the grid. Also contradicts the deck's "cannot add an order whose shipment is Tender Sent or Accepted".
+- **OC-open-13** — Per-stop Planned Date / Time / Time Zone editing (15669 §3–5): the Edit Shipment Stops VD shows dates read-only; the AC requires them editable and complete before routing. Needs a control from Laura (`ManualDatesModal` is a candidate).
+- **OC-open-14** — *Add to* (15871): shipped as automatic match-or-create placement; confirm Laura did not intend a stop picker.
+- **OC-open-15** — Search & Add Orders (15870) has no VD; *Add New Order* ships disabled.
+- **OC-open-16** — Footer copy: VD "Approve Changes" vs AC "Save" (15671). Shipped with the VD's label.
+- **OC-open-17** — The Tender-tab *Review Order Change* button jumping to the Stops tab for a consolidated shipment is OUR inference (15435 describes opening the shipment, not a button; the Tender lock itself is a 14509 Direct rule). Confirm with Jana.
 - **OC-open-12** — Per-order compare: the VD (`2107-12719`) lists hazmat rows (Boiling Point, Flash Point) per order; the seed's `orderComparisons` carries tender rows only, so those rows are unreachable until a per-order hazmat pair is seeded (seed gap, same class as build-delta row 14).

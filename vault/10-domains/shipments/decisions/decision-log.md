@@ -871,12 +871,33 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision (user, 2026-09-08 — *"the answer is in what that button is supposed to do"*):** two buttons, two purposes. On the Stops tab routing already ran automatically on the change, so the button only **views** results → *View Routing* (shipped). In the Compare Screen nothing has been routed for the restructured stops, so the click's job is to **call** routing → *Call Routing* (Part 2; 15670/15869/15871 borrowed the wrong label). Nothing to ask Jana; recorded so QA does not file the label as a defect.
 - **Source:** user session S142; LINX-15438/15669/15670.
 
+### DEC-136: Edit Shipment Stops is its own page with a Prior toggle; amber marks the planner's changes
+- **Previous:** the Part-1 plan had the editor replacing the All Stops card in place on the Stops tab; LINX-15667 names a "Compare Screen (Prior and New)" but never says where Prior lives.
+- **Decision (user, 2026-09-08):** its own route with breadcrumb, like the Direct review. "Prior Shipment View" is a `ButtonToggle New | Prior` in the section header, **enabled only once the planner has edited something**; Prior is a read-only rendering of the structure at open: title "All Stops - Prior Changes", every control in the slot disabled, the pending column grayed, the info alert reading "Prior changes view mode", and the planner's own changes highlighted in **amber** — purple stays reserved for what the customer changed.
+- **Source:** user session S143 (*"will be shown in its own page like we did with direct order change… 'Prior Shipment View' will be shown through toggling a subaccordion toggle button, which will be enabled only when we edit something… show the changes made in yellow"*); VD `2134-53584`.
+
+### DEC-137: Stops reorder with ↑/↓ arrows; an illegal move is blocked with the AC's message
+- **Previous:** Jana's deck sketched drag-and-drop; the designer's feasibility objection (2026-08-14) targeted exactly that.
+- **Decision (S143):** LINX-15669 says "reposition"/"move", never drag; the VD draws arrow buttons per stop. A move that would put an order's delivery before one of its pickups is refused and the alert reads *"An order must be picked up before it can be delivered."* (15669 §2). Arrows are disabled only at the list edges so the reason can surface.
+- **Source:** LINX-15669; VD `2134-53584`.
+
+### DEC-138: *Add to* places the order automatically (match-or-create); *Add New Order* waits for its VD
+- **Previous:** the VD shows a bare `[+ Add to]` per pending order — ambiguous between "choose a stop" and "put it back".
+- **Decision (S143):** LINX-15871 defines the click: match the order's pickup/delivery location against existing stops of that type, reuse if found, else create `P?`/`D?` at the end of its group. No picker. Location matching is string equality on the display location — `// ponytail:` the AC's Location-ID + full-address match is the upgrade. *Add New Order* (15870's customer-locked search grid) has no VD and ships disabled.
+- **Source:** LINX-15871, 15870; flagged OC-open-14/15.
+
+### DEC-139: Approve Changes = the 15671 Save; the server merges the stop list and Scenario A keeps the tender decision pending
+- **Previous:** no persistence; the Stops-tab *Approve Plan* is on hold (OC-open-8) because no story says what it does to a tendered carrier.
+- **Decision (S143):** *Approve Changes* is not on hold — LINX-15671 spells out both exits. The client sends the sandbox's rows (with `sourceStopSequence` for pre-existing stops); the API merges each onto its source stop (address, timezone kept) and **recomputes weight/volume/packages from the stop's orders** so a saved stop can never disagree with its orders (coherence rule), then: active tender (To Be Tendered/Sent/Accepted) → row stays in Order Change and the planner lands on the Direct Actions card to Cancel / Re-Tender / Bypass; no active tender → re-filed like Bypass, planner lands on the Tender tab. Footer keeps the VD's "Approve Changes" label (OC-open-16).
+- **Source:** LINX-15671 Scenario A/B, 15872 (external move deferred); DEC-106 passthrough.
+
 ---
 
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 8, 2026 | DEC-136 through DEC-139 — Edit Shipment Stops (S143): its own page with the Prior toggle and amber planner-change marks; arrows not drag with the 15669 block; *Add to* auto-placement; Approve Changes as the 15671 Save with server-side merge and Scenario A/B exits |
 | Sep 8, 2026 | DEC-132 through DEC-135 — Order Change (Consolidated) Surface A shipped in S142: consolidated reviews branch to the Stops tab with the Direct route kept Direct-only; VD copy normalized to AC wording (Margin dropped, Affected Orders everywhere, Order # column); View Routing gains Dropped Carriers + symmetric cost badges; View vs Call Routing settled by purpose |
 | Sep 2, 2026 | DEC-114 through DEC-127 — Order Change (Direct) rulings from S134–S137 recorded at the `/analyze order-change` cycle: single-carrier decision, equipment-group insertion rank + auto-select, quote copy, Cancel landing, our confirm dialogs, list order/collapse, derived dropped carriers, display-only changed-first comparison with hazmat merged, purple-only signal, the full tendering lock, View Tender deleted, base-rate cost recompute, seed re-rate fix, and the To Be Tendered trigger tension held open |
 | Aug 17, 2026 | DEC-110 through DEC-113 — Dropped Carrier follow-up + the tender table restyle: **DEC-110** Reason Description leaves the column grid for a full-width wrapping row below the detail values (new generic `group.detailNote` slot on GroupTable), releasing the horizontal room the 360px column was eating; **DEC-111** no info icon on the section header; **DEC-112** the tender table adopts the canonical Cell contract (`.odyssey-table` + `.text-label-sm-*`) per Figma `1596:21526`, retiring inline 12px uppercase headers, with the row tint moved to the cell because the contract paints cells white; **DEC-113** column arrangement restored to the pinned header with **its own** ColumnPanel (per sub-tab, portaled past the bar's `clip-path`), reversing the 2026-08-10 removal on its own stated condition — and surfacing that `.odyssey-table__cell--title` had never won its specificity fight, so Title cells app-wide were rendering tertiary |
