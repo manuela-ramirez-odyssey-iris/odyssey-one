@@ -5,13 +5,11 @@ import { DemoControls, DemoField, DemoSelect } from '../demoControls.jsx'
 export const meta = {
   name: 'StopBadge',
   tier: 'atom',
-  version: '0.7.0',
+  version: '1.8.0',
   createdVersion: '0.7.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4279:5101',
   codeConnect: 'packages/ui/src/StopBadge.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [
