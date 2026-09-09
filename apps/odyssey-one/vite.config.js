@@ -62,6 +62,10 @@ export default defineConfig(async ({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
           secure: true,
+          // S144: api/_lib/*.mjs pure modules are ALSO imported by the app (shared
+          // candidateOrders builder). In dev Vite serves them at /api/_lib/…, which this
+          // proxy would otherwise swallow. Returning the path tells http-proxy to skip.
+          bypass: (req) => (req.url?.startsWith('/api/_lib/') ? req.url : undefined),
         },
         '/odyssey-tracking-api': {
           target: env.VITE_ODYSSEY_TRACKING_API_BASE || 'https://odyssey-one.com',

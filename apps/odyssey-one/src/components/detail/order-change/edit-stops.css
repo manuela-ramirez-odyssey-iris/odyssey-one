@@ -105,7 +105,17 @@
 }
 
 /* AddOrdersModal — VD 2137-59231. */
-.modal-medium.add-orders { max-width: min(1648px, 96vw); }   /* override .modal-medium's 920px cap for the 11-column grid */
+/* `.modal-medium` only sets max-width (width stays auto), so as a flex item
+   of `.modal-medium-overlay` (row-direction, overflow:hidden) it can shrink
+   below that cap via the flex automatic-minimum-size rule — the overflow
+   is then silently clipped by `.modal-medium`'s own overflow:hidden before
+   it ever reaches GroupTable's own overflow-x:auto scroller (see its
+   docblock), so the 11-column grid's last column clips with no scrollbar
+   at 1600px. Setting `width` (not just max-width) pins the modal at that
+   size so the overflow has to surface inside, where GroupTable already
+   handles it — token-free, matches this file's existing local dimensions. */
+.modal-medium.add-orders { width: min(1648px, 96vw); max-width: min(1648px, 96vw); }   /* override .modal-medium's 920px cap for the 11-column grid */
+.modal-medium.add-orders .modal-medium__content { min-width: 0; }   /* let the flex-column content slot shrink so GroupTable's own scroller (not this ancestor) owns the horizontal overflow */
 .add-orders__toolbar { display: flex; align-items: center; gap: var(--spacing-3); padding-bottom: var(--spacing-3); }
 .add-orders__search { width: 389px; }
 .add-orders__filters { width: 640px; }
