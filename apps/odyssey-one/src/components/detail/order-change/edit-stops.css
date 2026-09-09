@@ -1,0 +1,102 @@
+/* EditStopsView — LINX-15667…15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
+   Tokens only; everything scoped under .edit-stops (no Margin anywhere, user ruling). */
+
+.edit-stops__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+
+.edit-stops__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+
+.edit-stops__head-actions {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-shrink: 0;
+}
+
+.edit-stops__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  padding-top: var(--spacing-4);
+}
+
+.edit-stops__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.edit-stops__card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.edit-stops__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-4);
+}
+
+.edit-stops__orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-4) var(--spacing-4);
+}
+
+.edit-stops__order-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+/* Right column — Orders Pending To Assign. 391px per the VD. */
+.edit-stops__pending {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  width: 391px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  padding-bottom: var(--spacing-4);
+}
+
+.edit-stops__pending--muted {
+  opacity: 0.6;
+}
+
+.edit-stops__add-new {
+  margin: 0 var(--spacing-4);
+}
+
+.edit-stops__pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-4);
+}
+
+/* .btn:disabled sets pointer-events:none, which stops hover from reaching a
+   TooltipTrigger wrapper around a disabled Button — re-enable events on the
+   wrapper itself so the tooltip still opens (View Routing / Move To Pending /
+   Add New Order disabled states). */
+.edit-stops [data-tooltip-trigger] {
+  pointer-events: auto;
+}

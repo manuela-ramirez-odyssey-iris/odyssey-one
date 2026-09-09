@@ -28,6 +28,10 @@ import { useLayoutEffect, useRef, useState } from 'react'
  *
  * Figma master: `ButtonToggle` set 2978:330 on Components-Molecules
  * (`Content=Icon|Text` × `Selected=First|Second`).
+ *
+ * `disabled` (code-only state, not in Figma — control-state rule, S143):
+ * both inner buttons get `disabled`, root gets `aria-disabled`. Used by
+ * EditStopsView's New/Prior toggle, which locks once the sandbox is clean.
  */
 
 // Mirrors the CSS: text segments pad 12→14 (selected), track gap 4.
@@ -44,6 +48,7 @@ export default function ButtonToggle({
   onChange,
   firstAriaLabel,
   secondAriaLabel,
+  disabled = false,
   className = '',
   ...props
 }) {
@@ -95,7 +100,7 @@ export default function ButtonToggle({
     ].filter(Boolean).join(' ')
 
   return (
-    <div className={`button-toggle ${className}`.trim()} role="group" {...props}>
+    <div className={`button-toggle ${className}`.trim()} role="group" aria-disabled={disabled || undefined} {...props}>
       <span
         className={`button-toggle__thumb${!isText && isSecond ? ' button-toggle__thumb--second' : ''}`}
         style={thumbStyle}
@@ -106,6 +111,7 @@ export default function ButtonToggle({
         className={segmentClass(!isSecond)}
         aria-pressed={!isSecond}
         aria-label={firstAriaLabel}
+        disabled={disabled}
         onClick={() => { if (isSecond) onChange?.('first') }}
       >
         {isText
@@ -117,6 +123,7 @@ export default function ButtonToggle({
         className={segmentClass(isSecond)}
         aria-pressed={isSecond}
         aria-label={secondAriaLabel}
+        disabled={disabled}
         onClick={() => { if (!isSecond) onChange?.('second') }}
       >
         {isText
