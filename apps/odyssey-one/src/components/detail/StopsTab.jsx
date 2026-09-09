@@ -170,7 +170,10 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
   // Timeline items — P/D labels from sequential counters; stop status comes
   // from Tracking when wired ('completed' | 'issue' | 'pending'); the
   // generator has no per-stop status yet, so default is completed (mock).
-  // In review mode a stop carrying a change surfaces as 'issue' on the rail.
+  // In review mode a stop carrying a change surfaces as 'changed' (purple) on
+  // the rail — a change is not a fault. Purple is the reserved change colour
+  // (canon §10.3 / DEC-136: customer change purple, planner amber); 'issue'
+  // (red) stays reserved for genuine faults (user ruling, 2026-09-09).
   let pCount = 0
   let dCount = 0
   const items = stops.map((stop, idx) => {
@@ -181,7 +184,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
     return {
       key: stop.stopNumber ?? idx,
       label: isPickup ? `P${pCount}` : `D${dCount}`,
-      status: stopChange ? 'issue' : (stop.status || 'completed'),
+      status: stopChange ? 'changed' : (stop.status || 'completed'),
       content: review
         ? <ReviewStopContent stop={stop} stopChange={stopChange} onOpenOrder={(id) => setModal({ order: id })} />
         : <StopContent stop={stop} />,

@@ -121,12 +121,14 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true } } })
     expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(true)
   })
-  it('flags a changed stop as issue on the rail; leaves an unchanged stop alone', () => {
+  it('flags a changed stop as changed (purple) on the rail; leaves an unchanged stop alone', () => {
     renderReview()
     // Stop 1 (P1) carries a stopChanges entry, stop 2 (D1) doesn't — StopBadge
     // (packages/ui/src/StopBadge.jsx) renders status via a `stop-badge--<status>`
-    // class and an aria-label of "<label> — <status text>".
-    expect(document.querySelector('.stop-badge--issue')?.getAttribute('aria-label')).toBe('P1 — issue reported')
+    // class and an aria-label of "<label> — <status text>". A change is not a
+    // fault, so it wears purple 'changed', not red 'issue' (user ruling, 2026-09-09).
+    expect(document.querySelector('.stop-badge--changed')?.getAttribute('aria-label')).toBe('P1 — changed')
+    expect(document.querySelector('.stop-badge--issue')).toBeNull()
     expect(document.querySelector('.stop-badge--completed')?.getAttribute('aria-label')).toBe('D1 — completed')
   })
   // User ruling 2026-09-09: review mode already carries purple change
