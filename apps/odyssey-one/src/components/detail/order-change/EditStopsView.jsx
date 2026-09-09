@@ -226,9 +226,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       <SubAccordion
         title={isPrior ? 'All Stops - Prior to changes' : 'All Stops'}
         collapsible={false}
-        // User ruling 2026-09-09: Prior header carries no icon (SubAccordion's
-        // Info glyph defaults on) — non-Prior keeps it.
-        showIcon={!isPrior}
+        // User ruling 2026-09-09: All Stops header carries no icon in either
+        // mode (SubAccordion's Info glyph defaults on) — Prior-vs-New no
+        // longer applies here.
+        showIcon={false}
         buttonToggle={(
           <ButtonToggle
             firstLabel="New"
