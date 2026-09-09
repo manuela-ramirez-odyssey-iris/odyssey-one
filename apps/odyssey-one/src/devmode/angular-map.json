@@ -1641,7 +1641,7 @@
   },
   "GroupTable": {
     "selector": "odyssey-group-table",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "normalizing": false,
     "props": [
       {
@@ -1667,7 +1667,7 @@
       {
         "name": "valueCellTemplate",
         "type": "TemplateRef<{ $implicit: { row, col } }>",
-        "desc": "Optional renderer for group-header VALUE cells (non-first columns of groups carrying `values`). Same context shape as cellTemplate with `row` = the group's `values` map — one template can serve child rows, header values and footer (React: `values[col.key]` accepts nodes, e.g. a colored DiffCell). Default: plain interpolation."
+        "desc": "Optional renderer for group-header VALUE cells (non-first columns of groups carrying `values`) AND for `flat` row cells, which read the same `values` map. Same context shape as cellTemplate with `row` = the group's `values` map — one template can serve child rows, header values and footer (React: `values[col.key]` accepts nodes, e.g. a colored DiffCell). Default: plain interpolation."
       },
       {
         "name": "footerCellTemplate",
@@ -1767,12 +1767,12 @@
       {
         "name": "header",
         "type": "{ title: string }",
-        "desc": "Optional 48px strip ABOVE the column-header row (Figma 4183:773 \"Header\" frame): title left, empty trailing slot right. Presence renders the strip, composed from `odyssey-header-strip`; omit it (the default) and the table renders exactly as before. Pair with [headerIconTemplate] / [headerTrailTemplate] for the strip's projected slots. The table is `aria-labelledby` the title."
+        "desc": "Optional 48px strip ABOVE the column-header row (Figma 4183:773 \"Header\" frame): title left, empty trailing slot right. Presence renders the strip, composed from `odyssey-header-strip`; omit it (the default) and the table renders exactly as before. Pair with [headerIconTemplate] / [headerBadgeTemplate] / [headerTrailTemplate] for the strip's projected slots. The table is `aria-labelledby` the title."
       },
       {
-        "name": "headerIconTemplate / headerTrailTemplate",
+        "name": "headerIconTemplate / headerBadgeTemplate / headerTrailTemplate",
         "type": "TemplateRef<unknown>",
-        "desc": "Content of the composed header strip's leading icon / trailing slot (React: `header.icon` / `header.trail`). Angular analogue of passing a node — a projected template instead."
+        "desc": "Content of the composed header strip's leading icon / badge (after the title) / trailing slot (React: `header.icon` / `header.badge` / `header.trail`). Angular analogue of passing a node — a projected template instead."
       },
       {
         "name": "flat",
@@ -1828,7 +1828,7 @@
   },
   "HeaderStrip": {
     "selector": "odyssey-header-strip",
-    "version": "1.6.0",
+    "version": "1.8.0",
     "normalizing": false,
     "props": [
       {
@@ -1840,6 +1840,11 @@
         "name": "[slot=icon]",
         "type": "projection",
         "desc": "Optional leading icon — caller-supplied (e.g. <i-lucide slot=\"icon\">); omitted entirely when nothing is projected."
+      },
+      {
+        "name": "[slot=badge]",
+        "type": "projection",
+        "desc": "Optional Badge (or any node) projected immediately AFTER the title, inside the same title group — so it stays glued to the text it qualifies rather than drifting toward the trail. Figma gates it with `Show badge` and EXPOSES the nested Badge, so its Variant dropdown appears on every HeaderStrip instance. In code the variant is simply a property of the Badge you project, never an input here."
       },
       {
         "name": "[slot=trail]",
@@ -1892,8 +1897,8 @@
   },
   "LeadNav": {
     "selector": "odyssey-lead-nav",
-    "version": "1.5.0",
-    "normalizing": true,
+    "version": "1.8.0",
+    "normalizing": false,
     "props": [
       {
         "name": "hasCustomLogo",
@@ -1909,6 +1914,11 @@
         "name": "showMenu",
         "type": "boolean",
         "desc": "Show the hamburger icon button. Default true — false removes the button from the DOM (and a11y tree) entirely, e.g. the external Navbar context."
+      },
+      {
+        "name": "active",
+        "type": "boolean",
+        "desc": "The toggle is ON — the Sidebar rail is expanded. Icon goes Carolina Blue/400 and the button reports aria-pressed. Default false. (Figma: Menu state)"
       },
       {
         "name": "className",
@@ -2090,8 +2100,8 @@
   },
   "MenuRow": {
     "selector": "odyssey-menu-row",
-    "version": "0.4.0",
-    "normalizing": true,
+    "version": "1.8.0",
+    "normalizing": false,
     "props": [
       {
         "name": "label",
@@ -2112,6 +2122,11 @@
         "name": "showLeadingIcon",
         "type": "boolean",
         "desc": "Renders the projected leading-icon slot ([slot=leading], 20px). Default false."
+      },
+      {
+        "name": "showTrailingIcon",
+        "type": "boolean",
+        "desc": "Renders the projected trailing-icon slot ([slot=trailing], 16px) — a drill-in chevron for a row that opens a further menu, as the Sidebar's floating cards use. Shares the trailing edge with draggable's grip, which wins. Default false."
       },
       {
         "name": "disabled",
@@ -3155,60 +3170,85 @@
   },
   "Sidebar": {
     "selector": "odyssey-sidebar",
-    "version": "0.2.0",
-    "normalizing": true,
+    "version": "1.8.0",
+    "normalizing": false,
     "props": [
+      {
+        "name": "expanded",
+        "type": "boolean",
+        "desc": "false = the 64px icon rail; true = the 240px labelled rail with counts and submenus. Default false. Switching width restarts any open card chain. (Figma: Expanded)"
+      },
       {
         "name": "topItems",
         "type": "SidebarItem[]",
-        "desc": "Upper nav group. Each item ({ id, iconName, label }) renders a 40×40 SidebarButton with its lucide icon."
+        "desc": "Domain group, above the hairline. Items ({ id, iconName, label, count?, items? }) nest arbitrarily deep."
       },
       {
         "name": "bottomItems",
         "type": "SidebarItem[]",
-        "desc": "Lower nav group, separated from the top group by a hairline divider."
+        "desc": "Account-level group, below the hairline."
       },
       {
         "name": "activeId",
         "type": "string",
-        "desc": "Id of the selected item (default rendering). Sets the SidebarButton selected state + aria-current=page."
+        "desc": "Id of the selected row. Also opens the submenu that contains it, and marks its out-of-sight ancestors selected."
+      },
+      {
+        "name": "(itemClick)",
+        "type": "EventEmitter<string>",
+        "desc": "Fired when a LEAF row is clicked. A row that owns children is a disclosure, not a destination — it opens its submenu or card and never reports here, so wiring this to activeId cannot fight the disclosure state."
+      },
+      {
+        "name": "<ng-template>",
+        "type": "projected (ContentChild)",
+        "desc": "Per-item template for LEAF rows only — the Angular translation of React renderItem. Context: { $implicit: item, active, level }. Lets a consumer wrap leaves in a routerLink without this package depending on a router. Disclosures never reach it."
       },
       {
         "name": "className",
         "type": "string",
         "desc": "Extra class(es) merged onto the host <aside>. Default empty."
-      },
-      {
-        "name": "(itemClick)",
-        "type": "EventEmitter<string>",
-        "desc": "Emitted when a default item is clicked (carries the item id)."
-      },
-      {
-        "name": "<ng-template>",
-        "type": "projected (ContentChild)",
-        "desc": "Optional per-item template (Angular translation of React renderItem). Context: { $implicit: item, active }. Lets a consumer wrap each item in a router link without this package depending on a router."
       }
     ]
   },
   "SidebarButton": {
     "selector": "odyssey-sidebar-button",
-    "version": "0.2.0",
-    "normalizing": true,
+    "version": "1.8.0",
+    "normalizing": false,
     "props": [
       {
-        "name": "<ng-content>",
+        "name": "type",
+        "type": "collapsed|domain|submenu",
+        "desc": "Row geometry. collapsed = 40×40 icon only (the 64px rail); domain = 40h labelled row; submenu = 36h indented row, regular weight, no icon. Default collapsed. (Figma: Type)"
+      },
+      {
+        "name": "icon",
         "type": "projection",
-        "desc": "Icon rendered inside the 40×40 hit area. Pass a Lucide icon at 20px (ICON_LG). Mirrors React's `icon` element-prop."
+        "desc": "Leading glyph, projected through the default <ng-content> — a Lucide icon at 20px (ICON_LG). Hidden when type is submenu. (Figma: Icon)"
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Row caption. Truncates with an ellipsis. Ignored when type is collapsed. (Figma: Label)"
+      },
+      {
+        "name": "count",
+        "type": "number|string",
+        "desc": "Optional count badge on the trailing edge. domain only — omit to hide it. Rendered in-component, not composed from Badge, because a selected row flips its fill. (Figma: Show count + Count)"
+      },
+      {
+        "name": "chevron",
+        "type": "up|down|right|null",
+        "desc": "Trailing chevron: up/down for a submenu disclosure, right for a row that opens a floating flyout. Default null. (Figma: Show chevron + Chevron)"
       },
       {
         "name": "state",
         "type": "default|hover|selected",
-        "desc": "Visual state. hover = text-primary tint; selected = DSN/300 background fill. Default default."
+        "desc": "Appearance state. selected fills the row DSN/300 at every type. hover is a real CSS :hover — this prop exists for the state grid above, code never passes it. (Figma: State)"
       },
       {
         "name": "className",
         "type": "string",
-        "desc": "Additional CSS classes merged onto the host."
+        "desc": "Extra class(es) on the row element."
       }
     ]
   },
@@ -3310,7 +3350,7 @@
   },
   "StopBadge": {
     "selector": "odyssey-stop-badge",
-    "version": "0.7.0",
+    "version": "1.8.0",
     "normalizing": false,
     "props": [
       {
@@ -3320,13 +3360,13 @@
       },
       {
         "name": "status",
-        "type": "'completed' | 'issue' | 'pending'",
-        "desc": "Drives pill + circle colors and the circle glyph: completed = green pill + check circle; issue = red pill + \"!\" circle; pending = white outlined pill, no circle by default. Default completed."
+        "type": "'completed' | 'issue' | 'pending' | 'changed'",
+        "desc": "Drives pill + circle colors and the circle glyph: completed = green pill + check circle; issue = red pill + \"!\" circle; pending = white outlined pill, no circle by default; changed = light purple pill + dark purple label, circle = light purple with a dark purple ring and dot (an order change). Default completed."
       },
       {
         "name": "showStatusBadge",
         "type": "boolean",
-        "desc": "Overrides the default circle visibility (default: shown except for pending). pending + true renders the gray-outline circle — white disc, DSN/400 ring + check."
+        "desc": "Force-HIDES the circle when false. Shown by default on completed / issue / changed; `pending` never renders one, and passing true does NOT override that — the pending check short-circuits first, and no pending-circle styling exists. (Until 2026-09-09 this table promised a \"gray-outline\" pending circle that was never built.)"
       },
       {
         "name": "className",
@@ -3337,7 +3377,7 @@
   },
   "SubAccordion": {
     "selector": "odyssey-sub-accordion",
-    "version": "0.7.0",
+    "version": "1.8.0",
     "normalizing": false,
     "props": [
       {
@@ -3389,6 +3429,21 @@
         "name": "showToggleAll",
         "type": "boolean",
         "desc": "Renders the expand-all Button variant=\"link\" on the right of the header row (Static-only, a SIBLING of the header — clicks never bubble). Angular deviation: React derives from the onToggleAll callback presence. Default false."
+      },
+      {
+        "name": "toggleAllVariant",
+        "type": "'link' | 'secondary'",
+        "desc": "Which control the expand-all action is: the historic Button variant=\"link\" (default), or a Button variant=\"secondary\" size=\"sm\" for sections that need more weight. Label, icons, callback and Static-only placement are identical either way — only the chrome changes. (Figma: the Show Expand All and Show Secondary Button BOOLEANs — the same action drawn two ways, used instead of one another rather than together.)"
+      },
+      {
+        "name": "showButtonToggle",
+        "type": "boolean",
+        "desc": "Projects [slot=button-toggle] at the HEAD of the header action cluster, BEFORE the expand-all control (Static-only) — a segmented toggle changes what the section SHOWS, so it reads before the actions that operate on it. Angular deviation: React passes the node directly as the `buttonToggle` prop. Default false. (Figma: Show Button Toggle BOOLEAN.)"
+      },
+      {
+        "name": "[slot=button-toggle]",
+        "type": "projection",
+        "desc": "The header ButtonToggle (Static-only) — by convention an odyssey-button-toggle with 20px icons; the consumer owns its selected/selectedChange state."
       },
       {
         "name": "(toggleAll)",
@@ -3609,18 +3664,23 @@
   },
   "TitleSubtitle": {
     "selector": "odyssey-title-subtitle",
-    "version": "0.5.0",
+    "version": "1.8.0",
     "normalizing": false,
     "props": [
       {
         "name": "title",
         "type": "string",
-        "desc": "Primary line (label/sm medium, text/primary). Wraps. (Figma: Title TEXT prop.)"
+        "desc": "Primary line (label/sm medium, text/primary). Wraps. Optional — omit it to leave a subtitle over a badge alone, which is what Figma's `Show Text` BOOLEAN switches off; no title element renders. (Figma: Title TEXT prop.)"
       },
       {
         "name": "subtitle",
         "type": "string",
         "desc": "Eyebrow line above the title (label/xs medium, text/tertiary). Wraps. Omit to hide. (Figma: Subtitle TEXT prop.)"
+      },
+      {
+        "name": "[slot=badge]",
+        "type": "content",
+        "desc": "Optional Badge (or any node) projected onto the TITLE row, after the title and before the trailing icon — it qualifies the title, so it shares the title's row rather than the eyebrow's. Figma gates it with `Show Badge` and EXPOSES the nested Badge so its Variant dropdown appears on instances; in code the variant is a property of the Badge you project."
       },
       {
         "name": "showIcon",
