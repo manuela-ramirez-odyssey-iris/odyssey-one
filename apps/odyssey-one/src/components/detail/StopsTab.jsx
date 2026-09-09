@@ -5,7 +5,7 @@ import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui
 import { ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
-import { DiffValue } from '../shipments/order-change/comparisonHelpers.jsx'
+import { DiffValue, val } from '../shipments/order-change/comparisonHelpers.jsx'
 import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
 import ViewRoutingModal from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
@@ -211,14 +211,14 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
           {review && (
             <div className="stops-review__head">
               <div className="stops-review__costs">
-                <TitleSubtitle subtitle="Prior Cost" title={c.costs?.prior} />
-                <TitleSubtitle subtitle="New Direct Cost" title={c.costs?.newDirect} />
+                <TitleSubtitle subtitle="Prior Cost" title={val(c.costs?.prior)} />
+                <TitleSubtitle subtitle="New Direct Cost" title={val(c.costs?.newDirect)} />
                 {c.locationChange ? (
                   <TooltipTrigger tooltipProps={{ groups: [{ content: 'Not calculated — an order location changed. Finalize stops in Edit Shipment Stops to re-consolidate.' }] }}>
-                    <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs?.newConsolidated} />
+                    <TitleSubtitle subtitle="New Consolidated Cost" title={val(c.costs?.newConsolidated)} />
                   </TooltipTrigger>
                 ) : (
-                  <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs?.newConsolidated} />
+                  <TitleSubtitle subtitle="New Consolidated Cost" title={val(c.costs?.newConsolidated)} />
                 )}
               </div>
               <div className="stops-review__actions">

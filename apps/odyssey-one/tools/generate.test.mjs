@@ -1098,14 +1098,15 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     assert.ok(oc, `${s.sellShipment} missing detail.orderChange`)
     scenarioCounts[oc.scenario] = (scenarioCounts[oc.scenario] ?? 0) + 1
     for (const f of oc.comparison) seenComparisonFields.add(f.field)
-    // LINX-14509 gate: the review only applies to a LIVE tender. Caught a
-    // real defect (measured against Neon, 0/521 rows satisfied this) where
-    // the exceptions-only default left every row Cancelled/Declined. S134
-    // correction: order-change is diverted OUT of the monitoring population
-    // (hasAccepted/hasSent genuinely true), not bolted onto exceptions with
-    // an overridden status — so this now holds NATURALLY, not by construction.
-    assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(s.tenderStatus),
-      `${s.sellShipment} order-change row has non-live tender status ${s.tenderStatus}`)
+    // LINX-14509 gate: most order-change rows come off a LIVE tender
+    // (S134 correction: diverted OUT of monitoring, hasAccepted/hasSent
+    // genuinely true, holds NATURALLY not by construction). S144/LINX-15671
+    // Scenario B adds a second, deliberate source: a slice of exceptions rows
+    // diverted in with NO active tender at all (a real terminal Declined/
+    // Cancelled status) — so the set of valid statuses is the active ones
+    // PLUS the real terminal ones, never anything fabricated.
+    assert.ok(['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(s.tenderStatus),
+      `${s.sellShipment} order-change row has an unexpected tender status ${s.tenderStatus}`)
     assert.equal(s.tenderStatus, oc.prior.tenderStatus,
       `${s.sellShipment} row tenderStatus disagrees with payload prior.tenderStatus`)
     // LINX-8284: order change on a live tender moves the shipment to Review
@@ -1121,7 +1122,7 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     assert.equal(priorEntry?.status, oc.prior.tenderStatus,
       `${s.sellShipment} priorTenderList entry status disagrees with prior.tenderStatus`)
     assert.ok(['returned', 'not-returned'].includes(oc.scenario), `${s.sellShipment} unexpected scenario ${oc.scenario}`)
-    assert.ok(['Sent', 'Accepted', 'To Be Tendered'].includes(oc.prior.tenderStatus))
+    assert.ok(['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(oc.prior.tenderStatus))
     // LINX-14511: comparison = prior list vs new list, each a routing-option-shaped array
     assert.ok(Array.isArray(oc.priorTenderList) && oc.priorTenderList.length > 0)
     assert.ok(Array.isArray(oc.newTenderList) && oc.newTenderList.length > 0)
@@ -1197,6 +1198,13 @@ test('multi-order order-change shipments carry a coherent orderChange.consolidat
     assert.equal(typeof c.costs.newDirect, 'number')
     if (c.locationChange) assert.equal(c.costs.newConsolidated, null)
     else assert.equal(typeof c.costs.newConsolidated, 'number')
+    // LINX-15435 "No active tender" bullet: Prior Cost is blank exactly when
+    // this row's real tenderStatus isn't one of the active ones — S144.
+    if (['Sent', 'Accepted', 'To Be Tendered'].includes(s.tenderStatus)) {
+      assert.equal(typeof c.costs.prior, 'number', `${s.sellShipment}: active tender should carry a numeric Prior Cost`)
+    } else {
+      assert.equal(c.costs.prior, null, `${s.sellShipment}: no active tender (${s.tenderStatus}) should leave Prior Cost blank`)
+    }
     // summary grossWeight delta = Σ pickup-stop weight deltas
     const pickupSeqs = new Set(d.shipmentStopList.filter(st => st.stopType === 'pickup').map(st => String(st.stopSequence)))
     const wDelta = Object.entries(c.stopChanges).filter(([seq]) => pickupSeqs.has(seq))
@@ -1213,6 +1221,34 @@ test('multi-order order-change shipments carry a coherent orderChange.consolidat
   }
   assert.ok(multi >= 20, `expected a healthy consolidated population, got ${multi}`)
   assert.ok(withLocation > 0 && withLocation < multi, `both locationChange values must occur, got ${withLocation}/${multi}`)
+})
+
+// Tripwire (S144/LINX-15671 Scenario B): "no active tender" on a consolidated
+// order-change row was unreachable until the exceptions-sourced diversion
+// (~L1174 in generate.mjs) was added — 131/131 rows carried an active tender.
+// A future reshuffle of CATEGORY_WEIGHTS/diversion rates could silently drop
+// this population back to zero without any OTHER test noticing (the main
+// coherence tests above are written to accept either shape). This asserts
+// the population isn't just non-empty in aggregate but that at least one row
+// is BOTH a non-active tender AND has the blank Prior Cost LINX-15435 asks
+// for, in the same row.
+test('at least one multi-order order-change row has no active tender and a null consolidation.costs.prior', () => {
+  const ds = buildDataset()
+  const ACTIVE = ['Sent', 'Accepted', 'To Be Tendered']
+  const scenarioBRows = ds.shipments.filter((s) => {
+    if (s.category !== 'order-change' || ACTIVE.includes(s.tenderStatus)) return false
+    const d = ds.details.get(s.sellShipment)
+    return d.orderList.length > 1
+  })
+  assert.ok(scenarioBRows.length >= 10 && scenarioBRows.length <= 20,
+    `expected 10-20 no-active-tender multi-order order-change rows, got ${scenarioBRows.length}`)
+  for (const s of scenarioBRows) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    assert.ok(c, `${s.sellShipment} missing consolidation`)
+    assert.equal(c.costs.prior, null, `${s.sellShipment}: no active tender should leave Prior Cost blank`)
+    assert.ok(['Declined', 'Cancelled'].includes(s.tenderStatus), `${s.sellShipment} unexpected non-active status ${s.tenderStatus}`)
+  }
 })
 
 test('consolidation distance.prior matches the live-tenderStatus routing option (agrees with mapStops currentTenderOption)', () => {

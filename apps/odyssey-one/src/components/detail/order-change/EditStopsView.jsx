@@ -10,7 +10,7 @@ import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
 import AddOrdersModal from './AddOrdersModal.jsx'
 import { getSellShipmentDetail } from '../../../api/services/shipmentService'
-import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop, addPending,
@@ -219,9 +219,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       >
         <div className="edit-stops__head">
           <div className="edit-stops__metrics">
-            <TitleSubtitle subtitle="Prior Cost" title={consolidation?.costs?.prior} />
-            <TitleSubtitle subtitle="New Direct Cost" title={consolidation?.costs?.newDirect} />
-            <TitleSubtitle subtitle="New Consolidated Cost" title={consolidation?.costs?.newConsolidated} />
+            <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
+            <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
+            <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
             <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />

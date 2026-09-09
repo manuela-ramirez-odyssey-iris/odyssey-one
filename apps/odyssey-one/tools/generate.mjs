@@ -1168,6 +1168,36 @@ function generateShipment(index, chainOverride) {
       shipmentStatus = 'Review'; // LINX-8284: order change on a live tender → Review
       validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd() * VALIDATION_MESSAGES['order-change'].length)];
     }
+  } else if (panel === 'exceptions' && orders.length > 1) {
+    // S144/LINX-15671 Scenario B — the diversion above only ever produces an
+    // order-change row with a REAL active tender (hasAccepted/hasSent true by
+    // construction, since it started in monitoring), so "no active tender"
+    // was unreachable: 131/131 consolidated order-change rows carried Sent or
+    // Accepted. LINX-15435's blank-Prior-Cost branch ("No active tender;
+    // Sent, to be tendered or Accepted" all absent) needs a genuinely
+    // tender-less row to exist at all.
+    //
+    // The coherent source is the EXCEPTIONS population itself: these rows
+    // already have hasAccepted=hasSent=false, shipmentStatus='Review', and a
+    // real terminal routing-option status (Declined/Cancelled from the
+    // tenderFailed branch, ~line 962) sitting in `tenderStatus` already —
+    // nothing about those facts needs to change, only `category`. Unlike the
+    // monitoring diversion, this is a same-panel recategorization, not a
+    // panel move — an exceptions row that came in for e.g. a date issue can
+    // ALSO be the row an order change landed on before any carrier was ever
+    // tendered, which is exactly LINX-15435's scenario.
+    //
+    // Own salt (':oc-notender', distinct from the gate's own seed and from
+    // buildOrderChange's ':oc'/buildConsolidationChange's ':occ') on the
+    // id-keyed mulberry32 PRNG — zero faker draws, so this can't renumber any
+    // shipment id. Only multi-order (orders.length > 1) rows qualify: a
+    // Direct order-change row has no consolidation payload for Scenario B to
+    // exercise (see the `orders.length > 1` gate below, ~line 1197).
+    const rnd2 = mulberry32(seedFrom(sellShipment + ':oc-notender'));
+    if (rnd2() < 0.03) {
+      category = 'order-change';
+      validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd2() * VALIDATION_MESSAGES['order-change'].length)];
+    }
   }
   // Hoisted above the order-change block (S135) so the review payload can
   // reuse the PRIOR tender version's dropped list instead of drawing a second
@@ -2386,13 +2416,17 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   // under a category reshuffle).
   const rnd = mulberry32(seedFrom(sellShipment + ':oc'));
   const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
-  // prior = the option that actually carries the shipment's real, live
-  // tenderStatus (LINX-14511 "Prior Options") — NOT routingOptions[0]: the
-  // accepted/sent carrier's rank is drawn independently of array position
-  // (decisiveRank, above), so it can land at any index. tenderStatus is
-  // always 'Accepted' or 'Sent' here (the caller only reaches this branch
-  // when the shipment came from the monitoring population), so a match
-  // always exists; the [0] fallback is unreachable defensive-only.
+  // prior = the option that actually carries the shipment's real tenderStatus
+  // (LINX-14511 "Prior Options") — NOT routingOptions[0]: the accepted/sent
+  // carrier's rank is drawn independently of array position (decisiveRank,
+  // above), so it can land at any index. Since S144, the caller reaches this
+  // branch two ways: the monitoring diversion (tenderStatus is always
+  // 'Accepted' or 'Sent') AND the exceptions diversion (tenderStatus is
+  // whichever real Declined/Cancelled status the row's routing already
+  // carries — LINX-15671 Scenario B, no active tender). Either way
+  // tenderStatus was itself read off `routingStatuses` (~line 1113), so a
+  // matching option always exists; the `|| routingOptions[0]` fallback stays
+  // unreachable defensive-only, not a live branch for the no-tender case.
   const prior = routingOptions.find(o => o.status === tenderStatus) || routingOptions[0];
   const priorQuoted = rnd() < 0.3;
 
@@ -2565,6 +2599,12 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       tenderStatus,
       routeRank: prior.routeRank, rank: prior.rank,
       pickupDateTime: prior.pickupDateTime, deliveryDateTime: prior.deliveryDateTime,
+      // S144 — deliberately NOT nulled for the no-active-tender case (unlike
+      // buildConsolidationChange's costs.prior). This is a different "prior
+      // cost": OrderChangeActionsCard's Select-Cost radio reads it as the
+      // carrier's own real rated cost, which exists whether or not a tender
+      // on it is currently active. LINX-15435's blank rule is specific to the
+      // consolidation payload's "cost of staying on the current tender".
       apCost: prior.rateDetails.baseRate, quoted: priorQuoted,
     },
     newOption: {
@@ -2762,19 +2802,30 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   if (locationChange) summaryChanges.distance = { prior: distanceMiles, new: Math.round(distanceMiles * (1.1 + rnd() * 0.5) * 100) / 100 };
 
   // LINX-15435's "blank when exhausted / preferred-carrier AP before
-  // tendering" Prior Cost branches are unreachable in this seed — the
-  // order-change population is diverted from Sent/Accepted only (see the
-  // diversion gate ~L1160), so `prior` is always the live tender's cost.
-  // New Direct Cost = a re-quote spread around that same base. New
-  // Consolidated Cost = the same base, but only when no location changed
-  // (LINX-15435 last bullet — see locationChange above).
+  // tendering (No active tender; Sent, to be tendered or Accepted)" Prior
+  // Cost branch used to be unreachable in this seed — the order-change
+  // population was diverted from Sent/Accepted only (the monitoring
+  // diversion gate ~L1160). Since S144's second, exceptions-sourced
+  // diversion (~L1174), `tenderStatus` can genuinely be a real terminal,
+  // non-active status (Declined/Cancelled) — reachable now.
+  //
+  // `priorApCost`/`newApCost` (ctx) are still always real numbers (they're
+  // the routing option's own rateDetails.baseRate — a carrier's rated cost
+  // doesn't stop existing just because no tender is active on it), so the
+  // re-quote base below is unaffected either way. What LINX-15435 actually
+  // asks to blank is the DISPLAYED "Prior Cost" figure — "staying on the
+  // current live tender" has no meaning when there's no active tender to
+  // stay on — so that alone is nulled here, independent of `base`.
+  const ACTIVE_TENDER_STATUSES = ['To Be Tendered', 'Sent', 'Accepted'];
+  const hasActiveTender = ACTIVE_TENDER_STATUSES.includes(tenderStatus);
   const base = newApCost ?? priorApCost;
   const newDirect = Math.round(base * (1.15 + rnd() * 0.5) * 100) / 100;
   const newConsolidated = locationChange ? null : Math.round(base * (0.95 + rnd() * 0.15) * 100) / 100;
+  const priorCost = hasActiveTender ? priorApCost : null;
 
   return {
     locationChange, changedOrderIds, stopChanges, orderComparisons, summaryChanges,
-    costs: { prior: priorApCost, newDirect, newConsolidated },
+    costs: { prior: priorCost, newDirect, newConsolidated },
   };
 }
 
