@@ -94,8 +94,8 @@ function Schematic() {
             <ButtonToggle
               selected="first"
               onChange={() => {}}
-              firstIcon={<List {...ICON_MD} />}
-              secondIcon={<LayoutGrid {...ICON_MD} />}
+              firstIcon={<List {...ICON_LG} />}
+              secondIcon={<LayoutGrid {...ICON_LG} />}
               firstAriaLabel="List view"
               secondAriaLabel="Grid view"
             />
@@ -197,8 +197,8 @@ function Playground() {
             <ButtonToggle
               selected={view}
               onChange={setView}
-              firstIcon={<List {...ICON_MD} />}
-              secondIcon={<LayoutGrid {...ICON_MD} />}
+              firstIcon={<List {...ICON_LG} />}
+              secondIcon={<LayoutGrid {...ICON_LG} />}
               firstAriaLabel="List view"
               secondAriaLabel="Grid view"
             />
