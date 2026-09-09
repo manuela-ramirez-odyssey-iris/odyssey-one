@@ -13,6 +13,7 @@ export const meta = {
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [

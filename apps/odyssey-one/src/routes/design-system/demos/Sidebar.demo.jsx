@@ -12,6 +12,7 @@ export const meta = {
   figmaNode: '5890:8098',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [

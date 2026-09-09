@@ -13,6 +13,7 @@ export const meta = {
   codeConnect: 'packages/ui/src/SidebarButton.figma.tsx',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [

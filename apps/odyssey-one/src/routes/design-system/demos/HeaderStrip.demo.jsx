@@ -15,6 +15,7 @@ export const meta = {
   figmaNode: '5530:1140',
   codeConnect: 'packages/ui/src/HeaderStrip.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [
