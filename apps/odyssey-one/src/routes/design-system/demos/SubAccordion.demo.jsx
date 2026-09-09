@@ -169,19 +169,6 @@ function Playground() {
   return (
     <div>
       <DemoControls>
-        <DemoControlGroup label="Content">
-          <DemoField label="title" value={title} onChange={setTitle} />
-          <DemoToggle label="showIcon" value={showIcon} onChange={setShowIcon} />
-          <DemoSelect
-            label="icon"
-            value={iconKey}
-            onChange={setIconKey}
-            options={Object.keys(ICON_OPTIONS)}
-            disabled={!showIcon}
-            hint={!showIcon ? 'No icon is rendered while showIcon is off' : undefined}
-          />
-        </DemoControlGroup>
-
         <DemoControlGroup label="State">
           <DemoToggle label="collapsible" value={collapsible} onChange={setCollapsible} />
           <DemoToggle
@@ -222,6 +209,19 @@ function Playground() {
             onChange={setShowAction}
             disabled={collapsible}
             hint={collapsible ? 'Header actions are Static-only' : undefined}
+          />
+        </DemoControlGroup>
+
+        <DemoControlGroup label="Content">
+          <DemoField label="title" value={title} onChange={setTitle} />
+          <DemoToggle label="showIcon" value={showIcon} onChange={setShowIcon} />
+          <DemoSelect
+            label="icon"
+            value={iconKey}
+            onChange={setIconKey}
+            options={Object.keys(ICON_OPTIONS)}
+            disabled={!showIcon}
+            hint={!showIcon ? 'No icon is rendered while showIcon is off' : undefined}
           />
         </DemoControlGroup>
       </DemoControls>

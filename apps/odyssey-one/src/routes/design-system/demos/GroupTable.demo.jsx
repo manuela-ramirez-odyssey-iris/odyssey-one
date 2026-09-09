@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { TriangleAlert, TruckElectric, Columns3Cog } from 'lucide-react'
 import { GroupTable, Badge, Button, ActionMenu } from '@odyssey/ui'
 import { ICON_LG } from '@odyssey/tokens'
-import { DemoControls, DemoToggle, DemoNumber } from '../demoControls.jsx'
+import { DemoControls, DemoControlGroup, DemoToggle, DemoSelect, DemoNumber } from '../demoControls.jsx'
+
+// Repeated across every detail-row control: flat mode reveals nothing, so a
+// detail band can never appear.
+const NOT_FLAT_HINT = 'Not applicable in flat mode — nothing expands, so no detail band ever shows'
 
 // Lightweight colored Diff cell (mirrors CostAllocationTab's DiffCell).
 function DiffCell({ value }) {
@@ -542,139 +546,126 @@ function Playground() {
   return (
     <div>
       <DemoControls>
-        {/* The flavor switch drives the whole demo, so it reads as a control
-            rather than another checkbox — same treatment as the DSM header's
-            own selects (.ds-domain__select). */}
-        <label
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)',
-            fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          flavor
-          <select
-            className="ds-domain__select"
+        {/* Groups run high level to specific: what the table IS, then its
+            state, then its chrome, then the detail rows only some flavors
+            have. That also puts `flat` — which disables half the controls
+            below it — ahead of everything it disables. */}
+        <DemoControlGroup label="Mode">
+          <DemoSelect
+            label="flavor"
             value={flavor}
-            onChange={(e) => handleFlavor(e.target.value)}
-          >
-            {Object.entries(FLAVORS).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
-        </label>
-        {/* `flat` collapses every group to a plain white row (striped only
-            colors CHILD rows, which never render in flat mode) and disables
-            all expansion, so the controls below that only affect striping or
-            expand/collapse do nothing while it's on. Dimmed + disabled with a
-            `title`, not removed — house precedent: devmode/DevToggle.jsx
-            dims its Nesting options the same way when they don't apply. */}
-        <DemoToggle
-          label="striped"
-          value={striped}
-          onChange={setStriped}
-          disabled={flat}
-          hint={flat ? 'Not applicable in flat mode — flat rows are always white' : undefined}
-        />
-        <DemoToggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} onChange={setShowFooter} />
-        <DemoToggle label="stickyActions (pinned action column)" value={stickyActions} onChange={setStickyActions} />
-        <DemoToggle label="narrow container (h-scroll)" value={narrow} onChange={setNarrow} />
-        <DemoToggle label="header (title strip above column headers)" value={showHeader} onChange={setShowHeader} />
-        <DemoToggle
-          label="flat (every group = one white data row, nothing expands — column-header style is separate, see headerStyle)"
-          value={flat}
-          onChange={setFlat}
-        />
-        <DemoToggle
-          label="selectable (checkbox lane + select-all — flat mode only)"
-          value={selectable}
-          onChange={setSelectable}
-          disabled={!flat}
-          hint={flat ? undefined : 'Applies to flat mode'}
-        />
-        {/* Independent of `flat` — stays enabled in flat mode on purpose: it's
-            one of the few controls still relevant there, since an explicit
-            value overrides flat's default in either direction. */}
-        <label
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-2)',
-            fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          headerStyle
-          <select
-            className="ds-domain__select"
+            onChange={handleFlavor}
+            options={Object.entries(FLAVORS).map(([k, v]) => ({ value: k, label: v.label }))}
+          />
+          <DemoSelect
+            label="headerStyle"
             value={headerStyle ?? ''}
-            onChange={(e) => setHeaderStyle(e.target.value || undefined)}
+            onChange={(v) => setHeaderStyle(v || undefined)}
+            options={['standard', 'strip']}
+            allowNone
+            noneLabel="(default — standard)"
+          />
+          {/* `flat` collapses every group to a plain white row (striped only
+              colors CHILD rows, which never render in flat mode) and disables
+              all expansion, so the controls below that only affect striping or
+              expand/collapse do nothing while it's on. Dimmed + disabled with a
+              hint, not removed — house precedent: devmode/DevToggle.jsx dims
+              its Nesting options the same way when they don't apply. */}
+          <DemoToggle
+            label="flat (every group = one white data row, nothing expands)"
+            value={flat}
+            onChange={setFlat}
+          />
+        </DemoControlGroup>
+
+        <DemoControlGroup label="State">
+          <Button
+            variant="link"
+            disabled={flat}
+            title={flat ? 'Not applicable in flat mode — nothing expands' : undefined}
+            onClick={() => setExpanded(Object.fromEntries(activeGroups.map((g) => [g.id, !allExpanded])))}
           >
-            <option value="">(default — standard)</option>
-            <option value="standard">standard</option>
-            <option value="strip">strip</option>
-          </select>
-        </label>
-        {flavor === 'nested' && (
+            {allExpanded ? 'Collapse All' : 'Expand All'}
+          </Button>
+        </DemoControlGroup>
+
+        <DemoControlGroup label="Chrome">
+          <DemoToggle label="header (title strip above column headers)" value={showHeader} onChange={setShowHeader} />
+          <DemoToggle label="footerRow (totals row)" value={showFooter} onChange={setShowFooter} />
+          <DemoToggle label="stickyActions (pinned action column)" value={stickyActions} onChange={setStickyActions} />
           <DemoToggle
-            label="detailNote (per-group note row)"
-            value={showDetailNote}
-            onChange={setShowDetailNote}
-            disabled={flat}
-            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            label="selectable (checkbox lane + select-all)"
+            value={selectable}
+            onChange={setSelectable}
+            disabled={!flat}
+            hint={flat ? undefined : 'Applies to flat mode'}
           />
-        )}
-        {flavor === 'sections' && visibleSections.map((sec) => (
           <DemoToggle
-            key={sec.key}
-            /* Named for the TABLE it adds a row to, not as an API path: the key is
-               the consumer's own string, and `detailNotes.routing` read like a
-               property the component defines (user, 2026-08-26). */
-            label={`note in ${sec.title}`}
-            value={noteKeys.includes(sec.key)}
-            onChange={(on) => setNoteKeys((prev) =>
-              on ? [...prev, sec.key] : prev.filter((k) => k !== sec.key))}
+            label="striped"
+            value={striped}
+            onChange={setStriped}
             disabled={flat}
-            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
+            hint={flat ? 'Not applicable in flat mode — flat rows are always white' : undefined}
           />
-        ))}
+          <DemoToggle label="narrow container (h-scroll)" value={narrow} onChange={setNarrow} />
+        </DemoControlGroup>
+
         {(flavor === 'nested' || flavor === 'sections') && (
-          <DemoToggle
-            label="detailScroll (independent nested h-scroll)"
-            value={detailScroll}
-            onChange={setDetailScroll}
-            disabled={flat}
-            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
-          />
+          <DemoControlGroup label="Detail rows">
+            {flavor === 'nested' && (
+              <DemoToggle
+                label="detailNote (per-group note row)"
+                value={showDetailNote}
+                onChange={setShowDetailNote}
+                disabled={flat}
+                hint={flat ? NOT_FLAT_HINT : undefined}
+              />
+            )}
+            {flavor === 'sections' && visibleSections.map((sec) => (
+              <DemoToggle
+                key={sec.key}
+                /* Named for the TABLE it adds a row to, not as an API path: the key is
+                   the consumer's own string, and `detailNotes.routing` read like a
+                   property the component defines (user, 2026-08-26). */
+                label={`note in ${sec.title}`}
+                value={noteKeys.includes(sec.key)}
+                onChange={(on) => setNoteKeys((prev) =>
+                  on ? [...prev, sec.key] : prev.filter((k) => k !== sec.key))}
+                disabled={flat}
+                hint={flat ? NOT_FLAT_HINT : undefined}
+              />
+            ))}
+            <DemoToggle
+              label="detailScroll (independent nested h-scroll)"
+              value={detailScroll}
+              onChange={setDetailScroll}
+              disabled={flat}
+              hint={flat ? NOT_FLAT_HINT : undefined}
+            />
+            {flavor === 'sections' && (
+              <DemoNumber
+                label="detailSections (sibling tables)"
+                min={1}
+                max={ROUTE_DETAIL_SECTION_POOL.length}
+                value={sectionCount}
+                disabled={flat}
+                hint={flat ? NOT_FLAT_HINT : undefined}
+                onChange={(v) => setSectionCount(Math.min(ROUTE_DETAIL_SECTION_POOL.length, Math.max(1, v)))}
+              />
+            )}
+            {((flavor === 'nested' && showDetailNote) || (flavor === 'sections' && noteKeys.length > 0)) && (
+              <DemoNumber
+                label="noteLines (0 = no clamp)"
+                min={0}
+                max={10}
+                value={noteLines}
+                disabled={flat}
+                hint={flat ? NOT_FLAT_HINT : undefined}
+                onChange={(v) => setNoteLines(Math.min(10, Math.max(0, v)))}
+              />
+            )}
+          </DemoControlGroup>
         )}
-        {flavor === 'sections' && (
-          <DemoNumber
-            label="detailSections (sibling tables)"
-            min={1}
-            max={ROUTE_DETAIL_SECTION_POOL.length}
-            value={sectionCount}
-            disabled={flat}
-            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
-            onChange={(v) => setSectionCount(Math.min(ROUTE_DETAIL_SECTION_POOL.length, Math.max(1, v)))}
-          />
-        )}
-        {((flavor === 'nested' && showDetailNote) || (flavor === 'sections' && noteKeys.length > 0)) && (
-          <DemoNumber
-            label="noteLines (0 = no clamp)"
-            min={0}
-            max={10}
-            value={noteLines}
-            disabled={flat}
-            hint={flat ? 'Not applicable in flat mode — nothing expands, so no detail band ever shows' : undefined}
-            onChange={(v) => setNoteLines(Math.min(10, Math.max(0, v)))}
-          />
-        )}
-        <Button
-          variant="link"
-          disabled={flat}
-          title={flat ? 'Not applicable in flat mode — nothing expands' : undefined}
-          onClick={() => setExpanded(Object.fromEntries(activeGroups.map((g) => [g.id, !allExpanded])))}
-        >
-          {allExpanded ? 'Collapse All' : 'Expand All'}
-        </Button>
       </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <div style={{ maxWidth: narrow ? 480 : undefined, background: 'var(--bg-primary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-4) var(--spacing-6)' }}>

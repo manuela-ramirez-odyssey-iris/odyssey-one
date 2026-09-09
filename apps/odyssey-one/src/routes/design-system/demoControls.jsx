@@ -27,8 +27,16 @@ export function DemoControls({ children, className = '' }) {
  *
  * A component with more than a handful of props gives you a long undifferentiated
  * row where nothing says which switch belongs with which — the reader has to
- * infer the grouping from prop names. Group by what the controls DO (content,
- * state, header actions), not by their type.
+ * infer the grouping from prop names. Group by what the controls DO, not by
+ * their type.
+ *
+ * ORDER GROUPS HIGH LEVEL TO SPECIFIC (user ruling, 2026-09-09): the switches
+ * that decide what the component fundamentally IS come first, then the ones
+ * that furnish it, then its content details. A reader then meets the biggest
+ * decision first, and every later group is read in the light of it — which
+ * also puts the controls that DISABLE others ahead of the ones they disable.
+ * SubAccordion reads State → Header actions → Content; GroupTable reads
+ * Mode → State → Chrome → Detail rows.
  */
 export function DemoControlGroup({ label, children }) {
   return (
