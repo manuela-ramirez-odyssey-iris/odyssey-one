@@ -778,6 +778,12 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(vm.stopsData.summary.volume).toBe('5 m³')
     })
 
+    it('formats volume through fmtInt for comma-grouping parity with grossWeight/packageCount', () => {
+      const dto = { ...sellShipmentOutSample, totalVolumeValue: 1234, totalVolumeUomCode: 'cuft' } as any
+      const vm = mapSellShipmentOutToDetail(dto)
+      expect(vm.stopsData.summary.volume).toBe('1,234 cuft')
+    })
+
     it('falls back to the derived value when the override key is absent', () => {
       const dto = { ...sellShipmentOutSample, totalVolumeValue: 200, totalVolumeUomCode: 'cuft',
         overrides: { mode: 'TL' } } as any

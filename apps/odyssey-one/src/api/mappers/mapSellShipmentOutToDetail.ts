@@ -246,7 +246,7 @@ function mapStops(dto: SellShipmentOut): ShipmentDetailVM['stopsData'] {
     headerDistance: fmtDistance(dto.distanceMiles),
     grossWeight: ov?.grossWeight ?? (totalWeight != null ? `${fmtInt(totalWeight)} LB` : DASH),
     volume: ov?.volume ?? (dto.totalVolumeValue != null
-      ? `${dto.totalVolumeValue} ${dto.totalVolumeUomCode ?? 'cuft'}`
+      ? `${fmtInt(dto.totalVolumeValue)} ${dto.totalVolumeUomCode ?? 'cuft'}`
       : DASH),
     acceptedCarrier: orDash(dto.acceptedCarrierLabel),
     seedEquipment: orDash(dto.seedEquipment),

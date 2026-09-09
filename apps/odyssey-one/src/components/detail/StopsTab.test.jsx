@@ -20,7 +20,7 @@ const consolidation = {
   costs: { prior: '1,500.00 USD', newDirect: '2,000.00 USD', newConsolidated: '3,000.00 USD' },
 }
 const oc = { scenario: 'returned', prior: {}, newOption: {}, priorTenderList: [], newTenderList: [], comparison: [], hazmat: [], droppedCarriers: { prior: [], new: [] }, resolution: null, consolidation }
-const renderReview = (extra = {}) => render(<StopsTab data={{ summary, stops }} orderChange={oc} orderDetails={[]} shipment={{ sellShipment: '1', buyShipment: 'B1', tenderStatus: 'Sent' }} {...extra} />)
+const renderReview = (extra = {}) => render(<StopsTab data={{ summary, stops }} orderChange={oc} orderDetails={[]} {...extra} />)
 
 describe('StopsTab — plain mode', () => {
   it('renders as before without a consolidation payload', () => {
@@ -73,6 +73,13 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     fireEvent.click(link)
     expect(screen.getByRole('dialog', { name: 'Order Changes' })).toBeTruthy()
     expect(screen.getByText('Order Number: B')).toBeTruthy()
+  })
+  it('wraps New Consolidated Cost with a tooltip explaining the N/A when a location changed', () => {
+    renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true, costs: { ...consolidation.costs, newConsolidated: null } } } })
+    const label = screen.getByText('New Consolidated Cost')
+    expect(label.closest('[data-tooltip-trigger]')).toBeTruthy()
+    fireEvent.mouseEnter(label.closest('[data-tooltip-trigger]'))
+    expect(screen.getByText(/Not calculated — an order location changed/)).toBeTruthy()
   })
   it('disables View Routing while a location change is unfinalized (LINX-15438)', () => {
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true } } })

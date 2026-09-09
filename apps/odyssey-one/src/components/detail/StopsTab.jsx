@@ -170,7 +170,7 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
 }
 
 // ── Main export ────────────────────────────────────────────────────────────
-const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [], shipment }) {
+const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [] }) {
   const [modal, setModal] = useState(null) // 'planning' | 'routing' | { order: id }
   if (!data) return <PaneEmpty message="No stops data available." col="medium" />
 
@@ -227,7 +227,13 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
               <div className="stops-review__costs">
                 <TitleSubtitle subtitle="Prior Cost" title={c.costs?.prior} />
                 <TitleSubtitle subtitle="New Direct Cost" title={c.costs?.newDirect} />
-                <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs?.newConsolidated} />
+                {c.locationChange ? (
+                  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Not calculated — an order location changed. Finalize stops in Edit Shipment Stops to re-consolidate.' }] }}>
+                    <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs?.newConsolidated} />
+                  </TooltipTrigger>
+                ) : (
+                  <TitleSubtitle subtitle="New Consolidated Cost" title={c.costs?.newConsolidated} />
+                )}
               </div>
               <div className="stops-review__actions">
                 <Button variant="secondary" onClick={() => setModal('planning')}>View Planning Dates</Button>

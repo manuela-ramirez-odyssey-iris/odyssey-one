@@ -92,6 +92,14 @@
   align-items: center;
   gap: var(--spacing-4);
 }
+/* Native `disabled` suppresses mouse events on the button itself, so a
+   hover never reaches TooltipTrigger's wrapper div (mouseenter fires on the
+   wrapper, not the button) — "Coming soon"/blocked-View-Routing tooltips
+   would never show. Same construction as TableControls.jsx:41's disabled
+   Export button; scoped here rather than touching the shared Button. */
+.stops-review__actions .btn:disabled {
+  pointer-events: none;
+}
 
 /* Second head row: Prior/New/Consolidated cost trio + View Planning
    Dates/View Routing */
