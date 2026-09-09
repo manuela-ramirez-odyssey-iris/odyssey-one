@@ -85,21 +85,21 @@ function Schematic() {
         <SubAccordion title="Order Summary" defaultExpanded>
           <SlotPlaceholder />
         </SubAccordion>
-        {/* Static flavor — both header actions (expand-all link + primary sm) */}
+        {/* Static flavor — the header actions (ButtonToggle + expand-all link + primary sm) */}
         <SubAccordion
           title="All Documents"
           showIcon={false}
           collapsible={false}
-          buttonToggle={showButtonToggle ? (
+          buttonToggle={
             <ButtonToggle
-              selected={view}
-              onChange={setView}
+              selected="first"
+              onChange={() => {}}
               firstIcon={<List {...ICON_MD} />}
               secondIcon={<LayoutGrid {...ICON_MD} />}
               firstAriaLabel="List view"
               secondAriaLabel="Grid view"
             />
-          ) : undefined}
+          }
           allExpanded={allExpanded}
           onToggleAll={setAllExpanded}
           action={<Button variant="primary" size="sm" icon={<Plus {...ICON_MD} />}>Add Document</Button>}
