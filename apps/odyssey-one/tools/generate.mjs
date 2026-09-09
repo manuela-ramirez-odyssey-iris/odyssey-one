@@ -1191,6 +1191,15 @@ function generateShipment(index, chainOverride) {
       // built droppedCarrierList (S135), never re-drawn here.
       priorDropped: droppedCarrierList,
     });
+    // LINX-15435…15438 Stops-tab review — only meaningful for a consolidated
+    // (>1 order) shipment; a Direct order-change shipment has nothing for
+    // "which stop/order changed" to distinguish.
+    if (orders.length > 1) {
+      orderChangePayload.consolidation = buildConsolidationChange(sellShipment, orders, stops, {
+        tenderStatus, priorApCost: orderChangePayload.prior.apCost, newApCost: orderChangePayload.newOption.apCost,
+        grossWeight, totalVolume, distanceMiles: parseFloat(distance.toFixed(2)), baseDate, originTz, freightTerms,
+      });
+    }
   }
 
   // Use accepted carrier's rateDetails as base for cost allocation when available
@@ -2603,6 +2612,118 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       };
       return { prior: row, new: { ...row } }; // identical both sides in v1
     }),
+  };
+}
+
+// LINX-15435…15438 — a CONSOLIDATED order-change shipment (>1 order) needs a
+// second review payload: WHICH orders changed, WHICH stops those orders
+// touch (a changed order is only ever referenced by the stop(s) carrying it —
+// I5's own weight/volume/package roll-up rule run in reverse), and the two
+// re-quote costs (Direct vs staying Consolidated). Direct-shipment order-
+// change shipments (orderList.length === 1) never get this key — "did the
+// route change" is meaningless for a single order.
+//
+// Own id-keyed PRNG (`sellShipment + ':occ'`, distinct from buildOrderChange's
+// own `:oc` salt) — zero faker draws, zero calls to `pick()`, so a reseed
+// can't renumber shipment ids just because this feature exists.
+function buildConsolidationChange(sellShipment, orders, stops, ctx) {
+  const { tenderStatus, priorApCost, newApCost, grossWeight, totalVolume, distanceMiles, baseDate, originTz, freightTerms } = ctx;
+  const rnd = mulberry32(seedFrom(sellShipment + ':occ'));
+  const choose = (arr) => arr[Math.floor(rnd() * arr.length)];
+  // Sample WITHOUT replacement off the id-keyed rnd (Fisher-Yates-style pop),
+  // never faker.helpers.arrayElements.
+  const pickN = (arr, n) => { const a = [...arr]; const out = []; while (out.length < n && a.length) out.push(a.splice(Math.floor(rnd() * a.length), 1)[0]); return out; };
+
+  // A location change suppresses the "stay Consolidated" cost (project rule)
+  // — re-routing through a different facility invalidates the existing
+  // consolidated rate, so there's nothing to re-quote there.
+  const locationChange = rnd() < 0.35;
+  const changedOrders = pickN(orders, 1 + Math.floor(rnd() * Math.min(2, orders.length)));
+  const changedOrderIds = changedOrders.map(o => o.orderId);
+
+  // Per-order deltas drawn ONCE, then read back everywhere (stop roll-ups,
+  // orderComparisons rows) — so two surfaces can't disagree about the same
+  // order's change.
+  const delta = Object.fromEntries(changedOrders.map(o => [o.orderId, {
+    weight: Math.max(1, Math.round(o.orderGross * (0.05 + rnd() * 0.25))),
+    volume: Math.max(1, Math.round(o.orderVolume * (0.05 + rnd() * 0.2))),
+    packages: 1 + Math.floor(rnd() * 3),
+    dateShiftDays: 1 + Math.floor(rnd() * 3),
+  }])),
+
+  // A changed ORDER is always referenced by the stop(s) that carry it: walk
+  // every real stop and pull in only the changed orders it already lists
+  // (st.orderIds), never invent a stop/order pairing that doesn't exist.
+  stopChanges = {};
+  for (const st of stops) {
+    const ids = st.orderIds.filter(id => changedOrderIds.includes(id));
+    if (!ids.length) continue;
+    // Stop weight/volume/package deltas = Σ of its changed orders' deltas (I5, run forward).
+    const sum = (k) => ids.reduce((t, id) => t + delta[id][k], 0);
+    const fields = {
+      weight: { prior: st.grossWeightValue, new: st.grossWeightValue + sum('weight') },
+      volume: { prior: st.volumeValue, new: st.volumeValue + sum('volume') },
+      packageCount: { prior: st.packageCount, new: st.packageCount + sum('packages') },
+    };
+    // Preserve the real "HH:00 TZ" suffix rather than assuming a fixed-width
+    // date prefix — scheduledDateTime's date portion is formatDate's long
+    // form ("September 8, 2026"), not MM/DD/YYYY, so a fixed slice would cut
+    // mid-string on differing month-name lengths.
+    const timeSuffix = st.scheduledDateTime.match(/ \d{2}:00 \S+$/)[0];
+    let at = genDate(baseDate, delta[ids[0]].dateShiftDays);
+    // The shift is measured from the shipment's baseDate, but a delivery
+    // stop's own date is offset from deliveryDate instead — the two can land
+    // on the same calendar day by coincidence, which would make "prior" and
+    // "new" print identically despite a real change happening. Nudge one day
+    // further in that case rather than drawing a second opinion from rnd.
+    if (`${formatDate(at)}${timeSuffix}` === st.scheduledDateTime) at = genDate(at, 1);
+    fields.date = { prior: st.scheduledDateTime, new: `${formatDate(at)}${timeSuffix}` };
+    if (locationChange && st.stopType === 'pickup') {
+      const loc = choose(LOCATIONS.filter(l => l.city !== st.city));
+      fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
+    }
+    stopChanges[st.stopSequence] = { changedOrderIds: ids, fields };
+  }
+
+  const pickupOf = (o) => stops.find(s => s.stopType === 'pickup' && s.orderIds.includes(o.orderId));
+  const orderComparisons = Object.fromEntries(changedOrders.map(o => {
+    const d = delta[o.orderId];
+    const rows = [
+      { field: 'Gross Weight', source: 'Order', prior: `${fmtInt(o.orderGross)} LB`, new: `${fmtInt(o.orderGross + d.weight)} LB`, changed: true },
+      { field: 'Volume', source: 'Order', prior: `${fmtInt(o.orderVolume)} cuft`, new: `${fmtInt(o.orderVolume + d.volume)} cuft`, changed: true },
+      { field: 'Package Count', source: 'Order', prior: String(o.orderPackages), new: String(o.orderPackages + d.packages), changed: true },
+      { field: 'Pickup Date/Time', source: 'Routing', prior: formatDateTime(baseDate, originTz), new: formatDateTime(genDate(baseDate, d.dateShiftDays), originTz), changed: true },
+      { field: 'Incoterm', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
+      { field: 'Order Requested Date', source: 'Order', prior: o.planningDateType, new: o.planningDateType, changed: false },
+    ];
+    const loc = stopChanges[pickupOf(o)?.stopSequence]?.fields.location;
+    if (loc) rows.unshift({ field: 'Ship From', source: 'Order', prior: loc.prior, new: loc.new, changed: true });
+    return [o.orderId, rows];
+  }));
+
+  // Summary deltas = Σ of PICKUP-stop deltas only (project rule — delivery
+  // stops mirror pickups, counting both would double the change).
+  const pickupDelta = (k) => stops.filter(s => s.stopType === 'pickup' && stopChanges[s.stopSequence])
+    .reduce((t, s) => t + (stopChanges[s.stopSequence].fields[k].new - stopChanges[s.stopSequence].fields[k].prior), 0);
+  const summaryChanges = {
+    grossWeight: { prior: grossWeight, new: grossWeight + pickupDelta('weight') },
+    volume: { prior: totalVolume, new: totalVolume + pickupDelta('volume') },
+  };
+  if (locationChange) summaryChanges.distance = { prior: distanceMiles, new: Math.round(distanceMiles * (1.1 + rnd() * 0.5) * 100) / 100 };
+
+  // LINX-15435 Prior Cost: current tender cost while a tender is live (Sent /
+  // Accepted / To Be Tendered), blank when exhausted. New Direct Cost = a
+  // re-quote spread around the prior/new rate. New Consolidated Cost =
+  // preferred-carrier AP, but only when no location changed (LINX-15435 last
+  // bullet — see locationChange above).
+  const activeTender = ['To Be Tendered', 'Sent', 'Accepted'].includes(tenderStatus);
+  const base = newApCost ?? priorApCost;
+  const newDirect = Math.round(base * (1.15 + rnd() * 0.5) * 100) / 100;
+  const newConsolidated = locationChange ? null : Math.round((newApCost ?? priorApCost) * (0.95 + rnd() * 0.15) * 100) / 100;
+
+  return {
+    locationChange, changedOrderIds, stopChanges, orderComparisons, summaryChanges,
+    costs: { prior: activeTender ? priorApCost : null, newDirect, newConsolidated },
   };
 }
 

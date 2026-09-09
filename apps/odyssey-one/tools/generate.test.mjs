@@ -1166,3 +1166,59 @@ test('non order-change shipments have no orderChange key', () => {
   const other = ds.shipments.find(s => s.category !== 'order-change')
   assert.equal(ds.details.get(other.sellShipment)?.orderChange, undefined)
 })
+
+test('multi-order order-change shipments carry a coherent orderChange.consolidation payload', () => {
+  const ds = buildDataset()
+  const rows = ds.shipments.filter(s => s.category === 'order-change')
+  let multi = 0, withLocation = 0
+  for (const s of rows) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (d.orderList.length === 1) { assert.equal(c, undefined, `${s.sellShipment}: direct must not carry consolidation`); continue }
+    multi++
+    assert.ok(c, `${s.sellShipment} missing consolidation`)
+    assert.equal(typeof c.locationChange, 'boolean')
+    if (c.locationChange) withLocation++
+    assert.ok(c.changedOrderIds.length >= 1 && c.changedOrderIds.length <= d.orderList.length)
+    const orderIds = new Set(d.orderList.map(o => o.orderId))
+    for (const id of c.changedOrderIds) assert.ok(orderIds.has(id))
+    const seqs = new Set(d.shipmentStopList.map(st => st.stopSequence))
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      assert.ok(seqs.has(Number(seq)), `${s.sellShipment} stopChanges key ${seq} is not a stop`)
+      assert.ok(sc.changedOrderIds.every(id => c.changedOrderIds.includes(id)))
+      assert.ok(Object.keys(sc.fields).length >= 1)
+      for (const f of Object.values(sc.fields)) assert.ok('prior' in f && 'new' in f && f.prior !== f.new)
+    }
+    for (const id of c.changedOrderIds) {
+      assert.ok(Object.values(c.stopChanges).some(sc => sc.changedOrderIds.includes(id)), `${id} changed but no stop references it`)
+      assert.ok(Array.isArray(c.orderComparisons[id]) && c.orderComparisons[id].some(r => r.changed))
+      assert.ok(c.orderComparisons[id].every(r => 'field' in r && 'source' in r && 'prior' in r && 'new' in r && 'changed' in r))
+    }
+    assert.equal(typeof c.costs.newDirect, 'number')
+    if (c.locationChange) assert.equal(c.costs.newConsolidated, null)
+    else assert.equal(typeof c.costs.newConsolidated, 'number')
+    // summary grossWeight delta = Σ pickup-stop weight deltas
+    const pickupSeqs = new Set(d.shipmentStopList.filter(st => st.stopType === 'pickup').map(st => String(st.stopSequence)))
+    const wDelta = Object.entries(c.stopChanges).filter(([seq]) => pickupSeqs.has(seq))
+      .reduce((t, [, sc]) => t + (sc.fields.weight ? sc.fields.weight.new - sc.fields.weight.prior : 0), 0)
+    assert.equal(c.summaryChanges.grossWeight.new - c.summaryChanges.grossWeight.prior, wDelta, `${s.sellShipment} summary weight delta ≠ Σ pickup stop deltas`)
+    // a stop's weight delta = Σ of its changed orders' per-order deltas, read back from orderComparisons
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      const expected = sc.changedOrderIds.reduce((t, id) => {
+        const row = c.orderComparisons[id].find(r => r.field === 'Gross Weight')
+        return t + (Number(row.new.replace(/[^0-9]/g, '')) - Number(row.prior.replace(/[^0-9]/g, '')))
+      }, 0)
+      assert.equal(sc.fields.weight.new - sc.fields.weight.prior, expected, `${s.sellShipment} stop ${seq} weight delta ≠ Σ order deltas`)
+    }
+  }
+  assert.ok(multi >= 20, `expected a healthy consolidated population, got ${multi}`)
+  assert.ok(withLocation > 0 && withLocation < multi, `both locationChange values must occur, got ${withLocation}/${multi}`)
+})
+
+test('consolidation payload is id-stable across builds and leaves ids untouched', () => {
+  const a = buildDataset({ totalShipments: 400 }), b = buildDataset({ totalShipments: 400 })
+  assert.deepEqual(a.shipments.map(s => s.sellShipment), b.shipments.map(s => s.sellShipment))
+  const s = a.shipments.find(x => x.category === 'order-change' && a.details.get(x.sellShipment).orderList.length > 1)
+  assert.ok(s)
+  assert.deepEqual(a.details.get(s.sellShipment).orderChange.consolidation, b.details.get(s.sellShipment).orderChange.consolidation)
+})
