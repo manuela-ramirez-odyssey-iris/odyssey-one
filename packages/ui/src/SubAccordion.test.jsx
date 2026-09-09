@@ -3,6 +3,33 @@ import { render, cleanup, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 import SubAccordion from './SubAccordion.jsx'
 
+describe('SubAccordion header actions', () => {
+  afterEach(cleanup)
+
+  test('buttonToggle renders before the expand-all control, and only when Static', () => {
+    const { container, rerender } = render(
+      <SubAccordion title="T" collapsible={false} onToggleAll={() => {}}
+        buttonToggle={<span data-testid="bt">BT</span>}>body</SubAccordion>,
+    )
+    const bt = screen.getByTestId('bt')
+    const expandAll = screen.getByRole('button', { name: /Expand All/ })
+    // It changes what the section SHOWS, so it reads before the actions on it.
+    expect(bt.compareDocumentPosition(expandAll)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+
+    // Collapsible drops every header action, this one included.
+    rerender(
+      <SubAccordion title="T" collapsible buttonToggle={<span data-testid="bt">BT</span>}>body</SubAccordion>,
+    )
+    expect(screen.queryByTestId('bt')).toBeNull()
+    expect(container.querySelector('.sub-accordion__header-row')).toBeTruthy()
+  })
+
+  test('omitting buttonToggle renders nothing extra', () => {
+    render(<SubAccordion title="T" collapsible={false}>body</SubAccordion>)
+    expect(screen.queryByTestId('bt')).toBeNull()
+  })
+})
+
 describe('SubAccordion toggleAllVariant', () => {
   afterEach(cleanup)
 

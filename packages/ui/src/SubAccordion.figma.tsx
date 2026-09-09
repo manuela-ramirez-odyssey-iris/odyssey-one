@@ -14,7 +14,9 @@ import SubAccordion from './SubAccordion'
 // Button` are the same action drawn two ways, and together they correspond to
 // `onToggleAll` + `toggleAllVariant` — but the code prop is driven by a
 // CALLBACK's presence, not by either boolean, so neither maps cleanly.
-// `Show Button` → `action` is the same shape. All are documented in the demo.
+// `Show Button` → `action` and `Show Button Toggle` → `buttonToggle` are node
+// slots whose Figma booleans have no counterpart prop (a node's presence IS the
+// switch). All are documented in the demo.
 figma.connect(
   SubAccordion,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4083-5044',

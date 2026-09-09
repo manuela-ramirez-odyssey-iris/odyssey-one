@@ -39,6 +39,13 @@ import Button from './Button.jsx'
  * ButtonLink and Button masters in that one slot. Only the chrome changes —
  * label, icons, callback and Static-only placement are identical either way.
  *
+ * Optional `buttonToggle` (a ReactNode — by convention a `ButtonToggle`) renders
+ * at the HEAD of the header's action cluster, before the expand-all control. A
+ * segmented toggle changes what the section SHOWS, so it reads before the
+ * actions that operate on it. Like `action` it is a plain node, so the consumer
+ * owns its `selected`/`onChange` state; omitting it hides it. Static-only.
+ * (Figma: `Show Button Toggle` BOOLEAN, default false.)
+ *
  * Optional primary action (S80): pass `action` (a ReactNode — by convention a
  * `Button variant="primary" size="sm"`) to render it at the end of the header
  * row, after the expand-all link. Both actions are independently toggleable
@@ -53,6 +60,7 @@ export default function SubAccordion({
   expanded,
   defaultExpanded = false,
   onToggle,
+  buttonToggle,
   allExpanded = false,
   onToggleAll,
   toggleAllVariant = 'link',
@@ -100,6 +108,7 @@ export default function SubAccordion({
             </span>
           )}
         </HeaderTag>
+        {!collapsible && buttonToggle}
         {!collapsible && onToggleAll && (
           <Button
             {...(toggleAllVariant === 'secondary'
