@@ -167,8 +167,17 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
       </MemoryRouter>,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Review Order Change' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Review Consolidated Change' }))
     expect(onRowSelect).toHaveBeenCalledWith(consolidationOrderChangeRow.id, 'stops', false)
     expect(screen.queryByTestId('nav-probe')).toBeFalsy()
+  })
+
+  // S144 (user, 2026-09-09): the label itself follows the shipmentType branch —
+  // a Consolidation row must not show the Direct-route wording.
+  test('Consolidation row action reads "Review Consolidated Change", not "Review Order Change"', () => {
+    renderTable({ shipments: [consolidationOrderChangeRow] })
+    fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
+    expect(screen.getByRole('menuitem', { name: 'Review Consolidated Change' })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Review Order Change' })).toBeFalsy()
   })
 })

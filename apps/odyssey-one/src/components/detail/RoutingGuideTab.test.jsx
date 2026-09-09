@@ -1380,8 +1380,20 @@ describe('Review Order Change entry (LINX-14509)', () => {
     const props = baseProps()
     props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null }, shipmentType: 'Consolidation' }
     render(<RoutingGuideTab {...props} onRequestTab={onRequestTab} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Review Order Change' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review Consolidated Change' }))
     expect(onRequestTab).toHaveBeenCalledWith('stops')
+  })
+
+  // S144 (user, 2026-09-09): the label follows the shipmentType branch — a
+  // Consolidation shipment reviews on a different surface (the Stops tab,
+  // LINX-15435) reached from the same doorway, so it must not read "Review
+  // Order Change".
+  it('labels the button "Review Consolidated Change" for a Consolidation shipment', () => {
+    const props = baseProps()
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null }, shipmentType: 'Consolidation' }
+    render(<RoutingGuideTab {...props} />)
+    expect(screen.getByRole('button', { name: 'Review Consolidated Change' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Review Order Change' })).toBeNull()
   })
 })
 

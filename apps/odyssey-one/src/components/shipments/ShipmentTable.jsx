@@ -295,7 +295,11 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                   // Change exception") — same doorway a mapped cell click uses
                   // (onRowSelect + tab key).
                   {
-                    label: 'Review Order Change',
+                    // S144 (user, 2026-09-09): consolidated shipments review on the
+                    // Stops tab (LINX-15435), a different surface than the Direct
+                    // route — the label says so even though both hang off this same
+                    // row-menu doorway.
+                    label: row.original.shipmentType === 'Consolidation' ? 'Review Consolidated Change' : 'Review Order Change',
                     onSelect: () => row.original.shipmentType === 'Consolidation'
                       ? onRowSelect(row.original.id, 'stops', false)
                       : navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment } }),

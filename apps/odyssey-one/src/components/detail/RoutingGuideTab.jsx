@@ -1674,7 +1674,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
         ? onRequestTab?.('stops')
         : navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
     >
-      Review Order Change
+      {/* S144 (user, 2026-09-09): consolidated shipments review on the Stops
+          tab (LINX-15435), a different surface than the Direct route — the
+          label says so even though both hang off the same doorway. */}
+      {shipmentDetails?.shipmentType === 'Consolidation' ? 'Review Consolidated Change' : 'Review Order Change'}
     </Button>
   )
 
