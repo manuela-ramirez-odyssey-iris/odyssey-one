@@ -942,7 +942,10 @@
 .message-control__message { color: var(--text-error); }
 .message-control__choice { display: flex; flex-direction: column; gap: var(--spacing-2); }
 .message-control__prompt { color: var(--text-primary); }
-.message-control__unanswered { color: var(--text-error); }
+/* Tertiary, not error: the row already carries a red border and a red backend
+   message — a third red line for a question the planner has not reached yet
+   reads as an accusation rather than a prompt (review, 2026-09-10). */
+.message-control__unanswered { color: var(--text-tertiary); }
 .message-control__support { color: var(--text-tertiary); }
 
 /* ── Step 1 panel (LINX-16049 interface errors) ── */

@@ -22,6 +22,9 @@ describe('MessageControlBlock', () => {
     render(<MessageControlBlock rows={[rows[0]]} deleteFlag={null} onDeleteFlag={onDeleteFlag} />)
     fireEvent.click(screen.getByLabelText(NO_LABEL))
     expect(onDeleteFlag).toHaveBeenCalledWith('N')
+    // The contact-support line belongs to the UNFIXABLE rows only — an editable
+    // row must never tell the planner there is nothing they can do.
+    expect(screen.queryByText('Message rejected by the integration — contact support.')).toBeNull()
   })
 
   test('nothing is preselected — the system must not guess the flag', () => {
