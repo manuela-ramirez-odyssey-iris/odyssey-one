@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { Button, PageHeader, ResolveTimeline } from '@odyssey/ui'
+import { Alert, Button, PageHeader, ResolveTimeline } from '@odyssey/ui'
 import CreateOrderForm from '../create/CreateOrderForm.jsx'
 import ConfirmationView from '../create/ConfirmationView.jsx'
 import Step1Panel from './Step1Panel.jsx'
@@ -50,6 +50,7 @@ export default function ResolveShell({ orderNumber }) {
   const [step1, setStep1] = useState({ picks: {}, structuralFixes: {}, deleteFlag: null })
   const [step2Key, setStep2Key] = useState(0)
   const [finalValues, setFinalValues] = useState(null)
+  const [saveError, setSaveError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -84,9 +85,14 @@ export default function ResolveShell({ orderNumber }) {
     try {
       await saveInterfaceFixes(orderNumber, fixed)
     } catch (e) {
+      // Same rule the form applies to a failed purge (Task 8 ruling): a write
+      // that failed must SAY so. A bare `return` here left the planner on an
+      // unchanged Step 1 with no explanation for why nothing happened.
       console.error(e)
+      setSaveError(`Couldn't save the message fixes for order ${orderNumber}. ${e?.message || 'Please try again.'}`)
       return
     }
+    setSaveError('')
     setStep1({ picks, structuralFixes, deleteFlag })
     setLoaded((l) => ({ ...l, values: fixed }))
     // CreateOrderForm hydrates in an effect keyed on [resolveKey], which does
@@ -137,6 +143,9 @@ export default function ResolveShell({ orderNumber }) {
         </PageHeader>
         <p className="text-label-sm-regular co-resolve-subheading">Order Number {orderNumber}</p>
         <ResolveTimeline className="resolve-shell__timeline" steps={steps} current={`s${viewing}`} />
+        {saveError && (
+          <Alert variant="error" onClose={() => setSaveError('')}>{saveError}</Alert>
+        )}
       </div>
 
       {loaded && viewing === 1 && (

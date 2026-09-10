@@ -464,3 +464,24 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     expect(screen.getByText('Your order was created successfully.')).toBeTruthy()
   })
 })
+
+describe('two-step resolution shell — a failed Step 1 save', () => {
+  // Mirrors the form's failed-purge rule (Task 8): a write that failed must be
+  // visible, not a console.error and an unchanged screen.
+  test('surfaces an error Alert and stays on Step 1', async () => {
+    const svc = await import('../../../api/services/orderService')
+    const spy = vi.spyOn(svc, 'saveInterfaceFixes').mockRejectedValue(new Error('OIF endpoint unavailable'))
+    try {
+      renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+      pickEveryConflict()
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+      fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+      expect(await screen.findByText(/Couldn't save the message fixes/)).toBeTruthy()
+      expect(screen.getByText(/OIF endpoint unavailable/)).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy()
+    } finally {
+      spy.mockRestore()
+    }
+  })
+})
