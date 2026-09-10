@@ -72,6 +72,9 @@ import { faker, Faker, en } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES } from './data-pools.mjs'
 import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
+// Row capacity per Level-1 error class — single source of truth, shared with
+// the resolve view so a seeded count can never exceed what the derive renders.
+import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -3236,8 +3239,22 @@ export function buildDataset({
     row.draftOrderStatus = 'Error';
     row.errorCount = rndWeighted(veHoldRnd, ERROR_COUNT_WEIGHTS);
     if (veHoldRnd() < L1_SHARE) {
-      row.interfaceErrorCount = rndWeighted(veHoldRnd, INTERFACE_ERROR_COUNT_WEIGHTS);
-      row.interfaceErrorClass = rndWeighted(veHoldRnd, INTERFACE_ERROR_CLASS_WEIGHTS);
+      // Draw EXACTLY as before (same two draws, same order — the stream is
+      // shared with the Hold selection below), then CLAMP deterministically.
+      // The draws know nothing about the order's real line count or the
+      // class's real row capacity, so an unclamped row can promise 5 errors
+      // the derive cannot render: a conflict needs ≥2 lines, and 'delete-flag'
+      // has exactly one rule. Capacity comes from interfaceErrors.js so this
+      // isn't a second copy of the rule table.
+      const count = rndWeighted(veHoldRnd, INTERFACE_ERROR_COUNT_WEIGHTS);
+      let cls = rndWeighted(veHoldRnd, INTERFACE_ERROR_CLASS_WEIGHTS);
+      // No enrichment ⇒ no orderLines ⇒ the resolve view sees one line
+      // (deriveInterfaceErrors' own `?? 1` fallback). Same assumption here.
+      const lineCount = orderEnrichments[row.orderNumber]?.orderLines?.length || 1;
+      // 'mixed' needs a conflict to be mixed; both degrade to structural.
+      if (lineCount < 2 && (cls === 'conflict' || cls === 'mixed')) cls = 'structural';
+      row.interfaceErrorClass = cls;
+      row.interfaceErrorCount = Math.min(count, classCapacity(cls, lineCount));
     } else {
       row.interfaceErrorCount = 0;
       row.interfaceErrorClass = null;

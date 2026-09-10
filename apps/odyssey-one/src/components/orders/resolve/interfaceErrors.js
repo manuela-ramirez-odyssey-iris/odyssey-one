@@ -19,9 +19,12 @@
  * exactly that many rows. One rule can emit more than one row: rule 5 (address)
  * is picked field by field (PO ruling: the planner may take City from line 1
  * and Postal from line 3), so it emits a City row and a Postal row. The derive
- * therefore fills a ROW BUDGET and truncates the last rule's extra rows if the
- * budget runs out — an order where only City disagrees is perfectly plausible.
- * The budget is capped by the class's total row capacity.
+ * therefore fills a ROW BUDGET and, when it runs out, drops whichever chosen
+ * rule sorts last, in whole or in part — the chosen set is sorted by rule
+ * number BEFORE the budget runs, so the casualty is usually a whole
+ * higher-numbered rule rather than rule 5's sibling row. An order where only
+ * City disagrees is perfectly plausible either way.
+ * The budget is capped by the class's total row capacity (`classCapacity`).
  *
  * CONTRACT — a conflict needs ≥2 order lines. A single-line order cannot have
  * lines that disagree, so conflict rules are dropped for such orders (which
@@ -85,7 +88,11 @@ const ALT = {
   'general.freightTerm': (v) => (v === 'P' ? 'C' : 'P'),
   'pickupDelivery.planningDateType': (v) => (v === 'SHIP' ? 'DELIVERY' : 'SHIP'),
   'pickupDelivery.consignor.city': (v) => (v === 'Odessa' ? 'Midland' : 'Odessa'),
-  'pickupDelivery.consignor.postal': (v) => String(Number(v || 70000) + 11),
+  // Seed postals are 5-digit US, but live data arrives through a different
+  // mapper (alphanumeric CA/UK codes exist) — bump numerically only when the
+  // value really is all digits, else suffix it.
+  'pickupDelivery.consignor.postal': (v) =>
+    /^\d+$/.test(String(v ?? '')) ? String(Number(v) + 11) : `${v || '70000'}-B`,
   'pickupDelivery.latePickup.date': (v) => shiftDate(v, 2),
   'pickupDelivery.earlyDelivery.date': (v) => shiftDate(v, 3),
   'pickupDelivery.lateDelivery.date': (v) => shiftDate(v, 2),
@@ -100,12 +107,40 @@ const CLASS_RULES = {
   unresolvable: [8, 9, 11],
 }
 
-const EMPTY = {
+/**
+ * Draft keys the structural grid reads — the ONLY place these names are
+ * defined. `applyErrors` stamps the fault under the key, `applyFixes` clears
+ * it. Seed scaffolding: these stand in for the real OrderInterface line shape
+ * (orderLines[].schedules[]), which the Level-1 endpoint will supply.
+ */
+export const STRUCTURAL_DRAFT_KEYS = {
+  'extra-schedule': 'schedules',
+  'quantity-mismatch': 'scheduleQuantity',
+  'timezone-missing': 'scheduleTimezone',
+}
+
+/**
+ * Max ERROR ROWS a class can actually produce for an order with `lineCount`
+ * lines. Conflict rules need ≥2 lines (nothing to disagree with otherwise),
+ * and rule 5 emits 2 rows (City + Postal). The generator clamps its seeded
+ * `interfaceErrorCount` to this so a row's badge never promises more errors
+ * than the derive can render.
+ */
+export function classCapacity(interfaceErrorClass, lineCount = 1) {
+  return (CLASS_RULES[interfaceErrorClass] ?? [])
+    .map((n) => INTERFACE_RULES.find((r) => r.rule === n))
+    .filter((r) => r.class !== 'conflict' || lineCount > 1)
+    .reduce((sum, r) => sum + 1 + (r.siblings?.length ?? 0), 0)
+}
+
+// Fresh object per call: `conflicts` is a Map and `applyErrors` writes
+// `lineValues`, so a shared singleton would be mutable state consumers share.
+const empty = () => ({
   errors: [], conflicts: new Map(), structural: [], messageControl: [],
-  applyErrors: (v) => structuredClone(v),
+  applyErrors: (v) => ({ ...structuredClone(v), lineValues: {} }),
   applyFixes: (v) => structuredClone(v),
   isResolved: () => true,
-}
+})
 
 /**
  * @param {string} orderNumber          seed — the row and the resolve view agree
@@ -115,7 +150,7 @@ const EMPTY = {
  */
 export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfaceErrorClass, values) {
   const count = Math.max(0, Number(interfaceErrorCount) || 0)
-  if (!count || !CLASS_RULES[interfaceErrorClass]) return EMPTY
+  if (!count || !CLASS_RULES[interfaceErrorClass]) return empty()
 
   const rand = seededRandom(`L1:${orderNumber}`)
   const lineCount = Math.max(1, values?.products?.length ?? 1)
@@ -123,7 +158,7 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
     .map((n) => INTERFACE_RULES.find((r) => r.rule === n))
     // one line ⇒ nothing to disagree with
     .filter((r) => r.class !== 'conflict' || lineCount > 1)
-  if (!pool.length) return EMPTY
+  if (!pool.length) return empty()
 
   // Fisher-Yates over the pool.
   const queue = [...pool]
@@ -207,9 +242,10 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
     for (const s of structural) {
       const p = draft.products[s.line - 1]
       if (!p) continue
-      if (s.kind === 'extra-schedule') p.schedules = [{ id: `${p.id}-sch-1` }, { id: `${p.id}-sch-2` }]
-      if (s.kind === 'quantity-mismatch') p.scheduleQuantity = { grossWeight: String(Number(p.grossWeight?.value || 0) + 50), volume: p.volume?.value ?? '' }
-      if (s.kind === 'timezone-missing') p.scheduleTimezone = ''
+      const key = STRUCTURAL_DRAFT_KEYS[s.kind]
+      if (s.kind === 'extra-schedule') p[key] = [{ id: `${p.id}-sch-1` }, { id: `${p.id}-sch-2` }]
+      if (s.kind === 'quantity-mismatch') p[key] = { grossWeight: String(Number(p.grossWeight?.value || 0) + 50), volume: p.volume?.value ?? '' }
+      if (s.kind === 'timezone-missing') p[key] = ''
     }
     return draft
   }
@@ -225,12 +261,13 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
       const p = draft.products?.[s.line - 1]
       const fix = structuralFixes[s.id]
       if (!p || !fix) continue
-      if (s.kind === 'extra-schedule') p.schedules = (p.schedules ?? []).slice(0, 1)
+      const key = STRUCTURAL_DRAFT_KEYS[s.kind]
+      if (s.kind === 'extra-schedule') p[key] = (p[key] ?? []).slice(0, 1)
       if (s.kind === 'quantity-mismatch') {
         if (fix.grossWeight) p.grossWeight = { ...p.grossWeight, value: fix.grossWeight }
-        delete p.scheduleQuantity
+        delete p[key]
       }
-      if (s.kind === 'timezone-missing' && fix.timezone) p.scheduleTimezone = fix.timezone
+      if (s.kind === 'timezone-missing' && fix.timezone) p[key] = fix.timezone
     }
     return draft
   }

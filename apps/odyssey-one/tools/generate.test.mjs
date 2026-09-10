@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
+import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 
 test('buildDataset returns a coherent scaled dataset', () => {
   const ds = buildDataset({ totalShipments: 50 })
@@ -19,7 +20,8 @@ test('buildDataset returns a coherent scaled dataset', () => {
 })
 
 test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftOrderStatus+errorCount', () => {
-  const { orders } = buildDataset()
+  const ds = buildDataset()
+  const { orders } = ds
   const drafts = orders.filter(o => o.orderStatus === 'Draft')
   assert.ok(drafts.length > 0)
   for (const d of drafts) {
@@ -47,6 +49,19 @@ test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftO
   assert.ok(share >= 0.3 && share <= 0.5, `L1 share ${(share * 100).toFixed(1)}% out of band`)
   for (const cls of ['conflict', 'structural', 'mixed', 'delete-flag', 'unresolvable'])
     assert.ok(withL1.some(o => o.interfaceErrorClass === cls), `no VE row with interfaceErrorClass ${cls} — weight 3 yields ~3-4 rows, so a seed-stream change can zero it; RAISE THE WEIGHT rather than delete the class`)
+  // The badge must never promise more errors than deriveInterfaceErrors can
+  // render: the count/class draws are blind to the order's line count and to
+  // the class's row capacity, so the post-pass clamps both. Fails loudly if
+  // the clamp is removed.
+  const lineCountOf = (o) => ds.orderDetails[o.orderNumber]?.orderLines?.length || 1
+  for (const o of withL1) {
+    const lines = lineCountOf(o)
+    assert.ok(!(lines < 2 && ['conflict', 'mixed'].includes(o.interfaceErrorClass)),
+      `${o.orderNumber}: ${lines}-line order carries class ${o.interfaceErrorClass} — a conflict needs >=2 lines, so the derive would render ZERO errors`)
+    const cap = classCapacity(o.interfaceErrorClass, lines)
+    assert.ok(o.interfaceErrorCount <= cap,
+      `${o.orderNumber}: interfaceErrorCount ${o.interfaceErrorCount} exceeds ${o.interfaceErrorClass} capacity ${cap} for ${lines} line(s)`)
+  }
   for (const o of orders) {
     assert.equal(typeof o.hazardous, 'boolean')
     assert.ok(o.consignor.name !== undefined && o.consignor.address !== undefined)

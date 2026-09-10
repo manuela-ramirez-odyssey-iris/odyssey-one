@@ -145,19 +145,46 @@ describe('deriveInterfaceErrors', () => {
     expect(r.isResolved(u, { picks: {}, structuralFixed: new Set(), deleteFlag: 'Y' })).toBe(false)
   })
 
-  test('applyFixes writes the picks into the header and clears the seeded faults (keyed by ERROR id)', () => {
+  // 'structural' with count 3 draws ALL THREE rules (1/2/4 is the whole pool),
+  // so every kind branch of applyFixes is asserted — a single seed only ever
+  // exercised whichever kind it happened to draw.
+  test('applyFixes writes the picks into the header and clears every structural kind (keyed by ERROR id)', () => {
     const src = values()
-    const r = deriveInterfaceErrors('0000000091004', 3, 'mixed', src)
+    const r = deriveInterfaceErrors('0000000091003', 3, 'structural', src)
+    expect(r.structural.map(s => s.kind).sort())
+      .toEqual(['extra-schedule', 'quantity-mismatch', 'timezone-missing'])
     const draft = r.applyErrors(src)
-    const [path] = [...r.conflicts][0]
-    const st = r.structural[0]
-    const fixed = r.applyFixes(draft, { [path]: 'PICKED' }, { [st.id]: { timezone: 'CDT', grossWeight: '999' } })
-    expect(getPath(fixed, path)).toBe('PICKED')
+    for (const s of r.structural) {
+      const p = draft.products[s.line - 1]
+      if (s.kind === 'extra-schedule') expect(p.schedules.length).toBe(2)
+      if (s.kind === 'quantity-mismatch') expect(p.scheduleQuantity).toBeDefined()
+      if (s.kind === 'timezone-missing') expect(p.scheduleTimezone).toBe('')
+    }
+    const fixes = Object.fromEntries(r.structural.map(s => [s.id, { timezone: 'CDT', grossWeight: '999' }]))
+    const fixed = r.applyFixes(draft, { 'general.freightTerm': 'PICKED' }, fixes)
+    expect(fixed.general.freightTerm).toBe('PICKED')
     expect(fixed.lineValues).toBeUndefined()
-    const line = fixed.products[st.line - 1]
-    if (st.kind === 'extra-schedule') expect(line.schedules.length).toBe(1)
-    if (st.kind === 'quantity-mismatch') expect(line.scheduleQuantity).toBeUndefined()
-    if (st.kind === 'timezone-missing') expect(line.scheduleTimezone).toBe('CDT')
+    for (const s of r.structural) {
+      const line = fixed.products[s.line - 1]
+      if (s.kind === 'extra-schedule') expect(line.schedules.length).toBe(1)
+      if (s.kind === 'quantity-mismatch') {
+        expect(line.scheduleQuantity).toBeUndefined()
+        expect(line.grossWeight.value).toBe('999')
+      }
+      if (s.kind === 'timezone-missing') expect(line.scheduleTimezone).toBe('CDT')
+    }
+  })
+
+  // A zero-error order must still hand back a usable draft (and its own
+  // objects — the early return used to be a shared mutable singleton).
+  test('zero-error result is a fresh object whose applyErrors still sets lineValues', () => {
+    const a = deriveInterfaceErrors('X', 0, null, values())
+    const b = deriveInterfaceErrors('Y', 0, null, values())
+    expect(a).not.toBe(b)
+    expect(a.conflicts).not.toBe(b.conflicts)
+    a.conflicts.set('poison', 1)
+    expect(b.conflicts.size).toBe(0)
+    expect(a.applyErrors(values()).lineValues).toEqual({})
   })
 })
 
