@@ -113,7 +113,16 @@ export const CHIP_COLS = {
   'freight-terms': { sql: 'freight_terms', labels: FREIGHT_TERM_CODES },
   'order-status': { sql: 'order_status' },
   'order-source': { sql: 'order_source', labels: ORDER_SOURCE_CODES },
+  // Column LABEL is 'Validation Status' (Ramesh, 2026-09-10); the chip key and
+  // the Neon column keep the `draft_order_status` name — wire contract, not UI.
   'draft-order-status': { sql: 'draft_order_status' },
+  // Errors Count is the TOTAL of both OIF levels client-side (structural +
+  // master data, Ramesh 2026-09-10). Here it is `error_count` alone and that is
+  // still CORRECT, because `interface_error_count` is not a Neon column at all
+  // (Q-OIF-4): live rows carry interfaceErrorCount === null, so the total
+  // reduces to error_count. Add the column and this expression becomes
+  // `(error_count + coalesce(interface_error_count, 0))::text` — and so does the
+  // comparator below.
   'error-count': { sql: 'error_count::text' },
   hazardous: { bool: 'hazardous', trueValue: 'Hazmat' },
   'gross-weight': { sql: "gross_weight->>'value'" },
@@ -272,6 +281,14 @@ export function orderWhereClauses(filters = {}, values = []) {
   // Error Count comparator (LINX-11659) — both halves required, operator
   // whitelisted. A NULL error_count never satisfies a comparison, which is the
   // blank-value rule again.
+  //
+  // The UI's Errors Count is now structural + master data (Ramesh, 2026-09-10),
+  // and this compares error_count only. Verified equivalent, not assumed: Neon
+  // has no `interface_error_count` column (Q-OIF-4 — see ROW_COLUMNS above,
+  // which cannot select one), so LIVE rows always have interfaceErrorCount null
+  // and total === error_count. The moment that column lands, this clause and
+  // CHIP_COLS['error-count'] must both add coalesce(interface_error_count, 0)
+  // or the grid and the query stop agreeing.
   const ecOp = ERROR_COUNT_OPS[filters.errorCountOperator]
   if (ecOp && Number.isInteger(filters.errorCountValue)) {
     add(`error_count ${ecOp} ?`, filters.errorCountValue)

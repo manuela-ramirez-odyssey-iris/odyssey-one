@@ -13,7 +13,7 @@
  *                       Shipper Location · Destination Location ·
  *                       Latest Pickup · Latest Delivery · Gross Weight · Volume
  *   draft             → Created · Created By · Last Edit · Last Edited By
- *   validation-errors → Draft Order Status · Errors Count
+ *   validation-errors → Validation Status · Errors Count
  * Nothing here is NOT a column. Fields that exist on the row but on no grid
  * (poNumber, commodity, planningDateType, the `earliest` timestamps) are
  * deliberately out — add them here and to `orderSearchRow` together if a column
@@ -45,6 +45,9 @@
  */
 import { EQUIPMENT_CODES, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel } from '../../data/master-data'
 import { ORDER_STATUS_VALUES, DRAFT_ORDER_STATUS_VALUES } from './registry'
+// One definition of the Errors Count value, shared with the grid VM and the mock
+// filter so display and query can never disagree (Ramesh, 2026-09-10).
+import { totalErrorCount } from '../../api/mappers/mapOrderListRow'
 
 export const ORDERS_PROGRESSION = [
   {
@@ -102,10 +105,15 @@ export const ORDERS_PROGRESSION = [
       // LINX-11659's OIF validation state — a DIFFERENT vocabulary from
       // ORDER_STATUS_VALUES above, which is why it keeps its own attribute
       // rather than sharing 'order-status' (registry.js records the same trap).
-      { key: 'draft-order-status', label: 'Draft Order Status', dataKey: 'draftOrderStatus', match: 'enum', exact: true, values: DRAFT_ORDER_STATUS_VALUES },
+      // LABEL 'Validation Status' (Ramesh, 2026-09-10), KEY/dataKey still
+      // `draftOrderStatus` — the wire field and Neon's `draft_order_status`
+      // column. The divergence is deliberate; do not "fix" it here.
+      { key: 'draft-order-status', label: 'Validation Status', dataKey: 'draftOrderStatus', match: 'enum', exact: true, values: DRAFT_ORDER_STATUS_VALUES },
       // Exact, like Shipments' Order Count: "Errors Count: 1" must not match 12.
       // The PANEL's version is an operator + value comparator (Greater Than 5);
       // a bar chip has no room for an operator, so the bar's is equality only.
+      // `errorCount` on the PROJECTED row is the two-level TOTAL (see
+      // orderSearchRow below) — a chip has to match the number the column shows.
       { key: 'error-count', label: 'Errors Count', dataKey: 'errorCount', match: 'digits', exact: true },
     ],
   },
@@ -169,6 +177,7 @@ const locationText = (loc) =>
  * would project server-side.
  */
 export function orderSearchRow(row) {
+  const errorTotal = totalErrorCount(row)
   return {
     ...row,
     orderNumber: row.orderNumber,
@@ -185,7 +194,10 @@ export function orderSearchRow(row) {
     orderStatus: row.orderStatus ?? '',
     orderSource: row.orderSource ? row.orderSource[0] + row.orderSource.slice(1).toLowerCase() : '',
     draftOrderStatus: row.draftOrderStatus ?? '',
-    errorCount: row.errorCount == null ? '' : String(row.errorCount),
+    // The two-level TOTAL, same derivation the grid cell uses — a chip reading
+    // "Errors Count: 5" must match the rows that DISPLAY 5, not the rows whose
+    // master-data half happens to be 5 (Ramesh, 2026-09-10).
+    errorCount: errorTotal == null ? '' : String(errorTotal),
     hazardous: row.hazardous ? 'Hazmat' : '', // '' = not indexable, matching the column's '-'
     grossWeight: row.grossWeight?.value == null ? '' : String(row.grossWeight.value),
     volume: row.volume?.value == null ? '' : String(row.volume.value),

@@ -15,7 +15,10 @@ import { TAB_COLUMNS } from '../../components/orders/ordersColumns'
 const COLUMN_TO_ATTR = {
   'Latest Pickup Date and Time': 'Latest Pickup Date', // the criterion is a day, not a timestamp
   'Latest Delivery Date and Time': 'Latest Delivery Date',
-  'Order Status': 'Order Status', // the VE tab's "Draft Order Status" is its own attribute
+  // The VE tab's "Validation Status" (renamed from "Draft Order Status",
+  // Ramesh 2026-09-10) is its own attribute and keeps its own label — this
+  // identity entry records that "Order Status" must NOT absorb it.
+  'Order Status': 'Order Status',
 }
 
 describe('column coverage', () => {

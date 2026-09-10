@@ -29,7 +29,7 @@ describe('one field set on every tab', () => {
     'Order Number', 'Order Status', 'Customer',
     'Origin City, State, Country', 'Destination City, State, Country',
     'Latest Pickup Date', 'Latest Delivery Date', 'Created Date', 'Last Edit Date',
-    'Created By', 'Last Edited By', 'Draft Order Status', 'Errors Count',
+    'Created By', 'Last Edited By', 'Validation Status', 'Errors Count',
   ]
 
   it('All, Draft and Validation Errors all render the SAME full set', () => {
@@ -47,7 +47,7 @@ describe('one field set on every tab', () => {
     setup('created')
     // Order Status: the 7 lifecycle values.
     expect(screen.getByRole('button', { name: 'Planned Shipment' })).toBeTruthy()
-    // Draft Order Status: the 3 OIF values, not the lifecycle ones.
+    // Validation Status: the 3 OIF values, not the lifecycle ones.
     for (const v of ['Error', 'Complete', 'Purge']) {
       expect(screen.getByRole('button', { name: v })).toBeTruthy()
     }

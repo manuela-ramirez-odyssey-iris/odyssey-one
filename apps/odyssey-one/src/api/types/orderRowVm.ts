@@ -32,8 +32,11 @@ export interface OrderRowVM {
   lastEditedBy: string // username (R2-4)
   lastEdit: string
   // ── Validation Errors tab ──
+  // Column LABEL is 'Validation Status' (Ramesh, 2026-09-10); the field keeps
+  // the wire/Neon name `draftOrderStatus` on purpose.
   draftOrderStatus: string // 'Error' | 'Complete' | 'Purge' | ''
-  errorCount: number | null
-  interfaceErrorCount: number | null
+  errorCount: number | null // DISPLAYED total: master data + structural (totalErrorCount)
+  masterDataErrorCount: number | null // Level 2 only — seeds the Step 2 resolution screen
+  interfaceErrorCount: number | null // Level 1 only — seeds the Step 1 resolution screen
   interfaceErrorClass: OrderListRow['interfaceErrorClass']
 }

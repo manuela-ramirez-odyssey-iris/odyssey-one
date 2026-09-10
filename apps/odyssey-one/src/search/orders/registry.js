@@ -191,7 +191,11 @@ export const ORDERS_FILTER_ATTRS = [
     // Renamed from 'Order Status' — with ONE panel shown on every tab, this
     // now sits next to `orderStatus`'s own 'Order Status' field and the two
     // must not share a label (matches the grid's VE column, ORD-23).
-    label: 'Draft Order Status',
+    // Renamed again to 'Validation Status' (Ramesh, 2026-09-10). LABEL vs KEY
+    // diverge on purpose: `draftOrderStatus` / `draftOrderStatuses` is the wire
+    // contract and Neon's `draft_order_status` column, and renaming those is an
+    // unapproved backend change.
+    label: 'Validation Status',
     control: 'enum',
     values: DRAFT_ORDER_STATUS_VALUES,
     param: 'draftOrderStatuses', // NEW

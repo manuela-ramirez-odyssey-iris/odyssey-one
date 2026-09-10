@@ -86,10 +86,23 @@ export const VALIDATION_COLUMNS = [
     header: 'Customer',
     meta: { cellClass: 'odyssey-table__cell--title text-label-sm-medium' },
   }),
+  // LABEL 'Validation Status', KEY `draftOrderStatus` — the divergence is
+  // deliberate (Ramesh, 2026-09-10: "We need to rename column name from 'Draft
+  // Order Status' to 'Validation Status' … It is 'Validation Status' NOT
+  // 'Validation Order Status'"). The key stays because it is the wire field and
+  // Neon's `draft_order_status` column; renaming it is a backend change nobody
+  // has approved.
   col.accessor('draftOrderStatus', {
-    header: 'Draft Order Status',
+    header: 'Validation Status',
     cell: ({ getValue }) => statusBadge(getValue(), DRAFT_ORDER_STATUS_VARIANT),
   }),
+  // The TOTAL of both OIF levels — structural (LINX-16049) + master data
+  // (LINX-11137) — because Ramesh's 2026-09-10 rule is "Error = Order has
+  // structural and/or master data error". Showing only the master-data count
+  // told a planner "2" and then made them fix 5. `mapOrderListRow` derives it
+  // once onto `errorCount` so the cell, the export, the bar chip and the filter
+  // can never disagree; the master-data-only count lives on the VM as
+  // `masterDataErrorCount` for the Step 2 seed.
   col.accessor('errorCount', {
     header: 'Errors Count',
     cell: ({ getValue }) => getValue() ?? '--',

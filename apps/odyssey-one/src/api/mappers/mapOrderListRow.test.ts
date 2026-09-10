@@ -29,6 +29,7 @@ describe('mapOrderListRow', () => {
       lastEdit: '--',
       draftOrderStatus: '',
       errorCount: null,
+      masterDataErrorCount: null,
       interfaceErrorCount: null,
       interfaceErrorClass: null,
     })
@@ -108,12 +109,25 @@ describe('mapOrderListRow — per-tab grid fields', () => {
     expect(vm.createdBy).toBe('amy.cook')
     expect(vm.lastEditedBy).toBe('ben.planner')
     expect(vm.draftOrderStatus).toBe('Error')
-    expect(vm.errorCount).toBe(7)
+    // Ramesh, 2026-09-10: the Errors Count column is the TOTAL of both OIF
+    // levels — 7 master data + 2 structural is 9 pieces of work, not 7.
+    expect(vm.errorCount).toBe(9)
+    expect(vm.masterDataErrorCount).toBe(7) // Step 2's seed stays Level 2 only
     expect(vm.interfaceErrorCount).toBe(2)
     expect(vm.interfaceErrorClass).toBe('conflict')
-    const bare = mapOrderListRow({ ...baseRow, createdBy: undefined, lastEditedBy: undefined, errorCount: undefined })
+    const bare = mapOrderListRow({
+      ...baseRow, createdBy: undefined, lastEditedBy: undefined,
+      errorCount: undefined, interfaceErrorCount: undefined,
+    })
     expect(bare.createdBy).toBe('--')
     expect(bare.lastEditedBy).toBe('--')
-    expect(bare.errorCount).toBeNull()
+    expect(bare.errorCount).toBeNull() // no counts at all → '--', never a misleading 0
+  })
+
+  // A row with only ONE of the two levels still totals correctly — this is the
+  // LIVE shape today, where Neon has no interface_error_count column (Q-OIF-4).
+  it('totals one-sided rows without inventing a zero', () => {
+    expect(mapOrderListRow({ ...baseRow, interfaceErrorCount: undefined }).errorCount).toBe(7)
+    expect(mapOrderListRow({ ...baseRow, errorCount: undefined }).errorCount).toBe(2)
   })
 })

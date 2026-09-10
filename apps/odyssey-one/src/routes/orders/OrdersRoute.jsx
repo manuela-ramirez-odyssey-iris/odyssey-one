@@ -213,7 +213,10 @@ export default function OrdersRoute() {
     else if (action === 'Resolve')
       navigate(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
         state: {
-          errorCount: row.errorCount,
+          // Step 2 seeds from the MASTER-DATA count only — `errorCount` on the
+          // VM is now the displayed structural + master-data total (Ramesh,
+          // 2026-09-10) and would invent Level 2 errors that do not exist.
+          errorCount: row.masterDataErrorCount,
           interfaceErrorCount: row.interfaceErrorCount,
           interfaceErrorClass: row.interfaceErrorClass,
           customer: row.customer,
@@ -235,7 +238,11 @@ export default function OrdersRoute() {
       status: match['data-order-status'],
       draftOrderStatus: match['data-draft-status'],
       orderSource: match['data-order-source'],
-      errorCount: match['data-error-count'] === '' ? null : Number(match['data-error-count']),
+      // `data-error-count` is the raw MASTER-DATA count, matching what the
+      // resolve hand-off above wants (Step 2's seed) — deliberately not the
+      // displayed total. It is never rendered, so it is not a display/filter
+      // divergence.
+      masterDataErrorCount: match['data-error-count'] === '' ? null : Number(match['data-error-count']),
       customer: match.customer,
     }
     if (row.id) handleRowAction(primaryRowAction(row), row)
@@ -280,8 +287,12 @@ export default function OrdersRoute() {
         'Gross Weight': r.weight, Volume: r.volume }),
       draft: r => ({ 'Order Number': r.idLabel, Customer: r.customer, Created: r.created,
         'Created By': r.createdBy, 'Last Edit': r.lastEdit }),
+      // 'Validation Status' is the column LABEL (Ramesh, 2026-09-10) — the VM
+      // field stays `draftOrderStatus`, the wire/Neon name. Errors Count is the
+      // VM's derived two-level total, so the export matches the grid by
+      // construction rather than by a second copy of the rule.
       'validation-errors': r => ({ 'Order Number': r.idLabel, Customer: r.customer,
-        'Draft Order Status': r.draftOrderStatus, 'Errors Count': r.errorCount ?? '' }),
+        'Validation Status': r.draftOrderStatus, 'Errors Count': r.errorCount ?? '' }),
     }
     const shaped = vms.map(EXPORT_SHAPES[activeTab] ?? EXPORT_SHAPES.created)
     const XLSX = await import('xlsx')

@@ -38,7 +38,9 @@ describe('one field set on every tab (ORD-23)', () => {
     const ve = attrsForTab('validation-errors').find((a) => a.key === 'draftOrderStatus')
     expect(ve.param).toBe('draftOrderStatuses')
     expect(ve.values).toEqual(['Error', 'Complete', 'Purge'])
-    expect(ve.label).toBe('Draft Order Status') // distinct from orderStatus's 'Order Status'
+    // Renamed from 'Draft Order Status' by Ramesh, 2026-09-10 — LABEL only;
+    // the param stays `draftOrderStatuses` (asserted above).
+    expect(ve.label).toBe('Validation Status') // distinct from orderStatus's 'Order Status'
   })
 })
 

@@ -107,6 +107,10 @@ function buildOrderRow(row, attr, value) {
     'data-order-status': row.orderStatus || '',
     'data-draft-status': row.draftOrderStatus || '',
     'data-order-source': row.orderSource || '',
+    // RAW master-data count, not the displayed two-level total: the only
+    // consumer is the Resolve hand-off in OrdersRoute, which seeds Step 2 (the
+    // master-data step). Nothing renders it, so it is not a display/filter
+    // divergence — the displayed total lives on the grid VM (Ramesh, 2026-09-10).
     'data-error-count': row.errorCount ?? '',
   }
 }

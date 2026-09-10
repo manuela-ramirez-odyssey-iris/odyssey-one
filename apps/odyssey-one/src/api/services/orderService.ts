@@ -8,6 +8,7 @@ import {
 } from '../../search/orders/criteria'
 import { matchesChip } from '../../search/criteria-core'
 import { orderSearchRow } from '../../search/orders/progression'
+import { totalErrorCount } from '../mappers/mapOrderListRow'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
@@ -82,10 +83,16 @@ function matchesSearchTerms(row: OrderListRow, terms: string[] | undefined): boo
   return matchesAnyNeedle(row as unknown as Record<string, unknown>, terms)
 }
 
-// LINX-11659 Error Count comparator. A row with no errorCount never matches
+// LINX-11659 Error Count comparator. A row with no errors count never matches
 // (same blank-value rule as above) — the field only exists on VE-tab rows.
+//
+// `count` is the two-level TOTAL from `totalErrorCount`, NOT the raw
+// master-data `errorCount`: the column shows the total (Ramesh, 2026-09-10), so
+// "Errors Count equals 5" has to select exactly the rows displaying 5. Comparing
+// the raw field here is the display/filter divergence this repo has shipped five
+// times — the callers pass the same derivation the grid VM uses.
 function matchesErrorCount(
-  count: number | undefined,
+  count: number | null | undefined,
   op: 'gt' | 'eq' | 'lt' | undefined,
   value: number | undefined,
 ): boolean {
@@ -108,7 +115,9 @@ const SORT_GETTERS: Record<string, (r: OrderListRow) => string | number> = {
   destinationLocation: r => r.consignee?.locationId ?? '',
   created: r => r.createdAt ?? '',
   lastEdit: r => r.lastEditAt ?? '',
-  errorCount: r => r.errorCount ?? 0,
+  // Sorts by the DISPLAYED total, not the master-data half — a column that
+  // shows one number and sorts by another is the same bug class as the filter.
+  errorCount: r => totalErrorCount(r) ?? 0,
   hazardous: r => (r.hazardous ? 1 : 0),
   orderSource: r => r.orderSource ?? '',
   draftOrderStatus: r => r.draftOrderStatus ?? '',
@@ -268,7 +277,7 @@ export function applyMockFilters(
       oneOf(f.draftOrderStatuses, r.draftOrderStatus) &&
       oneOf(f.createdBy, r.createdBy) &&
       oneOf(f.lastEditedBy, r.lastEditedBy) &&
-      matchesErrorCount(r.errorCount, f.errorCountOperator, f.errorCountValue) &&
+      matchesErrorCount(totalErrorCount(r), f.errorCountOperator, f.errorCountValue) &&
       matchesSearchTerms(r, mockNeedles) &&
       matchesSearchChips(r, f.searchChips) &&
       (originTriples?.length

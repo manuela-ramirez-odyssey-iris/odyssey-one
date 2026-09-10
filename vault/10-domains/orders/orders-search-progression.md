@@ -29,7 +29,7 @@ So the source is [`components/orders/ordersColumns.jsx`](../../../apps/odyssey-o
 |---|---|---|
 | **All** | LINX-11658 | Order Number · Hazardous · Order Source · Order Status · Customer · Ship Direction · Freight Terms · Equipment · Shipper Location · Destination Location · Latest Pickup Date and Time · Latest Delivery Date and Time · Gross Weight · Volume |
 | **Draft** | LINX-11663 | Order Number · Customer · Created · Created By · Last Edit · Last Edited By |
-| **Validation Errors** | LINX-11659 | Order Number · Customer · Draft Order Status · Errors Count |
+| **Validation Errors** | LINX-11659 | Order Number · Customer · ~~Draft Order Status~~ **Validation Status** · Errors Count |
 
 The rule cuts **both** ways, and `progression.test.js` enforces both:
 
@@ -38,7 +38,7 @@ The rule cuts **both** ways, and `progression.test.js` enforces both:
 
 The test also pins the shape: 9 groups, 20 attributes, unique keys, every attribute carrying a known `match` type, every `enum` carrying a non-empty value catalog.
 
-Three column headers map to a differently-worded attribute label; the test whitelists exactly those three (`Latest Pickup Date and Time` → `Latest Pickup Date`, same for delivery, and the Validation Errors tab's `Draft Order Status` staying its own attribute rather than folding into `Order Status`).
+Three column headers map to a differently-worded attribute label; the test whitelists exactly those three (`Latest Pickup Date and Time` → `Latest Pickup Date`, same for delivery, and the Validation Errors tab's `Validation Status` staying its own attribute rather than folding into `Order Status`).
 
 ## 2. Flat for the bar, flat for the panel; tabs are populations
 
@@ -128,7 +128,9 @@ The panel filters a location as a City-State-Country triple (LINX-10285's own ma
 
 The bar uses the **column's** name because the column is what a user is reading when they type. Reconciling the two labels — and whether the panel's option set should carry the facility name too — is an open item for the Orders team (Ramesh), not a silent rename of either.
 
-~~Two smaller label drifts sat in the same bucket~~ — **closed by ORD-23 (2026-09-04):** the panel now says **Draft Order Status**, **Errors Count** and **Last Edited By**, matching the columns.
+~~Two smaller label drifts sat in the same bucket~~ — **closed by ORD-23 (2026-09-04):** the panel now says ~~**Draft Order Status**~~, **Errors Count** and **Last Edited By**, matching the columns.
+
+> **SUPERSEDED in part (2026-09-10, Ramesh, S145):** the label is now **Validation Status**, in the column, the panel and the bar alike — *"We need to rename column name from 'Draft Order Status' to 'Validation Status' … It is 'Validation Status' NOT 'Validation Order Status'"*. ORD-23's rule is unchanged (panel label = column label); only the shared wording moved. The `draftOrderStatus` / `draftOrderStatuses` **key** is untouched — it is the wire contract and Neon's `draft_order_status` column.
 
 ## 8. The attribute table
 
@@ -147,8 +149,8 @@ Progression order. `match` and `exact` are the code's own fields; Panel column r
 | 9 | Transport & Equipment | Freight Terms | `freightTerms` | enum · exact (5) | `Pre-Paid/Add` | — none |
 | 10 | Order Status & Source | Order Status | `orderStatus` | enum · exact (8) | `Planned Load` | enum chips |
 | 11 | Order Status & Source | Order Source | `orderSource` | enum · exact (2) | `Integrated` | — none |
-| 12 | Order Status & Source | Draft Order Status | `draftOrderStatus` | enum · exact (3) | `Complete` | enum chips (label aligned, ORD-23) |
-| 13 | Order Status & Source | Errors Count | `errorCount` | digits · exact | `1` | comparator |
+| 12 | Order Status & Source | Validation Status ¹ | `draftOrderStatus` | enum · exact (3) | `Complete` | enum chips (label aligned, ORD-23) |
+| 13 | Order Status & Source | Errors Count ² | `errorCount` | digits · exact | `1` | comparator |
 | 14 | Classification | Hazardous | `hazardous` | enum · exact (1) | `Hazmat` | — none |
 | 15 | Cargo & Handling | Gross Weight | `grossWeight` | digits | `6129` | — none |
 | 16 | Cargo & Handling | Volume | `volume` | digits | `166` | — none |
@@ -158,6 +160,10 @@ Progression order. `match` and `exact` are the code's own fields; Panel column r
 | 20 | Created & Edited | Last Edited By | `lastEditedBy` | letters | `cara.planner` | lazy ComboBox (label aligned, ORD-23) |
 
 Examples are real values from the seeded `src/data/orders.json` (5,077 rows). ⚠ marks a label that does not agree with the panel (§7).
+
+¹ **Renamed 2026-09-10 (Ramesh, S145)** — was `Draft Order Status`, now **Validation Status** (*not* "Validation Order Status"). Label only: the `dataKey` stays `draftOrderStatus`, the wire field and Neon's `draft_order_status` column.
+
+² **Meaning widened 2026-09-10 (Ramesh, S145)** — the value is now the TOTAL of both OIF levels, `errorCount` (Level 2 / master data, LINX-11137) **+** `interfaceErrorCount` (Level 1 / structural, LINX-16049), because *"Error = Order has structural and/or master data error"* and both levels are fixed in one login session. The header text is unchanged; it is simply accurate now. Derived once in `mapOrderListRow.totalErrorCount`, which the grid cell, the export, `orderSearchRow` and the mock filter all read, so display and query cannot diverge. The live SQL still compares `error_count` alone and is still correct — Neon has no `interface_error_count` column (Q-OIF-4), so `interfaceErrorCount` is null there and the total reduces to `error_count`.
 
 **Seven attributes have no panel equivalent at all** — Equipment, Ship Direction, Freight Terms, Order Source, Hazardous, Gross Weight, Volume. They are All-tab columns the three stories never listed as basic filters, so they are bar-only. Nothing runs the other way: every registry attribute has a progression attribute.
 
