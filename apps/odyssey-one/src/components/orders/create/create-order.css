@@ -916,3 +916,31 @@
 .structural-grid__pair { display: flex; flex-direction: column; gap: var(--spacing-1); max-width: 220px; }
 .structural-grid__hint { color: var(--text-tertiary); }
 .structural-grid__select { padding: var(--spacing-2) var(--spacing-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-primary); }
+
+/* ── Step 1 — MessageControlBlock (LINX-16049 rules 8–11) ── */
+.message-control { display: flex; flex-direction: column; gap: var(--spacing-2); }
+/* Two columns, not three: the plan's grid put a one-line support string and a
+   three-line radio group in the SAME third column, so a locked row and an
+   editable row would size their columns against each other. The "what" (field
+   path + backend message) is one cell, the action/verdict is the other, and the
+   row is top-aligned so a tall radio group doesn't drag the message to centre. */
+.message-control__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-4);
+  align-items: start;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--bittersweet-200); /* unresolved error — matches .conflict-picker */
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+}
+/* Locked rows are informational, not actionable — a flatter surface + a subtle
+   border so they don't compete with the one row the planner can act on. */
+.message-control__row--locked { background: var(--bg-secondary); border-color: var(--border-subtle); }
+.message-control__what { display: flex; flex-direction: column; gap: var(--spacing-1); min-width: 0; }
+.message-control__tree { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.message-control__message { color: var(--text-error); }
+.message-control__choice { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.message-control__prompt { color: var(--text-primary); }
+.message-control__unanswered { color: var(--text-error); }
+.message-control__support { color: var(--text-tertiary); }
