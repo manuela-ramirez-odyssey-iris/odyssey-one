@@ -237,6 +237,22 @@ When an integrated (O2) order fails validation, it does not create cleanly — i
 - **Two error surfaces on the Overview page**: a **Data Validation Errors** tab (integrated orders only, with count) and a **Technical Errors** tab (integrated + manual; message-processing, server, and integration failures, with count) backed by `/order/validation-error/list` and `/order/technical-error/list` (LINX-11180, LINX-11181).
 - **Persistence** failures are stored as `order_exception_detail` rows; the full inbound payload is staged in `Order_Staging` for auditing/debugging/async processing (LINX-6050, LINX-8429). Failed QCP/QCA calls are persisted to a reprocessing table with a scheduler-driven retry (LINX-8724, LINX-8725).
 
+### 7.1 Two validation levels (LINX-16049 + LINX-11137, updated 2026-09-10)
+
+**Supersedes the single-surface reading above.** The 2026-09-03 re-scope split OIF resolution in two, and LINX-16391 replaced the status vocabulary. What §7 describes as "the OIF UI" is now only **Level 2**.
+
+- **Level 1 — Order Interface errors (LINX-16049).** *Can the customer message be transformed into an OrderIn at all?* **13 pre-validation checks** run by `OrderValidationComponent` before transformation (Saikat's enumeration, LINX-16049 comment 2026-09-03 = Appendix A of `Level1_Error_Resolution_Design_Review.docx`). A message that fails is held in **`order_interface_staging`** with status **Error** — it never becomes an order row. Three classes:
+  - **Cross-line conflicts** (rules 3, 5, 6, 7, 12, 13 — planning dates, shipper/consignee address, freight term, planning date type, earliest and latest delivery window). Lines contradict each other; **nothing is individually invalid**, so no parser can pick a winner and the planner must. Resolution is a **value picker, per field** (address expands into City, Postal Code, … independently — PO ruling 2026-09-10).
+  - **Structural** (rules 1, 2, 4 — more than one schedule on a line, line-vs-schedule quantity/weight/volume mismatch, requested-ship time zone missing beside a date). A fault inside one line; the planner **edits it in place**.
+  - **Message control** (rules 8, 9, 10, 11 — `relySourceId`, `sourceSystem`, `deleteFlag`, `modifyTimestamp`). Provenance the planner did not author. Only **`deleteFlag`** is answerable (Yes/No); the other three are a dead end today (→ Q-OIF-1 in [[open-questions]]).
+- **Level 2 — Order Data errors (LINX-11137, the surface §7 already describes).** *Are the transformed values valid against master data?* Missing mandatory field, wrong type, or a value not matching TMS master. These are held in **`order_staging`** / surfaced through `/order/validation-error/list` (LINX-11180) — the Validation Errors tab (§5).
+- **Sequential and real-time** (LINX-11137 §E): an order never fails both levels at once. Fixing Level 1 immediately runs Level 2 in the same interaction.
+- **Error payload** is `{ fieldTree, field, message }` (LINX-16281); `fieldTree` is the dotted path into the interface message, e.g. `orderInterface.orderLines[].freightTermCode`. LINX-16028 adds an interface-error flag + count filter to the error list.
+
+**OIF status vocabulary (LINX-16391, `status_type = 'OIF'`):** **`Error`** (`OIF_ERR`) · **`Complete`** (`OIF_COMP`) · **`Purge`** (`OIF_PRG`). The former **`Ready`** is retired. The order stays `Error` until **both** levels are clean; `Complete` writes the lifecycle status `Ready for Planning` and the row **leaves** the Validation Errors tab; `Purge` abandons the message and also leaves the tab. Purge is a Level 2 exit only.
+
+**Prototype (ORD-26, 2026-09-10):** both levels live on **one page** at `/orders/create?resolve=<orderNumber>`, as **three steps on a horizontal timeline** — *Message errors → Data errors → Order ready* — not as the "2 tabs" LINX-16049 §B asks for (user ruling: tabs show sibling information, this is a progression). Level 1 has its **own** panel (accordions by error class + a read-only *Received order data* block), **not** the create-form sections (Dave via Ramesh, 2026-09-10). Level 2 is the unchanged ORD-10 resolve form. Step 3 previews the resolved order. Navigation is both ways, editable only forward; Level 1 fixes save on *Validate and continue*, Level 2 fixes on *Save*. The Level 1 error feed is `interfaceErrors.js`, a deterministic seed shaped to the LINX-16281 payload — the seam a real endpoint replaces (→ Q-OIF-2).
+
 ---
 
 ## 8. Audit trail
