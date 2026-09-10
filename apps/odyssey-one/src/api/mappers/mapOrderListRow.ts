@@ -116,10 +116,10 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     // only, so seeding it with the total would invent Level 2 errors that do not
     // exist. Step 1's own count stays `interfaceErrorCount` below.
     masterDataErrorCount: row.errorCount ?? null,
-    // Mock-only today: Neon has no interface_error_count/interface_error_class
-    // column, so live mode yields null and every order opens at Step 2 there.
-    // Tracked as Q-OIF-4 in vault/10-domains/orders/open-questions.md (needs a
-    // migration + reseed).
+    // Live too since migration 010 (S145): orders.interface_error_count /
+    // interface_error_class exist and api/_lib/orders.mjs projects them, closing
+    // Q-OIF-4 in code. Still null on any Neon row seeded BEFORE that migration
+    // was applied + the DB reseeded — such a row opens at Step 2.
     interfaceErrorCount: row.interfaceErrorCount ?? null,
     interfaceErrorClass: row.interfaceErrorClass ?? null,
   }

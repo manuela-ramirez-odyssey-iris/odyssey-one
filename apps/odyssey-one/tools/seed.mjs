@@ -76,8 +76,18 @@ export async function truncateSeeded(client) {
   await client.query(`TRUNCATE TABLE ${SEEDED_TABLES.join(', ')}`)
 }
 
-async function insertRows(client, table, cols, rows) {
+export async function insertRows(client, table, cols, rows) {
   if (rows.length === 0) return
+  // Positional contract (S145, added while migration 010 widened the orders
+  // column list): the value array must line up with the column list. The $N
+  // numbering below strides by cols.length while params are pushed by ROW
+  // length, so a mismatch does NOT raise a SQL error — it renumbers every
+  // subsequent row and writes each value into the wrong column, for all 11k
+  // rows. One guard here covers every table this seeder inserts.
+  const bad = rows.findIndex((r) => r.length !== cols.length)
+  if (bad !== -1) {
+    throw new Error(`${table}: row ${bad} has ${rows[bad].length} values for ${cols.length} columns`)
+  }
   for (const part of chunk(rows, 200)) {
     const params = []
     const tuples = part.map((row, r) => `(${row.map((_, c) => `$${r * cols.length + c + 1}`).join(',')})`)
@@ -126,6 +136,11 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
      'origin_city','origin_state','origin_country','dest_city','dest_state','dest_country',
      'earliest_pickup_ts','latest_pickup_ts','earliest_delivery_ts','latest_delivery_ts',
      'hazardous','created_at','created_by','last_edit_at','draft_order_status','error_count',
+     // OIF Level 1 / structural (migration 010, LINX-16049/16028). Seeded only on
+     // VE rows; the generator leaves them undefined everywhere else, hence `?? null`.
+     // ⚠ This list and the value array below are POSITIONAL — insert into both, at
+     // the same index, or every row gets silently mis-columned.
+     'interface_error_count','interface_error_class',
      'last_edited_by','created_tz','last_edit_tz','po_number','planning_date_type'],
     ds.orders.map((o) => [
       o.orderNumber, o.orderId ?? null, o.orderSource, o.customer, o.shipDirection, o.freightTerms, o.equipment,
@@ -137,6 +152,7 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
       o.consignee.earliestDeliveryDateTime, o.consignee.latestDeliveryDateTime,
       o.hazardous ?? false, o.createdAt ?? null, o.createdBy ?? null, o.lastEditAt ?? null,
       o.draftOrderStatus ?? null, o.errorCount ?? null,
+      o.interfaceErrorCount ?? null, o.interfaceErrorClass ?? null,
       o.lastEditedBy ?? null, o.createdTimeZoneCode ?? null, o.lastEditTimeZoneCode ?? null,
       o.poNumber ?? null, o.planningDateType ?? null,
     ]))

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus, buildUpdateOrderQuery, updateOrder, buildCreateOrderQuery, createOrder } from './orders.mjs'
+import { CHIP_COLS, buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus, buildUpdateOrderQuery, updateOrder, buildCreateOrderQuery, createOrder } from './orders.mjs'
 
 test('order list: 1-based pagination (page 1 = offset 0)', () => {
   const q = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
@@ -324,13 +324,21 @@ test('order list: VE-tab draftOrderStatuses is its own column, not order_status'
   assert.ok(!/[^_]order_status = ANY/.test(q.text))
 })
 
+// The DISPLAYED Errors Count is Level 2 (master data) + Level 1 (structural),
+// Ramesh 2026-09-10 — see ERROR_COUNT_TOTAL in orders.mjs and totalErrorCount in
+// src/api/mappers/mapOrderListRow.ts. Every place that compares the count must
+// compare THIS, not error_count alone: a filter, chip or sort on the raw
+// master-data half selects rows displaying a different number (Q-OIF-4, closed
+// by migration 010). One regex, so a drift in any of the three shows up here.
+const TOTAL = /\(error_count \+ coalesce\(interface_error_count, 0\)\)/
+
 test('order list: error-count comparator, operator whitelisted', () => {
-  assert.match(buildOrderListQuery({ filters: { errorCountOperator: 'lt', errorCountValue: 10 } }).text,
-    /error_count < \$\d+/)
-  assert.match(buildOrderListQuery({ filters: { errorCountOperator: 'gt', errorCountValue: 3 } }).text,
-    /error_count > \$\d+/)
-  assert.match(buildOrderListQuery({ filters: { errorCountOperator: 'eq', errorCountValue: 3 } }).text,
-    /error_count = \$\d+/)
+  for (const [op, sym] of [['lt', '<'], ['gt', '>'], ['eq', '=']]) {
+    const { text } = buildOrderListQuery({ filters: { errorCountOperator: op, errorCountValue: 3 } })
+    assert.match(text, new RegExp(`${TOTAL.source} \\${sym} \\$\\d+`))
+    // …and never the master-data half on its own.
+    assert.ok(!new RegExp(`[^)] error_count \\${sym}`).test(text))
+  }
   // An injected operator, a missing half, and a non-integer are all no-ops.
   for (const filters of [
     { errorCountOperator: '> 0 OR 1=1 --', errorCountValue: 1 },
@@ -340,6 +348,24 @@ test('order list: error-count comparator, operator whitelisted', () => {
     // `error_count` also appears in the row projection — assert on the
     // COMPARISON, which only a WHERE clause produces.
   ]) assert.ok(!/error_count [<>=]/.test(buildOrderListQuery({ filters }).text))
+})
+
+test('order list: Level 1 (structural) columns are projected — migration 010', () => {
+  const { text } = buildOrderListQuery({})
+  assert.match(text, /interface_error_count AS "interfaceErrorCount"/)
+  assert.match(text, /interface_error_class AS "interfaceErrorClass"/)
+})
+
+test('errors-count chip and sort use the same total as the comparator', () => {
+  // Chip: "Errors Count: 5" must match the rows whose CELL reads 5.
+  assert.match(CHIP_COLS['error-count'].sql, TOTAL)
+  const { text } = buildOrderListQuery({
+    filters: { searchChips: [{ key: 'error-count', queryValue: '5', exact: true }] },
+  })
+  assert.match(text, TOTAL)
+  // Sort: same expression in ORDER BY.
+  assert.match(buildOrderListQuery({ sort: { field: 'errorCount', direction: 'desc' } }).text,
+    new RegExp(`ORDER BY ${TOTAL.source} DESC`))
 })
 
 test('order list: location triples match row-wise, superseding the mirror arrays', () => {

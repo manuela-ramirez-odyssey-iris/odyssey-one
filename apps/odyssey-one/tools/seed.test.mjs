@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseDisplayDate, chunk } from './seed.mjs'
+import { parseDisplayDate, chunk, insertRows } from './seed.mjs'
 
 test('parseDisplayDate converts MM/DD/YYYY HH:MM <TZ> to ISO', () => {
   assert.equal(parseDisplayDate('04/18/2026 10:30 CST'), '2026-04-18T10:30:00-06:00')
@@ -17,4 +17,21 @@ test('parseDisplayDate converts MM/DD/YYYY HH:MM <TZ> to ISO', () => {
 
 test('chunk splits arrays', () => {
   assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]])
+})
+
+// The orders column list grew twice (migration 010's interface_error_* pair is
+// the latest). insertRows numbers its $N placeholders from cols.length but
+// pushes params by row length, so an off-by-one there is SILENT — every value
+// lands one column over. This is the guard that makes it loud.
+test('insertRows rejects rows that do not line up with the column list', async () => {
+  const client = { calls: [], async query(text, params) { this.calls.push([text, params]) } }
+  await assert.rejects(
+    () => insertRows(client, 'orders', ['a', 'b', 'c'], [[1, 2, 3], [1, 2]]),
+    /orders: row 1 has 2 values for 3 columns/,
+  )
+  assert.equal(client.calls.length, 0) // nothing reached the DB
+  await insertRows(client, 'orders', ['a', 'b'], [[1, 2], [3, 4]])
+  assert.equal(client.calls.length, 1)
+  assert.match(client.calls[0][0], /INSERT INTO orders \(a,b\) VALUES \(\$1,\$2\),\(\$3,\$4\)/)
+  assert.deepEqual(client.calls[0][1], [1, 2, 3, 4])
 })

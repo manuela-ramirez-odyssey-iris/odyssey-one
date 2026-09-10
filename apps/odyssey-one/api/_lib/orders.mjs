@@ -24,7 +24,23 @@ const ROW_COLUMNS = `
   consignor, consignee, gross_weight AS "grossWeight", volume, commodity, order_status AS "orderStatus",
   hazardous, created_at AS "createdAt", created_by AS "createdBy",
   last_edit_at AS "lastEditAt", draft_order_status AS "draftOrderStatus", error_count AS "errorCount",
+  interface_error_count AS "interfaceErrorCount", interface_error_class AS "interfaceErrorClass",
   last_edited_by AS "lastEditedBy", created_tz AS "createdTimeZoneCode", last_edit_tz AS "lastEditTimeZoneCode"`
+
+// The DISPLAYED "Errors Count": OIF Level 2 (master data, LINX-11137) PLUS
+// Level 1 (structural, LINX-16049/16028) — Ramesh, 2026-09-10. The SQL twin of
+// `totalErrorCount` in src/api/mappers/mapOrderListRow.ts; migration 010 (S145)
+// added the interface_error_count column that makes it expressible, closing
+// Q-OIF-4. Defined ONCE and reused by the comparator, the chip and the sort,
+// because "the grid shows one number and the query filters another" is a bug
+// this repo has shipped five times.
+//
+// `error_count + coalesce(...)`, NOT coalesce on both halves: a non-VE row has
+// BOTH columns NULL and the total must stay NULL there, so no comparison ever
+// matches it — that is `totalErrorCount`'s "null when neither is present" and
+// the AC's blank-value rule. (The seeder never writes interface_error_count
+// without error_count: generate.mjs sets error_count on every VE row first.)
+const ERROR_COUNT_TOTAL = '(error_count + coalesce(interface_error_count, 0))'
 
 // Sortable columns. Keys are OrderListRow/OrderRowVM field names — values are
 // whitelisted SQL (column names or expressions), never user input, so they're
@@ -36,7 +52,9 @@ const SORT_MAP = {
   hazardous: 'hazardous', latestPickup: 'latest_pickup_ts', latestDelivery: 'latest_delivery_ts',
   weight: `(gross_weight->>'value')::numeric`, volume: `(volume->>'value')::numeric`,
   created: 'created_at', createdBy: 'created_by', lastEdit: 'last_edit_at', lastEditedBy: 'last_edited_by',
-  draftOrderStatus: 'draft_order_status', errorCount: 'error_count',
+  // Sorts by the DISPLAYED total, mirroring orderService's SORT_GETTERS.errorCount
+  // — a column that shows one number and sorts by another is the filter bug again.
+  draftOrderStatus: 'draft_order_status', errorCount: ERROR_COUNT_TOTAL,
   shipperLocation: 'origin_city', destinationLocation: 'dest_city',
 }
 
@@ -116,14 +134,12 @@ export const CHIP_COLS = {
   // Column LABEL is 'Validation Status' (Ramesh, 2026-09-10); the chip key and
   // the Neon column keep the `draft_order_status` name — wire contract, not UI.
   'draft-order-status': { sql: 'draft_order_status' },
-  // Errors Count is the TOTAL of both OIF levels client-side (structural +
-  // master data, Ramesh 2026-09-10). Here it is `error_count` alone and that is
-  // still CORRECT, because `interface_error_count` is not a Neon column at all
-  // (Q-OIF-4): live rows carry interfaceErrorCount === null, so the total
-  // reduces to error_count. Add the column and this expression becomes
-  // `(error_count + coalesce(interface_error_count, 0))::text` — and so does the
-  // comparator below.
-  'error-count': { sql: 'error_count::text' },
+  // Errors Count is the TOTAL of both OIF levels (structural + master data,
+  // Ramesh 2026-09-10) — the chip carries the number the CELL shows, so it must
+  // compare against the same total (migration 010, S145). Mock twin:
+  // orderSearchRow's `errorCount` in src/search/orders/progression.js, which
+  // projects '' for a null total; a NULL here likewise matches no chip token.
+  'error-count': { sql: `${ERROR_COUNT_TOTAL}::text` },
   hazardous: { bool: 'hazardous', trueValue: 'Hazmat' },
   'gross-weight': { sql: "gross_weight->>'value'" },
   volume: { sql: "volume->>'value'" },
@@ -279,19 +295,19 @@ export function orderWhereClauses(filters = {}, values = []) {
     where.push(`(${cols.join(', ')}) IN (${tuples.join(', ')})`)
   }
   // Error Count comparator (LINX-11659) — both halves required, operator
-  // whitelisted. A NULL error_count never satisfies a comparison, which is the
+  // whitelisted. A NULL total never satisfies a comparison, which is the
   // blank-value rule again.
   //
-  // The UI's Errors Count is now structural + master data (Ramesh, 2026-09-10),
-  // and this compares error_count only. Verified equivalent, not assumed: Neon
-  // has no `interface_error_count` column (Q-OIF-4 — see ROW_COLUMNS above,
-  // which cannot select one), so LIVE rows always have interfaceErrorCount null
-  // and total === error_count. The moment that column lands, this clause and
-  // CHIP_COLS['error-count'] must both add coalesce(interface_error_count, 0)
-  // or the grid and the query stop agreeing.
+  // Compares the two-level TOTAL (ERROR_COUNT_TOTAL), not error_count alone:
+  // the grid shows structural + master data (Ramesh, 2026-09-10), so "Errors
+  // Count equals 5" must select exactly the rows DISPLAYING 5. This clause used
+  // to read error_count alone — correct only while interface_error_count was
+  // not a Neon column at all (Q-OIF-4); migration 010 (S145) added it, so the
+  // old clause would now under-count every row carrying structural faults.
+  // Mock twin: matchesErrorCount(totalErrorCount(r), …) in orderService.ts.
   const ecOp = ERROR_COUNT_OPS[filters.errorCountOperator]
   if (ecOp && Number.isInteger(filters.errorCountValue)) {
-    add(`error_count ${ecOp} ?`, filters.errorCountValue)
+    add(`${ERROR_COUNT_TOTAL} ${ecOp} ?`, filters.errorCountValue)
   }
 
   // Committed bar chips (S130) — each one ANDs onto everything above, the same

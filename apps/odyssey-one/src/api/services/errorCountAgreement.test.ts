@@ -19,10 +19,14 @@
  * Break any one of them — e.g. compare `r.errorCount` instead of
  * `totalErrorCount(r)` in orderService — and this fails.
  *
- * The LIVE (SQL) fifth path is equivalent by construction rather than by test:
- * Neon has no `interface_error_count` column (Q-OIF-4), so live rows carry
- * interfaceErrorCount === null and the total reduces to `error_count`. See the
- * matching note in api/_lib/orders.mjs.
+ * The LIVE (SQL) fifth path is covered by its own suite, not this one (the two
+ * cannot import each other — see chipParity.test.js for why). Since migration
+ * 010 (S145) Neon HAS the interface_error_count column, so the live comparator,
+ * chip and sort all go through `ERROR_COUNT_TOTAL` in api/_lib/orders.mjs —
+ * `(error_count + coalesce(interface_error_count, 0))`, the SQL twin of
+ * `totalErrorCount`. api/_lib/orders.test.mjs asserts all three. (Before 010
+ * the live path was equivalent only because the column did not exist and every
+ * live row carried interfaceErrorCount === null — Q-OIF-4.)
  */
 import { describe, expect, it, vi } from 'vitest'
 
