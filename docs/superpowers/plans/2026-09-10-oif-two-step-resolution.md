@@ -1711,7 +1711,7 @@ describe('two-step resolution (LINX-16049 + 11137)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
     const list = screen.getByRole('list', { name: 'Resolution progress' })
     const dot2 = within(list).getByText('Data errors').closest('.resolve-timeline__step')
-    expect(dot2.getAttribute('aria-disabled')).toBe('true')
+    expect(dot2.className).toContain('resolve-timeline__step--locked')
     expect(within(list).getByText('locked')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Purge' })).toBeNull()
   })
@@ -1967,3 +1967,14 @@ git commit -m "S145: ResolveShell — one page, three steps on a timeline; Step 
 git add vault/10-domains/orders playground/normalization-tracker.md
 git commit -m "S145: ORD-25 — OIF two-step resolution canon, open questions for Venkat, ResolveTimeline tracked"
 ```
+
+---
+
+## Amendments during execution
+
+**2026-09-10 — Task 1.** The "Interface Errors" grid column is deferred to a Neon migration (see Task 1 Step 7 and Q-OIF-4 in `vault/10-domains/orders/open-questions.md`). Also: `DRAFT_ORDER_STATUS_POOL` must be `Array(6).fill('Error')`, NOT the plan's literal `['Error']` — `faker.helpers.arrayElement` skips its RNG draw on a 1-element array, which re-numbers every seeded id. The array's length is load-bearing and is now pinned by a determinism test.
+
+**2026-09-10 — Task 2 review.** Three corrections to the plan's `ResolveTimeline` CSS and markup, all applied in a follow-up commit:
+1. `.resolve-timeline__step:last-child { flex: 0 0 auto; }` is DROPPED — the segment's `left/right` percentages resolve against the step's own width, so an auto-width last step makes the incoming segment overshoot. Every step stays `flex: 1 1 0`. Consequence: first/last dots are centred in their columns, not flush with the container edges as in the user's reference image; revisit at the Task 10 browser check if the flush look matters.
+2. The locked-step colour must be scoped to the inner element (`.resolve-timeline__step--locked .resolve-timeline__static`), not the `li` — `color` set on `.resolve-timeline__static` otherwise overrides an ancestor value.
+3. **`aria-disabled` on the `li` is replaced by a `resolve-timeline__step--locked` modifier class.** `aria-disabled` is not permitted on `listitem` in ARIA 1.2 (axe `aria-allowed-attr`), and AT ignores it; the visible detail text ("locked") already carries the semantics. Task 2's and Task 10's tests assert the class instead. A step is "locked" only when it has no `onClick` AND is not the current step — otherwise the current step, which never has an `onClick`, paints grey.
