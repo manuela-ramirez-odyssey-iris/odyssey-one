@@ -901,3 +901,16 @@
 .conflict-picker__message { color: var(--text-error); margin: 0; }
 .conflict-picker__validated { color: var(--text-success); margin: 0; }
 .conflict-picker__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+
+/* ── Step 1 — StructuralGrid (LINX-16049 rules 1/2/4) ── */
+.structural-grid__table { width: 100%; }
+/* Left rail: red while faulty, green once the fix satisfies the rule. */
+.structural-grid__row--error td:first-child { box-shadow: inset 3px 0 0 var(--bittersweet-600); }
+.structural-grid__row--fixed td:first-child { box-shadow: inset 3px 0 0 var(--caribbean-green-600); }
+.structural-grid__message { color: var(--text-error); }
+.structural-grid__validated { color: var(--caribbean-green-600); margin: var(--spacing-1) 0 0; }
+.structural-grid__schedules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-1); }
+.structural-grid__schedules li { display: flex; align-items: center; gap: var(--spacing-2); }
+.structural-grid__pair { display: flex; flex-direction: column; gap: var(--spacing-1); max-width: 220px; }
+.structural-grid__hint { color: var(--text-tertiary); }
+.structural-grid__select { padding: var(--spacing-2) var(--spacing-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-primary); }
