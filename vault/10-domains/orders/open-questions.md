@@ -88,6 +88,8 @@ From the approved spec §2 — each is rendered-but-inert (✋) or absent (∅) 
 
 ## OIF validation errors (added 2026-09-10, LINX-16049 / LINX-16391)
 
+- [ ] **Q-OIF-5 — does `deleteFlag = N` mean CREATE only, or create-or-update?** The Step 1 message-control control (LINX-16049 rule 10) is a Yes/No the planner answers, labelled "No — this message creates an order" / "Yes — this message cancels the order". If an `N` message can also be a MODIFICATION of an existing order (the same message carries a `modifyTimestamp`, rule 11), the No label is wrong and should read "creates or updates an order". Safety-critical wording — a planner reads this before deciding whether a customer's message cancels their order. Owner: Ramesh.
+
 - [ ] **Q-OIF-4 — `interfaceErrorCount` / `interfaceErrorClass` are mock-only.** The generator seeds both on Validation-Errors rows, but Neon has no `interface_error_count` / `interface_error_class` column, so `mapOrderListRow` yields `null` in live mode and every order opens at Step 2 there. Needs a DB migration + reseed (user approval required) before Step 1 is reachable against the live API.
 
 ## Known defects (confirm fix-in-rebuild, don't replicate)
