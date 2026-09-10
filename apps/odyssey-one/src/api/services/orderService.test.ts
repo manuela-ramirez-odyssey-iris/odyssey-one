@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
 // Live-branch tests stub the HTTP layer; mock tests never reach it.
@@ -49,7 +49,8 @@ vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichm
 import { getApiMode } from '../config'
 import { apiGet, apiPatch, apiPost } from '../client'
 import {
-  getOrderList, getOrderTabCounts, saveDraft, submitDraftOrder, resolveOrder, cancelOrder, __resetOrderWriteState,
+  getOrderList, getOrderTabCounts, getOrderView, saveDraft, submitDraftOrder, resolveOrder, purgeOrder,
+  saveInterfaceFixes, cancelOrder, __resetOrderWriteState,
 } from './orderService'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
@@ -365,5 +366,72 @@ describe('live status writes (ledger row 9)', () => {
     expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-2', status: 'Ready for Planning' })
     await cancelOrder('ORD-3')
     expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-3', status: 'Cancelled' })
+  })
+})
+
+/**
+ * OIF write layer (LINX-16049 Step 1 / LINX-11137 Step 2, vocabulary per
+ * LINX-16391: Error / Complete / Purge). The module fixture STORE has no
+ * Validation-Errors rows, so this block pushes two and pops them again — the
+ * other describes assert exact row counts over the 5 base rows.
+ */
+describe('OIF writes (LINX-16391 vocabulary)', () => {
+  const ve = (n: string, extra: Record<string, unknown> = {}) =>
+    mk(n, { orderStatus: '', draftOrderStatus: 'Error', errorCount: 5, ...extra })
+
+  beforeEach(() => {
+    __resetOrderWriteState()
+    STORE.push(
+      ve('VE100010', { interfaceErrorCount: 3, interfaceErrorClass: 'conflict' }),
+      ve('VE100011', { interfaceErrorCount: 0, interfaceErrorClass: null }),
+    )
+  })
+  afterEach(() => { STORE.length = 5; __resetOrderWriteState() })
+
+  const listTab = (tab: string, filters: Record<string, unknown> = {}) =>
+    getOrderList({ pagination: { pageNumber: 1, pageSize: 500 }, tab, filters } as never)
+
+  const veRow = async (orderNumber: string) =>
+    (await listTab('validation-errors')).orders.find(r => r.orderNumber === orderNumber)
+
+  it('saveInterfaceFixes zeroes interfaceErrorCount, keeps Error + the Level 2 count, and persists the values', async () => {
+    const values = await getOrderView('VE100010')
+    values!.general.freightTerm = 'C'
+    await saveInterfaceFixes('VE100010', values!)
+
+    const after = await veRow('VE100010')
+    expect(after?.interfaceErrorCount).toBe(0)
+    expect(after?.interfaceErrorClass).toBeNull()
+    // Step 2 is still unresolved — the row stays in the Validation Errors tab
+    // and keeps its master-data error count, or re-entry has nothing to show.
+    expect(after?.draftOrderStatus).toBe('Error')
+    expect(after?.errorCount).toBe(5)
+    expect((await getOrderView('VE100010'))!.general.freightTerm).toBe('C')
+  })
+
+  it('resolveOrder → Ready for Planning, row leaves the VE tab and lands on Created', async () => {
+    await resolveOrder('VE100010')
+    expect(await veRow('VE100010')).toBeUndefined()
+    const created = await listTab('created', { orderNumbers: ['VE100010'] })
+    expect(created.orders[0]?.orderStatus).toBe('Ready for Planning')
+  })
+
+  it('purgeOrder → row leaves the VE tab and does NOT enter the lifecycle', async () => {
+    await purgeOrder('VE100011')
+    expect(await veRow('VE100011')).toBeUndefined()
+    expect((await listTab('created', { orderNumbers: ['VE100011'] })).orders.length).toBe(0)
+    expect((await listTab('draft', { orderNumbers: ['VE100011'] })).orders.length).toBe(0)
+    // …and it is gone from the unrestricted population too (tab badge counts
+    // read the same rows), not merely hidden from the three tabs.
+    const counts = await getOrderTabCounts()
+    expect(counts.created + counts.draft + counts.validationErrors).toBe(6)
+  })
+
+  it('purgeOrder throws in live mode rather than writing a different status', async () => {
+    const mode = vi.mocked(getApiMode)
+    mode.mockReturnValue('live')
+    await expect(purgeOrder('VE100011')).rejects.toThrow(/not supported/i)
+    expect(vi.mocked(apiPatch)).not.toHaveBeenCalled()
+    mode.mockReturnValue('mock')
   })
 })

@@ -122,7 +122,7 @@ function mockScopedRows(customerIds?: string[]): OrderListRow[] {
   let rows = [
     ...overlayRows,
     ...(getAllOrders() as OrderListRow[]).filter(r => !overlayNumbers.has(r.orderNumber)),
-  ]
+  ].filter(r => !purgedOrders.has(r.orderNumber))
   if (customerIds) {
     const scope = new Set(customerIds)
     rows = rows.filter(r => scope.has(r.customer))
@@ -414,6 +414,13 @@ export async function getOrderList(
 // for reopen via /orders/create?draft=<key>. Lost on refresh — accepted.
 
 let overlayRows: OrderListRow[] = []
+// OIF Purge (Ramesh 2026-09-10 #3): a purged order leaves the validation queue
+// WITHOUT entering the lifecycle, so it belongs to no tab at all. Modelled as a
+// tombstone set rather than an invented `orderStatus: 'Purged'` label — that
+// label would still satisfy the Created predicate (orderStatus !== 'Draft' &&
+// draftOrderStatus == null) and put the row straight back on a tab, besides
+// leaking a value that is in neither ORDER_STATUS_VALUES nor any badge map.
+const purgedOrders = new Set<string>()
 const draftValues = new Map<string, OrderFormValues>()
 const draftIdByOrderNumber = new Map<string, string>()
 const orderNumberByDraftId = new Map<string, string>()
@@ -423,6 +430,7 @@ let draftSeq = 0
 /** Test hook — resets all mock write state. */
 export function __resetOrderWriteState(): void {
   overlayRows = []
+  purgedOrders.clear()
   draftValues.clear()
   draftIdByOrderNumber.clear()
   orderNumberByDraftId.clear()
@@ -460,20 +468,85 @@ export async function submitDraftOrder(orderNumber: string): Promise<void> {
 }
 
 /**
- * OIF resolution (LINX-11137): Save-with-all-resolved and Purge both send the
- * order to the re-processing queue → 'Ready for Planning' (the AC's "Ready for
- * Planning" in app vocabulary). ORD-24: the row must also lose its VE marker
- * (draftOrderStatus/errorCount) — that field IS the Validation Errors
- * population predicate now, so leaving it set would keep the row in BOTH
- * Created (real status) and Validation Errors (draftOrderStatus != null) at
- * once. Live mode writes the status directly — there is no dedicated OIF
- * endpoint yet; clearing draft_order_status/error_count server-side is a
- * known gap, tracked as an open item (this PATCH shares its status whitelist
- * with submit, so it can't yet tell a resolve apart from a submit).
+ * OIF Step 1 save (LINX-16049; Ramesh 2026-09-10 #1 "saved right away"): the
+ * planner's picks and structural fixes are written when they press "Validate
+ * and continue", NOT at the final Save — so leaving via "Back to overview"
+ * keeps the work and a re-entry opens at Step 2.
+ *
+ * Step 2 is still unresolved, so the OIF status STAYS 'Error' and the row stays
+ * in the Validation Errors population; only the Level 1 markers are cleared.
+ *
+ * Mock: `updateOrder` rebuilds the row from the form values via
+ * manualOrderToListRow, which knows nothing about the VE marker fields and
+ * therefore DROPS draftOrderStatus/errorCount — without re-stamping them here
+ * the order would silently fall out of the Validation Errors tab on a Step 1
+ * save. The Level 2 count is carried over untouched: Step 2 has nothing to
+ * show without it.
+ *
+ * Live: the same PUT `updateOrder` already uses — there is no dedicated OIF
+ * endpoint yet. DIVERGENCE: `interface_error_count` is not a Neon column at all
+ * (open question Q-OIF-4), so there is nothing to zero server-side; a live
+ * re-entry opens at Step 2 only because the live row never carried a count.
+ * The PUT also stamps last_edited_by/last_edit_at — correct here, since the
+ * Step 1 fixes are a human's picks, not a machine re-run.
+ */
+export async function saveInterfaceFixes(orderNumber: string, values: OrderFormValues): Promise<void> {
+  const before = getApiMode() === 'live'
+    ? null
+    : overlayRows.find(r => r.orderNumber === orderNumber)
+      ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
+  await updateOrder(orderNumber, values)
+  if (!before) return
+  // Copy-on-write, like overlayUpdateStatus — updateOrder just prepended a
+  // fresh row object, but rewriting the array keeps one mutation discipline.
+  overlayRows = overlayRows.map(r => r.orderNumber === orderNumber
+    ? { ...r, draftOrderStatus: before.draftOrderStatus ?? 'Error', errorCount: before.errorCount, interfaceErrorCount: 0, interfaceErrorClass: null }
+    : r)
+}
+
+/**
+ * OIF Step 2 Save with every error resolved (LINX-11137 §D): the OIF status
+ * becomes 'Complete' (LINX-16391 OIF_COMP) and the order enters the lifecycle
+ * as 'Ready for Planning'. Ramesh 2026-09-10 #2: a Complete order does NOT stay
+ * in the Validation Errors tab — and `draftOrderStatus` IS that tab's
+ * population predicate (ORD-24), so the marker fields are cleared rather than
+ * set to 'Complete'; a row that kept the key would satisfy BOTH Created (real
+ * orderStatus) and Validation Errors at once. 'Complete' is therefore not
+ * recorded on the row: nothing reads it, and no OIF history view exists yet.
+ *
+ * Live: the shared status PATCH. DIVERGENCE — its server-side whitelist is
+ * ['Ready for Planning', 'Cancelled'], there is no OIF status column, and no
+ * endpoint clears draft_order_status/error_count. So live writes the lifecycle
+ * half correctly and the row STAYS on the Validation Errors tab. Known gap,
+ * pending the OIF endpoint (Q-OIF-4); it is visible rather than silent, which
+ * is why this still calls through instead of throwing.
  */
 export async function resolveOrder(orderNumber: string): Promise<void> {
   if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready for Planning')
-  overlayUpdateStatus(orderNumber, 'Ready for Planning', { draftOrderStatus: undefined, errorCount: undefined })
+  overlayUpdateStatus(orderNumber, 'Ready for Planning', {
+    draftOrderStatus: undefined, errorCount: undefined,
+    interfaceErrorCount: undefined, interfaceErrorClass: null,
+  })
+}
+
+/**
+ * OIF Purge (LINX-11137 §D; Ramesh 2026-09-10 #3 — Step 2 only): the order
+ * leaves the validation queue and does NOT enter the lifecycle. Mock: a
+ * tombstone in `purgedOrders`, so the row is on no tab and in no tab count.
+ *
+ * Live THROWS on purpose. The only write path is the status PATCH, whose
+ * whitelist is ['Ready for Planning', 'Cancelled']: 'Ready for Planning' is the
+ * opposite outcome, and 'Cancelled' is a DIFFERENT business fact — a real
+ * lifecycle status the user can Restore from, whereas a purge means the order
+ * never entered the lifecycle at all. Writing either would be silently wrong
+ * data, so this fails loudly until the OIF endpoint lands (Q-OIF-4).
+ */
+export async function purgeOrder(orderNumber: string): Promise<void> {
+  if (getApiMode() === 'live') {
+    throw new Error('Purge is not supported in live mode until the OIF endpoint lands (Q-OIF-4)')
+  }
+  purgedOrders.add(orderNumber)
+  overlayRows = overlayRows.filter(r => r.orderNumber !== orderNumber)
 }
 
 /** Cancel (LINX-10258 soft delete): status → 'Cancelled'. */
