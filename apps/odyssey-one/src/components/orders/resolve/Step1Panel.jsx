@@ -56,10 +56,18 @@ const RECEIVED_FIELDS = [
  * (its `applyErrors` output), `onValidate({ picks, structuralFixes, deleteFlag })`,
  * `onCancel`. `readOnly` + `picks` render the look-back from Step 2/3.
  */
-export default function Step1Panel({ contextText, derived, draft, readOnly = false, picks: pickedProp = {}, onValidate, onCancel }) {
+export default function Step1Panel({
+  contextText, derived, draft, readOnly = false, onValidate, onCancel,
+  // The read-only look-back needs ALL THREE answers, not just the picks: the
+  // shell unmounts this panel on a step change, so anything held only in local
+  // state comes back EMPTY and the Structural accordion paints a red "N Errors"
+  // badge on a step the timeline calls "passed" (review, 2026-09-10). The shell
+  // owns them and seeds them back here.
+  picks: pickedProp = {}, structuralFixes: structuralProp = {}, deleteFlag: deleteFlagProp = null,
+}) {
   const [picks, setPicks] = useState(pickedProp)
-  const [structuralFixes, setStructuralFixes] = useState({})
-  const [deleteFlag, setDeleteFlag] = useState(null)
+  const [structuralFixes, setStructuralFixes] = useState(structuralProp)
+  const [deleteFlag, setDeleteFlag] = useState(deleteFlagProp)
   const [errorIndex, setErrorIndex] = useState(0)
   const [expanded, setExpanded] = useState({ conflicts: true, structural: true, control: true, received: false })
 

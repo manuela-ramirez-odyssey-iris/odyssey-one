@@ -59,6 +59,10 @@ function renderResolve(orderNumber = ORDER, state = { errorCount: 5, customer: '
 beforeEach(() => __resetOrderWriteState())
 afterEach(cleanup)
 
+// S145: ResolveShell paints the title/sub-heading/back link (CreateOrderForm
+// renders Step 2 with hideHeader), so these assertions moved owner without
+// moving text. The heading appears BEFORE the order loads — tests that need
+// the form on screen wait for the footer, not the title.
 describe('resolve mode — chrome', () => {
   test('renders the resolution title, order-number sub-heading, and back link', async () => {
     renderResolve()
@@ -69,7 +73,7 @@ describe('resolve mode — chrome', () => {
 
   test('footer shows Cancel / Purge / Save (no Create Order button)', async () => {
     renderResolve()
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
     expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Create Order' })).toBeNull()
@@ -92,7 +96,7 @@ describe('resolve mode — fields', () => {
 
   test('seeded error fields render the category reason; fixing one flips it to Validated', async () => {
     renderResolve()
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
 
     const { getOrderView } = await import('../../../api/services/orderService')
     const values = await getOrderView(ORDER)
@@ -114,7 +118,7 @@ describe('resolve mode — fields', () => {
 
   test('non-pool fields are disabled; pool fields stay enabled', async () => {
     renderResolve()
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
 
     // Order Number is never in the error pool → real disabled prop locks it.
     const orderNumber = document.getElementById('co-general-orderNumber')
@@ -297,5 +301,166 @@ describe('resolve mode — embedded in ResolveShell (S145)', () => {
     } finally {
       spy.mockRestore()
     }
+  })
+})
+
+// ── S145 / Task 10: ResolveShell — the whole two-step page ──
+// Order picking is DERIVED, never pinned: a generator edit re-rolls every
+// seeded id (feedback_seeded_ids_are_load_bearing).
+const ALL_ROWS = Array.isArray(ordersFixture) ? ordersFixture : (ordersFixture.orders ?? [])
+const findOrder = (pred, what) => {
+  const hit = ALL_ROWS.find(pred)
+  if (!hit) throw new Error(`No seeded order matches ${what} — regenerate the fixtures.`)
+  return hit
+}
+const isVE = (r) => r.draftOrderStatus === 'Error'
+const L1_CONFLICT = findOrder(
+  (r) => isVE(r) && r.interfaceErrorClass === 'conflict' && r.interfaceErrorCount === 1 && r.errorCount <= 3,
+  'a single-conflict Level 1 order',
+)
+const L1_UNRESOLVABLE = findOrder((r) => isVE(r) && r.interfaceErrorClass === 'unresolvable', 'an unresolvable Level 1 order')
+const L1_DELETE_FLAG = findOrder((r) => isVE(r) && r.interfaceErrorClass === 'delete-flag', 'a delete-flag Level 1 order')
+const L1_MIXED = findOrder(
+  (r) => isVE(r) && r.interfaceErrorClass === 'mixed' && r.interfaceErrorCount >= 2,
+  'a mixed (conflict + structural) Level 1 order',
+)
+// No Level 1 errors AND exactly one Level 2 error, on a PLAIN TEXT field.
+// Both constraints are about reachability in jsdom: the equipment / freight
+// term / ship direction ComboBoxes are `typable={false}`, so a fireEvent.change
+// on them never reaches RHF (project_jsdom_test_ceilings). Shipper Address 1 is
+// a FormField — change + blur commits.
+const STEP3_PATH = 'pickupDelivery.consignor.address1'
+const NO_L1 = findOrder((r) => {
+  if (!isVE(r) || (r.interfaceErrorCount ?? 0) !== 0 || r.errorCount !== 1) return false
+  const paths = deriveValidationErrors(r.orderNumber, r.errorCount, {}).errors.map((e) => e.path)
+  return paths.length === 1 && paths[0] === STEP3_PATH
+}, 'a Level-2-only order whose single error is Shipper Address 1')
+
+const stateFor = (r) => ({
+  errorCount: r.errorCount,
+  interfaceErrorCount: r.interfaceErrorCount,
+  interfaceErrorClass: r.interfaceErrorClass,
+  customer: 'ACME',
+  orderSource: 'Integrated',
+})
+const timeline = () => screen.getByRole('list', { name: 'Resolution progress' })
+const stepEl = (label) => within(timeline()).getByText(label).closest('.resolve-timeline__step')
+// One chip per conflict = the first PillTab in each picker group. Matching on
+// the chip's TEXT is not viable: Step1Panel relabels wire codes (freightTerm
+// 'P' renders "Pre-Paid"), so the derived option value is not on screen.
+const pickEveryConflict = () => {
+  for (const group of document.querySelectorAll('.conflict-picker')) {
+    fireEvent.click(within(group).getAllByRole('button')[0])
+  }
+}
+
+describe('two-step resolution shell (LINX-16049 + 11137)', () => {
+  test('order with Level 1 errors opens at Step 1; dot 2 is locked and Purge is absent', async () => {
+    renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    expect(stepEl('Data errors').className).toContain('resolve-timeline__step--locked')
+    expect(within(timeline()).getByText('locked')).toBeTruthy()
+    // Purge is a Step 2 action (PO ruling) — Step 1 offers Cancel + Validate only.
+    expect(screen.queryByRole('button', { name: 'Purge' })).toBeNull()
+    // exactly one page title, even though the form also knows how to render one
+    expect(screen.getAllByRole('heading', { name: 'Order Validation Error Resolution' })).toHaveLength(1)
+  })
+
+  test('no Level 1 errors → opens at Step 2, dot 1 passed, look-back shows the empty Step 1', async () => {
+    renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    expect(within(timeline()).getByText('no errors')).toBeTruthy()
+    fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
+    expect(screen.getByText('No message errors were found for this order.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
+  })
+
+  test('unresolvable message-control error keeps Validate disabled', async () => {
+    renderResolve(L1_UNRESOLVABLE.orderNumber, stateFor(L1_UNRESOLVABLE))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByText('Message rejected by the integration — contact support.')).toBeTruthy()
+  })
+
+  test('pick → Validate and continue → Step 2; the row loses its Level 1 errors; dot 1 re-opens read-only', async () => {
+    renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    pickEveryConflict()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    expect(within(timeline()).getByText(/passed/)).toBeTruthy()
+
+    // Step 1 SAVES immediately (Ramesh 2026-09-10 #2) — the row's Level 1 count is cleared.
+    const { getOrderList } = await import('../../../api/services/orderService')
+    const res = await getOrderList({ pagination: { pageNumber: 1, pageSize: 1 }, filters: { orderNumbers: [L1_CONFLICT.orderNumber] } })
+    expect(res.orders[0].interfaceErrorCount).toBe(0)
+
+    // look-back: the pick is shown, validated, and not editable
+    fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
+    expect(screen.getAllByText('Validated').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Enter another value' })).toBeNull()
+  })
+
+  // AMENDMENT (Task 7 review #1): the shell must hand back structuralFixes and
+  // deleteFlag too, not just picks. Step1Panel seeds those from LOCAL state at
+  // mount and the shell unmounts it on a step change, so a picks-only look-back
+  // paints the Structural accordion RED on a step the timeline calls "passed".
+  test('look-back keeps the structural fix as well as the picks', async () => {
+    renderResolve(L1_MIXED.orderNumber, stateFor(L1_MIXED))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    pickEveryConflict()
+    // The structural fault: a timezone select, an extra schedule, or a weight.
+    const tz = document.querySelector('.structural-grid select')
+    if (tz) fireEvent.change(tz, { target: { value: tz.options[1].value } })
+    const trash = document.querySelector('.structural-grid .co-rep__trash')
+    if (trash) fireEvent.click(trash)
+    const weight = document.querySelector('.structural-grid input[type="text"], .structural-grid input:not([type])')
+    if (weight && !tz && !trash) {
+      const target = within(document.querySelector('.structural-grid')).getByText(/^\d/)
+      fireEvent.change(weight, { target: { value: target.textContent.trim() } })
+    }
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+
+    fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
+    // NO red badge on a passed step: every accordion reports completed, not "N Errors".
+    expect(screen.queryByText(/^\d+ Errors?$/)).toBeNull()
+  })
+
+  // Same amendment, the other half of the state: deleteFlag is Step1Panel's
+  // local state too, so the look-back must be told the planner's answer.
+  test('look-back keeps the delete-flag answer', async () => {
+    renderResolve(L1_DELETE_FLAG.orderNumber, stateFor(L1_DELETE_FLAG))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    expect(screen.getByText('Not answered yet')).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: /this message creates an order/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+
+    fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
+    expect(screen.queryByText('Not answered yet')).toBeNull()
+    expect(screen.getByRole('radio', { name: /this message creates an order/ }).checked).toBe(true)
+  })
+
+  test('Step 2 Save with everything resolved → Step 3 preview, all three dots on', async () => {
+    renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /Pickup and Delivery/ }))
+    const manual = screen.queryAllByRole('button', { name: 'Add Location Manually' })[0]
+    if (manual) fireEvent.click(manual)
+    const input = document.getElementById(`co-${STEP3_PATH.replace(/\./g, '-')}`)
+    expect(input).toBeTruthy()
+    fireEvent.change(input, { target: { value: '123 Main St' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Back to overview' })).toBeTruthy())
+    expect(within(timeline()).getByText('ready for planning')).toBeTruthy()
+    expect(timeline().querySelectorAll('.step-indicator--on').length).toBe(3)
+    // Step 3 is the SUCCESS state straight away — no async-assignment pending alert.
+    expect(screen.getByText('Your order was created successfully.')).toBeTruthy()
   })
 })

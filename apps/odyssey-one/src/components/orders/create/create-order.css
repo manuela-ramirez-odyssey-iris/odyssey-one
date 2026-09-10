@@ -954,3 +954,52 @@
 .step1-panel__received { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-3) var(--spacing-6); margin: 0; }
 .step1-panel__received-row dt { color: var(--text-tertiary); }
 .step1-panel__received-row dd { margin: 0; color: var(--text-primary); }
+
+/* ── Resolve shell (LINX-16049 + 11137, the two-step OIF page) ──
+   The shell paints the page header + the timeline; Step 2's CreateOrderForm
+   supplies its own `.co-content` column below (and keeps its breadcrumb), so
+   the head gets the same 1080px column to line the title up with the form. */
+.resolve-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+/* Step 1 is mounted straight into the shell (not inside CreateOrderForm's
+   `.co-content`), so it owns the 1080px column itself — with the sticky footer
+   (`.co-footer`) excluded — it bleeds full-width as it does in the create form,
+   where it is a SIBLING of `.co-content` rather than a child. */
+.resolve-shell .step1-panel > *:not(.co-footer) {
+  max-width: 1080px;
+  margin-inline: auto;
+  width: 100%;
+}
+.resolve-shell__timeline {
+  margin: var(--spacing-6) 0 var(--spacing-4);
+}
+/* Step 3 reuses the Order Summary layout, which pulls itself UP by the
+   AppShell's 32px padding to bleed its grey band full-width. Under the shell
+   there is a timeline directly above it, and that negative top margin dragged
+   the summary's breadcrumb on top of the timeline's detail row — keep the
+   horizontal bleed, drop the vertical one. */
+.order-summary-page.resolve-shell__preview {
+  /* Doubled class on purpose: order-summary.css is imported AFTER this file,
+     so a single-class rule loses the cascade tie to `.order-summary-page`. */
+  margin-top: 0;
+}
+/* …and the summary's own breadcrumb ("Orders › Create new order") is both
+   wrong for a resolution and a second navigation control under the shell's
+   header + timeline. Hidden here only. JUDGEMENT CALL — no mock exists for
+   Step 3; a designer may want it back with corrected copy. */
+.resolve-shell__preview .order-summary__crumbs {
+  display: none;
+}
+/* Its own 1080px row: `.co-content` is a flex COLUMN, so a button placed in
+   one stretches edge to edge. */
+.resolve-shell__preview-footer {
+  max-width: 1080px;
+  margin-inline: auto;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-6) 0 var(--spacing-8);
+}

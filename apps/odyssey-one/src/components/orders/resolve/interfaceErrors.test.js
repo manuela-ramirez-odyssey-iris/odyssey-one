@@ -189,3 +189,35 @@ describe('deriveInterfaceErrors', () => {
 })
 
 function getPath(obj, path) { return path.split('.').reduce((o, k) => o?.[k], obj) }
+
+// The create-form VM stores dates as MM/DD/YYYY (DateTimeTriad), not ISO — the
+// fixture above uses ISO, which hid a crash: the ALT shifter built
+// `new Date('06/15/2026T00:00:00Z')` → Invalid Date → toISOString() THREW,
+// taking the whole derive with it for any order whose values came from
+// getOrderView (found wiring ResolveShell, 2026-09-10).
+describe('date conflicts against real form values (MM/DD/YYYY)', () => {
+  const usValues = () => {
+    const v = values()
+    for (const k of ['earlyPickup', 'latePickup', 'earlyDelivery', 'lateDelivery']) {
+      v.pickupDelivery[k].date = '06/15/2026'
+    }
+    return v
+  }
+
+  test('derives without throwing and offers a shifted alternative in the same format', () => {
+    // Sweep the seeds: every conflict order must survive, whichever rule it draws.
+    const dateRules = new Set([3, 12, 13])
+    let sawDate = false
+    for (let i = 0; i < 60; i++) {
+      const d = deriveInterfaceErrors(`ORD-${i}`, 3, 'conflict', usValues())
+      for (const e of d.errors) {
+        if (!dateRules.has(e.rule)) continue
+        sawDate = true
+        const alts = d.conflicts.get(e.path).map((o) => o.value)
+        expect(alts).toContain('06/15/2026')
+        expect(alts.every((v) => /^\d{2}\/\d{2}\/\d{4}$/.test(v))).toBe(true)
+      }
+    }
+    expect(sawDate).toBe(true)
+  })
+})

@@ -76,11 +76,31 @@ function setPath(obj, path, value) {
   const target = keys.reduce((o, k) => o[k], obj)
   target[last] = value
 }
-const shiftDate = (iso, days) => {
-  if (!iso) return ''
-  const d = new Date(`${iso}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
+/**
+ * Shift a date by `days`, GIVING BACK THE FORMAT IT WAS GIVEN.
+ *
+ * Two formats are real here and the module used to assume only one: the create
+ * form's VM (`DateTimeTriad`, mapOrderViewToFormVm) carries dates as
+ * MM/DD/YYYY, while the wire/ISO form appears in this module's own unit-test
+ * fixture. `new Date('06/15/2026T00:00:00Z')` is Invalid Date, and the
+ * subsequent `toISOString()` THREW — which killed the whole derive for any
+ * date-conflict rule against real form values (found at the Task 10 browser
+ * wiring, 2026-09-10). Anything that is neither format is passed through
+ * untouched rather than being turned into a crash.
+ */
+const shiftDate = (value, days) => {
+  if (!value) return ''
+  const s = String(value)
+  const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s)
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(s)
+  if (!us && !iso) return s
+  const [y, m, d] = us ? [us[3], us[1], us[2]] : [iso[1], iso[2], iso[3]]
+  const dt = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)))
+  dt.setUTCDate(dt.getUTCDate() + days)
+  const pad = (n) => String(n).padStart(2, '0')
+  return us
+    ? `${pad(dt.getUTCMonth() + 1)}/${pad(dt.getUTCDate())}/${dt.getUTCFullYear()}`
+    : `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`
 }
 
 // A plausible "other" value per conflict path, derived from the current one.
