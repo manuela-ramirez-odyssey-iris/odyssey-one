@@ -22,11 +22,18 @@ describe('ResolveTimeline', () => {
     expect(list.querySelector('.step-indicator--error')).toBeTruthy()
   })
 
-  test('a step without onClick is not a button and carries aria-disabled', () => {
+  test('a step without onClick is not a button and carries the locked class', () => {
     render(<ResolveTimeline steps={steps()} current="s1" />)
     const s2 = screen.getByText('Data errors').closest('.resolve-timeline__step')
     expect(s2.querySelector('button')).toBeNull()
-    expect(s2.getAttribute('aria-disabled')).toBe('true')
+    expect(s2.className).toContain('resolve-timeline__step--locked')
+  })
+
+  test('the current step is not locked even though it has no onClick', () => {
+    render(<ResolveTimeline steps={steps()} current="s1" />)
+    const s1 = screen.getByText('Message errors').closest('.resolve-timeline__step')
+    expect(s1.querySelector('button')).toBeNull()
+    expect(s1.className).not.toContain('resolve-timeline__step--locked')
   })
 
   test('a step with onClick renders a button that fires it', () => {

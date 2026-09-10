@@ -5389,13 +5389,14 @@ button.breadcrumb__label:focus-visible {
   border-radius: var(--radius-md);
 }
 .resolve-timeline__step--current .resolve-timeline__label { color: var(--text-primary); }
-.resolve-timeline__step[aria-disabled='true'] .resolve-timeline__static { color: var(--text-tertiary); }
+.resolve-timeline__step--locked .resolve-timeline__static { color: var(--text-tertiary); }
 .resolve-timeline__dot .step-indicator__line { display: none; }
 /* Track: from the centre of this dot to the centre of the next one, at the
-   dot's vertical centre (40px dot → 20px). */
+   dot's vertical centre (40px dot → 20px). 19px, not 20px, so the 2px-high
+   line's own centre lands on 20px. */
 .resolve-timeline__segment {
   position: absolute;
-  top: 20px;
+  top: 19px;
   left: calc(50% + 20px);
   right: calc(-50% + 20px);
   height: 2px;

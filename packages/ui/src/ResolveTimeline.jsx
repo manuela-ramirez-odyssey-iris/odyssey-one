@@ -6,6 +6,7 @@ import StepIndicator from './StepIndicator.jsx'
  * step on a track, label + detail under each. Steps, not tabs — the user
  * progresses left → right; a dot is clickable only when its `onClick` is set
  * (the consumer decides: passed steps re-open read-only, locked ones don't).
+ * The current step is never clickable but is NOT locked — you are already on it.
  *
  * Track segment i sits between step i and i+1 and takes step i+1's status
  * (`on` = green fill, `error` = red fill, `off` = neutral), so the line
@@ -13,21 +14,24 @@ import StepIndicator from './StepIndicator.jsx'
  *
  * steps: [{ key, label, detail, status: 'off'|'on'|'error', onClick? }]
  * current: key of the step whose body is rendered (bold label).
- * Figma master + Code Connect owed at batch close.
+ * Figma master + Code Connect owed at batch close (user: "later we can refine").
  */
 export default function ResolveTimeline({ steps = [], current, className = '', ...rest }) {
   return (
     <ol
       className={`resolve-timeline${className ? ` ${className}` : ''}`}
+      role="list"
       aria-label="Resolution progress"
       {...rest}
     >
       {steps.map((step, i) => {
         const isCurrent = step.key === current
         const next = steps[i + 1]
+        const isLocked = !step.onClick && !isCurrent
         const cls = [
           'resolve-timeline__step',
           isCurrent && 'resolve-timeline__step--current',
+          isLocked && 'resolve-timeline__step--locked',
         ].filter(Boolean).join(' ')
         const content = (
           <>
@@ -41,7 +45,6 @@ export default function ResolveTimeline({ steps = [], current, className = '', .
             key={step.key}
             className={cls}
             aria-current={isCurrent ? 'step' : undefined}
-            aria-disabled={step.onClick ? undefined : 'true'}
           >
             {step.onClick
               ? <button type="button" className="resolve-timeline__button" onClick={step.onClick}>{content}</button>
