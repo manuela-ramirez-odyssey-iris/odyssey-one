@@ -27,6 +27,10 @@ const formatOrderDate = (iso, tz) => {
  *  - number assigned  → success ("created successfully")
  *  - no number (async creation, Q17) → info ("being processed…") and the
  *    KV strip's Order Number renders the '--' dash convention.
+ * `successMessage` overrides the success copy for a reuse where "created" is
+ * untrue — the OIF resolution's Step 3 (S145) shows the same summary for an
+ * order that was RESOLVED, not created (user ruling 2026-09-10). Default keeps
+ * the create-flow wording, so every existing caller is unchanged.
  * Async is REAL behavior now (LINX-9002 Scenario 2): it triggers whenever the
  * user left Order Number blank (the mock service generates one immediately, so
  * async never keyed off the response). After ASYNC_ASSIGN_MS the number
@@ -34,7 +38,7 @@ const formatOrderDate = (iso, tz) => {
  * notification. `variant="async"` (dev trigger ?confirm=async) still forces
  * the initial async state for QA.
  */
-export default function ConfirmationView({ data, values, variant }) {
+export default function ConfirmationView({ data, values, variant, successMessage }) {
   const navigate = useNavigate()
   const [alertOpen, setAlertOpen] = useState(true)
   const startedAsync =
@@ -84,7 +88,7 @@ export default function ConfirmationView({ data, values, variant }) {
         onLinkClick={() => navigate(`/orders/${data?.orderNumber || values?.general?.orderNumber || ''}`)}
         onClose={() => setAlertOpen(false)}
       >
-        Your order was created successfully.
+        {successMessage ?? 'Your order was created successfully.'}
       </Alert>
     )
   ) : null

@@ -461,7 +461,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     expect(within(timeline()).getByText('ready for planning')).toBeTruthy()
     expect(timeline().querySelectorAll('.step-indicator--on').length).toBe(3)
     // Step 3 is the SUCCESS state straight away — no async-assignment pending alert.
-    expect(screen.getByText('Your order was created successfully.')).toBeTruthy()
+    expect(screen.getByText('Order validation errors resolved. The order is now Ready for Planning.')).toBeTruthy()
   })
 })
 

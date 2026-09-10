@@ -181,7 +181,16 @@ export default function ResolveShell({ orderNumber }) {
               always HAS its number, so the confirmation renders the success
               state immediately and never arms the async-assignment timer or
               the navbar notification. */}
-          <ConfirmationView data={{ orderNumber }} values={finalValues ?? loaded?.values} variant="sync" />
+          <ConfirmationView
+            data={{ orderNumber }}
+            values={finalValues ?? loaded?.values}
+            variant="sync"
+            /* The order was RESOLVED, not created — the create-flow copy would
+               tell the planner something untrue (user ruling 2026-09-10).
+               "Ready for Planning" is LINX-11137 §D's own wording for what
+               Complete means: the order is now in the Order Table. */
+            successMessage="Order validation errors resolved. The order is now Ready for Planning."
+          />
           <div className="resolve-shell__preview-footer">
             <Button variant="primary" size="lg" onClick={() => navigate('/orders')}>Back to overview</Button>
           </div>
