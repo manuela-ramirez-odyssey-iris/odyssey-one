@@ -63,6 +63,7 @@ export { default as Alert } from './Alert.jsx';
 export { default as Accordion } from './Accordion.jsx';
 export { default as SubAccordion } from './SubAccordion.jsx';
 export { default as SummaryStrip } from './SummaryStrip.jsx';
+export { default as ResolveTimeline } from './ResolveTimeline.jsx';
 export { default as Timeline } from './Timeline.jsx';
 export { default as ButtonToggle } from './ButtonToggle.jsx';
 export { default as Tooltip } from './Tooltip.jsx';
