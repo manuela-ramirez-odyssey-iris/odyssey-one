@@ -1990,3 +1990,8 @@ git commit -m "S145: ORD-25 — OIF two-step resolution canon, open questions fo
 2. **`hasUnresolvable` in `Step1Panel` is deliberately redundant** with `isResolved` and is documented as defence-in-depth on a safety gate. Do not "simplify" it away.
 
 **Backlog (not blocking):** `StructuralGrid` renders one `<tr key={s.id}>` per error but gives it no `id`, so the Alert's error-nav anchors to the top of the grid rather than the offending row. Adding `id={`l1-${s.id}`}` to that row would let `Step1Panel.anchorId` collapse to `l1-${err.id}` for two of three classes.
+
+**2026-09-10 — Task 8.** Three decisions that bind later tasks:
+1. **`purgeOrder` THROWS in live mode** ("not supported until the OIF endpoint lands, Q-OIF-4") rather than writing `Cancelled` — Cancelled is a real lifecycle status a user can Restore from, so mapping Purge onto it writes a business fact nothing downstream can distinguish from a genuine cancel. **Task 9 must therefore SURFACE a failed purge to the user** — the draft's `catch (e) { console.error(e); return }` leaves the planner staring at an unchanged screen with no explanation. Show an error Alert, or hide Purge in live mode.
+2. **`resolveOrder` in live writes only the lifecycle half** (`Ready for Planning`); there is no endpoint for the OIF `Complete` write or for clearing `draft_order_status`, so in LIVE the row stays on the Validation Errors tab after a successful Save. Documented, not silent.
+3. The draft's `oifStatus` field was DROPPED (nothing reads it) and the draft's invented `'Purged'` lifecycle status was REJECTED — it satisfies the Created-tab predicate, so a purged row would have appeared there. Mock purge is a `purgedOrders` tombstone filtered out of every list and count.
