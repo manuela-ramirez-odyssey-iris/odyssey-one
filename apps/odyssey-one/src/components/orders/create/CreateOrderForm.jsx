@@ -10,7 +10,7 @@ import { ResolveModeProvider } from '../resolve/ResolveModeContext.jsx'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
-import { getDraft, getOrderList, getOrderView, resolveOrder, updateOrder } from '../../../api/services/orderService'
+import { getDraft, getOrderList, getOrderView, purgeOrder, resolveOrder, updateOrder } from '../../../api/services/orderService'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import { createOrderSchema, saveGateSchema } from './schema'
 import { useSectionStatus } from './useSectionStatus.js'
@@ -41,8 +41,16 @@ const SAVE_DRAFT_GENERIC_ERROR = "Couldn't save the draft. Please try again."
  *  - Save for Later (navbar / modal): save-gate → draft + navigate to /orders
  *  - Discard (modal):         navigate, nothing kept
  *  - Create Order (footer):   full schema → createOrder → onSubmitted
+ *
+ * Embedded in `ResolveShell` as Step 2 of the two-step OIF resolution
+ * (LINX-16049 + LINX-11137) the last four props apply:
+ *  - hideHeader:  the shell paints the title / sub-heading / back link itself
+ *  - pickedPaths: fields the planner settled in Step 1 — excluded from the
+ *                 Level 2 error seeding AND rendered locked-and-validated
+ *  - onResolved / onPurged: hand control back to the shell (Step 3 preview)
+ *                 instead of navigating away. Omitted → today's /orders exit.
  */
-export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted }) {
+export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted, hideHeader = false, pickedPaths = [], onResolved, onPurged }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
@@ -142,7 +150,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           .catch(() => 1)
     Promise.all([getOrderView(resolveKey), errorCountPromise]).then(([values, errorCount]) => {
       if (cancelled || !values) return
-      const { errors, applyErrors, isResolved } = deriveValidationErrors(resolveKey, errorCount, values)
+      const { errors, applyErrors, isResolved } = deriveValidationErrors(resolveKey, errorCount, values, { excludePaths: pickedPaths })
       const draft = applyErrors(values)
       // mapOrderViewToFormVm regenerates manualMode/showContact as false, so a
       // seeded error can land on a field that isn't rendered — unreachable, and
@@ -191,9 +199,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     [resolveState],
   )
   const allResolved = !!resolveState && resolvedSet.size === resolveState.errors.length
+  const pickedSet = useMemo(() => new Set(pickedPaths), [pickedPaths])
   const resolveCtx = useMemo(
-    () => (resolveMode ? { errorByPath, resolvedSet } : null),
-    [resolveMode, errorByPath, resolvedSet],
+    () => (resolveMode ? { errorByPath, resolvedSet, pickedPaths: pickedSet } : null),
+    [resolveMode, errorByPath, resolvedSet, pickedSet],
   )
 
   // ── Resolve alert + section badges ──
@@ -425,17 +434,35 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     navigate('/orders') // explicit confirm happened in the modal; nothing kept
   }, [navigate])
 
-  // Resolution exit (LINX-11137): Save-with-all-resolved and Purge share one
-  // path — status → 'Ready for Planning', which drops the row out of the Validation
-  // Errors tab, then back to the list.
-  const finishResolve = useCallback(async () => {
-    // a failed status PATCH keeps the user on the form with their edits intact
-    // instead of an unhandled rejection; siblings absorb this via mutations
-    try { await resolveOrder(resolveKey) } catch (e) { console.error(e); return }
+  // Resolution exits (LINX-11137 §D). They are NO LONGER the same write (Task 8
+  // ruling): Save-with-all-resolved → resolveOrder ('Ready for Planning');
+  // Purge → purgeOrder, a tombstone that drops the row out of every list and
+  // count. Both leave the Validation Errors tab; only Save keeps an order.
+  //
+  // A failed write keeps the user on the form with their edits intact instead of
+  // an unhandled rejection — but it MUST say so. purgeOrder deliberately throws
+  // in live mode (no OIF endpoint yet, Q-OIF-4), so a silent `return` here would
+  // leave the planner staring at an unchanged screen. Reuse the form's existing
+  // page-level error Alert (`saveGateError`) rather than adding a second one.
+  const finishResolve = useCallback(async (kind) => {
+    try {
+      await (kind === 'purge' ? purgeOrder(resolveKey) : resolveOrder(resolveKey))
+    } catch (e) {
+      console.error(e)
+      setSaveGateError(
+        kind === 'purge'
+          ? `Couldn't purge order ${resolveKey}. ${e?.message || 'Please try again.'}`
+          : `Couldn't save the resolution for order ${resolveKey}. ${e?.message || 'Please try again.'}`,
+      )
+      return
+    }
     queryClient.invalidateQueries({ queryKey: ['order-list'] })
     queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
-    navigate('/orders')
-  }, [resolveKey, queryClient, navigate])
+    // The shell (Step 3) takes over when it supplied a callback; standalone
+    // ?resolve= keeps today's exit to the grid.
+    if (kind === 'purge') { onPurged ? onPurged() : navigate('/orders'); return }
+    onResolved ? onResolved(getValues()) : navigate('/orders')
+  }, [resolveKey, queryClient, navigate, onResolved, onPurged, getValues])
 
   // ── Edit Order save (LINX-10248) ──
   // The footer's primary opens a confirmation: Confirm & Save Changes writes the
@@ -530,6 +557,9 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         </nav>
 
         {resolveMode ? (
+          /* hideHeader: embedded as Step 2, the shell owns the title, the
+             sub-heading and the back link — the breadcrumb above stays. */
+          !hideHeader && (
           <>
             {/* Back link takes the PageHeader actions slot; the order number
                 sits under the title as a sub-heading (mock 6005:39544). */}
@@ -545,6 +575,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
             </PageHeader>
             <p className="text-label-sm-regular co-resolve-subheading">Order Number {resolveKey}</p>
           </>
+          )
         ) : (
           <PageHeader title={editMode ? 'Edit Order' : 'Create New Order'}>
             <Button
@@ -670,7 +701,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           primaryLabel="Save"
           onCancel={() => navigate('/orders')}
           onSave={() => setPurgeOpen(true)}
-          onCreate={finishResolve}
+          onCreate={() => finishResolve('save')}
           createDisabled={!allResolved}
         />
       ) : (
@@ -720,8 +751,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
                 variant="primary"
                 size="lg"
                 onClick={() => {
-                  setPurgeOpen(false)
-                  finishResolve()
+                  setPurgeOpen(false) // close first — the write may surface an Alert behind it
+                  finishResolve('purge')
                 }}
               >
                 Yes

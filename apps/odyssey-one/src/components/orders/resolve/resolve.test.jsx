@@ -2,11 +2,12 @@
 // LINX-11137 resolve mode: ?resolve=<orderNumber> hydrates the create form as
 // the Order Validation Error Resolution view — chrome, seeded field states,
 // Alert wiring, and the Save/Purge transition.
-import { describe, test, expect, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, waitFor, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CreateOrderRoute from '../../../routes/orders/CreateOrderRoute.jsx'
+import CreateOrderForm from '../create/CreateOrderForm.jsx'
 import { CreateOrderModeProvider } from '../../../contexts/CreateOrderModeContext.jsx'
 import { EditModeProvider } from '../../../contexts/EditModeContext.jsx'
 import { CustomersProvider } from '../../../contexts/CustomersContext.jsx'
@@ -169,14 +170,18 @@ describe('resolve mode — save/purge transition', () => {
     return res.orders.find((r) => r.orderNumber === orderNumber)?.orderStatus
   }
 
-  test('Purge: confirm modal → status flips to Ready for Planning and navigates back', async () => {
+  // S145 / Task 8 ruling: Purge is NO LONGER the same write as Save. It calls
+  // purgeOrder, a tombstone that removes the row from every list and count —
+  // it does not flip the order to a lifecycle status ('Cancelled' would have
+  // been indistinguishable from a genuine cancel a user can Restore from).
+  test('Purge: confirm modal → the row is purged out of the list and navigates back', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Purge' }))
     expect(await screen.findByText('Are you sure you want to purge this Order?')).toBeTruthy()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes' }))
     await waitFor(() => expect(screen.getByText('orders list')).toBeTruthy())
-    expect(await statusOf(ORDER)).toBe('Ready for Planning')
+    expect(await statusOf(ORDER)).toBeUndefined() // gone, not restatused
   })
 
   test('Purge modal Cancel closes without transition', async () => {
@@ -213,5 +218,84 @@ describe('resolve mode — direct URL (no history state)', () => {
     renderResolve(ORDER, null) // direct/refreshed URL — no router state
     await waitFor(() => expect(screen.getByText(`${rowCount} Errors: Validation Required`)).toBeTruthy())
     expect(screen.queryByText(/3 Errors: Validation Required/)).toBeNull()
+  })
+})
+
+// ── S145: embedded as Step 2 of the two-step resolution (LINX-16049) ──
+// ResolveShell (Task 10) renders this form with its own chrome hidden and the
+// Step 1 picks handed down. Rendered directly here — the shell doesn't exist yet.
+function renderEmbedded(props = {}) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <EditModeProvider>
+        <CreateOrderModeProvider>
+          <CustomersProvider>
+            <MemoryRouter initialEntries={['/orders/create']}>
+              <Routes>
+                <Route path="/orders/create" element={
+                  <CreateOrderForm resolveKey={ORDER} resolveMeta={{ errorCount: 5, customer: 'ACME' }} {...props} />
+                } />
+                <Route path="/orders" element={<div>orders list</div>} />
+              </Routes>
+            </MemoryRouter>
+          </CustomersProvider>
+        </CreateOrderModeProvider>
+      </EditModeProvider>
+    </QueryClientProvider>,
+  )
+}
+
+describe('resolve mode — embedded in ResolveShell (S145)', () => {
+  const PICKED = 'general.shipDirection'
+
+  test('hideHeader suppresses the title + sub-heading, keeps the breadcrumb', async () => {
+    renderEmbedded({ hideHeader: true })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
+    expect(screen.queryByRole('heading', { name: 'Order Validation Error Resolution' })).toBeNull()
+    expect(screen.queryByText(`Order Number ${ORDER}`)).toBeNull()
+    expect(screen.queryByText('Back to overview page')).toBeNull()
+    // breadcrumb survives — it is the app chrome, not the step's header
+    expect(screen.getByText('Order Validation Error Resolution')).toBeTruthy()
+  })
+
+  test('a picked path is excluded from the Level 2 seeding and renders locked + Validated', async () => {
+    renderEmbedded({ hideHeader: true, pickedPaths: [PICKED] })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
+    const input = document.getElementById('co-general-shipDirection')
+    await waitFor(() => expect(input).toBeTruthy())
+    const root = input.closest('.form-field') ?? input.parentElement.parentElement
+    await waitFor(() => expect(within(root).getByText('Validated')).toBeTruthy())
+    expect(input.disabled).toBe(true) // Step 1 decided it — not re-editable here
+    // and it is NOT one of the seeded Step 2 errors
+    expect(screen.queryByText(/6 Errors: Validation Required/)).toBeNull()
+  })
+
+  test('onResolved / onPurged hand control back to the shell instead of navigating', async () => {
+    const onPurged = vi.fn()
+    renderEmbedded({ hideHeader: true, onPurged })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Purge' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Yes' }))
+    await waitFor(() => expect(onPurged).toHaveBeenCalled())
+    expect(screen.queryByText('orders list')).toBeNull()
+  })
+
+  // purgeOrder THROWS in live mode (Q-OIF-4). A silent catch left the planner
+  // looking at an unchanged screen — the failure must be visible.
+  test('a failed purge surfaces an error Alert and stays on the form', async () => {
+    const svc = await import('../../../api/services/orderService')
+    const spy = vi.spyOn(svc, 'purgeOrder').mockRejectedValue(new Error('Purge is not supported in live mode'))
+    try {
+      renderEmbedded({ hideHeader: true })
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
+      fireEvent.click(screen.getByRole('button', { name: 'Purge' }))
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Yes' }))
+      expect(await screen.findByText(/Couldn't purge order/)).toBeTruthy()
+      expect(screen.getByText(/not supported in live mode/)).toBeTruthy()
+      expect(screen.queryByText('orders list')).toBeNull()
+    } finally {
+      spy.mockRestore()
+    }
   })
 })

@@ -64,14 +64,29 @@ function setPath(obj, path, value) {
   target[last] = value
 }
 
-export function deriveValidationErrors(orderNumber, errorCount, values) {
+/**
+ * @param {object} [options]
+ * @param {string[]} [options.excludePaths] Paths the planner already settled in
+ *   Step 1 (LINX-16049). They are filtered OUT of the pool before the pick, so
+ *   a value chosen in Step 1 is never re-broken as a Step 2 error. Note the
+ *   consequence, which is deliberate: the clamp follows the FILTERED pool, so
+ *   an order whose row badge claims N errors can seed fewer than N once picks
+ *   are excluded. That is correct — the badge counts what OIF rejected, and a
+ *   path resolved upstream is no longer outstanding. The alternative (topping
+ *   the count back up from the remaining pool) would invent errors the planner
+ *   never earned by fixing Step 1.
+ */
+export function deriveValidationErrors(orderNumber, errorCount, values, { excludePaths = [] } = {}) {
   const rand = seededRandom(String(orderNumber))
+  const pool = RESOLVE_POOL.filter((p) => !excludePaths.includes(p.path))
   // Falsy / negative / NaN counts clamp to 1 — never fabricate errors the tab
-  // didn't claim.
-  const count = Math.min(Math.max(1, Number(errorCount) || 1), RESOLVE_POOL.length)
+  // didn't claim. Upper clamp is `pool.length` (NOT RESOLVE_POOL.length): with
+  // exclusions the pool shrinks, and clamping against the full pool would index
+  // past the end. An empty pool legitimately yields zero errors.
+  const count = Math.min(Math.max(1, Number(errorCount) || 1), pool.length)
 
   // Fisher-Yates pick of `count` pool entries, then restore DOM order.
-  const idx = RESOLVE_POOL.map((_, i) => i)
+  const idx = pool.map((_, i) => i)
   for (let i = idx.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1))
     ;[idx[i], idx[j]] = [idx[j], idx[i]]
@@ -79,7 +94,7 @@ export function deriveValidationErrors(orderNumber, errorCount, values) {
   const chosen = idx.slice(0, count).sort((a, b) => a - b)
 
   const errors = chosen.map((i) => {
-    const p = RESOLVE_POOL[i]
+    const p = pool[i]
     const original = getPath(values, p.path)
     // Invalid Data keeps a visible-but-wrong value; remember what "wrong" is.
     const badValue =

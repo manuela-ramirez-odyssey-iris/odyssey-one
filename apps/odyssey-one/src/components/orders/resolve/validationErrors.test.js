@@ -88,4 +88,28 @@ describe('deriveValidationErrors', () => {
       }
     }
   })
+
+  // Step 1 (LINX-16049) picks are decided BEFORE Level 2 seeding runs, so the
+  // Level 2 pool must never re-break a path the planner already settled.
+  test('excludePaths removes those pool entries (Step 1 picks must not be re-broken by Level 2 seeding)', () => {
+    const excluded = ['general.freightTerm', 'pickupDelivery.consignor.city']
+    const { errors } = deriveValidationErrors('0000000091002', 15, {}, { excludePaths: excluded })
+    expect(errors.length).toBe(13)
+    expect(errors.some((e) => excluded.includes(e.path))).toBe(false)
+  })
+
+  // The clamp has to follow the FILTERED pool, or a count larger than what
+  // remains indexes past the end. Fewer errors than the row's badge claims is
+  // the CORRECT outcome: a path settled in Step 1 is no longer outstanding.
+  test('excludePaths shrinks the clamp — count never exceeds what remains', () => {
+    const excluded = RESOLVE_POOL.slice(0, 13).map((p) => p.path)
+    const { errors } = deriveValidationErrors('X', 15, sampleValues(), { excludePaths: excluded })
+    expect(errors).toHaveLength(2)
+    expect(errors.every((e) => !excluded.includes(e.path))).toBe(true)
+  })
+
+  test('excluding the whole pool yields zero errors (not a crash, not a fabricated one)', () => {
+    const all = RESOLVE_POOL.map((p) => p.path)
+    expect(deriveValidationErrors('X', 5, sampleValues(), { excludePaths: all }).errors).toHaveLength(0)
+  })
 })
