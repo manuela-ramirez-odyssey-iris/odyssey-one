@@ -97,6 +97,12 @@ describe('Step1Panel', () => {
     const input = screen.getByLabelText(`Gross weight, line ${line}`)
     fireEvent.change(input, { target: { value: '1' } })
     expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(true)
+    // The footer would be disabled anyway (the sibling extra-schedule error is
+    // still open), so the footer alone proves nothing. The BADGE is what pins
+    // the rule: both structural errors must still count as open, i.e. a wrong
+    // value did NOT resolve this one. Without this line a naive
+    // "a fix exists" check passes the whole suite (review, 2026-09-10).
+    expect(screen.getByText('2 Errors')).toBeTruthy()
     // The value the schedule actually carries — the ONE definition of "fixed".
     const right = draft.products[line - 1].scheduleQuantity.grossWeight
     fireEvent.change(input, { target: { value: right } })

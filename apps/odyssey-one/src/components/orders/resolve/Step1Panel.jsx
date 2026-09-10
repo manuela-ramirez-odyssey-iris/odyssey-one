@@ -84,6 +84,11 @@ export default function Step1Panel({ contextText, derived, draft, readOnly = fal
 
   // rules 8/9/11 have no fix in the UI at all (their exit is a backend decision,
   // still open with Venkat) — so the primary can never enable for such a message.
+  // KEPT DELIBERATELY REDUNDANT: isResolved() already returns false for a
+  // non-editable message-control error, so this guard changes nothing today.
+  // It is defence in depth on a safety-critical gate — if isResolved ever grows
+  // a branch that treats an unfixable error as resolved, this still blocks the
+  // submit (review, 2026-09-10).
   const hasUnresolvable = derived.messageControl.some((m) => !m.editable)
   const allResolved = derived.errors.every((e) => resolvedIds.has(e.id)) && !hasUnresolvable
 
