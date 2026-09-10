@@ -46,7 +46,7 @@ test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftO
   const share = withL1.length / ve.length
   assert.ok(share >= 0.3 && share <= 0.5, `L1 share ${(share * 100).toFixed(1)}% out of band`)
   for (const cls of ['conflict', 'structural', 'mixed', 'delete-flag', 'unresolvable'])
-    assert.ok(withL1.some(o => o.interfaceErrorClass === cls), `no VE row with interfaceErrorClass ${cls}`)
+    assert.ok(withL1.some(o => o.interfaceErrorClass === cls), `no VE row with interfaceErrorClass ${cls} — weight 3 yields ~3-4 rows, so a seed-stream change can zero it; RAISE THE WEIGHT rather than delete the class`)
   for (const o of orders) {
     assert.equal(typeof o.hazardous, 'boolean')
     assert.ok(o.consignor.name !== undefined && o.consignor.address !== undefined)
@@ -1312,6 +1312,15 @@ test('consolidation payload is deterministic across builds and ids match the pre
   // a stray faker/pick() draw anywhere in the consolidation path would
   // renumber every shipment id and fail this pin.
   assert.equal(a.shipments[0].sellShipment, '25969909')
+  // LATE ids — index 0 is drawn before the first legacy draw, so it alone
+  // proves nothing. These two pin the END of the shared faker stream and so
+  // catch drift from ANY draw added, removed or short-circuited upstream,
+  // including the legacy `pick(DRAFT_ORDER_STATUS_POOL)` sites. The known
+  // trap: collapsing that pool to a 1-element array makes faker's
+  // arrayElement skip its RNG draw, renumbering everything after it.
+  assert.equal(a.shipments.at(-1).sellShipment, '25110970')
+  // orders[] ends with number-less pending rows, so pin the last real one.
+  assert.equal(a.orders.map(o => o.orderNumber).filter(Boolean).at(-1), 'KEM-91932')
   const s = a.shipments.find(x => x.category === 'order-change' && a.details.get(x.sellShipment).orderList.length > 1)
   assert.ok(s)
   assert.deepEqual(a.details.get(s.sellShipment).orderChange.consolidation, b.details.get(s.sellShipment).orderChange.consolidation)

@@ -86,6 +86,10 @@ From the approved spec §2 — each is rendered-but-inert (✋) or absent (∅) 
 8. ∅ **CSV export** — contract known; quick follow-up
 9. ∅ **EntityChip ↔ customer scope wiring** — param exists in the data layer
 
+## OIF validation errors (added 2026-09-10, LINX-16049 / LINX-16391)
+
+- [ ] **Q-OIF-4 — `interfaceErrorCount` / `interfaceErrorClass` are mock-only.** The generator seeds both on Validation-Errors rows, but Neon has no `interface_error_count` / `interface_error_class` column, so `mapOrderListRow` yields `null` in live mode and every order opens at Step 2 there. Needs a DB migration + reseed (user approval required) before Step 1 is reachable against the live API.
+
 ## Known defects (confirm fix-in-rebuild, don't replicate)
 
 - Location dropdown lookups inconsistent (LINX-11155/11156/11157, LINX-10246)

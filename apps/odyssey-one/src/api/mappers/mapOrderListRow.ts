@@ -81,6 +81,10 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     lastEdit: dash(joinZone(formatLongDateTime(row.lastEditAt), row.lastEditTimeZoneCode)),
     draftOrderStatus: s(row.draftOrderStatus),
     errorCount: row.errorCount ?? null,
+    // Mock-only today: Neon has no interface_error_count/interface_error_class
+    // column, so live mode yields null and every order opens at Step 2 there.
+    // Tracked as Q-OIF-4 in vault/10-domains/orders/open-questions.md (needs a
+    // migration + reseed).
     interfaceErrorCount: row.interfaceErrorCount ?? null,
     interfaceErrorClass: row.interfaceErrorClass ?? null,
   }

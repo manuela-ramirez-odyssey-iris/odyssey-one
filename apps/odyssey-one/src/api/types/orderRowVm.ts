@@ -1,3 +1,5 @@
+import type { OrderListRow } from './orderList'
+
 // Flat display view-model the Orders grid renders. Produced by mapOrderListRow.
 // '--' = the grid's empty-optional-value rendering (LINX-13590 / 9896 note).
 export interface LocationCellVM {
@@ -33,5 +35,5 @@ export interface OrderRowVM {
   draftOrderStatus: string // 'Error' | 'Complete' | 'Purge' | ''
   errorCount: number | null
   interfaceErrorCount: number | null
-  interfaceErrorClass: string | null
+  interfaceErrorClass: OrderListRow['interfaceErrorClass']
 }

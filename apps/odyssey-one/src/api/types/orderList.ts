@@ -50,6 +50,8 @@ export interface OrderListRow {
   draftOrderStatus?: string         // 'Error' | 'Complete' | 'Purge' — OIF status, VE-tab rows only (LINX-16391)
   errorCount?: number               // Level 2 (master-data) error count — VE-tab rows only
   interfaceErrorCount?: number      // Level 1 (message/structural) error count (LINX-16028 flag + count); 0 = opens at Step 2
+  // Which Step 1 resolution case the row lands in (LINX-16049): field conflict,
+  // structural, both, delete-flag, or display-only. Taxonomy defined in tools/generate.mjs.
   interfaceErrorClass?: 'conflict' | 'structural' | 'mixed' | 'delete-flag' | 'unresolvable' | null
 }
 
@@ -128,7 +130,7 @@ export interface OrderListRequest {
     createdBy?: string[]              // LINX-11663 — usernames, matches row.createdBy
     lastEditedBy?: string[]           // LINX-11663 — matches row.lastEditedBy
     // LINX-11659 — the VE tab's "Order Status" is draftOrderStatus
-    // (Ready/Complete/Purge, the OIF validation state per LINX-11137), NOT the
+    // (Error/Complete/Purge, the OIF validation state per LINX-16391), NOT the
     // lifecycle orderStatus. Separate field so the two vocabularies can't collide.
     draftOrderStatuses?: string[]
     errorCountOperator?: 'gt' | 'eq' | 'lt'  // LINX-11659 — Greater Than / Equals / Less Than

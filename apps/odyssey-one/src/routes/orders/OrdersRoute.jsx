@@ -212,7 +212,13 @@ export default function OrdersRoute() {
     // seeded errors match what the Validation Errors tab claims.
     else if (action === 'Resolve')
       navigate(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
-        state: { errorCount: row.errorCount, interfaceErrorCount: row.interfaceErrorCount, interfaceErrorClass: row.interfaceErrorClass, customer: row.customer, orderSource: row.orderSource },
+        state: {
+          errorCount: row.errorCount,
+          interfaceErrorCount: row.interfaceErrorCount,
+          interfaceErrorClass: row.interfaceErrorClass,
+          customer: row.customer,
+          orderSource: row.orderSource,
+        },
       })
   }, [navigate])
 

@@ -52,7 +52,7 @@
 //                  (ORD-24, user ruling 2026-09-05) is a POPULATION, not a
 //                  status: a small share of INTEGRATED, non-Draft orders is
 //                  picked AFTER every order row exists and stamped with
-//                  draftOrderStatus (Ready/Complete/Purge) + a numeric
+//                  draftOrderStatus (Error/Complete/Purge, LINX-16391) + a numeric
 //                  errorCount + orderStatus: null (it never entered the
 //                  lifecycle) — independent of Planning Failed/Shipment
 //                  Failed, which stay ordinary Created-tab statuses now. The
@@ -2884,6 +2884,9 @@ const INTERFACE_ERROR_COUNT_WEIGHTS = [
 ];
 // VE share of the total dataset (D4: keep within 5-8%, today's ballpark).
 const VE_SHARE = 0.06;
+// Share of VE rows carrying Level 1 errors (the rest open at Step 2). The
+// generator test asserts a 30-50% band around this.
+const L1_SHARE = 0.4;
 // ponytail: pre-ORD-24 VE was `VALIDATION_ERROR_STATUSES.includes(orderStatus)`
 // (deleted per D1 — real VE membership is decided by the independent-RNG
 // post-pass in buildDataset() now). Kept here ONLY to reproduce the exact two
@@ -3232,7 +3235,7 @@ export function buildDataset({
   for (const row of rndSample(veHoldRnd, veEligible, veCount)) {
     row.draftOrderStatus = 'Error';
     row.errorCount = rndWeighted(veHoldRnd, ERROR_COUNT_WEIGHTS);
-    if (veHoldRnd() < 0.4) {
+    if (veHoldRnd() < L1_SHARE) {
       row.interfaceErrorCount = rndWeighted(veHoldRnd, INTERFACE_ERROR_COUNT_WEIGHTS);
       row.interfaceErrorClass = rndWeighted(veHoldRnd, INTERFACE_ERROR_CLASS_WEIGHTS);
     } else {

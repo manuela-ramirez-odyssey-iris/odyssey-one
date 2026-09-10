@@ -74,6 +74,7 @@ const baseRow = {
   hazardous: true, createdAt: '2026-06-08T08:45:00', createdBy: 'amy.cook', createdTimeZoneCode: 'CDT',
   lastEditAt: '2026-06-09T10:00:00', lastEditedBy: 'ben.planner', lastEditTimeZoneCode: 'CDT',
   draftOrderStatus: 'Error', errorCount: 7,
+  interfaceErrorCount: 2, interfaceErrorClass: 'conflict',
 } satisfies OrderListRow
 
 describe('mapOrderListRow — per-tab grid fields', () => {
@@ -108,6 +109,8 @@ describe('mapOrderListRow — per-tab grid fields', () => {
     expect(vm.lastEditedBy).toBe('ben.planner')
     expect(vm.draftOrderStatus).toBe('Error')
     expect(vm.errorCount).toBe(7)
+    expect(vm.interfaceErrorCount).toBe(2)
+    expect(vm.interfaceErrorClass).toBe('conflict')
     const bare = mapOrderListRow({ ...baseRow, createdBy: undefined, lastEditedBy: undefined, errorCount: undefined })
     expect(bare.createdBy).toBe('--')
     expect(bare.lastEditedBy).toBe('--')
