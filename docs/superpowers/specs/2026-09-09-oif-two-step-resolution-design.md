@@ -37,7 +37,7 @@ Below the timeline, the body depends on the step: **Step 1 renders its own panel
 |---|---|
 | Order has Level 1 errors | Opens at Step 1. Dot 2 locked (`aria-disabled`, default cursor, no handler). |
 | Order has no Level 1 errors | Opens at Step 2. Dot 1 `on` with detail `no errors`; clicking it shows the Step 1 panel **read-only** with an empty state ("No message errors were found"). |
-| Step 1 validated (every conflict picked, every structural fault fixed, no unresolvable message-control error) | `Validate and continue` **saves the Step 1 fixes immediately** (Ramesh #2: mock overlay / local API write of the picked values + `interfaceErrorCount: 0`), then Step 2 renders on the same page: picks appear in their header fields as normal inputs with helper line *"Set in step 1 — was in conflict"*; Level 2 errors derived and shown. Dot 1 → `on`. A later `Back to overview` keeps the Step 1 fixes and re-entry opens at Step 2. |
+| Step 1 validated (every conflict picked, every structural fault fixed, no unresolvable message-control error) | `Validate and continue` **saves the Step 1 fixes immediately** (Ramesh #2: mock overlay / local API write of the picked values + `interfaceErrorCount: 0`), then Step 2 renders on the same page: picks appear in their header fields locked in the green **Validated** state (FormField has no helper-line prop and is a normalized component — adding one is a Figma-first change, deferred); Level 2 seeding excludes the picked paths so a pick is never re-broken. Dot 1 → `on`. A later `Back to overview` keeps the Step 1 fixes and re-entry opens at Step 2. |
 | From Step 2, click dot 1 | Step 1 read-only view. Not re-editable (re-breaking the message would void Step 2's error set). Dot 2 click returns. |
 | Step 2 Save with all resolved | Step 3: `ConfirmationView` (order-summary layout) with all three dots `on`; dots 1 and 2 remain clickable read-only. Footer `Back to overview`. |
 | Purge (Step 2 only — Ramesh #6) | `ModalMedium` confirm (existing copy) → status `Purge` → `/orders`. Step 1 has no Purge. |
@@ -112,7 +112,7 @@ The `resolveMeta` history state carries `interfaceErrorCount` + `interfaceErrorC
 | `StructuralGrid` | `apps/…/orders/resolve/StructuralGrid.jsx` | App-local. `DataTable` of offending lines with editable faulty cells. |
 | `MessageControlBlock` | `apps/…/orders/resolve/MessageControlBlock.jsx` | App-local. `Radio` Yes/No for `deleteFlag`; read-only rows otherwise. |
 | `interfaceErrors.js` | `apps/…/orders/resolve/` | Derive + seed, rule table as data. |
-| `ResolveModeContext` | existing | Value grows: `{ step, pickedPaths }`. `resolveFieldProps` unchanged; Step 2 call sites read `pickedPaths` to show the "Set in step 1" helper. |
+| `ResolveModeContext` | existing | Value grows `pickedPaths`; `resolveFieldProps` returns `{ validated: true, disabled: true }` for a picked path. |
 | `ResolveShell.jsx` | `apps/…/orders/resolve/` | NEW. Owns the step machine `1 \| 2 \| 3` + `viewingStep`, the timeline, per-step Alert, footer switch, Step 1 save, Step 3 render. Renders `CreateOrderForm` (existing resolve mode) as the Step 2 body. `CreateOrderRoute` mounts `ResolveShell` when `?resolve=` is present. |
 | Generator, `orders.json`, `local-api.mjs`, `api/_lib/orders.mjs`, `orderService.ts` | existing | Fields + status writes. |
 | Orders grid | `ordersColumns.jsx`, `OrdersTable.jsx` | Resolve gate → `Error`; Interface errors column. |
