@@ -882,3 +882,22 @@
 .co-resolve-sentinel {
   margin-bottom: calc(-1 * var(--spacing-4));
 }
+
+/* ── Step 1 (LINX-16049) — ConflictPicker ──
+   Unresolved = the same red border FormField's error state uses
+   (--bittersweet-200; there is no --border-error token). Picked flips to
+   --border-success, mirroring .form-field--validated. */
+.conflict-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--bittersweet-200);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+}
+.conflict-picker--picked { border-color: var(--border-success); }
+.conflict-picker__label { color: var(--text-primary); }
+.conflict-picker__message { color: var(--text-error); margin: 0; }
+.conflict-picker__validated { color: var(--text-success); margin: 0; }
+.conflict-picker__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
