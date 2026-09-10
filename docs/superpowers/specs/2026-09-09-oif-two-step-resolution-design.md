@@ -132,7 +132,7 @@ The `resolveMeta` history state carries `interfaceErrorCount` + `interfaceErrorC
 | Story / AC bullet | How this design meets it |
 |---|---|
 | LINX-16049 §A navigation: overview → Validation Errors tab → search/filter → *Resolve* in Actions | Unchanged path; Resolve gate becomes `draftOrderStatus === 'Error'` (LINX-11659 gating + LINX-16391 vocabulary). |
-| LINX-16049 §B "the UI will have 2 tabs" | Delivered as **steps on one timeline**, not tabs — user ruling ("tabs mean options, not steps"). Flag at the regroom as a presentation deviation; the two-surface split is preserved. |
+| LINX-16049 §B "the UI will have 2 tabs" | **No tabs.** The story's two surfaces are delivered as two **steps on one timeline** (user ruling: tabs show sibling information; this is a progression the user must complete in order). The split the story asks for is kept; the widget is a stepper, not a tab bar. Inform Ramesh at the regroom. |
 | LINX-16049 §B.I 13 pre-validation checks, stored in `order_interface_staging` as Error | All 13 rules encoded in `INTERFACE_POOL` with Appendix A messages and LINX-16281 `fieldTree`s. |
 | LINX-16049 §B.I "show all fields & highlight fields in error; all errors at the top; selecting navigates to the field" | Alert list + `onErrorNav` → row; error accordions; read-only *Received order data* for all fields. |
 | LINX-16049 §II status transition: Error while fixing; fixed → stage 2, still Error; no step 1 errors → straight to stage 2, step 1 read-only | Navigation rules table rows 1–3; `draftOrderStatus` stays `Error` until Step 2 Save. |
