@@ -166,6 +166,15 @@
   <td>The inert ⤢ icon opens Product Details / Reference Codes / Hazmat / General / Packaging. UI needs Figma. LINX-8131 / 8132 / 8133 / 8134 / 8135.</td>
 </tr>
 
+<tr>
+  <td></td>
+  <td class="id">ORD-11</td>
+  <td>OIF Step 1: error-nav should anchor the offending row, not the grid</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Clicking a structural error in the Step 1 Alert scrolls to the top of the StructuralGrid rather than to the failing line, because the grid's per-error &lt;tr&gt; carries no id. Adding <code>id={`l1-${s.id}`}</code> to that row lets Step1Panel's anchorId collapse to <code>l1-${err.id}</code> for two of three classes. Partial against LINX-16049's AC "selecting an error navigates directly to that field". Found in the S145 Task 7 review.</td>
+</tr>
+
 <!-- Search & Filtering — Priority 2 -->
 <tr class="priority-group"><td colspan="6">Priority 2 — Search &amp; Filtering (SHP-19 decomposed)</td></tr>
 
