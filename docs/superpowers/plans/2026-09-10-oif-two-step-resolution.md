@@ -160,13 +160,8 @@ Run: `node tools/generate.mjs` → regenerates `src/data/orders.json` (and the o
 
 - [ ] **Step 7: Grid gate + column + route state**
 
-`ordersColumns.jsx:92-96` — after the `errorCount` column add:
-```js
-  col.accessor('interfaceErrorCount', {
-    header: 'Interface Errors',
-    cell: ({ getValue }) => getValue() ?? '--',
-  }),
-```
+**AMENDED 2026-09-10 (Task 1 execution, confirmed by spec review): the "Interface Errors" COLUMN is NOT added here.** Two parity tests bind the Orders grid to the search layer — `progression.test.js` ("every grid column on every tab has a progression attribute" + a hard `ORDERS_ATTRIBUTES` length assertion) and `chipParity.test.js` (exact set equality between the progression keys and `CHIP_COLS` in `api/_lib/orders.mjs`). A new column therefore needs a new filterable attribute, which needs a `CHIP_COLS` entry, which needs an `interface_error_count` column in Neon that does not exist. `COLUMN_TO_ATTR` only renames labels; aliasing the new column onto `Errors Count` would pass both tests but make the search bar silently match Level-2 counts for a Level-1 query — the whitelist-mapper bug class this repo has shipped five times. The column ships with the Neon column, as a separate item (see Task 11 Step 2). The VM/mapper fields are already in place for it.
+
 `ordersColumns.jsx:142` → `if (erroring && row?.draftOrderStatus === 'Error') return 'Resolve'` and fix the doc comment at `:113-114` ("Resolve — validation-error status AND `Error`… `Complete`/`Purge` are not resolvable").
 `OrdersTable.jsx:48` → `disabled={row.original.draftOrderStatus !== 'Error'}` and the comment at `:41` ("enabled only while status is Error").
 `OrdersRoute.jsx:215` → `state: { errorCount: row.errorCount, interfaceErrorCount: row.interfaceErrorCount, interfaceErrorClass: row.interfaceErrorClass, customer: row.customer, orderSource: row.orderSource },`
@@ -1960,7 +1955,9 @@ git commit -m "S145: ResolveShell — one page, three steps on a timeline; Step 
 
 - [ ] **Step 1: Decision-log entry** `### ORD-25 — OIF resolution becomes two steps on one page (LINX-16049 + 11137 split); statuses Error/Complete/Purge` with **Previous state** (ORD-10 single screen, `Ready` gate, Save → Ready for Planning), **Decision** (spec summary + the six Ramesh rulings verbatim), **Source** (stories, docs, transcript 1:06–1:07, user rulings 2026-09-09/10), **Affects** (file list from this plan), and the story-conformance deviations (no tabs; retry out of scope).
 
-- [ ] **Step 2: Open questions** — append the three from the spec's *Open questions* section, owner Venkat / regroom.
+- [ ] **Step 2: Open questions** — append the three from the spec's *Open questions* section, owner Venkat / regroom, PLUS a fourth carried out of Task 1:
+
+> **Q-OIF-4 — the "Interface Errors" grid column needs a DB column.** The Validation Errors grid should show the Level 1 error count beside the Level 2 one, but the Orders grid↔search parity tests require every column to be filterable, and a filterable column requires `interface_error_count` in Neon (`CHIP_COLS`, `api/_lib/orders.mjs`). Ships with a Neon migration + reseed on the user's explicit go; until then the count reaches the resolve screen through the Resolve navigation state, and the grid does not display it. Owner: user (reseed authority) + Venkat (whether the real OIF feed exposes the count on the list row at all).
 
 - [ ] **Step 3: Gate** — from `apps/odyssey-one`: `npx vitest run` green; `node --test tools/generate.test.mjs api/_lib/*.test.mjs` green; `npm run build` green; `npm run lint` clean.
 
