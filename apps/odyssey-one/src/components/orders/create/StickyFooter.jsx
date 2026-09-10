@@ -9,13 +9,17 @@ export default function StickyFooter({
   onCancel, onSave, onCreate, createDisabled, saving,
   // Resolve mode (LINX-11137) relabels the same two slots: Purge / Save.
   saveLabel, primaryLabel = 'Create Order',
+  // Step 1 of the interface-error flow (LINX-16049) has no middle slot at all —
+  // Purge is a Step 2 action (PO ruling) — so it needs exactly
+  // Cancel · <primary>. Default stays true: every existing caller is unchanged.
+  showSave = true,
 }) {
   return (
     <div className="co-footer">
       <StepperButtonsFooter
         saveLabel={saveLabel}
         primaryLabel={primaryLabel}
-        showSave
+        showSave={showSave}
         onCancel={onCancel}
         onSave={onSave}
         onPrimary={onCreate}

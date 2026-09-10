@@ -944,3 +944,10 @@
 .message-control__prompt { color: var(--text-primary); }
 .message-control__unanswered { color: var(--text-error); }
 .message-control__support { color: var(--text-tertiary); }
+
+/* ── Step 1 panel (LINX-16049 interface errors) ── */
+.step1-panel { display: flex; flex-direction: column; gap: var(--spacing-4); }
+.step1-panel__list { display: flex; flex-direction: column; gap: var(--spacing-3); }
+.step1-panel__received { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-3) var(--spacing-6); margin: 0; }
+.step1-panel__received-row dt { color: var(--text-tertiary); }
+.step1-panel__received-row dd { margin: 0; color: var(--text-primary); }
