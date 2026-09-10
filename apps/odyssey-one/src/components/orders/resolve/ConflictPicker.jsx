@@ -5,7 +5,7 @@ const linesLabel = (lines) => (lines.length === 1 ? `line ${lines[0]}` : `lines 
 
 /**
  * ConflictPicker — Step 1 (LINX-16049) cross-line conflict, one FIELD at a
- * time (PO ruling recorded in interfaceErrors.js: an address conflict is
+ * time (PO ruling, Ramesh, 2026-09-10, recorded in interfaceErrors.js: an address conflict is
  * picked field by field, so the planner may take City from line 1 and Postal
  * from line 3 — never whole blocks). Nothing here is individually invalid;
  * the order lines simply disagree, so no parser can pick a winner and the
@@ -21,10 +21,16 @@ const linesLabel = (lines) => (lines.length === 1 ? `line ${lines[0]}` : `lines 
  * Map<fieldPath, [{ value, lines }]>.
  */
 export default function ConflictPicker({ id, label, message, options = [], value, onPick, disabled = false }) {
-  const [otherOpen, setOtherOpen] = useState(false)
-  const [otherValue, setOtherValue] = useState('')
   const picked = value != null && value !== ''
+  // A pick none of the lines carry — the "Enter another value" path. It owes a
+  // chip of its own, or a valid pick renders as nothing (and in `disabled`
+  // look-back, where the escape input is hidden, nowhere at all).
+  const custom = picked && !options.some((o) => o.value === value)
+  const [otherOpen, setOtherOpen] = useState(false)
+  const [otherValue, setOtherValue] = useState(custom ? value : '')
   const inputId = id ?? `conflict-${label.replace(/\W+/g, '-').toLowerCase()}`
+  const messageId = `${inputId}-message`
+  const showMessage = !picked && !!message
   return (
     <div
       className={`conflict-picker${picked ? ' conflict-picker--picked' : ''}`}
@@ -34,12 +40,13 @@ export default function ConflictPicker({ id, label, message, options = [], value
          sharing one accessible name is an ambiguous label for AT (and for
          getByLabelText). The visible heading stays the bare field name. */
       aria-label={`${label} conflict`}
+      aria-describedby={showMessage ? messageId : undefined}
       id={inputId}
     >
       <span className="conflict-picker__label text-label-sm-medium">{label}</span>
-      {!picked && message && <p className="conflict-picker__message text-label-xs-regular">{message}</p>}
+      {showMessage && <p id={messageId} className="conflict-picker__message text-label-xs-regular">{message}</p>}
       <div className="conflict-picker__chips">
-        {options.filter((o) => o.lines.length > 0).map((o) => (
+        {options.map((o) => (
           <PillTab
             key={o.value}
             label={`${o.label ?? o.value} · ${linesLabel(o.lines)}`}
@@ -53,6 +60,15 @@ export default function ConflictPicker({ id, label, message, options = [], value
             onClick={() => { setOtherOpen(false); onPick(o.value) }}
           />
         ))}
+        {custom && (
+          <PillTab
+            label={`${value} · entered`}
+            showCount={false}
+            selected
+            disabled={disabled}
+            onClick={() => { setOtherValue(value); setOtherOpen(true) }}
+          />
+        )}
         {!disabled && (
           <PillTab label="Enter another value" showCount={false} selected={otherOpen} onClick={() => setOtherOpen((v) => !v)} />
         )}
@@ -72,10 +88,11 @@ export default function ConflictPicker({ id, label, message, options = [], value
              on blur (not per keystroke) so a half-typed value never becomes
              the order-wide pick. */
           onBlur={() => { if (otherValue.trim()) onPick(otherValue.trim()) }}
+          describedBy={showMessage ? messageId : undefined}
           placeholder="Type the value for the whole order"
         />
       )}
-      {picked && <p className="conflict-picker__validated text-label-xs-regular">Validated</p>}
+      {picked && <p role="status" className="conflict-picker__validated text-label-xs-regular">Validated</p>}
     </div>
   )
 }

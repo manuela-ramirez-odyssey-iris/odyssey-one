@@ -901,6 +901,8 @@
 .conflict-picker__message { color: var(--text-error); margin: 0; }
 .conflict-picker__validated { color: var(--text-success); margin: 0; }
 .conflict-picker__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+/* PillTab ships no disabled appearance — the Step 2 look-back needs one. App-local so the shared atom stays untouched. */
+.conflict-picker .pill-tab:disabled { cursor: default; opacity: 0.6; }
 
 /* ── Step 1 — StructuralGrid (LINX-16049 rules 1/2/4) ── */
 .structural-grid__table { width: 100%; }

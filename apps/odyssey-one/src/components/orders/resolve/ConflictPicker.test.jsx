@@ -35,6 +35,17 @@ describe('ConflictPicker', () => {
     expect(onPick).toHaveBeenCalledWith('T')
   })
 
+  test('a custom value renders its own chip even though no option carries it', () => {
+    render(<ConflictPicker label="Freight Term" options={options} value="THIRD-PARTY" onPick={() => {}} />)
+    expect(screen.getByRole('button', { name: 'THIRD-PARTY · entered' }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  test('disabled + a custom value still shows what the planner chose', () => {
+    render(<ConflictPicker label="Freight Term" options={options} value="THIRD-PARTY" onPick={() => {}} disabled />)
+    expect(screen.queryByRole('button', { name: 'Enter another value' })).toBeNull()
+    expect(screen.getByText(/THIRD-PARTY/)).toBeTruthy()
+  })
+
   test('disabled renders inert chips', () => {
     render(<ConflictPicker label="Freight Term" options={options} value="P" onPick={() => {}} disabled />)
     expect(screen.getByRole('button', { name: 'Pre-Paid · lines 1, 2' }).hasAttribute('disabled')).toBe(true)
