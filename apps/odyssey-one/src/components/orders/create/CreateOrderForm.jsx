@@ -33,6 +33,11 @@ const SAVE_GATE_MESSAGE = 'Owning Organization is required to save this order.'
 // was previously invisible behind this generic string).
 const SAVE_DRAFT_GENERIC_ERROR = "Couldn't save the draft. Please try again."
 
+// Stable identity for the `pickedPaths` default — a fresh `[]` literal per
+// render would bust the pickedSet memo and hand every section a new resolve
+// context on every render.
+const NO_PICKS = []
+
 /**
  * CreateOrderForm — the create-flow orchestrator (spec §2.2, §4).
  * RHF + zodResolver own validation; the four Accordions ARE the stepper
@@ -50,7 +55,7 @@ const SAVE_DRAFT_GENERIC_ERROR = "Couldn't save the draft. Please try again."
  *  - onResolved / onPurged: hand control back to the shell (Step 3 preview)
  *                 instead of navigating away. Omitted → today's /orders exit.
  */
-export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted, hideHeader = false, pickedPaths = [], onResolved, onPurged }) {
+export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted, hideHeader = false, pickedPaths = NO_PICKS, onResolved, onPurged }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
@@ -179,6 +184,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       })
     })
     return () => { cancelled = true }
+    // `pickedPaths` is read here but deliberately NOT a dep: the seeding is a
+    // one-shot hydration keyed on the order. ResolveShell mounts this form when
+    // the planner enters Step 2, so the picks are final by then; re-seeding
+    // mid-step would blow away their in-progress edits.
   }, [resolveKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const watchedAll = useWatch({ control })
