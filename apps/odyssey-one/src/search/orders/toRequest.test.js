@@ -37,7 +37,7 @@ describe('one field set on every tab (ORD-23)', () => {
   it("VE status binds to draftOrderStatuses, never the lifecycle orderStatuses", () => {
     const ve = attrsForTab('validation-errors').find((a) => a.key === 'draftOrderStatus')
     expect(ve.param).toBe('draftOrderStatuses')
-    expect(ve.values).toEqual(['Ready', 'Complete', 'Purge'])
+    expect(ve.values).toEqual(['Error', 'Complete', 'Purge'])
     expect(ve.label).toBe('Draft Order Status') // distinct from orderStatus's 'Order Status'
   })
 })

@@ -16,7 +16,7 @@ describe('ordersColumns', () => {
   // menu offers: Resolve → Edit → View, each gated by its real availability.
   it('picks the first AVAILABLE action, in resolve → edit → view order', () => {
     // Resolve exactly where the VE tab's button is enabled.
-    expect(primaryRowAction({ status: 'Planning Failed', draftOrderStatus: 'Ready', orderSource: 'Manual' })).toBe('Resolve')
+    expect(primaryRowAction({ status: 'Planning Failed', draftOrderStatus: 'Error', orderSource: 'Manual' })).toBe('Resolve')
     // Not resolvable, but still erroring and editable → the place to fix it.
     expect(primaryRowAction({ status: 'Shipment Failed', draftOrderStatus: 'Complete', orderSource: 'Manual' })).toBe('Edit')
     expect(primaryRowAction({ status: 'Draft', orderSource: 'Manual' })).toBe('Edit')

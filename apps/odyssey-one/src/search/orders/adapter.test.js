@@ -7,7 +7,7 @@ const ROWS = [
   {
     orderNumber: '0000000091000', customer: 'WEYERH_01', orderSource: 'INTEGRATED',
     shipDirection: 'O', freightTerms: 'A', equipment: 'LTR', orderStatus: 'Planned Load',
-    draftOrderStatus: 'Ready', errorCount: 3, hazardous: false,
+    draftOrderStatus: 'Error', errorCount: 3, hazardous: false,
     grossWeight: { value: 42000, uom: 'LBS' }, volume: { value: 900, uom: 'CUFT' },
     consignor: { name: 'Longview Plant', city: 'Longview', state: 'WA', country: 'US', latestPickupDateTime: '2026-05-29T04:45:00' },
     consignee: { name: 'Freeport Terminal', city: 'Freeport', state: 'TX', country: 'US', latestDeliveryDateTime: '2026-06-02T11:00:00' },

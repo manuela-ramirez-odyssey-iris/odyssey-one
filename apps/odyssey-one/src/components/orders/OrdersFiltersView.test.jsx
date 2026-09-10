@@ -48,7 +48,7 @@ describe('one field set on every tab', () => {
     // Order Status: the 7 lifecycle values.
     expect(screen.getByRole('button', { name: 'Planned Shipment' })).toBeTruthy()
     // Draft Order Status: the 3 OIF values, not the lifecycle ones.
-    for (const v of ['Ready', 'Complete', 'Purge']) {
+    for (const v of ['Error', 'Complete', 'Purge']) {
       expect(screen.getByRole('button', { name: v })).toBeTruthy()
     }
   })
@@ -145,7 +145,7 @@ describe('footer actions (LINX-10285)', () => {
   it('seeds the draft from the applied filters on open', () => {
     setup('validation-errors', { filters: { draftOrderStatus: ['Purge'] } })
     expect(screen.getByRole('button', { name: 'Purge' }).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('button', { name: 'Ready' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Error' }).getAttribute('aria-pressed')).toBe('false')
   })
 })
 

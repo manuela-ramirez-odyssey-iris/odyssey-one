@@ -53,20 +53,22 @@ export const ORDER_STATUS_VALUES = [
   'Planning Failed', 'Shipment Failed', 'Hold', 'Cancelled',
 ]
 
-// LINX-11659 verbatim: "options are Complete, Ready & Purge". This is
+// LINX-11659 verbatim: "options are Complete, Ready & Purge" — SUPERSEDED by
+// LINX-16391 (In Development, 2026-09-09), which replaced `Ready` with `Error`:
+// the DB now seeds OIF_ERR/OIF_COMP/OIF_PRG. This is
 // `draftOrderStatus` (the OIF validation state, LINX-11137) — a DIFFERENT
 // vocabulary from ORDER_STATUS_VALUES above. The ticket calls the column
 // "Order Status", which is why binding it to `orderStatuses` is the easy
 // mistake: it would filter against lifecycle labels and always return nothing.
-export const DRAFT_ORDER_STATUS_VALUES = ['Ready', 'Complete', 'Purge']
+export const DRAFT_ORDER_STATUS_VALUES = ['Error', 'Complete', 'Purge']
 
 // Status → Badge variant. Lives HERE rather than in ordersColumns.jsx so the
 // search layer can render the same badge without importing a React module for a
 // colour map; ordersColumns re-exports these, so the grid and the search preview
 // can never disagree about what colour a status is. Tone vocabulary (user
 // ruling, 2026-09-05): gray = inert, green = ready/done, blue = in progress,
-// amber = needs attention (Hold; Ready = ready to be RESOLVED, the
-// action-required state — Resolve is enabled only there), red = failed.
+// amber = needs attention (Hold), red = failed — Error is the OIF
+// action-required state now (LINX-16391), and Resolve is enabled only there.
 // Figma pins kept: Ready for Planning = green, failures = red.
 export const ORDER_STATUS_VARIANT = {
   'Draft': 'gray',
@@ -79,7 +81,7 @@ export const ORDER_STATUS_VARIANT = {
   'Cancelled': 'gray',
 }
 
-export const DRAFT_ORDER_STATUS_VARIANT = { Ready: 'amber', Complete: 'green', Purge: 'gray' }
+export const DRAFT_ORDER_STATUS_VARIANT = { Error: 'red', Complete: 'green', Purge: 'gray' }
 
 // LINX-11659 verbatim — the Error Count operator dropdown.
 export const ERROR_COUNT_OPERATORS = [

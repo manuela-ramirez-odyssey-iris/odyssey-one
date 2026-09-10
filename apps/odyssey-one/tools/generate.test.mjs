@@ -33,9 +33,20 @@ test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftO
   for (const o of ve) {
     assert.equal(o.orderSource, 'INTEGRATED')
     assert.equal(o.orderStatus, null)
-    assert.ok(['Ready', 'Complete', 'Purge'].includes(o.draftOrderStatus))
+    // LINX-16391: OIF status axis is Error/Complete/Purge; seeds are all Error
+    // (Complete/Purge are only ever written by the UI).
+    assert.equal(o.draftOrderStatus, 'Error')
     assert.ok(Number.isInteger(o.errorCount) && o.errorCount >= 1 && o.errorCount <= 12)
+    assert.ok(Number.isInteger(o.interfaceErrorCount) && o.interfaceErrorCount >= 0 && o.interfaceErrorCount <= 5)
+    if (o.interfaceErrorCount === 0) assert.equal(o.interfaceErrorClass, null)
+    else assert.ok(['conflict', 'structural', 'mixed', 'delete-flag', 'unresolvable'].includes(o.interfaceErrorClass))
   }
+  // Every Step 1 entry case is reachable from the tab (discriminator-must-be-seeded rule).
+  const withL1 = ve.filter(o => o.interfaceErrorCount > 0)
+  const share = withL1.length / ve.length
+  assert.ok(share >= 0.3 && share <= 0.5, `L1 share ${(share * 100).toFixed(1)}% out of band`)
+  for (const cls of ['conflict', 'structural', 'mixed', 'delete-flag', 'unresolvable'])
+    assert.ok(withL1.some(o => o.interfaceErrorClass === cls), `no VE row with interfaceErrorClass ${cls}`)
   for (const o of orders) {
     assert.equal(typeof o.hazardous, 'boolean')
     assert.ok(o.consignor.name !== undefined && o.consignor.address !== undefined)

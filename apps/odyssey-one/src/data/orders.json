@@ -133,8 +133,10 @@
   "createdAt": "2026-05-14T07:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091003",
@@ -2295,8 +2297,10 @@
   "createdAt": "2026-04-11T13:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000091051",
@@ -2882,8 +2886,10 @@
   "createdAt": "2026-03-26T00:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "BAS-91064",
@@ -6394,8 +6400,10 @@
   "createdAt": "2026-03-31T07:00:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000091142",
@@ -6981,8 +6989,10 @@
   "createdAt": "2026-05-30T11:45:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091155",
@@ -8198,8 +8208,10 @@
   "createdAt": "2026-02-25T14:45:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091182",
@@ -8245,8 +8257,10 @@
   "createdAt": "2026-01-21T11:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091183",
@@ -9597,8 +9611,10 @@
   "createdAt": "2026-04-20T01:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091213",
@@ -10634,8 +10650,10 @@
   "createdAt": "2026-04-05T13:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000091236",
@@ -10996,8 +11014,10 @@
   "createdAt": "2026-04-12T01:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091244",
@@ -11088,8 +11108,10 @@
   "createdAt": "2026-02-25T01:30:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091246",
@@ -12305,8 +12327,10 @@
   "createdAt": "2026-03-06T21:45:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "WEY-91273",
@@ -12577,8 +12601,10 @@
   "createdAt": "2026-02-07T11:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000091279",
@@ -12624,8 +12650,10 @@
   "createdAt": "2025-12-31T15:30:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091280",
@@ -15011,8 +15039,10 @@
   "createdAt": "2026-04-13T07:45:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "REV-91333",
@@ -16048,8 +16078,10 @@
   "createdAt": "2026-02-17T02:15:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000091356",
@@ -18660,8 +18692,10 @@
   "createdAt": "2026-03-20T05:00:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091414",
@@ -19427,8 +19461,10 @@
   "createdAt": "2026-01-31T20:30:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091431",
@@ -19519,8 +19555,10 @@
   "createdAt": "2026-01-28T15:45:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000091433",
@@ -19566,8 +19604,10 @@
   "createdAt": "2026-01-28T20:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "CEL-91434",
@@ -19613,8 +19653,10 @@
   "createdAt": "2026-05-25T00:30:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 8,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "CEL-91435",
@@ -19705,8 +19747,10 @@
   "createdAt": "2026-06-05T16:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000091437",
@@ -20157,8 +20201,10 @@
   "createdAt": "2026-02-05T06:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 8
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "SHE-91447",
@@ -20609,8 +20655,10 @@
   "createdAt": "2026-03-27T13:45:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 9,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "ERC-91457",
@@ -20791,8 +20839,10 @@
   "createdAt": "2026-05-27T00:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000091461",
@@ -21693,8 +21743,10 @@
   "createdAt": "2026-04-02T07:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091481",
@@ -21785,8 +21837,10 @@
   "createdAt": "2026-03-29T07:45:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 11,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091483",
@@ -21877,8 +21931,10 @@
   "createdAt": "2026-05-15T09:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000091485",
@@ -24534,8 +24590,10 @@
   "createdAt": "2026-05-19T15:45:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "ERC-91544",
@@ -24851,8 +24909,10 @@
   "createdAt": "2026-04-29T07:15:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091551",
@@ -24898,8 +24958,10 @@
   "createdAt": "2026-04-15T00:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "VAL-91552",
@@ -25170,8 +25232,10 @@
   "createdAt": "2026-02-18T15:30:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "NOU-91558",
@@ -25217,8 +25281,10 @@
   "createdAt": "2026-01-01T10:30:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "NOU-91559",
@@ -25579,8 +25645,10 @@
   "createdAt": "2026-01-18T15:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091567",
@@ -28146,8 +28214,10 @@
   "createdAt": "2026-03-05T08:15:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091624",
@@ -28193,8 +28263,10 @@
   "createdAt": "2026-01-08T11:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000091625",
@@ -28645,8 +28717,10 @@
   "createdAt": "2026-04-06T11:15:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091635",
@@ -28737,8 +28811,10 @@
   "createdAt": "2026-02-21T02:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091637",
@@ -29009,8 +29085,10 @@
   "createdAt": "2026-01-15T07:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 8,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000091643",
@@ -29056,8 +29134,10 @@
   "createdAt": "2026-02-08T23:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000091644",
@@ -29868,8 +29948,10 @@
   "createdAt": "2025-12-26T16:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091662",
@@ -30320,8 +30402,10 @@
   "createdAt": "2026-04-21T14:30:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091672",
@@ -30727,8 +30811,10 @@
   "createdAt": "2026-06-06T12:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091681",
@@ -30954,8 +31040,10 @@
   "createdAt": "2026-01-15T00:45:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091686",
@@ -32351,8 +32439,10 @@
   "createdAt": "2026-06-13T09:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000091717",
@@ -32668,8 +32758,10 @@
   "createdAt": "2026-04-12T08:15:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "KEM-91724",
@@ -33030,8 +33122,10 @@
   "createdAt": "2026-04-13T11:00:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091732",
@@ -36722,8 +36816,10 @@
   "createdAt": "2026-03-28T07:45:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000091814",
@@ -36994,8 +37090,10 @@
   "createdAt": "2026-05-20T08:15:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "EAS-91820",
@@ -38886,8 +38984,10 @@
   "createdAt": "2026-02-22T22:45:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "unresolvable"
  },
  {
   "orderNumber": "0000000091862",
@@ -39113,8 +39213,10 @@
   "createdAt": "2026-05-14T04:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091867",
@@ -39160,8 +39262,10 @@
   "createdAt": "2026-05-09T05:15:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091868",
@@ -40467,8 +40571,10 @@
   "createdAt": "2026-02-08T08:30:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091897",
@@ -42719,8 +42825,10 @@
   "createdAt": "2026-01-04T14:00:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000091947",
@@ -44071,8 +44179,10 @@
   "createdAt": "2026-05-05T02:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "VAL-91977",
@@ -44883,8 +44993,10 @@
   "createdAt": "2026-05-01T14:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "MON-91995",
@@ -45515,8 +45627,10 @@
   "createdAt": "2025-12-30T02:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000092009",
@@ -45967,8 +46081,10 @@
   "createdAt": "2026-01-12T18:00:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092019",
@@ -47094,8 +47210,10 @@
   "createdAt": "2026-05-15T23:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "unresolvable"
  },
  {
   "orderNumber": "WEY-92044",
@@ -47186,8 +47304,10 @@
   "createdAt": "2026-01-05T01:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092046",
@@ -47953,8 +48073,10 @@
   "createdAt": "2026-06-17T21:30:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "USA-92063",
@@ -48000,8 +48122,10 @@
   "createdAt": "2026-05-21T10:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092064",
@@ -48137,8 +48261,10 @@
   "createdAt": "2026-02-10T07:45:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092067",
@@ -48994,8 +49120,10 @@
   "createdAt": "2026-01-24T22:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092086",
@@ -50526,8 +50654,10 @@
   "createdAt": "2026-01-19T12:45:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 10,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "EAS-92120",
@@ -51383,8 +51513,10 @@
   "createdAt": "2026-03-19T09:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092139",
@@ -51520,8 +51652,10 @@
   "createdAt": "2026-06-14T20:15:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092142",
@@ -55437,8 +55571,10 @@
   "createdAt": "2025-12-29T12:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 9,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092229",
@@ -56294,8 +56430,10 @@
   "createdAt": "2026-02-05T04:15:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092248",
@@ -58501,8 +58639,10 @@
   "createdAt": "2025-12-28T15:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000092297",
@@ -59268,8 +59408,10 @@
   "createdAt": "2026-06-16T11:30:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092314",
@@ -59675,8 +59817,10 @@
   "createdAt": "2026-02-22T16:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 11,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "MAS-92323",
@@ -59857,8 +60001,10 @@
   "createdAt": "2026-01-20T18:00:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092327",
@@ -60894,8 +61040,10 @@
   "createdAt": "2026-02-15T09:15:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092350",
@@ -61256,8 +61404,10 @@
   "createdAt": "2026-02-17T03:45:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092358",
@@ -62338,8 +62488,10 @@
   "createdAt": "2026-04-02T22:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SOL-92382",
@@ -62700,8 +62852,10 @@
   "createdAt": "2026-04-09T10:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092390",
@@ -64097,8 +64251,10 @@
   "createdAt": "2026-04-29T03:15:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 8,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000092421",
@@ -65539,8 +65695,10 @@
   "createdAt": "2026-02-17T04:15:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "CEL-92453",
@@ -66171,8 +66329,10 @@
   "createdAt": "2026-02-07T02:15:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092467",
@@ -67028,8 +67188,10 @@
   "createdAt": "2026-04-01T13:30:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092486",
@@ -67345,8 +67507,10 @@
   "createdAt": "2026-01-26T14:00:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000092493",
@@ -67887,8 +68051,10 @@
   "createdAt": "2026-01-18T03:15:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092505",
@@ -67934,8 +68100,10 @@
   "createdAt": "2026-05-05T21:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000092506",
@@ -68746,8 +68914,10 @@
   "createdAt": "2026-02-12T20:00:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "GTE-92524",
@@ -68883,8 +69053,10 @@
   "createdAt": "2026-06-11T22:00:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092527",
@@ -69515,8 +69687,10 @@
   "createdAt": "2026-02-22T01:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092541",
@@ -69652,8 +69826,10 @@
   "createdAt": "2026-05-27T04:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000092544",
@@ -70194,8 +70370,10 @@
   "createdAt": "2026-03-22T01:45:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092556",
@@ -70601,8 +70779,10 @@
   "createdAt": "2026-01-20T07:30:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092565",
@@ -71278,8 +71458,10 @@
   "createdAt": "2026-05-13T14:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 8,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092580",
@@ -72315,8 +72497,10 @@
   "createdAt": "2026-06-11T00:00:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092603",
@@ -72452,8 +72636,10 @@
   "createdAt": "2026-05-25T08:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 8
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092606",
@@ -73399,8 +73585,10 @@
   "createdAt": "2025-12-31T16:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092627",
@@ -73626,8 +73814,10 @@
   "createdAt": "2026-05-07T17:00:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092632",
@@ -73763,8 +73953,10 @@
   "createdAt": "2026-06-12T12:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092635",
@@ -74080,8 +74272,10 @@
   "createdAt": "2026-05-25T03:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092642",
@@ -74712,8 +74906,10 @@
   "createdAt": "2026-01-21T04:15:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092656",
@@ -75254,8 +75450,10 @@
   "createdAt": "2026-01-28T00:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092668",
@@ -75976,8 +76174,10 @@
   "createdAt": "2026-01-07T16:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000092684",
@@ -76113,8 +76313,10 @@
   "createdAt": "2026-04-03T04:30:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000092687",
@@ -78725,8 +78927,10 @@
   "createdAt": "2026-01-28T05:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092745",
@@ -78772,8 +78976,10 @@
   "createdAt": "2026-03-17T20:00:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "DUB-92746",
@@ -79899,8 +80105,10 @@
   "createdAt": "2026-05-27T04:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092771",
@@ -80081,8 +80289,10 @@
   "createdAt": "2026-02-04T22:45:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092775",
@@ -80983,8 +81193,10 @@
   "createdAt": "2026-04-29T00:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092795",
@@ -81165,8 +81377,10 @@
   "createdAt": "2026-02-16T20:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000092799",
@@ -81212,8 +81426,10 @@
   "createdAt": "2026-02-13T13:15:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000092800",
@@ -81394,8 +81610,10 @@
   "createdAt": "2026-03-11T10:30:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "BAS-92804",
@@ -85941,8 +86159,10 @@
   "createdAt": "2026-03-02T01:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "SOL-92905",
@@ -86303,8 +86523,10 @@
   "createdAt": "2026-03-27T23:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092913",
@@ -86800,8 +87022,10 @@
   "createdAt": "2026-03-30T21:15:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092924",
@@ -88242,8 +88466,10 @@
   "createdAt": "2026-01-14T02:15:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000092956",
@@ -88829,8 +89055,10 @@
   "createdAt": "2026-04-17T10:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000092969",
@@ -89641,8 +89869,10 @@
   "createdAt": "2026-01-08T22:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000092987",
@@ -91173,8 +91403,10 @@
   "createdAt": "2026-01-22T18:30:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093021",
@@ -92390,8 +92622,10 @@
   "createdAt": "2026-01-09T01:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093048",
@@ -92797,8 +93031,10 @@
   "createdAt": "2026-04-26T20:30:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093057",
@@ -93474,8 +93710,10 @@
   "createdAt": "2026-02-02T13:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000093072",
@@ -94646,8 +94884,10 @@
   "createdAt": "2026-02-13T17:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093098",
@@ -94828,8 +95068,10 @@
   "createdAt": "2026-03-16T19:00:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "MAS-93102",
@@ -95325,8 +95567,10 @@
   "createdAt": "2026-03-08T03:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093113",
@@ -95957,8 +96201,10 @@
   "createdAt": "2026-03-25T01:15:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093127",
@@ -97354,8 +97600,10 @@
   "createdAt": "2026-04-23T04:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "EAS-93158",
@@ -98976,8 +99224,10 @@
   "createdAt": "2025-12-23T12:30:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000093194",
@@ -99788,8 +100038,10 @@
   "createdAt": "2026-05-27T18:30:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000093212",
@@ -101725,8 +101977,10 @@
   "createdAt": "2026-03-27T22:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 10
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "ERC-93255",
@@ -101862,8 +102116,10 @@
   "createdAt": "2026-06-05T14:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093258",
@@ -101954,8 +102210,10 @@
   "createdAt": "2026-02-21T12:45:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093260",
@@ -106636,8 +106894,10 @@
   "createdAt": "2026-04-15T20:30:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000093364",
@@ -107628,8 +107888,10 @@
   "createdAt": "2026-05-06T11:45:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093386",
@@ -108755,8 +109017,10 @@
   "createdAt": "2026-05-01T01:15:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093411",
@@ -108982,8 +109246,10 @@
   "createdAt": "2026-02-18T17:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093416",
@@ -109254,8 +109520,10 @@
   "createdAt": "2026-05-02T10:00:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SHE-93422",
@@ -109751,8 +110019,10 @@
   "createdAt": "2026-06-04T17:30:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093433",
@@ -111058,8 +111328,10 @@
   "createdAt": "2026-06-02T03:15:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "ETE-93462",
@@ -111375,8 +111647,10 @@
   "createdAt": "2026-05-26T14:30:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093469",
@@ -112772,8 +113046,10 @@
   "createdAt": "2026-01-11T13:30:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093500",
@@ -113134,8 +113410,10 @@
   "createdAt": "2026-06-02T14:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093508",
@@ -114891,8 +115169,10 @@
   "createdAt": "2026-05-04T00:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "DOW-93547",
@@ -114938,8 +115218,10 @@
   "createdAt": "2026-05-04T05:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093548",
@@ -115525,8 +115807,10 @@
   "createdAt": "2026-04-24T23:30:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000093561",
@@ -116067,8 +116351,10 @@
   "createdAt": "2026-04-29T16:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 8
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093573",
@@ -116834,8 +117120,10 @@
   "createdAt": "2026-01-26T04:00:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093590",
@@ -117016,8 +117304,10 @@
   "createdAt": "2026-06-10T13:00:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SHE-93594",
@@ -118008,8 +118298,10 @@
   "createdAt": "2026-01-18T11:15:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 8
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093616",
@@ -118685,8 +118977,10 @@
   "createdAt": "2026-02-11T21:15:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093631",
@@ -118822,8 +119116,10 @@
   "createdAt": "2026-02-03T06:30:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093634",
@@ -121209,8 +121505,10 @@
   "createdAt": "2026-04-13T23:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 5,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "ACM-93687",
@@ -122471,8 +122769,10 @@
   "createdAt": "2026-04-14T22:45:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093715",
@@ -123148,8 +123448,10 @@
   "createdAt": "2026-06-22T01:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093730",
@@ -123690,8 +123992,10 @@
   "createdAt": "2026-02-08T02:45:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "IMC-93742",
@@ -123827,8 +124131,10 @@
   "createdAt": "2026-01-06T05:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093745",
@@ -124009,8 +124315,10 @@
   "createdAt": "2026-01-29T20:45:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000093749",
@@ -124146,8 +124454,10 @@
   "createdAt": "2025-12-27T03:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "VAL-93752",
@@ -124283,8 +124593,10 @@
   "createdAt": "2026-04-12T02:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093755",
@@ -124375,8 +124687,10 @@
   "createdAt": "2026-01-10T10:45:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000093757",
@@ -124737,8 +125051,10 @@
   "createdAt": "2026-05-31T07:15:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093765",
@@ -125144,8 +125460,10 @@
   "createdAt": "2026-04-11T15:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "KEM-93774",
@@ -126631,8 +126949,10 @@
   "createdAt": "2026-02-23T12:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "SOL-93807",
@@ -127128,8 +127448,10 @@
   "createdAt": "2026-05-13T11:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "ETE-93818",
@@ -127625,8 +127947,10 @@
   "createdAt": "2026-05-13T20:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093829",
@@ -128167,8 +128491,10 @@
   "createdAt": "2026-04-07T09:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093841",
@@ -128394,8 +128720,10 @@
   "createdAt": "2026-01-23T07:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "EAS-93846",
@@ -128441,8 +128769,10 @@
   "createdAt": "2026-01-24T04:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "EAS-93847",
@@ -128803,8 +129133,10 @@
   "createdAt": "2026-05-18T07:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093855",
@@ -129075,8 +129407,10 @@
   "createdAt": "2026-04-17T22:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000093861",
@@ -130247,8 +130581,10 @@
   "createdAt": "2025-12-31T12:45:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093887",
@@ -130339,8 +130675,10 @@
   "createdAt": "2026-01-02T07:00:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000093889",
@@ -131466,8 +131804,10 @@
   "createdAt": "2026-03-01T22:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093914",
@@ -132593,8 +132933,10 @@
   "createdAt": "2026-03-28T05:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000093939",
@@ -133990,8 +134332,10 @@
   "createdAt": "2026-01-29T17:45:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000093970",
@@ -134442,8 +134786,10 @@
   "createdAt": "2026-04-14T23:30:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093980",
@@ -134714,8 +135060,10 @@
   "createdAt": "2026-06-01T18:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000093986",
@@ -135751,8 +136099,10 @@
   "createdAt": "2026-03-27T08:15:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094009",
@@ -135888,8 +136238,10 @@
   "createdAt": "2026-01-19T07:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 5,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "ETE-94012",
@@ -137420,8 +137772,10 @@
   "createdAt": "2026-02-04T12:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094046",
@@ -137692,8 +138046,10 @@
   "createdAt": "2026-03-28T18:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094052",
@@ -138099,8 +138455,10 @@
   "createdAt": "2026-02-28T11:30:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094061",
@@ -138146,8 +138504,10 @@
   "createdAt": "2026-03-02T17:30:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094062",
@@ -139048,8 +139408,10 @@
   "createdAt": "2026-02-24T07:00:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094082",
@@ -139365,8 +139727,10 @@
   "createdAt": "2026-05-30T17:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000094089",
@@ -139727,8 +140091,10 @@
   "createdAt": "2026-02-28T22:30:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SOL-94097",
@@ -139954,8 +140320,10 @@
   "createdAt": "2026-01-26T18:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "GEO-94102",
@@ -141531,8 +141899,10 @@
   "createdAt": "2026-01-07T13:15:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094137",
@@ -141668,8 +142038,10 @@
   "createdAt": "2026-03-13T20:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094140",
@@ -142075,8 +142447,10 @@
   "createdAt": "2026-03-31T07:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "GRA-94149",
@@ -142482,8 +142856,10 @@
   "createdAt": "2026-03-27T21:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "NOU-94158",
@@ -142529,8 +142905,10 @@
   "createdAt": "2026-03-27T12:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094159",
@@ -142576,8 +142954,10 @@
   "createdAt": "2026-03-25T19:45:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094160",
@@ -144693,8 +145073,10 @@
   "createdAt": "2026-02-02T08:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "ERC-94207",
@@ -144830,8 +145212,10 @@
   "createdAt": "2026-03-16T10:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094210",
@@ -145147,8 +145531,10 @@
   "createdAt": "2026-05-16T20:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094217",
@@ -145284,8 +145670,10 @@
   "createdAt": "2026-04-13T00:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094220",
@@ -145961,8 +146349,10 @@
   "createdAt": "2026-06-10T07:45:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094235",
@@ -146773,8 +147163,10 @@
   "createdAt": "2026-02-20T18:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "GRA-94253",
@@ -147315,8 +147707,10 @@
   "createdAt": "2026-02-19T09:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000094265",
@@ -147362,8 +147756,10 @@
   "createdAt": "2026-02-18T05:45:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "GRA-94266",
@@ -148714,8 +149110,10 @@
   "createdAt": "2026-05-03T01:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "INE-94296",
@@ -149346,8 +149744,10 @@
   "createdAt": "2026-03-13T20:45:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094310",
@@ -150338,8 +150738,10 @@
   "createdAt": "2026-06-02T20:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094332",
@@ -151600,8 +152002,10 @@
   "createdAt": "2026-03-09T15:45:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094360",
@@ -151872,8 +152276,10 @@
   "createdAt": "2026-01-28T01:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094366",
@@ -152144,8 +152550,10 @@
   "createdAt": "2026-04-23T08:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094372",
@@ -152371,8 +152779,10 @@
   "createdAt": "2026-06-09T15:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "DUB-94377",
@@ -153183,8 +153593,10 @@
   "createdAt": "2026-05-08T22:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094395",
@@ -154130,8 +154542,10 @@
   "createdAt": "2026-03-30T20:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "ACM-94416",
@@ -155437,8 +155851,10 @@
   "createdAt": "2026-04-11T23:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094445",
@@ -156114,8 +156530,10 @@
   "createdAt": "2026-02-20T02:45:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094460",
@@ -156431,8 +156849,10 @@
   "createdAt": "2026-04-17T15:15:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094467",
@@ -156883,8 +157303,10 @@
   "createdAt": "2026-01-30T12:45:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094477",
@@ -157425,8 +157847,10 @@
   "createdAt": "2026-05-12T15:00:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094489",
@@ -157472,8 +157896,10 @@
   "createdAt": "2026-05-09T11:00:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094490",
@@ -157699,8 +158125,10 @@
   "createdAt": "2026-03-06T13:45:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094495",
@@ -158286,8 +158714,10 @@
   "createdAt": "2026-05-05T21:30:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094508",
@@ -161933,8 +162363,10 @@
   "createdAt": "2026-04-28T15:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 10,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "ADA-94589",
@@ -163195,8 +163627,10 @@
   "createdAt": "2026-01-30T03:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 5,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094617",
@@ -164952,8 +165386,10 @@
   "createdAt": "2026-03-15T15:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094656",
@@ -165404,8 +165840,10 @@
   "createdAt": "2026-05-17T04:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "DEL-94666",
@@ -166576,8 +167014,10 @@
   "createdAt": "2026-01-30T20:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094692",
@@ -166893,8 +167333,10 @@
   "createdAt": "2026-03-21T05:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SHE-94699",
@@ -167615,8 +168057,10 @@
   "createdAt": "2026-02-01T01:45:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094715",
@@ -167932,8 +168376,10 @@
   "createdAt": "2026-01-11T00:00:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094722",
@@ -167979,8 +168425,10 @@
   "createdAt": "2026-05-19T02:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "ACM-94723",
@@ -168296,8 +168744,10 @@
   "createdAt": "2026-02-11T21:30:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094730",
@@ -169693,8 +170143,10 @@
   "createdAt": "2026-04-27T19:30:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094761",
@@ -170595,8 +171047,10 @@
   "createdAt": "2026-01-22T03:00:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094781",
@@ -171227,8 +171681,10 @@
   "createdAt": "2026-04-09T04:30:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "GEO-94795",
@@ -171454,8 +171910,10 @@
   "createdAt": "2026-01-09T21:45:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094800",
@@ -171816,8 +172274,10 @@
   "createdAt": "2026-03-11T13:15:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094808",
@@ -173168,8 +173628,10 @@
   "createdAt": "2026-01-16T01:15:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "WEY-94838",
@@ -173755,8 +174217,10 @@
   "createdAt": "2026-01-12T05:15:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094851",
@@ -174342,8 +174806,10 @@
   "createdAt": "2026-03-20T04:15:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "ETE-94864",
@@ -175109,8 +175575,10 @@
   "createdAt": "2026-04-08T03:15:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 10,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "KEM-94881",
@@ -175201,8 +175669,10 @@
   "createdAt": "2026-01-25T19:30:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094883",
@@ -175428,8 +175898,10 @@
   "createdAt": "2026-03-27T22:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094888",
@@ -175565,8 +176037,10 @@
   "createdAt": "2026-02-14T13:15:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094891",
@@ -176332,8 +176806,10 @@
   "createdAt": "2026-06-04T00:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000094908",
@@ -176649,8 +177125,10 @@
   "createdAt": "2026-01-24T08:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094915",
@@ -177281,8 +177759,10 @@
   "createdAt": "2026-02-27T15:15:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000094929",
@@ -177328,8 +177808,10 @@
   "createdAt": "2026-03-06T01:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 4,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000094930",
@@ -178545,8 +179027,10 @@
   "createdAt": "2026-04-13T06:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000094957",
@@ -179312,8 +179796,10 @@
   "createdAt": "2026-03-19T18:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "DOW-94974",
@@ -180934,8 +181420,10 @@
   "createdAt": "2026-01-25T01:00:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "GEO-95010",
@@ -181161,8 +181649,10 @@
   "createdAt": "2026-05-21T18:15:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095015",
@@ -181298,8 +181788,10 @@
   "createdAt": "2025-12-31T11:00:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095018",
@@ -181390,8 +181882,10 @@
   "createdAt": "2026-06-06T14:30:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000095020",
@@ -181527,8 +182021,10 @@
   "createdAt": "2026-04-03T22:30:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095023",
@@ -181574,8 +182070,10 @@
   "createdAt": "2026-02-02T15:30:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "CEL-95024",
@@ -181756,8 +182254,10 @@
   "createdAt": "2026-01-16T09:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "PST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "KEM-95028",
@@ -181938,8 +182438,10 @@
   "createdAt": "2026-06-20T03:30:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000095032",
@@ -183425,8 +183927,10 @@
   "createdAt": "2026-05-11T14:45:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 8,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "unresolvable"
  },
  {
   "orderNumber": "DOW-95065",
@@ -183607,8 +184111,10 @@
   "createdAt": "2026-04-01T13:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000095069",
@@ -183924,8 +184430,10 @@
   "createdAt": "2026-06-23T05:15:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000095076",
@@ -184556,8 +185064,10 @@
   "createdAt": "2026-02-17T03:45:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095090",
@@ -185143,8 +185653,10 @@
   "createdAt": "2026-04-05T23:45:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095103",
@@ -185190,8 +185702,10 @@
   "createdAt": "2026-04-02T00:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095104",
@@ -186452,8 +186966,10 @@
   "createdAt": "2026-02-12T17:15:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095132",
@@ -188074,8 +188590,10 @@
   "createdAt": "2026-02-16T15:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095168",
@@ -189516,8 +190034,10 @@
   "createdAt": "2026-02-04T04:30:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SOL-95200",
@@ -190553,8 +191073,10 @@
   "createdAt": "2026-06-13T17:00:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095223",
@@ -192130,8 +192652,10 @@
   "createdAt": "2026-01-16T09:30:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000095258",
@@ -192267,8 +192791,10 @@
   "createdAt": "2026-05-13T02:00:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 8,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095261",
@@ -194249,8 +194775,10 @@
   "createdAt": "2026-01-14T20:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095305",
@@ -194386,8 +194914,10 @@
   "createdAt": "2026-06-16T22:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095308",
@@ -194658,8 +195188,10 @@
   "createdAt": "2026-05-13T21:00:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 6,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095314",
@@ -194840,8 +195372,10 @@
   "createdAt": "2026-05-03T14:15:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 9,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095318",
@@ -194977,8 +195511,10 @@
   "createdAt": "2026-05-18T12:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000095321",
@@ -196644,8 +197180,10 @@
   "createdAt": "2026-02-04T22:45:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "WEY-95358",
@@ -199391,8 +199929,10 @@
   "createdAt": "2026-01-15T10:15:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "0000000095419",
@@ -199438,8 +199978,10 @@
   "createdAt": "2026-02-07T03:45:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000095420",
@@ -199755,8 +200297,10 @@
   "createdAt": "2026-05-04T12:30:00",
   "createdBy": "david.johns",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095427",
@@ -200387,8 +200931,10 @@
   "createdAt": "2026-06-13T09:15:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095441",
@@ -201109,8 +201655,10 @@
   "createdAt": "2026-01-01T06:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "structural"
  },
  {
   "orderNumber": "EAS-95457",
@@ -201516,8 +202064,10 @@
   "createdAt": "2026-02-08T19:45:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095466",
@@ -201608,8 +202158,10 @@
   "createdAt": "2026-02-03T23:30:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 5,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "DUB-95468",
@@ -202195,8 +202747,10 @@
   "createdAt": "2026-01-03T01:45:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "EST",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 5,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "EAS-95481",
@@ -203232,8 +203786,10 @@
   "createdAt": "2026-06-17T08:00:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "DUB-95504",
@@ -203454,7 +204010,7 @@
    "uom": "cbf"
   },
   "commodity": "Sodium Hydroxide Solution 50%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-06-21T13:00:00",
   "createdBy": "janardhana.k",
@@ -204144,7 +204700,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-09T04:30:00",
   "createdBy": "ben.planner",
@@ -204279,7 +204835,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-13T01:30:00",
   "createdBy": "amy.cook",
@@ -204369,7 +204925,7 @@
    "uom": "cbf"
   },
   "commodity": "Sodium Hydroxide Solution 50%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-08-04T04:00:00",
   "createdBy": "amy.cook",
@@ -204419,8 +204975,10 @@
   "createdAt": "2026-08-22T19:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 5,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095530",
@@ -204461,7 +205019,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-23T12:00:00",
   "createdBy": "noah.manager",
@@ -204599,7 +205157,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-21T07:00:00",
   "createdBy": "zoe.admin",
@@ -204694,8 +205252,10 @@
   "createdAt": "2026-07-27T02:30:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "EAS-95536",
@@ -204786,8 +205346,10 @@
   "createdAt": "2026-08-08T03:30:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SOL-95538",
@@ -205014,7 +205576,7 @@
    "uom": "cbf"
   },
   "commodity": "Herbicide Concentrate 2,4-D",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-15T21:30:00",
   "createdBy": "david.johns",
@@ -205059,7 +205621,7 @@
    "uom": "cbf"
   },
   "commodity": "Polypropylene Copolymer",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-19T18:30:00",
   "createdBy": "ben.planner",
@@ -205109,8 +205671,10 @@
   "createdAt": "2026-08-14T11:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000095545",
@@ -205294,8 +205858,10 @@
   "createdAt": "2026-06-18T04:00:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095549",
@@ -205381,7 +205947,7 @@
    "uom": "cbf"
   },
   "commodity": "Petroleum Distillate",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-02T08:00:00",
   "createdBy": "david.johns",
@@ -205471,7 +206037,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrochloric Acid 32%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-24T21:30:00",
   "createdBy": "mia.manager",
@@ -205839,8 +206405,10 @@
   "createdAt": "2026-08-21T14:00:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "HUN-95561",
@@ -206016,7 +206584,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrochloric Acid 32%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-23T03:30:00",
   "createdBy": "janardhana.k",
@@ -206244,7 +206812,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-17T03:30:00",
   "createdBy": "cara.planner",
@@ -206565,7 +207133,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-25T21:30:00",
   "createdBy": "janardhana.k",
@@ -206610,7 +207178,7 @@
    "uom": "cbf"
   },
   "commodity": "Polypropylene Copolymer",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-08-19T06:30:00",
   "createdBy": "cara.planner",
@@ -206745,7 +207313,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrochloric Acid 32%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-06T00:30:00",
   "createdBy": "zoe.admin",
@@ -207015,7 +207583,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-16T06:30:00",
   "createdBy": "janardhana.k",
@@ -207060,7 +207628,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-19T06:00:00",
   "createdBy": "ben.planner",
@@ -207105,7 +207673,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-20T07:00:00",
   "createdBy": "david.johns",
@@ -207248,8 +207816,10 @@
   "createdAt": "2026-07-04T08:30:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "DOW-95592",
@@ -207290,7 +207860,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-30T11:30:00",
   "createdBy": "eve.planner",
@@ -207650,7 +208220,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-01T06:00:00",
   "createdBy": "zoe.admin",
@@ -207785,7 +208355,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-08T21:00:00",
   "createdBy": "ben.planner",
@@ -207875,7 +208445,7 @@
    "uom": "cbf"
   },
   "commodity": "Polyethylene Resin HD",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-19T14:00:00",
   "createdBy": "ben.planner",
@@ -207925,8 +208495,10 @@
   "createdAt": "2026-09-06T04:00:00",
   "createdBy": "ava.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "GRA-95607",
@@ -208012,7 +208584,7 @@
    "uom": "cbf"
   },
   "commodity": "Polypropylene Copolymer",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-11T04:30:00",
   "createdBy": "manuela.ramirez",
@@ -208062,8 +208634,10 @@
   "createdAt": "2026-08-17T08:00:00",
   "createdBy": "zoe.admin",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "GEO-95610",
@@ -208104,7 +208678,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-19T17:00:00",
   "createdBy": "manuela.ramirez",
@@ -208329,7 +208903,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-19T20:30:00",
   "createdBy": "ava.planner",
@@ -208419,7 +208993,7 @@
    "uom": "cbf"
   },
   "commodity": "Polypropylene Copolymer",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-28T05:30:00",
   "createdBy": "zoe.admin",
@@ -208878,7 +209452,7 @@
    "uom": "cbf"
   },
   "commodity": "Sulfuric Acid 93%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-09-12T20:30:00",
   "createdBy": "cara.planner",
@@ -209061,7 +209635,7 @@
    "uom": "cbf"
   },
   "commodity": "Sulfuric Acid 93%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-07-30T08:30:00",
   "createdBy": "ava.planner",
@@ -209196,7 +209770,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-20T20:00:00",
   "createdBy": "zoe.admin",
@@ -209286,7 +209860,7 @@
    "uom": "cbf"
   },
   "commodity": "Sodium Hydroxide Solution 50%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-07-22T18:30:00",
   "createdBy": "cara.planner",
@@ -209424,7 +209998,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-01T21:00:00",
   "createdBy": "dan.planner",
@@ -209562,7 +210136,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-24T12:30:00",
   "createdBy": "mia.manager",
@@ -209700,7 +210274,7 @@
    "uom": "cbf"
   },
   "commodity": "Sodium Hydroxide Solution 50%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-07-19T07:30:00",
   "createdBy": "zoe.admin",
@@ -210029,8 +210603,10 @@
   "createdAt": "2026-07-20T14:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 3
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "BAS-95653",
@@ -210121,8 +210697,10 @@
   "createdAt": "2026-08-17T20:30:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095655",
@@ -210163,7 +210741,7 @@
    "uom": "cbf"
   },
   "commodity": "Petroleum Distillate",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-15T22:00:00",
   "createdBy": "dan.planner",
@@ -210571,7 +211149,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-08-10T01:00:00",
   "createdBy": "mia.manager",
@@ -210616,7 +211194,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-19T01:30:00",
   "createdBy": "cara.planner",
@@ -210661,7 +211239,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-23T13:30:00",
   "createdBy": "noah.manager",
@@ -210706,7 +211284,7 @@
    "uom": "cbf"
   },
   "commodity": "Sulfuric Acid 93%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-07-27T01:00:00",
   "createdBy": "cara.planner",
@@ -210796,7 +211374,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-31T21:00:00",
   "createdBy": "manuela.ramirez",
@@ -210841,7 +211419,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-11T23:30:00",
   "createdBy": "david.johns",
@@ -211021,7 +211599,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-01T11:00:00",
   "createdBy": "noah.manager",
@@ -211066,7 +211644,7 @@
    "uom": "cbf"
   },
   "commodity": "Phosphoric Acid 75%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-19T13:30:00",
   "createdBy": "janardhana.k",
@@ -211342,7 +211920,7 @@
    "uom": "cbf"
   },
   "commodity": "Phosphoric Acid 75%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-30T01:00:00",
   "createdBy": "ben.planner",
@@ -211432,7 +212010,7 @@
    "uom": "cbf"
   },
   "commodity": "Herbicide Concentrate 2,4-D",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-02T07:00:00",
   "createdBy": "david.johns",
@@ -211477,7 +212055,7 @@
    "uom": "cbf"
   },
   "commodity": "Polyethylene Resin HD",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-31T19:00:00",
   "createdBy": "david.johns",
@@ -211843,7 +212421,7 @@
    "uom": "cbf"
   },
   "commodity": "Petroleum Distillate",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-28T14:30:00",
   "createdBy": "eve.planner",
@@ -211933,7 +212511,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-27T08:30:00",
   "createdBy": "manuela.ramirez",
@@ -211978,7 +212556,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-18T20:00:00",
   "createdBy": "eve.planner",
@@ -212071,7 +212649,7 @@
    "uom": "cbf"
   },
   "commodity": "Herbicide Concentrate 2,4-D",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-17T11:30:00",
   "createdBy": "amy.cook",
@@ -212431,7 +213009,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-03T04:00:00",
   "createdBy": "ava.planner",
@@ -212521,7 +213099,7 @@
    "uom": "cbf"
   },
   "commodity": "Vinyl Chloride Monomer",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-13T18:30:00",
   "createdBy": "cara.planner",
@@ -212749,7 +213327,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-10T02:00:00",
   "createdBy": "david.johns",
@@ -212932,7 +213510,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrochloric Acid 32%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-25T16:00:00",
   "createdBy": "noah.manager",
@@ -212977,7 +213555,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-29T02:00:00",
   "createdBy": "noah.manager",
@@ -213022,7 +213600,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-17T18:30:00",
   "createdBy": "eve.planner",
@@ -213067,7 +213645,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-16T10:30:00",
   "createdBy": "janardhana.k",
@@ -213205,7 +213783,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-24T07:00:00",
   "createdBy": "janardhana.k",
@@ -213436,7 +214014,7 @@
    "uom": "cbf"
   },
   "commodity": "Herbicide Concentrate 2,4-D",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-02T06:00:00",
   "createdBy": "ava.planner",
@@ -213754,7 +214332,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-24T20:30:00",
   "createdBy": "noah.manager",
@@ -213892,7 +214470,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-08T20:00:00",
   "createdBy": "janardhana.k",
@@ -213942,8 +214520,10 @@
   "createdAt": "2026-08-29T23:30:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 5,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095739",
@@ -213989,8 +214569,10 @@
   "createdAt": "2026-06-18T02:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "EAS-95740",
@@ -214036,8 +214618,10 @@
   "createdAt": "2026-09-02T17:30:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 10
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095741",
@@ -214126,7 +214710,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-08T01:30:00",
   "createdBy": "manuela.ramirez",
@@ -214216,7 +214800,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-01T07:30:00",
   "createdBy": "ben.planner",
@@ -214450,7 +215034,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-11T23:30:00",
   "createdBy": "amy.cook",
@@ -214636,7 +215220,7 @@
    "uom": "cbf"
   },
   "commodity": "Sodium Hydroxide Solution 50%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-09-08T23:00:00",
   "createdBy": "noah.manager",
@@ -214954,7 +215538,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-24T04:30:00",
   "createdBy": "ava.planner",
@@ -214999,7 +215583,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-16T23:30:00",
   "createdBy": "zoe.admin",
@@ -215134,7 +215718,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-09-17T18:30:00",
   "createdBy": "amy.cook",
@@ -215314,7 +215898,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-18T16:30:00",
   "createdBy": "mia.manager",
@@ -215404,7 +215988,7 @@
    "uom": "cbf"
   },
   "commodity": "Herbicide Concentrate 2,4-D",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": true,
   "createdAt": "2026-08-27T04:00:00",
   "createdBy": "ava.planner",
@@ -215953,7 +216537,7 @@
    "uom": "cbf"
   },
   "commodity": "Phosphoric Acid 75%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-31T15:30:00",
   "createdBy": "eve.planner",
@@ -215998,7 +216582,7 @@
    "uom": "cbf"
   },
   "commodity": "Vinyl Chloride Monomer",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-17T00:00:00",
   "createdBy": "ben.planner",
@@ -216088,7 +216672,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrogen Peroxide 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-09T22:00:00",
   "createdBy": "ben.planner",
@@ -216226,7 +216810,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-28T19:30:00",
   "createdBy": "zoe.admin",
@@ -216409,7 +216993,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-02T04:30:00",
   "createdBy": "david.johns",
@@ -216547,7 +217131,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-25T02:00:00",
   "createdBy": "mia.manager",
@@ -216687,8 +217271,10 @@
   "createdAt": "2026-09-21T22:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 5
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "USA-95799",
@@ -216954,7 +217540,7 @@
    "uom": "cbf"
   },
   "commodity": "Petroleum Distillate",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-20T03:30:00",
   "createdBy": "eve.planner",
@@ -217224,7 +217810,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-24T17:00:00",
   "createdBy": "ben.planner",
@@ -217359,7 +217945,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-29T13:30:00",
   "createdBy": "ava.planner",
@@ -217677,7 +218263,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-04T19:00:00",
   "createdBy": "zoe.admin",
@@ -217722,7 +218308,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-14T19:00:00",
   "createdBy": "ava.planner",
@@ -217767,7 +218353,7 @@
    "uom": "cbf"
   },
   "commodity": "Sodium Hydroxide Solution 50%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-07-29T06:30:00",
   "createdBy": "zoe.admin",
@@ -217860,7 +218446,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-17T13:30:00",
   "createdBy": "amy.cook",
@@ -218138,8 +218724,10 @@
   "createdAt": "2026-09-15T03:00:00",
   "createdBy": "janardhana.k",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Purge",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095831",
@@ -218180,7 +218768,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-06T19:00:00",
   "createdBy": "ava.planner",
@@ -218225,7 +218813,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-28T02:30:00",
   "createdBy": "zoe.admin",
@@ -218543,7 +219131,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-17T12:30:00",
   "createdBy": "zoe.admin",
@@ -218636,7 +219224,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-20T15:00:00",
   "createdBy": "ava.planner",
@@ -218776,8 +219364,10 @@
   "createdAt": "2026-09-06T08:00:00",
   "createdBy": "ben.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "CEL-95845",
@@ -219469,7 +220059,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-31T23:00:00",
   "createdBy": "janardhana.k",
@@ -219514,7 +220104,7 @@
    "uom": "cbf"
   },
   "commodity": "Petroleum Distillate",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-25T01:30:00",
   "createdBy": "ben.planner",
@@ -219657,8 +220247,10 @@
   "createdAt": "2026-07-27T19:00:00",
   "createdBy": "mia.manager",
   "createdTimeZoneCode": "MDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 1,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "LYO-95864",
@@ -220245,7 +220837,7 @@
    "uom": "cbf"
   },
   "commodity": "Sulfuric Acid 93%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-07-03T16:30:00",
   "createdBy": "ben.planner",
@@ -220380,7 +220972,7 @@
    "uom": "cbf"
   },
   "commodity": "Herbicide Concentrate 2,4-D",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-11T20:00:00",
   "createdBy": "mia.manager",
@@ -220425,7 +221017,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-11T23:00:00",
   "createdBy": "ben.planner",
@@ -220616,8 +221208,10 @@
   "createdAt": "2026-08-05T05:30:00",
   "createdBy": "eve.planner",
   "createdTimeZoneCode": "PDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095885",
@@ -220754,7 +221348,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-23T14:30:00",
   "createdBy": "amy.cook",
@@ -220987,8 +221581,10 @@
   "createdAt": "2026-08-03T23:30:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 8
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 1,
+  "interfaceErrorClass": "mixed"
  },
  {
   "orderNumber": "0000000095893",
@@ -221074,7 +221670,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-18T06:30:00",
   "createdBy": "manuela.ramirez",
@@ -221350,7 +221946,7 @@
    "uom": "cbf"
   },
   "commodity": "Polyethylene Resin HD",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-25T17:00:00",
   "createdBy": "zoe.admin",
@@ -221395,7 +221991,7 @@
    "uom": "cbf"
   },
   "commodity": "Polypropylene Copolymer",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-17T08:30:00",
   "createdBy": "ava.planner",
@@ -221530,7 +222126,7 @@
    "uom": "cbf"
   },
   "commodity": "Polyethylene Resin HD",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-19T22:00:00",
   "createdBy": "mia.manager",
@@ -221580,8 +222176,10 @@
   "createdAt": "2026-07-06T10:30:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 2,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095906",
@@ -221760,7 +222358,7 @@
    "uom": "cbf"
   },
   "commodity": "Phosphoric Acid 75%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-09-14T02:00:00",
   "createdBy": "ava.planner",
@@ -221850,7 +222448,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-17T21:00:00",
   "createdBy": "dan.planner",
@@ -222078,7 +222676,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-10T14:00:00",
   "createdBy": "amy.cook",
@@ -222123,7 +222721,7 @@
    "uom": "cbf"
   },
   "commodity": "Sulfuric Acid 93%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-09-10T20:00:00",
   "createdBy": "zoe.admin",
@@ -222168,7 +222766,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-26T04:00:00",
   "createdBy": "mia.manager",
@@ -222218,8 +222816,10 @@
   "createdAt": "2026-07-24T08:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "MST",
-  "draftOrderStatus": "Purge",
-  "errorCount": 6
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 3,
+  "interfaceErrorClass": "conflict"
  },
  {
   "orderNumber": "0000000095920",
@@ -222313,8 +222913,10 @@
   "createdAt": "2026-08-31T12:00:00",
   "createdBy": "manuela.ramirez",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 7,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "SOL-95922",
@@ -222724,7 +223326,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-02T13:00:00",
   "createdBy": "cara.planner",
@@ -223233,8 +223835,10 @@
   "createdAt": "2026-08-20T02:00:00",
   "createdBy": "amy.cook",
   "createdTimeZoneCode": "EDT",
-  "draftOrderStatus": "Complete",
-  "errorCount": 4
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 2,
+  "interfaceErrorClass": "delete-flag"
  },
  {
   "orderNumber": "0000000095942",
@@ -223503,7 +224107,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrochloric Acid 32%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-19T21:00:00",
   "createdBy": "eve.planner",
@@ -223548,7 +224152,7 @@
    "uom": "cbf"
   },
   "commodity": "Potassium Hydroxide 45%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-21T00:30:00",
   "createdBy": "ben.planner",
@@ -223593,7 +224197,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-18T08:00:00",
   "createdBy": "zoe.admin",
@@ -223638,7 +224242,7 @@
    "uom": "cbf"
   },
   "commodity": "Vinyl Chloride Monomer",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-12T00:00:00",
   "createdBy": "cara.planner",
@@ -223826,8 +224430,10 @@
   "createdAt": "2026-08-30T15:30:00",
   "createdBy": "noah.manager",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 2
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095955",
@@ -223873,8 +224479,10 @@
   "createdAt": "2026-08-12T05:00:00",
   "createdBy": "cara.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 1
+  "draftOrderStatus": "Error",
+  "errorCount": 4,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000095956",
@@ -224005,7 +224613,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrogen Peroxide 35%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-30T01:30:00",
   "createdBy": "david.johns",
@@ -224050,7 +224658,7 @@
    "uom": "cbf"
   },
   "commodity": "PVC Compound Rigid",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-07-12T08:00:00",
   "createdBy": "dan.planner",
@@ -224461,7 +225069,7 @@
    "uom": "cbf"
   },
   "commodity": "Polyethylene Resin HD",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-09T03:30:00",
   "createdBy": "manuela.ramirez",
@@ -224551,7 +225159,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-08-14T22:30:00",
   "createdBy": "david.johns",
@@ -224596,7 +225204,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-21T03:30:00",
   "createdBy": "david.johns",
@@ -224866,7 +225474,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-05T05:00:00",
   "createdBy": "david.johns",
@@ -224956,7 +225564,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-06-25T01:00:00",
   "createdBy": "ben.planner",
@@ -225274,7 +225882,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-16T03:30:00",
   "createdBy": "david.johns",
@@ -225412,7 +226020,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-28T02:00:00",
   "createdBy": "ben.planner",
@@ -225457,7 +226065,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-27T22:00:00",
   "createdBy": "janardhana.k",
@@ -226378,7 +226986,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrogen Peroxide 35%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-15T12:30:00",
   "createdBy": "zoe.admin",
@@ -226468,7 +227076,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-12T14:00:00",
   "createdBy": "zoe.admin",
@@ -226693,7 +227301,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-01T16:30:00",
   "createdBy": "dan.planner",
@@ -226738,7 +227346,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-01T15:30:00",
   "createdBy": "mia.manager",
@@ -226833,8 +227441,10 @@
   "createdAt": "2026-09-07T17:00:00",
   "createdBy": "dan.planner",
   "createdTimeZoneCode": "CDT",
-  "draftOrderStatus": "Ready",
-  "errorCount": 7
+  "draftOrderStatus": "Error",
+  "errorCount": 3,
+  "interfaceErrorCount": 0,
+  "interfaceErrorClass": null
  },
  {
   "orderNumber": "0000000096021",
@@ -227103,7 +227713,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-25T13:00:00",
   "createdBy": "mia.manager",
@@ -227331,7 +227941,7 @@
    "uom": "cbf"
   },
   "commodity": "Ethylene Glycol Industrial",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-04T14:00:00",
   "createdBy": "dan.planner",
@@ -227466,7 +228076,7 @@
    "uom": "cbf"
   },
   "commodity": "Surfactant Non-ionic",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-09-15T21:00:00",
   "createdBy": "ava.planner",
@@ -227787,7 +228397,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-19T06:30:00",
   "createdBy": "dan.planner",
@@ -228105,7 +228715,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-11T15:00:00",
   "createdBy": "mia.manager",
@@ -228150,7 +228760,7 @@
    "uom": "cbf"
   },
   "commodity": "Hydrogen Peroxide 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-01T05:00:00",
   "createdBy": "zoe.admin",
@@ -228381,7 +228991,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-16T00:30:00",
   "createdBy": "noah.manager",
@@ -228474,7 +229084,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Flakes 77%",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": false,
   "createdAt": "2026-08-05T14:30:00",
   "createdBy": "eve.planner",
@@ -228564,7 +229174,7 @@
    "uom": "cbf"
   },
   "commodity": "Insecticide Emulsifiable",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-13T21:30:00",
   "createdBy": "amy.cook",
@@ -228699,7 +229309,7 @@
    "uom": "cbf"
   },
   "commodity": "Reprocessed Polyethylene Pellets",
-  "orderStatus": "Ready for Planning",
+  "orderStatus": "Hold",
   "hazardous": true,
   "createdAt": "2026-08-02T02:30:00",
   "createdBy": "noah.manager",
@@ -228834,7 +229444,7 @@
    "uom": "cbf"
   },
   "commodity": "Calcium Chloride Liquid 35%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-09-05T09:00:00",
   "createdBy": "ben.planner",
@@ -228969,7 +229579,7 @@
    "uom": "cbf"
   },
   "commodity": "Phosphoric Acid 75%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-06-16T04:30:00",
   "createdBy": "david.johns",
@@ -229194,7 +229804,7 @@
    "uom": "cbf"
   },
   "commodity": "Ferric Chloride Solution 42%",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-07-13T08:30:00",
   "createdBy": "david.johns",
@@ -229284,7 +229894,7 @@
    "uom": "cbf"
   },
   "commodity": "Methanol Technical Grade",
-  "orderStatus": "Hold",
+  "orderStatus": "Ready for Planning",
   "hazardous": false,
   "createdAt": "2026-08-01T14:00:00",
   "createdBy": "mia.manager",

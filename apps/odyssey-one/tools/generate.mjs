@@ -2860,7 +2860,28 @@ const UNSHIPPED_STATUS_POOL = [
 // in `users`; the invented names are replaced when the user-management domain
 // arrives (user, 2026-08-02).
 const ORDER_USERS = ORDER_AUTHOR_USERNAMES;
-const DRAFT_ORDER_STATUS_POOL = ['Ready', 'Ready', 'Ready', 'Complete', 'Complete', 'Purge'];
+// LINX-16391: OIF statuses are Error / Complete / Purge. Seeds only ever carry
+// Error — Complete and Purge are written by the resolution UI. The old 'Ready'
+// vocabulary is gone (LINX-11137 §D, 2026-09-03 rewrite).
+// The LENGTH is load-bearing: the two LEGACY_DRAW call sites still `pick()`
+// from this pool purely for shared-faker-stream parity, and faker's
+// arrayElement short-circuits its draw on a 1-element array — collapsing this
+// to ['Error'] re-numbers every subsequent seeded id (verified: shipments.json
+// and order-details.json both changed). Six entries, one value.
+const DRAFT_ORDER_STATUS_POOL = Array(6).fill('Error');
+// Step 1 (LINX-16049) seeding: ~40% of VE rows carry Level 1 errors; the rest
+// open straight at Step 2. Class weights keep the message-control cases rare
+// (delete-flag editable; 'unresolvable' = sourceSystem/modifyTimestamp/
+// relySourceId, which the UI can only display — open question for Venkat).
+const INTERFACE_ERROR_CLASS_WEIGHTS = [
+  { value: 'conflict', weight: 45 }, { value: 'structural', weight: 20 },
+  { value: 'mixed', weight: 22 }, { value: 'delete-flag', weight: 10 },
+  { value: 'unresolvable', weight: 3 },
+];
+const INTERFACE_ERROR_COUNT_WEIGHTS = [
+  { value: 1, weight: 35 }, { value: 2, weight: 30 }, { value: 3, weight: 20 },
+  { value: 4, weight: 10 }, { value: 5, weight: 5 },
+];
 // VE share of the total dataset (D4: keep within 5-8%, today's ballpark).
 const VE_SHARE = 0.06;
 // ponytail: pre-ORD-24 VE was `VALIDATION_ERROR_STATUSES.includes(orderStatus)`
@@ -3192,6 +3213,8 @@ export function buildDataset({
   for (const row of orderRows) {
     delete row.draftOrderStatus;
     delete row.errorCount;
+    delete row.interfaceErrorCount;
+    delete row.interfaceErrorClass;
   }
 
   // VE is a POPULATION marker (draftOrderStatus != null), not a lifecycle
@@ -3207,8 +3230,15 @@ export function buildDataset({
     !['Draft', 'Planning Failed', 'Shipment Failed'].includes(o.orderStatus));
   const veCount = Math.round(orderRows.length * VE_SHARE);
   for (const row of rndSample(veHoldRnd, veEligible, veCount)) {
-    row.draftOrderStatus = rndWeighted(veHoldRnd, DRAFT_ORDER_STATUS_POOL.map((v) => ({ value: v, weight: 1 })));
+    row.draftOrderStatus = 'Error';
     row.errorCount = rndWeighted(veHoldRnd, ERROR_COUNT_WEIGHTS);
+    if (veHoldRnd() < 0.4) {
+      row.interfaceErrorCount = rndWeighted(veHoldRnd, INTERFACE_ERROR_COUNT_WEIGHTS);
+      row.interfaceErrorClass = rndWeighted(veHoldRnd, INTERFACE_ERROR_CLASS_WEIGHTS);
+    } else {
+      row.interfaceErrorCount = 0;
+      row.interfaceErrorClass = null;
+    }
     row.orderStatus = null; // never entered the lifecycle (D1)
   }
 

@@ -81,5 +81,7 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     lastEdit: dash(joinZone(formatLongDateTime(row.lastEditAt), row.lastEditTimeZoneCode)),
     draftOrderStatus: s(row.draftOrderStatus),
     errorCount: row.errorCount ?? null,
+    interfaceErrorCount: row.interfaceErrorCount ?? null,
+    interfaceErrorClass: row.interfaceErrorClass ?? null,
   }
 }

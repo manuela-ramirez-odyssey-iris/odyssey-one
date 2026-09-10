@@ -36,7 +36,7 @@ export default function OrdersTable({
   const columns = useMemo(() => {
     const dataCols = TAB_COLUMNS[tab] ?? TAB_COLUMNS.created
     if (tab === 'validation-errors') {
-      // Direct Resolve button (Figma) — enabled only while status is Ready.
+      // Direct Resolve button (Figma) — enabled only while status is Error.
       return [...dataCols, columnHelper.display({
         id: 'action',
         enableResizing: false,
@@ -45,7 +45,7 @@ export default function OrdersTable({
           <Button
             variant="secondary"
             size="sm"
-            disabled={row.original.draftOrderStatus !== 'Ready'}
+            disabled={row.original.draftOrderStatus !== 'Error'}
             onClick={() => onRowAction?.('Resolve', row.original)}
           >
             Resolve

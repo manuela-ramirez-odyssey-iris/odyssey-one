@@ -30,6 +30,8 @@ export interface OrderRowVM {
   lastEditedBy: string // username (R2-4)
   lastEdit: string
   // ── Validation Errors tab ──
-  draftOrderStatus: string // 'Ready' | 'Complete' | 'Purge' | ''
+  draftOrderStatus: string // 'Error' | 'Complete' | 'Purge' | ''
   errorCount: number | null
+  interfaceErrorCount: number | null
+  interfaceErrorClass: string | null
 }

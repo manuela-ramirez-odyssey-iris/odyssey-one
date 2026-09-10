@@ -203,7 +203,7 @@ describe('orderService.getOrderList — tab populations (mock)', () => {
   })
 
   it('a VE row is in neither Created nor Draft', async () => {
-    STORE.push(mk('QQQ100011', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 2 }))
+    STORE.push(mk('QQQ100011', { orderStatus: null, draftOrderStatus: 'Error', errorCount: 2 }))
     try {
       const created = await getOrderList({ ...page(), tab: 'created' } as never)
       expect(created.orders.map(o => o.orderNumber)).not.toContain('QQQ100011')
@@ -218,7 +218,7 @@ describe('orderService.getOrderList — tab populations (mock)', () => {
 
   it('an absent tab restricts nothing', async () => {
     STORE.push(
-      mk('QQQ100011', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 2 }),
+      mk('QQQ100011', { orderStatus: null, draftOrderStatus: 'Error', errorCount: 2 }),
       mk('DDD100006', { orderStatus: 'Draft' }),
     )
     try {
@@ -238,7 +238,7 @@ describe('orderService.getOrderTabCounts (mock)', () => {
   it('buckets Created / Draft / Validation Errors, honors customer scope', async () => {
     STORE.push(
       mk('DDD100006', { orderStatus: 'Draft' }),
-      mk('EEE100007', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 3 }),
+      mk('EEE100007', { orderStatus: null, draftOrderStatus: 'Error', errorCount: 3 }),
       mk('FFF100008', { customer: 'BASF_CHM_01', orderStatus: null, draftOrderStatus: 'Complete', errorCount: 1 }),
     )
     try {
@@ -257,7 +257,7 @@ describe('orderService.getOrderTabCounts (mock)', () => {
   it('applies panel filters, bar chips and free text', async () => {
     STORE.push(
       mk('DDD100006', { orderStatus: 'Draft', customer: 'BASF_CHM_01' }),
-      mk('EEE100007', { orderStatus: null, draftOrderStatus: 'Ready', errorCount: 3, customer: 'BASF_CHM_01' }),
+      mk('EEE100007', { orderStatus: null, draftOrderStatus: 'Error', errorCount: 3, customer: 'BASF_CHM_01' }),
     )
     try {
       const unfiltered = await getOrderTabCounts()

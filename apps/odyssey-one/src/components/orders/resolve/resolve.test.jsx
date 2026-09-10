@@ -20,13 +20,14 @@ import ordersFixture from '../../../data/orders.json'
 // edit (re-pinned in S100, S101, and twice on 2026-07-30 before this).
 // Criteria = exactly what the assertions below need:
 //   errorCount 5 · orderStatus null (ORD-24: VE never entered the lifecycle)
-//   · draftOrderStatus Ready
+//   · draftOrderStatus Error · interfaceErrorCount 0 (opens straight at Step 2)
 //   seeded errors spanning general.* AND consignor.postal (the flip field)
 const FLIP_PATH = 'pickupDelivery.consignor.postal'
 const ORDER = (() => {
   const rows = Array.isArray(ordersFixture) ? ordersFixture : (ordersFixture.orders ?? [])
   const hit = rows.find((r) => {
-    if (r.errorCount !== 5 || r.orderStatus !== null || r.draftOrderStatus !== 'Ready') return false
+    if (r.errorCount !== 5 || r.orderStatus !== null || r.draftOrderStatus !== 'Error'
+      || (r.interfaceErrorCount ?? 0) !== 0) return false
     const paths = deriveValidationErrors(r.orderNumber, 5, {}).errors.map((e) => e.path)
     return paths.includes(FLIP_PATH) && paths.some((p) => p.startsWith('general.'))
   })

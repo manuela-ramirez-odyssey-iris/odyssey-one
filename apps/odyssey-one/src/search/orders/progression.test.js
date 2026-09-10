@@ -61,7 +61,7 @@ describe('orderSearchRow', () => {
     freightTerms: 'A',
     equipment: 'LTR',
     orderStatus: 'Planned Load',
-    draftOrderStatus: 'Ready',
+    draftOrderStatus: 'Error',
     errorCount: 3,
     hazardous: false,
     grossWeight: { value: 42000, uom: 'LBS' },

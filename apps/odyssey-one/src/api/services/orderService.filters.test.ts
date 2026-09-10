@@ -58,7 +58,7 @@ const STORE = [
     // First-time creation — LINX-11663 says Last Edit shows "--", i.e. blank.
   }),
   // Validation-Errors rows
-  mk('V0001', { orderStatus: 'Shipment Failed', draftOrderStatus: 'Ready', errorCount: 3 }),
+  mk('V0001', { orderStatus: 'Shipment Failed', draftOrderStatus: 'Error', errorCount: 3 }),
   mk('V0002', { orderStatus: 'Shipment Failed', draftOrderStatus: 'Purge', errorCount: 12 }),
   mk('V0003', { orderStatus: 'Planning Failed', draftOrderStatus: 'Complete', errorCount: 1 }),
   // Location rows
@@ -104,10 +104,10 @@ describe('Draft-tab filters (LINX-11663)', () => {
 
 describe('Validation-Errors filters (LINX-11659)', () => {
   it('filters by draftOrderStatus, independent of the lifecycle orderStatus', async () => {
-    expect(await numbers({ draftOrderStatuses: ['Ready'] })).toEqual(['V0001'])
-    expect(await numbers({ draftOrderStatuses: ['Ready', 'Purge'] })).toEqual(['V0001', 'V0002'])
-    // The lifecycle vocabulary must not leak into it: 'Ready' is not an orderStatus.
-    expect(await numbers({ orderStatuses: ['Ready'] })).toEqual([])
+    expect(await numbers({ draftOrderStatuses: ['Error'] })).toEqual(['V0001'])
+    expect(await numbers({ draftOrderStatuses: ['Error', 'Purge'] })).toEqual(['V0001', 'V0002'])
+    // The lifecycle vocabulary must not leak into it: 'Error' is not an orderStatus.
+    expect(await numbers({ orderStatuses: ['Error'] })).toEqual([])
   })
 
   it('applies the error-count comparator', async () => {

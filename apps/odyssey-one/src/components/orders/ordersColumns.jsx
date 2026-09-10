@@ -120,7 +120,7 @@ export const DRAFT_ACTION_LABELS = ['Edit', 'Submit', 'Cancel']
  * never invents one. Availability is `allTabActionLabels` above, so the rule
  * cannot drift from the ⋮ menu:
  *
- *   Resolve — validation-error status AND `Ready`. Exactly when the VE tab's
+ *   Resolve — validation-error status AND `Error`. Exactly when the VE tab's
  *             Resolve button is enabled; `Complete`/`Purge` are not resolvable.
  *   Edit    — an UNFINISHED order (draft, or a validation error that can't be
  *             resolved) whose menu offers Edit, i.e. Manual and not Cancelled.
@@ -139,7 +139,7 @@ export function primaryRowAction(row) {
   // ORD-24: VE is `draftOrderStatus != null` — the lifecycle failure statuses
   // (Planning Failed / Shipment Failed) are ordinary Created-tab rows now.
   const erroring = row?.draftOrderStatus != null
-  if (erroring && row?.draftOrderStatus === 'Ready') return 'Resolve'
+  if (erroring && row?.draftOrderStatus === 'Error') return 'Resolve'
   const unfinished = erroring || row?.status === 'Draft'
   if (unfinished && allTabActionLabels(row ?? {}).includes('Edit')) return 'Edit'
   return 'View'

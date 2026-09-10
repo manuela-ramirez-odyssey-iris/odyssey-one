@@ -47,8 +47,10 @@ export interface OrderListRow {
   lastEditAt?: string               // ISO — most recent edit (Draft tab "Last Edit")
   lastEditedBy?: string             // "ben.planner" — username of the last editor (R2-4)
   lastEditTimeZoneCode?: string     // "CDT" — zone abbrev sibling of lastEditAt (R2-3)
-  draftOrderStatus?: string         // 'Ready' | 'Complete' | 'Purge' — VE-tab rows only (LINX-11659)
-  errorCount?: number               // validation error count — VE-tab rows only
+  draftOrderStatus?: string         // 'Error' | 'Complete' | 'Purge' — OIF status, VE-tab rows only (LINX-16391)
+  errorCount?: number               // Level 2 (master-data) error count — VE-tab rows only
+  interfaceErrorCount?: number      // Level 1 (message/structural) error count (LINX-16028 flag + count); 0 = opens at Step 2
+  interfaceErrorClass?: 'conflict' | 'structural' | 'mixed' | 'delete-flag' | 'unresolvable' | null
 }
 
 // /order-status/lookup enum (LLD) + DRAFT (create-order remark).

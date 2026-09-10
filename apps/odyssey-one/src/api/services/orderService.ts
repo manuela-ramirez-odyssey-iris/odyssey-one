@@ -33,7 +33,7 @@ const oneOf = (values: string[] | undefined, v: string | undefined) =>
 
 // LINX-11663 note: "Filters can not be applied on blank values" — a row whose
 // field is blank must not match a filter on that field. `oneOf` already gives
-// that (a filter of ['Ready'] can't include ''), and `dateInRange` returns
+// that (a filter of ['Error'] can't include ''), and `dateInRange` returns
 // false for a missing date. Nothing extra needed; stated here so the next
 // reader doesn't "fix" it into a permissive null-passes check.
 

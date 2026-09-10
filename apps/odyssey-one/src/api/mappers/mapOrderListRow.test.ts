@@ -29,6 +29,8 @@ describe('mapOrderListRow', () => {
       lastEdit: '--',
       draftOrderStatus: '',
       errorCount: null,
+      interfaceErrorCount: null,
+      interfaceErrorClass: null,
     })
   })
 
@@ -71,7 +73,7 @@ const baseRow = {
   // lastEdit carry a sibling zone code (R2-3).
   hazardous: true, createdAt: '2026-06-08T08:45:00', createdBy: 'amy.cook', createdTimeZoneCode: 'CDT',
   lastEditAt: '2026-06-09T10:00:00', lastEditedBy: 'ben.planner', lastEditTimeZoneCode: 'CDT',
-  draftOrderStatus: 'Ready', errorCount: 7,
+  draftOrderStatus: 'Error', errorCount: 7,
 } satisfies OrderListRow
 
 describe('mapOrderListRow — per-tab grid fields', () => {
@@ -104,7 +106,7 @@ describe('mapOrderListRow — per-tab grid fields', () => {
   it('passes draft + VE fields through with -- empties', () => {
     expect(vm.createdBy).toBe('amy.cook')
     expect(vm.lastEditedBy).toBe('ben.planner')
-    expect(vm.draftOrderStatus).toBe('Ready')
+    expect(vm.draftOrderStatus).toBe('Error')
     expect(vm.errorCount).toBe(7)
     const bare = mapOrderListRow({ ...baseRow, createdBy: undefined, lastEditedBy: undefined, errorCount: undefined })
     expect(bare.createdBy).toBe('--')

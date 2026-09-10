@@ -319,7 +319,7 @@ test('order list: Draft-tab filters reach the SQL', () => {
 })
 
 test('order list: VE-tab draftOrderStatuses is its own column, not order_status', () => {
-  const q = buildOrderListQuery({ filters: { draftOrderStatuses: ['Ready', 'Purge'] } })
+  const q = buildOrderListQuery({ filters: { draftOrderStatuses: ['Error', 'Purge'] } })
   assert.match(q.text, /draft_order_status = ANY/)
   assert.ok(!/[^_]order_status = ANY/.test(q.text))
 })
