@@ -7655,7 +7655,7 @@ button.breadcrumb__label:focus-visible {
   height: 100%;
   padding: var(--spacing-3);
   background: var(--deep-sea-neutral-200);
-  transition: width var(--transition-panel);
+  transition: width var(--transition-sidebar);
 }
 .sidebar--expanded { width: var(--sidebar-width-expanded); }
 /* Hover is just another trigger for the same `expanded` state as the

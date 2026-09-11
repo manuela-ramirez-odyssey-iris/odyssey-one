@@ -26,7 +26,7 @@ export const props = [
   { name: 'chartSegments', type: 'Array<{ value, color }>', desc: 'Donut chart segments (2x, 3xChart). color = a Chart/* token.' },
   { name: 'chartTotal', type: 'number', desc: '2x only — implied total for a single-segment percentage chart.' },
   { name: 'showChart', type: 'boolean', desc: '2x only — hide the donut for stat-only widgets. Default true.' },
-  { name: 'chartDelayMs', type: 'number', desc: 'Delay in ms before the donut grow-in animation starts. Default 0.' },
+  { name: 'chartDelayMs', type: 'number', desc: 'Delay in ms before the entry animations (count-up + donut grow-in) start, so both begin together. Default 0.' },
   { name: 'ctaRows', type: 'Array<{ icon, label, onClick }>', desc: '3xCta only — call-to-action link rows (up to 4).' },
   { name: 'editMode', type: 'boolean', desc: 'Forces grip on, dims CTAs, overlays a close button wired to onRemove. Default false.' },
   { name: 'onRemove', type: '() => void', desc: 'Called when the edit-mode close button is clicked.' },

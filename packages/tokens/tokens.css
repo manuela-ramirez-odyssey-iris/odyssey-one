@@ -307,6 +307,13 @@
      stroke-dasharray sweep reads as a designed motion, not a clock-tick. */
   --transition-chart-grow: 1000ms cubic-bezier(0.22, 1, 0.36, 1);
   --transition-panel: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Sidebar rail expand/collapse. Same ease-out-quart curve as --transition-panel,
+     deliberately slower: the rail now expands on HOVER as well as on the hamburger
+     click (S146), and at 220ms a passing pointer read as a snap rather than a
+     reveal. Its own token because --transition-panel is shared with Home's widget
+     grid, which should NOT slow down. AppShell's main padding-left uses this too —
+     the content edge has to travel with the rail, not behind it. */
+  --transition-sidebar: 300ms cubic-bezier(0.22, 1, 0.36, 1);
   /* Drawer slide-in (RightPanel docks): ease-out-expo — strong deceleration so the
      panel arrives with weight rather than a linear glide. */
   --transition-drawer: 300ms cubic-bezier(0.16, 1, 0.3, 1);

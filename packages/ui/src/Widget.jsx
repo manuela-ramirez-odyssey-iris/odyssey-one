@@ -51,9 +51,11 @@ export default function Widget({
   // 2x only — hide the donut for stat-only widgets (e.g. Users Enrolled: 142
   // with no percentage). Maps to the Figma `Show chart` BOOLEAN on WidgetContent 2x.
   showChart = true,
-  // Defer the donut grow-in animation by N ms after mount. Consumers (e.g. Home's
-  // mount-stagger) set this so charts start blooming only after their parent
-  // widget's entry transform has settled. Default 0 = animate on next frame.
+  // Defer the entry animations (count-up + donut grow-in) by N ms after mount.
+  // Consumers (e.g. Home's mount-stagger) set this so numbers and chart start
+  // blooming together, only after their parent widget's entry transform has
+  // settled. Default 0 = animate on next frame. Despite the "chart" name this
+  // now gates CountUp too — kept for backwards compat with existing callers.
   chartDelayMs = 0,
   // Edit mode — Home dashboard "Add Widgets" flow. Forces grip on, dims CTAs to
   // non-interactive, and overlays a top-right close button wired to onRemove.
@@ -210,11 +212,33 @@ function useInView(threshold = 0.2) {
   return [ref, inView]
 }
 
+// Single start gate shared by CountUp and WidgetPieChart so both animations begin
+// on the same tick: `ready` flips true once `play` is true AND `delayMs` has
+// elapsed. Replaces two independently-timed gates (the count had none, the chart
+// had its own setTimeout) with one timer both consumers read.
+function useAnimateGate(play, delayMs) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (!play) {
+      setReady(false)
+      return
+    }
+    if (delayMs > 0) {
+      const t = setTimeout(() => setReady(true), delayMs)
+      return () => clearTimeout(t)
+    }
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [play, delayMs])
+  return ready
+}
+
 function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, chartDelayMs, onGoToClick, play = true }) {
   // Remount the pie chart whenever its data changes so the grow-in animation
   // replays (e.g. tracking-load-status going from its 0/placeholder state to
   // live fetched numbers). A fresh mount paints at 0 first, then animates.
   const pieKey = (chartSegments || []).map((s) => `${s.value}:${s.color}`).join('|') + `|${chartTotal ?? ''}`
+  const animPlay = useAnimateGate(play, chartDelayMs)
   if (variant === '1x') {
     return (
       <button
@@ -224,7 +248,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
         disabled={!onGoToClick}
       >
         <span className="widget__value-row">
-          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={play} /></span>
+          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={animPlay} /></span>
           <ArrowRight {...ICON_MD} className="widget__inline-arrow" aria-hidden="true" />
         </span>
         <span className="text-label-sm-regular widget__label">{label}</span>
@@ -235,11 +259,11 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
     return (
       <div className="widget__content widget__content--2x">
         <div className="widget__data-container">
-          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={play} /></span>
+          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={animPlay} /></span>
           <span className="text-label-sm-medium widget__label">{label}</span>
         </div>
         {showChart && (
-          <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} centerText={percentage != null ? <CountUp value={percentage} play={play} /> : undefined} size="md" delayMs={chartDelayMs} play={play} />
+          <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} centerText={percentage != null ? <CountUp value={percentage} play={animPlay} /> : undefined} size="md" delayMs={0} play={animPlay} />
         )}
       </div>
     )
@@ -278,17 +302,17 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
       <div className="widget__content widget__content--3xChart">
         <div className="widget__chart-section">
           <div className="widget__info-container">
-            <span className="text-display-4xl-semibold widget__value"><CountUp value={value} play={play} /></span>
+            <span className="text-display-4xl-semibold widget__value"><CountUp value={value} play={animPlay} /></span>
             <span className="text-label-sm-medium widget__label">{label}</span>
           </div>
-          <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} size="lg" delayMs={chartDelayMs} play={play} />
+          <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} size="lg" delayMs={0} play={animPlay} />
         </div>
         <div className="widget__data-section">
           {rows.map((row, i) => (
             <WidgetMetricRow
               key={i}
               label={row.label}
-              value={<CountUp value={row.value} play={play} />}
+              value={<CountUp value={row.value} play={animPlay} />}
               showIndicator={true}
               indicatorColor={row.indicatorColor}
               onClick={row.onClick}
