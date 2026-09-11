@@ -16,3 +16,4 @@ tools/.connect-publish.last
 
 # Machine-specific editor config (absolute paths) — never tracked (S137)
 .vscode/
+.stage/

@@ -1,0 +1,604 @@
+{
+  "shipments": {
+    "attributes": {
+      "buyShipment": {
+        "description": "-",
+        "notes": "",
+        "example": "11852604"
+      },
+      "sellShipment": {
+        "description": "-",
+        "notes": "",
+        "example": "25969909"
+      },
+      "orders": {
+        "description": "Transportation Order #",
+        "notes": "LINX-9742: auto-generated order numbers are digits, customer-provided ones keep letters — hence match: both.",
+        "example": "0000000091000"
+      },
+      "orderCount": {
+        "description": "Count of orders mapped to the shipment.",
+        "notes": "New — not in the stakeholder proposal. exact: true: \"Order Count: 2\" must not match a count of 12.",
+        "example": "1"
+      },
+      "pro": {
+        "description": "-",
+        "notes": "",
+        "example": "441275"
+      },
+      "pickupNumbers": {
+        "description": "An ORDER-header reference copied to the load, so a shipment carries N of them.",
+        "notes": "NOW IMPLEMENTED — the stakeholder sheet listed this as \"Pickup # (skipped)\", marking it missing because it lives on the order header, not the shipment (D3, R2-2), so it could not be found as a shipment column. Added to free-text search in S104 (R2-2): the customer's own pickup reference is a prime paste.",
+        "example": "PU-929686"
+      },
+      "customerId": {
+        "description": "Cross customer IDs separated by comma",
+        "notes": "",
+        "example": "WEYERH_01"
+      },
+      "customerName": {
+        "description": "-",
+        "notes": "",
+        "example": "Weyerhaeuser Company"
+      },
+      "consignor": {
+        "description": "Name of consignor",
+        "notes": "",
+        "example": "G2O TECH SOLUTIONS"
+      },
+      "consignee": {
+        "description": "Name of consignee",
+        "notes": "",
+        "example": "SOLVAY CHEMICALS PL"
+      },
+      "origin": {
+        "description": "First pickup location",
+        "notes": "",
+        "example": "Bastrop LA US 71202"
+      },
+      "destination": {
+        "description": "Last drop off location",
+        "notes": "",
+        "example": "Green River WY US 82935"
+      },
+      "pickupDate": {
+        "description": "Planned Pickup Date",
+        "notes": "",
+        "example": "06/05/2026 12:30 CDT"
+      },
+      "deliveryDate": {
+        "description": "Planned Delivery Date",
+        "notes": "",
+        "example": "06/07/2026 12:30 CDT"
+      },
+      "mode": {
+        "description": "-",
+        "notes": "Exact match only (S130): a substring match over a fixed enum catalog is never what the user meant — \"Mode: TL\" was matching every LTL shipment.",
+        "example": "LTL"
+      },
+      "equipmentCode": {
+        "description": "-",
+        "notes": "Exact match only (S130), same reasoning as Mode.",
+        "example": "LTH"
+      },
+      "equipment": {
+        "description": "-",
+        "notes": "",
+        "example": "4575"
+      },
+      "seal": {
+        "description": "-",
+        "notes": "",
+        "example": "S447972"
+      },
+      "scac": {
+        "description": "Split from combined SCAC - Tender Status in stakeholder proposal",
+        "notes": "Added because the stakeholder split the original combined field.",
+        "example": "XPOL"
+      },
+      "tenderStatus": {
+        "description": "Split from combined SCAC - Tender Status in stakeholder proposal",
+        "notes": "Added because the stakeholder split the original combined field. Exact match only (S130).",
+        "example": "Sent"
+      },
+      "shipmentStatus": {
+        "description": "Shipment status values",
+        "notes": "Exact match only (S130).",
+        "example": "Done"
+      },
+      "shipmentType": {
+        "description": "Direct (1 mapped order) vs Consolidation (>1 mapped orders), LINX-11597 verbatim.",
+        "notes": "New since S108. Deliberately NOT promoted to the top of the progression: prime empty-input suggestion slots belong to high-selectivity needles, and a 2-value enum matches about half the table. Exact match only (S130). NAME COLLISION: this is a different attribute from the stakeholder sheet's proposed \"Shipment Type\" (Pooling / Cross customer / Line haul / Rule 11) — see the Not Implemented sheet.",
+        "example": "Direct"
+      },
+      "planningType": {
+        "description": "RDD if ANY mapped order is RDD, else SSD, LINX-12902 verbatim.",
+        "notes": "New since S108, alongside Shipment Type. Deliberately NOT promoted to the top of the progression — same reasoning as Shipment Type. Exact match only (S130).",
+        "example": "SSD"
+      },
+      "grossWeight": {
+        "description": "-",
+        "notes": "",
+        "example": "6129"
+      },
+      "apFreightCost": {
+        "description": "Total AP freight cost",
+        "notes": "",
+        "example": "4,624.99"
+      },
+      "load": {
+        "description": "Load numbers in shipment",
+        "notes": "",
+        "example": "23492"
+      },
+      "loadCount": {
+        "description": "Count of loads in shipment",
+        "notes": "",
+        "example": "1"
+      }
+    },
+    "notBuilt": [
+      {
+        "attribute": "Distance",
+        "proposedGroup": "Route & Geography",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed route/geography extra; not shipped — the app implements Origin/Destination only."
+      },
+      {
+        "attribute": "Stops",
+        "proposedGroup": "Route & Geography",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed route/geography extra; not shipped."
+      },
+      {
+        "attribute": "Ship Direction",
+        "proposedGroup": "Route & Geography",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed route/geography extra; not shipped."
+      },
+      {
+        "attribute": "Earliest Pickup Date",
+        "proposedGroup": "Schedule & Appointments",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built."
+      },
+      {
+        "attribute": "Latest Pickup Date",
+        "proposedGroup": "Schedule & Appointments",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built."
+      },
+      {
+        "attribute": "Earliest Delivery Date",
+        "proposedGroup": "Schedule & Appointments",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built."
+      },
+      {
+        "attribute": "Latest Delivery Date",
+        "proposedGroup": "Schedule & Appointments",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built."
+      },
+      {
+        "attribute": "Incoterm Info",
+        "proposedGroup": "Transport & Equipment",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed transport/equipment extra; not shipped."
+      },
+      {
+        "attribute": "Freight Terms",
+        "proposedGroup": "Transport & Equipment",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed transport/equipment extra; not shipped."
+      },
+      {
+        "attribute": "Net Weight",
+        "proposedGroup": "Cargo & Handling",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Gross Weight only."
+      },
+      {
+        "attribute": "Tare Weight",
+        "proposedGroup": "Cargo & Handling",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Gross Weight only."
+      },
+      {
+        "attribute": "Pkg Count",
+        "proposedGroup": "Cargo & Handling",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Gross Weight only."
+      },
+      {
+        "attribute": "Hazardous (Y/N)",
+        "proposedGroup": "Cargo & Handling",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships Gross Weight only."
+      },
+      {
+        "attribute": "Preferred AP Direct Cost",
+        "proposedGroup": "Rates & Costs",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships AP Freight Cost only."
+      },
+      {
+        "attribute": "AR Freight Cost",
+        "proposedGroup": "Rates & Costs",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships AP Freight Cost only."
+      },
+      {
+        "attribute": "Preferred AR Direct Cost",
+        "proposedGroup": "Rates & Costs",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "The app ships AP Freight Cost only."
+      },
+      {
+        "attribute": "Load Status",
+        "proposedGroup": "Load Details",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed load-details extra; not shipped."
+      },
+      {
+        "attribute": "Shipment Type (Pooling · Cross customer · Line haul · Rule 11)",
+        "proposedGroup": "Advanced / Rare Fields",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "NAME COLLISION: the implemented \"Shipment Type\" (Direct/Consolidation, LINX-11597) is a DIFFERENT attribute with a different catalog. Whoever reads only the stakeholder sheet will assume the Pooling/Cross customer/Line haul/Rule 11 catalog shipped. It did not."
+      },
+      {
+        "attribute": "Shipment Sequence Leg",
+        "proposedGroup": "Advanced / Rare Fields",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed multi-leg sequencing field; not shipped."
+      },
+      {
+        "attribute": "Next Shipment ID",
+        "proposedGroup": "Advanced / Rare Fields",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Proposed — not built",
+        "why": "Proposed pooling/Rule 11 chaining field; not shipped."
+      },
+      {
+        "attribute": "Validation Message",
+        "proposedGroup": "Advanced / Rare Fields",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Skipped",
+        "why": "Skipped — the stakeholder sheet's own marking."
+      },
+      {
+        "attribute": "SCAC - Tender Status (combined)",
+        "proposedGroup": "Carrier & Tender Status",
+        "source": "stakeholder grouping, 2026-05",
+        "status": "Skipped",
+        "why": "Skipped; the stakeholder split produced the two separate SCAC and Tender Status attributes the app implements."
+      }
+    ],
+    "openQuestions": [
+      {
+        "topic": "Stakeholder attributes not built",
+        "conflict": "22 proposed attributes from the stakeholder grouping session are not in the app (see the Not Implemented sheet).",
+        "consequence": "The stakeholder sheet reads as a spec; it is a proposal.",
+        "owner": "Jana / Shipments",
+        "impact": "Scope"
+      },
+      {
+        "topic": "Shipment Type name collision",
+        "conflict": "The stakeholder sheet's proposed \"Shipment Type\" (Pooling / Cross customer / Line haul / Rule 11) and the implemented \"Shipment Type\" (Direct/Consolidation, LINX-11597) share a name but are different attributes with different catalogs.",
+        "consequence": "Whoever reads only the stakeholder sheet will assume the Pooling/Rule 11 catalog shipped. It did not.",
+        "owner": "Jana / Shipments",
+        "impact": "Correctness of the stakeholder sheet"
+      },
+      {
+        "topic": "Panel and bar share one catalog",
+        "conflict": "Shipments' filters panel is generated directly from the progression, so every attribute is both a bar attribute and a panel field. Orders has two separate catalogs (progression + registry).",
+        "consequence": "A new Shipments attribute appears in the panel automatically; a new Orders attribute does not.",
+        "owner": "Manuela / design system",
+        "impact": "Know which model a new field lands in"
+      }
+    ]
+  },
+  "orders": {
+    "attributes": {
+      "orderNumber": {
+        "description": "The order's identifying number",
+        "notes": "Column on all three tabs. Auto-generated numbers are digits, customer-provided ones keep letters — match: 'both' (LINX-9742). Panel: text control, all tabs (LINX-10285).",
+        "example": "0000000091000"
+      },
+      "customer": {
+        "description": "Owning customer / org code",
+        "notes": "Column on all three tabs. Panel: lazy-paged ComboBox, all tabs (LINX-10285).",
+        "example": "WEYERH_01"
+      },
+      "shipperLocation": {
+        "description": "Consignor facility + city / state / country",
+        "notes": "All tab column \"Shipper Location\". Projected from row.consignor as name-first text. NAMING CONFLICT: the panel calls the same thing \"Origin City, State, Country\" (key origin) and filters City|State|Country triples only — no facility name.",
+        "example": "G2O TECH SOLUTIONS, Bastrop, LA, US"
+      },
+      "destinationLocation": {
+        "description": "Consignee facility + city / state / country",
+        "notes": "All tab column \"Destination Location\". Projected from row.consignee. NAMING CONFLICT: panel calls it \"Destination City, State, Country\" (key destination).",
+        "example": "SOLVAY CHEMICALS PL, Green River, WY, US"
+      },
+      "latestPickup": {
+        "description": "Latest pickup date at the consignor",
+        "notes": "All tab column is \"Latest Pickup Date and Time\" — the bar drops time-of-day because no date criterion is finer than a day. Panel: date-range, All tab.",
+        "example": "6/5/2026"
+      },
+      "latestDelivery": {
+        "description": "Latest delivery date at the consignee",
+        "notes": "All tab column \"Latest Delivery Date and Time\". Same time-of-day drop. Panel: date-range, All tab.",
+        "example": "6/7/2026"
+      },
+      "equipment": {
+        "description": "Equipment code",
+        "notes": "All tab column. Catalog = EQUIPMENT_CODES. NOT in the filter panel.",
+        "example": "LTR"
+      },
+      "shipDirection": {
+        "description": "Inbound or outbound movement",
+        "notes": "All tab column. Stored 'O'/'I'; the progression carries DISPLAY labels because the grid shows labels. NOT in the filter panel.",
+        "example": "Outbound"
+      },
+      "freightTerms": {
+        "description": "Who pays the freight",
+        "notes": "All tab column. Stored 'A'/'T'/'P'/'N'/'C'; labels are Pre-Paid, Collect, Pre-Paid/Add, Third Party, No Charge. NOT in the filter panel.",
+        "example": "Pre-Paid/Add"
+      },
+      "orderStatus": {
+        "description": "Order lifecycle status",
+        "notes": "All tab column. Panel: enum chips, All tab only.",
+        "example": "Planned Load"
+      },
+      "orderSource": {
+        "description": "How the order entered the system",
+        "notes": "All tab column. Stored 'INTEGRATED'/'MANUAL', projected title-case. NOT in the filter panel.",
+        "example": "Integrated"
+      },
+      "draftOrderStatus": {
+        "description": "OIF validation state of an integrated order",
+        "notes": "Validation Errors tab column \"Validation Status\" (renamed from \"Draft Order Status\", Ramesh, 2026-09-10, S145). LINX-16391 replaced \"Ready\" with \"Error\" in the value catalog. A DIFFERENT vocabulary from Order Status (LINX-11137) — hence its own attribute. LABEL only: the key stays draftOrderStatus (wire contract + Neon draft_order_status column).",
+        "example": "Complete"
+      },
+      "errorCount": {
+        "description": "TOTAL validation errors on the order — structural (Level 1) + master data (Level 2)",
+        "notes": "Validation Errors tab column \"Errors Count\". The value is interfaceErrorCount (LINX-16049) + errorCount (LINX-11137), derived once in mapOrderListRow.totalErrorCount so the cell, export, bar chip and filter agree (Ramesh, 2026-09-10). EXACT equality in the bar — \"Errors Count: 1\" must not match 12. The panel's version is an operator + value comparator (Greater Than / Equals / Less Than, LINX-11659).",
+        "example": "1"
+      },
+      "hazardous": {
+        "description": "Hazmat indicator",
+        "notes": "All tab column; the grid renders a \"Hazmat\" badge, the bar matches Yes/No. Stored boolean, projected to Yes/No. NOT in the filter panel.",
+        "example": "Hazmat"
+      },
+      "grossWeight": {
+        "description": "Gross weight of the order",
+        "notes": "All tab column. Stored { value, uom } (lbs); the progression projects the value only. Seeded range 1026–43292. NOT in the filter panel.",
+        "example": "6129"
+      },
+      "volume": {
+        "description": "Volume of the order",
+        "notes": "All tab column. Stored { value, uom } (cbf); value only. Seeded range 20–555. NOT in the filter panel.",
+        "example": "166"
+      },
+      "createdDate": {
+        "description": "Date the order was created",
+        "notes": "Draft tab column \"Created\" (LINX-11663). Panel: date-range labelled \"Created Date\", Draft tab.",
+        "example": "5/29/2026"
+      },
+      "createdBy": {
+        "description": "User who created the order",
+        "notes": "Draft tab column. Panel: lazy ComboBox, Draft tab.",
+        "example": "ben.planner"
+      },
+      "lastEditDate": {
+        "description": "Date the order was last edited",
+        "notes": "Draft tab column \"Last Edit\". Panel: date-range labelled \"Last Edit Date\", Draft tab. Only 102 of 5,077 seeded orders carry a lastEditAt.",
+        "example": "9/15/2026"
+      },
+      "lastEditedBy": {
+        "description": "User who last edited the order",
+        "notes": "Draft tab column — user-directed (R2-4), deviates from LINX-11663's column set. Panel labels it \"Last Edit By\".",
+        "example": "cara.planner"
+      }
+    },
+    "notBuilt": [
+      {
+        "attribute": "PO Number",
+        "proposedGroup": "n/a — row field, no column",
+        "source": "row schema (orders.json), progression.test.js",
+        "status": "Proposed — not built",
+        "why": "On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together."
+      },
+      {
+        "attribute": "Commodity",
+        "proposedGroup": "n/a — row field, no column",
+        "source": "row schema (orders.json), progression.test.js",
+        "status": "Proposed — not built",
+        "why": "On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together."
+      },
+      {
+        "attribute": "Planning Date Type",
+        "proposedGroup": "n/a — row field, no column",
+        "source": "row schema (orders.json), progression.test.js",
+        "status": "Proposed — not built",
+        "why": "On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together."
+      },
+      {
+        "attribute": "Earliest Pickup / Delivery timestamps",
+        "proposedGroup": "n/a — row field, no column",
+        "source": "row schema (orders.json), progression.test.js",
+        "status": "Proposed — not built",
+        "why": "On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together."
+      }
+    ],
+    "openQuestions": [
+      {
+        "topic": "Tab populations (CONFIRM)",
+        "conflict": "Created = LINX-10777 'successfully created orders'; Validation Errors = LINX-11180 integrated orders with OIF data validation errors; Draft = LINX-11663. Prototype implements these as three disjoint populations.",
+        "consequence": "A Planning Failed / Shipment Failed order sits in Created, NOT in Validation Errors.",
+        "owner": "Ramesh / Orders",
+        "impact": "Blocks nothing — implemented; needs confirmation"
+      },
+      {
+        "topic": "Filter on a field a tab doesn't show",
+        "conflict": "Filters are one set on every tab (LINX-10285: 'show/hide specific orders in each of the tabs'). Created By is only displayed on Draft.",
+        "consequence": "Prototype default: the filter still applies, so Created and Validation Errors show 0 rows for it. Alternative: ignore the field on tabs that don't display it.",
+        "owner": "Ramesh / Orders",
+        "impact": "Behaviour choice"
+      },
+      {
+        "topic": "Technical Errors tab",
+        "conflict": "LINX-11181 (Todo) defines a 4th population endpoint /order/technical-error/list — both integrated and manual orders that failed processing. Matches the 'Interface Failures' tab in Efrain's design.",
+        "consequence": "Not in the three UI tab stories. In scope for the prototype strip?",
+        "owner": "Ramesh / Orders",
+        "impact": "Scope"
+      },
+      {
+        "topic": "NOTICE — 'All' renamed 'Created'",
+        "conflict": "The tab excludes Drafts and validation-error orders, so 'All' was a misnomer. Renamed to 'Created', the word LINX-10777 uses. Still the default tab (LINX-13571).",
+        "consequence": "QA cases LINX-13571–13590 and story LINX-11658 reference the tab as 'All' — rename in QA rather than fail.",
+        "owner": "Ramesh / QA",
+        "impact": "Presentation ruling (ours); FYI"
+      },
+      {
+        "topic": "Location naming",
+        "conflict": "Bar says 'Shipper Location' / 'Destination Location' (the column names) and matches the flattened text INCLUDING the facility name. Panel says 'Origin / Destination City, State, Country' and matches the triple only.",
+        "consequence": "So 'G2O TECH' finds an order in the bar but is not an option in the panel.",
+        "owner": "Ramesh / Orders",
+        "impact": "Blocks ORD-SEARCH-5"
+      },
+      {
+        "topic": "Seven bar-only attributes",
+        "conflict": "Equipment, Ship Direction, Freight Terms, Order Source, Hazardous, Gross Weight, Volume are columns but were never listed as basic filters.",
+        "consequence": "They are searchable in the bar and absent from the panel. Intentional or an omission in the tickets?",
+        "owner": "Ramesh / Orders",
+        "impact": "May add scope to ORD-FILTER-1"
+      },
+      {
+        "topic": "Hazardous value",
+        "conflict": "The column renders a 'Hazmat' badge or '-'. The bar catalog therefore carries the single value 'Hazmat'; a non-hazmat order is not indexable on this attribute.",
+        "consequence": "There is no way to search FOR non-hazmat orders.",
+        "owner": "Ramesh / Orders",
+        "impact": "Possible ORD-SEARCH-1 AC change"
+      },
+      {
+        "topic": "Row projection vs live index",
+        "conflict": "The prototype flattens the row client-side (orderSearchRow). Whether the real search index projects the same shape server-side is not settled.",
+        "consequence": "If the API projects differently, chip matching diverges between mock and live.",
+        "owner": "Cognizant / API",
+        "impact": "Affects ORD-SEARCH-3"
+      },
+      {
+        "topic": "Panel group names diverge from the bar's",
+        "conflict": "The 2026-09-07 ruling was to group the panel filters the way Shipments groups them, and the grouping does mirror it, but the NAMES were not aligned: the panel says Schedule / Audit Trail / Draft & Errors where the bar says Schedule & Appointments / Created & Edited / Order Status & Source, and the panel files Customer and Order Status under Order Identifiers.",
+        "consequence": "The same field is named by two different groups depending on which surface you are looking at, and neither is wrong on its own.",
+        "owner": "Ramesh / Orders",
+        "impact": "Label alignment, no behaviour change"
+      }
+    ]
+  },
+  "matchTypes": {
+    "both": "Surfaced when the query contains a digit OR a letter — identifiers that can be alphanumeric.",
+    "letters": "Surfaced when the query contains a letter.",
+    "digits": "Surfaced when the query contains a digit.",
+    "date": "Date fields (digits or '/'); parsed as M/D/YYYY, compared as calendar days.",
+    "enum": "Surfaced when an enum value contains the query. Every enum is exact (S130): a substring match over a fixed catalog is never what the user meant."
+  },
+  "readme": {
+    "shipments": [
+      {
+        "topic": "What this is",
+        "detail": "The Shipments search vocabulary: the 27 attributes the search BAR understands across 10 groups, plus what the FILTERS PANEL offers — which, for Shipments, is the same 27 attributes, because the panel is generated directly from the progression. Everything on the Attributes sheet marked Implemented is live on Vercel; everything on Not Implemented is a stakeholder proposal that was not built."
+      },
+      {
+        "topic": "Aligned with Vercel",
+        "detail": "This workbook is GENERATED from apps/odyssey-one/src/search/shipments/progression.js — it cannot drift from what is deployed. Pickup # is no longer marked skipped: it shipped in S104 and is now Implemented (see the Attributes sheet)."
+      },
+      {
+        "topic": "Two labels for one group",
+        "detail": "The Attributes and Progression sheets carry both a \"Group (filters panel header)\" and a \"Suggestions panel header\" column. Shipments renders group.group as the filters panel's section header and group.label as the suggestions panel's section title — different strings for the same group, both real, both in the UI."
+      },
+      {
+        "topic": "Label sets",
+        "detail": "Shipments has TWO label sets for a group, not three: the suggestions panel section title (group.label, e.g. \"Find the shipment\") and the bar/filters-panel section header (group.group, e.g. \"Shipment Identifiers\") — because the filters panel is generated directly from the progression, that second label doubles as the panel's own section header too. Contrast Orders, which has three (see that workbook's Open Questions)."
+      },
+      {
+        "topic": "Where the attribute list came from",
+        "detail": "A 2026-05 stakeholder grouping session proposed a taxonomy; the app implements 27 of those attributes plus 3 the stakeholder sheet never proposed (Order Count, Shipment Type, Planning Type). 22 proposed attributes were not built — see Not Implemented."
+      },
+      {
+        "topic": "What 'progression' means",
+        "detail": "The bar's suggestion list is ORDERED, not restricted. Empty bar → suggests group 1. Commit a chip from group N → the empty-bar suggestion advances to the next group. It never blocks a chip combination, and typing always value-matches across all 27 attributes regardless of group."
+      },
+      {
+        "topic": "Free-text scope",
+        "detail": "The bar's bare-text search only reaches the attributes in FREE_TEXT_KEYS (search/shipments/criteria.js) — identifiers and party/place names a user would paste or type by name. Measures and enums are reachable as chips, not as free text."
+      },
+      {
+        "topic": "Sheets",
+        "detail": "Progression = the 10 groups. Attributes = the 27 implemented + 22 not-built attributes. Match Types = the shared matching vocabulary. Panel Filters = the panel's field list. Not Implemented = the stakeholder proposals that never shipped. Open Questions = what needs a Jana/Shipments or design-system decision."
+      },
+      {
+        "topic": "Source of truth",
+        "detail": "apps/odyssey-one/src/search/shipments/progression.js + criteria.js. Canon write-up: vault/10-domains/shipments/shipments-search-progression.md (the sibling of the Orders one, same 10-section shape). Domain landing: vault/10-domains/shipments/global-search-adaptation.md"
+      }
+    ],
+    "orders": [
+      {
+        "topic": "What this is",
+        "detail": "The Orders search vocabulary: the 20 attributes the search BAR understands across 9 groups, and the 13 filters the PANEL offers. Everything here is implemented and test-pinned in the React prototype."
+      },
+      {
+        "topic": "Two vocabularies, one style",
+        "detail": "Unlike Shipments, Orders has TWO separate catalogs: the bar (progression.js, 20 attributes, flat) and the panel (registry.js, 13 fields, flat since ORD-23). A new Orders attribute does not automatically become a panel field the way it does for Shipments — see Open Questions."
+      },
+      {
+        "topic": "Label sets",
+        "detail": "Orders has THREE label sets for the same field: the suggestions panel section title (progression group.label, e.g. \"Find the order\"), the bar's own grouping (progression group.group, e.g. \"Customers & Parties\"), and the filters panel's section header (registry group, e.g. \"Order Identifiers\" — where Customer and Order Status actually sit). The Panel Filters and Attributes sheets carry a \"Panel section\" column so the three never get conflated. See Open Questions."
+      },
+      {
+        "topic": "Aligned with Vercel",
+        "detail": "This workbook is GENERATED from apps/odyssey-one/src/search/orders/progression.js and registry.js — it cannot drift from what is deployed."
+      },
+      {
+        "topic": "Where the bar list came from",
+        "detail": "Every column on all three Orders tabs, and nothing else (S130 ruling: 'Orders have its own columns, that is why we are defining its own progression'). A column with no attribute = a field you cannot search by; an attribute with no column = a field nobody can see to type."
+      },
+      {
+        "topic": "What 'progression' means",
+        "detail": "The bar's suggestion list is ORDERED, not restricted. Empty bar → suggests group 1. Commit a chip from group N → the empty-bar suggestion advances to the next group. It never blocks a chip combination, and typing always matches values across all 20 attributes regardless of group."
+      },
+      {
+        "topic": "Enum values are labels",
+        "detail": "Ship Direction is stored 'O'/'I' but the chip says Outbound/Inbound — same pattern for Freight Terms, Order Source and Hazardous. The row is projected to display labels and the matcher compares labels, so a chip reads the way the column reads."
+      },
+      {
+        "topic": "Sheets",
+        "detail": "Progression = the 9 groups. Attributes = the 20 implemented + 4 not-built row fields. Match Types = the shared matching vocabulary. Panel Filters = the 13 panel fields. Not Implemented = row fields deliberately excluded from search. Open Questions = what needs a Ramesh/Orders decision."
+      },
+      {
+        "topic": "Source of truth",
+        "detail": "apps/odyssey-one/src/search/orders/progression.js + registry.js, pinned by progression.test.js and chipParity.test.js. Canon write-up: vault/10-domains/orders/orders-search-progression.md (the sibling of the Shipments one, same 10-section shape)."
+      }
+    ]
+  }
+}

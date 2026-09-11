@@ -1,21 +1,40 @@
-Progression,Stakeholder Group,Suggested Group,Attribute,Example,Description,Field Type,Notes
-Find the order,n/a — grid-column derived (no stakeholder grouping session),Order Identifiers,Order Number,0000000091000,The order's identifying number,Text Input (digits + letters),"Column on all three tabs. Auto-generated numbers are digits, customer-provided ones keep letters — match: 'both'. Panel: text control, all three tabs (LINX-10285)."
-Who it belongs to,n/a — grid-column derived,Customers & Parties,Customer,WEYERH_01,Owning customer / org code,Text Input (letters),"Column on all three tabs. Panel: lazy-paged ComboBox, all three tabs (LINX-10285)."
-Where it goes,n/a — grid-column derived,Route & Geography,Shipper Location,"G2O TECH SOLUTIONS, Bastrop, LA, US",Consignor facility + city / state / country,Location Text (letters),"All tab column ""Shipper Location"". Projected from row.consignor as name-first text. NAMING CONFLICT: the panel calls the same thing ""Origin City, State, Country"" (key origin) and filters City|State|Country triples only — no facility name."
-,,,Destination Location,"SOLVAY CHEMICALS PL, Green River, WY, US",Consignee facility + city / state / country,Location Text (letters),"All tab column ""Destination Location"". Projected from row.consignee. NAMING CONFLICT: panel calls it ""Destination City, State, Country"" (key destination)."
-When it moves,n/a — grid-column derived,Schedule & Appointments,Latest Pickup Date,6/5/2026,Latest pickup date at the consignor,Date,"All tab column is ""Latest Pickup Date and Time"" — the bar drops time-of-day because no date criterion is finer than a day. Panel: date-range, All tab."
-,,,Latest Delivery Date,6/7/2026,Latest delivery date at the consignee,Date,"All tab column ""Latest Delivery Date and Time"". Same time-of-day drop. Panel: date-range, All tab."
-How it moves,n/a — grid-column derived,Transport & Equipment,Equipment,LTR,Equipment code,"Enum (11 values, exact)","All tab column. Catalog = EQUIPMENT_CODES (LTL/LTR/LTH/TL/TLR/TLH/TT/TLF/LCL/FCL/RR). NOT in the filter panel."
-,,,Ship Direction,Outbound,Inbound or outbound movement,"Enum (2 values, exact)","All tab column. Stored 'O'/'I'; the progression carries DISPLAY labels because the grid shows labels. NOT in the filter panel."
-,,,Freight Terms,Pre-Paid/Add,Who pays the freight,"Enum (5 values, exact)","All tab column. Stored 'A'/'T'/'P'/'N'/'C'; labels are Pre-Paid, Collect, Pre-Paid/Add, Third Party, No Charge. NOT in the filter panel."
-Operational status,n/a — grid-column derived,Order Status & Source,Order Status,Load Planned,Order lifecycle status,"Enum (7 values, exact)","All tab column. LINX-10285's 7 lifecycle labels (Draft, Ready For Plan, Load Planned, Shipment Planned, Planning Failed, Shipment Failed, Cancelled). Panel: enum chips, All tab only."
-,,,Order Source,Integrated,How the order entered the system,"Enum (2 values, exact)","All tab column. Stored 'INTEGRATED'/'MANUAL', projected title-case. NOT in the filter panel."
-,,,Validation Status,Complete,OIF validation state of an integrated order,"Enum (3 values, exact)","Validation Errors tab column ""Validation Status"". SUPERSEDES ""Draft Order Status"" (Ramesh, 2026-09-10, S145: rename to ""Validation Status"" — NOT ""Validation Order Status""); the earlier LINX-11659 wording ""options are Complete, Ready & Purge"" is also superseded — Ready is gone because both OIF steps are fixed in one login session, leaving Error / Complete / Purge (ORD-26). A DIFFERENT vocabulary from Order Status (LINX-11137) — hence its own attribute. LABEL only: the key stays draftOrderStatus (wire contract + Neon draft_order_status). The old panel/column naming conflict was closed by ORD-23."
-,,,Errors Count,1,TOTAL validation errors on the order — structural (Level 1) + master data (Level 2),Number Input (exact),"Validation Errors tab column ""Errors Count"". SUPERSEDES the master-data-only meaning (Ramesh, 2026-09-10, S145: ""Error = Order has structural and/or master data error"") — the value is now interfaceErrorCount (LINX-16049) + errorCount (LINX-11137), derived once in mapOrderListRow.totalErrorCount so the cell, export, bar chip and filter agree. EXACT equality in the bar — ""Errors Count: 1"" must not match 12. The panel's version is an operator + value comparator (Greater Than / Equals / Less Than, LINX-11659), labelled ""Errors Count"" since ORD-23."
-Order classification,n/a — grid-column derived,Classification,Hazardous,No,Hazmat indicator,"Enum (2 values, exact)","All tab column; the grid renders a ""Hazmat"" badge, the bar matches Yes/No. Stored boolean, projected to Yes/No. NOT in the filter panel."
-Cargo details,n/a — grid-column derived,Cargo & Handling,Gross Weight,6129,Gross weight of the order,Number Input,"All tab column. Stored { value, uom } (lbs); the progression projects the value only. Seeded range 1026–43292. NOT in the filter panel."
-,,,Volume,166,Volume of the order,Number Input,"All tab column. Stored { value, uom } (cbf); value only. Seeded range 20–555. NOT in the filter panel."
-Who touched it,n/a — grid-column derived,Created & Edited,Created,5/29/2026,Date the order was created,Date,"Draft tab column ""Created"" (LINX-11663). Panel: date-range labelled ""Created Date"", Draft tab."
-,,,Created By,ben.planner,User who created the order,Text Input (letters),"Draft tab column. Panel: lazy ComboBox, Draft tab."
-,,,Last Edit,9/15/2026,Date the order was last edited,Date,"Draft tab column ""Last Edit"". Panel: date-range labelled ""Last Edit Date"", Draft tab. Only 102 of 5077 seeded orders carry a lastEditAt."
-,,,Last Edited By,cara.planner,User who last edited the order,Text Input (letters),"Draft tab column — user-directed (R2-4), deviates from LINX-11663's column set. Panel labels it ""Last Edit By""."
+"Progression
+(suggestions panel header)",Stakeholder Group,"Suggested Group
+(search bar grouping)",Attribute,Example,Description,"Field Type
+(as built on Vercel)","Filters panel
+field label","Filters panel
+section",Search status,Notes
+"Find the order
+(What is it?)
+↓",n/a — grid-column derived,Order Identifiers,Order Number,0000000091000,The order's identifying number,Text Input,Order Number,Order Identifiers,Live in search,"Column on all three tabs. Auto-generated numbers are digits, customer-provided ones keep letters — match: 'bot…"
+"Who it belongs to
+↓",n/a — grid-column derived,Customers & Parties,Customer,WEYERH_01,Owning customer / org code,Autocomplete Text (lazy),Customer,Order Identifiers,Live in search,"Column on all three tabs. Panel: lazy-paged ComboBox, all tabs (LINX-10285)."
+"Where it goes
+↓",n/a — grid-column derived,Route & Geography,Shipper Location,"G2O TECH SOLUTIONS, Bastrop, LA, US",Consignor facility + city / state / country,Autocomplete Text (City/State/Country),"Origin City, State, Country",Route & Geography,Live in search,"All tab column ""Shipper Location"". Projected from row.consignor as name-first text."
+,,,Destination Location,"SOLVAY CHEMICALS PL, Green River, WY, US",Consignee facility + city / state / country,Autocomplete Text (City/State/Country),"Destination City, State, Country",Route & Geography,Live in search,"All tab column ""Destination Location"". Projected from row.consignee."
+"When it moves
+↓",n/a — grid-column derived,Schedule & Appointments,Latest Pickup Date,6/5/2026,Latest pickup date at the consignor,Date Picker + Range,Latest Pickup Date,Schedule,Live in search,"All tab column is ""Latest Pickup Date and Time"" — the bar drops time-of-day because no date criterion is finer…"
+,,,Latest Delivery Date,6/7/2026,Latest delivery date at the consignee,Date Picker + Range,Latest Delivery Date,Schedule,Live in search,"All tab column ""Latest Delivery Date and Time"". Same time-of-day drop. Panel: date-range, All tab."
+"How it moves
+↓",n/a — grid-column derived,Transport & Equipment,Equipment,LTR,Equipment code,Search bar only — enum value,Not a filter — search bar only,—,Live in search,All tab column. Catalog = EQUIPMENT_CODES. NOT in the filter panel.
+,,,Ship Direction,Outbound,Inbound or outbound movement,Search bar only — enum value,Not a filter — search bar only,—,Live in search,All tab column. Stored 'O'/'I'; the progression carries DISPLAY labels because the grid shows labels.
+,,,Freight Terms,Pre-Paid/Add,Who pays the freight,Search bar only — enum value,Not a filter — search bar only,—,Live in search,"All tab column. Stored 'A'/'T'/'P'/'N'/'C'; labels are Pre-Paid, Collect, Pre-Paid/Add, Third Party, No Charge…"
+"Operational status
+↓",n/a — grid-column derived,Order Status & Source,Order Status,Planned Load,Order lifecycle status,Dropdown (multi-select),Order Status,Order Identifiers,Live in search,"All tab column. Panel: enum chips, All tab only."
+,,,Order Source,Integrated,How the order entered the system,Search bar only — enum value,Not a filter — search bar only,—,Live in search,"All tab column. Stored 'INTEGRATED'/'MANUAL', projected title-case. NOT in the filter panel."
+,,,Validation Status,Complete,OIF validation state of an integrated order,Dropdown (multi-select),Validation Status,Draft & Errors,Live in search,"Validation Errors tab column ""Validation Status"" (renamed from ""Draft Order Status"", Ramesh, 2026-09-10, S145)…"
+,,,Errors Count,1,TOTAL validation errors on the order — structural (Level 1) + master data (Level 2),Operator + Number,Errors Count,Draft & Errors,Live in search,"Validation Errors tab column ""Errors Count""."
+"Order classification
+↓",n/a — grid-column derived,Classification,Hazardous,Hazmat,Hazmat indicator,Search bar only — enum value,Not a filter — search bar only,—,Live in search,"All tab column; the grid renders a ""Hazmat"" badge, the bar matches Yes/No."
+"Cargo details
+↓",n/a — grid-column derived,Cargo & Handling,Gross Weight,6129,Gross weight of the order,Search bar only — number,Not a filter — search bar only,—,Live in search,"All tab column. Stored { value, uom } (lbs); the progression projects the value only."
+,,,Volume,166,Volume of the order,Search bar only — number,Not a filter — search bar only,—,Live in search,"All tab column. Stored { value, uom } (cbf); value only. Seeded range 20–555. NOT in the filter panel."
+"Who touched it
+↓",n/a — grid-column derived,Created & Edited,Created,5/29/2026,Date the order was created,Date Picker + Range,Created Date,Audit Trail,Live in search,"Draft tab column ""Created"" (LINX-11663). Panel: date-range labelled ""Created Date"", Draft tab."
+,,,Created By,ben.planner,User who created the order,Autocomplete Text (lazy),Created By,Audit Trail,Live in search,"Draft tab column. Panel: lazy ComboBox, Draft tab."
+,,,Last Edit,9/15/2026,Date the order was last edited,Date Picker + Range,Last Edit Date,Audit Trail,Live in search,"Draft tab column ""Last Edit"". Panel: date-range labelled ""Last Edit Date"", Draft tab."
+,,,Last Edited By,cara.planner,User who last edited the order,Autocomplete Text (lazy),Last Edited By,Audit Trail,Live in search,"Draft tab column — user-directed (R2-4), deviates from LINX-11663's column set."
+,n/a — grid-column derived,"n/a — row field, no column",PO Number,,,Proposed — no control built,Not a filter — search bar only,—,Not in search,"On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together…"
+,,,Commodity,,,Proposed — no control built,Not a filter — search bar only,—,Not in search,"On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together…"
+,,,Planning Date Type,,,Proposed — no control built,Not a filter — search bar only,—,Not in search,"On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together…"
+,,,Earliest Pickup / Delivery timestamps,,,Proposed — no control built,Not a filter — search bar only,—,Not in search,"On the row but on no grid — adding it means adding a column, an attribute and an orderSearchRow field together…"

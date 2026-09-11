@@ -43,6 +43,7 @@ From repo root:
 - `cd apps/odyssey-one && npm run dev:api` — the API served **locally** (`tools/local-api.mjs`, same Neon DB) on :3001. Start it in a second terminal whenever a change touches `api/`; any dev server started after it auto-detects it — no deploy, no special dev command. Vite prints which API it resolved (`[api proxy] /api → …`) at startup; `dev:local` forces the local one.
 - `npm run build:odyssey-one` — build the umbrella app
 - `cd apps/odyssey-one && node tools/generate.mjs` — regenerate the 2,200 shipment JSONs (seed 42, reproducible)
+- `npm run progression:sheets` — regenerate the Shipments + Orders **search progression** deliverables (two xlsx in `docs/story-packs/`, two CSVs in the vault) from `src/search/*/progression.js` and the Orders registry. `npm run progression:audit` re-renders into a temp dir and diffs, exiting 1 on drift. **Any change to the search vocabulary — a label, a match type, an enum value, an attribute — must be followed by a regenerate AND an update to the two `*-search-progression.md` docs in the same commit.** These sheets go to Cognizant; a stale one is a wrong spec, not a stale note.
 - `npm run tokens:audit` — diff `tokens.css` against the committed Figma variable snapshot (`packages/tokens/figma-tokens.snapshot.json`); reports gaps/drift, exits 1 on mismatch. Run after Efrain's token passes; refresh the snapshot by asking Claude to re-run the `use_figma` dump when Figma changes.
 
 ## Deploys
@@ -86,6 +87,7 @@ Do not bulk-move un-normalized components into `@odyssey/ui` — they will be re
 
 - `progress.md` — session-by-session project log; read the latest session to understand current state.
 - `vault/10-domains/shipments/domain-analysis.md` — source of truth for the Shipments domain.
+- `vault/10-domains/shipments/shipments-search-progression.md` + `vault/10-domains/orders/orders-search-progression.md` — the two domains' search vocabularies, written as **siblings** (same 10-section shape) because they ship to Cognizant as a pair. Kept true by `npm run progression:audit`.
 - `vault/10-domains/shipments/decisions/decision-log.md` — every implemented Shipments decision traced to source + previous state.
 - `vault/10-domains/home/domain-analysis.md` — Home domain shape (cross-domain dashboard, widget model).
 - `vault/60-backlog/backlog.html` — unified domain-agnostic backlog (Shipments items tagged SHP-, Home tagged HOM-, etc.).

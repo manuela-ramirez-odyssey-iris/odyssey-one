@@ -1,56 +1,66 @@
-Progression,Stakeholder Group,Suggested Group,Attribute,Example,Description,Field Type,Notes
+"Progression
+(suggestions panel header)",Stakeholder Group,"Suggested Group
+(search bar grouping)",Attribute,Example,Description,"Field Type
+(as built on Vercel)","Filters panel
+field label","Filters panel
+section",Search status,Notes
 "Find the shipment
-?",Find Shipment by,Shipment Identifiers,Buy Shipment #,28826319,-,Number Input,
-,,,Sell Shipment #,25678981,-,Number Input,
-,,,Order #,"JAN6ERCO6, JAN7ERCO7",Transportation Order #,Text Input,
-,,,Pro#/Booking #,345678,-,Number Input,
-,,,Pickup # (skipped),41197,Operational pickup identifier missing from stakeholder grouping,Number Input,Skipped attribute
-"Understand who it belongs to
-?",Customer & Parties involved,Customers & Parties,Customer ID,"*G20TECH_SYS_01, 2nd customer ID",Cross customer IDs separated by comma,Autocomplete Text,
-,,,Customer Name,*USALCO_SYS_01,-,Autocomplete Text,
-,,,Consignor,G2O TECHNOLOGIES LLC,Name of consignor,Autocomplete Text,
-,,,Consignee,MC ATHLON GEISMAR PL,Name of consignee,Autocomplete Text,
-"Understand where it goes
-?",Location & Route,Route & Geography,Origin,"Bastrop, LA, US, 71202",First pickup location,Location Search,
-,,,Destination,"GEISMAR, TX, US, 79762",Last drop off location,Location Search,
-,,,Distance,635 MI,Miles code,Numeric Range,
-,,,Stops,2,Count of stops,Numeric Range,
-,,,Ship Direction,Outbound,Direction of shipment,Dropdown,
-"Understand when it moves
-?",Dates & Appointment Windows,Schedule & Appointments,Pickup Date,01/12/2026 09:00 CST,Planned Pickup Date,Date Range Picker,
-,,,Delivery Date,01/29/2026 09:00 CST,Planned Delivery Date,Date Range Picker,
-,,,Earliest Pickup Date,01/12/2026 09:00 CST,Latest value from orders at first pickup,Date Range Picker,
-,,,Latest Pickup Date,01/12/2026 11:00 CST,Earliest value from orders at first pickup,Date Range Picker,
-,,,Earliest Delivery Date,01/19/2026 09:00 CST,Latest value from orders at last drop off,Date Range Picker,
-,,,Latest Delivery Date,01/19/2026 14:00 CST,Earliest value from orders at last drop off,Date Range Picker,
-"Understand how it moves
-?",Transportation Details,Transport & Equipment,Mode,LTL,-,Dropdown,
-,,,Equipment Code,LTH,-,Dropdown,
-,,,Equipment #,8043,-,Number Input,
-,,,Seal Number,S345676,-,Text Input,
-,,,Incoterm Info,FOB,-,Dropdown,
-,,,Freight Terms,Pre-Paid,-,Dropdown,
-"Understand its operational status
-?",Carrier / Tender,Carrier & Tender Status,SCAC,CTNS,Split from combined SCAC - Tender Status in stakeholder proposal,Dropdown,Added because stakeholder split the original combined field
-,,,Tender Status,Done,Split from combined SCAC - Tender Status in stakeholder proposal,Dropdown,Added because stakeholder split the original combined field
-,,,Shipment Status,Tender,Shipment status values,Dropdown,
-"Inspect cargo details
-?","Weight, Quantity & Handling",Cargo & Handling,Gross Weight,6000 LB,-,Numeric Range,
-,,,Net Weight,3500 LB,-,Numeric Range,
-,,,Tare Weight,2500 LB,-,Numeric Range,
-,,,Pkg Count,2 PLT,Total package count,Numeric Range,
-,,,Hazardous (Y/N),Y,Hazardous indicator,Toggle,
-"Inspect financial details
-?",Rate details,Rates & Costs,AP Freight Cost,1080 USD,Total AP freight cost,Numeric Range,
-,,,Preferred AP Direct Cost,1000 USD,Direct AP cost,Numeric Range,
-,,,AR Freight Cost,6000 USD,Total AR freight cost,Numeric Range,
-,,,Preferred AR Direct Cost,1200 USD,Direct AR cost,Numeric Range,
-"Inspect load logistics
-?",Load information,Load Details,Load #,"23567, 45673",Load numbers in shipment,Number Input,
-,,,Load Count,2,Count of loads in shipment,Numeric Range,
-,,,Load Status,In Shipment,Load operational status,Dropdown,
-Edge cases,Others,Advanced / Rare Fields,Shipment Type,"Pooling, Cross customer, Line haul, Rule 11",Type of shipment,Dropdown,
-,,,Shipment Sequence Leg,1 or 2 or 3,Leg of multi-leg shipment,Dropdown,
-,,,Next Shipment ID,ID of next shipment,Used for pooling or Rule 11,Text Input,
-,,,Validation Message (skipped),CHK_Dates,User review validation message missing from stakeholder grouping,Dropdown,Skipped attribute
-,,,SCAC - Tender Status (skipped),CTNS - Done,Original combined attribute omitted in stakeholder split proposal,Dropdown,Skipped attribute
+(What is it?)
+↓",Find Shipment by,Shipment Identifiers,Buy Shipment #,11852604,-,Text Input,Buy Shipment #,Shipment Identifiers,Live in search,
+,,,Sell Shipment #,25969909,-,Text Input,Sell Shipment #,Shipment Identifiers,Live in search,
+,,,Order #,0000000091000,Transportation Order #,Text Input,Order #,Shipment Identifiers,Live in search,"LINX-9742: auto-generated order numbers are digits, customer-provided ones keep letters — hence match: both."
+,,,Order Count,1,Count of orders mapped to the shipment.,Text Input,Order Count,Shipment Identifiers,Live in search,"New — not in the stakeholder proposal. exact: true: ""Order Count: 2"" must not match a count of 12."
+,,,Pro#/Booking #,441275,-,Text Input,Pro#/Booking #,Shipment Identifiers,Live in search,
+,,,Pickup #,PU-929686,"An ORDER-header reference copied to the load, so a shipment carries N of them.",Text Input,Pickup #,Shipment Identifiers,Live in search,"NOW IMPLEMENTED — the stakeholder sheet listed this as ""Pickup # (skipped)"", marking it missing because it liv…"
+"Who it belongs to
+↓",Customer & Parties involved,Customers & Parties,Customer ID,WEYERH_01,Cross customer IDs separated by comma,Autocomplete Text,Customer ID,Customers & Parties,Live in search,
+,,,Customer Name,Weyerhaeuser Company,-,Autocomplete Text,Customer Name,Customers & Parties,Live in search,
+,,,Consignor,G2O TECH SOLUTIONS,Name of consignor,Autocomplete Text,Consignor,Customers & Parties,Live in search,
+,,,Consignee,SOLVAY CHEMICALS PL,Name of consignee,Autocomplete Text,Consignee,Customers & Parties,Live in search,
+"Where it goes
+↓",Location & Route,Route & Geography,Origin,Bastrop LA US 71202,First pickup location,Autocomplete Text,Origin,Route & Geography,Live in search,
+,,,Destination,Green River WY US 82935,Last drop off location,Autocomplete Text,Destination,Route & Geography,Live in search,
+,,,Distance,,Miles code,Numeric Range,Not a filter — search bar only,—,Not in search,Proposed route/geography extra; not shipped — the app implements Origin/Destination only.
+,,,Stops,,Count of stops,Numeric Range,Not a filter — search bar only,—,Not in search,Proposed route/geography extra; not shipped.
+,,,Ship Direction,,Direction of shipment,Dropdown,Not a filter — search bar only,—,Not in search,Proposed route/geography extra; not shipped.
+"When it moves
+↓",Dates & Appointment Windows,Schedule & Appointments,Pickup Date,06/05/2026 12:30 CDT,Planned Pickup Date,Date Picker + Range,Pickup Date,Schedule & Appointments,Live in search,"Also renders a second field labelled ""Pickup Date Range""."
+,,,Delivery Date,06/07/2026 12:30 CDT,Planned Delivery Date,Date Picker + Range,Delivery Date,Schedule & Appointments,Live in search,"Also renders a second field labelled ""Delivery Date Range""."
+,,,Earliest Pickup Date,,Latest value from orders at first pickup,Date Range Picker,Not a filter — search bar only,—,Not in search,The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built.
+,,,Latest Pickup Date,,Earliest value from orders at first pickup,Date Range Picker,Not a filter — search bar only,—,Not in search,The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built.
+,,,Earliest Delivery Date,,Latest value from orders at last drop off,Date Range Picker,Not a filter — search bar only,—,Not in search,The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built.
+,,,Latest Delivery Date,,Earliest value from orders at last drop off,Date Range Picker,Not a filter — search bar only,—,Not in search,The app ships Pickup Date / Delivery Date only; the four order-derived min/max variants were not built.
+"How it moves
+↓",Transportation Details,Transport & Equipment,Mode,LTL,-,Dropdown (multi-select),Mode,Transport & Equipment,Live in search,"Exact match only (S130): a substring match over a fixed enum catalog is never what the user meant — ""Mode: TL""…"
+,,,Equipment Code,LTH,-,Dropdown (multi-select),Equipment Code,Transport & Equipment,Live in search,"Exact match only (S130), same reasoning as Mode."
+,,,Equipment #,4575,-,Text Input,Equipment #,Transport & Equipment,Live in search,
+,,,Seal Number,S447972,-,Autocomplete Text,Seal Number,Transport & Equipment,Live in search,
+,,,Incoterm Info,,-,Dropdown,Not a filter — search bar only,—,Not in search,Proposed transport/equipment extra; not shipped.
+,,,Freight Terms,,-,Dropdown,Not a filter — search bar only,—,Not in search,Proposed transport/equipment extra; not shipped.
+"Operational status
+↓",Carrier / Tender,Carrier & Tender Status,SCAC,XPOL,Split from combined SCAC - Tender Status in stakeholder proposal,Autocomplete Text,SCAC,Carrier & Tender Status,Live in search,Added because the stakeholder split the original combined field.
+,,,Tender Status,Sent,Split from combined SCAC - Tender Status in stakeholder proposal,Dropdown (multi-select),Tender Status,Carrier & Tender Status,Live in search,Added because the stakeholder split the original combined field. Exact match only (S130).
+,,,Shipment Status,Done,Shipment status values,Dropdown (multi-select),Shipment Status,Carrier & Tender Status,Live in search,Exact match only (S130).
+,,,SCAC - Tender Status (combined),,,Proposed — no control built,Not a filter — search bar only,—,Not in search (skipped in proposal),Skipped; the stakeholder split produced the two separate SCAC and Tender Status attributes the app implements.
+"Shipment classification
+↓",Others,Classification,Shipment Type,Direct,"Direct (1 mapped order) vs Consolidation (>1 mapped orders), LINX-11597 verbatim.",Dropdown (multi-select),Shipment Type,Classification,Live in search,New since S108. Deliberately NOT promoted to the top of the progression: prime empty-input suggestion slots be…
+,,,Planning Type,SSD,"RDD if ANY mapped order is RDD, else SSD, LINX-12902 verbatim.",Dropdown (multi-select),Planning Type,Classification,Live in search,"New since S108, alongside Shipment Type. Deliberately NOT promoted to the top of the progression — same reason…"
+"Cargo details
+↓","Weight, Quantity & Handling",Cargo & Handling,Gross Weight,6129,-,Text Input,Gross Weight,Cargo & Handling,Live in search,
+,,,Net Weight,,-,Numeric Range,Not a filter — search bar only,—,Not in search,The app ships Gross Weight only.
+,,,Tare Weight,,-,Numeric Range,Not a filter — search bar only,—,Not in search,The app ships Gross Weight only.
+,,,Pkg Count,,Total package count,Numeric Range,Not a filter — search bar only,—,Not in search,The app ships Gross Weight only.
+,,,Hazardous (Y/N),,Hazardous indicator,Toggle,Not a filter — search bar only,—,Not in search,The app ships Gross Weight only.
+"Financial details
+↓",Rate details,Rates & Costs,AP Freight Cost,"4,624.99",Total AP freight cost,Text Input,AP Freight Cost,Rates & Costs,Live in search,
+,,,Preferred AP Direct Cost,,Direct AP cost,Numeric Range,Not a filter — search bar only,—,Not in search,The app ships AP Freight Cost only.
+,,,AR Freight Cost,,Total AR freight cost,Numeric Range,Not a filter — search bar only,—,Not in search,The app ships AP Freight Cost only.
+,,,Preferred AR Direct Cost,,Direct AR cost,Numeric Range,Not a filter — search bar only,—,Not in search,The app ships AP Freight Cost only.
+"Load logistics
+↓",Load information,Load Details,Load #,23492,Load numbers in shipment,Text Input,Load #,Load Details,Live in search,
+,,,Load Count,1,Count of loads in shipment,Text Input,Load Count,Load Details,Live in search,
+,,,Load Status,,Load operational status,Dropdown,Not a filter — search bar only,—,Not in search,Proposed load-details extra; not shipped.
+,n/a — grid-column derived,Advanced / Rare Fields,Shipment Type (Pooling · Cross customer · Line haul · Rule 11),,,Proposed — no control built,Not a filter — search bar only,—,Not in search,"NAME COLLISION: the implemented ""Shipment Type"" (Direct/Consolidation, LINX-11597) is a DIFFERENT attribute wi…"
+,,,Shipment Sequence Leg,,Leg of multi-leg shipment,Dropdown,Not a filter — search bar only,—,Not in search,Field `shipmentSequenceLeg` EXISTS on the shipment row; never exposed to search.
+,,,Next Shipment ID,,Used for pooling or Rule 11,Text Input,Not a filter — search bar only,—,Not in search,Field `nextShipmentId` EXISTS on the shipment row; never exposed to search.
+,,,Validation Message,,User review validation message missing from stakeholder grouping,Dropdown,Not a filter — search bar only,—,Not in search (skipped in proposal),Field `validationMessage` EXISTS on the shipment row; never exposed to search.

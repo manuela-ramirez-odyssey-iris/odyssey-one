@@ -20,6 +20,7 @@ Entry point for the Shipments domain knowledge base.
 - [[global-search-adaptation|GlobalSearch — Shipments Adaptation]] — how the cross-cutting [[../../20-cross-cutting/global-search/global-search|GlobalSearch canon]] lands as Shipments v1: attribute coverage gap, mechanism gap, Shipments-only extras, build ladder
 - [[shipment-trail|Shipment Trail (= History Screen)]] — terminology ruling, actor model, event-template model, MVP scope boundary, gap analysis against `HISTORY_ACTIONS`
 - [[data/history-event-catalog|History Event Catalog]] — Pappu's MVP event/variant/template spec, transcribed lossless with `<Placeholder>` tokens intact
+- [[shipments-search-progression|Search progression]] — the Shipments search vocabulary (27 attributes / 10 groups): where the 2026-05 stakeholder grouping and the build diverged, the two label sets (filters-panel group name vs suggestions-panel drill label), the restricted free-text subset, and the 22 proposed attributes that were never built. Generated taxonomy sheet at `data/attributes-progression-grouping.csv`.
 
 ## Backlog
 
