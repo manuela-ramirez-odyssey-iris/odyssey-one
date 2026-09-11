@@ -7761,11 +7761,20 @@ button.breadcrumb__label:focus-visible {
 }
 .sidebar-button__chevron { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary); }
 
-/* Hover darkens the CONTENT only — icon, label and chevron — never a fill.
-   The label and chevron set their own colours, so they need saying explicitly;
-   inheriting currentColor from the row would leave them at rest. */
+/* Hover lifts the row one tone LIGHTER than the rail (DSN/200 → DSN/100) and
+   darkens the content with it (user, 2026-09-11; supersedes the earlier
+   content-only hover that painted no fill). The label and chevron set their own
+   colours, so they need saying explicitly — inheriting currentColor from the row
+   would leave them at rest.
+   A SELECTED row is excluded: its fill is DSN/300, a tone DARKER than the rail,
+   so lightening it on hover would read as deselecting. Selected rows keep their
+   fill and only their content responds. */
 .sidebar-button:hover,
 .sidebar-button[data-state='hover'] { color: var(--text-primary); }
+.sidebar-button:hover:not([data-state='selected']),
+.sidebar-button[data-state='hover']:not([data-state='selected']) {
+  background: var(--deep-sea-neutral-100);
+}
 .sidebar-button:hover .sidebar-button__label,
 .sidebar-button:hover .sidebar-button__chevron,
 .sidebar-button[data-state='hover'] .sidebar-button__label,

@@ -11,7 +11,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '514:2479',
   codeConnect: 'packages/ui/src/SidebarButton.figma.tsx',
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [
