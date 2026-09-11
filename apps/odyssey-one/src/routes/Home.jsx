@@ -53,6 +53,7 @@ import { useOrderTabCounts } from '../api/queries/useOrderTabCounts'
 import { useCategoryCounts } from '../api/queries/useCategoryCounts'
 import { HERO_IMAGES, HERO_INITIAL_INDEX, heroPosition } from '../heroImages'
 import { useHeroRotation } from '../hooks/useHeroRotation'
+import { B2B_EDI_DASHBOARD_URL } from '../externalLinks'
 import './Home.css'
 
 const domainIcon = <TriangleAlert {...ICON_LG} />
@@ -160,9 +161,6 @@ const widgetGoToPaths = {
   'users-activity': '/users',
   'users-reviews': '/users',
 }
-
-const B2B_EDI_DASHBOARD_URL =
-  'https://us.flow-prod.boomi.com/74f7a806-c488-4877-bdb3-f60db80a1df5/play/edi-dashboard?flow-id=f851c0ea-e33f-43eb-bc61-c7d484fa5e3d&environment-id=514279ff-1a62-4471-a22b-192919b9a22b'
 
 const ctaRowsStub = [
   {

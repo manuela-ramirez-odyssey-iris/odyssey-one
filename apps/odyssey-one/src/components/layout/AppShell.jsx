@@ -12,10 +12,12 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
   // so state held here would reset the rail on each navigation.
   //
   // The rail is a real flex child, so widening it pushes <main> rather than
-  // covering it. Nothing expands it automatically — a collapsed rail reaches
-  // every route through its floating card chain, and re-expanding underneath a
-  // click would fight the thing being clicked.
-  const { expanded: sidebarExpanded, toggle: toggleSidebar } = useSidebar()
+  // covering it. `expanded` is pinned (hamburger click) OR peeking (hover/
+  // focus over the collapsed rail) — hover reuses the exact same expand
+  // machinery the hamburger drives, never a second one. `menuActive` reflects
+  // `pinned` only, so the hamburger doesn't light up just because the pointer
+  // happens to be over the rail.
+  const { expanded: sidebarExpanded, pinned: sidebarPinned, setPeeking: setSidebarPeeking, toggle: toggleSidebar } = useSidebar()
 
   return (
     <div className="flex flex-col h-screen">
@@ -23,14 +25,16 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
         searchSlot={searchSlot}
         titleMode={titleMode}
         onMenuClick={toggleSidebar}
-        menuActive={sidebarExpanded}
+        menuActive={sidebarPinned}
       />
       {/* overflow-clip (not hidden): hidden boxes are still scroll containers, so a
           scrollIntoView/focus on wide content (e.g. a shipment-table row) could
           horizontally scroll this wrapper and push the Sidebar off-screen with no
           scrollbar to recover. clip renders identically but is unscrollable. */}
       <div className="flex flex-1 min-h-0 overflow-clip">
-        {!isEditMode && <Sidebar expanded={sidebarExpanded} />}
+        {!isEditMode && (
+          <Sidebar expanded={sidebarExpanded} onHoverChange={setSidebarPeeking} />
+        )}
         <main
           className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col"
           style={{

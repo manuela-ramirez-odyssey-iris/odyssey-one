@@ -8,11 +8,26 @@ const SidebarContext = createContext(null)
  * It has to live here rather than in AppShell: every route renders its OWN
  * AppShell, so state kept there is re-initialised on each navigation and the
  * hamburger silently forgets itself the moment you leave the page.
+ *
+ * Two triggers drive the SAME `expanded` state, not two parallel ones:
+ *   pinned  — the hamburger click. Explicit, sticky, survives the pointer
+ *             leaving the rail.
+ *   peeking — hovering or focusing into the (collapsed) rail. Transient —
+ *             clears the moment the pointer/focus leaves.
+ * `expanded = pinned || peeking`, so hover reuses the exact same width/type
+ * machinery the hamburger already drives — never a second CSS-only expand.
+ * An explicit pin outranks a transient peek: leaving the rail while pinned
+ * never collapses it, because `pinned` alone still holds `expanded` true.
  */
 export function SidebarProvider({ children }) {
-  const [expanded, setExpanded] = useState(false)
-  const toggle = useCallback(() => setExpanded((v) => !v), [])
-  const value = useMemo(() => ({ expanded, setExpanded, toggle }), [expanded, toggle])
+  const [pinned, setPinned] = useState(false)
+  const [peeking, setPeeking] = useState(false)
+  const expanded = pinned || peeking
+  const toggle = useCallback(() => setPinned((v) => !v), [])
+  const value = useMemo(
+    () => ({ expanded, pinned, setPeeking, toggle }),
+    [expanded, pinned],
+  )
   return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
 }
 
@@ -25,10 +40,16 @@ export function SidebarProvider({ children }) {
  */
 export function useSidebar() {
   const ctx = useContext(SidebarContext)
-  const [local, setLocal] = useState(false)
+  const [pinnedLocal, setPinnedLocal] = useState(false)
+  const [peekingLocal, setPeekingLocal] = useState(false)
   const fallback = useMemo(
-    () => ({ expanded: local, setExpanded: setLocal, toggle: () => setLocal((v) => !v) }),
-    [local],
+    () => ({
+      expanded: pinnedLocal || peekingLocal,
+      pinned: pinnedLocal,
+      setPeeking: setPeekingLocal,
+      toggle: () => setPinnedLocal((v) => !v),
+    }),
+    [pinnedLocal, peekingLocal],
   )
   return ctx ?? fallback
 }

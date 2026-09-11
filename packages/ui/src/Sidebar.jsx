@@ -12,6 +12,12 @@ import MenuRow from './MenuRow.jsx'
  *   collapsed (default) — 64px, icon-only buttons
  *   expanded            — 240px, labelled rows, counts, and submenus
  *
+ * `expanded` is entirely the consumer's state — this component only renders
+ * it. `onHoverChange` exists so a consumer can wire hover/focus as another
+ * TRIGGER into that same state (e.g. alongside an explicit toggle button),
+ * so a hover-to-preview rail is pixel-for-pixel the same expand, not a
+ * second CSS-only one living here.
+ *
  * Router-agnostic (no react-router dependency in the library). Rows that are
  * leaf destinations go through `renderItem(item, defaultNode, { active, level })`
  * so a consumer can wrap them in a <NavLink>; rows that OWN children are
@@ -66,6 +72,12 @@ export default function Sidebar({
   onItemClick,
   renderItem,
   className = '',
+  // Lets a consumer wire hover/focus as an ADDITIONAL trigger for the SAME
+  // `expanded` it already owns (e.g. alongside an explicit hamburger toggle)
+  // rather than the rail growing a second, CSS-only expanded look of its own.
+  // Called with `true` on mouseenter/focus, `false` on mouseleave/blur (once
+  // focus has actually left the rail, not just moved to another row in it).
+  onHoverChange,
 }) {
   const all = [...topItems, ...bottomItems]
   const ownerOfActive = all.find((i) => childIds(i).includes(activeId))?.id
@@ -290,6 +302,12 @@ export default function Sidebar({
       ref={railRef}
       className={`sidebar${expanded ? ' sidebar--expanded' : ''}${className ? ` ${className}` : ''}`}
       onClick={onRailClick}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+      onFocus={() => onHoverChange?.(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) onHoverChange?.(false)
+      }}
     >
       <nav className="sidebar__nav">
         <div className="sidebar__group sidebar__group--top">
