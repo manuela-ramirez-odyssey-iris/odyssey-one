@@ -3,12 +3,12 @@ import {
   Check,
   ClipboardList,
   Container,
-  Download,
   Plus,
   Route,
   TriangleAlert,
   Truck,
   UserCog,
+  Workflow,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ICON_LG } from '@odyssey/tokens'
@@ -161,11 +161,18 @@ const widgetGoToPaths = {
   'users-reviews': '/users',
 }
 
+const B2B_EDI_DASHBOARD_URL =
+  'https://us.flow-prod.boomi.com/74f7a806-c488-4877-bdb3-f60db80a1df5/play/edi-dashboard?flow-id=f851c0ea-e33f-43eb-bc61-c7d484fa5e3d&environment-id=514279ff-1a62-4471-a22b-192919b9a22b'
+
 const ctaRowsStub = [
-  { icon: <Plus size={20} />, label: 'Go to Create a New Order', onClick: () => {} },
+  { icon: <Plus size={20} />, label: 'Create a New Order', onClick: () => {} },
   { icon: <Route size={20} />, label: 'Track a Shipment', onClick: () => {} },
   { icon: <UserCog size={20} />, label: 'Management Users', onClick: () => {} },
-  { icon: <Download size={20} />, label: 'Invoices', onClick: () => {} },
+  {
+    icon: <Workflow size={20} />,
+    label: 'Go to B2B/EDI Dashboard',
+    onClick: () => window.open(B2B_EDI_DASHBOARD_URL, '_blank', 'noopener,noreferrer'),
+  },
 ]
 
 const orderIcon = <ClipboardList {...ICON_LG} />
@@ -1291,10 +1298,14 @@ export default function Home() {
 
   const ctaRows = useMemo(
     () => [
-      { icon: <Plus size={20} />, label: 'Go to Create a New Order', onClick: () => navigate('/orders/create') },
+      { icon: <Plus size={20} />, label: 'Create a New Order', onClick: () => navigate('/orders/create') },
       { icon: <Route size={20} />, label: 'Track a Shipment', onClick: () => navigate('/tracking') },
       { icon: <UserCog size={20} />, label: 'Management Users', onClick: () => navigate('/users') },
-      { icon: <Download size={20} />, label: 'Invoices', onClick: () => {} },
+      {
+        icon: <Workflow size={20} />,
+        label: 'Go to B2B/EDI Dashboard',
+        onClick: () => window.open(B2B_EDI_DASHBOARD_URL, '_blank', 'noopener,noreferrer'),
+      },
     ],
     [navigate],
   )
