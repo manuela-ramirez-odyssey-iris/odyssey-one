@@ -40,6 +40,11 @@ describe('deriveAuditTrail', () => {
     expect(i.source).toBe('ERP')
   })
 
+  it('actorFor guards a null/empty created_by (S147) — never renders null@odyssey.local · Null', () => {
+    expect(actorFor(null)).toBe('')
+    expect(actorFor('')).toBe('')
+  })
+
   it('timestamps are non-decreasing and every row shares the order’s zone', () => {
     for (const row of rows.filter((r) => r.orderNumber)) {
       const trail = deriveAuditTrail(row, enrichmentFor(row.orderNumber))

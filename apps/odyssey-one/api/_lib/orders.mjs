@@ -507,13 +507,17 @@ export async function auditReport({ body, db }) {
   if (row.createdAt instanceof Date) row.createdAt = row.createdAt.toISOString().slice(0, 19)
 
   const trail = deriveAuditTrail(row, manualOrder) // oldest -> newest
-  const ordered = body?.sort?.direction === 'desc' ? [...trail].reverse() : trail
+  // Mirror the mock path (orderService.ts getAuditTrail): only 'asc' keeps
+  // derive order, anything else (incl. missing) reverses to desc.
+  const ordered = body?.sort?.direction === 'asc' ? trail : [...trail].reverse()
   const start = (pageNumber - 1) * pageSize
   const data = ordered.slice(start, start + pageSize).map(auditWireRow)
 
   return {
     order: {
-      orderNumber: row.orderNumber,
+      // A pending order has no order_number yet — keep the lookup key the
+      // client posted, same as the mock path's `row.orderNumber || req.orderNumber`.
+      orderNumber: row.orderNumber || String(key),
       orderSource: row.orderSource,
       createdAt: row.createdAt,
       createdTimeZoneCode: row.createdTimeZoneCode,

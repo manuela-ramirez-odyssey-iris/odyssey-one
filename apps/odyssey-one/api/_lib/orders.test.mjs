@@ -176,11 +176,12 @@ test('audit report: no row -> order null, empty page', async () => {
   assert.deepEqual(res, { order: null, pagination: { pageNumber: 1, pageSize: 25, totalCount: 0 }, data: [] })
 })
 
-test('audit report: page 2 of 2 returns rows 3-4 of the asc order', async () => {
+test('audit report: 5-row trail pages at pageSize 2 (3 pages) — page 2 returns rows 3-4 of the asc order', async () => {
   const db = { query: async () => ({ rows: [AUDIT_ROW] }) }
   const full = await auditReport({ body: { orderNumber: '0000000091001', pagination: { pageNumber: 1, pageSize: 25 }, sort: { field: 'changeTimestamp', direction: 'asc' } }, db })
   const page2 = await auditReport({ body: { orderNumber: '0000000091001', pagination: { pageNumber: 2, pageSize: 2 }, sort: { field: 'changeTimestamp', direction: 'asc' } }, db })
   assert.deepEqual(page2.data.map((r) => r.auditId), full.data.slice(2, 4).map((r) => r.auditId))
+  assert.equal(page2.pagination.totalCount, full.pagination.totalCount)
 })
 
 test('update status: builder by number and by pending id', () => {

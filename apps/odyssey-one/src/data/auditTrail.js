@@ -72,6 +72,7 @@ const LIFECYCLE_PATH = {
 // e-mail domain is the seeded users' `@odyssey.local`. The AC's Source for a
 // User is "E-mail ID & full name" — this is the inverse of usernameFor.
 export function actorFor(username) {
+  if (!username) return '' // guard a NULL created_by — never render 'null@odyssey.local · Null'
   const name = String(username).split('.').map((p) => p ? p[0].toUpperCase() + p.slice(1) : p).join(' ')
   return `${username}@odyssey.local · ${name}`
 }
