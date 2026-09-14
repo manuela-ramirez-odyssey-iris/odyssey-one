@@ -3213,7 +3213,7 @@
   "SidebarButton": {
     "selector": "odyssey-sidebar-button",
     "version": "1.8.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "type",
