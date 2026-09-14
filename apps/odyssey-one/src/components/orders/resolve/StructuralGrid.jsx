@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge, Button, GroupTable } from '@odyssey/ui'
 import { STRUCTURAL_DRAFT_KEYS } from './interfaceErrors.js'
 import StructuralFixModal from './StructuralFixModal.jsx'
@@ -75,7 +75,7 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
       id: String(line),
       label: line,
       values: {
-        product: <span className="odyssey-table__cell--title text-label-sm-medium">{p.productId}</span>,
+        product: <span className="text-label-sm-medium">{p.productId}</span>,
         faults: (
           <ul className="structural-grid__faults">
             {faults.map((s) => (
@@ -106,9 +106,15 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
   const openProduct = openLine != null ? products[openLine - 1] : null
   const openFaults = openLine != null ? structural.filter((s) => s.line === openLine) : []
 
+  // The open line's faults can empty out from under the modal (e.g. `structural`
+  // itself changes) — closing it here, not mid-render, keeps this a plain effect.
+  useEffect(() => {
+    if (openLine != null && openFaults.length === 0) setOpenLine(null)
+  }, [openLine, openFaults.length])
+
   return (
     <div className="structural-grid">
-      <GroupTable flat stickyActions actionsHeader={null} columns={COLUMNS} groups={groups} />
+      <GroupTable flat stickyActions actionsHeader="Action" columns={COLUMNS} groups={groups} />
       {openLine != null && openProduct && (
         <StructuralFixModal
           line={openLine}

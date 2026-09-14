@@ -38,7 +38,6 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
   return createPortal(
     <ModalMedium
       title={title}
-      ariaLabel={title}
       onClose={onClose}
       className="structural-grid__modal"
       footer={<Button variant="primary" onClick={onClose}>Done</Button>}
