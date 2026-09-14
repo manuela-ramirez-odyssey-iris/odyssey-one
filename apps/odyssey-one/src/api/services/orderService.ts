@@ -13,6 +13,9 @@ import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
 import type { OrderFormValues } from '../types/orderFormVm'
+import type { AuditTrailPage, AuditTrailRequest, AuditTrailOrderMeta } from '../types/auditTrail'
+import { mapAuditReportRow, type AuditReportWireRow } from '../mappers/mapAuditReportRow'
+import { deriveAuditTrail } from '../../components/orders/audit-trail/auditTrail.js'
 
 // Order list service. live → POST /order-service/v3/order/list with the request
 // verbatim (the params type IS the LLD request shape). mock → simulate the
@@ -815,4 +818,56 @@ export async function getOrderView(
     ? { ...listRowToManualOrder(row), ...enrichment }
     : listRowToManualOrder(row)
   return mapOrderViewToFormVm(manualOrder)
+}
+
+/**
+ * Order Audit Trail (LINX-8091 / LINX-9128, ORD-27). live → POST
+ * /order-service/v3/audit-report (LINX-8457), paged + sorted server-side.
+ * mock → derive the trail from the seeded row (auditTrail.js), then sort +
+ * 1-based paginate exactly like getOrderList does over orders.json. Both
+ * return the same page shape so the table never knows the mode.
+ */
+function auditOrderMeta(row: OrderListRow, createdBy: string): AuditTrailOrderMeta {
+  return {
+    orderNumber: row.orderNumber,
+    orderSource: row.orderSource === 'MANUAL' ? 'Manual' : 'Integrated',
+    createdAt: row.createdAt ?? '',
+    createdTimeZoneCode: row.createdTimeZoneCode ?? '',
+    createdBy,
+  }
+}
+
+export async function getAuditTrail(req: AuditTrailRequest): Promise<AuditTrailPage> {
+  if (getApiMode() === 'live') {
+    const res = await apiPost<{
+      order: { orderNumber: string; orderSource: string; createdAt: string; createdTimeZoneCode?: string; createdBy?: string } | null
+      pagination: { pageNumber: number; pageSize: number; totalCount: number }
+      data: AuditReportWireRow[]
+    }>('/order-service/v3/audit-report', {
+      orderNumber: req.orderNumber,
+      pagination: { pageNumber: req.pageNumber, pageSize: req.pageSize },
+      sort: { field: 'changeTimestamp', direction: req.sortDirection },
+    })
+    const o = res.order
+    return {
+      rows: (res.data ?? []).map(mapAuditReportRow),
+      totalCount: res.pagination?.totalCount ?? 0,
+      order: o
+        ? { orderNumber: o.orderNumber, orderSource: o.orderSource === 'MANUAL' ? 'Manual' : 'Integrated', createdAt: o.createdAt, createdTimeZoneCode: o.createdTimeZoneCode ?? '', createdBy: o.createdBy ?? '' }
+        : null,
+    }
+  }
+
+  const row = overlayRows.find(r => r.orderNumber === req.orderNumber)
+    ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === req.orderNumber)
+  if (!row) return { rows: [], totalCount: 0, order: null }
+
+  const trail = deriveAuditTrail(row, getOrderEnrichment(req.orderNumber))
+  const sorted = req.sortDirection === 'asc' ? trail : [...trail].reverse() // derive is oldest → newest
+  const start = (req.pageNumber - 1) * req.pageSize
+  return {
+    rows: sorted.slice(start, start + req.pageSize),
+    totalCount: trail.length,
+    order: auditOrderMeta(row, trail[0]?.source ?? ''),
+  }
 }
