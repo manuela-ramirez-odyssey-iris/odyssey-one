@@ -1,0 +1,44 @@
+/* apps/odyssey-one/src/components/orders/audit-trail/audit-trail.css
+   Audit Trail page (ORD-27) — same shell shape as order-change.css: AppShell's
+   <main> carries the page padding; this page is crumbs → PageHeader → table. */
+.audit-trail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-bottom: var(--spacing-8);
+}
+.audit-trail__crumbs {
+  display: flex;
+  align-items: center;
+}
+.audit-trail__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.audit-trail__status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  color: var(--text-tertiary);
+}
+/* The three value columns stack one line per changed field, aligned across
+   Field / Old / New because every stack has the same length and line height. */
+.audit-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.audit-stack li {
+  /* Badge's own rendered height: .text-badge line-height 16px + 2px top/bottom
+     padding (content-box, no border) = 20px (components.css .text-badge,
+     Badge.jsx getPadding). Matched exactly so text lines and badge lines
+     stay level in the same stack. */
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+}
