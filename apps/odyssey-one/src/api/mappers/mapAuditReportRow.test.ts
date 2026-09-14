@@ -17,7 +17,7 @@ describe('mapAuditReportRow', () => {
     })
   })
   it('passes an already-labelled category through and tolerates missing pieces', () => {
-    const row = mapAuditReportRow({ auditId: 1, changeTimestamp: '2026-01-01T00:00:00', changeMadeBy: 'SYSTEM', source: 'LINX', changeType: 'Order Event', changeCategory: 'Order Full Cancellation' })
+    const row = mapAuditReportRow({ auditId: 1, changeTimestamp: '2026-01-01T00:00:00', changeMadeBy: 'SYSTEM', source: 'LINX', changeType: 'Order Event', changeCategory: 'Order Full Cancellation', lineItemId: '' })
     expect(row.changeCategory).toBe('Order Full Cancellation')
     expect(row.source).toBe('LINX')
     expect(row.timeZoneCode).toBe('')

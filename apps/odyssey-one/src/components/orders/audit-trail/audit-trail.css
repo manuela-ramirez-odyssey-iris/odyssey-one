@@ -35,7 +35,7 @@
 }
 .audit-stack li {
   /* Badge's own rendered height: .text-badge line-height 16px + 2px top/bottom
-     padding (content-box, no border) = 20px (components.css .text-badge,
+     padding (border-box, no border) = 20px (components.css .text-badge,
      Badge.jsx getPadding). Matched exactly so text lines and badge lines
      stay level in the same stack. */
   min-height: 20px;

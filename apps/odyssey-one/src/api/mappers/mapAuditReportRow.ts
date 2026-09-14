@@ -51,7 +51,7 @@ export function mapAuditReportRow(w: AuditReportWireRow): AuditTrailRow {
     source,
     changeType: TYPE[w.changeType] ?? (w.changeType as AuditChangeType),
     changeCategory: CATEGORY[w.changeCategory] ?? (w.changeCategory as AuditChangeCategory),
-    lineItemId: w.lineItemId == null ? null : String(w.lineItemId),
+    lineItemId: w.lineItemId == null || w.lineItemId === '' ? null : String(w.lineItemId),
     changes: (w.changes ?? []).map((c) => ({ field: str(c.fieldName ?? c.field), oldValue: str(c.oldValue), newValue: str(c.newValue) })),
   }
 }

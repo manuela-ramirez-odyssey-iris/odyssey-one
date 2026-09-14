@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // apps/odyssey-one/src/components/orders/audit-trail/auditTrailColumns.test.jsx
 import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, cleanup, within } from '@testing-library/react'
+import { render, cleanup, within } from '@testing-library/react'
 import { AUDIT_TRAIL_COLUMNS, formatAuditTimestamp, ChangeStack } from './auditTrailColumns.jsx'
 
 afterEach(cleanup)
