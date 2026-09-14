@@ -1,0 +1,75 @@
+// @vitest-environment jsdom
+// apps/odyssey-one/src/routes/orders/OrderAuditTrailRoute.test.jsx
+import { describe, test, expect, afterEach } from 'vitest'
+import { render, screen, cleanup, waitFor, fireEvent, within } from '@testing-library/react'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import OrderAuditTrailRoute from './OrderAuditTrailRoute.jsx'
+import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
+import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
+import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
+import ordersFixture from '../../data/orders.json'
+
+const rows = Array.isArray(ordersFixture) ? ordersFixture : (ordersFixture.orders ?? [])
+const ORDER = rows.find((r) => r.orderNumber && r.orderStatus === 'Planned Shipment')
+if (!ORDER) throw new Error('No Planned Shipment seeded order — regenerate the fixtures.')
+const SOURCE_LABEL = ORDER.orderSource === 'MANUAL' ? 'Manual' : 'Integrated'
+
+function renderRoute(orderId) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <EditModeProvider>
+        <CreateOrderModeProvider>
+          <CustomersProvider>
+            <MemoryRouter initialEntries={[`/orders/${orderId}/audit-trail`]}>
+              <Routes>
+                <Route path="/orders/:orderId/audit-trail" element={<OrderAuditTrailRoute />} />
+                <Route path="/orders/:orderId" element={<div>view order page</div>} />
+                <Route path="/orders" element={<div>orders list</div>} />
+              </Routes>
+            </MemoryRouter>
+          </CustomersProvider>
+        </CreateOrderModeProvider>
+      </EditModeProvider>
+    </QueryClientProvider>,
+  )
+}
+
+afterEach(cleanup)
+
+describe('OrderAuditTrailRoute', () => {
+  test('breadcrumb Orders › View order <n> › Audit Trail, header carries the order, table renders newest-first', async () => {
+    renderRoute(ORDER.orderNumber)
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Audit Trail' })).toBeTruthy())
+    expect(screen.getByText('Orders')).toBeTruthy()
+    expect(screen.getByText(`View order ${ORDER.orderNumber}`)).toBeTruthy()
+    expect(screen.getAllByText('Audit Trail').some((el) => el.getAttribute('aria-current') === 'page')).toBe(true)
+    expect(screen.getByText(new RegExp(`Order ${ORDER.orderNumber} · ${SOURCE_LABEL} · Created`))).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole('table', { name: 'Audit trail' })).toBeTruthy())
+    // DataTable renders a separate head <table> (no aria-label) and body
+    // <table aria-label="Audit trail"> — this query already scopes to body
+    // rows, no head row to slice off.
+    const table = screen.getByRole('table', { name: 'Audit trail' })
+    const cells = within(table).getAllByRole('row').map((tr) => tr.querySelector('td')?.textContent)
+    for (let k = 1; k < cells.length; k++) expect(cells[k] <= cells[k - 1]).toBe(true)
+  })
+
+  test('the middle crumb navigates back to View Order; the navbar close does too', async () => {
+    renderRoute(ORDER.orderNumber)
+    await waitFor(() => expect(screen.getByText(`View order ${ORDER.orderNumber}`)).toBeTruthy())
+    fireEvent.click(screen.getByText(`View order ${ORDER.orderNumber}`))
+    await waitFor(() => expect(screen.getByText('view order page')).toBeTruthy())
+
+    cleanup()
+    renderRoute(ORDER.orderNumber)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.getByText('view order page')).toBeTruthy())
+  })
+
+  test('unknown order → "Order not found" empty state', async () => {
+    renderRoute('NOPE')
+    await waitFor(() => expect(screen.getByText('Order not found')).toBeTruthy())
+  })
+})

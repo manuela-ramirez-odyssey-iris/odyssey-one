@@ -1,0 +1,79 @@
+// apps/odyssey-one/src/routes/orders/OrderAuditTrailRoute.jsx
+import { useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Inbox } from 'lucide-react'
+import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
+import AppShell from '../../components/layout/AppShell'
+import AuditTrailTable from '../../components/orders/audit-trail/AuditTrailTable.jsx'
+import { formatAuditTimestamp } from '../../components/orders/audit-trail/auditTrailColumns.jsx'
+import { useAuditTrail } from '../../api/queries/useAuditTrail'
+import '../../components/orders/orders.css'
+import '../../components/orders/audit-trail/audit-trail.css'
+
+/**
+ * Order Audit Trail — /orders/:orderId/audit-trail (LINX-8091 / LINX-9128,
+ * ORD-27). The Edit Shipment Stops shell pattern: AppShell in title mode
+ * (compact navbar, centred title, ✕ back to View Order), breadcrumb
+ * `Orders › View order <n> › Audit Trail`, then a PageHeader whose supporting
+ * text carries what the AC lists as the Order ID column — constant on every
+ * row of a per-order log, so it lives here instead. Entered from the Orders
+ * grid ⋮ menu (user ruling 2026-09-14: no secondary button, no tab).
+ *
+ * Paging + sorting are route state so the query key tracks them; the table is
+ * a pure shell. Default 25 rows, newest first (AC §I / §II).
+ */
+export default function OrderAuditTrailRoute() {
+  const { orderId } = useParams()
+  const navigate = useNavigate()
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 })
+  const [sorting, setSorting] = useState([{ id: 'timestamp', desc: true }])
+  const back = () => navigate(`/orders/${encodeURIComponent(orderId)}`)
+
+  const { data, isPending, isError, isPlaceholderData, refetch } = useAuditTrail({
+    orderNumber: orderId,
+    pageNumber: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+    sortDirection: sorting[0]?.desc === false ? 'asc' : 'desc',
+  })
+
+  const order = data?.order
+  const supporting = order
+    ? `Order ${order.orderNumber} · ${order.orderSource} · Created ${formatAuditTimestamp(order.createdAt, order.createdTimeZoneCode)} by ${order.createdBy}`
+    : null
+
+  return (
+    <AppShell titleMode={{ title: 'Audit Trail', onClose: back }}>
+      <div className="audit-trail">
+        <nav className="audit-trail__crumbs" aria-label="Breadcrumb">
+          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+          <Breadcrumb label={`View order ${orderId}`} onClick={back} />
+          <Breadcrumb label="Audit Trail" current />
+        </nav>
+
+        {isPending ? (
+          <div className="audit-trail__status text-label-sm-regular">Loading audit trail…</div>
+        ) : isError ? (
+          <div className="audit-trail__status">
+            <span className="text-label-sm-regular">Something went wrong loading this audit trail.</span>
+            <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
+          </div>
+        ) : !order ? (
+          <EmptyState icon={<Inbox size={32} />} message="Order not found" />
+        ) : (
+          <div className="audit-trail__content">
+            <PageHeader title="Audit Trail" supportingText={supporting} />
+            <AuditTrailTable
+              rows={data.rows}
+              totalCount={data.totalCount}
+              pagination={pagination}
+              onPaginationChange={setPagination}
+              sorting={sorting}
+              onSortingChange={setSorting}
+              loadingRows={isPlaceholderData}
+            />
+          </div>
+        )}
+      </div>
+    </AppShell>
+  )
+}

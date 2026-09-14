@@ -7,6 +7,7 @@ import Login from './routes/Login.jsx'
 import OrdersRoute from './routes/orders/OrdersRoute.jsx'
 import CreateOrderRoute from './routes/orders/CreateOrderRoute.jsx'
 import OrderSummaryRoute from './routes/orders/OrderSummaryRoute.jsx'
+import OrderAuditTrailRoute from './routes/orders/OrderAuditTrailRoute.jsx'
 import Carriers from './routes/Carriers.jsx'
 import Tracking from './routes/Tracking.jsx'
 import Users from './routes/Users.jsx'
@@ -78,6 +79,7 @@ export default function App() {
         <Route path="/orders" element={<OrdersRoute />} />
         <Route path="/orders/create" element={<CreateOrderRoute />} />
         <Route path="/orders/:orderId" element={<OrderSummaryRoute />} />
+        <Route path="/orders/:orderId/audit-trail" element={<OrderAuditTrailRoute />} />
         <Route path="/carriers" element={<Carriers />} />
         {/* Listed above the /shipments/* wildcard for readability only — react-router
             v6 ranks routes by specificity, not declaration order, so a dynamic
