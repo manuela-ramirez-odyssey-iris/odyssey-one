@@ -2,6 +2,7 @@
 // Builders are pure (return { text, values }) so they test without a DB. User
 // input reaches SQL ONLY through $N parameters; sort/filter columns come ONLY
 // from the whitelist maps below — never from raw request keys.
+import { deriveAuditTrail } from '../../src/data/auditTrail.js'
 
 // The three Orders tabs as POPULATIONS, not status filters (ORD-24, user
 // ruling 2026-09-05 — supersedes ORD-23's client-side status intersection,
@@ -469,6 +470,58 @@ export async function orderView({ body, db }) {
   if (rows.length === 0) { const e = new Error(`No order: ${key}`); e.status = 404; throw e }
   const { manualOrder, ...row } = rows[0]
   return { row, manualOrder: manualOrder ?? null }
+}
+
+// ── Audit Trail (LINX-8091/9128, ORD-27, S147) ──────────────────────────────
+// POST /order-service/v3/audit-report — the same pure derive the mock path
+// uses (src/data/auditTrail.js), run against the live Neon row. No reseed:
+// buildOrderViewQuery already selects everything deriveAuditTrail needs, plus
+// manual_order (the ManualOrder enrichment for the line-level fields).
+function auditWireRow(r) {
+  const isUser = r.changedBy === 'User'
+  const [userEmail, userName] = isUser ? r.source.split(' · ') : []
+  return {
+    auditId: r.id,
+    changeTimestamp: r.timestamp,
+    timeZoneCode: r.timeZoneCode,
+    changeMadeBy: r.changedBy.toUpperCase(),
+    ...(isUser ? { userEmail, userName } : { source: r.source }),
+    changeType: r.changeType,
+    changeCategory: r.changeCategory,
+    lineItemId: r.lineItemId,
+    changes: r.changes.map((c) => ({ fieldName: c.field, oldValue: c.oldValue, newValue: c.newValue })),
+  }
+}
+
+export async function auditReport({ body, db }) {
+  const key = body?.orderNumber
+  if (!key) { const e = new Error('orderNumber required'); e.status = 400; throw e }
+  const pageNumber = Number(body?.pagination?.pageNumber) || 1
+  const pageSize = Number(body?.pagination?.pageSize) || 25
+  const { rows } = await db.query(buildOrderViewQuery(String(key)))
+  if (rows.length === 0) return { order: null, pagination: { pageNumber, pageSize, totalCount: 0 }, data: [] }
+
+  const { manualOrder, ...row } = rows[0]
+  // created_at is timestamptz -> pg hands back a Date; the derive wants the
+  // local-naive YYYY-MM-DDTHH:MM:SS shape (same clock the live grid shows).
+  if (row.createdAt instanceof Date) row.createdAt = row.createdAt.toISOString().slice(0, 19)
+
+  const trail = deriveAuditTrail(row, manualOrder) // oldest -> newest
+  const ordered = body?.sort?.direction === 'desc' ? [...trail].reverse() : trail
+  const start = (pageNumber - 1) * pageSize
+  const data = ordered.slice(start, start + pageSize).map(auditWireRow)
+
+  return {
+    order: {
+      orderNumber: row.orderNumber,
+      orderSource: row.orderSource,
+      createdAt: row.createdAt,
+      createdTimeZoneCode: row.createdTimeZoneCode,
+      createdBy: trail[0]?.source ?? '',
+    },
+    pagination: { pageNumber, pageSize, totalCount: ordered.length },
+    data,
+  }
 }
 
 // ── Order update / Edit Order (LINX-10248) ──────────────────────────────────

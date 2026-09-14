@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CHIP_COLS, buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus, buildUpdateOrderQuery, updateOrder, buildCreateOrderQuery, createOrder } from './orders.mjs'
+import { CHIP_COLS, buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus, buildUpdateOrderQuery, updateOrder, buildCreateOrderQuery, createOrder, auditReport } from './orders.mjs'
 
 test('order list: 1-based pagination (page 1 = offset 0)', () => {
   const q = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
@@ -122,6 +122,65 @@ test('order view: by number, by pending id, missing key', async () => {
   await assert.rejects(() => orderView({ body: { orderNumber: 'x' }, db: dbMiss }), (e) => e.status === 404)
   const dbHit = { query: async () => ({ rows: [{ orderNumber: 'x', manualOrder: null }] }) }
   assert.deepEqual(await orderView({ body: { orderNumber: 'x' }, db: dbHit }), { row: { orderNumber: 'x' }, manualOrder: null })
+})
+
+// Audit Trail (LINX-8091/9128, ORD-27, S147) — Neon row through the same pure
+// derive (src/data/auditTrail.js) the mock path uses. Fake row copied from a
+// real seeded 'Planned Shipment' order (src/data/orders.json #91001), flipped
+// to MANUAL/created_at-as-Date so both USER and SYSTEM rows show up (header
+// edits + lifecycle hops) without relying on the mock's own RNG luck.
+const AUDIT_ROW = {
+  orderNumber: '0000000091001',
+  orderSource: 'MANUAL',
+  createdAt: new Date('2026-05-29T04:45:00Z'),
+  createdBy: 'ava.planner',
+  createdTimeZoneCode: 'MDT',
+  grossWeight: { value: 23210, uom: 'lbs' },
+  equipment: 'TT',
+  freightTerms: 'T',
+  consignor: { latestPickupDateTime: '2026-06-08T12:30:00' },
+  orderStatus: 'Planned Shipment',
+  manualOrder: {
+    orderLines: [
+      { lineIdentifier: 1, grossWeightValue: 3000, grossWeightUomCode: 'lb' },
+      { lineIdentifier: 2, grossWeightValue: 3129, grossWeightUomCode: 'lb' },
+    ],
+  },
+}
+
+test('audit report: route table has the POST audit-report route', async () => {
+  const { matchRoute } = await import('./router.mjs')
+  const m = matchRoute('POST', '/order-service/v3/audit-report')
+  assert.equal(m?.name, 'auditReport')
+})
+
+test('audit report: seeded row -> ordered, paged, wire-shaped rows', async () => {
+  const db = { query: async () => ({ rows: [AUDIT_ROW] }) }
+  const desc = await auditReport({ body: { orderNumber: '0000000091001', pagination: { pageNumber: 1, pageSize: 25 }, sort: { field: 'changeTimestamp', direction: 'desc' } }, db })
+  assert.equal(desc.order.orderNumber, '0000000091001')
+  assert.equal(desc.pagination.totalCount, desc.data.length)
+  assert.equal(desc.data[desc.data.length - 1].changeCategory, 'Order Creation')
+  for (const row of desc.data) assert.match(row.changeTimestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)
+  const userRow = desc.data.find((r) => r.changeMadeBy === 'USER')
+  assert.ok(userRow.userEmail && userRow.userName)
+  const systemRow = desc.data.find((r) => r.changeMadeBy === 'SYSTEM')
+  assert.ok(systemRow.source)
+
+  const asc = await auditReport({ body: { orderNumber: '0000000091001', pagination: { pageNumber: 1, pageSize: 25 }, sort: { field: 'changeTimestamp', direction: 'asc' } }, db })
+  assert.equal(asc.data[0].changeCategory, 'Order Creation')
+})
+
+test('audit report: no row -> order null, empty page', async () => {
+  const db = { query: async () => ({ rows: [] }) }
+  const res = await auditReport({ body: { orderNumber: 'nope', pagination: { pageNumber: 1, pageSize: 25 }, sort: { field: 'changeTimestamp', direction: 'asc' } }, db })
+  assert.deepEqual(res, { order: null, pagination: { pageNumber: 1, pageSize: 25, totalCount: 0 }, data: [] })
+})
+
+test('audit report: page 2 of 2 returns rows 3-4 of the asc order', async () => {
+  const db = { query: async () => ({ rows: [AUDIT_ROW] }) }
+  const full = await auditReport({ body: { orderNumber: '0000000091001', pagination: { pageNumber: 1, pageSize: 25 }, sort: { field: 'changeTimestamp', direction: 'asc' } }, db })
+  const page2 = await auditReport({ body: { orderNumber: '0000000091001', pagination: { pageNumber: 2, pageSize: 2 }, sort: { field: 'changeTimestamp', direction: 'asc' } }, db })
+  assert.deepEqual(page2.data.map((r) => r.auditId), full.data.slice(2, 4).map((r) => r.auditId))
 })
 
 test('update status: builder by number and by pending id', () => {
