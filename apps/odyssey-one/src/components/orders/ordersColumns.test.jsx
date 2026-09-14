@@ -7,10 +7,10 @@ describe('ordersColumns', () => {
     expect(TAB_COLUMNS.draft.map(c => c.header)).toEqual(['Order Number', 'Customer', 'Created', 'Created By', 'Last Edit', 'Last Edited By'])
     expect(TAB_COLUMNS['validation-errors'].map(c => c.header)).toEqual(['Order Number', 'Customer', 'Validation Status', 'Errors Count'])
   })
-  it('adapts All-tab actions per row (LINX-10233)', () => {
-    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Ready for Planning' })).toEqual(['View', 'Edit', 'Copy', 'Cancel'])
-    expect(allTabActionLabels({ orderSource: 'Integrated', status: 'Ready for Planning' })).toEqual(['View', 'Copy'])
-    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Cancelled' })).toEqual(['View', 'Copy', 'Restore'])
+  it('adapts All-tab actions per row (LINX-10233); Audit Trail on every Created row (ORD-27)', () => {
+    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Ready for Planning' })).toEqual(['View', 'Audit Trail', 'Edit', 'Copy', 'Cancel'])
+    expect(allTabActionLabels({ orderSource: 'Integrated', status: 'Ready for Planning' })).toEqual(['View', 'Audit Trail', 'Copy'])
+    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Cancelled' })).toEqual(['View', 'Audit Trail', 'Copy', 'Restore'])
   })
   // S131 — opening a row (a search-result click) offers only what that row's own
   // menu offers: Resolve → Edit → View, each gated by its real availability.
@@ -27,5 +27,7 @@ describe('ordersColumns', () => {
     // Cancelled drops Edit from the menu; a finished order reads, not edits.
     expect(primaryRowAction({ status: 'Cancelled', orderSource: 'Manual' })).toBe('View')
     expect(primaryRowAction({ status: 'Ready for Planning', orderSource: 'Manual' })).toBe('View')
+    // Audit Trail is never a row's primary action — opening a row reads or fixes it.
+    expect(primaryRowAction({ status: 'Cancelled', orderSource: 'Integrated' })).toBe('View')
   })
 })

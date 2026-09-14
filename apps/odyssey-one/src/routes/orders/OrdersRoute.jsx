@@ -201,9 +201,11 @@ export default function OrdersRoute() {
   const handleRowAction = useCallback((action, row) => {
     // View mirrors the full-row click; Edit reopens the order in the
     // create flow (?draft hydrates via getDraft, falling back to
-    // getOrderView for non-session rows). Submit/Cancel confirm first
-    // (below); Resolve/Copy/Restore stay no-ops until their features land.
+    // getOrderView for non-session rows). Audit Trail opens the per-order
+    // trail page (ORD-27). Submit/Cancel confirm first (below);
+    // Resolve/Copy/Restore stay no-ops until their features land.
     if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
+    else if (action === 'Audit Trail') navigate(`/orders/${encodeURIComponent(row.id)}/audit-trail`)
     else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
     else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
     else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })

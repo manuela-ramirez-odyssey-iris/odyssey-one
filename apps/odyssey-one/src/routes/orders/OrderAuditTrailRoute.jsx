@@ -7,7 +7,6 @@ import AppShell from '../../components/layout/AppShell'
 import AuditTrailTable from '../../components/orders/audit-trail/AuditTrailTable.jsx'
 import { formatAuditTimestamp } from '../../components/orders/audit-trail/auditTrailColumns.jsx'
 import { useAuditTrail } from '../../api/queries/useAuditTrail'
-import '../../components/orders/orders.css'
 import '../../components/orders/audit-trail/audit-trail.css'
 
 /**

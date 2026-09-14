@@ -116,11 +116,13 @@ export const TAB_COLUMNS = {
 }
 
 // Created-tab ⋮ options are per-row (LINX-10233): Edit/Cancel are Manual-only;
-// Restore only on Cancelled orders.
+// Restore only on Cancelled orders. Audit Trail on EVERY row (ORD-27) — a
+// cancelled order still has a trail, it just stopped growing. Not on Draft
+// (no trail yet) nor Validation Errors (not an order yet).
 export function allTabActionLabels(row) {
-  if (row.status === 'Cancelled') return ['View', 'Copy', 'Restore']
-  if (row.orderSource === 'Manual') return ['View', 'Edit', 'Copy', 'Cancel']
-  return ['View', 'Copy']
+  if (row.status === 'Cancelled') return ['View', 'Audit Trail', 'Copy', 'Restore']
+  if (row.orderSource === 'Manual') return ['View', 'Audit Trail', 'Edit', 'Copy', 'Cancel']
+  return ['View', 'Audit Trail', 'Copy']
 }
 
 export const DRAFT_ACTION_LABELS = ['Edit', 'Submit', 'Cancel']
