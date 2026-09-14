@@ -110,4 +110,9 @@ describe('deriveAuditTrail', () => {
     const draft = byStatus('Draft')
     expect(deriveAuditTrail(draft, enrichmentFor(draft.orderNumber))).toHaveLength(1)
   })
+
+  it('validation-error rows (orderStatus null) have no trail — not an order yet', () => {
+    const ve = rows.find((r) => r.orderNumber && r.orderStatus == null)
+    expect(deriveAuditTrail(ve, enrichmentFor(ve.orderNumber))).toEqual([])
+  })
 })

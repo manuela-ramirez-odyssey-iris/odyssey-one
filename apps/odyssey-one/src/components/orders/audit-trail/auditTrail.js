@@ -82,8 +82,8 @@ const addHours = (iso, h) => {
 
 // Header fields an edit can touch — old value derived FROM the current one so
 // the new side is always the order's real value (coherence rule).
-const EQUIPMENT_ALT = ['LTR', 'FTL', 'DRY', 'REF', 'FLT']
-const TERMS_ALT = ['A', 'P', 'C', 'T']
+const EQUIPMENT_ALT = ['TT', 'RR', 'LCL', 'LTL', 'LTH', 'FCL', 'TLR', 'TLF', 'TLH', 'TL', 'LTR']
+const TERMS_ALT = ['A', 'P', 'C', 'T', 'N']
 function headerChange(r, row) {
   const kind = pick(r, ['weight', 'equipment', 'terms', 'pickup'])
   if (kind === 'weight') {
@@ -138,8 +138,9 @@ export function deriveAuditTrail(row, enrichment) {
   // 1. Creation — integrated orders arrive from the customer ERP.
   push('Order Creation', manual ? user : { changedBy: 'System', source: 'ERP' })
 
+  if (row.orderStatus == null) return [] // validation-error row — not an order yet, nothing to audit
   if (row.orderStatus === 'Draft') return rows // no lifecycle yet
-  const path = LIFECYCLE_PATH[row.orderStatus] ?? [] // null-status / unknown rows: creation only
+  const path = LIFECYCLE_PATH[row.orderStatus] ?? [] // genuinely unknown status string: creation only
 
   // 2. Edits (manual and integrated alike — a customer re-sends, a planner
   //    corrects). 0–2 header saves of 1–3 fields; a line save when lines exist.
