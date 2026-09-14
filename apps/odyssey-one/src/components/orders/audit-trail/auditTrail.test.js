@@ -41,7 +41,7 @@ describe('deriveAuditTrail', () => {
   })
 
   it('timestamps are non-decreasing and every row shares the order’s zone', () => {
-    for (const row of rows.filter((r) => r.orderNumber).slice(0, 200)) {
+    for (const row of rows.filter((r) => r.orderNumber)) {
       const trail = deriveAuditTrail(row, enrichmentFor(row.orderNumber))
       for (let k = 1; k < trail.length; k++) expect(trail[k].timestamp >= trail[k - 1].timestamp).toBe(true)
       for (const t of trail) expect(t.timeZoneCode).toBe(row.createdTimeZoneCode)
@@ -49,7 +49,7 @@ describe('deriveAuditTrail', () => {
   })
 
   it('applies the 9128 blank rules: header-level rows have no line item, event-only rows have no changes', () => {
-    for (const row of rows.filter((r) => r.orderNumber).slice(0, 300)) {
+    for (const row of rows.filter((r) => r.orderNumber)) {
       for (const t of deriveAuditTrail(row, enrichmentFor(row.orderNumber))) {
         if (HEADER_ONLY.has(t.changeCategory)) expect(t.lineItemId).toBeNull()
         else expect(t.lineItemId).not.toBeNull()
@@ -85,7 +85,7 @@ describe('deriveAuditTrail', () => {
 
   it('edit rows only ever change fields to values the order actually holds now', () => {
     let seen = 0
-    for (const row of rows.filter((r) => r.orderNumber).slice(0, 400)) {
+    for (const row of rows.filter((r) => r.orderNumber)) {
       const trail = deriveAuditTrail(row, enrichmentFor(row.orderNumber))
       for (const t of trail.filter((x) => x.changeCategory === 'Order Header Editing')) {
         for (const c of t.changes) {

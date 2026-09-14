@@ -13,7 +13,12 @@
  * Row granularity follows the AC — one row per save holding a LIST of changes
  * (Q-AT-1). Ramesh's spoken "one row per field" is a change to how `changes`
  * is filled, not to this module's shape.
+ *
+ * PRNG is a local copy of interfaceErrors.js's seededRandom recipe (kept
+ * local there on purpose).
  */
+
+import { EQUIPMENT_CODES, FREIGHT_TERMS } from '../../../data/master-data.js'
 
 // ── PRNG (mulberry32 over an FNV-1a hash of the key) ─────────────────────────
 function hash(str) {
@@ -35,8 +40,8 @@ const pick = (r, arr) => arr[Math.floor(r() * arr.length)]
 const intIn = (r, min, max) => min + Math.floor(r() * (max - min + 1))
 
 // ── Vocabulary ───────────────────────────────────────────────────────────────
-export const ACTION = 'Order Action'
-export const EVENT = 'Order Event'
+const ACTION = 'Order Action'
+const EVENT = 'Order Event'
 export const CATEGORY_TYPE = {
   'Order Creation': ACTION,
   'Order Header Editing': ACTION,
@@ -61,7 +66,6 @@ const LIFECYCLE_PATH = {
   'Shipment Failed': ['Planned Load', 'Shipment Failed'],
   Hold: [],
   Cancelled: [],
-  Draft: null, // no lifecycle yet — creation row only
 }
 
 // Seeded usernames are `first.last` (tools/seed-users.mjs usernameFor); the
@@ -81,9 +85,9 @@ const addHours = (iso, h) => {
 }
 
 // Header fields an edit can touch — old value derived FROM the current one so
-// the new side is always the order's real value (coherence rule).
-const EQUIPMENT_ALT = ['TT', 'RR', 'LCL', 'LTL', 'LTH', 'FCL', 'TLR', 'TLF', 'TLH', 'TL', 'LTR']
-const TERMS_ALT = ['A', 'P', 'C', 'T', 'N']
+// the new side is always the order's real value (coherence rule). Old-side
+// pools are the real master-data enums (data-pools.mjs), not hand-copied lists.
+const TERMS_ALT = FREIGHT_TERMS.map((t) => t.value)
 function headerChange(r, row) {
   const kind = pick(r, ['weight', 'equipment', 'terms', 'pickup'])
   if (kind === 'weight') {
@@ -93,7 +97,7 @@ function headerChange(r, row) {
     return { field: 'Gross Weight', oldValue: weight(value - delta, row.grossWeight.uom), newValue: weight(value, row.grossWeight.uom) }
   }
   if (kind === 'equipment') {
-    return { field: 'Equipment', oldValue: pick(r, EQUIPMENT_ALT.filter((e) => e !== row.equipment)), newValue: row.equipment }
+    return { field: 'Equipment', oldValue: pick(r, EQUIPMENT_CODES.filter((e) => e !== row.equipment)), newValue: row.equipment }
   }
   if (kind === 'terms') {
     return { field: 'Freight Terms', oldValue: pick(r, TERMS_ALT.filter((t) => t !== row.freightTerms)), newValue: row.freightTerms }
@@ -135,10 +139,11 @@ export function deriveAuditTrail(row, enrichment) {
   }
   const step = () => { at = addHours(at, intIn(r, 1, 30)) }
 
+  if (row.orderStatus == null) return [] // validation-error row — not an order yet, nothing to audit
+
   // 1. Creation — integrated orders arrive from the customer ERP.
   push('Order Creation', manual ? user : { changedBy: 'System', source: 'ERP' })
 
-  if (row.orderStatus == null) return [] // validation-error row — not an order yet, nothing to audit
   if (row.orderStatus === 'Draft') return rows // no lifecycle yet
   const path = LIFECYCLE_PATH[row.orderStatus] ?? [] // genuinely unknown status string: creation only
 
