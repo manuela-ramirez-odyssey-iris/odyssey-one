@@ -11,12 +11,14 @@ import '../../components/orders/audit-trail/audit-trail.css'
 
 /**
  * Order Audit Trail — /orders/:orderId/audit-trail (LINX-8091 / LINX-9128,
- * ORD-27). The Edit Shipment Stops shell pattern: AppShell in title mode
- * (compact navbar, centred title, ✕ back to View Order), breadcrumb
- * `Orders › View order <n> › Audit Trail`, then a PageHeader whose supporting
- * text carries what the AC lists as the Order ID column — constant on every
- * row of a per-order log, so it lives here instead. Entered from the Orders
- * grid ⋮ menu (user ruling 2026-09-14: no secondary button, no tab).
+ * ORD-27). AppShell renders its normal chrome (standard search navbar, no
+ * title mode); breadcrumb reduces to `Orders › <orderNumber> Audit Trail`,
+ * with `Orders` the way back (user ruling 2026-09-14 — the old "View order
+ * <n>" middle crumb was misleading and is gone). Then a PageHeader whose
+ * supporting text carries what the AC lists as the Order ID column —
+ * constant on every row of a per-order log, so it lives here instead.
+ * Entered from the Orders grid ⋮ menu (user ruling 2026-09-14: no secondary
+ * button, no tab).
  *
  * Paging + sorting are route state so the query key tracks them; the table is
  * a pure shell. Default 25 rows, newest first (AC §I / §II).
@@ -26,7 +28,6 @@ export default function OrderAuditTrailRoute() {
   const navigate = useNavigate()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 })
   const [sorting, setSorting] = useState([{ id: 'timestamp', desc: true }])
-  const back = () => navigate(`/orders/${encodeURIComponent(orderId)}`)
 
   const { data, isPending, isError, isPlaceholderData, refetch } = useAuditTrail({
     orderNumber: orderId,
@@ -42,12 +43,11 @@ export default function OrderAuditTrailRoute() {
     : null
 
   return (
-    <AppShell titleMode={{ title: 'Audit Trail', onClose: back }}>
+    <AppShell>
       <div className="audit-trail">
         <nav className="audit-trail__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
-          <Breadcrumb label={`View order ${orderId}`} onClick={back} />
-          <Breadcrumb label="Audit Trail" current />
+          <Breadcrumb label={`${orderId} Audit Trail`} current />
         </nav>
 
         {isPending ? (

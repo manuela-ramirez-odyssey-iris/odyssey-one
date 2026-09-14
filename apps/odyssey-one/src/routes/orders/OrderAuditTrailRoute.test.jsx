@@ -39,12 +39,13 @@ function renderRoute(orderId) {
 afterEach(cleanup)
 
 describe('OrderAuditTrailRoute', () => {
-  test('breadcrumb Orders › View order <n> › Audit Trail, header carries the order, table renders newest-first', async () => {
+  test('breadcrumb Orders › <n> Audit Trail, header carries the order, table renders newest-first', async () => {
     renderRoute(ORDER.orderNumber)
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Audit Trail' })).toBeTruthy())
     expect(screen.getByText('Orders')).toBeTruthy()
-    expect(screen.getByText(`View order ${ORDER.orderNumber}`)).toBeTruthy()
-    expect(screen.getAllByText('Audit Trail').some((el) => el.getAttribute('aria-current') === 'page')).toBe(true)
+    const crumb = screen.getByText(`${ORDER.orderNumber} Audit Trail`)
+    expect(crumb).toBeTruthy()
+    expect(crumb.getAttribute('aria-current')).toBe('page')
     expect(screen.getByText(new RegExp(`Order ${ORDER.orderNumber} · ${SOURCE_LABEL} · Created`))).toBeTruthy()
     await waitFor(() => expect(screen.getByRole('table', { name: 'Audit trail' })).toBeTruthy())
     // DataTable renders a separate head <table> (no aria-label) and body
@@ -55,17 +56,12 @@ describe('OrderAuditTrailRoute', () => {
     for (let k = 1; k < cells.length; k++) expect(cells[k] <= cells[k - 1]).toBe(true)
   })
 
-  test('the middle crumb navigates back to View Order; the navbar close does too', async () => {
+  test('the Orders crumb navigates to the orders list; no title-mode close icon', async () => {
     renderRoute(ORDER.orderNumber)
-    await waitFor(() => expect(screen.getByText(`View order ${ORDER.orderNumber}`)).toBeTruthy())
-    fireEvent.click(screen.getByText(`View order ${ORDER.orderNumber}`))
-    await waitFor(() => expect(screen.getByText('view order page')).toBeTruthy())
-
-    cleanup()
-    renderRoute(ORDER.orderNumber)
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    await waitFor(() => expect(screen.getByText('view order page')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Orders')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+    fireEvent.click(screen.getByText('Orders'))
+    await waitFor(() => expect(screen.getByText('orders list')).toBeTruthy())
   })
 
   test('unknown order → "Order not found" empty state', async () => {
