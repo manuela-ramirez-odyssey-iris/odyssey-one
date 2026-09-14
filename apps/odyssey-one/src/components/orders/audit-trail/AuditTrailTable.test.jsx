@@ -50,8 +50,9 @@ describe('AuditTrailTable', () => {
     expect(within(pageSizeBlock).getByText('Rows per page')).toBeTruthy()
     const trigger = within(pageSizeBlock).getByRole('button')
     // jest-dom is not wired into this suite's expect (no toHaveTextContent) —
-    // read textContent directly.
-    expect(trigger.textContent).toContain('25')
+    // read textContent directly. DropdownButton renders only the value text
+    // (the chevron is an inline SVG with no text), so it's an exact match.
+    expect(trigger.textContent).toBe('25')
 
     // The options are virtual: Dropdown only mounts its DropdownMenu (via a
     // body portal) once opened. Open it to check the AC's exact option set.
