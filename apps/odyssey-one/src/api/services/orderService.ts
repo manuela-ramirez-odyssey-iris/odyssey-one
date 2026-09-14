@@ -15,7 +15,7 @@ import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../ty
 import type { OrderFormValues } from '../types/orderFormVm'
 import type { AuditTrailPage, AuditTrailRequest, AuditTrailOrderMeta } from '../types/auditTrail'
 import { mapAuditReportRow, type AuditReportWireRow } from '../mappers/mapAuditReportRow'
-import { deriveAuditTrail } from '../../components/orders/audit-trail/auditTrail.js'
+import { deriveAuditTrail } from '../../data/auditTrail.js'
 
 // Order list service. live → POST /order-service/v3/order/list with the request
 // verbatim (the params type IS the LLD request shape). mock → simulate the
@@ -827,12 +827,15 @@ export async function getOrderView(
  * 1-based paginate exactly like getOrderList does over orders.json. Both
  * return the same page shape so the table never knows the mode.
  */
-function auditOrderMeta(row: OrderListRow, createdBy: string): AuditTrailOrderMeta {
+function auditOrderMeta(
+  meta: { orderNumber: string; orderSource: string; createdAt?: string; createdTimeZoneCode?: string },
+  createdBy: string,
+): AuditTrailOrderMeta {
   return {
-    orderNumber: row.orderNumber,
-    orderSource: row.orderSource === 'MANUAL' ? 'Manual' : 'Integrated',
-    createdAt: row.createdAt ?? '',
-    createdTimeZoneCode: row.createdTimeZoneCode ?? '',
+    orderNumber: meta.orderNumber,
+    orderSource: meta.orderSource === 'MANUAL' ? 'Manual' : 'Integrated',
+    createdAt: meta.createdAt ?? '',
+    createdTimeZoneCode: meta.createdTimeZoneCode ?? '',
     createdBy,
   }
 }
@@ -841,8 +844,8 @@ export async function getAuditTrail(req: AuditTrailRequest): Promise<AuditTrailP
   if (getApiMode() === 'live') {
     const res = await apiPost<{
       order: { orderNumber: string; orderSource: string; createdAt: string; createdTimeZoneCode?: string; createdBy?: string } | null
-      pagination: { pageNumber: number; pageSize: number; totalCount: number }
-      data: AuditReportWireRow[]
+      pagination?: { pageNumber: number; pageSize: number; totalCount: number }
+      data?: AuditReportWireRow[]
     }>('/order-service/v3/audit-report', {
       orderNumber: req.orderNumber,
       pagination: { pageNumber: req.pageNumber, pageSize: req.pageSize },
@@ -852,14 +855,17 @@ export async function getAuditTrail(req: AuditTrailRequest): Promise<AuditTrailP
     return {
       rows: (res.data ?? []).map(mapAuditReportRow),
       totalCount: res.pagination?.totalCount ?? 0,
-      order: o
-        ? { orderNumber: o.orderNumber, orderSource: o.orderSource === 'MANUAL' ? 'Manual' : 'Integrated', createdAt: o.createdAt, createdTimeZoneCode: o.createdTimeZoneCode ?? '', createdBy: o.createdBy ?? '' }
-        : null,
+      order: o ? auditOrderMeta(o, o.createdBy ?? '') : null,
     }
   }
 
-  const row = overlayRows.find(r => r.orderNumber === req.orderNumber)
-    ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === req.orderNumber)
+  // Number-less pending orders (async create in flight) are addressed by their
+  // synthetic grid key `pending-<orderId>` — same resolution as getOrderView.
+  const pendingId = req.orderNumber.startsWith('pending-') ? req.orderNumber.slice('pending-'.length) : null
+  const row = pendingId
+    ? (getAllOrders() as OrderListRow[]).find(r => !r.orderNumber && String(r.orderId) === pendingId)
+    : overlayRows.find(r => r.orderNumber === req.orderNumber) ??
+      (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === req.orderNumber)
   if (!row) return { rows: [], totalCount: 0, order: null }
 
   const trail = deriveAuditTrail(row, getOrderEnrichment(req.orderNumber))
@@ -868,6 +874,6 @@ export async function getAuditTrail(req: AuditTrailRequest): Promise<AuditTrailP
   return {
     rows: sorted.slice(start, start + req.pageSize),
     totalCount: trail.length,
-    order: auditOrderMeta(row, trail[0]?.source ?? ''),
+    order: auditOrderMeta({ ...row, orderNumber: row.orderNumber || req.orderNumber }, trail[0]?.source ?? ''),
   }
 }

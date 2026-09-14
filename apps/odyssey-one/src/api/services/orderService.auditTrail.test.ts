@@ -9,6 +9,7 @@ import { apiPost } from '../client'
 import { getAuditTrail } from './orderService'
 
 const numbered = (ordersFixture as any[]).find((r) => r.orderNumber && r.orderStatus === 'Planned Shipment')
+const pending = (ordersFixture as any[]).find((r) => !r.orderNumber)
 
 describe('getAuditTrail (mock)', () => {
   beforeEach(() => { (getApiMode as any).mockReturnValue('mock') })
@@ -37,6 +38,14 @@ describe('getAuditTrail (mock)', () => {
     const page = await getAuditTrail({ orderNumber: 'NOPE', pageNumber: 1, pageSize: 25, sortDirection: 'desc' })
     expect(page).toEqual({ rows: [], totalCount: 0, order: null })
   })
+
+  it('resolves a pending-<orderId> key (async create in flight) like getOrderView does', async () => {
+    const key = `pending-${pending.orderId}`
+    const page = await getAuditTrail({ orderNumber: key, pageNumber: 1, pageSize: 25, sortDirection: 'desc' })
+    expect(page.order?.orderNumber).toBe(key)
+    expect(page.rows.length).toBeGreaterThan(0)
+    expect(page.rows[page.rows.length - 1].changeCategory).toBe('Order Creation')
+  })
 })
 
 describe('getAuditTrail (live)', () => {
@@ -59,5 +68,16 @@ describe('getAuditTrail (live)', () => {
     expect(page.totalCount).toBe(1)
     expect(page.order?.orderSource).toBe('Integrated')
     expect(page.rows[0]).toMatchObject({ id: '7', changedBy: 'System', changeType: 'Order Action', changeCategory: 'Order Creation', lineItemId: null })
+  })
+
+  it('empty result (order: null, no data) → empty page', async () => {
+    ;(getApiMode as any).mockReturnValue('live')
+    ;(apiPost as any).mockResolvedValueOnce({
+      order: null,
+      pagination: { pageNumber: 1, pageSize: 25, totalCount: 0 },
+      data: [],
+    })
+    const page = await getAuditTrail({ orderNumber: 'NOPE', pageNumber: 1, pageSize: 25, sortDirection: 'desc' })
+    expect(page).toEqual({ rows: [], totalCount: 0, order: null })
   })
 })

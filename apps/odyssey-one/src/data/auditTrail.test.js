@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { deriveAuditTrail, actorFor, CATEGORY_TYPE } from './auditTrail.js'
-import ordersFixture from '../../../data/orders.json'
-import detailsFixture from '../../../data/order-details.json'
+import ordersFixture from './orders.json'
+import detailsFixture from './order-details.json'
 
 const rows = ordersFixture
 const enrichmentFor = (n) => detailsFixture[n] ?? null

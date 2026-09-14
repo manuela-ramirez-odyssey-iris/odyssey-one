@@ -18,7 +18,7 @@
  * local there on purpose).
  */
 
-import { EQUIPMENT_CODES, FREIGHT_TERMS } from '../../../data/master-data.js'
+import { EQUIPMENT_CODES, FREIGHT_TERMS } from './master-data.js'
 
 // ── PRNG (mulberry32 over an FNV-1a hash of the key) ─────────────────────────
 function hash(str) {
@@ -114,7 +114,7 @@ function lineChange(r, line) {
 /**
  * @param {object} row        orders.json row (OrderListRow)
  * @param {object|null} enrichment order-details.json entry (ManualOrder-shaped) or null
- * @returns {import('../../../api/types/auditTrail').AuditTrailRow[]} oldest → newest
+ * @returns {import('../api/types/auditTrail').AuditTrailRow[]} oldest → newest
  */
 export function deriveAuditTrail(row, enrichment) {
   const r = rng(hash(row.orderNumber || `pending-${row.orderId}`))
