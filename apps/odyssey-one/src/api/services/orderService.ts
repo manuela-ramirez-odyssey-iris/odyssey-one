@@ -598,6 +598,18 @@ function manualOrderToListRow(mo: ManualOrder, orderNumber: string, statusLabel:
   }
 }
 
+// Mock has no server clock/users table — same local-naive ISO shape as the
+// seeded createdAt ("2026-05-29T04:45:00") and the SAME lowercase-dot
+// username rule as usernameFor (tools/seed-users.mjs), reused from updateOrder
+// below.
+const CREATED_TZ = 'EST' // sibling of the orderDateTimeZoneCode this response already stamps
+function localNowIso(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+const usernameFor = (name: string) => name.toLowerCase().replace(/\./g, '').trim().split(/\s+/).join('.')
+
 export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
   if (getApiMode() === 'live') {
     // userId (R2-4/R2-5): same identity pattern as updateOrder/preferenceService
@@ -610,10 +622,14 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   // 90000+seq stays below the seeded id range (91000+), so no collisions.
   const orderId = 90000 + createSeq
   const orderNumber = mo.orderNumber?.trim() || String(orderId).padStart(13, '0') // 13-digit external-ID form, matches seeded shape
-  overlayRows = [
-    manualOrderToListRow(mo, orderNumber, 'Ready for Planning'),
-    ...overlayRows.filter(r => r.orderNumber !== orderNumber),
-  ]
+  const row = manualOrderToListRow(mo, orderNumber, 'Ready for Planning')
+  // Finding 1: stamp creation fields so ⋮ Audit Trail has an anchor — without
+  // these, getAuditTrail (which reads overlayRows first) derives from a row
+  // with no createdAt/createdBy, producing "undefined@odyssey.local" + NaN.
+  row.createdAt = localNowIso()
+  row.createdBy = usernameFor(currentUser.name)
+  row.createdTimeZoneCode = CREATED_TZ
+  overlayRows = [row, ...overlayRows.filter(r => r.orderNumber !== orderNumber)]
   return {
     orderId,
     success: true,
@@ -621,7 +637,7 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
     data: {
       orderNumber,
       orderDate: new Date().toISOString(),
-      orderDateTimeZoneCode: 'EST',
+      orderDateTimeZoneCode: CREATED_TZ,
       shipmentMode: 'Ground', // Q28 open — derivation unknown; mock constant
     },
   }
@@ -646,12 +662,18 @@ export async function updateOrder(orderNumber: string, values: OrderFormValues):
     ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
   const row = manualOrderToListRow(manualOrder, orderNumber, existing?.orderStatus ?? 'Draft')
   if (existing?.orderSource) row.orderSource = existing.orderSource
+  // Finding 1: carry the ORIGINAL creation stamp through the edit — this row
+  // is a full rebuild via manualOrderToListRow, which has no createdAt/
+  // createdBy/createdTimeZoneCode fields at all, so without this an edited
+  // order's ⋮ Audit Trail loses its anchor (same bug class as orderSource above).
+  row.createdAt = existing?.createdAt
+  row.createdBy = existing?.createdBy
+  row.createdTimeZoneCode = existing?.createdTimeZoneCode
   // R2-4: mirror live's last_edited_by/last_edit_at stamp so the Draft column
   // doesn't read '--' right after a mock edit while live shows the editor.
   // Mock has no users table to resolve an id → username; derive inline with
-  // the SAME lowercase-dot rule as usernameFor (tools/seed-users.mjs) — that
-  // function is the twin this line stands in for.
-  row.lastEditedBy = currentUser.name.toLowerCase().replace(/\./g, '').trim().split(/\s+/).join('.')
+  // the SAME lowercase-dot rule as usernameFor (tools/seed-users.mjs).
+  row.lastEditedBy = usernameFor(currentUser.name)
   row.lastEditAt = new Date().toISOString()
   overlayRows = [row, ...overlayRows.filter(r => r.orderNumber !== orderNumber)]
   // Retain the full form values so a reopen hydrates at full fidelity (the

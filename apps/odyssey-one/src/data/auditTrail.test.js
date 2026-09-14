@@ -115,4 +115,12 @@ describe('deriveAuditTrail', () => {
     const ve = rows.find((r) => r.orderNumber && r.orderStatus == null)
     expect(deriveAuditTrail(ve, enrichmentFor(ve.orderNumber))).toEqual([])
   })
+
+  it('a row missing createdAt (no anchor) yields the creation row only, with an empty timestamp', () => {
+    const row = { ...rows.find((r) => r.orderNumber && r.orderStatus === 'Ready for Planning'), createdAt: undefined }
+    const trail = deriveAuditTrail(row, enrichmentFor(row.orderNumber))
+    expect(trail).toHaveLength(1)
+    expect(trail[0].changeCategory).toBe('Order Creation')
+    expect(trail[0].timestamp).toBe('')
+  })
 })

@@ -37,7 +37,8 @@ export default function OrderAuditTrailRoute() {
 
   const order = data?.order
   const supporting = order
-    ? `Order ${order.orderNumber} · ${order.orderSource} · Created ${formatAuditTimestamp(order.createdAt, order.createdTimeZoneCode)} by ${order.createdBy}`
+    ? `Order ${order.orderNumber} · ${order.orderSource} · Created ${formatAuditTimestamp(order.createdAt, order.createdTimeZoneCode)}`
+      + (order.createdBy ? ` by ${order.createdBy}` : '')
     : null
 
   return (
@@ -61,15 +62,19 @@ export default function OrderAuditTrailRoute() {
         ) : (
           <div className="audit-trail__content">
             <PageHeader title="Audit Trail" supportingText={supporting} />
-            <AuditTrailTable
-              rows={data.rows}
-              totalCount={data.totalCount}
-              pagination={pagination}
-              onPaginationChange={setPagination}
-              sorting={sorting}
-              onSortingChange={setSorting}
-              loadingRows={isPlaceholderData}
-            />
+            {data.rows.length === 0 && data.totalCount === 0 ? (
+              <EmptyState icon={<Inbox size={32} />} message="No changes recorded yet" />
+            ) : (
+              <AuditTrailTable
+                rows={data.rows}
+                totalCount={data.totalCount}
+                pagination={pagination}
+                onPaginationChange={setPagination}
+                sorting={sorting}
+                onSortingChange={setSorting}
+                loadingRows={isPlaceholderData}
+              />
+            )}
           </div>
         )}
       </div>

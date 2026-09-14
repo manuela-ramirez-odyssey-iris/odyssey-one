@@ -141,6 +141,17 @@ export function deriveAuditTrail(row, enrichment) {
 
   if (row.orderStatus == null) return [] // validation-error row — not an order yet, nothing to audit
 
+  // A trail cannot be dated without an anchor — a session-created/edited row
+  // missing createdAt (bug, not a legit state — see orderService.ts finding
+  // 1) would otherwise feed addHours(undefined) and produce NaN timestamps
+  // down every row. Render just the creation row with an empty timestamp
+  // (formatter renders '--') instead of cascading NaN.
+  if (!row.createdAt) {
+    push('Order Creation', manual ? user : { changedBy: 'System', source: 'ERP' })
+    rows[0].timestamp = ''
+    return rows
+  }
+
   // 1. Creation — integrated orders arrive from the customer ERP.
   push('Order Creation', manual ? user : { changedBy: 'System', source: 'ERP' })
 

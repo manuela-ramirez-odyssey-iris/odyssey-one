@@ -72,4 +72,12 @@ describe('OrderAuditTrailRoute', () => {
     renderRoute('NOPE')
     await waitFor(() => expect(screen.getByText('Order not found')).toBeTruthy())
   })
+
+  test('a validation-error order (orderStatus null → derives to []) → "No changes recorded yet"', async () => {
+    const ve = rows.find((r) => r.orderNumber && r.orderStatus == null)
+    if (!ve) throw new Error('No validation-error seeded order — regenerate the fixtures.')
+    renderRoute(ve.orderNumber)
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Audit Trail' })).toBeTruthy())
+    expect(screen.getByText('No changes recorded yet')).toBeTruthy()
+  })
 })
