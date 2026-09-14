@@ -11,23 +11,34 @@ const products = [
   { id: 'prod-3', productId: 'C', grossWeight: { value: '300', uom: 'lbs' }, volume: { value: '30', uom: 'cbf' }, scheduleTimezone: '' },
   { id: 'prod-4', productId: 'D', grossWeight: { value: '400', uom: 'lbs' }, volume: { value: '40', uom: 'cbf' } },
 ]
+// Line 1 carries TWO faults (extra-schedule + a second, unrelated timezone
+// fault) so "lists only the offending lines" also proves a multi-fault line
+// still renders as ONE row with both faults stacked and the badge counting
+// both.
 const structural = [
   { id: 's1', rule: 1, kind: 'extra-schedule', line: 1, field: 'Schedules per line', message: 'An order line can have only 1 schedule.' },
+  { id: 's1b', rule: 4, kind: 'timezone-missing', line: 1, field: 'Requested Ship Time Zone', message: 'Requested Ship Time-Zone missing.' },
   { id: 's2', rule: 2, kind: 'quantity-mismatch', line: 2, field: 'Line vs schedule quantity', message: 'Line and Schedule mismatch.' },
   { id: 's3', rule: 4, kind: 'timezone-missing', line: 3, field: 'Requested Ship Time Zone', message: 'Requested Ship Time-Zone missing.' },
 ]
 
 describe('StructuralGrid', () => {
-  test('lists only the offending lines', () => {
+  test('lists only the offending lines, one row per line', () => {
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />)
     const rows = screen.getAllByRole('row').slice(1) // minus header
-    expect(rows.length).toBe(3)
+    expect(rows.length).toBe(3) // lines 1, 2, 3 — not 4 (D has no faults)
     expect(screen.queryByText('D')).toBeNull()
+    // Line 1's two faults both show in its row, and the badge counts both.
+    const row1 = screen.getByText('A').closest('tr')
+    expect(within(row1).getByText('Schedules per line')).toBeTruthy()
+    expect(within(row1).getByText('Requested Ship Time Zone')).toBeTruthy()
+    expect(within(row1).getByText('2 open')).toBeTruthy()
   })
 
-  test('extra schedule: trash on the second schedule fires onFix(s1)', () => {
+  test('extra schedule: trash on the second schedule (in the Fix modal) fires onFix(s1)', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove schedule 2 on line 1' }))
     expect(onFix).toHaveBeenCalledWith('s1', { removeSchedule: 'prod-1-sch-2' })
   })
@@ -35,15 +46,32 @@ describe('StructuralGrid', () => {
   test('quantity mismatch: editing the line weight to the schedule value fires onFix(s2)', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 2' }))
     const input = screen.getByLabelText('Gross weight, line 2')
     fireEvent.change(input, { target: { value: '250' } })
     expect(onFix).toHaveBeenCalledWith('s2', { grossWeight: '250' })
   })
 
-  test('timezone missing: picking a zone fires onFix(s3)', () => {
+  // The row badge flips to Validated once the parent re-renders with the fix
+  // in place — the modal doesn't own that state, `fixes` does.
+  test('quantity mismatch: the row badge reads Validated after the fix lands', () => {
+    const { rerender } = render(
+      <StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />,
+    )
+    expect(within(screen.getByText('B').closest('tr')).getByText('1 open')).toBeTruthy()
+    rerender(<StructuralGrid products={products} structural={structural} fixes={{ s2: { grossWeight: '250' } }} onFix={() => {}} />)
+    expect(within(screen.getByText('B').closest('tr')).getByText('Validated')).toBeTruthy()
+  })
+
+  test('timezone missing: picking a zone via the Dropdown fires onFix(s3)', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
-    fireEvent.change(screen.getByLabelText('Time zone, line 3'), { target: { value: 'CST' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 3' }))
+    // The Dropdown trigger renders the placeholder value as its own text (same
+    // pattern AuditTrailTable.test.jsx uses for the Paginator's Dropdown) — the
+    // anchored portal renders a `menu` role jsdom CAN drive without layout.
+    fireEvent.click(screen.getByRole('button', { name: 'Time zone, line 3' }))
+    fireEvent.click(within(screen.getByRole('menu')).getByText('CST'))
     expect(onFix).toHaveBeenCalledWith('s3', { timezone: 'CST' })
   })
 
@@ -60,27 +88,40 @@ describe('StructuralGrid', () => {
   })
 
   // Weak point 3 — the plan's test name promised a disabled control it never
-  // asserted. The honest behaviour: a fixed row STAYS editable so the planner
-  // can change their mind before submitting; only `disabled` freezes it.
-  test('a fixed row renders its Validated state and stays editable', () => {
+  // asserted. The honest behaviour: a fixed fault STAYS editable so the
+  // planner can change their mind before submitting; only `disabled` freezes it.
+  test('a fixed fault renders its Validated state and stays editable', () => {
     render(<StructuralGrid products={products} structural={structural} fixes={{ s2: { grossWeight: '250' }, s3: { timezone: 'CST' } }} onFix={() => {}} />)
-    const row2 = screen.getByText('B').closest('tr')
-    expect(within(row2).getByText('Validated')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 2' }))
     expect(screen.getByLabelText('Gross weight, line 2').hasAttribute('disabled')).toBe(false)
-    expect(screen.getByLabelText('Time zone, line 3').hasAttribute('disabled')).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 3' }))
+    // The sr-only wrapper label names the trigger; its VISIBLE text is still
+    // the current value ("CST"), the two are separate accessible-name vs.
+    // content concerns.
+    const tzTrigger = screen.getByRole('button', { name: 'Time zone, line 3' })
+    expect(tzTrigger.hasAttribute('disabled')).toBe(false)
+    expect(tzTrigger.textContent).toContain('CST')
   })
 
-  test('disabled renders every control inert', () => {
+  test('disabled: the row action reads View, and the modal renders every control inert', () => {
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} disabled />)
+    expect(screen.queryByRole('button', { name: /^Fix line/ })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'View line 1' }))
     expect(screen.queryByRole('button', { name: /Remove schedule/ })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'View line 2' }))
     expect(screen.getByLabelText('Gross weight, line 2').hasAttribute('disabled')).toBe(true)
-    expect(screen.getByLabelText('Time zone, line 3').hasAttribute('disabled')).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'View line 3' }))
+    expect(screen.getByRole('button', { name: 'Time zone, line 3' }).hasAttribute('disabled')).toBe(true)
   })
 
   test('isStructuralFixed is the predicate the composing panel must reuse', () => {
-    expect(isStructuralFixed(products[1], structural[1], { grossWeight: '250' })).toBe(true)
-    expect(isStructuralFixed(products[1], structural[1], { grossWeight: '999' })).toBe(false)
+    expect(isStructuralFixed(products[1], structural[2], { grossWeight: '250' })).toBe(true)
+    expect(isStructuralFixed(products[1], structural[2], { grossWeight: '999' })).toBe(false)
     expect(isStructuralFixed(products[0], structural[0], { removeSchedule: 'prod-1-sch-2' })).toBe(true)
-    expect(isStructuralFixed(products[2], structural[2], { timezone: '' })).toBe(false)
+    expect(isStructuralFixed(products[2], structural[3], { timezone: '' })).toBe(false)
   })
 })

@@ -411,15 +411,28 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     renderResolve(L1_MIXED.orderNumber, stateFor(L1_MIXED))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
     pickEveryConflict()
-    // The structural fault: a timezone select, an extra schedule, or a weight.
-    const tz = document.querySelector('.structural-grid select')
-    if (tz) fireEvent.change(tz, { target: { value: tz.options[1].value } })
-    const trash = document.querySelector('.structural-grid .co-rep__trash')
-    if (trash) fireEvent.click(trash)
-    const weight = document.querySelector('.structural-grid input[type="text"], .structural-grid input:not([type])')
-    if (weight && !tz && !trash) {
-      const target = within(document.querySelector('.structural-grid')).getByText(/^\d/)
-      fireEvent.change(weight, { target: { value: target.textContent.trim() } })
+    // The structural fault: a timezone Dropdown, an extra schedule, or a
+    // weight — the control now lives in StructuralFixModal (S147), portalled
+    // to document.body, so it must be opened via the grid's Fix button first.
+    const fixButton = screen.queryByRole('button', { name: /^Fix line \d+$/ })
+    if (fixButton) {
+      fireEvent.click(fixButton)
+      const modal = document.querySelector('.structural-grid__modal')
+      const tzTrigger = within(modal).queryByRole('button', { name: /^Time zone, line \d+$/ })
+      const trash = modal.querySelector('.co-rep__trash')
+      if (tzTrigger) {
+        fireEvent.click(tzTrigger)
+        const rows = screen.getByRole('menu').querySelectorAll('.menu-row')
+        fireEvent.click(rows[1]) // skip the "Pick a time zone" placeholder row
+      } else if (trash) {
+        fireEvent.click(trash)
+      } else {
+        const weight = modal.querySelector('input[type="text"], input:not([type])')
+        if (weight) {
+          const target = within(modal).getByText(/^\d/)
+          fireEvent.change(weight, { target: { value: target.textContent.trim() } })
+        }
+      }
     }
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
     fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))

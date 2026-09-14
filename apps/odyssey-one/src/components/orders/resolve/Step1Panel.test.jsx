@@ -94,6 +94,9 @@ describe('Step1Panel', () => {
     const { derived, draft } = setup('structural', 2)
     const qty = derived.structural.find((s) => s.kind === 'quantity-mismatch')
     const line = qty.line
+    // The fix control lives in StructuralFixModal now — open it from the
+    // grid's Action column before reaching for the field.
+    fireEvent.click(screen.getByRole('button', { name: `Fix line ${line}` }))
     const input = screen.getByLabelText(`Gross weight, line ${line}`)
     fireEvent.change(input, { target: { value: '1' } })
     expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(true)

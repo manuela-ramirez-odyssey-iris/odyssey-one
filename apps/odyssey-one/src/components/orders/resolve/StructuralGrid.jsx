@@ -1,8 +1,7 @@
-import { Trash2 } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
-import { FormField } from '@odyssey/ui'
-import { TIMEZONES } from '../../../data/master-data'
+import { useState } from 'react'
+import { Badge, Button, GroupTable } from '@odyssey/ui'
 import { STRUCTURAL_DRAFT_KEYS } from './interfaceErrors.js'
+import StructuralFixModal from './StructuralFixModal.jsx'
 
 /**
  * Is this structural error actually fixed by `fix`?
@@ -36,129 +35,91 @@ export function isStructuralFixed(product, error, fix) {
   }
 }
 
-// The app's one timezone list (src/data/master-data.js) — NOT a second source
-// of truth. The plan's inline 4-zone array was dropped for this.
-const TZ_OPTIONS = TIMEZONES
+const COLUMNS = [
+  { key: 'line', label: 'Line' },
+  { key: 'product', label: 'Product' },
+  { key: 'faults', label: 'Faults' },
+  { key: 'status', label: 'Status', align: 'center' },
+]
 
 /**
  * StructuralGrid — Step 1 (LINX-16049) faults INSIDE a line (rules 1, 2, 4).
  * Only the offending lines render (Level-1 review §2.1 "grouped by defect
- * class"); the faulty cell is the only editable thing on its row. The planner
- * fixes in place (Ramesh 2026-09-10 #6). Controlled via `fixes` {errorId → fix}
- * + `onFix(errorId, fix)` — keyed by ERROR id (`s1`), the same key space
+ * class"), ONE ROW PER LINE (user ruling, 2026-09-14: `GroupTable flat`, not
+ * the hand-rolled table this replaced — "we don't need that many columns" is
+ * also why this isn't DataTable). A line's faults are listed in the Faults
+ * cell; the actual fix controls live in `StructuralFixModal`, opened by the
+ * pinned Action column's button. Controlled via `fixes` {errorId → fix} +
+ * `onFix(errorId, fix)` — keyed by ERROR id (`s1`), the same key space
  * `applyFixes(src, picks, structuralFixes)` expects. `disabled` = read-only
- * look-back.
- *   extra-schedule    → plain trash icon on every schedule beyond the first
- *   quantity-mismatch → line gross weight editable next to the schedule's value
- *   timezone-missing  → zone picker
+ * look-back (button reads "View", modal controls inert).
  *
- * A FIXED row stays editable: the planner may change their mind before
- * submitting, and nothing is committed until the panel calls `applyFixes`.
- * Only `disabled` freezes the controls. The one exception is the trash — once a
- * schedule is nominated for removal the remaining one must not also be
- * removable, so the affordance goes away.
+ * A FIXED fault stays editable in the modal: the planner may change their
+ * mind before submitting, and nothing is committed until the panel calls
+ * `applyFixes`. Only `disabled` freezes the controls.
  *
  * `line` is 1-based over `values.products` — same indexing `applyErrors` /
  * `applyFixes` use (`draft.products[s.line - 1]`), verified in interfaceErrors.js.
  */
 export default function StructuralGrid({ products = [], structural = [], fixes = {}, onFix, disabled = false }) {
+  const [openLine, setOpenLine] = useState(null)
+
+  const lines = [...new Set(structural.map((s) => s.line))].sort((a, b) => a - b)
+
+  const groups = lines.map((line) => {
+    const p = products[line - 1]
+    if (!p) return null
+    const faults = structural.filter((s) => s.line === line)
+    const openCount = faults.filter((s) => !isStructuralFixed(p, s, fixes[s.id])).length
+    return {
+      id: String(line),
+      label: line,
+      values: {
+        product: <span className="odyssey-table__cell--title text-label-sm-medium">{p.productId}</span>,
+        faults: (
+          <ul className="structural-grid__faults">
+            {faults.map((s) => (
+              <li key={s.id}>
+                <div className="text-label-sm-medium">{s.field}</div>
+                <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
+              </li>
+            ))}
+          </ul>
+        ),
+        status: openCount === 0
+          ? <Badge variant="green">Validated</Badge>
+          : <Badge variant="red">{openCount} open</Badge>,
+      },
+      action: (
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={disabled ? `View line ${line}` : `Fix line ${line}`}
+          onClick={() => setOpenLine(line)}
+        >
+          {disabled ? 'View' : 'Fix'}
+        </Button>
+      ),
+    }
+  }).filter(Boolean)
+
+  const openProduct = openLine != null ? products[openLine - 1] : null
+  const openFaults = openLine != null ? structural.filter((s) => s.line === openLine) : []
+
   return (
     <div className="structural-grid">
-      <table className="odyssey-table structural-grid__table">
-        <thead>
-          <tr>
-            <th className="text-label-sm-semibold">Line</th>
-            <th className="text-label-sm-semibold">Product</th>
-            <th className="text-label-sm-semibold">Fault</th>
-            <th className="text-label-sm-semibold">Fix</th>
-          </tr>
-        </thead>
-        <tbody>
-          {structural.map((s) => {
-            const p = products[s.line - 1]
-            if (!p) return null
-            const fix = fixes[s.id]
-            const fixed = isStructuralFixed(p, s, fix)
-            const schedules = p[STRUCTURAL_DRAFT_KEYS['extra-schedule']] ?? []
-            const scheduleQty = p[STRUCTURAL_DRAFT_KEYS['quantity-mismatch']]
-            return (
-              <tr key={s.id} className={fixed ? 'structural-grid__row--fixed' : 'structural-grid__row--error'}>
-                <td>{s.line}</td>
-                <td className="odyssey-table__cell--title text-label-sm-medium">{p.productId}</td>
-                <td>
-                  <div className="text-label-sm-medium">{s.field}</div>
-                  <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
-                </td>
-                <td>
-                  {s.kind === 'extra-schedule' && (
-                    <ul className="structural-grid__schedules">
-                      {schedules.map((sch, i) => (
-                        <li key={sch.id}>
-                          Schedule {i + 1}
-                          {/* Order-creation row convention: a delete affordance is a
-                              plain trash icon, never a Button. `.co-rep__trash` is the
-                              existing skin for exactly that (RepeatableRows/ProductGrid),
-                              reused rather than cloned. */}
-                          {i > 0 && !disabled && !fixed && (
-                            <button
-                              type="button"
-                              className="co-rep__trash"
-                              aria-label={`Remove schedule ${i + 1} on line ${s.line}`}
-                              onClick={() => onFix(s.id, { removeSchedule: sch.id })}
-                            >
-                              <Trash2 {...ICON_LG} />
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {s.kind === 'quantity-mismatch' && (
-                    <div className="structural-grid__pair">
-                      {/* aria-label, NOT label + showLabel={false}: FormField drops the
-                          <label> entirely when showLabel is false, so a `label` prop
-                          would leave the input nameless. aria-label rides `...rest`
-                          onto the <input> and is the single accessible name. */}
-                      <FormField
-                        aria-label={`Gross weight, line ${s.line}`}
-                        format="decimal"
-                        value={fix?.grossWeight ?? p.grossWeight?.value ?? ''}
-                        onChange={(e) => onFix(s.id, { grossWeight: e.target.value })}
-                        disabled={disabled}
-                        validated={fixed}
-                      />
-                      <span className="text-label-xs-regular structural-grid__hint">
-                        schedule says {scheduleQty?.grossWeight} {p.grossWeight?.uom}
-                      </span>
-                    </div>
-                  )}
-                  {s.kind === 'timezone-missing' && (
-                    /* ponytail: native <select>. The normalized Dropdown renders an
-                       anchored portal jsdom cannot drive, and the Level-1 visual
-                       design has not landed. Swap to Dropdown when it does. */
-                    <select
-                      aria-label={`Time zone, line ${s.line}`}
-                      className="structural-grid__select text-label-sm-regular"
-                      value={fix?.timezone ?? ''}
-                      onChange={(e) => onFix(s.id, { timezone: e.target.value })}
-                      disabled={disabled}
-                    >
-                      <option value="">Pick a time zone</option>
-                      {TZ_OPTIONS.map((z) => <option key={z} value={z}>{z}</option>)}
-                    </select>
-                  )}
-                  {/* FormField renders its own "Validated" line, so the quantity row
-                      must NOT get a second one — `within(row).getByText('Validated')`
-                      would match twice. */}
-                  {fixed && s.kind !== 'quantity-mismatch' && (
-                    <p className="structural-grid__validated text-label-xs-regular">Validated</p>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <GroupTable flat stickyActions actionsHeader={null} columns={COLUMNS} groups={groups} />
+      {openLine != null && openProduct && (
+        <StructuralFixModal
+          line={openLine}
+          product={openProduct}
+          faults={openFaults}
+          fixes={fixes}
+          onFix={onFix}
+          disabled={disabled}
+          onClose={() => setOpenLine(null)}
+        />
+      )}
     </div>
   )
 }
