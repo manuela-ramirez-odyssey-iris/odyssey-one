@@ -18,8 +18,8 @@ const products = [
   // legitimately '' (not a bug), and a lean order can lack a description too.
   { id: 'prod-5', productId: '', description: 'Sulfuric Acid 93%', grossWeight: { value: '500', uom: 'lbs' }, volume: { value: '50', uom: 'cbf' }, scheduleTimezone: '' },
   { id: 'prod-6', productId: '', description: '', grossWeight: { value: '600', uom: 'lbs' }, volume: { value: '60', uom: 'cbf' }, scheduleTimezone: '' },
-  // No weight unit came in on the message — the selector must read "Select
-  // unit" so the planner sees one is owed (S147, MeasureField's uomPlaceholder).
+  // No weight unit came in on the message — the selector must read UOM,
+  // MeasureField's plain default (S147).
   { id: 'prod-7', productId: 'G', grossWeight: { value: '700', uom: '' }, volume: { value: '70', uom: 'cbf' }, scheduleQuantity: { grossWeight: '700', volume: '70' } },
 ]
 // Line 1 carries TWO faults (extra-schedule + a second, unrelated timezone
