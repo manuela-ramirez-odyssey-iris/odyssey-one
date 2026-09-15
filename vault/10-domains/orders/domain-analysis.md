@@ -264,6 +264,7 @@ Per LINX-7958 (the mature, Approved audit epic; the older LINX-7939 is empty —
 - **Granularity** captured at **order level** (LINX-8091) and at **line-item level** (LINX-9128).
 - **What it records** what changed (field path, old value → new value), who (User/System/Process — user email captured in CreatedBy/UpdatedBy via User-Management API), and when (timestamp) (LINX-7939 epic, LINX-9784, LINX-9730, LINX-8458). Field-level diffs are computed by a JSON-comparison component over old/new order JSON, producing added/removed/modified maps with dotted field paths, e.g. `order.orderStatus.orderStatusCode` (LINX-9730).
 - **History UI** an Audit Trail tab on the order detail, served by `POST /order-service/v3/audit-report` (paged: field, oldValue, newValue, changeMadeBy) — single-line and multi-line variants (LINX-10812, LINX-10815, [[order-service-api]], LINX-8457).
+- **Visual design + AC intake (2026-09-14)** — both stories' ACs read for the first time (nine categories in 9128, `--` blanks, 10–40/25 paging, sort on timestamp), Ramesh's 2026-09-10 walkthrough, Laura's mock corrected, and the user's rulings (own page from the ⋮ menu, gray/purple value badges, no alarm icon). **Not a tab** any more — see [[10-domains/orders/audit-trail|audit-trail]] and ORD-27. Row granularity (one row per save with a field list, per the AC, vs one row per field, per Ramesh aloud) is open as Q-AT-1.
 
 ---
 

@@ -20,6 +20,7 @@ Hub for the Orders domain canon in OdysseyONE. Orders create the customer order 
 - [[10-domains/orders/requirements-tracker|Requirements tracker]] — synthesized story matrix from Ramesh's master FR tracker (LINX-5943), with a per-story **Prototype state** column (Built / Partial / Stub / Absent / backend) and a UI coverage summary.
 - [[10-domains/orders/orders-search-progression|Search progression]] — the Orders search vocabulary (20 attributes / 9 groups) built from the grid columns; two flat catalogs (20 bar attributes vs 13 panel fields, both on every tab since ORD-23), the three label sets, the `orderSearchRow` projection, and the open panel-vs-column naming conflicts. Generated taxonomy sheet at `data/attributes-progression-grouping.csv`.
 - [[10-domains/orders/decisions/decision-log|Decision log]] — implemented Orders decisions + PO-conformance observations (`ORD-` prefix). ORD-01 = Ramesh's 2026-06-15 prototype gap report.
+- [[10-domains/orders/audit-trail|Audit trail]] — LINX-8091 / LINX-9128 canon (2026-09-14): purpose, boundaries, the nine-category vocabulary, the contested row granularity (Q-AT-1), placement + interaction rulings, what Laura's mock got right and what the build corrects. Design in `docs/superpowers/specs/2026-09-14-order-audit-trail-design.md`.
 
 ## API & integration
 

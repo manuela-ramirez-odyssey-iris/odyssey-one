@@ -63,8 +63,8 @@ Related canon: [[domain-analysis]] · [[section-map]] · [[screens-reference]] �
 
 | Story | Story # | Type | Tracker status | Prototype state |
 |---|---|---|---|---|
-| **Audit Trail (Single Line Item) — View Actions & Events** | **LINX-8091** | **UI** | Complete (readiness Yet to Start) | **Absent** |
-| **Audit Trail (Multiple Line Items) — View Actions & Events** | **LINX-9128** | **UI** | Complete (readiness Yet to Start) | **Absent** |
+| **Audit Trail (Single Line Item) — View Actions & Events** | **LINX-8091** | **UI** | Blocked / `VD_Pending` (Jira 2026-09-10) | **Absent — spec'd 2026-09-14** ([[audit-trail]], ORD-27) |
+| **Audit Trail (Multiple Line Items) — View Actions & Events** | **LINX-9128** | **UI** | Blocked / `VD_Pending` (Jira 2026-09-10) | **Absent — spec'd 2026-09-14** ([[audit-trail]], ORD-27) |
 
 ### Sub-Epic LINX-7553 — Manual Order Creation (Quick Order) (priority 5)
 
