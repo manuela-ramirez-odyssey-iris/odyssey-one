@@ -356,21 +356,23 @@ const pickEveryConflict = () => {
 
 // S147: an advance (Validate, or Step 2 Save) now holds the next step's
 // status/body until ResolveTimeline's line lands — a JS setTimeout keyed on
-// --resolve-timeline-fill (1200ms), not a real CSS animation, so fake timers
-// are what "the line arrives" means in jsdom. Real timers are used for
-// everything up to the click (data loads, RTL's own polling waitFor).
+// --resolve-timeline-fill (900ms, S147 second pass), not a real CSS animation,
+// so fake timers are what "the line arrives" means in jsdom (jsdom reports no
+// computed value for the custom property, so ResolveTimeline falls back to
+// its own 900ms literal — same number). Real timers are used for everything
+// up to the click (data loads, RTL's own polling waitFor).
 async function clickAndAwaitArrival(name) {
   // Fake timers must be on BEFORE the click — the arrival timer ResolveTimeline
   // schedules on the passed-flip is a real `setTimeout`, so it must be
   // registered while fake timers are already active or advancing the fake
   // clock later never touches it. The click's own async write (Validate's
   // save, Step 2's resolve) is promise-only, no timers, so a couple of
-  // microtask flushes settle it before the 1200ms fill is advanced.
+  // microtask flushes settle it before the 900ms fill is advanced.
   vi.useFakeTimers()
   try {
     fireEvent.click(screen.getByRole('button', { name }))
     await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve() })
-    await act(async () => { await vi.advanceTimersByTimeAsync(1200) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(900) })
   } finally {
     vi.useRealTimers()
   }
@@ -443,8 +445,10 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
 
   // S147, user ruling: "the line's arrival is what brings the next step to
   // life" — Validate flips the line moving (dot 1 goes passed/green) but must
-  // NOT reveal Step 2 until the line lands.
-  test('after Validate, Step 1 stays on screen and dot 2 stays neutral until the line arrives', async () => {
+  // NOT reveal Step 2 until the line lands. S147 second pass: mid-travel is no
+  // longer a frozen Step 1 — a Spinner fills the body and NEITHER step's
+  // content is on screen.
+  test('after Validate, the body shows a spinner (neither step) until the line arrives', async () => {
     renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
     pickEveryConflict()
@@ -456,21 +460,39 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     try {
       fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
       await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve() })
-      // Mid-travel: the line is animating but hasn't landed — Step 1's own
-      // footer is still what's on screen, and dot 2 has not gone red.
-      await act(async () => { await vi.advanceTimersByTimeAsync(600) })
+      // Mid-travel: the line is animating but hasn't landed — neither step's
+      // body is on screen, a spinner fills the gap, and dot 2 has not gone red.
+      await act(async () => { await vi.advanceTimersByTimeAsync(450) })
       expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
-      expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
+      expect(document.querySelector('.resolve-shell__transit .spinner')).toBeTruthy()
       expect(stepEl('Data errors').querySelector('.step-indicator').className).not.toContain('step-indicator--error')
       expect(within(timeline()).getByText('locked')).toBeTruthy()
 
-      // Arrival: the line has now landed — Step 2's body and real dot status appear.
-      await act(async () => { await vi.advanceTimersByTimeAsync(600) })
+      // Arrival: the line has now landed — Step 2's body and real dot status
+      // appear, and the spinner is gone.
+      await act(async () => { await vi.advanceTimersByTimeAsync(450) })
       expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
       expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
+      expect(document.querySelector('.resolve-shell__transit')).toBeNull()
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  // S147, new: a look-back (clicking a passed dot) is instant — no line, no
+  // spinner, ever.
+  test('a look-back never shows a spinner', async () => {
+    renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    pickEveryConflict()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+    await clickAndAwaitArrival('Validate and continue')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+
+    fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
+    expect(document.querySelector('.resolve-shell__transit')).toBeNull()
+    expect(screen.getAllByText('Validated').length).toBeGreaterThan(0)
   })
 
   test('prefers-reduced-motion: Validate reveals Step 2 immediately, no wait', async () => {

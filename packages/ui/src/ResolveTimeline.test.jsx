@@ -80,7 +80,7 @@ describe('ResolveTimeline arrival pop', () => {
     act(() => { rerender(<ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" />) })
     expect(s2Dot().className).toContain('resolve-timeline__dot--arrived')
 
-    act(() => { vi.advanceTimersByTime(1200 + 350) })
+    act(() => { vi.advanceTimersByTime(900 + 350) })
     expect(s2Dot().className).not.toContain('resolve-timeline__dot--arrived')
   })
 
@@ -99,7 +99,7 @@ describe('ResolveTimeline arrival pop', () => {
     )
     act(() => { rerender(<ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" onArrive={onArrive} />) })
     expect(onArrive).not.toHaveBeenCalled()
-    act(() => { vi.advanceTimersByTime(1200) })
+    act(() => { vi.advanceTimersByTime(900) })
     expect(onArrive).toHaveBeenCalledWith('s2')
   })
 
@@ -107,7 +107,7 @@ describe('ResolveTimeline arrival pop', () => {
     const { rerender } = render(<ResolveTimeline steps={steps({ s1: { passed: false } })} current="s2" />)
     expect(() => {
       act(() => { rerender(<ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" />) })
-      act(() => { vi.advanceTimersByTime(1200 + 350) })
+      act(() => { vi.advanceTimersByTime(900 + 350) })
     }).not.toThrow()
   })
 })

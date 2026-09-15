@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { Alert, Button, PageHeader, ResolveTimeline } from '@odyssey/ui'
+import { Alert, Button, PageHeader, ResolveTimeline, Spinner } from '@odyssey/ui'
 import CreateOrderForm from '../create/CreateOrderForm.jsx'
 import ConfirmationView from '../create/ConfirmationView.jsx'
 import Step1Panel from './Step1Panel.jsx'
@@ -32,6 +32,13 @@ import { getOrderList, getOrderView, saveInterfaceFixes } from '../../../api/ser
  *                < step). A step the planner has not reached has no
  *                `onClick`, which is what ResolveTimeline renders as locked.
  *                A look-back is instant — no line travels, nothing to await.
+ *                On a forward advance `viewing` goes `null` for the transit
+ *                (Validate/Save until arrival) so NEITHER step's body is
+ *                rendered — a centred Spinner fills `.resolve-shell__body`
+ *                instead of the old step's content sitting there frozen
+ *                (user ruling, S147: "never a frozen previous step"). A
+ *                look-back never sets `viewing` to `null` — only a forward
+ *                advance does.
  *
  * Entry (LINX-16049 §II): Level 1 errors → Step 1; none → Step 2 with dot 1
  * already passed. "Validate and continue" SAVES the Step 1 fixes immediately
@@ -62,7 +69,7 @@ export default function ResolveShell({ orderNumber }) {
   // Belt-and-braces: if `onArrive` never fires (reduced motion already
   // short-circuits below, but also a hidden/throttled tab, or any path not
   // foreseen), reveal anyway once the fill + pop would have finished — same
-  // total as ResolveTimeline's own ARRIVED_MS (1200 fill + 350 pop) so the
+  // total as ResolveTimeline's own fill+pop (900 fill + 350 pop, S147) so the
   // fallback never fires BEFORE a real arrival could have.
   const scheduleReveal = useCallback((n) => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
@@ -70,7 +77,7 @@ export default function ResolveShell({ orderNumber }) {
       return
     }
     clearTimeout(revealTimer.current)
-    revealTimer.current = setTimeout(() => reveal(n), 1200 + 350)
+    revealTimer.current = setTimeout(() => reveal(n), 900 + 350)
   }, [reveal])
   useEffect(() => () => clearTimeout(revealTimer.current), [])
   // Stable identity, not an inline arrow: ResolveTimeline's arrival effect is
@@ -157,7 +164,10 @@ export default function ResolveShell({ orderNumber }) {
     setStep2OpenCount(null)
     // S147: `progress` flips now (line animates); `step`/`viewing` — Step 2's
     // real status and body — wait for the line to arrive (or the fallback).
+    // `viewing` goes null for the transit: a Spinner fills the body instead
+    // of Step 1's now-stale content sitting there frozen.
     setProgress(2)
+    setViewing(null)
     scheduleReveal(2)
   }, [loaded, orderNumber, scheduleReveal])
 
@@ -223,7 +233,7 @@ export default function ResolveShell({ orderNumber }) {
         <ResolveTimeline
           className="resolve-shell__timeline"
           steps={steps}
-          current={`s${viewing}`}
+          current={viewing != null ? `s${viewing}` : undefined}
           onArrive={handleArrive}
         />
         {saveError && (
@@ -231,6 +241,7 @@ export default function ResolveShell({ orderNumber }) {
         )}
       </div>
 
+      <div className="resolve-shell__body">
       {loaded && viewing === 1 && (
         <Step1Panel
           orderNumber={orderNumber}
@@ -254,7 +265,7 @@ export default function ResolveShell({ orderNumber }) {
           hideHeader
           pickedPaths={Object.keys(step1.picks)}
           onProgress={setStep2OpenCount}
-          onResolved={(values) => { setFinalValues(values); setProgress(3); scheduleReveal(3) }}
+          onResolved={(values) => { setFinalValues(values); setProgress(3); setViewing(null); scheduleReveal(3) }}
           /* A FAILED purge is surfaced by the form itself (its page-level error
              Alert) — this only runs on success. */
           onPurged={() => navigate('/orders')}
@@ -281,6 +292,15 @@ export default function ResolveShell({ orderNumber }) {
           </div>
         </div>
       )}
+      {/* S147: viewing is null only mid-transit on a forward advance (never on
+          a look-back) — neither step's body renders, a centred Spinner fills
+          the gap instead of the previous step's now-stale content. */}
+      {loaded && viewing == null && (
+        <div className="resolve-shell__transit">
+          <Spinner size={32} />
+        </div>
+      )}
+      </div>
     </div>
   )
 }

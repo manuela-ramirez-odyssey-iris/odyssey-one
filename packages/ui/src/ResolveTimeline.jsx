@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import StepIndicator from './StepIndicator.jsx'
 
-// Fill duration, mirrored from --resolve-timeline-fill (S147) — the moment
-// the line arrives and the pop begins, which is also when `onArrive` fires.
-const FILL_MS = 1200
-// Delay/duration for the arrival pop, mirrored from the CSS custom property
-// so the removal timer matches --resolve-timeline-fill + the keyframe length
-// without a second hardcoded number to drift.
-const ARRIVED_MS = FILL_MS + 350
+// Fill duration — read at runtime from --resolve-timeline-fill on the
+// timeline's own root (S147) so the CSS value is the single source of truth;
+// no hand-mirrored JS constant to drift out of sync with the transition it
+// times. `FILL_MS` below is only the fallback for when the computed value is
+// unreadable (jsdom in tests has no CSS engine and reports '').
+const FILL_MS = 900
+const POP_MS = 350 // matches the arrival-pop keyframe duration in CSS
+function readFillMs(el) {
+  const raw = el && getComputedStyle(el).getPropertyValue('--resolve-timeline-fill')
+  const parsed = raw && parseFloat(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : FILL_MS
+}
 
 /**
  * ResolveTimeline — molecule (STAGING / NORMALIZING, S145). Horizontal
@@ -48,6 +53,7 @@ const ARRIVED_MS = FILL_MS + 350
  */
 export default function ResolveTimeline({ steps = [], current, onArrive, className = '', ...rest }) {
   const prevPassed = useRef(null) // null until after first mount — no pop on mount
+  const rootRef = useRef(null)
   const [arrivedKey, setArrivedKey] = useState(null)
 
   useEffect(() => {
@@ -56,15 +62,17 @@ export default function ResolveTimeline({ steps = [], current, onArrive, classNa
     prevPassed.current = Object.fromEntries(steps.map((s) => [s.key, s.passed]))
     if (flipped) {
       const nextStep = steps[steps.indexOf(flipped) + 1]
+      const fillMs = readFillMs(rootRef.current)
       setArrivedKey(nextStep.key)
-      const arrive = setTimeout(() => onArrive?.(nextStep.key), FILL_MS)
-      const clear = setTimeout(() => setArrivedKey((k) => (k === nextStep.key ? null : k)), ARRIVED_MS)
+      const arrive = setTimeout(() => onArrive?.(nextStep.key), fillMs)
+      const clear = setTimeout(() => setArrivedKey((k) => (k === nextStep.key ? null : k)), fillMs + POP_MS)
       return () => { clearTimeout(arrive); clearTimeout(clear) }
     }
   }, [steps, onArrive])
 
   return (
     <ol
+      ref={rootRef}
       className={`resolve-timeline${className ? ` ${className}` : ''}`}
       role="list"
       aria-label="Resolution progress"

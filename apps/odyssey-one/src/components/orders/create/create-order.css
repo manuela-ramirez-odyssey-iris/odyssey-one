@@ -1002,6 +1002,20 @@
 .resolve-shell__timeline {
   margin: var(--spacing-6) 0 var(--spacing-4);
 }
+/* Stable body height across the three very differently-sized bodies (a tall
+   Step 1/2 form vs. the compact transit spinner vs. the summary preview) so
+   swapping between them never collapses the page and jumps the scroll
+   position. 420px is the shortest real body's rough floor (Step 1's header +
+   a couple of error rows) — tall bodies simply grow past it as they do today. */
+.resolve-shell__body {
+  min-height: 420px;
+}
+.resolve-shell__transit {
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 /* Step 3 reuses the Order Summary layout, which pulls itself UP by the
    AppShell's 32px padding to bleed its grey band full-width. Under the shell
    there is a timeline directly above it, and that negative top margin dragged

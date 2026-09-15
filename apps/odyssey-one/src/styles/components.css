@@ -5354,7 +5354,7 @@ button.breadcrumb__label:focus-visible {
    Every step is flex:1 of equal width, so a segment can reach the next dot's
    centre with a pure percentage offset. */
 .resolve-timeline {
-  --resolve-timeline-fill: 1200ms;
+  --resolve-timeline-fill: 900ms;
   display: flex;
   align-items: flex-start;
   list-style: none;
@@ -5410,7 +5410,9 @@ button.breadcrumb__label:focus-visible {
    lives in --resolve-timeline-fill (1200ms, S147) so the fill transition and
    the arrival-pop delay below can never drift apart — no token in tokens.css
    reads this slow; same cubic-bezier family as --transition-chart-grow, just
-   stretched. */
+   stretched. ResolveTimeline reads this value at runtime (getComputedStyle)
+   instead of mirroring it as a JS constant, so this is the only place the
+   duration lives (900ms, S147). */
 .resolve-timeline__segment::after {
   content: '';
   position: absolute;
