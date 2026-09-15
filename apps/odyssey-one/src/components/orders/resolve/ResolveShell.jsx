@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Alert, Button, PageHeader, ResolveTimeline } from '@odyssey/ui'
@@ -16,11 +16,22 @@ import { getOrderList, getOrderView, saveInterfaceFixes } from '../../../api/ser
  * third step previews the resolved order.
  *
  * Navigation is BOTH WAYS, EDITABLE ONLY FORWARD:
- *   `step`    — how far the planner has actually PROGRESSED (1 | 2 | 3)
- *   `viewing` — which body is on screen
- * They differ during a read-only look-back (viewing < step). A step the
- * planner has not reached has no `onClick`, which is what ResolveTimeline
- * renders as locked.
+ *   `progress` — how far the planner has actually PROGRESSED (1 | 2 | 3);
+ *                drives the timeline's `passed` flags, so the line animates
+ *                the instant Validate/Save fires.
+ *   `step`     — which step's status/detail/body the shell currently SHOWS.
+ *                On a forward advance this lags `progress` until the line
+ *                arrives (ResolveTimeline's `onArrive`, S147, user ruling:
+ *                "the line's arrival is what brings the next step to life")
+ *                — the previous body stays on screen and the next dot stays
+ *                neutral until then. A `revealTimer` fallback fires the same
+ *                reveal if `onArrive` never does (hidden tab, no preceding
+ *                segment, anything unforeseen), and `prefers-reduced-motion`
+ *                skips the wait entirely.
+ *   `viewing`  — which body is on screen for a read-only LOOK-BACK (viewing
+ *                < step). A step the planner has not reached has no
+ *                `onClick`, which is what ResolveTimeline renders as locked.
+ *                A look-back is instant — no line travels, nothing to await.
  *
  * Entry (LINX-16049 §II): Level 1 errors → Step 1; none → Step 2 with dot 1
  * already passed. "Validate and continue" SAVES the Step 1 fixes immediately
@@ -36,8 +47,37 @@ export default function ResolveShell({ orderNumber }) {
   const location = useLocation()
   const meta = location.state ?? {}
   const [loaded, setLoaded] = useState(null) // { derived, draft, values }
-  const [step, setStep] = useState(1)
+  const [progress, setProgress] = useState(1) // real progress — drives `passed` immediately
+  const [step, setStep] = useState(1) // what's shown — lags `progress` until the line arrives
   const [viewing, setViewing] = useState(1)
+  const revealTimer = useRef(null)
+  // S147: reveal the next step's status/body. Called either by
+  // ResolveTimeline's `onArrive` (line lands) or by the fallback timer below.
+  // Idempotent-safe: whichever fires first wins, the other is cancelled.
+  const reveal = useCallback((n) => {
+    clearTimeout(revealTimer.current)
+    setStep(n)
+    setViewing(n)
+  }, [])
+  // Belt-and-braces: if `onArrive` never fires (reduced motion already
+  // short-circuits below, but also a hidden/throttled tab, or any path not
+  // foreseen), reveal anyway once the fill + pop would have finished — same
+  // total as ResolveTimeline's own ARRIVED_MS (1200 fill + 350 pop) so the
+  // fallback never fires BEFORE a real arrival could have.
+  const scheduleReveal = useCallback((n) => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      reveal(n)
+      return
+    }
+    clearTimeout(revealTimer.current)
+    revealTimer.current = setTimeout(() => reveal(n), 1200 + 350)
+  }, [reveal])
+  useEffect(() => () => clearTimeout(revealTimer.current), [])
+  // Stable identity, not an inline arrow: ResolveTimeline's arrival effect is
+  // keyed on [steps, onArrive], and `steps` already changes every render this
+  // shell re-renders on — a fresh function here would re-run that effect's
+  // cleanup and clear the pending arrival timer before it ever fires.
+  const handleArrive = useCallback((key) => reveal(Number(key.slice(1))), [reveal])
   /**
    * ALL THREE pieces of Step 1's answer live here, not just `picks`
    * (amendment, Task 7 review #1). Step1Panel seeds `structuralFixes` and
@@ -80,6 +120,8 @@ export default function ResolveShell({ orderNumber }) {
       const derived = deriveInterfaceErrors(orderNumber, m.count, m.klass, values)
       const start = derived.errors.length ? 1 : 2
       setLoaded({ derived, draft: derived.applyErrors(values), values })
+      clearTimeout(revealTimer.current)
+      setProgress(start)
       setStep(start)
       setViewing(start)
       setStep1({ picks: {}, structuralFixes: {}, deleteFlag: null })
@@ -113,9 +155,11 @@ export default function ResolveShell({ orderNumber }) {
     // NOT change here — only a remount re-runs it. Hence the key bump.
     setStep2Key((k) => k + 1)
     setStep2OpenCount(null)
-    setStep(2)
-    setViewing(2)
-  }, [loaded, orderNumber])
+    // S147: `progress` flips now (line animates); `step`/`viewing` — Step 2's
+    // real status and body — wait for the line to arrive (or the fallback).
+    setProgress(2)
+    scheduleReveal(2)
+  }, [loaded, orderNumber, scheduleReveal])
 
   // Every number the timeline shows comes from the DERIVED error list, never
   // from the seeded `interfaceErrorCount`: the seed is clamped per class, so
@@ -135,9 +179,10 @@ export default function ResolveShell({ orderNumber }) {
         // stay green regardless; unreached steps are handled below ('off').
         status: !loaded ? 'off' : step === 1 ? (step1OpenCount > 0 ? 'error' : 'on') : 'on',
         // S147: line only fills once the planner has ADVANCED past the step —
-        // keyed on `step` (progress), not `viewing` (look-back), so opening
-        // Step 1 read-only from Step 2 doesn't un-green the track behind it.
-        passed: step > 1,
+        // keyed on `progress`, not `viewing` (look-back) or `step` (which
+        // lags until arrival) — so the line starts moving the instant
+        // Validate fires, and opening Step 1 read-only doesn't un-green it.
+        passed: progress > 1,
         onClick: step > 1 && viewing !== 1 ? () => setViewing(1) : undefined,
       },
       {
@@ -152,7 +197,7 @@ export default function ResolveShell({ orderNumber }) {
           ? (step2OpenCount === 0 ? 'all errors resolved · ready to continue' : 'in progress')
           : 'passed',
         status: step < 2 ? 'off' : step === 2 ? (step2OpenCount === 0 ? 'on' : 'error') : 'on',
-        passed: step > 2,
+        passed: progress > 2,
         onClick: step >= 2 && viewing !== 2 ? () => setViewing(2) : undefined,
       },
       {
@@ -164,7 +209,7 @@ export default function ResolveShell({ orderNumber }) {
         onClick: step === 3 && viewing !== 3 ? () => setViewing(3) : undefined,
       },
     ]
-  }, [loaded, step, viewing, l1Count, step1OpenCount, step2OpenCount])
+  }, [loaded, step, progress, viewing, l1Count, step1OpenCount, step2OpenCount])
 
   return (
     <div className="resolve-shell">
@@ -175,7 +220,12 @@ export default function ResolveShell({ orderNumber }) {
           </Button>
         </PageHeader>
         <p className="text-label-sm-regular co-resolve-subheading">Order Number {orderNumber}</p>
-        <ResolveTimeline className="resolve-shell__timeline" steps={steps} current={`s${viewing}`} />
+        <ResolveTimeline
+          className="resolve-shell__timeline"
+          steps={steps}
+          current={`s${viewing}`}
+          onArrive={handleArrive}
+        />
         {saveError && (
           <Alert variant="error" onClose={() => setSaveError('')}>{saveError}</Alert>
         )}
@@ -204,7 +254,7 @@ export default function ResolveShell({ orderNumber }) {
           hideHeader
           pickedPaths={Object.keys(step1.picks)}
           onProgress={setStep2OpenCount}
-          onResolved={(values) => { setFinalValues(values); setStep(3); setViewing(3) }}
+          onResolved={(values) => { setFinalValues(values); setProgress(3); scheduleReveal(3) }}
           /* A FAILED purge is surfaced by the form itself (its page-level error
              Alert) — this only runs on success. */
           onPurged={() => navigate('/orders')}

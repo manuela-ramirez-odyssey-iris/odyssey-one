@@ -3,7 +3,7 @@
 // the Order Validation Error Resolution view — chrome, seeded field states,
 // Alert wiring, and the Save/Purge transition.
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, cleanup, waitFor, fireEvent, within } from '@testing-library/react'
+import { render, screen, cleanup, waitFor, fireEvent, within, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CreateOrderRoute from '../../../routes/orders/CreateOrderRoute.jsx'
@@ -354,6 +354,28 @@ const pickEveryConflict = () => {
   }
 }
 
+// S147: an advance (Validate, or Step 2 Save) now holds the next step's
+// status/body until ResolveTimeline's line lands — a JS setTimeout keyed on
+// --resolve-timeline-fill (1200ms), not a real CSS animation, so fake timers
+// are what "the line arrives" means in jsdom. Real timers are used for
+// everything up to the click (data loads, RTL's own polling waitFor).
+async function clickAndAwaitArrival(name) {
+  // Fake timers must be on BEFORE the click — the arrival timer ResolveTimeline
+  // schedules on the passed-flip is a real `setTimeout`, so it must be
+  // registered while fake timers are already active or advancing the fake
+  // clock later never touches it. The click's own async write (Validate's
+  // save, Step 2's resolve) is promise-only, no timers, so a couple of
+  // microtask flushes settle it before the 1200ms fill is advanced.
+  vi.useFakeTimers()
+  try {
+    fireEvent.click(screen.getByRole('button', { name }))
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve() })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1200) })
+  } finally {
+    vi.useRealTimers()
+  }
+}
+
 describe('two-step resolution shell (LINX-16049 + 11137)', () => {
   test('order with Level 1 errors opens at Step 1; dot 2 is locked and Purge is absent', async () => {
     renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
@@ -403,7 +425,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
     pickEveryConflict()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+    await clickAndAwaitArrival('Validate and continue')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
     expect(within(timeline()).getByText(/passed/)).toBeTruthy()
 
@@ -417,6 +439,53 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     expect(screen.getAllByText('Validated').length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Enter another value' })).toBeNull()
+  })
+
+  // S147, user ruling: "the line's arrival is what brings the next step to
+  // life" — Validate flips the line moving (dot 1 goes passed/green) but must
+  // NOT reveal Step 2 until the line lands.
+  test('after Validate, Step 1 stays on screen and dot 2 stays neutral until the line arrives', async () => {
+    renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    pickEveryConflict()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+    // Fake timers go on BEFORE the click — the arrival timer is a real
+    // `setTimeout` registered the instant `progress` flips, so it must be
+    // scheduled while fake timers are already active (see clickAndAwaitArrival).
+    vi.useFakeTimers()
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+      await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve() })
+      // Mid-travel: the line is animating but hasn't landed — Step 1's own
+      // footer is still what's on screen, and dot 2 has not gone red.
+      await act(async () => { await vi.advanceTimersByTimeAsync(600) })
+      expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy()
+      expect(stepEl('Data errors').querySelector('.step-indicator').className).not.toContain('step-indicator--error')
+      expect(within(timeline()).getByText('locked')).toBeTruthy()
+
+      // Arrival: the line has now landed — Step 2's body and real dot status appear.
+      await act(async () => { await vi.advanceTimersByTimeAsync(600) })
+      expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('prefers-reduced-motion: Validate reveals Step 2 immediately, no wait', async () => {
+    const original = window.matchMedia
+    window.matchMedia = (q) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener() {}, removeEventListener() {} })
+    try {
+      renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+      pickEveryConflict()
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+      fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    } finally {
+      window.matchMedia = original
+    }
   })
 
   // AMENDMENT (Task 7 review #1): the shell must hand back structuralFixes and
@@ -464,7 +533,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     }
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+    await clickAndAwaitArrival('Validate and continue')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
 
     fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
@@ -479,7 +548,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
     expect(screen.getByText('Not answered yet')).toBeTruthy()
     fireEvent.click(screen.getByRole('radio', { name: /this message creates an order/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
+    await clickAndAwaitArrival('Validate and continue')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
 
     fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
@@ -498,7 +567,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     fireEvent.change(input, { target: { value: '123 Main St' } })
     fireEvent.blur(input)
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await clickAndAwaitArrival('Save')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Back to overview' })).toBeTruthy())
     expect(within(timeline()).getByText('ready for planning')).toBeTruthy()
     expect(timeline().querySelectorAll('.step-indicator--on').length).toBe(3)

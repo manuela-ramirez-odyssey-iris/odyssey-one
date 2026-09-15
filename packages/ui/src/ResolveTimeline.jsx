@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import StepIndicator from './StepIndicator.jsx'
 
+// Fill duration, mirrored from --resolve-timeline-fill (S147) — the moment
+// the line arrives and the pop begins, which is also when `onArrive` fires.
+const FILL_MS = 1200
 // Delay/duration for the arrival pop, mirrored from the CSS custom property
 // so the removal timer matches --resolve-timeline-fill + the keyframe length
 // without a second hardcoded number to drift.
-const ARRIVED_MS = 1200 + 350
+const ARRIVED_MS = FILL_MS + 350
 
 /**
  * ResolveTimeline — molecule (STAGING / NORMALIZING, S145). Horizontal
@@ -30,13 +33,20 @@ const ARRIVED_MS = 1200 + 350
  * `--on` state, so mounting already-passed (deep link, reopened look-back)
  * never replays it — only a real transition fires the pop.
  *
+ * `onArrive(stepKey)` (optional, S147): fired at the same moment the pop
+ * starts (line lands, not when the pop finishes) — the consumer's cue that
+ * "this next step has arrived" so it can swap in the step's real status and
+ * body in sync with the animation, instead of showing them ahead of the line.
+ * Fully optional — omit it and the timeline behaves exactly as before.
+ *
  * @param {{key:string,label,detail,status:'off'|'on'|'error',passed?:boolean,onClick?:Function}[]} [props.steps]
  * @param {string} [props.current] - key of the step whose body is rendered (bold label)
+ * @param {(stepKey: string) => void} [props.onArrive] - fired when the line lands on a step
  * steps: [{ key, label, detail, status: 'off'|'on'|'error', passed?: boolean, onClick? }]
  * current: key of the step whose body is rendered (bold label).
  * Figma master + Code Connect owed at batch close (user: "later we can refine").
  */
-export default function ResolveTimeline({ steps = [], current, className = '', ...rest }) {
+export default function ResolveTimeline({ steps = [], current, onArrive, className = '', ...rest }) {
   const prevPassed = useRef(null) // null until after first mount — no pop on mount
   const [arrivedKey, setArrivedKey] = useState(null)
 
@@ -47,10 +57,11 @@ export default function ResolveTimeline({ steps = [], current, className = '', .
     if (flipped) {
       const nextStep = steps[steps.indexOf(flipped) + 1]
       setArrivedKey(nextStep.key)
-      const t = setTimeout(() => setArrivedKey((k) => (k === nextStep.key ? null : k)), ARRIVED_MS)
-      return () => clearTimeout(t)
+      const arrive = setTimeout(() => onArrive?.(nextStep.key), FILL_MS)
+      const clear = setTimeout(() => setArrivedKey((k) => (k === nextStep.key ? null : k)), ARRIVED_MS)
+      return () => { clearTimeout(arrive); clearTimeout(clear) }
     }
-  }, [steps])
+  }, [steps, onArrive])
 
   return (
     <ol

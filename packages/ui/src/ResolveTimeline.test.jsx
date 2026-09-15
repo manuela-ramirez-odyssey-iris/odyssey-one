@@ -91,4 +91,23 @@ describe('ResolveTimeline arrival pop', () => {
     const s2Dot = container.querySelectorAll('.resolve-timeline__step')[1].querySelector('.resolve-timeline__dot')
     expect(s2Dot.className).not.toContain('resolve-timeline__dot--arrived')
   })
+
+  test('a passed flip fires onArrive with the next step\'s key at the fill delay, not before', () => {
+    const onArrive = vi.fn()
+    const { rerender } = render(
+      <ResolveTimeline steps={steps({ s1: { passed: false } })} current="s2" onArrive={onArrive} />
+    )
+    act(() => { rerender(<ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" onArrive={onArrive} />) })
+    expect(onArrive).not.toHaveBeenCalled()
+    act(() => { vi.advanceTimersByTime(1200) })
+    expect(onArrive).toHaveBeenCalledWith('s2')
+  })
+
+  test('onArrive is optional — a passed flip with no onArrive prop renders fine', () => {
+    const { rerender } = render(<ResolveTimeline steps={steps({ s1: { passed: false } })} current="s2" />)
+    expect(() => {
+      act(() => { rerender(<ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" />) })
+      act(() => { vi.advanceTimersByTime(1200 + 350) })
+    }).not.toThrow()
+  })
 })
