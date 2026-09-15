@@ -39,7 +39,10 @@ const TZ_OPTIONS = [
  * selected" fires `onFix(errorId, { removeSchedules: [ids] })`.
  */
 export default function StructuralFixModal({ line, product, faults, fixes, onFix, disabled = false, onClose }) {
-  const title = `Line ${line} · ${product.productId}`
+  // S147, user ruling: title is the product, not the line — every
+  // Validation-Errors order now carries real lines so productId should
+  // always be present, but fall back to description, then Line N.
+  const title = `Product · ${product.productId || product.description || `Line ${line}`}`
   const schedules = product[STRUCTURAL_DRAFT_KEYS['extra-schedule']] ?? []
   const scheduleQty = product[STRUCTURAL_DRAFT_KEYS['quantity-mismatch']]
   // Keyed by error id — a line could in principle carry more than one
