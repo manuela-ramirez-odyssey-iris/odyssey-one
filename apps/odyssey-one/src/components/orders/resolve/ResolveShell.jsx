@@ -134,6 +134,10 @@ export default function ResolveShell({ orderNumber }) {
         // progress, not a blocker (user ruling, S147). Passed steps (step > 1)
         // stay green regardless; unreached steps are handled below ('off').
         status: !loaded ? 'off' : step === 1 ? (step1OpenCount > 0 ? 'error' : 'on') : 'on',
+        // S147: line only fills once the planner has ADVANCED past the step —
+        // keyed on `step` (progress), not `viewing` (look-back), so opening
+        // Step 1 read-only from Step 2 doesn't un-green the track behind it.
+        passed: step > 1,
         onClick: step > 1 && viewing !== 1 ? () => setViewing(1) : undefined,
       },
       {
@@ -148,6 +152,7 @@ export default function ResolveShell({ orderNumber }) {
           ? (step2OpenCount === 0 ? 'all errors resolved · ready to continue' : 'in progress')
           : 'passed',
         status: step < 2 ? 'off' : step === 2 ? (step2OpenCount === 0 ? 'on' : 'error') : 'on',
+        passed: step > 2,
         onClick: step >= 2 && viewing !== 2 ? () => setViewing(2) : undefined,
       },
       {
@@ -155,6 +160,7 @@ export default function ResolveShell({ orderNumber }) {
         label: 'Order ready',
         detail: step === 3 ? 'ready for planning' : '—',
         status: step === 3 ? 'on' : 'off',
+        passed: false,
         onClick: step === 3 && viewing !== 3 ? () => setViewing(3) : undefined,
       },
     ]

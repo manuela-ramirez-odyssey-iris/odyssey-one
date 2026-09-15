@@ -43,18 +43,25 @@ describe('ResolveTimeline', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 
-  test('track segments take the status of the step they leave, not the one they reach', () => {
-    const { container } = render(<ResolveTimeline steps={steps({ s1: { status: 'on' }, s2: { status: 'error' } })} current="s2" />)
+  test('a segment is green only when the departing step is `passed`, not merely `status: on`', () => {
+    const { container } = render(<ResolveTimeline steps={steps({ s1: { status: 'on', passed: true }, s2: { status: 'off', passed: false } })} current="s2" />)
     const segs = container.querySelectorAll('.resolve-timeline__segment')
     expect(segs.length).toBe(2)
-    expect(segs[0].className).toContain('resolve-timeline__segment--on') // s1 (solved) → s2: leaves green
-    expect(segs[1].className).toContain('resolve-timeline__segment--error') // s2 (erroring) → s3: leaves red
+    expect(segs[0].className).toContain('resolve-timeline__segment--on') // s1 passed → green
+    expect(segs[1].className).not.toContain('resolve-timeline__segment--on') // s2 not passed → neutral
   })
 
-  test('given [on, error, off], the first segment carries --on (the step it departs), not --error', () => {
-    const { container } = render(<ResolveTimeline steps={steps({ s1: { status: 'on' }, s2: { status: 'error' } })} current="s2" />)
+  test('a step with status "error" but passed:true still lays a GREEN segment, never a red one', () => {
+    const { container } = render(<ResolveTimeline steps={steps({ s1: { status: 'error', passed: true } })} current="s2" />)
     const segs = container.querySelectorAll('.resolve-timeline__segment')
     expect(segs[0].className).toContain('resolve-timeline__segment--on')
-    expect(segs[0].className).not.toContain('resolve-timeline__segment--error')
+    expect(segs[0].className).not.toMatch(/--error/)
+  })
+
+  test('no segment ever carries an --error class, regardless of status', () => {
+    const { container } = render(<ResolveTimeline steps={steps({ s1: { status: 'error' }, s2: { status: 'error' } })} current="s1" />)
+    container.querySelectorAll('.resolve-timeline__segment').forEach((seg) => {
+      expect(seg.className).not.toMatch(/--error/)
+    })
   })
 })

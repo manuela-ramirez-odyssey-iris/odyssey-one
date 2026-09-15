@@ -5405,7 +5405,10 @@ button.breadcrumb__label:focus-visible {
 }
 /* Coloured state is an overlay that grows left → right rather than a snap
    background swap, matching the ease-out-quart "grow" curve used elsewhere
-   for progress reveals (--transition-chart-grow, chart stroke sweep). */
+   for progress reveals (--transition-chart-grow, chart stroke sweep). Duration
+   is inlined at ~1.8s (no token in tokens.css reads this slow) — --transition-
+   chart-grow's 1000ms was too fast to actually see fill; same cubic-bezier
+   family, just stretched. */
 .resolve-timeline__segment::after {
   content: '';
   position: absolute;
@@ -5413,10 +5416,9 @@ button.breadcrumb__label:focus-visible {
   width: 100%;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform var(--transition-chart-grow);
+  transition: transform 1800ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .resolve-timeline__segment--on::after { background: var(--caribbean-green-600); transform: scaleX(1); }
-.resolve-timeline__segment--error::after { background: var(--bittersweet-600); transform: scaleX(1); }
 @media (prefers-reduced-motion: reduce) {
   .resolve-timeline__segment::after { transition: none; }
 }

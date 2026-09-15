@@ -8,12 +8,15 @@ import StepIndicator from './StepIndicator.jsx'
  * (the consumer decides: passed steps re-open read-only, locked ones don't).
  * The current step is never clickable but is NOT locked — you are already on it.
  *
- * Track segment i sits between step i and i+1 and takes step i's OWN status
- * (`on` = green fill, `error` = red fill, `off` = neutral) — the line leaves
- * in the colour of the step it departs, so a completed step lays green track
- * behind it.
+ * Track segment i sits between step i and i+1 and is driven by step i's
+ * `passed` flag, NOT its `status` — the dot's status is "this step's errors
+ * are cleared", which can go green while the planner is still looking at it;
+ * the line only fills once the planner has actually ADVANCED past the step
+ * (user ruling, S147: "animated line shows when we hit validate errors").
+ * A segment is green when `passed` is true, neutral otherwise — never red;
+ * red belongs to the dot alone.
  *
- * steps: [{ key, label, detail, status: 'off'|'on'|'error', onClick? }]
+ * steps: [{ key, label, detail, status: 'off'|'on'|'error', passed?: boolean, onClick? }]
  * current: key of the step whose body is rendered (bold label).
  * Figma master + Code Connect owed at batch close (user: "later we can refine").
  */
@@ -51,7 +54,7 @@ export default function ResolveTimeline({ steps = [], current, className = '', .
               ? <button type="button" className="resolve-timeline__button" onClick={step.onClick}>{content}</button>
               : <span className="resolve-timeline__static">{content}</span>}
             {next && (
-              <span className={`resolve-timeline__segment resolve-timeline__segment--${step.status}`} aria-hidden="true" />
+              <span className={`resolve-timeline__segment${step.passed ? ' resolve-timeline__segment--on' : ''}`} aria-hidden="true" />
             )}
           </li>
         )
