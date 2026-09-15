@@ -60,7 +60,7 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
           return (
             <div key={s.id} className="structural-grid__modal-fault">
               <div className="text-label-sm-medium">{s.field}</div>
-              <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
+              <div className={`structural-grid__message${fixed ? ' structural-grid__message--fixed' : ''} text-label-xs-regular`}>{s.message}</div>
 
               {s.kind === 'extra-schedule' && (() => {
                 const checked = checkedByError[s.id] ?? []

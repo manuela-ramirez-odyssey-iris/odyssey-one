@@ -418,6 +418,8 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     if (fixButton) {
       fireEvent.click(fixButton)
       const modal = document.querySelector('.structural-grid__modal')
+      // Before the fix: the fault message is not yet marked fixed.
+      expect(modal.querySelector('.structural-grid__message').className).not.toContain('structural-grid__message--fixed')
       const tzTrigger = within(modal).queryByRole('button', { name: /^Time zone, line \d+$/ })
       const trash = modal.querySelector('.co-rep__trash')
       if (tzTrigger) {
@@ -434,6 +436,14 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
         }
       }
     }
+    // The corrected fault's message goes gray in the modal (S147) — it's no
+    // longer an active problem, just context for what was wrong.
+    if (fixButton) {
+      const modal = document.querySelector('.structural-grid__modal')
+      const message = modal.querySelector('.structural-grid__message')
+      expect(message.className).toContain('structural-grid__message--fixed')
+    }
+
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
     fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
