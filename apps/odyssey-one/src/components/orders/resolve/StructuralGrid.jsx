@@ -89,9 +89,15 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
                 legitimately '' — not a bug. Each line is conditional so a
                 missing ID doesn't leave a blank first line; '--' only when
                 BOTH are empty. */}
-            {p.productId && <span className="text-label-sm-medium">{p.productId}</span>}
+            {/* Type matches the Line column's lead cell exactly: that cell
+                (GroupTable.jsx flat-mode group row, col index 0) carries no
+                explicit type class — it inherits `.odyssey-group-table__row
+                td:first-child` (medium weight, Text/primary) from
+                components.css. Product's span follows suit: no class, same
+                inheritance-based match rather than a guessed utility class. */}
+            {p.productId && <span>{p.productId}</span>}
             {p.description && <span className="text-label-xs-regular" style={{ color: 'var(--text-tertiary)' }}>{p.description}</span>}
-            {!p.productId && !p.description && <span className="text-label-sm-medium">--</span>}
+            {!p.productId && !p.description && <span>--</span>}
           </div>
         ),
         faults: (
