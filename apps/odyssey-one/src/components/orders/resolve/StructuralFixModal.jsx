@@ -114,7 +114,7 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                       uom: fix?.grossWeightUom ?? product.grossWeight?.uom ?? '',
                     }}
                     options={UOM_WEIGHT}
-                    uomPlaceholder="Select unit"
+                    uomPlaceholder="Select a unit"
                     onChange={({ value, uom }) => onFix(s.id, { grossWeight: value, grossWeightUom: uom })}
                     disabled={disabled}
                     validated={fixed}

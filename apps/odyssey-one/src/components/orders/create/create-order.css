@@ -1028,3 +1028,13 @@
   justify-content: flex-end;
   padding: var(--spacing-6) 0 var(--spacing-8);
 }
+
+/* Product ID span (StructuralGrid): GroupTable only makes the FIRST cell
+   (Line) primary/medium via `.odyssey-group-table__row td:first-child`.
+   Product is the second cell, so it'd otherwise inherit tertiary/regular
+   from `.odyssey-group-table__row td`. This restates the same two properties
+   so Product's ID matches Line's type. */
+.structural-grid__product-id {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
