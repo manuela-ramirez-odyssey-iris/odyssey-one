@@ -19749,7 +19749,7 @@
   "createdTimeZoneCode": "CDT",
   "draftOrderStatus": "Error",
   "errorCount": 3,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "mixed",
   "interfaceErrorCount": 2
  },
  {
@@ -28265,7 +28265,7 @@
   "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 6,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "mixed",
   "interfaceErrorCount": 3
  },
  {
@@ -59819,7 +59819,7 @@
   "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 11,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "conflict",
   "interfaceErrorCount": 3
  },
  {
@@ -68916,7 +68916,7 @@
   "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 2,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "mixed",
   "interfaceErrorCount": 2
  },
  {
@@ -89871,7 +89871,7 @@
   "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 6,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "mixed",
   "interfaceErrorCount": 1
  },
  {
@@ -124317,8 +124317,8 @@
   "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 3,
-  "interfaceErrorClass": "structural",
-  "interfaceErrorCount": 3
+  "interfaceErrorClass": "mixed",
+  "interfaceErrorCount": 4
  },
  {
   "orderNumber": "0000000093749",
@@ -128722,7 +128722,7 @@
   "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 7,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "mixed",
   "interfaceErrorCount": 2
  },
  {
@@ -129135,7 +129135,7 @@
   "createdTimeZoneCode": "CDT",
   "draftOrderStatus": "Error",
   "errorCount": 3,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "conflict",
   "interfaceErrorCount": 2
  },
  {
@@ -142040,7 +142040,7 @@
   "createdTimeZoneCode": "PDT",
   "draftOrderStatus": "Error",
   "errorCount": 1,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "mixed",
   "interfaceErrorCount": 2
  },
  {
@@ -145672,7 +145672,7 @@
   "createdTimeZoneCode": "CDT",
   "draftOrderStatus": "Error",
   "errorCount": 2,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "conflict",
   "interfaceErrorCount": 1
  },
  {
@@ -149746,7 +149746,7 @@
   "createdTimeZoneCode": "EDT",
   "draftOrderStatus": "Error",
   "errorCount": 1,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "conflict",
   "interfaceErrorCount": 1
  },
  {
@@ -179029,7 +179029,7 @@
   "createdTimeZoneCode": "EDT",
   "draftOrderStatus": "Error",
   "errorCount": 2,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "conflict",
   "interfaceErrorCount": 3
  },
  {
@@ -205860,7 +205860,7 @@
   "createdTimeZoneCode": "CDT",
   "draftOrderStatus": "Error",
   "errorCount": 2,
-  "interfaceErrorClass": "structural",
+  "interfaceErrorClass": "conflict",
   "interfaceErrorCount": 2
  },
  {

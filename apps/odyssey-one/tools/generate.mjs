@@ -3203,6 +3203,107 @@ export function buildDataset({
   for (let n = 0; n < unshippedOrders; n++) orderRows.push(generateUnshippedOrder(n, false));
   for (let n = 0; n < pendingOrders; n++) orderRows.push(generateUnshippedOrder(n, true));
 
+  // ── S147 VE line enrichment helpers ──────────────────────────────────────
+  // Integer in [min, max] off an explicit rnd() (same shape as faker's, but
+  // never faker itself — see veEnrichRnd's docblock below).
+  function rndInt(rnd, min, max) { return min + Math.floor(rnd() * (max - min + 1)); }
+  // Splits `total` into `n` positive integer parts that sum EXACTLY to total
+  // (the last part absorbs the rounding remainder) — so a VE row's synthesized
+  // lines always roll up to the row's real header weight/volume, the same
+  // invariant buildOrderEnrichment's real lines satisfy by construction.
+  function splitTotal(rnd, total, n) {
+    if (n === 1) return [total];
+    const weights = Array.from({ length: n }, () => 0.3 + rnd());
+    const sumW = weights.reduce((a, b) => a + b, 0);
+    const parts = weights.map((w) => Math.max(1, Math.round((w / sumW) * total)));
+    parts[parts.length - 1] += total - parts.reduce((a, b) => a + b, 0);
+    return parts;
+  }
+  const VE_LINE_COUNT_WEIGHTS = [
+    { value: 1, weight: 55 },
+    { value: 2, weight: 30 },
+    { value: 3, weight: 15 },
+  ];
+  // Synthesizes a real ManualOrder (order-lines payload) for a VE row that
+  // generation time never gave one — deterministically from the ROW's own
+  // fields (commodity, weights, consignor/consignee, customer, terms,
+  // direction), with `rnd` (veEnrichRnd, an independent stream) supplying
+  // only variation, never identity-bearing draws. Lines: the first matches
+  // row.commodity via the same CHEMICAL_PRODUCTS lookup listRowToManualOrder
+  // uses (falls back to a random pool product for free-text commodity);
+  // 1–3 lines total, weighted toward single-line so multi-line stays "a
+  // reasonable share" rather than the norm; weights/volumes are split to sum
+  // exactly to the row's header totals (I5).
+  function buildVeOrderEnrichment(row, rnd) {
+    const lineCount = rndWeighted(rnd, VE_LINE_COUNT_WEIGHTS);
+    const first = CHEMICAL_PRODUCTS.find((p) => p.desc === row.commodity) ?? rndPick(rnd, CHEMICAL_PRODUCTS);
+    const products = [first];
+    // LINX-12102: row.hazardous was fixed at generation time from the row's
+    // REAL lines — the synthetic lines built here must OR-reduce to the same
+    // value, or a VE row's hazardous flag stops matching its own line table.
+    const wantHazardous = !!row.hazardous;
+    const pool = wantHazardous ? CHEMICAL_PRODUCTS : CHEMICAL_PRODUCTS.filter((p) => !p.hazmat);
+    while (products.length < lineCount) {
+      const candidate = rndPick(rnd, pool);
+      if (!products.includes(candidate)) products.push(candidate);
+    }
+    if (wantHazardous && !products.some((p) => p.hazmat)) {
+      products[products.length - 1] = rndPick(rnd, CHEMICAL_PRODUCTS.filter((p) => p.hazmat));
+    }
+    if (!wantHazardous && products.some((p) => p.hazmat)) {
+      products[0] = rndPick(rnd, CHEMICAL_PRODUCTS.filter((p) => !p.hazmat));
+    }
+    const weights = splitTotal(rnd, row.grossWeight?.value ?? 0, lineCount);
+    const volumes = splitTotal(rnd, row.volume?.value ?? 0, lineCount);
+    const orderLines = products.map((p, i) => ({
+      lineIdentifier: i + 1,
+      shipItemIdentifier: p.item,
+      productDescription: p.desc,
+      hazardous: p.hazmat || undefined,
+      grossWeightValue: weights[i],
+      grossWeightUomCode: 'lb',
+      volumeValue: volumes[i],
+      volumeUomCode: 'cuft',
+      shipClass: rndPick(rnd, SHIP_CLASS_CODES),
+      handlingUnit: rndPick(rnd, HANDLING_UNITS).code,
+      handlingUnitCount: rndInt(rnd, 5, 80),
+      lengthValue: rndInt(rnd, 2, 6),
+      widthValue: rndInt(rnd, 2, 6),
+      heightValue: rndInt(rnd, 2, 6),
+      dimensionUomCode: 'ft',
+      harmonizedCode: `${rndInt(rnd, 2800, 3999)}.${String(rndInt(rnd, 0, 99)).padStart(2, '0')}.${String(rndInt(rnd, 0, 99)).padStart(2, '0')}.${String(rndInt(rnd, 0, 99)).padStart(2, '0')}`,
+      declaredValue: rndInt(rnd, 2000, 50000),
+      declaredValueCurrency: 'USD',
+      manufacturingCountryCode: 'United States',
+      stccCode: String(rndInt(rnd, 1000000, 9999999)),
+    }));
+    return {
+      orderNumber: row.orderNumber,
+      customerId: row.customer,
+      freightTermCode: row.freightTerms,
+      shipDirectionCode: row.shipDirection,
+      requestedDateType: 'SHIP',
+      requestedPickupDate: row.consignor?.earliestPickupDateTime,
+      pickupAppointment: row.consignor?.latestPickupDateTime,
+      requestedDeliveryDate: row.consignee?.earliestDeliveryDateTime,
+      deliveryAppointment: row.consignee?.latestDeliveryDateTime,
+      originPartnerId: row.consignor?.locationId,
+      originFullName: row.consignor?.name,
+      originAddress1: row.consignor?.address,
+      originCity: row.consignor?.city, originRegion: row.consignor?.state, originCountry: row.consignor?.country,
+      destinationPartnerId: row.consignee?.locationId,
+      destinationFullName: row.consignee?.name,
+      destinationAddress1: row.consignee?.address,
+      destinationCity: row.consignee?.city, destinationRegion: row.consignee?.state, destinationCountry: row.consignee?.country,
+      grossWeightValue: row.grossWeight?.value,
+      grossWeightUomCode: 'lb',
+      volumeValue: row.volume?.value,
+      volumeUomCode: 'cuft',
+      orderCarrierEquipDetailList: row.equipment ? [{ carrierSequence: 1, equipmentCode: row.equipment }] : [],
+      orderLines,
+    };
+  }
+
   // ── Validation Errors (VE) + Hold selection — ORD-24 (user ruling 2026-09-05) ─
   // Runs on its OWN mulberry32 stream (seeded off 42, but a distinct constant
   // so it can't collide with anything else), started only AFTER every base
@@ -3235,8 +3336,21 @@ export function buildDataset({
     o.orderSource === 'INTEGRATED' &&
     !['Draft', 'Planning Failed', 'Shipment Failed'].includes(o.orderStatus));
   const veCount = Math.round(orderRows.length * VE_SHARE);
+  // S147 (user ruling): every VE row must carry real order lines — before
+  // this, ~538 of the ~1,430 VE rows had no orderEnrichments entry (the 65%/
+  // 50% enrichment coin flips at generation time don't know a row will later
+  // be drawn into VE here), so Step 1 fell back to listRowToManualOrder's
+  // single line synthesized from `commodity`. Built on its OWN independent
+  // RNG stream — NOT veHoldRnd — so adding draws for the rows that need
+  // enrichment can't shift veHoldRnd's own sequence (errorCount/class draws
+  // for OTHER VE rows, or the Hold sample below). Never faker: a faker draw
+  // here would re-number every seeded id.
+  const veEnrichRnd = mulberry32(seedFrom('ORD-24:ve-enrich:42'));
   for (const row of rndSample(veHoldRnd, veEligible, veCount)) {
     row.draftOrderStatus = 'Error';
+    if (!orderEnrichments[row.orderNumber]) {
+      orderEnrichments[row.orderNumber] = buildVeOrderEnrichment(row, veEnrichRnd);
+    }
     row.errorCount = rndWeighted(veHoldRnd, ERROR_COUNT_WEIGHTS);
     if (veHoldRnd() < L1_SHARE) {
       // Draw EXACTLY as before (same two draws, same order — the stream is

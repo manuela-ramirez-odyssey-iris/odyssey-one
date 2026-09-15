@@ -79,6 +79,21 @@ test('VE share stays within 5-8% of the dataset; Hold rows are seeded', () => {
   assert.ok(hold.length > 0, 'no Hold rows seeded')
 })
 
+test('S147: every VE row carries real order lines (no fallback to a synthesized single line)', () => {
+  const { orders, orderDetails } = buildDataset()
+  const ve = orders.filter((o) => o.draftOrderStatus != null)
+  assert.ok(ve.length > 0)
+  for (const o of ve) {
+    const enrichment = orderDetails[o.orderNumber]
+    assert.ok(enrichment, `VE order ${o.orderNumber} has no enrichment`)
+    assert.ok(enrichment.orderLines?.length >= 1, `VE order ${o.orderNumber} has no orderLines`)
+    const gw = enrichment.orderLines.reduce((s, l) => s + l.grossWeightValue, 0)
+    const vv = enrichment.orderLines.reduce((s, l) => s + l.volumeValue, 0)
+    assert.equal(gw, o.grossWeight.value, `${o.orderNumber} line gross weights don't sum to header total`)
+    assert.equal(vv, o.volume.value, `${o.orderNumber} line volumes don't sum to header total`)
+  }
+})
+
 test('I11: generator is deterministic for the new fields', () => {
   const a = buildDataset().orders
   const b = buildDataset().orders
