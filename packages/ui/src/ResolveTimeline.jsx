@@ -1,4 +1,10 @@
+import { useEffect, useRef, useState } from 'react'
 import StepIndicator from './StepIndicator.jsx'
+
+// Delay/duration for the arrival pop, mirrored from the CSS custom property
+// so the removal timer matches --resolve-timeline-fill + the keyframe length
+// without a second hardcoded number to drift.
+const ARRIVED_MS = 1200 + 350
 
 /**
  * ResolveTimeline — molecule (STAGING / NORMALIZING, S145). Horizontal
@@ -16,11 +22,36 @@ import StepIndicator from './StepIndicator.jsx'
  * A segment is green when `passed` is true, neutral otherwise — never red;
  * red belongs to the dot alone.
  *
+ * Arrival pop: when a step's `passed` flips false → true (the line actually
+ * travels), the NEXT step's dot gets a one-shot subtle scale pulse timed to
+ * start as the fill completes (user ruling, S147: "next stop should subtle
+ * magnify animate and only show when the line collides"). This is tracked
+ * with a ref of each step's previous `passed`, not a CSS animation on the
+ * `--on` state, so mounting already-passed (deep link, reopened look-back)
+ * never replays it — only a real transition fires the pop.
+ *
+ * @param {{key:string,label,detail,status:'off'|'on'|'error',passed?:boolean,onClick?:Function}[]} [props.steps]
+ * @param {string} [props.current] - key of the step whose body is rendered (bold label)
  * steps: [{ key, label, detail, status: 'off'|'on'|'error', passed?: boolean, onClick? }]
  * current: key of the step whose body is rendered (bold label).
  * Figma master + Code Connect owed at batch close (user: "later we can refine").
  */
 export default function ResolveTimeline({ steps = [], current, className = '', ...rest }) {
+  const prevPassed = useRef(null) // null until after first mount — no pop on mount
+  const [arrivedKey, setArrivedKey] = useState(null)
+
+  useEffect(() => {
+    const prev = prevPassed.current
+    const flipped = prev && steps.find((s, i) => !prev[s.key] && s.passed && steps[i + 1])
+    prevPassed.current = Object.fromEntries(steps.map((s) => [s.key, s.passed]))
+    if (flipped) {
+      const nextStep = steps[steps.indexOf(flipped) + 1]
+      setArrivedKey(nextStep.key)
+      const t = setTimeout(() => setArrivedKey((k) => (k === nextStep.key ? null : k)), ARRIVED_MS)
+      return () => clearTimeout(t)
+    }
+  }, [steps])
+
   return (
     <ol
       className={`resolve-timeline${className ? ` ${className}` : ''}`}
@@ -39,7 +70,11 @@ export default function ResolveTimeline({ steps = [], current, className = '', .
         ].filter(Boolean).join(' ')
         const content = (
           <>
-            <StepIndicator position="start" status={step.status} className="resolve-timeline__dot" />
+            <StepIndicator
+              position="start"
+              status={step.status}
+              className={`resolve-timeline__dot${step.key === arrivedKey ? ' resolve-timeline__dot--arrived' : ''}`}
+            />
             <span className="resolve-timeline__label text-label-sm-medium">{step.label}</span>
             <span className="resolve-timeline__detail text-label-xs-regular">{step.detail}</span>
           </>

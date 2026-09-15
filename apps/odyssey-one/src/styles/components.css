@@ -5354,6 +5354,7 @@ button.breadcrumb__label:focus-visible {
    Every step is flex:1 of equal width, so a segment can reach the next dot's
    centre with a pure percentage offset. */
 .resolve-timeline {
+  --resolve-timeline-fill: 1200ms;
   display: flex;
   align-items: flex-start;
   list-style: none;
@@ -5406,9 +5407,10 @@ button.breadcrumb__label:focus-visible {
 /* Coloured state is an overlay that grows left → right rather than a snap
    background swap, matching the ease-out-quart "grow" curve used elsewhere
    for progress reveals (--transition-chart-grow, chart stroke sweep). Duration
-   is inlined at ~1.8s (no token in tokens.css reads this slow) — --transition-
-   chart-grow's 1000ms was too fast to actually see fill; same cubic-bezier
-   family, just stretched. */
+   lives in --resolve-timeline-fill (1200ms, S147) so the fill transition and
+   the arrival-pop delay below can never drift apart — no token in tokens.css
+   reads this slow; same cubic-bezier family as --transition-chart-grow, just
+   stretched. */
 .resolve-timeline__segment::after {
   content: '';
   position: absolute;
@@ -5416,11 +5418,29 @@ button.breadcrumb__label:focus-visible {
   width: 100%;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 1800ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--resolve-timeline-fill) cubic-bezier(0.22, 1, 0.36, 1);
 }
 .resolve-timeline__segment--on::after { background: var(--caribbean-green-600); transform: scaleX(1); }
 @media (prefers-reduced-motion: reduce) {
   .resolve-timeline__segment::after { transition: none; }
+}
+
+/* Arrival pop: a subtle scale pulse on the NEXT step's dot, timed to start
+   when the fill above completes (delay = --resolve-timeline-fill so the two
+   numbers can never drift apart). Driven by a transient class the component
+   adds only on a passed false->true flip -- never on mount -- so a deep-linked
+   step or a reopened look-back never replays it. transform-only: no layout
+   shift, no clipping against the segment. */
+.resolve-timeline__dot--arrived {
+  animation: resolve-timeline-pop 350ms ease-out var(--resolve-timeline-fill);
+}
+@keyframes resolve-timeline-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .resolve-timeline__dot--arrived { animation: none; }
 }
 
 /* === Accordion (molecule) — Figma 2850:612, normalized 2026-06-09 ===

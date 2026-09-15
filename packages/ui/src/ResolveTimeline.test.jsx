@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, test, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { describe, test, expect, afterEach, beforeEach, vi } from 'vitest'
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import ResolveTimeline from './ResolveTimeline.jsx'
 
 afterEach(cleanup)
@@ -63,5 +63,32 @@ describe('ResolveTimeline', () => {
     container.querySelectorAll('.resolve-timeline__segment').forEach((seg) => {
       expect(seg.className).not.toMatch(/--error/)
     })
+  })
+})
+
+describe('ResolveTimeline arrival pop', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  test('a passed flip false→true pops the NEXT step\'s dot, and it clears afterward', () => {
+    const { container, rerender } = render(
+      <ResolveTimeline steps={steps({ s1: { passed: false } })} current="s2" />
+    )
+    const s2Dot = () => container.querySelectorAll('.resolve-timeline__step')[1].querySelector('.resolve-timeline__dot')
+    expect(s2Dot().className).not.toContain('resolve-timeline__dot--arrived')
+
+    act(() => { rerender(<ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" />) })
+    expect(s2Dot().className).toContain('resolve-timeline__dot--arrived')
+
+    act(() => { vi.advanceTimersByTime(1200 + 350) })
+    expect(s2Dot().className).not.toContain('resolve-timeline__dot--arrived')
+  })
+
+  test('mounting with passed already true (deep link / look-back) does NOT pop', () => {
+    const { container } = render(
+      <ResolveTimeline steps={steps({ s1: { passed: true } })} current="s2" />
+    )
+    const s2Dot = container.querySelectorAll('.resolve-timeline__step')[1].querySelector('.resolve-timeline__dot')
+    expect(s2Dot.className).not.toContain('resolve-timeline__dot--arrived')
   })
 })
