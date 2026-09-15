@@ -505,6 +505,25 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     // Step 3 is the SUCCESS state straight away — no async-assignment pending alert.
     expect(screen.getByText('Order validation errors resolved. The order is now Ready for Planning.')).toBeTruthy()
   })
+
+  // S147, user ruling: same rule as Step 1 — the Data errors dot goes green
+  // once its Level 2 errors are all resolved, WHILE STILL ON STEP 2 (before Save).
+  test('Step 2 dot goes green once its last Level 2 error is resolved, still on Step 2', async () => {
+    renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    const dot = () => stepEl('Data errors').querySelector('.step-indicator')
+    expect(dot().className).toContain('step-indicator--error')
+    fireEvent.click(screen.getByRole('button', { name: /Pickup and Delivery/ }))
+    const manual = screen.queryAllByRole('button', { name: 'Add Location Manually' })[0]
+    if (manual) fireEvent.click(manual)
+    const input = document.getElementById(`co-${STEP3_PATH.replace(/\./g, '-')}`)
+    fireEvent.change(input, { target: { value: '123 Main St' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(dot().className).toContain('step-indicator--on'))
+    expect(dot().className).not.toContain('step-indicator--error')
+    // still Step 2 — Save hasn't been pressed.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+  })
 })
 
 describe('two-step resolution shell — a failed Step 1 save', () => {

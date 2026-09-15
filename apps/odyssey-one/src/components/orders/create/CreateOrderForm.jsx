@@ -55,7 +55,7 @@ const NO_PICKS = []
  *  - onResolved / onPurged: hand control back to the shell (Step 3 preview)
  *                 instead of navigating away. Omitted → today's /orders exit.
  */
-export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted, hideHeader = false, pickedPaths = NO_PICKS, onResolved, onPurged }) {
+export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted, hideHeader = false, pickedPaths = NO_PICKS, onResolved, onPurged, onProgress }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
@@ -208,6 +208,14 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     [resolveState],
   )
   const allResolved = !!resolveState && resolvedSet.size === resolveState.errors.length
+  // S147: same open-error count the Alert/section badges already derive
+  // (resolveState.errors.length - resolvedSet.size) — reported to an optional
+  // caller (ResolveShell's Step 2 timeline dot) via an effect so it tracks
+  // live as fields resolve, exactly like Step1Panel's onProgress. `onProgress`
+  // is undefined for ordinary create/edit, so this is a no-op there.
+  useEffect(() => {
+    if (resolveState) onProgress?.(resolveState.errors.length - resolvedSet.size)
+  }, [resolveState, resolvedSet, onProgress])
   const pickedSet = useMemo(() => new Set(pickedPaths), [pickedPaths])
   const resolveCtx = useMemo(
     () => (resolveMode ? { errorByPath, resolvedSet, pickedPaths: pickedSet } : null),

@@ -56,6 +56,10 @@ export default function ResolveShell({ orderNumber }) {
   // timeline dot going green the moment every Step 1 error is resolved,
   // still on Step 1 — a solved step is progress, not a blocker (user ruling).
   const [step1OpenCount, setStep1OpenCount] = useState(0)
+  // S147: same rule as step1OpenCount, mirrored for Step 2 — CreateOrderForm
+  // already derives its Level-2 open-error count off resolveState; this just
+  // catches what it reports, no second derivation.
+  const [step2OpenCount, setStep2OpenCount] = useState(null)
   const [step2Key, setStep2Key] = useState(0)
   const [finalValues, setFinalValues] = useState(null)
   const [saveError, setSaveError] = useState('')
@@ -80,6 +84,7 @@ export default function ResolveShell({ orderNumber }) {
       setViewing(start)
       setStep1({ picks: {}, structuralFixes: {}, deleteFlag: null })
       setStep1OpenCount(derived.errors.length)
+      setStep2OpenCount(null)
     })
     return () => { cancelled = true }
   }, [orderNumber]) // eslint-disable-line react-hooks/exhaustive-deps -- meta is history state; it never changes under a mounted shell
@@ -107,6 +112,7 @@ export default function ResolveShell({ orderNumber }) {
     // CreateOrderForm hydrates in an effect keyed on [resolveKey], which does
     // NOT change here — only a remount re-runs it. Hence the key bump.
     setStep2Key((k) => k + 1)
+    setStep2OpenCount(null)
     setStep(2)
     setViewing(2)
   }, [loaded, orderNumber])
@@ -133,8 +139,15 @@ export default function ResolveShell({ orderNumber }) {
       {
         key: 's2',
         label: 'Data errors',
-        detail: step < 2 ? 'locked' : step === 2 ? 'in progress' : 'passed',
-        status: step < 2 ? 'off' : step === 2 ? 'error' : 'on',
+        // Same rule as Step 1 (S147, user ruling): current step reads green
+        // once its open errors hit zero — solved is progress, not a blocker.
+        // `step2OpenCount === null` means CreateOrderForm hasn't reported yet
+        // (just mounted / no resolveState) — treated as "in progress", not a
+        // premature green flash.
+        detail: step < 2 ? 'locked' : step === 2
+          ? (step2OpenCount === 0 ? 'all errors resolved · ready to continue' : 'in progress')
+          : 'passed',
+        status: step < 2 ? 'off' : step === 2 ? (step2OpenCount === 0 ? 'on' : 'error') : 'on',
         onClick: step >= 2 && viewing !== 2 ? () => setViewing(2) : undefined,
       },
       {
@@ -145,7 +158,7 @@ export default function ResolveShell({ orderNumber }) {
         onClick: step === 3 && viewing !== 3 ? () => setViewing(3) : undefined,
       },
     ]
-  }, [loaded, step, viewing, l1Count, step1OpenCount])
+  }, [loaded, step, viewing, l1Count, step1OpenCount, step2OpenCount])
 
   return (
     <div className="resolve-shell">
@@ -184,6 +197,7 @@ export default function ResolveShell({ orderNumber }) {
           resolveMeta={meta}
           hideHeader
           pickedPaths={Object.keys(step1.picks)}
+          onProgress={setStep2OpenCount}
           onResolved={(values) => { setFinalValues(values); setStep(3); setViewing(3) }}
           /* A FAILED purge is surfaced by the form itself (its page-level error
              Alert) — this only runs on success. */
