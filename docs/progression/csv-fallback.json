@@ -1,6 +1,7 @@
 {
   "shipments": {
     "stk": {
+      "Odyssey Shipment Identifier": "Find Shipment by",
       "Buy Shipment #": "Find Shipment by",
       "Sell Shipment #": "Find Shipment by",
       "Order #": "Find Shipment by",
@@ -49,6 +50,7 @@
       "SCAC - Tender Status": "Others"
     },
     "fld": {
+      "Odyssey Shipment Identifier": "Text Input",
       "Buy Shipment #": "Number Input",
       "Sell Shipment #": "Number Input",
       "Order #": "Text Input",
@@ -97,6 +99,7 @@
       "SCAC - Tender Status": "Dropdown"
     },
     "desc": {
+      "Odyssey Shipment Identifier": "A single ID common to the shipment's buy and sell side — what Odyssey sends the customer and the carrier.",
       "Buy Shipment #": "-",
       "Sell Shipment #": "-",
       "Order #": "Transportation Order #",

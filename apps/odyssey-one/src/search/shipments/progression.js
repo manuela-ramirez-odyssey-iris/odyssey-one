@@ -41,6 +41,10 @@ export const SHIPMENTS_PROGRESSION = [
     group: 'Shipment Identifiers',
     label: 'Find the shipment',
     attributes: [
+      // match: 'both', not 'digits' — values carry an O/C prefix (O50000000 /
+      // C50000123); a digits-only matcher would never suggest this chip for a
+      // query starting with the letter. Source: Laurie + Dave Schultz, 2026-09-15.
+      { key: 'odyssey-shipment', label: 'Odyssey Shipment Identifier', dataKey: 'odysseyShipmentIdentifier', match: 'both' },
       { key: 'buy-shipment', label: 'Buy Shipment #', dataKey: 'buyShipment', match: 'digits' },
       { key: 'sell-shipment', label: 'Sell Shipment #', dataKey: 'sellShipment', match: 'digits' },
       { key: 'order', label: 'Order #', dataKey: 'orders', match: 'both' }, // LINX-9742: auto numbers are digits, user-provided keep letters

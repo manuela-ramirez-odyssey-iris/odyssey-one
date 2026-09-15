@@ -620,7 +620,7 @@ All shipment attributes are searchable. The full list is defined in `Attributes 
 
 | Progression | Group | Attributes | User intent |
 |---|---|---|---|
-| 1 — Find the shipment | Shipment Identifiers | Buy Shipment #, Sell Shipment #, Order #, Pro#/Booking # | Most common — identifying a specific shipment |
+| 1 — Find the shipment | Shipment Identifiers | Odyssey Shipment Identifier, Buy Shipment #, Sell Shipment #, Order #, Pro#/Booking # | Most common — identifying a specific shipment |
 | 2 — Who it belongs to | Customers & Parties | Customer ID, Customer Name, Consignor, Consignee | Finding shipments by customer/party |
 | 3 — Where it goes | Route & Geography | Origin, Destination, Distance, Stops, Ship Direction | Location-based search |
 | 4 — When it moves | Schedule & Appointments | Pickup Date, Delivery Date, Earliest/Latest Pickup, Earliest/Latest Delivery | Date-based search |
@@ -636,6 +636,7 @@ The progression determines **chip priority** — when a user types a search valu
 ### Smart Chip Search
 When the user types in the search bar, the system analyzes the input and generates relevant attribute chip suggestions:
 - Digits → number-text fields (Buy Shipment #, Order #, etc.)
+- Letters **and** digits → the Odyssey Shipment Identifier, whose values carry an `O`/`C` prefix (DEC-146)
 - Letters → text fields (Customer Name, Origin, etc.)
 - Known values → matching dropdown options (Mode, Status, etc.)
 

@@ -4,6 +4,7 @@ import type { SellShipmentOut } from '../types/sellShipmentOut'
 // second carries a hazmat line. Used by mapper tests.
 export const sellShipmentOutSample: SellShipmentOut = {
   shipmentId: '25690001',
+  odysseyShipmentIdentifier: 'O50000042',
   shipmentType: 'sell',
   customerId: 'ACME_CHM_01',
   customerName: 'Acme Chemicals',

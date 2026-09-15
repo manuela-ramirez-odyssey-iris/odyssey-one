@@ -213,7 +213,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                   variant="secondary"
                   disabled={!shipment}
                   onClick={() => navigate(`/shipments/order-change/${shipment.sellShipment}/stops`, {
-                    state: { buyShipment: shipment.buyShipment, from: 'stops' },
+                    state: { buyShipment: shipment.buyShipment, odysseyShipmentIdentifier: shipment.odysseyShipmentIdentifier, from: 'stops' },
                   })}
                 >
                   Edit Shipment Stops

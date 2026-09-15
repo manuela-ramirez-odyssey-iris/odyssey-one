@@ -8,6 +8,7 @@ import * as shipmentService from '../../api/services/shipmentService'
 afterEach(cleanup)
 
 const shipment = {
+  odysseyShipmentIdentifier: 'O50000012',
   buyShipment: '85611354', sellShipment: '25068206', pro: '67819A88',
   customerName: 'USALCO', shipmentStatus: 'Accepted',
   mode: 'LTL', equipmentCode: 'LTL', orders: ['VAN2TBVV8', 'OUF4PEUH2'],
@@ -68,6 +69,9 @@ describe('ShipmentDetailsModal', () => {
     }
     expect(screen.getByText('85611354')).toBeTruthy()
     expect(screen.getByText('Successful')).toBeTruthy()
+    // Odyssey Shipment Identifier leads the identifiers strip, ahead of Buy Shipment.
+    const identifiers = screen.getByRole('region', { name: 'Shipment identifiers' })
+    expect(identifiers.querySelector('dd')?.textContent).toBe('O50000012')
     // Source Name is the customer (Jana's wording), Freight Term is paymentTerms
     expect(screen.getByText('USALCO')).toBeTruthy()
     expect(screen.getByText('Collect')).toBeTruthy()

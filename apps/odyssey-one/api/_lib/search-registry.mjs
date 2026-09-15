@@ -13,32 +13,36 @@ const upper = (v) => String(v).trim().toUpperCase()
 const upperStrip = (v) => upper(v).replace(/[\s\-_/.]/g, '')
 
 export const SHIPMENTS_ATTRS = {
-  'buy-shipment':  { label: 'Buy Shipment #',  col: 'buy_shipment',  normalize: upperStrip, trgm: true,  priority: 0 },
-  'sell-shipment': { label: 'Sell Shipment #', col: 'sell_shipment', normalize: upperStrip, trgm: true,  priority: 1 },
-  'order':         { label: 'Order #',         col: 'orders',        normalize: upperStrip, trgm: true,  priority: 2, array: true },
-  'pro':           { label: 'Pro#/Booking #',  col: 'pro',           normalize: upperStrip, trgm: true,  priority: 4 },
+  // O/C prefix (O50000000 / C50000123) means fixed-width/digits normalization
+  // is wrong for this one — normalize only trims/uppercases, never pads or
+  // strips the letter. Source: Laurie + Dave Schultz, 2026-09-15.
+  'odyssey-shipment': { label: 'Odyssey Shipment Identifier', col: 'odyssey_shipment_id', normalize: upperStrip, trgm: true, priority: 0 },
+  'buy-shipment':  { label: 'Buy Shipment #',  col: 'buy_shipment',  normalize: upperStrip, trgm: true,  priority: 1 },
+  'sell-shipment': { label: 'Sell Shipment #', col: 'sell_shipment', normalize: upperStrip, trgm: true,  priority: 2 },
+  'order':         { label: 'Order #',         col: 'orders',        normalize: upperStrip, trgm: true,  priority: 3, array: true },
+  'pro':           { label: 'Pro#/Booking #',  col: 'pro',           normalize: upperStrip, trgm: true,  priority: 5 },
   // Array, like `order`: a shipment consolidates N orders, each with its own
   // customer-provided pickup reference (D3).
-  'pickup-number': { label: 'Pickup #',        col: 'pickup_numbers', normalize: upperStrip, trgm: true, priority: 5, array: true },
-  'customer-id':   { label: 'Customer ID',     col: 'customer_id',   normalize: upper,      trgm: true,  priority: 6 },
-  'customer-name': { label: 'Customer Name',   col: 'customer_name', normalize: upper,      trgm: true,  priority: 7 },
-  'consignor':     { label: 'Consignor',       col: 'consignor',     normalize: upper,      trgm: true,  priority: 8 },
-  'consignee':     { label: 'Consignee',       col: 'consignee',     normalize: upper,      trgm: true,  priority: 9 },
-  'origin':        { label: 'Origin',          col: 'origin',        normalize: upper,      trgm: true,  priority: 10 },
-  'destination':   { label: 'Destination',     col: 'destination',   normalize: upper,      trgm: true,  priority: 11 },
-  'equipment':     { label: 'Equipment #',     col: 'equipment',     normalize: upperStrip, trgm: true,  priority: 16 },
-  'seal':          { label: 'Seal Number',     col: 'seal',          normalize: upperStrip, trgm: true,  priority: 17 },
+  'pickup-number': { label: 'Pickup #',        col: 'pickup_numbers', normalize: upperStrip, trgm: true, priority: 6, array: true },
+  'customer-id':   { label: 'Customer ID',     col: 'customer_id',   normalize: upper,      trgm: true,  priority: 7 },
+  'customer-name': { label: 'Customer Name',   col: 'customer_name', normalize: upper,      trgm: true,  priority: 8 },
+  'consignor':     { label: 'Consignor',       col: 'consignor',     normalize: upper,      trgm: true,  priority: 9 },
+  'consignee':     { label: 'Consignee',       col: 'consignee',     normalize: upper,      trgm: true,  priority: 10 },
+  'origin':        { label: 'Origin',          col: 'origin',        normalize: upper,      trgm: true,  priority: 11 },
+  'destination':   { label: 'Destination',     col: 'destination',   normalize: upper,      trgm: true,  priority: 12 },
+  'equipment':     { label: 'Equipment #',     col: 'equipment',     normalize: upperStrip, trgm: true,  priority: 17 },
+  'seal':          { label: 'Seal Number',     col: 'seal',          normalize: upperStrip, trgm: true,  priority: 18 },
   // 4-char code: prefix is always enough, so skip the trigram write cost.
-  'scac':          { label: 'SCAC',            col: 'scac',          normalize: upper,      trgm: false, priority: 18 },
+  'scac':          { label: 'SCAC',            col: 'scac',          normalize: upper,      trgm: false, priority: 19 },
   // S108 DB motion — 2-value enums, exact match only (no fuzzy contains scan
-  // needed for a fixed vocabulary). Priority 21/22 sits in the NEW
+  // needed for a fixed vocabulary). Priority 22/23 sits in the NEW
   // 'Classification' progression group, inserted after 'Carrier & Tender
-  // Status' (index 20) — see progression.js. Adding these shifted `load` from
-  // priority 23 to 25 (gross-weight/ap-freight-cost aren't projected, so they
-  // don't get registry entries, but they still occupy flattened indices 23/24).
-  'shipment-type': { label: 'Shipment Type',   col: 'shipment_type', normalize: upper,      trgm: false, priority: 21 },
-  'planning-type': { label: 'Planning Type',   col: 'planning_type', normalize: upper,      trgm: false, priority: 22 },
-  'load':          { label: 'Load #',          col: 'load',          normalize: upperStrip, trgm: true,  priority: 25 },
+  // Status' (index 21) — see progression.js. Adding these shifted `load` from
+  // priority 24 to 26 (gross-weight/ap-freight-cost aren't projected, so they
+  // don't get registry entries, but they still occupy flattened indices 24/25).
+  'shipment-type': { label: 'Shipment Type',   col: 'shipment_type', normalize: upper,      trgm: false, priority: 22 },
+  'planning-type': { label: 'Planning Type',   col: 'planning_type', normalize: upper,      trgm: false, priority: 23 },
+  'load':          { label: 'Load #',          col: 'load',          normalize: upperStrip, trgm: true,  priority: 26 },
 }
 
 export const REGISTRY = {
@@ -53,7 +57,8 @@ export const REGISTRY = {
     hydrate: {
       table: 'shipments',
       key: 'sell_shipment',
-      columns: `sell_shipment AS "sellShipment", buy_shipment AS "buyShipment", panel,
+      columns: `sell_shipment AS "sellShipment", buy_shipment AS "buyShipment",
+                odyssey_shipment_id AS "odysseyShipmentIdentifier", panel,
                 origin, destination, customer_name AS "customerName", scac, pro,
                 tender_status AS "tenderStatus", shipment_status AS "shipmentStatus"`,
     },

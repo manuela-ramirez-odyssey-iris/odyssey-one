@@ -9,7 +9,7 @@ status: active
 
 # Shipments — Search Progression
 
-The Shipments domain's **search vocabulary**: 27 attributes in 10 groups, the twin of the [[../orders/orders-search-progression|Orders progression]], consumed by the same `useGlobalSearch` hook and criteria core.
+The Shipments domain's **search vocabulary**: 28 attributes in 10 groups, the twin of the [[../orders/orders-search-progression|Orders progression]], consumed by the same `useGlobalSearch` hook and criteria core.
 
 **Implementation:** [`apps/odyssey-one/src/search/shipments/progression.js`](../../../apps/odyssey-one/src/search/shipments/progression.js) (`SHIPMENTS_PROGRESSION`, `SHIPMENTS_ATTRIBUTES`, `FREE_TEXT_ATTRS`).
 **Taxonomy sheet:** [[data/attributes-progression-grouping|attributes-progression-grouping.csv]] · workbook (one sheet, `Progression Grouping`) at `vault/10-domains/shipments/data/attributes-progression-grouping.xlsx`, copied to `docs/story-packs/shipments-search-progression.xlsx`. Per attribute it states the control Vercel actually renders (`Field Type (as built on Vercel)`, falling back to the 2026-05 proposed type only for rows never built) and whether the attribute is reachable from the search bar (`Search status`: `Live in search` / `Not in search` / `Not in search (skipped in proposal)`).
@@ -43,7 +43,7 @@ This is the **structural difference** from Orders, and the thing to understand b
 | | Search **bar** | Filters **panel** |
 |---|---|---|
 | File | `search/shipments/progression.js` | same file |
-| Vocabulary | all 27 attributes | **all 27 attributes** |
+| Vocabulary | all 28 attributes | **all 28 attributes** |
 | Scoping | flat | flat (the `All` tab; the other tab holds saved filters) |
 
 `ShipmentsFiltersView.jsx` imports `SHIPMENTS_PROGRESSION` directly and renders one section per group, so **a new Shipments attribute appears in the filters panel automatically**. Orders has two separate catalogs (`progression.js` for the bar, `registry.js` for the panel) and a new Orders attribute appears in the bar only.
@@ -102,7 +102,7 @@ Six attributes carry a fixed catalog. Every one of them is `exact`.
 
 Unlike Orders, Shipments needs no row projection: `shipments.json` rows are flat and display-valued, so the criteria core reads `row[attr.dataKey]` straight. Two fields hold arrays (`orders`, `pickupNumbers`); `fieldIncludes` joins an array on spaces before matching, so a shipment with three pickup numbers is found by any one of them.
 
-What Shipments *does* have is a **restricted free-text set**. A bare code pasted into an empty bar is resolved against `FREE_TEXT_KEYS` only — 15 of the 27 attributes:
+What Shipments *does* have is a **restricted free-text set**. A bare code pasted into an empty bar is resolved against `FREE_TEXT_KEYS` only — 16 of the 28 attributes:
 
 > buyShipment · sellShipment · customerId · customerName · origin · destination · scac · orders · pro · load · equipment · seal · consignor · consignee · pickupNumbers
 
@@ -135,39 +135,42 @@ Progression order. `match` and `exact` are the code's own fields; the panel colu
 
 | # | Group | Attribute (bar label) | `dataKey` | `match` | Exact | Example (seeded) | Free-text |
 |---:|---|---|---|---|:-:|---|:-:|
-| 1 | Shipment Identifiers | Buy Shipment # | `buyShipment` | digits | | `11852604` | ✓ |
-| 2 | Shipment Identifiers | Sell Shipment # | `sellShipment` | digits | | `25969909` | ✓ |
-| 3 | Shipment Identifiers | Order # | `orders` | both | | `0000000091000` | ✓ |
-| 4 | Shipment Identifiers | Order Count | `orderCount` | digits | ✓ | `1` | |
-| 5 | Shipment Identifiers | Pro#/Booking # | `pro` | digits | | `441275` | ✓ |
-| 6 | Shipment Identifiers | Pickup # ¹ | `pickupNumbers` | both | | `PU-929686` | ✓ |
-| 7 | Customers & Parties | Customer ID | `customerId` | letters | | `WEYERH_01` | ✓ |
-| 8 | Customers & Parties | Customer Name | `customerName` | letters | | `Weyerhaeuser Company` | ✓ |
-| 9 | Customers & Parties | Consignor | `consignor` | letters | | `G2O TECH SOLUTIONS` | ✓ |
-| 10 | Customers & Parties | Consignee | `consignee` | letters | | `SOLVAY CHEMICALS PL` | ✓ |
-| 11 | Route & Geography | Origin | `origin` | letters | | `Bastrop LA US 71202` | ✓ |
-| 12 | Route & Geography | Destination | `destination` | letters | | `Green River WY US 82935` | ✓ |
-| 13 | Schedule & Appointments | Pickup Date | `pickupDate` | date | | `06/05/2026 12:30 CDT` | |
-| 14 | Schedule & Appointments | Delivery Date | `deliveryDate` | date | | `06/07/2026 12:30 CDT` | |
-| 15 | Transport & Equipment | Mode | `mode` | enum (5) | ✓ | `LTL` | |
-| 16 | Transport & Equipment | Equipment Code | `equipmentCode` | enum (11) | ✓ | `LTH` | |
-| 17 | Transport & Equipment | Equipment # | `equipment` | digits | | `4575` | ✓ |
-| 18 | Transport & Equipment | Seal Number | `seal` | letters | | `S447972` | ✓ |
-| 19 | Carrier & Tender Status | SCAC | `scac` | letters | | `XPOL` | ✓ |
-| 20 | Carrier & Tender Status | Tender Status | `tenderStatus` | enum (4) | ✓ | `Sent` | |
-| 21 | Carrier & Tender Status | Shipment Status | `shipmentStatus` | enum (2) | ✓ | `Done` | |
-| 22 | Classification | Shipment Type ² | `shipmentType` | enum (2) | ✓ | `Direct` | |
-| 23 | Classification | Planning Type | `planningType` | enum (2) | ✓ | `SSD` | |
-| 24 | Cargo & Handling | Gross Weight | `grossWeight` | digits | | `6129` | |
-| 25 | Rates & Costs | AP Freight Cost | `apFreightCost` | digits | | `4,624.99` | |
-| 26 | Load Details | Load # | `load` | digits | | `23492` | ✓ |
-| 27 | Load Details | Load Count | `loadCount` | digits | ✓ | `1` | |
+| 1 | Shipment Identifiers | Odyssey Shipment Identifier ³ | `odysseyShipmentIdentifier` | both | | `C50000003` | ✓ |
+| 2 | Shipment Identifiers | Buy Shipment # | `buyShipment` | digits | | `11852604` | ✓ |
+| 3 | Shipment Identifiers | Sell Shipment # | `sellShipment` | digits | | `25969909` | ✓ |
+| 4 | Shipment Identifiers | Order # | `orders` | both | | `0000000091000` | ✓ |
+| 5 | Shipment Identifiers | Order Count | `orderCount` | digits | ✓ | `1` | |
+| 6 | Shipment Identifiers | Pro#/Booking # | `pro` | digits | | `441275` | ✓ |
+| 7 | Shipment Identifiers | Pickup # ¹ | `pickupNumbers` | both | | `PU-929686` | ✓ |
+| 8 | Customers & Parties | Customer ID | `customerId` | letters | | `WEYERH_01` | ✓ |
+| 9 | Customers & Parties | Customer Name | `customerName` | letters | | `Weyerhaeuser Company` | ✓ |
+| 10 | Customers & Parties | Consignor | `consignor` | letters | | `G2O TECH SOLUTIONS` | ✓ |
+| 11 | Customers & Parties | Consignee | `consignee` | letters | | `SOLVAY CHEMICALS PL` | ✓ |
+| 12 | Route & Geography | Origin | `origin` | letters | | `Bastrop LA US 71202` | ✓ |
+| 13 | Route & Geography | Destination | `destination` | letters | | `Green River WY US 82935` | ✓ |
+| 14 | Schedule & Appointments | Pickup Date | `pickupDate` | date | | `06/05/2026 12:30 CDT` | |
+| 15 | Schedule & Appointments | Delivery Date | `deliveryDate` | date | | `06/07/2026 12:30 CDT` | |
+| 16 | Transport & Equipment | Mode | `mode` | enum (5) | ✓ | `LTL` | |
+| 17 | Transport & Equipment | Equipment Code | `equipmentCode` | enum (11) | ✓ | `LTH` | |
+| 18 | Transport & Equipment | Equipment # | `equipment` | digits | | `4575` | ✓ |
+| 19 | Transport & Equipment | Seal Number | `seal` | letters | | `S447972` | ✓ |
+| 20 | Carrier & Tender Status | SCAC | `scac` | letters | | `XPOL` | ✓ |
+| 21 | Carrier & Tender Status | Tender Status | `tenderStatus` | enum (4) | ✓ | `Sent` | |
+| 22 | Carrier & Tender Status | Shipment Status | `shipmentStatus` | enum (2) | ✓ | `Done` | |
+| 23 | Classification | Shipment Type ² | `shipmentType` | enum (2) | ✓ | `Direct` | |
+| 24 | Classification | Planning Type | `planningType` | enum (2) | ✓ | `SSD` | |
+| 25 | Cargo & Handling | Gross Weight | `grossWeight` | digits | | `6129` | |
+| 26 | Rates & Costs | AP Freight Cost | `apFreightCost` | digits | | `4,624.99` | |
+| 27 | Load Details | Load # | `load` | digits | | `23492` | ✓ |
+| 28 | Load Details | Load Count | `loadCount` | digits | ✓ | `1` | |
 
 Examples are real values from the seeded `src/data/shipments.json` (2,200 rows).
 
 ¹ **Was marked *skipped* in the stakeholder proposal; it is implemented.** A Pickup # is an ORDER-header reference copied to the load, so a shipment carries N of them — which is exactly why it could not be found as a shipment *column* (D3, R2-2). Searchable without being a column, and in the free-text set since S104.
 
 ² **Not the proposal's `Shipment Type`.** See §7.
+
+³ **New — S148, not in the stakeholder proposal.** One ID common to the shipment’s buy and sell side — the value Odyssey sends the customer and the carrier, while Buy/Sell Shipment # stay internal. First character is a letter (`O` single-order, `C` consolidated), then a system-generated sequence starting at 50,000,000, chosen so an O2 id can never collide with a TMS-generated one. **`match: 'both'`, not `digits`** — its two siblings are digits-only, but the letter prefix means a digits matcher would never suggest this chip for `C50…`. Length is deliberately unfixed: the sequence grows, so nothing may pad, zero-fill or length-validate it. Source: Laurie + Dave Schultz, 2026-09-15.
 
 ## 9. Proposed but not built
 

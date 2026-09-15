@@ -1,0 +1,21 @@
+-- 011: Odyssey Shipment Identifier (S148, 2026-09-15). This is the Shipment
+-- Service LLD's `odysseyShipmentIdentifier` ("odysseyShipmentIdentifier":
+-- "C813888", 15 occurrences) — Dave Schultz confirms the column has always
+-- existed in the TMS shipment table as `odyssey_shipment_id`.
+--
+-- One per shipment, common to that shipment's buy and sell side: in the real
+-- TMS schema buy and sell are separate rows sharing this one value; our
+-- prototype collapses that pair into a single row, so here it is exactly
+-- 1:1 with a `shipments` row.
+--
+-- Format: `<prefix><sequence>` as a string — 'O' (single-order) or 'C'
+-- (consolidated), sequence starting at 50,000,000 so it can't collide with a
+-- TMS-generated id. Length is NOT fixed — the sequence grows, so this column
+-- is never padded, zero-filled, or length/regex-validated. Source: Laurie +
+-- Dave Schultz, 2026-09-15
+-- (vault-sources/10-domains/shipments/sources/laurie-dave-odyssey-shipment-identifier-2026-09-15.md).
+--
+-- Nullable on purpose — existing rows are backfilled by the next reseed, not
+-- by this migration. No index: 2,200 rows doesn't justify one yet; add when
+-- row counts (or a query plan) do.
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS odyssey_shipment_id text;

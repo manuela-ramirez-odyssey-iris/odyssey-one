@@ -340,7 +340,7 @@ const nextProgressionGroup = (chips) => coreNextGroup(SHIPMENTS_PROGRESSION, chi
 // unknown props onto its DOM node (a camelCase extra would warn in dev).
 function buildShipmentRow(s, primaryKey, primaryQuery) {
   return {
-    id: s.buyShipment,
+    id: s.odysseyShipmentIdentifier ?? s.buyShipment,
     'data-shipment-key': s.sellShipment,
     // Which panel tab this row lives in + which attribute group it matched.
     // Both feed `panelForResults` (GS-18) — the landing tab is chosen from what
@@ -362,8 +362,9 @@ function buildShipmentRow(s, primaryKey, primaryQuery) {
 // shipment's route/customer/carrier/BOL (only order IDs exist at the main-row
 // level — see composed-criteria.md Q3). Bold = order #; badge = tender status.
 function buildOrderRow(s, orderId) {
+  const displayId = s.odysseyShipmentIdentifier ?? s.buyShipment
   return {
-    id: `${s.buyShipment}-${orderId}`,
+    id: `${displayId}-${orderId}`,
     'data-shipment-key': s.sellShipment,
     'data-panel': s.panel,
     'data-attr': 'orders',
@@ -372,7 +373,7 @@ function buildOrderRow(s, orderId) {
     customer: s.customerName,
     carrier: s.scac,
     bol: s.pro,
-    shipmentId: s.buyShipment,
+    shipmentId: displayId,
     iconType: 'package',
     source: toTenderBadge(s),
   }
@@ -406,13 +407,13 @@ function scorePrimaryMatch(s, dataKey, query) {
 // falls back to the first element. For location fields, normalises to "City, ST".
 function formatPrimaryField(s, dataKey, query) {
   const val = s[dataKey]
-  if (val == null) return s.buyShipment
+  if (val == null) return s.odysseyShipmentIdentifier ?? s.buyShipment
   if (dataKey === 'origin' || dataKey === 'destination') return formatLocation(val)
   if (Array.isArray(val)) {
     const match = query
       ? val.find((v) => String(v).toLowerCase().includes(query))
       : null
-    return String(match ?? val[0] ?? s.buyShipment)
+    return String(match ?? val[0] ?? s.odysseyShipmentIdentifier ?? s.buyShipment)
   }
   return String(val)
 }

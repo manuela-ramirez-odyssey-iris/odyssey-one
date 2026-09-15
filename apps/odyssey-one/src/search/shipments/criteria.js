@@ -41,6 +41,7 @@ export {
 // half the DB — and enums (mode, equipmentCode, tenderStatus, shipmentStatus),
 // which are reachable as chips. Both would drown the bare-code case.
 export const FREE_TEXT_KEYS = [
+  'odysseyShipmentIdentifier',
   'buyShipment', 'sellShipment', 'customerId', 'customerName', 'origin', 'destination', 'scac', 'orders',
   // Added S104: a pasted Pro/BOL, load, trailer, or seal number found NOTHING
   // before this — the single most likely thing to paste into an empty bar.

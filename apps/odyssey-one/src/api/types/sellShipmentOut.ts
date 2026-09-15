@@ -439,6 +439,10 @@ export interface SellShipmentConsolidationChange {
 
 export interface SellShipmentOut {
   shipmentId: string
+  /** S148 — the shipment's displayed name (prefix `O`/`C` + sequence), distinct
+      from `shipmentId` (the sell PK, untouched). Optional: absent on payloads
+      generated before S148. See docs/superpowers/specs/2026-09-15-odyssey-shipment-identifier.md. */
+  odysseyShipmentIdentifier?: string
   shipmentType?: string
   customerId?: string
   customerName?: string

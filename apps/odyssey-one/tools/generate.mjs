@@ -104,6 +104,7 @@ let orderEnrichments = {}; // → src/data/order-details.json (partial ManualOrd
 
 function resetGeneratorState() {
   orderSeq = ORDER_ID_BASE;
+  odysseySeq = ODYSSEY_SHIPMENT_SEQ_BASE;
   orderRows = [];
   orderEnrichments = {};
   usedSellShipments.clear();
@@ -116,6 +117,14 @@ function toIsoLocal(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;
 }
+
+// The Odyssey Shipment Identifier (LLD: odysseyShipmentIdentifier, e.g. "C813888")
+// — one per shipment, common to its buy and sell side. O = single-order,
+// C = consolidated (Dave Schultz, 2026-09-15). Sequence starts at 50M so O2 ids
+// can never collide with a TMS-generated one. A plain counter, NOT a faker draw:
+// consuming randomness here would re-number every buy/sell/order id in the dataset.
+const ODYSSEY_SHIPMENT_SEQ_BASE = 50_000_000
+let odysseySeq = ODYSSEY_SHIPMENT_SEQ_BASE
 
 const usedSellShipments = new Set();
 function genUniqueSellShipment() {
@@ -713,6 +722,17 @@ function generateShipment(index, chainOverride) {
     { value: 4, weight: 10 },
     { value: 5, weight: 5 },
   ]);
+  // Prefix frozen at creation (spec open question #1, defaulted): a stored
+  // string, never recomputed if order count changes later via Order Change.
+  //
+  // Dave Schultz, 2026-09-15: a consolidation that drops back to a single order
+  // STAYS a consolidation (NN integration forces it) — "once something is a 'C',
+  // it stays that way forever". Without this cohort that state is unreachable in
+  // seeded data, so nothing ever exercises C-with-one-order.
+  const seqAtCreation = odysseySeq++;
+  const formerlyConsolidated = orderCount === 1 && seqAtCreation % 50 === 0;
+  const isConsolidated = orderCount > 1 || formerlyConsolidated;
+  const odysseyShipmentIdentifier = `${isConsolidated ? 'C' : 'O'}${seqAtCreation}`;
   const orders = [];
   const packageType = pick(PACKAGE_TYPES); // consistent per shipment
 
@@ -2002,11 +2022,13 @@ function generateShipment(index, chainOverride) {
   const mainRow = {
     buyShipment,
     sellShipment,
+    odysseyShipmentIdentifier,
     orders: orders.map(o => o.orderId),
     pickupNumbers,
     poNumbers,
-    // LINX-11597 verbatim — Direct (1 mapped order) vs Consolidation (>1).
-    shipmentType: orderCount === 1 ? 'Direct' : 'Consolidation',
+    // LINX-11597 verbatim — Direct (1 mapped order) vs Consolidation (>1),
+    // plus the formerly-consolidated cohort (Dave Schultz: a 'C' stays a 'C').
+    shipmentType: isConsolidated ? 'Consolidation' : 'Direct',
     planningType,
     // Multi-leg linkage triplet (007_multileg_chains.sql, user ruling
     // 2026-08-05) — null on every normal, single-leg shipment. Chain
@@ -2052,6 +2074,7 @@ function generateShipment(index, chainOverride) {
   // here — those tabs degrade to empty until their endpoints exist.
   const detail = {
     shipmentId: sellShipment,
+    odysseyShipmentIdentifier,
     // Was hardcoded 'sell' — the buy/sell DTO side, a field nothing in the app
     // ever read (grep-verified, 2026-08-05). S108 repurposes the ONE
     // `shipmentType` name for the real concept (LINX-11597 Direct/Consolidation,

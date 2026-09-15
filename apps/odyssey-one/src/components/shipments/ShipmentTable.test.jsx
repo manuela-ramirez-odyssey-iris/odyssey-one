@@ -8,6 +8,7 @@ import { describe, test, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ShipmentTable from './ShipmentTable.jsx'
+import { DEFAULT_COLUMNS } from '../detail/ColumnPanel.jsx'
 
 afterEach(cleanup)
 
@@ -179,5 +180,21 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
     fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
     expect(screen.getByRole('menuitem', { name: 'Review Consolidated Change' })).toBeTruthy()
     expect(screen.queryByRole('menuitem', { name: 'Review Order Change' })).toBeFalsy()
+  })
+})
+
+// S148 — Odyssey Shipment Identifier leads every column list, far-left in the
+// grid (no pin mechanism exists, so "far left" is array order).
+describe('ShipmentTable — Odyssey Shipment Identifier column', () => {
+  test('is first in the default column profile', () => {
+    expect(DEFAULT_COLUMNS[0]).toBe('odysseyShipmentIdentifier')
+  })
+
+  test('renders its value as the leftmost cell', () => {
+    renderTable({
+      shipments: [{ id: 'r1', odysseyShipmentIdentifier: 'O50000012', buyShipment: '85611354' }],
+      visibleColumns: ['odysseyShipmentIdentifier', 'buyShipment'],
+    })
+    expect(screen.getByText('O50000012')).toBeTruthy()
   })
 })

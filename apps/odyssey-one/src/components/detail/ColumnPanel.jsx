@@ -8,6 +8,7 @@ import { GroupLabel, PresetActionsMenu } from '../common/presetChrome.jsx'
 export const RIGHT_PANEL_WIDTH = 343
 
 export const ALL_COLUMNS = [
+  { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment Identifier' },
   { key: 'buyShipment', label: 'Buy Shipment #' },
   { key: 'sellShipment', label: 'Sell Shipment #' },
   { key: 'orders', label: 'Order #' },
@@ -89,27 +90,30 @@ export function mergeLateAddedColumns(cols) {
   return missing.length ? [...cols, ...missing] : cols
 }
 
-// Buy Shipment # leads the default profiles — the team decided buyShipment is THE
-// shipment ID users work with (LINX-11591 approved grid field list, LINX-12490
-// buy-keyed orders endpoint, LINX-13023). Sell Shipment # stays second: it remains
-// the internal wire key (grid row → detail link = sell-shipment-out/{sellShipment}).
-// Supersedes the S43 sell-first ordering; see decision-log DEC entry.
+// Odyssey Shipment Identifier leads the default profiles (Laurie + Dave Schultz,
+// 2026-09-15): it is the one ID common to a shipment's buy and sell side and the
+// one actually sent to customers and carriers, while Buy/Sell Shipment # remain
+// internal-only. Buy Shipment # stays second, Sell Shipment # third — sellShipment
+// is still the internal wire key (grid row → detail link = sell-shipment-out/{sellShipment}).
+// Supersedes the S43 sell-first ordering and the buyShipment-leads ruling
+// (LINX-11591 approved grid field list, LINX-12490 buy-keyed orders endpoint,
+// LINX-13023); see decision-log DEC entry.
 const DEFAULT_COLUMNS = [
-  'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'odysseyShipmentIdentifier', 'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
   ...LATE_ADDED_COLUMNS,
 ]
 
 export const EXCEPTIONS_DEFAULT_COLUMNS = [
-  'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'odysseyShipmentIdentifier', 'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
   ...LATE_ADDED_COLUMNS,
 ]
 
 export const MONITORING_DEFAULT_COLUMNS = [
-  'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
+  'odysseyShipmentIdentifier', 'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'stops',
   'grossWeight', 'mode', 'equipmentCode',
   ...LATE_ADDED_COLUMNS,
@@ -121,9 +125,9 @@ export const PRESETS = {
     { id: 'default-monitoring', name: 'Default Monitoring', columns: MONITORING_DEFAULT_COLUMNS },
   ],
   odyssey: [
-    { id: 'logistics', name: 'Logistics View', columns: ['buyShipment', 'customerId', 'shipmentStatus', 'origin', 'destination', 'mode', 'equipmentCode', 'grossWeight', 'pickupDate', 'deliveryDate'] },
-    { id: 'financial', name: 'Financial View', columns: ['buyShipment', 'customerId', 'shipmentStatus', 'orders', 'apFreightCost', 'grossWeight', 'mode', 'scac'] },
-    { id: 'carrier', name: 'Carrier View', columns: ['buyShipment', 'shipmentStatus', 'scac', 'mode', 'equipmentCode', 'pickupDate', 'deliveryDate', 'origin', 'destination', 'apFreightCost'] },
+    { id: 'logistics', name: 'Logistics View', columns: ['odysseyShipmentIdentifier', 'buyShipment', 'customerId', 'shipmentStatus', 'origin', 'destination', 'mode', 'equipmentCode', 'grossWeight', 'pickupDate', 'deliveryDate'] },
+    { id: 'financial', name: 'Financial View', columns: ['odysseyShipmentIdentifier', 'buyShipment', 'customerId', 'shipmentStatus', 'orders', 'apFreightCost', 'grossWeight', 'mode', 'scac'] },
+    { id: 'carrier', name: 'Carrier View', columns: ['odysseyShipmentIdentifier', 'buyShipment', 'shipmentStatus', 'scac', 'mode', 'equipmentCode', 'pickupDate', 'deliveryDate', 'origin', 'destination', 'apFreightCost'] },
     // Everything the catalog offers, in catalog order — Jana asked for a way to
     // demo the grid with every column on. DERIVED from ALL_COLUMNS rather than
     // listed, so a column added above is in this preset the moment it exists;

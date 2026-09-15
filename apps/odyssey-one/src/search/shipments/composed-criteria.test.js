@@ -130,8 +130,9 @@ describe('Case 1 — Order# (empty) + Buy Shipment# = X → that shipment\'s ord
       new Set(MULTI.orders.map(String)),
     )
 
-    // Every row carries the parent shipment + order conventions.
-    expect(results.every((r) => r.shipmentId === MULTI.buyShipment)).toBe(true)
+    // Every row carries the parent shipment + order conventions. Displayed id
+    // is the Odyssey Shipment Identifier (S148), buyShipment only as fallback.
+    expect(results.every((r) => r.shipmentId === (MULTI.odysseyShipmentIdentifier ?? MULTI.buyShipment))).toBe(true)
     expect(results.every((r) => r.iconType === 'package')).toBe(true)
   })
 })
@@ -191,7 +192,7 @@ describe('Customer scoping — the glimpse respects the selected customer list (
 
     const scoped = await adapter.searchShipments([], 'us', [SCOPE_ID])
     expect(scoped.total).toBe(scopedRows.length)
-    expect(scoped.results.every((r) => scopedRows.some((s) => s.buyShipment === r.id))).toBe(true)
+    expect(scoped.results.every((r) => scopedRows.some((s) => (s.odysseyShipmentIdentifier ?? s.buyShipment) === r.id))).toBe(true)
   })
 
   test('empty scope ([]) → honest empty glimpse; undefined → unscoped (legacy)', async () => {
@@ -317,11 +318,12 @@ describe('Case 6 — table order matches the results preview', () => {
       panel, pageNumber: 0, pageSize: 100, searchCriteria: { chips: [], text: q },
     })
     // The preview spans panels; compare its in-panel subsequence to the grid.
+    // Displayed id is the Odyssey Shipment Identifier (S148), buyShipment as fallback.
     const inPanel = preview.results
       .map((r) => r.id)
-      .filter((id) => ALL.some((s) => s.buyShipment === id && s.panel === panel))
+      .filter((id) => ALL.some((s) => (s.odysseyShipmentIdentifier ?? s.buyShipment) === id && s.panel === panel))
     expect(inPanel.length).toBeGreaterThan(1)
-    expect(grid.rows.slice(0, inPanel.length).map((r) => r.buyShipment)).toEqual(inPanel)
+    expect(grid.rows.slice(0, inPanel.length).map((r) => r.odysseyShipmentIdentifier ?? r.buyShipment)).toEqual(inPanel)
   })
 
   test('an explicit column sort still wins over relevance', async () => {

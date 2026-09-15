@@ -497,6 +497,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
               <SummaryStrip
                 aria-label="Shipment identifiers"
                 items={[
+                  { label: 'Odyssey Shipment Identifier', value: shipment?.odysseyShipmentIdentifier },
                   { label: 'Buy Shipment',  value: shipment?.buyShipment },
                   { label: 'Pro/Booking #', value: shipment?.pro || order?.proBooking },
                   // Display convention (user, 2026-08-02): strip the protocol —

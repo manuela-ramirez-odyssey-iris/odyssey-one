@@ -39,8 +39,9 @@ const consolidation = {
   summaryChanges: {}, costs: { prior: '$1,000.00', newDirect: '$1,100.00', newConsolidated: '$1,050.00' },
 }
 
-function makeDetail({ consolidationOverride = consolidation, resolution = null, priorTenderStatus = null } = {}) {
+function makeDetail({ consolidationOverride = consolidation, resolution = null, priorTenderStatus = null, odysseyShipmentIdentifier } = {}) {
   return {
+    odysseyShipmentIdentifier,
     stopsData: { summary: { distance: '364.14 mi' }, stops },
     orderDetails,
     // routingData.options intentionally left empty here — the route's
@@ -104,6 +105,20 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(screen.getAllByText('Edit Shipment Stops').length).toBeGreaterThan(0)
     // The editor itself rendered (View Routing / Approve Changes are its own).
     expect(screen.getByRole('button', { name: 'View Routing' })).toBeTruthy()
+  })
+
+  // S148 — the actual bug this task fixes: location.state is gone on a hard
+  // refresh / pasted URL, but the FETCHED detail now carries
+  // odysseyShipmentIdentifier, so the header no longer degrades to the raw
+  // sell id.
+  test('uses the FETCHED odysseyShipmentIdentifier for the header when location.state is empty (refresh / pasted URL)', async () => {
+    const ODYSSEY_ID = 'C50000099'
+    getSellShipmentDetail.mockResolvedValue(makeDetail({ odysseyShipmentIdentifier: ODYSSEY_ID }))
+    renderRoute() // no state at all
+
+    expect(await screen.findByText(`Shipment ${ODYSSEY_ID}`)).toBeTruthy()
+    expect(screen.queryByText(`Shipment ${SELL_SHIPMENT}`)).toBeNull()
+    expect(screen.queryByText(/Buy Shipment/)).toBeNull()
   })
 
   test('shows the empty state when the order change has no consolidation', async () => {

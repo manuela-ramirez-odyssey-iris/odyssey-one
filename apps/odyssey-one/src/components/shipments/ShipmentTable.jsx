@@ -60,6 +60,7 @@ function OrdersTooltip({ orders, children }) {
 // (the old app-local TruncatedText wrapper had a stale overflow state: it checked
 // only on mount/window-resize, so column drags never re-armed its tooltip; deleted S85).
 export const COLUMN_CONFIG = [
+  { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment Identifier' },
   { key: 'sellShipment', label: 'Sell Shipment' },
   { key: 'buyShipment', label: 'Buy Shipment' },
   { key: 'customerId', label: 'Customer ID(s)' },
@@ -239,7 +240,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       const cfg = COLUMN_CONFIG_MAP[col.key]
       const label = colLabel(col.key)
       const cellClasses = []
-      if (col.key === 'sellShipment' || col.key === 'buyShipment') {
+      if (col.key === 'sellShipment' || col.key === 'buyShipment' || col.key === 'odysseyShipmentIdentifier') {
         cellClasses.push('odyssey-table__cell--title', 'text-label-sm-medium')
       }
       // Mapped cells open a specific bar tab (CELL_TAB_MAP) — hover tint
@@ -302,7 +303,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                     label: row.original.shipmentType === 'Consolidation' ? 'Review Consolidated Change' : 'Review Order Change',
                     onSelect: () => row.original.shipmentType === 'Consolidation'
                       ? onRowSelect(row.original.id, 'stops', false)
-                      : navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment } }),
+                      : navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment, odysseyShipmentIdentifier: row.original.odysseyShipmentIdentifier } }),
                   },
                   ...SHIPMENT_ACTIONS,
                 ]

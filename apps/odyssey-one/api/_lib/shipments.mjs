@@ -18,6 +18,9 @@ const RELEVANCE_SORT = 'relevance'
 // — without this the grid would keep showing the pre-edit value right after
 // the user saved a new one in the modal.
 const ROW_COLUMNS = `
+  -- odyssey_shipment_id is the grid's far-left column (S148) — there is no
+  -- left-pin mechanism, so it must lead the SELECT list to lead the row.
+  odyssey_shipment_id AS "odysseyShipmentIdentifier",
   buy_shipment AS "buyShipment", sell_shipment AS "sellShipment", orders, pro,
   pickup_numbers AS "pickupNumbers", po_numbers AS "poNumbers",
   shipment_type AS "shipmentType", planning_type AS "planningType",
@@ -36,6 +39,13 @@ const ROW_COLUMNS = `
 
 // Sortable columns. Dates sort on the real timestamp cols, not the display strings.
 const SORT_MAP = {
+  // Sorts on the SEQUENCE, prefix-blind — deliberately not the raw text. Sorting the
+  // string alphabetically would put every C… before every O…, which reads as grouping
+  // by consolidation; real consolidation grouping is a feature being built, and the
+  // default grid must not fake it with an alphabet artifact (user ruling, 2026-09-15).
+  // Casting to bigint also keeps the order correct when the sequence outgrows 8 digits,
+  // which Dave Schultz was explicit it will ("do NOT make assumptions on length").
+  odysseyShipmentIdentifier: 'substr(odyssey_shipment_id, 2)::bigint',
   pickupDate: 'pickup_ts', deliveryDate: 'delivery_ts', customerName: 'customer_name',
   sellShipment: 'sell_shipment', buyShipment: 'buy_shipment', scac: 'scac', mode: 'mode',
   tenderStatus: 'tender_status', shipmentStatus: 'shipment_status', category: 'category',
@@ -43,6 +53,7 @@ const SORT_MAP = {
 
 // Filterable columns (exact-equality and substring). Keys are ShipmentErrorRow field names.
 const FIELD_MAP = {
+  odysseyShipmentIdentifier: 'odyssey_shipment_id',
   customerName: 'customer_name', consignor: 'consignor', consignee: 'consignee', origin: 'origin',
   destination: 'destination', mode: 'mode', equipmentCode: 'equipment_code', scac: 'scac',
   tenderStatus: 'tender_status', shipmentStatus: 'shipment_status', pro: 'pro',
@@ -53,7 +64,9 @@ const FIELD_MAP = {
 // search/shipments/criteria.js). Excludes only customerId (an internal scope
 // key, not user-facing text) and orders (an array, not a substring-matchable
 // text column) — every other free-text key maps to a column here.
-const FREE_TEXT_COLUMNS = ['sell_shipment', 'buy_shipment', 'customer_name', 'origin', 'destination', 'scac']
+// odyssey_shipment_id leads (S148): it's the first attribute of the Shipment
+// Identifiers search group, so it should be the first column ORed across too.
+const FREE_TEXT_COLUMNS = ['odyssey_shipment_id', 'sell_shipment', 'buy_shipment', 'customer_name', 'origin', 'destination', 'scac']
 
 function scope(where, values, customerIds) {
   if (customerIds === undefined) return

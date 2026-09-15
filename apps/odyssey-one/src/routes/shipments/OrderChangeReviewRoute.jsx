@@ -22,18 +22,13 @@ import '../../components/shipments/order-change/order-change.css'
 // `return null` stubs — this route already passes them the real `oc` payload
 // so wiring them up later is additive, not a rewrite.
 //
-// ShipmentDetailVM (api/types/shipmentDetail.ts) carries no `buyShipment` or
-// timezone field, and neither does the SellShipmentOut DTO it's mapped from
-// (tools/generate.mjs's `detail` object literal — verified: only `shipmentId`
-// (the sell id) is present; `buyShipment` exists solely on the shipments-table
-// ROW vm, built separately as `mainRow`). Adding it to the DTO would be a wire
-// -contract change requiring a regenerate/reseed, out of scope here — instead
-// the row menu (ShipmentTable.jsx) threads it through nav state, read below.
-// buyShipment is THE user-facing shipment ID (LINX-11591/12490,
-// ColumnPanel.jsx:92) — sellShipment is the internal wire key this route is
-// keyed on. state is lossy (gone on refresh/pasted URL), so the header falls
-// back to an honest "Shipment {sellShipment}" rather than mislabeling the
-// sell id as "Buy Shipment" when the buy number isn't known.
+// S148 — the detail DTO/VM now carries `odysseyShipmentIdentifier`, the
+// shipment's displayed name (mapSellShipmentOutToDetail). The header prefers
+// the FETCHED value over location.state, since state is lossy (gone on
+// refresh/pasted URL) while the fetch is not; state is kept as the fallback
+// so the header still reads correctly on first paint, before the fetch
+// resolves. buyShipment (LINX-11591/12490, ColumnPanel.jsx:92) is the next
+// fallback below that, and the raw sell id last of all.
 // Confirm copy for the three Tender Resolution Actions (LINX-14515). The ACs
 // define the ACTIONS but no dialog, so this wording is ours — each message
 // states the consequence the AC does define, so the planner confirms
@@ -107,6 +102,7 @@ export default function OrderChangeReviewRoute() {
   const navigate = useNavigate()
   const location = useLocation()
   const buyShipment = location.state?.buyShipment
+  const odysseyShipmentIdentifier = location.state?.odysseyShipmentIdentifier
   // Where the planner CAME FROM (S135): 'tender' when opened from the Tender
   // tab's Review order change button (RoutingGuideTab), otherwise the table's
   // row menu. Close and the Tender breadcrumb return to the origin.
@@ -121,7 +117,11 @@ export default function OrderChangeReviewRoute() {
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
   const resolve = useResolveOrderChange()
   const oc = detail?.orderChange
-  const headerTitle = buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
+  const headerTitle = detail?.odysseyShipmentIdentifier
+    ? `Shipment ${detail.odysseyShipmentIdentifier}`
+    : odysseyShipmentIdentifier
+    ? `Shipment ${odysseyShipmentIdentifier}`
+    : buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
 
   // Task 11 follow-up — a failed resolveOrderChange previously settled
   // silently: button re-enabled, no feedback, planner left believing the

@@ -68,6 +68,13 @@ const ORDER_CHANGE_DETAIL = {
 
 const NO_ORDER_CHANGE_DETAIL = { ...ORDER_CHANGE_DETAIL, orderChange: null }
 
+// S148 — the displayed shipment name, now carried by the fetched detail
+// (mapSellShipmentOutToDetail's odysseyShipmentIdentifier), distinct from
+// both SELL_SHIPMENT and BUY_SHIPMENT so a test asserting the wrong source
+// fails loudly.
+const ODYSSEY_ID = 'C50000099'
+const DETAIL_WITH_ODYSSEY_ID = { ...ORDER_CHANGE_DETAIL, odysseyShipmentIdentifier: ODYSSEY_ID }
+
 // Task 11 — "not-returned" fixture (LINX-14513): the prior carrier did NOT
 // come back from re-routing, so `newOption.apCost` is null. Everything else
 // mirrors ORDER_CHANGE_DETAIL — same carrier, same prior side — only the
@@ -145,6 +152,27 @@ describe('OrderChangeReviewRoute', () => {
     renderRoute() // no state — same as a hard refresh landing on the deep link
     expect(await screen.findByText(`Shipment ${SELL_SHIPMENT}`)).toBeTruthy()
     expect(screen.queryByText(/Buy Shipment/)).toBeNull()
+  })
+
+  // S148 — the actual bug this task fixes: location.state is gone on a hard
+  // refresh / pasted URL, but the FETCHED detail now carries
+  // odysseyShipmentIdentifier, so the header no longer has to degrade to the
+  // raw sell id. This is the scenario the old "degrades to Shipment
+  // {sellShipment}" comment (removed above) used to justify as unavoidable.
+  test('uses the FETCHED odysseyShipmentIdentifier for the header when location.state is empty (refresh / pasted URL)', async () => {
+    getSellShipmentDetail.mockResolvedValue(DETAIL_WITH_ODYSSEY_ID)
+    renderRoute() // no state at all
+    expect(await screen.findByText(`Shipment ${ODYSSEY_ID}`)).toBeTruthy()
+    expect(screen.queryByText(`Shipment ${SELL_SHIPMENT}`)).toBeNull()
+  })
+
+  // S148 — fetched wins even when a (now-stale) buyShipment made it through
+  // nav state, per the task's fallback ordering: fetched → state → buyShipment.
+  test('prefers the fetched odysseyShipmentIdentifier over a stale buyShipment in location.state', async () => {
+    getSellShipmentDetail.mockResolvedValue(DETAIL_WITH_ODYSSEY_ID)
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    expect(await screen.findByText(`Shipment ${ODYSSEY_ID}`)).toBeTruthy()
+    expect(screen.queryByText(`Buy Shipment ${BUY_SHIPMENT}`)).toBeNull()
   })
 
   test('renders the Cancel tender button', async () => {

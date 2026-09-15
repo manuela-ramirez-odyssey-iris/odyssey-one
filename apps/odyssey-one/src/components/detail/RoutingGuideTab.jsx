@@ -1672,7 +1672,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
       // Change exception").
       onClick={() => shipmentDetails?.shipmentType === 'Consolidation'
         ? onRequestTab?.('stops')
-        : navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, from: 'tender' } })}
+        : navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, odysseyShipmentIdentifier: shipment?.odysseyShipmentIdentifier, from: 'tender' } })}
     >
       {/* S144 (user, 2026-09-09): consolidated shipments review on the Stops
           tab (LINX-15435), a different surface than the Direct route — the

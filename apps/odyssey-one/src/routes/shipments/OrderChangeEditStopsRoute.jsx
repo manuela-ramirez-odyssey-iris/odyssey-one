@@ -17,10 +17,10 @@ import '../../components/shipments/order-change/order-change.css'
 // in the URL because this editor is scoped to ONE shipment's stops plan
 // rather than the whole tender review.
 //
-// buyShipment travels through nav state exactly like the Direct route's
-// (same DTO gap: SellShipmentOut carries no buyShipment field — see that
-// route's header comment) — the header falls back to "Shipment
-// {sellShipment}" when state is lost (refresh / pasted URL).
+// S148 — same header fallback chain as the Direct route
+// (OrderChangeReviewRoute.jsx): fetched detail.odysseyShipmentIdentifier wins
+// (survives refresh/pasted URL), then the nav-state copy (correct on first
+// paint before the fetch resolves), then buyShipment, then the raw sell id.
 
 // Where the review's own KPI strip + editor come from is the SAME
 // consolidated-order-change shape StopsTab renders inline (S142/LINX-
@@ -31,9 +31,14 @@ export default function OrderChangeEditStopsRoute() {
   const navigate = useNavigate()
   const location = useLocation()
   const buyShipment = location.state?.buyShipment
+  const odysseyShipmentIdentifier = location.state?.odysseyShipmentIdentifier
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
   const resolve = useResolveOrderChange()
-  const headerTitle = buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
+  const headerTitle = detail?.odysseyShipmentIdentifier
+    ? `Shipment ${detail.odysseyShipmentIdentifier}`
+    : odysseyShipmentIdentifier
+    ? `Shipment ${odysseyShipmentIdentifier}`
+    : buyShipment ? `Buy Shipment ${buyShipment}` : `Shipment ${sellShipment}`
 
   // Same convention as OrderChangeReviewRoute's resolveError — a failed save
   // shouldn't settle silently (Task 11 lesson).
@@ -80,7 +85,7 @@ export default function OrderChangeEditStopsRoute() {
             // Direct review screen so the planner can resolve it with the
             // new stops plan. No `from` key — the Direct route only reads
             // 'from-tender' semantics via from === 'tender', which this exit isn't.
-            navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment } })
+            navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, odysseyShipmentIdentifier } })
           } else {
             // Scenario B — no active tender yet: send the planner to Tender
             // to start one on the finalized plan, still parked on the Order Change tab.

@@ -22,7 +22,7 @@ import { getShipmentErrorList, RELEVANCE_SORT } from '../../api/services/gridSer
 
 // The table is never unsorted — this is the column that drives until a search
 // commits (relevance) or the user picks another.
-const DEFAULT_SORTING = [{ id: 'buyShipment', desc: false }]
+const DEFAULT_SORTING = [{ id: 'odysseyShipmentIdentifier', desc: false }]
 
 function ShipmentsRoute() {
   // Customer scoping (S79c decision 10) — the FIRST-order data filter. The

@@ -400,18 +400,62 @@ test('order-level pickupNumber agrees with the shipment roll-up', () => {
 })
 
 // ── S108 DB motion: shipmentType / planningType / poNumbers ─────────────────
-test('LINX-11597: shipmentType is Direct iff exactly 1 order, else Consolidation', () => {
+test('LINX-11597: shipmentType is Consolidation iff >1 order or formerly-consolidated', () => {
   const ds = buildDataset()
   assert.ok(ds.shipments.length > 0)
   for (const s of ds.shipments) {
-    const expected = s.orders.length === 1 ? 'Direct' : 'Consolidation';
-    assert.equal(s.shipmentType, expected, `${s.sellShipment}: ${s.orders.length} orders but shipmentType ${s.shipmentType}`);
+    // >1 order always forces Consolidation. A single order MAY still be
+    // Consolidation — the formerly-consolidated cohort (Dave Schultz, S149:
+    // once a 'C', it stays a 'C' even if it drops back to one order).
+    if (s.orders.length > 1) assert.equal(s.shipmentType, 'Consolidation',
+      `${s.sellShipment}: ${s.orders.length} orders but shipmentType ${s.shipmentType}`);
   }
   // both branches actually exercised
   assert.ok(ds.shipments.some((s) => s.shipmentType === 'Direct'))
   assert.ok(ds.shipments.some((s) => s.shipmentType === 'Consolidation'))
+  // no shipment is Direct with more than one order
+  assert.ok(ds.shipments.every((s) => !(s.shipmentType === 'Direct' && s.orders.length > 1)))
   // detail.shipmentType (was hardcoded 'sell') now agrees with the row
   for (const s of ds.shipments) assert.equal(ds.details.get(s.sellShipment).shipmentType, s.shipmentType)
+})
+
+// ── S148/S149: odysseyShipmentIdentifier ────────────────────────────────────
+test('S148: odysseyShipmentIdentifier is well-formed and unique', () => {
+  const ds = buildDataset()
+  assert.ok(ds.shipments.length > 0)
+  const ids = ds.shipments.map((s) => s.odysseyShipmentIdentifier)
+  for (const id of ids) assert.match(id, /^[OC]\d+$/)
+  assert.equal(new Set(ids).size, ids.length)
+  const seqs = ids.map((id) => Number(id.slice(1)))
+  assert.equal(Math.min(...seqs), 50000000)
+  // never zero-padded — a sequence value can't legitimately start with 0
+  for (const id of ids) assert.doesNotMatch(id, /^[OC]0/)
+})
+
+test('S149: prefix agrees with shipmentType absolutely; formerly-consolidated cohort holds', () => {
+  const ds = buildDataset()
+  for (const s of ds.shipments) {
+    // Consolidation <=> 'C', for EVERY row — this stays absolute regardless
+    // of order count.
+    assert.equal(s.odysseyShipmentIdentifier[0], s.shipmentType === 'Consolidation' ? 'C' : 'O',
+      `${s.sellShipment}: shipmentType ${s.shipmentType} but id ${s.odysseyShipmentIdentifier}`)
+    // >1 order always implies 'C'
+    if (s.orders.length > 1) assert.equal(s.odysseyShipmentIdentifier[0], 'C',
+      `${s.sellShipment}: ${s.orders.length} orders but id ${s.odysseyShipmentIdentifier}`)
+    // no shipment is 'O' with more than one order
+    if (s.odysseyShipmentIdentifier[0] === 'O') assert.equal(s.orders.length, 1)
+  }
+  // Dave Schultz (2026-09-15): once a 'C', always a 'C' — a small deterministic
+  // cohort of single-order shipments is seeded "formerly consolidated" so this
+  // state is reachable at all.
+  const formerlyConsolidated = ds.shipments.filter(
+    (s) => s.orders.length === 1 && s.shipmentType === 'Consolidation')
+  assert.ok(formerlyConsolidated.length > 0, 'formerly-consolidated cohort is empty')
+  for (const s of formerlyConsolidated) {
+    assert.equal(s.orders.length, 1)
+    assert.equal(s.shipmentType, 'Consolidation')
+    assert.equal(s.odysseyShipmentIdentifier[0], 'C')
+  }
 })
 
 test('LINX-12902: planningType is RDD iff ANY mapped order is RDD, else SSD', () => {

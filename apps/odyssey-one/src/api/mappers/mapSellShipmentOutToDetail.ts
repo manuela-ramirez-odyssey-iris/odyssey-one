@@ -798,6 +798,11 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     ratingStatus: orDash(dto.ratingStatus),
     // LINX-14509 "Direct only" — the Review Order Change entry branches on it.
     shipmentType: orDash(dto.shipmentType),
+    // S148 — '' (not '--') when absent, so the header fallback chain in
+    // OrderChangeReviewRoute/OrderChangeEditStopsRoute (which treats a falsy
+    // value as "not present") can fall through to buyShipment/sellShipment
+    // instead of literally displaying "Shipment --".
+    odysseyShipmentIdentifier: dto.odysseyShipmentIdentifier ?? '',
     customerId: dto.customerId ?? '',
     customerName: dto.customerName ?? '',
     trackingUrl: dto.trackingUrl ?? '',

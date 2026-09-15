@@ -34,6 +34,34 @@ test('list: category "all" is not filtered; unknown sortBy falls back', () => {
   assert.match(q.text, /ORDER BY pickup_ts/)   // whitelist fallback, never raw user input
 })
 
+// S148: odyssey_shipment_id must be sortable (SORT_MAP), filterable (FIELD_MAP)
+// and searchable (FREE_TEXT_COLUMNS) — a field added to some but not all of
+// these whitelists looks present but sorts dead or filters silently inert.
+test('list: odysseyShipmentIdentifier sorts and filters via the whitelist maps', () => {
+  const sorted = buildListQuery({
+    pageNumber: 0, pageSize: 10, filter: { panel: 'exceptions' },
+    sortBy: 'odysseyShipmentIdentifier', orderBy: 'asc',
+  })
+  // Prefix-blind: sorts on the SEQUENCE, not the raw text. Alphabetical order would
+  // block every C… ahead of every O…, faking a consolidation grouping the grid does
+  // not mean (user ruling, 2026-09-15), and would misorder once the sequence outgrows
+  // 8 digits. The cast is the guard for both.
+  assert.match(sorted.text, /ORDER BY substr\(odyssey_shipment_id, 2\)::bigint ASC/)
+  assert.doesNotMatch(sorted.text, /ORDER BY odyssey_shipment_id\b/)
+
+  const filtered = buildListQuery({
+    pageNumber: 0, pageSize: 10,
+    filter: { panel: 'exceptions', odysseyShipmentIdentifier: 'C50000123' },
+  })
+  assert.match(filtered.text, /odyssey_shipment_id = \$\d+/)
+  assert.ok(filtered.values.includes('C50000123'))
+
+  const freeText = buildListQuery({
+    pageNumber: 0, pageSize: 10, filter: { panel: 'exceptions', searchTerm: 'O50000000' },
+  })
+  assert.match(freeText.text, /odyssey_shipment_id ILIKE \$\d+/)
+})
+
 // The live POST body (gridService.ts) flattens dateFilters/searchFilters/exact
 // filters INTO `filter`, rather than nesting them. The builder must read both.
 test('list: flattened live payload — dates + exact + substring spread into filter', () => {
@@ -70,8 +98,8 @@ test('list: searchTerm unscoped → OR across shared fields', () => {
     pageNumber: 0, pageSize: 50,
     filter: { panel: 'exceptions', searchTerm: 'acme' },
   })
-  assert.match(q.text, /sell_shipment ILIKE .* OR .*customer_name ILIKE/s)
-  assert.equal(q.values.filter((v) => v === '%acme%').length, 6)
+  assert.match(q.text, /odyssey_shipment_id ILIKE .* OR .*customer_name ILIKE/s)
+  assert.equal(q.values.filter((v) => v === '%acme%').length, 7)   // S148: +odyssey_shipment_id
 })
 
 test('list: empty customerIds → FALSE (honest empty on the list path)', () => {

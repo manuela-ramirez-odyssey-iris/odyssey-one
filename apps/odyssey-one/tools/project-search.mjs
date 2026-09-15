@@ -6,6 +6,7 @@ import { projectRow } from '../api/_lib/search-registry.mjs'
 // Registry cols are snake_case (DB truth); the generated dataset is camelCase.
 // Verified against generate.mjs mainRow (:1178).
 const SRC_KEY = {
+  odyssey_shipment_id: 'odysseyShipmentIdentifier',
   buy_shipment: 'buyShipment', sell_shipment: 'sellShipment', orders: 'orders',
   pro: 'pro', pickup_numbers: 'pickupNumbers',
   customer_id: 'customerId', customer_name: 'customerName',

@@ -427,6 +427,9 @@ export interface ShipmentDetailVM {
   ratingStatus: string
   /** LINX-14509 "Direct only" — the Review Order Change entry branches on it. */
   shipmentType: string
+  /** S148 — the shipment's displayed name. '' when the DTO field is absent
+      (older payload) — consumers fall back to buyShipment/sellShipment. */
+  odysseyShipmentIdentifier: string
   /** LINX-15870 — locks the Search & Add Orders candidate scope to this customer. */
   customerId: string
   customerName: string

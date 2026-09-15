@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { buildProjection } from './project-search.mjs'
 
 const ROW = {
+  odysseyShipmentIdentifier: 'O50000123',
   sellShipment: '25950714', buyShipment: '43708610', orders: ['0000000091000'],
   pro: '442376', customerId: 'WEYERH_01', customerName: 'Weyerhaeuser Company',
   consignor: 'WESTLAKE CHEMICAL PL', consignee: 'BAYOU CHEMICAL PLANT',
@@ -23,6 +24,16 @@ test('projects one row per searchable value, keyed by sellShipment', () => {
   assert.equal(a['pro'].display, '442376')
   assert.equal(a['customer-name'].value, 'WEYERHAEUSER COMPANY') // normalized
   assert.equal(a['customer-name'].display, 'Weyerhaeuser Company') // original
+})
+
+test('the odyssey shipment identifier is projected (S148)', () => {
+  // Depends on SHIPMENTS_ATTRS carrying an 'odyssey-shipment' entry in
+  // api/_lib/search-registry.mjs (T5, added by a parallel agent) — projectRow
+  // only emits attrs it knows about, so this fails until that entry lands.
+  const rows = buildProjection([ROW])
+  const attr = byAttr(rows)['odyssey-shipment']
+  assert.ok(attr, 'odyssey-shipment was not projected — is SHIPMENTS_ATTRS entry missing?')
+  assert.equal(attr.display, 'O50000123')
 })
 
 test('array fields expand to one row per element', () => {

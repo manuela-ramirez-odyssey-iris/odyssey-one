@@ -458,7 +458,7 @@ export default function BottomBar({
   return (
     <>
     <ShipmentsBar
-        shipmentId={shipment?.buyShipment ?? selectedShipmentId}
+        shipmentId={shipment?.odysseyShipmentIdentifier ?? shipment?.buyShipment ?? selectedShipmentId}
         closeOnOutsideClick
         onShipmentIdClick={() => setDetailsModalOpen(true)}
         onPrevShipment={onPrevShipment}

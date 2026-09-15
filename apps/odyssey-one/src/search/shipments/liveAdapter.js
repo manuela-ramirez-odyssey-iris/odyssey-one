@@ -40,8 +40,9 @@ function label(attrKey, display) {
 function toRow({ entity_id: entityId, attr, display, entity }) {
   const s = entity ?? {}
   const isOrder = attr === 'order'
+  const displayId = s.odysseyShipmentIdentifier ?? s.buyShipment ?? entityId
   return {
-    id: isOrder ? `${s.buyShipment ?? entityId}-${display}` : (s.buyShipment ?? entityId),
+    id: isOrder ? `${displayId}-${display}` : displayId,
     'data-shipment-key': entityId,
     // Both feed panelForResults (GS-18) — the landing tab is chosen from what the
     // user can SEE at the top of the preview, so a missing panel breaks it.
@@ -53,7 +54,7 @@ function toRow({ entity_id: entityId, attr, display, entity }) {
     carrier: s.scac,
     bol: s.pro,
     ...(isOrder
-      ? { shipmentId: s.buyShipment, iconType: 'package', source: toTenderBadge(s) }
+      ? { shipmentId: displayId, iconType: 'package', source: toTenderBadge(s) }
       : { source: toStatusBadge(s) }),
     ...(CUSTOMER_ATTRS.has(attr) && { iconType: 'handshake' }),
   }

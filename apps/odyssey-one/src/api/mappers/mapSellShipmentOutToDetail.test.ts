@@ -15,6 +15,22 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(vm.customerName).toBe(sellShipmentOutSample.customerName)
   })
 
+  // S148 — the detail DTO/VM used to carry only shipmentId (the sell PK), so
+  // OrderChangeReviewRoute/OrderChangeEditStopsRoute could only get the
+  // displayed shipment name from lossy location.state (gone on refresh/pasted
+  // URL). This is the same whitelist-mapper bug class as mapDroppedCarrier/
+  // mapRoutingOption: a field present on the DTO but not named here silently
+  // never reaches the VM.
+  it('carries odysseyShipmentIdentifier through from the DTO (S148)', () => {
+    expect(vm.odysseyShipmentIdentifier).toBe(sellShipmentOutSample.odysseyShipmentIdentifier)
+    expect(vm.odysseyShipmentIdentifier).toBe('O50000042')
+  })
+
+  it('odysseyShipmentIdentifier absent (pre-S148 payload) → "" not "--", so route fallback chains treat it as not-present', () => {
+    const noId = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, odysseyShipmentIdentifier: undefined })
+    expect(noId.odysseyShipmentIdentifier).toBe('')
+  })
+
   it('maps identity + reference fields from the order', () => {
     const o = vm.orderDetails[0]
     expect(o.orderNumber).toBe('SO-660001')
