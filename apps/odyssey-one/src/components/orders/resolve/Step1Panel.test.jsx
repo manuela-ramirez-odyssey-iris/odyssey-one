@@ -46,12 +46,10 @@ describe('Step1Panel', () => {
   test('conflicts: alert counts them, picking every field enables Validate and continue', () => {
     const { container, derived, onValidate } = setup('conflict', 2)
     const n = derived.errors.length
-    // The Alert splits its header across two elements, so getByText (which only
-    // reads an element's DIRECT text nodes) can't see the whole string —
-    // assert on the header's textContent instead. The plan's test used
-    // getByText and could never have passed.
-    expect(container.querySelector('.alert__message').textContent)
-      .toBe(`${n} Errors: Validation Required - ORDER-1 · Integrated from ACME`)
+    expect(container.querySelector('.alert').textContent)
+      .toBe(`${n} message errors must be resolved before this order can continue.`)
+    // Plain count banner — no chevron/toggle, nothing to expand.
+    expect(container.querySelector('.alert__chevron')).toBeNull()
     const validate = screen.getByRole('button', { name: 'Validate and continue' })
     expect(validate.hasAttribute('disabled')).toBe(true)
     for (const [path, options] of derived.conflicts) {
@@ -73,24 +71,19 @@ describe('Step1Panel', () => {
     for (const [path, options] of derived.conflicts) {
       fireEvent.click(screen.getByRole('button', { name: chipLabel(path, options[0]) }))
     }
-    // Badge flips to the green "all validated" one; the Alert count drops to 0.
+    // Badge flips to the green "all validated" one; the banner has nothing
+    // left to count, so it stops rendering rather than adding a second
+    // "all done" surface next to the now-green accordions.
     expect(badge()).toBe('Completed · 2 Errors validated')
-    expect(container.querySelector('.alert__message').textContent).toMatch(/^0 Errors/)
+    expect(container.querySelector('.alert')).toBeNull()
   })
 
-  test('clicking an alert row scrolls to that error control', async () => {
-    const { container, derived } = setup('conflict', 2)
-    const first = derived.errors[0]
-    // The alert opens COLLAPSED (user ruling, S147: per-error detail already
-    // lives in the accordions below) — expand it before reaching for a row.
-    fireEvent.click(within(container.querySelector('.alert')).getByRole('button', { name: 'Expand error list' }))
-    // The reason button inside the Alert — the message text also appears on the
-    // ConflictPicker itself, so query inside the alert, not globally.
-    fireEvent.click(within(container.querySelector('.alert')).getByRole('button', { name: first.message }))
-    // The panel scrolls on the next frame (after the accordion expands).
-    await new Promise((r) => requestAnimationFrame(r))
-    expect(document.getElementById(`l1-${first.id}`)).toBeTruthy()
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+  test('banner shows the open-error count and no toggle', () => {
+    const { container } = setup('conflict', 2)
+    expect(container.querySelector('.alert').textContent)
+      .toBe('2 message errors must be resolved before this order can continue.')
+    expect(container.querySelector('.alert__chevron')).toBeNull()
+    expect(container.querySelector('.alert__close')).toBeNull()
   })
 
   test('structural: a typed-but-WRONG gross weight does not resolve the error', () => {

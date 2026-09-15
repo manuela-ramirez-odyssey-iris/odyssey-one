@@ -68,7 +68,6 @@ export default function Step1Panel({
   const [picks, setPicks] = useState(pickedProp)
   const [structuralFixes, setStructuralFixes] = useState(structuralProp)
   const [deleteFlag, setDeleteFlag] = useState(deleteFlagProp)
-  const [errorIndex, setErrorIndex] = useState(0)
   const [expanded, setExpanded] = useState({ conflicts: true, structural: true, control: true, received: false })
 
   const products = draft.products ?? []
@@ -99,11 +98,7 @@ export default function Step1Panel({
   // submit (review, 2026-09-10).
   const hasUnresolvable = derived.messageControl.some((m) => !m.editable)
   const allResolved = derived.errors.every((e) => resolvedIds.has(e.id)) && !hasUnresolvable
-
-  // 1:1 with derived.errors ON PURPOSE — Alert's onErrorNav emits indices into
-  // the array it was handed, resolved entries included, so any filtering here
-  // would silently mis-target the scroll.
-  const alertErrors = derived.errors.map((e) => ({ field: e.field, reason: e.message, resolved: resolvedIds.has(e.id) }))
+  const openErrorCount = derived.errors.length - resolvedIds.size
 
   const openCount = (cls) => derived.errors.filter((e) => e.class === cls && !resolvedIds.has(e.id)).length
   const totalCount = (cls) => derived.errors.filter((e) => e.class === cls).length
@@ -121,30 +116,6 @@ export default function Step1Panel({
    */
   const badgeCount = (cls) => (openCount(cls) > 0 ? openCount(cls) : totalCount(cls))
 
-  /**
-   * The DOM anchor for one error. Conflicts get one control each, so they
-   * anchor on themselves; the structural grid and the message-control block are
-   * each a single control for their whole class, so every error of that class
-   * anchors on the block. Resolving the anchor here (rather than assuming
-   * `l1-<id>` exists) keeps the nav honest when that changes.
-   */
-  const anchorId = (err) => {
-    if (err.class === 'conflict') return `l1-${err.id}`
-    if (err.class === 'structural') return `l1-${derived.structural[0]?.id}`
-    return `l1-${derived.messageControl[0]?.id}`
-  }
-
-  const handleErrorNav = (i) => {
-    const err = derived.errors[i]
-    if (!err) return
-    setErrorIndex(i)
-    const key = err.class === 'conflict' ? 'conflicts' : err.class === 'structural' ? 'structural' : 'control'
-    setExpanded((prev) => ({ ...prev, [key]: true }))
-    // After the accordion has actually expanded. `scrollIntoView` is optional
-    // chained: jsdom (and any non-layout host) doesn't implement it.
-    requestAnimationFrame(() => document.getElementById(anchorId(err))?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }))
-  }
-
   const received = <ReceivedData draft={draft} expanded={expanded.received} onToggle={(v) => setExpanded((p) => ({ ...p, received: v }))} />
 
   if (derived.errors.length === 0) {
@@ -158,8 +129,15 @@ export default function Step1Panel({
 
   return (
     <div className="step1-panel">
-      {!readOnly && (
-        <Alert errors={alertErrors} contextText={contextText} errorIndex={errorIndex} onErrorNav={handleErrorNav} />
+      {/* User ruling (S147): the banner is a plain count, not an expandable
+          list — the per-error detail is redundant with the accordions right
+          below it. Once every error is resolved there's nothing left to
+          count, and the accordions have already gone green, so the banner
+          just stops rendering rather than adding a second "all done" surface. */}
+      {!readOnly && openErrorCount > 0 && (
+        <Alert variant="error" showClose={false}>
+          {openErrorCount} {openErrorCount === 1 ? 'message error' : 'message errors'} must be resolved before this order can continue.
+        </Alert>
       )}
       {/* Message control first: whether the message CREATES or CANCELS decides
           what the rest of the screen even means. */}
