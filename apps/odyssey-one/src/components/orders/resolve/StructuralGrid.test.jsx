@@ -71,12 +71,14 @@ describe('StructuralGrid', () => {
     expect(within(row6).getByText('--')).toBeTruthy()
   })
 
-  test('extra schedule: checking one and clicking Delete selected fires onFix(s1) with that id', () => {
+  test('extra schedule: checking one, Delete selected, then Done fires onFix(s1) with that id', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fix line 1' }))
     fireEvent.click(screen.getByLabelText(/Schedule 2 —/))
     fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }))
+    expect(onFix).not.toHaveBeenCalled() // staged only — Done hasn't fired yet
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(onFix).toHaveBeenCalledWith('s1', { removeSchedules: ['prod-1-sch-2'] })
   })
 
@@ -93,12 +95,14 @@ describe('StructuralGrid', () => {
     expect(screen.getByRole('button', { name: 'Delete selected' }).hasAttribute('disabled')).toBe(false)
   })
 
-  test('quantity mismatch: editing the line weight to the schedule value fires onFix(s2)', () => {
+  test('quantity mismatch: editing the line weight then Done fires onFix(s2)', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fix line 2' }))
     const input = screen.getByLabelText('Gross weight, line 2')
     fireEvent.change(input, { target: { value: '250' } })
+    expect(onFix).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(onFix).toHaveBeenCalledWith('s2', { grossWeight: '250', grossWeightUom: 'lbs' })
   })
 
@@ -113,7 +117,7 @@ describe('StructuralGrid', () => {
     expect(within(screen.getByText('B').closest('tr')).getByText('Validated')).toBeTruthy()
   })
 
-  test('timezone missing: picking a zone via the Dropdown fires onFix(s3)', () => {
+  test('timezone missing: picking a zone via the Dropdown then Done fires onFix(s3)', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fix line 3' }))
@@ -122,7 +126,29 @@ describe('StructuralGrid', () => {
     // anchored portal renders a `menu` role jsdom CAN drive without layout.
     fireEvent.click(screen.getByRole('button', { name: 'Time zone, line 3' }))
     fireEvent.click(within(screen.getByRole('menu')).getByText('CST'))
+    expect(onFix).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(onFix).toHaveBeenCalledWith('s3', { timezone: 'CST' })
+  })
+
+  // S147: the whole point of staging — the grid behind the modal must not
+  // move until Done, and Cancel must throw the staged edit away entirely.
+  test('a staged edit does not reach onFix until Done; Cancel discards it', () => {
+    const onFix = vi.fn()
+    render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 3' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Time zone, line 3' }))
+    fireEvent.click(within(screen.getByRole('menu')).getByText('CST'))
+    // Immediate feedback INSIDE the modal — the message goes gray on the
+    // staged pick, before any commit.
+    const modal = () => document.querySelector('.structural-grid__modal')
+    expect(modal().querySelector('.structural-grid__message').className).toContain('structural-grid__message--fixed')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onFix).not.toHaveBeenCalled()
+    expect(modal()).toBeNull()
+    // Reopening the line proves nothing was staged forward either.
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 3' }))
+    expect(modal().querySelector('.structural-grid__message').className).not.toContain('structural-grid__message--fixed')
   })
 
   // Weak point 4 — a quantity fix counts ONLY when the line value equals the

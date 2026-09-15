@@ -366,6 +366,22 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     expect(screen.getAllByRole('heading', { name: 'Order Validation Error Resolution' })).toHaveLength(1)
   })
 
+  // S147, user ruling: "when a step is solved it should not be red, it should
+  // be green" — the dot must go green once every Step 1 error is resolved,
+  // WHILE STILL ON STEP 1 (not just after Validate moves to Step 2).
+  test('Step 1 dot goes green once the last error is resolved, still on Step 1', async () => {
+    renderResolve(L1_CONFLICT.orderNumber, stateFor(L1_CONFLICT))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
+    const dot = () => stepEl('Message errors').querySelector('.step-indicator')
+    expect(dot().className).toContain('step-indicator--error')
+    pickEveryConflict()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
+    expect(dot().className).toContain('step-indicator--on')
+    expect(dot().className).not.toContain('step-indicator--error')
+    // still Step 1 — Validate hasn't been pressed.
+    expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy()
+  })
+
   test('no Level 1 errors → opens at Step 2, dot 1 passed, look-back shows the empty Step 1', async () => {
     renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
@@ -442,6 +458,9 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
       const modal = document.querySelector('.structural-grid__modal')
       const message = modal.querySelector('.structural-grid__message')
       expect(message.className).toContain('structural-grid__message--fixed')
+      // S147: the fix is staged inside the modal — it only reaches the grid
+      // behind (and `derived.isResolved`) once Done commits it.
+      fireEvent.click(within(modal).getByRole('button', { name: 'Done' }))
     }
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))

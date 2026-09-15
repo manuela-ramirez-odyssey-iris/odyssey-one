@@ -48,6 +48,14 @@ export default function ResolveShell({ orderNumber }) {
    * `structuralFixes` for `applyFixes` anyway, so it owns all three.
    */
   const [step1, setStep1] = useState({ picks: {}, structuralFixes: {}, deleteFlag: null })
+  // S147: Step 1's live open-error count, reported by Step1Panel as the
+  // planner works (its `onProgress` — a plain setter, not lifted state: the
+  // panel already owns picks/structuralFixes/deleteFlag and already computes
+  // this count off `derived.isResolved`, so a setter is the smallest way to
+  // get the number out without duplicating that rule here). Drives the
+  // timeline dot going green the moment every Step 1 error is resolved,
+  // still on Step 1 — a solved step is progress, not a blocker (user ruling).
+  const [step1OpenCount, setStep1OpenCount] = useState(0)
   const [step2Key, setStep2Key] = useState(0)
   const [finalValues, setFinalValues] = useState(null)
   const [saveError, setSaveError] = useState('')
@@ -71,6 +79,7 @@ export default function ResolveShell({ orderNumber }) {
       setStep(start)
       setViewing(start)
       setStep1({ picks: {}, structuralFixes: {}, deleteFlag: null })
+      setStep1OpenCount(derived.errors.length)
     })
     return () => { cancelled = true }
   }, [orderNumber]) // eslint-disable-line react-hooks/exhaustive-deps -- meta is history state; it never changes under a mounted shell
@@ -112,8 +121,13 @@ export default function ResolveShell({ orderNumber }) {
       {
         key: 's1',
         label: 'Message errors',
-        detail: !loaded ? '' : step === 1 ? `${plural(l1Count)} · in progress` : l1Count ? `passed · ${plural(l1Count)} fixed` : 'no errors',
-        status: !loaded ? 'off' : step === 1 ? 'error' : 'on',
+        detail: !loaded ? '' : step === 1
+          ? (step1OpenCount > 0 ? `${plural(step1OpenCount)} · in progress` : 'all errors resolved · ready to continue')
+          : l1Count ? `passed · ${plural(l1Count)} fixed` : 'no errors',
+        // Current step reads GREEN once its open errors hit zero — solved is
+        // progress, not a blocker (user ruling, S147). Passed steps (step > 1)
+        // stay green regardless; unreached steps are handled below ('off').
+        status: !loaded ? 'off' : step === 1 ? (step1OpenCount > 0 ? 'error' : 'on') : 'on',
         onClick: step > 1 && viewing !== 1 ? () => setViewing(1) : undefined,
       },
       {
@@ -131,7 +145,7 @@ export default function ResolveShell({ orderNumber }) {
         onClick: step === 3 && viewing !== 3 ? () => setViewing(3) : undefined,
       },
     ]
-  }, [loaded, step, viewing, l1Count])
+  }, [loaded, step, viewing, l1Count, step1OpenCount])
 
   return (
     <div className="resolve-shell">
@@ -158,6 +172,7 @@ export default function ResolveShell({ orderNumber }) {
           picks={step1.picks}
           structuralFixes={step1.structuralFixes}
           deleteFlag={step1.deleteFlag}
+          onProgress={setStep1OpenCount}
           onValidate={handleValidate}
           onCancel={() => navigate('/orders')}
         />

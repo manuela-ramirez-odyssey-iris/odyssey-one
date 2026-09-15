@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Accordion, Alert, EmptyState } from '@odyssey/ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Accordion, Alert, EmptyState, SubAccordion } from '@odyssey/ui'
 import { CircleCheck } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import ConflictPicker from './ConflictPicker.jsx'
@@ -58,6 +58,11 @@ const RECEIVED_FIELDS = [
  */
 export default function Step1Panel({
   contextText, derived, draft, readOnly = false, onValidate, onCancel,
+  // S147: the shell's timeline dot needs to know when Step 1 goes from red to
+  // green WHILE the planner is still on it (a solved step reads as progress,
+  // not a blocker) — a plain setter (`setStep1OpenCount`) is the whole
+  // contract, no need to lift picks/structuralFixes/deleteFlag themselves.
+  onProgress,
   // The read-only look-back needs ALL THREE answers, not just the picks: the
   // shell unmounts this panel on a step change, so anything held only in local
   // state comes back EMPTY and the Structural accordion paints a red "N Errors"
@@ -99,6 +104,8 @@ export default function Step1Panel({
   const hasUnresolvable = derived.messageControl.some((m) => !m.editable)
   const allResolved = derived.errors.every((e) => resolvedIds.has(e.id)) && !hasUnresolvable
   const openErrorCount = derived.errors.length - resolvedIds.size
+
+  useEffect(() => { onProgress?.(openErrorCount) }, [openErrorCount, onProgress])
 
   const openCount = (cls) => derived.errors.filter((e) => e.class === cls && !resolvedIds.has(e.id)).length
   const totalCount = (cls) => derived.errors.filter((e) => e.class === cls).length
@@ -197,7 +204,13 @@ export default function Step1Panel({
 
 function ReceivedData({ draft, expanded, onToggle }) {
   return (
-    <Accordion position="end" status="off" title="Received order data" description="Everything the customer system sent, as received." expanded={expanded} onToggle={onToggle}>
+    // S147, user ruling: this is not a step — just a place to check what the
+    // customer sent — so it drops the stepper chrome (Accordion's
+    // position/status/errorCount) for the plain SubAccordion molecule.
+    // SubAccordion has no description slot, so the "Everything the customer
+    // system sent, as received." copy is dropped rather than smuggled in as a
+    // second title line (report: flagging this to the caller).
+    <SubAccordion title="Received order data" expanded={expanded} onToggle={onToggle}>
       <dl className="step1-panel__received">
         {RECEIVED_FIELDS.map(([label, path]) => {
           // A conflicting field has no single header value (applyErrors blanks
@@ -213,6 +226,6 @@ function ReceivedData({ draft, expanded, onToggle }) {
           )
         })}
       </dl>
-    </Accordion>
+    </SubAccordion>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -32,11 +32,18 @@ const TZ_OPTIONS = [
  *                       <select> now that this lives in a modal rather than an
  *                       inline row jsdom had to be able to drive without a portal)
  *
- * Each control calls `onFix(errorId, patch)` immediately — no staging, a fixed
- * fault stays editable so the planner can change their mind before submitting.
+ * S147: the modal is a TRANSACTION — edits are held in local `staged` state,
+ * seeded from `fixes` on open, and only reach the caller's `onFix` (so the
+ * grid/badge/Faults cell behind the modal update) when Done is pressed.
+ * `onClose` is therefore the DISCARD path: Cancel, the header ✕, ESC and the
+ * overlay click all route through it (ModalMedium wires all three to the one
+ * `onClose` prop), so none of them need separate handling here. The per-fault
+ * "Validated" line and the fixed/gray message inside the modal read the
+ * STAGED state (`isStructuralFixed(product, s, staged[s.id])`) for immediate
+ * feedback; the grid behind stays on the committed `fixes` until Done.
  * `disabled` freezes every control (read-only look-back). Checkbox selection
- * for extra-schedule is local modal state; nothing commits until "Delete
- * selected" fires `onFix(errorId, { removeSchedules: [ids] })`.
+ * for extra-schedule is local modal state; nothing stages until "Delete
+ * selected" stages `{ removeSchedules: [ids] }`.
  */
 export default function StructuralFixModal({ line, product, faults, fixes, onFix, disabled = false, onClose }) {
   // S147, user ruling: title is the product, not the line — every
@@ -48,17 +55,32 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
   // Keyed by error id — a line could in principle carry more than one
   // extra-schedule fault, each with its own selection.
   const [checkedByError, setCheckedByError] = useState({})
+  const seed = (fromFaults) => Object.fromEntries(fromFaults.map((f) => [f.id, fixes[f.id]]))
+  const [staged, setStaged] = useState(() => seed(faults))
+  // StructuralGrid keeps ONE modal instance and just swaps `line`/`faults` on
+  // it rather than unmount+remount (its `openLine` state changes in place) —
+  // so the seed must re-run keyed on `line`, not only at mount, or a second
+  // line reuses the first line's staged answers.
+  useEffect(() => { setStaged(seed(faults)); setCheckedByError({}) }, [line]) // eslint-disable-line react-hooks/exhaustive-deps -- keyed on line only, re-seeding off fresh fixes/faults each time it fires
+  const stage = (id, patch) => setStaged((s) => ({ ...s, [id]: { ...s[id], ...patch } }))
+  const handleDone = () => {
+    faults.forEach((f) => { if (staged[f.id]) onFix(f.id, staged[f.id]) })
+    onClose()
+  }
 
   return createPortal(
     <ModalMedium
       title={title}
       onClose={onClose}
       className="structural-grid__modal"
-      footer={<Button variant="primary" onClick={onClose}>Done</Button>}
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" onClick={handleDone}>Done</Button>
+      </>}
     >
       <div className="structural-grid__modal-body">
         {faults.map((s) => {
-          const fix = fixes[s.id]
+          const fix = staged[s.id]
           const fixed = isStructuralFixed(product, s, fix)
           return (
             <div key={s.id} className="structural-grid__modal-fault">
@@ -100,7 +122,7 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                       size="sm"
                       icon={<Trash2 {...ICON_MD} />}
                       disabled={disabled || fixed || !canDelete}
-                      onClick={() => onFix(s.id, { removeSchedules: checked })}
+                      onClick={() => stage(s.id, { removeSchedules: checked })}
                     >
                       Delete selected
                     </Button>
@@ -117,7 +139,7 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                       uom: fix?.grossWeightUom ?? product.grossWeight?.uom ?? '',
                     }}
                     options={UOM_WEIGHT}
-                    onChange={({ value, uom }) => onFix(s.id, { grossWeight: value, grossWeightUom: uom })}
+                    onChange={({ value, uom }) => stage(s.id, { grossWeight: value, grossWeightUom: uom })}
                     disabled={disabled}
                     validated={fixed}
                   />
@@ -137,7 +159,7 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                   <Dropdown
                     value={fix?.timezone ?? ''}
                     options={TZ_OPTIONS}
-                    onChange={(v) => onFix(s.id, { timezone: v })}
+                    onChange={(v) => stage(s.id, { timezone: v })}
                     disabled={disabled}
                   />
                 </label>

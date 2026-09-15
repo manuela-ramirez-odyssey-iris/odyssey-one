@@ -95,6 +95,9 @@ describe('Step1Panel', () => {
     fireEvent.click(screen.getByRole('button', { name: `Fix line ${line}` }))
     const input = screen.getByLabelText(`Gross weight, line ${line}`)
     fireEvent.change(input, { target: { value: '1' } })
+    // S147: the modal stages — Done commits the (still-wrong) value to the
+    // grid/badge behind it.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(true)
     // The footer would be disabled anyway (the sibling extra-schedule error is
     // still open), so the footer alone proves nothing. The BADGE is what pins
@@ -104,7 +107,9 @@ describe('Step1Panel', () => {
     expect(screen.getByText('2 Errors')).toBeTruthy()
     // The value the schedule actually carries — the ONE definition of "fixed".
     const right = draft.products[line - 1].scheduleQuantity.grossWeight
-    fireEvent.change(input, { target: { value: right } })
+    fireEvent.click(screen.getByRole('button', { name: `Fix line ${line}` }))
+    fireEvent.change(screen.getByLabelText(`Gross weight, line ${line}`), { target: { value: right } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     // The other structural error (extra schedule) is still open, so the footer
     // stays disabled — but this row's own badge count must have dropped.
     expect(screen.getByText('1 Error')).toBeTruthy()
@@ -124,9 +129,13 @@ describe('Step1Panel', () => {
     expect(onValidate.mock.calls[0][0].deleteFlag).toBe('N')
   })
 
-  test('Received order data accordion lists the header fields read-only', () => {
+  // S147, user ruling: this is not a step — it's just a place to check what
+  // the customer sent — so it's a SubAccordion, not a stepper Accordion.
+  test('Received order data is a SubAccordion (not a stepper Accordion) and lists the header fields read-only', () => {
     setup('conflict', 1)
-    const acc = screen.getByText('Received order data').closest('.accordion')
+    const acc = screen.getByText('Received order data').closest('.sub-accordion')
+    expect(acc).toBeTruthy()
+    expect(screen.getByText('Received order data').closest('.accordion')).toBeNull()
     fireEvent.click(within(acc).getByRole('button', { name: /Received order data/ }))
     expect(within(acc).getByText('Equipment')).toBeTruthy()
     expect(within(acc).getByText('RR')).toBeTruthy()
