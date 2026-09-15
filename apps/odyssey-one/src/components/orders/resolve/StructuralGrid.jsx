@@ -84,8 +84,14 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
         // the second line only renders when there's something to show.
         product: (
           <div className="structural-grid__product-cell">
-            <span className="text-label-sm-medium">{p.productId}</span>
+            {/* Level-1 seed invariant I8: a share of orders never get line
+                enrichment (manual_order stays NULL), so productId is
+                legitimately '' — not a bug. Each line is conditional so a
+                missing ID doesn't leave a blank first line; '--' only when
+                BOTH are empty. */}
+            {p.productId && <span className="text-label-sm-medium">{p.productId}</span>}
             {p.description && <span className="text-label-xs-regular" style={{ color: 'var(--text-tertiary)' }}>{p.description}</span>}
+            {!p.productId && !p.description && <span className="text-label-sm-medium">--</span>}
           </div>
         ),
         faults: (

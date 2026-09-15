@@ -28,14 +28,14 @@ import '../create-order.css'
  * passing `decimals={6}` for that reading was the bug — it blurred every entry
  * to "150.000000". Pass one or the other, not both; `decimals` wins if both.
  */
-export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false, label, showLabel = false, decimals, maxDecimals, ...rest }) {
+export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false, label, showLabel = false, decimals, maxDecimals, uomPlaceholder = 'UOM', ...rest }) {
   const [open, setOpen] = useState(false)
   const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
     open,
     onClose: () => setOpen(false),
   })
 
-  const uomLabel = options.find((o) => o.value === value?.uom)?.label ?? 'UOM'
+  const uomLabel = options.find((o) => o.value === value?.uom)?.label ?? uomPlaceholder
 
   // A one-option list means the UoM is decided elsewhere (the SpotBid charge
   // rows echo the bid-level currency the Base Charge field drives) — there is

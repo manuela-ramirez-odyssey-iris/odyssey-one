@@ -78,7 +78,13 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                       {schedules.map((sch, i) => (
                         <li key={sch.id}>
                           <Checkbox
-                            label={`Schedule ${i + 1} — ship ${sch.requestedShipDate || '—'} · ${sch.packageCount ?? '—'} pkgs · ${sch.requestedShipTimeZoneCode || '—'}`}
+                            label={<>
+                              {`Schedule ${i + 1}`}
+                              {' '}
+                              <span className="text-label-xs-regular structural-grid__schedule-detail">
+                                {`— ship ${sch.requestedShipDate || '—'} · ${sch.packageCount ?? '—'} pkgs · ${sch.requestedShipTimeZoneCode || '—'}`}
+                              </span>
+                            </>}
                             checked={checked.includes(sch.id)}
                             disabled={disabled || fixed}
                             onChange={() => toggle(sch.id)}
@@ -105,9 +111,10 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                     aria-label={`Gross weight, line ${line}`}
                     value={{
                       value: fix?.grossWeight ?? product.grossWeight?.value ?? '',
-                      uom: fix?.grossWeightUom ?? product.grossWeight?.uom ?? UOM_WEIGHT[0].value,
+                      uom: fix?.grossWeightUom ?? product.grossWeight?.uom ?? '',
                     }}
                     options={UOM_WEIGHT}
+                    uomPlaceholder="Select unit"
                     onChange={({ value, uom }) => onFix(s.id, { grossWeight: value, grossWeightUom: uom })}
                     disabled={disabled}
                     validated={fixed}

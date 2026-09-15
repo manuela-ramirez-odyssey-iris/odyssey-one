@@ -46,7 +46,7 @@ const SEEDED = [
     },
     grossWeight: { value: 4300, uom: 'lbs' },
     volume: { value: 730, uom: 'cbf' },
-    commodity: 'Sulfuric Acid',
+    commodity: 'Sulfuric Acid 93%', // matches a CHEMICAL_PRODUCTS.desc — see the productId recovery test below
     orderStatus: 'Ready for Planning',
     hazardous: true,
   },
@@ -102,6 +102,23 @@ describe('orderService.getOrderView (mock)', () => {
     expect(vm!.products.map(p => p.description)).toEqual(['Plastic'])
     // lean source carries no org display name
     expect(vm!.general.owningOrganizationName).toBe('')
+  })
+
+  // S147 root-cause fix: listRowToManualOrder used to hardcode '' for the
+  // synthesized line's shipItemIdentifier. A lean row's commodity and a
+  // product's external id are two projections of the same CHEMICAL_PRODUCTS
+  // pool row, so the id is recoverable — not invented — whenever the
+  // commodity matches a known product's desc exactly.
+  it('recovers the product id from a lean row whose commodity matches a known product', async () => {
+    const vm = await getOrderView('HAZ100001')
+    expect(vm).not.toBeNull()
+    expect(vm!.products[0].productId).toMatch(/^\d{13}$/)
+  })
+
+  it('leaves the product id empty when the lean row commodity matches no known product', async () => {
+    const vm = await getOrderView('AAA100001')
+    expect(vm).not.toBeNull()
+    expect(vm!.products[0].productId).toBe('')
   })
 
   it('resolves a created order via its overlay row (lean)', async () => {

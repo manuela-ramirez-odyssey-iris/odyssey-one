@@ -13,6 +13,14 @@ const products = [
   { id: 'prod-2', productId: 'B', grossWeight: { value: '200', uom: 'lbs' }, volume: { value: '20', uom: 'cbf' }, scheduleQuantity: { grossWeight: '250', volume: '20' } },
   { id: 'prod-3', productId: 'C', grossWeight: { value: '300', uom: 'lbs' }, volume: { value: '30', uom: 'cbf' }, scheduleTimezone: '' },
   { id: 'prod-4', productId: 'D', grossWeight: { value: '400', uom: 'lbs' }, volume: { value: '40', uom: 'cbf' } },
+  // Level-1 seed invariant I8: manual_order stays NULL for a share of orders,
+  // so the synthesized line has no shipItemIdentifier — productId is
+  // legitimately '' (not a bug), and a lean order can lack a description too.
+  { id: 'prod-5', productId: '', description: 'Sulfuric Acid 93%', grossWeight: { value: '500', uom: 'lbs' }, volume: { value: '50', uom: 'cbf' }, scheduleTimezone: '' },
+  { id: 'prod-6', productId: '', description: '', grossWeight: { value: '600', uom: 'lbs' }, volume: { value: '60', uom: 'cbf' }, scheduleTimezone: '' },
+  // No weight unit came in on the message — the selector must read "Select
+  // unit" so the planner sees one is owed (S147, MeasureField's uomPlaceholder).
+  { id: 'prod-7', productId: 'G', grossWeight: { value: '700', uom: '' }, volume: { value: '70', uom: 'cbf' }, scheduleQuantity: { grossWeight: '700', volume: '70' } },
 ]
 // Line 1 carries TWO faults (extra-schedule + a second, unrelated timezone
 // fault) so "lists only the offending lines" also proves a multi-fault line
@@ -23,13 +31,16 @@ const structural = [
   { id: 's1b', rule: 4, kind: 'timezone-missing', line: 1, field: 'Requested Ship Time Zone', message: 'Requested Ship Time-Zone missing.' },
   { id: 's2', rule: 2, kind: 'quantity-mismatch', line: 2, field: 'Line vs schedule quantity', message: 'Line and Schedule mismatch.' },
   { id: 's3', rule: 4, kind: 'timezone-missing', line: 3, field: 'Requested Ship Time Zone', message: 'Requested Ship Time-Zone missing.' },
+  { id: 's5', rule: 4, kind: 'timezone-missing', line: 5, field: 'Requested Ship Time Zone', message: 'Requested Ship Time-Zone missing.' },
+  { id: 's6', rule: 4, kind: 'timezone-missing', line: 6, field: 'Requested Ship Time Zone', message: 'Requested Ship Time-Zone missing.' },
+  { id: 's7', rule: 2, kind: 'quantity-mismatch', line: 7, field: 'Line vs schedule quantity', message: 'Line and Schedule mismatch.' },
 ]
 
 describe('StructuralGrid', () => {
   test('lists only the offending lines, one row per line', () => {
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />)
     const rows = screen.getAllByRole('row').slice(1) // minus header
-    expect(rows.length).toBe(3) // lines 1, 2, 3 — not 4 (D has no faults)
+    expect(rows.length).toBe(6) // lines 1, 2, 3, 5, 6, 7 — not 4 (D has no faults)
     expect(screen.queryByText('D')).toBeNull()
     // Line 1's two faults both show in its row, and the badge counts both.
     const row1 = screen.getByText('A').closest('tr')
@@ -45,6 +56,19 @@ describe('StructuralGrid', () => {
     // Product B (line 2) has no description — only its ID line renders.
     const row2 = screen.getByText('B').closest('.structural-grid__product-cell')
     expect(row2.querySelector('.text-label-xs-regular')).toBeNull()
+  })
+
+  test('product cell: no productId (lean order) renders description alone, no blank first line', () => {
+    render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />)
+    const cell = screen.getByText('Sulfuric Acid 93%').closest('.structural-grid__product-cell')
+    expect(cell.children.length).toBe(1)
+    expect(cell.querySelector('.text-label-sm-medium')).toBeNull()
+  })
+
+  test('product cell: neither productId nor description renders "--"', () => {
+    render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />)
+    const row6 = screen.getByText('6').closest('tr')
+    expect(within(row6).getByText('--')).toBeTruthy()
   })
 
   test('extra schedule: checking one and clicking Delete selected fires onFix(s1) with that id', () => {

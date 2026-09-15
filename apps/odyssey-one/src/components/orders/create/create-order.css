@@ -906,7 +906,14 @@
 
 /* ── Step 1 — StructuralGrid (LINX-16049 rules 1/2/4) ── */
 /* One row per line (GroupTable flat) with a Faults stack + a pinned Fix/View
-   action opening StructuralFixModal — the controls themselves render there. */
+   action opening StructuralFixModal — the controls themselves render there.
+   `.odyssey-group-table` already scrolls itself (overflow-x: auto), but every
+   flex/grid ancestor above it (.accordion__reveal, .accordion__reveal-inner,
+   .accordion__content below, and this wrapper) defaults to min-width: auto,
+   which lets the table's natural width push the accordion wider instead of
+   being clipped — the sticky Action column then has nothing to stay pinned
+   against. S147. */
+.structural-grid { min-width: 0; }
 .structural-grid__product-cell { display: flex; flex-direction: column; gap: 2px; line-height: 1.35; }
 .structural-grid__faults { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2); }
 .structural-grid__message { color: var(--text-error); }
@@ -919,6 +926,7 @@
 .structural-grid__schedules li { display: flex; align-items: center; gap: var(--spacing-2); }
 .structural-grid__pair { display: flex; flex-direction: column; gap: var(--spacing-1); max-width: 220px; }
 .structural-grid__hint { color: var(--text-tertiary); }
+.structural-grid__schedule-detail { color: var(--text-tertiary); }
 /* Implicit-label wrapper around the timezone Dropdown — see StructuralFixModal
    for why this exists instead of an aria-label prop. `display: contents` keeps
    the label out of layout; the sr-only span stays in the accessibility tree

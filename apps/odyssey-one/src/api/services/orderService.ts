@@ -12,6 +12,7 @@ import { totalErrorCount } from '../mappers/mapOrderListRow'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
+import { CHEMICAL_PRODUCTS } from '../../data/master-data'
 import type { OrderFormValues } from '../types/orderFormVm'
 import type { AuditTrailPage, AuditTrailRequest, AuditTrailOrderMeta } from '../types/auditTrail'
 import { mapAuditReportRow, type AuditReportWireRow } from '../mappers/mapAuditReportRow'
@@ -776,7 +777,14 @@ function listRowToManualOrder(row: OrderListRow): ManualOrder {
     orderLines: row.commodity
       ? [{
           lineIdentifier: 1,
-          shipItemIdentifier: '',
+          // `row.commodity` and a product's external id are two projections
+          // of the same CHEMICAL_PRODUCTS pool row (the generator draws both
+          // from it) — recovering the id from the description it seeded
+          // reconstructs what the generator already knew, it doesn't invent
+          // one. Free-text commodity (a hand-created order) matches nothing
+          // and falls back to '', which the Step 1 grid renders as the
+          // description alone (S147).
+          shipItemIdentifier: CHEMICAL_PRODUCTS.find((p) => p.desc === row.commodity)?.item ?? '',
           productDescription: row.commodity,
           grossWeightValue: row.grossWeight?.value ?? 0,
           grossWeightUomCode: row.grossWeight?.uom ?? 'lbs',

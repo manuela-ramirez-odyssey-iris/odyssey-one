@@ -5485,6 +5485,9 @@ button.breadcrumb__label:focus-visible {
 .accordion__reveal {
   display: grid;
   grid-template-rows: 0fr;
+  min-width: 0; /* grid item defaults to min-width: auto — a wide child (e.g.
+    Step 1's GroupTable) would push .accordion wider instead of the child's
+    own overflow-x taking over. App-local override; see .structural-grid. */
   transition: grid-template-rows var(--transition-reveal);
 }
 
@@ -5500,6 +5503,7 @@ button.breadcrumb__label:focus-visible {
 .accordion__reveal-inner {
   overflow: hidden;
   min-height: 0;
+  min-width: 0; /* flex/grid item default is min-width: auto; see .accordion__reveal */
   /* Once the reveal settles, un-clip so field-popover shadows (ComboBox
      typeahead) aren't cut; the discrete transition delays the flip until the
      grid-rows animation (--transition-reveal, 300ms) finishes. Collapse
@@ -5515,6 +5519,7 @@ button.breadcrumb__label:focus-visible {
 
 .accordion__content {
   margin-top: var(--spacing-6);
+  min-width: 0; /* flex item default is min-width: auto; see .accordion__reveal */
 }
 
 /* Reserves the stub's footprint in the flow (32 gap + 16 line slot) for
