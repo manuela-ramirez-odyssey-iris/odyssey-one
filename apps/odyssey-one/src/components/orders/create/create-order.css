@@ -907,12 +907,15 @@
 /* ── Step 1 — StructuralGrid (LINX-16049 rules 1/2/4) ── */
 /* One row per line (GroupTable flat) with a Faults stack + a pinned Fix/View
    action opening StructuralFixModal — the controls themselves render there. */
+.structural-grid__product-cell { display: flex; flex-direction: column; gap: 2px; line-height: 1.35; }
 .structural-grid__faults { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2); }
 .structural-grid__message { color: var(--text-error); }
+.structural-grid__field--fixed { display: flex; align-items: center; gap: var(--spacing-1); color: var(--caribbean-green-600); }
 .structural-grid__validated { color: var(--caribbean-green-600); margin: var(--spacing-1) 0 0; }
 .structural-grid__modal-body { display: flex; flex-direction: column; gap: var(--spacing-4); }
 .structural-grid__modal-fault + .structural-grid__modal-fault { padding-top: var(--spacing-4); border-top: 1px solid var(--border-subtle); }
-.structural-grid__schedules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-1); }
+.structural-grid__schedule-picker { display: flex; flex-direction: column; gap: var(--spacing-2); align-items: flex-start; }
+.structural-grid__schedules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2); width: 100%; }
 .structural-grid__schedules li { display: flex; align-items: center; gap: var(--spacing-2); }
 .structural-grid__pair { display: flex; flex-direction: column; gap: var(--spacing-1); max-width: 220px; }
 .structural-grid__hint { color: var(--text-tertiary); }

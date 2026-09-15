@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable } from '@odyssey/ui'
 import { STRUCTURAL_DRAFT_KEYS } from './interfaceErrors.js'
 import StructuralFixModal from './StructuralFixModal.jsx'
@@ -12,7 +14,8 @@ import StructuralFixModal from './StructuralFixModal.jsx'
  * green row for a WRONG weight. The check lives here instead, and the panel
  * reuses it, so the badge, the grid, and `applyFixes` can never disagree.
  *
- *   extra-schedule    — a schedule was nominated for removal
+ *   extra-schedule    — at least one schedule was nominated for removal
+ *                       (`fix.removeSchedules`, an array of ids)
  *   quantity-mismatch — the line's own gross weight now EQUALS the schedule's
  *                       (rule 2, LINX-16049: "must be identical at both levels")
  *   timezone-missing  — a non-empty zone was picked
@@ -26,7 +29,7 @@ export function isStructuralFixed(product, error, fix) {
   if (!product || !fix) return false
   const scheduleValue = product[STRUCTURAL_DRAFT_KEYS['quantity-mismatch']]
   switch (error.kind) {
-    case 'extra-schedule': return !!fix.removeSchedule
+    case 'extra-schedule': return (fix.removeSchedules?.length ?? 0) > 0
     case 'quantity-mismatch':
       return fix.grossWeight != null && fix.grossWeight !== '' &&
         String(fix.grossWeight) === String(scheduleValue?.grossWeight ?? '')
@@ -75,15 +78,32 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
       id: String(line),
       label: line,
       values: {
-        product: <span className="text-label-sm-medium">{p.productId}</span>,
+        // Two-line ID + name, same convention as the Orders grid's
+        // `locationCell` (ordersColumns.jsx) — `description` can be empty
+        // (mapOrderViewToFormVm has a lossy path, LINX-11163 deferred), so
+        // the second line only renders when there's something to show.
+        product: (
+          <div className="structural-grid__product-cell">
+            <span className="text-label-sm-medium">{p.productId}</span>
+            {p.description && <span className="text-label-xs-regular" style={{ color: 'var(--text-tertiary)' }}>{p.description}</span>}
+          </div>
+        ),
         faults: (
           <ul className="structural-grid__faults">
-            {faults.map((s) => (
-              <li key={s.id}>
-                <div className="text-label-sm-medium">{s.field}</div>
-                <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
-              </li>
-            ))}
+            {faults.map((s) => {
+              const fixed = isStructuralFixed(p, s, fixes[s.id])
+              return (
+                <li key={s.id}>
+                  <div className={`text-label-sm-medium${fixed ? ' structural-grid__field--fixed' : ''}`}>
+                    {fixed && <Check {...ICON_MD} />}
+                    {s.field}
+                  </div>
+                  {!fixed && (
+                    <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         ),
         status: openCount === 0

@@ -160,7 +160,13 @@ describe('deriveInterfaceErrors', () => {
       if (s.kind === 'quantity-mismatch') expect(p.scheduleQuantity).toBeDefined()
       if (s.kind === 'timezone-missing') expect(p.scheduleTimezone).toBe('')
     }
-    const fixes = Object.fromEntries(r.structural.map(s => [s.id, { timezone: 'CDT', grossWeight: '999' }]))
+    const fixes = Object.fromEntries(r.structural.map(s => {
+      if (s.kind === 'extra-schedule') {
+        const p = draft.products[s.line - 1]
+        return [s.id, { removeSchedules: [p.schedules[1].id] }]
+      }
+      return [s.id, { timezone: 'CDT', grossWeight: '999' }]
+    }))
     const fixed = r.applyFixes(draft, { 'general.freightTerm': 'PICKED' }, fixes)
     expect(fixed.general.freightTerm).toBe('PICKED')
     expect(fixed.lineValues).toBeUndefined()

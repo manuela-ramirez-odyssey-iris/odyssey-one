@@ -263,8 +263,25 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
       const p = draft.products[s.line - 1]
       if (!p) continue
       const key = STRUCTURAL_DRAFT_KEYS[s.kind]
-      if (s.kind === 'extra-schedule') p[key] = [{ id: `${p.id}-sch-1` }, { id: `${p.id}-sch-2` }]
-      if (s.kind === 'quantity-mismatch') p[key] = { grossWeight: String(Number(p.grossWeight?.value || 0) + 50), volume: p.volume?.value ?? '' }
+      if (s.kind === 'extra-schedule') {
+        // Real detail, not featureless placeholders (user complaint, S147:
+        // "which one do I delete?"). Derived from SRC (the order this draft is
+        // built on, read before any conflict blanks its own header fields) —
+        // same coherence rule the rest of the seed follows. The two schedules
+        // must genuinely differ; `shiftDate` (already in this module) is the
+        // deterministic variation, no new random source.
+        const pd = src.pickupDelivery ?? {}
+        const shipDate = pd.latePickup?.date ?? ''
+        const packageCount = p.handlingCount || '1'
+        const tz = pd.latePickup?.timezone ?? ''
+        const earliest = pd.earlyDelivery?.date ?? ''
+        const latest = pd.lateDelivery?.date ?? ''
+        p[key] = [
+          { id: `${p.id}-sch-1`, requestedShipDate: shipDate, packageCount, requestedShipTimeZoneCode: tz, earliestDeliveryDate: earliest, latestDeliveryDate: latest },
+          { id: `${p.id}-sch-2`, requestedShipDate: shiftDate(shipDate, 1) || shipDate, packageCount, requestedShipTimeZoneCode: tz, earliestDeliveryDate: shiftDate(earliest, 1) || earliest, latestDeliveryDate: shiftDate(latest, 1) || latest },
+        ]
+      }
+      if (s.kind === 'quantity-mismatch') p[key] = { grossWeight: String(Number(p.grossWeight?.value || 0) + 50), grossWeightUom: p.grossWeight?.uom, volume: p.volume?.value ?? '' }
       if (s.kind === 'timezone-missing') p[key] = ''
     }
     return draft
@@ -282,9 +299,14 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
       const fix = structuralFixes[s.id]
       if (!p || !fix) continue
       const key = STRUCTURAL_DRAFT_KEYS[s.kind]
-      if (s.kind === 'extra-schedule') p[key] = (p[key] ?? []).slice(0, 1)
+      if (s.kind === 'extra-schedule') {
+        const remove = new Set(fix.removeSchedules ?? [])
+        p[key] = (p[key] ?? []).filter((sch) => !remove.has(sch.id))
+      }
       if (s.kind === 'quantity-mismatch') {
-        if (fix.grossWeight) p.grossWeight = { ...p.grossWeight, value: fix.grossWeight }
+        if (fix.grossWeight) {
+          p.grossWeight = { ...p.grossWeight, value: fix.grossWeight, ...(fix.grossWeightUom ? { uom: fix.grossWeightUom } : {}) }
+        }
         delete p[key]
       }
       if (s.kind === 'timezone-missing' && fix.timezone) p[key] = fix.timezone

@@ -28,7 +28,7 @@ import '../create-order.css'
  * passing `decimals={6}` for that reading was the bug — it blurred every entry
  * to "150.000000". Pass one or the other, not both; `decimals` wins if both.
  */
-export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false, label, showLabel = false, decimals, maxDecimals }) {
+export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false, label, showLabel = false, decimals, maxDecimals, ...rest }) {
   const [open, setOpen] = useState(false)
   const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
     open,
@@ -74,6 +74,7 @@ export default function MeasureField({ id, value, options, onChange, onBlur, err
         onBlur={handleBlur}
         error={error}
         disabled={disabled}
+        {...rest}
         trailingSelect={{
           label: uomLabel,
           locked: uomLocked,

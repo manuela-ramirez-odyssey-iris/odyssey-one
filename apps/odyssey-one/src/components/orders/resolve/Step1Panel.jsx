@@ -159,7 +159,7 @@ export default function Step1Panel({
   return (
     <div className="step1-panel">
       {!readOnly && (
-        <Alert errors={alertErrors} contextText={contextText} defaultExpanded errorIndex={errorIndex} onErrorNav={handleErrorNav} />
+        <Alert errors={alertErrors} contextText={contextText} errorIndex={errorIndex} onErrorNav={handleErrorNav} />
       )}
       {/* Message control first: whether the message CREATES or CANCELS decides
           what the rest of the screen even means. */}

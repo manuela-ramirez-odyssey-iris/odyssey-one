@@ -81,6 +81,9 @@ describe('Step1Panel', () => {
   test('clicking an alert row scrolls to that error control', async () => {
     const { container, derived } = setup('conflict', 2)
     const first = derived.errors[0]
+    // The alert opens COLLAPSED (user ruling, S147: per-error detail already
+    // lives in the accordions below) — expand it before reaching for a row.
+    fireEvent.click(within(container.querySelector('.alert')).getByRole('button', { name: 'Expand error list' }))
     // The reason button inside the Alert — the message text also appears on the
     // ConflictPicker itself, so query inside the alert, not globally.
     fireEvent.click(within(container.querySelector('.alert')).getByRole('button', { name: first.message }))

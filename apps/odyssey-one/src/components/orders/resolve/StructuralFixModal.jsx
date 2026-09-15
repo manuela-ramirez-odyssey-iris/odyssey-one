@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
-import { Button, Dropdown, FormField, ModalMedium } from '@odyssey/ui'
-import { TIMEZONES } from '../../../data/master-data'
+import { ICON_MD } from '@odyssey/tokens'
+import { Button, Checkbox, Dropdown, ModalMedium } from '@odyssey/ui'
+import MeasureField from '../create/fields/MeasureField.jsx'
+import { TIMEZONES, UOM_WEIGHT } from '../../../data/master-data'
 import { STRUCTURAL_DRAFT_KEYS } from './interfaceErrors.js'
 import { isStructuralFixed } from './StructuralGrid.jsx'
 
@@ -19,21 +21,30 @@ const TZ_OPTIONS = [
  * itself only lists the line's faults, the controls moved here unchanged in
  * behaviour).
  *
- *   extra-schedule    → plain trash icon on every schedule beyond the first
- *   quantity-mismatch → line gross weight editable next to the schedule's value
+ *   extra-schedule    → one row per schedule (its own ship date / package
+ *                       count / time zone), a leading Checkbox, and a single
+ *                       "Delete selected" button beneath (S147: the old plain
+ *                       featureless rows left the planner unable to tell which
+ *                       schedule to remove).
+ *   quantity-mismatch → MeasureField (value + weight-UOM selector), matching
+ *                       the create form's own gross-weight control.
  *   timezone-missing  → zone picker (Dropdown, replacing the earlier native
  *                       <select> now that this lives in a modal rather than an
  *                       inline row jsdom had to be able to drive without a portal)
  *
  * Each control calls `onFix(errorId, patch)` immediately — no staging, a fixed
  * fault stays editable so the planner can change their mind before submitting.
- * `disabled` freezes every control (read-only look-back); the trash affordance
- * additionally disappears once a schedule is already nominated, same as before.
+ * `disabled` freezes every control (read-only look-back). Checkbox selection
+ * for extra-schedule is local modal state; nothing commits until "Delete
+ * selected" fires `onFix(errorId, { removeSchedules: [ids] })`.
  */
 export default function StructuralFixModal({ line, product, faults, fixes, onFix, disabled = false, onClose }) {
   const title = `Line ${line} · ${product.productId}`
   const schedules = product[STRUCTURAL_DRAFT_KEYS['extra-schedule']] ?? []
   const scheduleQty = product[STRUCTURAL_DRAFT_KEYS['quantity-mismatch']]
+  // Keyed by error id — a line could in principle carry more than one
+  // extra-schedule fault, each with its own selection.
+  const [checkedByError, setCheckedByError] = useState({})
 
   return createPortal(
     <ModalMedium
@@ -51,46 +62,58 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
               <div className="text-label-sm-medium">{s.field}</div>
               <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
 
-              {s.kind === 'extra-schedule' && (
-                <ul className="structural-grid__schedules">
-                  {schedules.map((sch, i) => (
-                    <li key={sch.id}>
-                      Schedule {i + 1}
-                      {/* Order-creation row convention: a delete affordance is a
-                          plain trash icon, never a Button. `.co-rep__trash` is the
-                          existing skin for exactly that (RepeatableRows/ProductGrid),
-                          reused rather than cloned. */}
-                      {i > 0 && !disabled && !fixed && (
-                        <button
-                          type="button"
-                          className="co-rep__trash"
-                          aria-label={`Remove schedule ${i + 1} on line ${line}`}
-                          onClick={() => onFix(s.id, { removeSchedule: sch.id })}
-                        >
-                          <Trash2 {...ICON_LG} />
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {s.kind === 'extra-schedule' && (() => {
+                const checked = checkedByError[s.id] ?? []
+                const toggle = (id) => setCheckedByError((prev) => {
+                  const cur = prev[s.id] ?? []
+                  return { ...prev, [s.id]: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] }
+                })
+                const canDelete = checked.length > 0 && checked.length < schedules.length
+                return (
+                  <div className="structural-grid__schedule-picker">
+                    <p className="text-label-xs-regular structural-grid__hint">
+                      An order line can carry only one schedule. Select the schedule(s) to remove — one must remain.
+                    </p>
+                    <ul className="structural-grid__schedules">
+                      {schedules.map((sch, i) => (
+                        <li key={sch.id}>
+                          <Checkbox
+                            label={`Schedule ${i + 1} — ship ${sch.requestedShipDate || '—'} · ${sch.packageCount ?? '—'} pkgs · ${sch.requestedShipTimeZoneCode || '—'}`}
+                            checked={checked.includes(sch.id)}
+                            disabled={disabled || fixed}
+                            onChange={() => toggle(sch.id)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Trash2 {...ICON_MD} />}
+                      disabled={disabled || fixed || !canDelete}
+                      onClick={() => onFix(s.id, { removeSchedules: checked })}
+                    >
+                      Delete selected
+                    </Button>
+                  </div>
+                )
+              })()}
 
               {s.kind === 'quantity-mismatch' && (
                 <div className="structural-grid__pair">
-                  {/* aria-label, NOT label + showLabel={false}: FormField drops the
-                      <label> entirely when showLabel is false, so a `label` prop
-                      would leave the input nameless. aria-label rides `...rest`
-                      onto the <input> and is the single accessible name. */}
-                  <FormField
+                  <MeasureField
                     aria-label={`Gross weight, line ${line}`}
-                    format="decimal"
-                    value={fix?.grossWeight ?? product.grossWeight?.value ?? ''}
-                    onChange={(e) => onFix(s.id, { grossWeight: e.target.value })}
+                    value={{
+                      value: fix?.grossWeight ?? product.grossWeight?.value ?? '',
+                      uom: fix?.grossWeightUom ?? product.grossWeight?.uom ?? UOM_WEIGHT[0].value,
+                    }}
+                    options={UOM_WEIGHT}
+                    onChange={({ value, uom }) => onFix(s.id, { grossWeight: value, grossWeightUom: uom })}
                     disabled={disabled}
                     validated={fixed}
                   />
                   <span className="text-label-xs-regular structural-grid__hint">
-                    schedule says {scheduleQty?.grossWeight} {product.grossWeight?.uom}
+                    schedule says {scheduleQty?.grossWeight} {scheduleQty?.grossWeightUom ?? product.grossWeight?.uom}
                   </span>
                 </div>
               )}
@@ -111,8 +134,9 @@ export default function StructuralFixModal({ line, product, faults, fixes, onFix
                 </label>
               )}
 
-              {/* FormField renders its own "Validated" line, so the quantity
-                  fault must NOT get a second one. */}
+              {/* MeasureField forwards `validated` into FormField, which
+                  renders its own "Validated" line — quantity-mismatch must
+                  NOT get a second one here. */}
               {fixed && s.kind !== 'quantity-mismatch' && (
                 <p className="structural-grid__validated text-label-xs-regular">Validated</p>
               )}

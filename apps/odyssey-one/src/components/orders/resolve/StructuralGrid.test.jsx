@@ -6,7 +6,10 @@ import StructuralGrid, { isStructuralFixed } from './StructuralGrid.jsx'
 afterEach(cleanup)
 
 const products = [
-  { id: 'prod-1', productId: 'A', grossWeight: { value: '100', uom: 'lbs' }, volume: { value: '10', uom: 'cbf' }, schedules: [{ id: 'prod-1-sch-1' }, { id: 'prod-1-sch-2' }] },
+  { id: 'prod-1', productId: 'A', description: 'Steel Coils', grossWeight: { value: '100', uom: 'lbs' }, volume: { value: '10', uom: 'cbf' }, schedules: [
+    { id: 'prod-1-sch-1', requestedShipDate: '06/15/2026', packageCount: '2', requestedShipTimeZoneCode: 'CDT' },
+    { id: 'prod-1-sch-2', requestedShipDate: '06/16/2026', packageCount: '2', requestedShipTimeZoneCode: 'CDT' },
+  ] },
   { id: 'prod-2', productId: 'B', grossWeight: { value: '200', uom: 'lbs' }, volume: { value: '20', uom: 'cbf' }, scheduleQuantity: { grossWeight: '250', volume: '20' } },
   { id: 'prod-3', productId: 'C', grossWeight: { value: '300', uom: 'lbs' }, volume: { value: '30', uom: 'cbf' }, scheduleTimezone: '' },
   { id: 'prod-4', productId: 'D', grossWeight: { value: '400', uom: 'lbs' }, volume: { value: '40', uom: 'cbf' } },
@@ -35,12 +38,35 @@ describe('StructuralGrid', () => {
     expect(within(row1).getByText('2 open')).toBeTruthy()
   })
 
-  test('extra schedule: trash on the second schedule (in the Fix modal) fires onFix(s1)', () => {
+  test('product cell is two-line: ID then description, description omitted when empty', () => {
+    render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />)
+    expect(screen.getByText('A').closest('.structural-grid__product-cell')).toBeTruthy()
+    expect(screen.getByText('Steel Coils')).toBeTruthy()
+    // Product B (line 2) has no description — only its ID line renders.
+    const row2 = screen.getByText('B').closest('.structural-grid__product-cell')
+    expect(row2.querySelector('.text-label-xs-regular')).toBeNull()
+  })
+
+  test('extra schedule: checking one and clicking Delete selected fires onFix(s1) with that id', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fix line 1' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Remove schedule 2 on line 1' }))
-    expect(onFix).toHaveBeenCalledWith('s1', { removeSchedule: 'prod-1-sch-2' })
+    fireEvent.click(screen.getByLabelText(/Schedule 2 —/))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }))
+    expect(onFix).toHaveBeenCalledWith('s1', { removeSchedules: ['prod-1-sch-2'] })
+  })
+
+  test('extra schedule: Delete selected stays disabled until a schedule is checked, and while all are checked', () => {
+    render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Fix line 1' }))
+    const del = screen.getByRole('button', { name: 'Delete selected' })
+    expect(del.hasAttribute('disabled')).toBe(true)
+    fireEvent.click(screen.getByLabelText(/Schedule 1 —/))
+    fireEvent.click(screen.getByLabelText(/Schedule 2 —/))
+    // both checked → nothing would remain
+    expect(screen.getByRole('button', { name: 'Delete selected' }).hasAttribute('disabled')).toBe(true)
+    fireEvent.click(screen.getByLabelText(/Schedule 1 —/))
+    expect(screen.getByRole('button', { name: 'Delete selected' }).hasAttribute('disabled')).toBe(false)
   })
 
   test('quantity mismatch: editing the line weight to the schedule value fires onFix(s2)', () => {
@@ -49,7 +75,7 @@ describe('StructuralGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fix line 2' }))
     const input = screen.getByLabelText('Gross weight, line 2')
     fireEvent.change(input, { target: { value: '250' } })
-    expect(onFix).toHaveBeenCalledWith('s2', { grossWeight: '250' })
+    expect(onFix).toHaveBeenCalledWith('s2', { grossWeight: '250', grossWeightUom: 'lbs' })
   })
 
   // The row badge flips to Validated once the parent re-renders with the fix
@@ -121,7 +147,7 @@ describe('StructuralGrid', () => {
   test('isStructuralFixed is the predicate the composing panel must reuse', () => {
     expect(isStructuralFixed(products[1], structural[2], { grossWeight: '250' })).toBe(true)
     expect(isStructuralFixed(products[1], structural[2], { grossWeight: '999' })).toBe(false)
-    expect(isStructuralFixed(products[0], structural[0], { removeSchedule: 'prod-1-sch-2' })).toBe(true)
+    expect(isStructuralFixed(products[0], structural[0], { removeSchedules: ['prod-1-sch-2'] })).toBe(true)
     expect(isStructuralFixed(products[2], structural[3], { timezone: '' })).toBe(false)
   })
 })
