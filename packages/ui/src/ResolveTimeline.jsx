@@ -8,9 +8,10 @@ import StepIndicator from './StepIndicator.jsx'
  * (the consumer decides: passed steps re-open read-only, locked ones don't).
  * The current step is never clickable but is NOT locked — you are already on it.
  *
- * Track segment i sits between step i and i+1 and takes step i+1's status
- * (`on` = green fill, `error` = red fill, `off` = neutral), so the line
- * "arrives" in the colour of the step it reaches.
+ * Track segment i sits between step i and i+1 and takes step i's OWN status
+ * (`on` = green fill, `error` = red fill, `off` = neutral) — the line leaves
+ * in the colour of the step it departs, so a completed step lays green track
+ * behind it.
  *
  * steps: [{ key, label, detail, status: 'off'|'on'|'error', onClick? }]
  * current: key of the step whose body is rendered (bold label).
@@ -50,7 +51,7 @@ export default function ResolveTimeline({ steps = [], current, className = '', .
               ? <button type="button" className="resolve-timeline__button" onClick={step.onClick}>{content}</button>
               : <span className="resolve-timeline__static">{content}</span>}
             {next && (
-              <span className={`resolve-timeline__segment resolve-timeline__segment--${next.status}`} aria-hidden="true" />
+              <span className={`resolve-timeline__segment resolve-timeline__segment--${step.status}`} aria-hidden="true" />
             )}
           </li>
         )

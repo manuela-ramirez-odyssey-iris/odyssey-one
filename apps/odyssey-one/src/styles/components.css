@@ -5401,10 +5401,25 @@ button.breadcrumb__label:focus-visible {
   right: calc(-50% + 20px);
   height: 2px;
   background: var(--deep-sea-neutral-200);
-  transition: background var(--transition-base);
+  overflow: hidden;
 }
-.resolve-timeline__segment--on { background: var(--caribbean-green-600); }
-.resolve-timeline__segment--error { background: var(--bittersweet-600); }
+/* Coloured state is an overlay that grows left → right rather than a snap
+   background swap, matching the ease-out-quart "grow" curve used elsewhere
+   for progress reveals (--transition-chart-grow, chart stroke sweep). */
+.resolve-timeline__segment::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-chart-grow);
+}
+.resolve-timeline__segment--on::after { background: var(--caribbean-green-600); transform: scaleX(1); }
+.resolve-timeline__segment--error::after { background: var(--bittersweet-600); transform: scaleX(1); }
+@media (prefers-reduced-motion: reduce) {
+  .resolve-timeline__segment::after { transition: none; }
+}
 
 /* === Accordion (molecule) — Figma 2850:612, normalized 2026-06-09 ===
    Expandable form-section card composing StepIndicator. The reveal animates
