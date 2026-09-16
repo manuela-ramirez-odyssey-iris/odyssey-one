@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import SummaryStrip, { hiddenCharCount, TOOLTIP_MIN_HIDDEN_CHARS } from './SummaryStrip.jsx'
 
 afterEach(cleanup)
@@ -157,7 +157,7 @@ describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTo
     expect(dd.getAttribute('title')).toBe(url)
   })
 
-  it('prop on + overflowing value (<dd>): shows the Tooltip with the full value text, and suppresses native title', () => {
+  it('prop on + overflowing value (<dd>): the card shows the cell LABEL and the full value, and suppresses native title', () => {
     const url = 'example.com/very/long/tracking/path/that/overflows'
     render(<SummaryStrip items={[{ label: 'Tracking Link', value: url, truncate: 'lead' }]} truncationTooltip />)
     const dd = screen.getByText(url).closest('dd')
@@ -165,17 +165,49 @@ describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTo
     stubOverflow(dd, { overflowing: true })
     fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
     const tip = screen.getByRole('tooltip')
-    expect(tip.textContent).toBe(url)
+    // The whole cell, not just the run that clipped: a bare value leaves the
+    // reader guessing which field it belongs to (user, 2026-09-16).
+    expect(within(tip).getByText('Tracking Link')).toBeTruthy()
+    expect(within(tip).getByText(url)).toBeTruthy()
   })
 
-  it('prop on + overflowing label (<dt>): shows the Tooltip with the full label text — labels clip too', () => {
+  it('prop on + overflowing label (<dt>): the card shows the full label AND the value — labels clip too', () => {
     const longLabel = 'A Very Long Uppercase Metric Label That Overflows The Cell'
     render(<SummaryStrip items={[{ label: longLabel, value: 'OK' }]} truncationTooltip />)
     const dt = screen.getByText(longLabel)
     stubOverflow(dt, { overflowing: true })
     fireEvent.mouseEnter(dt.closest('.summary-strip__cell'))
     const tip = screen.getByRole('tooltip')
-    expect(tip.textContent).toBe(longLabel)
+    expect(within(tip).getByText(longLabel)).toBeTruthy()
+    expect(within(tip).getByText('OK')).toBeTruthy()
+  })
+
+  it('a label-less cell (SPB-43) raises the value alone, and a value-less cell the label alone', () => {
+    const long = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const { unmount } = render(<SummaryStrip items={[{ value: long }]} truncationTooltip />)
+    const dd = screen.getByText(long)
+    stubOverflow(dd, { overflowing: true })
+    fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
+    expect(screen.getByRole('tooltip').textContent).toBe(long)
+    unmount()
+
+    render(<SummaryStrip items={[{ label: long }]} truncationTooltip />)
+    const dt = screen.getByText(long)
+    stubOverflow(dt, { overflowing: true })
+    fireEvent.mouseEnter(dt.closest('.summary-strip__cell'))
+    expect(screen.getByRole('tooltip').textContent).toBe(long)
+  })
+
+  // Regression: the scan used to stop at the FIRST element whose scrollWidth
+  // exceeded its clientWidth and then gate THAT one, so a label clipped by a
+  // single glyph suppressed the tooltip for a badly-clipped value below it.
+  it('a barely-clipped label does not suppress the tooltip for a badly-clipped value', () => {
+    render(<SummaryStrip items={[{ label: 'Rating Status', value: 'ABCDEFGHIJ' }]} truncationTooltip />)
+    stubWidths(screen.getByText('Rating Status'), 99, 100)  // ~0 hidden chars
+    stubWidths(screen.getByText('ABCDEFGHIJ'), 50, 100)     // 5 hidden chars
+    fireEvent.mouseEnter(screen.getByText('ABCDEFGHIJ').closest('.summary-strip__cell'))
+    const tip = screen.getByRole('tooltip')
+    expect(within(tip).getByText('ABCDEFGHIJ')).toBeTruthy()
   })
 
   it('prop on + no overflow: no tooltip fires (a single overflowing token still requires real overflow)', () => {
@@ -213,7 +245,9 @@ describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTo
     const dd = screen.getByText('ABCDEFGHIJ')
     stubWidths(dd, 70, 100)
     fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
-    expect(screen.getByRole('tooltip').textContent).toBe('ABCDEFGHIJ')
+    const tip = screen.getByRole('tooltip')
+    expect(within(tip).getByText('Status')).toBeTruthy()
+    expect(within(tip).getByText('ABCDEFGHIJ')).toBeTruthy()
   })
 })
 

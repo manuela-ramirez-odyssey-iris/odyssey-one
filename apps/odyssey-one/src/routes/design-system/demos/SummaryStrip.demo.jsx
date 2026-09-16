@@ -7,14 +7,14 @@ export const meta = {
   tier: 'molecule',
   version: '1.5.0',
   createdVersion: '0.7.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }
 
 export const props = [
   { name: 'items', type: "[{ label, value, tone?, truncate?, emphasis? }]", desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via `title` (code extension); `emphasis: 'display'` swaps the value to display/4xl semibold (code extension, SPB-43 bid countdown digits)." },
-  { name: 'truncationTooltip', type: 'boolean', default: 'false', desc: "Opt-in, strip-level. On hover, scans the cell (both `<dt>` and `<dd>`) for real overflow (`scrollWidth > clientWidth`) and shows the normalized Tooltip with the full text — mirrors DataTable's `truncationTooltip` mechanism, but gates on hidden CHARACTERS (`hiddenCharCount`, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. Suppresses the native `title` while on so the browser tooltip doesn't double up; default off is byte-identical to every existing caller." },
+  { name: 'truncationTooltip', type: 'boolean', default: 'false', desc: "Opt-in, strip-level. On hover, scans the cell's `<dt>` and `<dd>` for real overflow and raises the normalized Tooltip showing the WHOLE cell — the label as the group's `subtitle` over the value as its `content` (2026-09-16), not just the run that clipped: a bare value leaves the reader guessing which field it is, and a clipped label over a complete value is an equally unreadable cell. A label-less or value-less cell raises the half it has. Mirrors DataTable's `truncationTooltip` mechanism, but gates on hidden CHARACTERS (`hiddenCharCount`, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. The gate is applied per element, so a label clipped by one glyph no longer suppresses the tooltip for a badly-clipped value below it. Suppresses the native `title` while on so the browser tooltip doesn't double up; default off is byte-identical to every existing caller." },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
   { name: '...rest', type: 'aria-* etc.', desc: 'Forwarded to the root — pass `aria-label` to name the region (root is a <dl> with role="region").' },
 ]

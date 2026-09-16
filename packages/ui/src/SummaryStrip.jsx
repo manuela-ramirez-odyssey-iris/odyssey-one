@@ -47,11 +47,14 @@ import Tooltip from './Tooltip.jsx'
  *   DataTable's S85 mechanism verbatim: same prop name/default, same hand-
  *   rolled body portal, same inline `zIndex`/`pointerEvents: 'none'`, since
  *   this package can't reach the app-local TooltipTrigger). On cell
- *   `mouseenter`, scans the cell and its descendants (covers both `<dt>` and
- *   `<dd>` — either can clip) for the first element whose `scrollWidth >
- *   clientWidth + 1` and raises the normalized `Tooltip` with that element's
- *   full `textContent` — but only when `hiddenCharCount(...) >=
- *   TOOLTIP_MIN_HIDDEN_CHARS`. Unlike DataTable, this gates on hidden
+ *   `mouseenter`, scans the cell's descendants (covers both `<dt>` and `<dd>`
+ *   — either can clip) for the first element hiding at least
+ *   `TOOLTIP_MIN_HIDDEN_CHARS`, and raises the normalized `Tooltip` showing
+ *   the WHOLE cell: the label as the group's `subtitle` over the value as its
+ *   `content` (2026-09-16). It deliberately does NOT show only the run that
+ *   clipped — a bare value leaves the reader guessing which field it is, and a
+ *   clipped label over a complete value is an equally unreadable cell. A
+ *   label-less or value-less cell raises the half it has. Unlike DataTable, this gates on hidden
  *   CHARACTERS, not hidden WORDS: SummaryStrip values are frequently a
  *   single long token (a tracking link, an ID) that the word estimator
  *   always reads as exactly one word, hidden or not, so a word-count gate
@@ -91,15 +94,31 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
   // Overflow tooltip state — see docblock. Detected at hover time, never at mount
   // (a stale mount-time check is a bug this codebase already shed once — see the
   // TruncatedText deletion in playground/normalization-tracker.md).
-  const [tip, setTip] = useState(null) // { text, left, top }
+  const [tip, setTip] = useState(null) // { label, value, left, top }
   const onCellEnter = (e) => {
     const cell = e.currentTarget
-    const clipped = [cell, ...cell.querySelectorAll('*')].find((el) => el.scrollWidth > el.clientWidth + 1)
+    // Any clipped run in the cell ARMS the tooltip; the card then shows the
+    // WHOLE cell — label over value — not just the run that clipped (user,
+    // 2026-09-16). Showing the value alone left the reader guessing which
+    // field it belonged to, and a clipped LABEL over a complete value is just
+    // as unreadable a cell. Tooltip's own {subtitle, content} group is exactly
+    // that shape, so this needs no new presentation.
+    //
+    // The gate is applied per element rather than to whichever element clipped
+    // FIRST: a label clipped by one glyph used to suppress the tooltip for a
+    // badly-clipped value below it, because the scan stopped at the label.
+    const clipped = [...cell.querySelectorAll('*')].find(
+      (el) => hiddenCharCount(el.textContent.trim(), el.clientWidth, el.scrollWidth) >= TOOLTIP_MIN_HIDDEN_CHARS,
+    )
     if (!clipped) return
-    const text = clipped.textContent.trim()
-    if (hiddenCharCount(text, clipped.clientWidth, clipped.scrollWidth) < TOOLTIP_MIN_HIDDEN_CHARS) return
     const r = cell.getBoundingClientRect()
-    setTip({ text, left: Math.max(8, r.left), top: r.top - 6 })
+    // A label-less or value-less cell (SPB-43) raises the half it has.
+    setTip({
+      label: cell.querySelector('dt')?.textContent.trim() || undefined,
+      value: cell.querySelector('dd')?.textContent.trim() || undefined,
+      left: Math.max(8, r.left),
+      top: r.top - 6,
+    })
   }
   const onCellLeave = () => setTip(null)
 
@@ -143,7 +162,7 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
             pointerEvents: 'none',
           }}
         >
-          <Tooltip groups={[{ content: tip.text }]} />
+          <Tooltip groups={[{ subtitle: tip.label, content: tip.value }]} />
         </div>,
         document.body
       )}
