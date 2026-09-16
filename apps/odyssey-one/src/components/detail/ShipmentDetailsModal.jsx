@@ -407,12 +407,19 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
     exitQuote()
   }
 
+  // The modal names the shipment it is about (user, 2026-09-16). Same fallback
+  // chain every other surface uses (DEC-148): Odyssey Shipment ID → buy → sell.
+  // With none of the three — the modal opened before the row resolved — the
+  // title degrades to the bare "Shipment Details" rather than "… for undefined".
+  const namedId = shipment?.odysseyShipmentIdentifier || shipment?.buyShipment || shipment?.sellShipment
+  const detailsTitle = namedId ? `${namedId} Shipment Details` : 'Shipment Details'
+
   return createPortal(
     <ModalMedium
       key={view}
       className={navClass}
-      title={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
-      ariaLabel={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
+      title={view === 'quote' ? 'Edit Quote' : detailsTitle}
+      ariaLabel={view === 'quote' ? 'Edit Quote' : detailsTitle}
       onClose={handleClose}
       onBack={view === 'quote' ? exitQuote : undefined}
       footer={view === 'quote' ? (
@@ -496,16 +503,14 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
             {tab === 'details' && (
               <SummaryStrip
                 aria-label="Shipment identifiers"
-                // Six cells now share ~776px, so every label and the longer
-                // values ellipsize (S149 measurement: the 27-char "Odyssey
-                // Shipment Identifier" label loses 102px). The identifier's
-                // sequence is unbounded by ruling (Dave Schultz), so its value
-                // will clip further over time — the tooltip makes both
-                // recoverable on hover. The cell geometry itself is a Figma
-                // question for the SummaryStrip master, not a local override.
+                // The Odyssey Shipment ID is NOT a cell here: it names the modal
+                // ("C50000007 Shipment Details", user 2026-09-16), and a strip
+                // cell would repeat it two lines below its own title. Removing it
+                // also returns the strip to five cells, the count it fits.
+                // truncationTooltip stays on — Tracking Link still clips by design
+                // (truncate: 'lead'), and the tooltip is what recovers it.
                 truncationTooltip
                 items={[
-                  { label: 'Odyssey Shipment ID', value: shipment?.odysseyShipmentIdentifier },
                   { label: 'Buy Shipment',  value: shipment?.buyShipment },
                   { label: 'Pro/Booking #', value: shipment?.pro || order?.proBooking },
                   // Display convention (user, 2026-08-02): strip the protocol —

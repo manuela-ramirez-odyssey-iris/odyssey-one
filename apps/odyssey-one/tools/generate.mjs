@@ -2092,7 +2092,13 @@ function generateShipment(index, chainOverride) {
     // Tracking Link (R2-1). The real contract has no such field yet, so the URL
     // SHAPE IS INVENTED — flagged in the orders decision log. Per the 2026-07-30
     // annotated spec the link hangs off the Pro/Booking # value.
-    trackingUrl: `https://tracking.oneodyssey.com/t/${mainRow.pro}`,
+    // Only an ACCEPTED tender puts a carrier on the freight, so only that
+    // shipment has anything to track (user, 2026-09-16) — 'Sent', 'Declined'
+    // and 'Cancelled' carry no link. A ternary on an already-drawn value, NOT
+    // a new faker call: a fresh draw here would re-number the whole corpus.
+    trackingUrl: mainRow.tenderStatus === 'Accepted'
+      ? `https://tracking.oneodyssey.com/t/${mainRow.pro}`
+      : null,
     distanceMiles: parseFloat(distance.toFixed(2)),
     totalVolumeValue: totalVolume, // I5 — Σ order volumes
     totalVolumeUomCode: 'cuft',

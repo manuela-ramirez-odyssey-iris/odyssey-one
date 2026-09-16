@@ -213,7 +213,7 @@ export async function shipmentErrorList({ body, db }) {
 
 // Slice 3: full SellShipmentOut detail — stored verbatim as shipments.detail JSONB.
 export function buildDetailQuery(sellShipment) {
-  return { text: 'SELECT detail, overrides FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
+  return { text: 'SELECT detail, overrides, tender_status FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
 }
 
 // Quotes/tenders live in their own table (seeded 1:1 from the detail's
@@ -246,6 +246,14 @@ export async function sellShipmentDetail({ params, db }) {
   // Absent column stays ABSENT — an `overrides: null` key would make every
   // `?? ` fallback in the mapper read as "explicitly cleared".
   if (rows[0].overrides) detail.overrides = rows[0].overrides
+  // Only an ACCEPTED tender means a carrier has actually taken the freight, so
+  // only that shipment has anything to track (user, 2026-09-16). Enforced on
+  // READ, not merely seeded: `tender_status` moves after the blob is written —
+  // resolveOrderChange sets it — so a shipment whose tender is later declined
+  // or cancelled must lose its link without the blob being rewritten. The
+  // generator applies the same rule at seed time (tools/generate.mjs) so the
+  // stored data agrees rather than relying on this to hide an incoherence.
+  if (rows[0].tender_status !== 'Accepted') delete detail.trackingUrl
   return detail
 }
 

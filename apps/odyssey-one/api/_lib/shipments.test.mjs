@@ -130,6 +130,31 @@ test('detail: tenders table overrides the frozen shippingOptionList', async () =
   assert.deepEqual(detail.shippingOptionList.map(o => o.scac), ['NEW', 'ADDED'])
 })
 
+// Only an ACCEPTED tender puts a carrier on the freight, so only that shipment
+// has anything to track (user, 2026-09-16). Enforced on READ because
+// tender_status moves after the blob is written (resolveOrderChange).
+const trackedDb = (tenderStatus) => ({
+  query: async (q) => (q.text.includes('FROM shipments')
+    ? { rows: [{ detail: { sellShipment: '1', trackingUrl: 'https://tracking.oneodyssey.com/t/441813' }, tender_status: tenderStatus }] }
+    : { rows: [] }),
+})
+
+test('detail: an ACCEPTED tender keeps its tracking link', async () => {
+  const detail = await sellShipmentDetail({ params: ['1'], db: trackedDb('Accepted') })
+  assert.equal(detail.trackingUrl, 'https://tracking.oneodyssey.com/t/441813')
+})
+
+test('detail: every non-accepted tender status loses the tracking link', async () => {
+  for (const status of ['Sent', 'Declined', 'Cancelled', null]) {
+    const detail = await sellShipmentDetail({ params: ['1'], db: trackedDb(status) })
+    assert.equal('trackingUrl' in detail, false, `trackingUrl survived tender status "${status}"`)
+  }
+})
+
+test('detail: the query fetches tender_status — without it every link is stripped', async () => {
+  assert.match(buildDetailQuery('1').text, /tender_status/)
+})
+
 test('detail: empty tenders table falls back to the detail blob', async () => {
   const db = {
     query: async (q) => (q.text.includes('FROM shipments')

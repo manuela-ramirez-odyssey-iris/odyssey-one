@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
 import * as shipmentService from '../../api/services/shipmentService'
@@ -69,9 +69,12 @@ describe('ShipmentDetailsModal', () => {
     }
     expect(screen.getByText('85611354')).toBeTruthy()
     expect(screen.getByText('Successful')).toBeTruthy()
-    // Odyssey Shipment Identifier leads the identifiers strip, ahead of Buy Shipment.
+    // The Odyssey Shipment ID names the MODAL, not a strip cell (user,
+    // 2026-09-16) — a cell would repeat it two lines below its own title.
+    expect(screen.getByText('O50000012 Shipment Details')).toBeTruthy()
     const identifiers = screen.getByRole('region', { name: 'Shipment identifiers' })
-    expect(identifiers.querySelector('dd')?.textContent).toBe('O50000012')
+    expect(identifiers.querySelector('dd')?.textContent).toBe('85611354')  // Buy Shipment leads
+    expect(within(identifiers).queryByText('O50000012')).toBeNull()
     // Source Name is the customer (Jana's wording), Freight Term is paymentTerms
     expect(screen.getByText('USALCO')).toBeTruthy()
     expect(screen.getByText('Collect')).toBeTruthy()
