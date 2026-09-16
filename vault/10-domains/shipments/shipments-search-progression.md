@@ -135,7 +135,7 @@ Progression order. `match` and `exact` are the code's own fields; the panel colu
 
 | # | Group | Attribute (bar label) | `dataKey` | `match` | Exact | Example (seeded) | Free-text |
 |---:|---|---|---|---|:-:|---|:-:|
-| 1 | Shipment Identifiers | Odyssey Shipment Identifier ³ | `odysseyShipmentIdentifier` | both | | `C50000003` | ✓ |
+| 1 | Shipment Identifiers | Odyssey Shipment ID ³ | `odysseyShipmentIdentifier` | both | | `C50000003` | ✓ |
 | 2 | Shipment Identifiers | Buy Shipment # | `buyShipment` | digits | | `11852604` | ✓ |
 | 3 | Shipment Identifiers | Sell Shipment # | `sellShipment` | digits | | `25969909` | ✓ |
 | 4 | Shipment Identifiers | Order # | `orders` | both | | `0000000091000` | ✓ |
@@ -170,7 +170,7 @@ Examples are real values from the seeded `src/data/shipments.json` (2,200 rows).
 
 ² **Not the proposal's `Shipment Type`.** See §7.
 
-³ **New — S148, not in the stakeholder proposal.** One ID common to the shipment’s buy and sell side — the value Odyssey sends the customer and the carrier, while Buy/Sell Shipment # stay internal. First character is a letter (`O` single-order, `C` consolidated), then a system-generated sequence starting at 50,000,000, chosen so an O2 id can never collide with a TMS-generated one. **`match: 'both'`, not `digits`** — its two siblings are digits-only, but the letter prefix means a digits matcher would never suggest this chip for `C50…`. Length is deliberately unfixed: the sequence grows, so nothing may pad, zero-fill or length-validate it. Source: Laurie + Dave Schultz, 2026-09-15.
+³ **New — S148, not in the stakeholder proposal.** One ID common to the shipment’s buy and sell side — the value Odyssey sends the customer and the carrier, while Buy/Sell Shipment # stay internal. First character is a letter (`O` single-order, `C` consolidated), then a system-generated sequence starting at 50,000,000, chosen so an O2 id can never collide with a TMS-generated one. **`match: 'both'`, not `digits`** — its two siblings are digits-only, but the letter prefix means a digits matcher would never suggest this chip for `C50…`. Length is deliberately unfixed: the sequence grows, so nothing may pad, zero-fill or length-validate it. Source: Laurie + Dave Schultz, 2026-09-15. **Bar label shortened to “Odyssey Shipment ID” in S149** (user ruling) — the 27-character “Odyssey Shipment Identifier” ellipsized in every fixed-width surface it appeared in. The `dataKey` is unchanged: the LLD field is still `odysseyShipmentIdentifier`, and only the human-facing label moved.
 
 ## 9. Proposed but not built
 

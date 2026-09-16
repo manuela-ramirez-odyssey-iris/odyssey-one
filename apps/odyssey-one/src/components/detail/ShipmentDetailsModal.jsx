@@ -505,7 +505,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                 // question for the SummaryStrip master, not a local override.
                 truncationTooltip
                 items={[
-                  { label: 'Odyssey Shipment Identifier', value: shipment?.odysseyShipmentIdentifier },
+                  { label: 'Odyssey Shipment ID', value: shipment?.odysseyShipmentIdentifier },
                   { label: 'Buy Shipment',  value: shipment?.buyShipment },
                   { label: 'Pro/Booking #', value: shipment?.pro || order?.proBooking },
                   // Display convention (user, 2026-08-02): strip the protocol —

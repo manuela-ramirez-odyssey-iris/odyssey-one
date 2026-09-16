@@ -16,7 +16,7 @@ export const SHIPMENTS_ATTRS = {
   // O/C prefix (O50000000 / C50000123) means fixed-width/digits normalization
   // is wrong for this one — normalize only trims/uppercases, never pads or
   // strips the letter. Source: Laurie + Dave Schultz, 2026-09-15.
-  'odyssey-shipment': { label: 'Odyssey Shipment Identifier', col: 'odyssey_shipment_id', normalize: upperStrip, trgm: true, priority: 0 },
+  'odyssey-shipment': { label: 'Odyssey Shipment ID', col: 'odyssey_shipment_id', normalize: upperStrip, trgm: true, priority: 0 },
   'buy-shipment':  { label: 'Buy Shipment #',  col: 'buy_shipment',  normalize: upperStrip, trgm: true,  priority: 1 },
   'sell-shipment': { label: 'Sell Shipment #', col: 'sell_shipment', normalize: upperStrip, trgm: true,  priority: 2 },
   'order':         { label: 'Order #',         col: 'orders',        normalize: upperStrip, trgm: true,  priority: 3, array: true },

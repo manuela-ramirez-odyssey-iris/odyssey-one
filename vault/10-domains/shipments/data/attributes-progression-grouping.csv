@@ -6,7 +6,7 @@ field label","Filters panel
 section",Search status,Notes
 "Find the shipment
 (What is it?)
-↓",Find Shipment by,Shipment Identifiers,Odyssey Shipment Identifier,C50000003,A single ID common to the shipment's buy and sell side — what Odyssey sends the customer and the carrier.,Text Input,Odyssey Shipment Identifier,Shipment Identifiers,Live in search,"First character is a letter: O for a single-order shipment, C for a multi-order (consolidated) one."
+↓",Find Shipment by,Shipment Identifiers,Odyssey Shipment ID,C50000003,A single ID common to the shipment's buy and sell side — what Odyssey sends the customer and the carrier.,Text Input,Odyssey Shipment ID,Shipment Identifiers,Live in search,"First character is a letter: O for a single-order shipment, C for a multi-order (consolidated) one."
 ,,,Buy Shipment #,11852604,-,Text Input,Buy Shipment #,Shipment Identifiers,Live in search,
 ,,,Sell Shipment #,25969909,-,Text Input,Sell Shipment #,Shipment Identifiers,Live in search,
 ,,,Order #,0000000091000,Transportation Order #,Text Input,Order #,Shipment Identifiers,Live in search,"LINX-9742: auto-generated order numbers are digits, customer-provided ones keep letters — hence match: both."

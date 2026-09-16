@@ -8,7 +8,7 @@ import { GroupLabel, PresetActionsMenu } from '../common/presetChrome.jsx'
 export const RIGHT_PANEL_WIDTH = 343
 
 export const ALL_COLUMNS = [
-  { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment Identifier' },
+  { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment ID' },
   { key: 'buyShipment', label: 'Buy Shipment #' },
   { key: 'sellShipment', label: 'Sell Shipment #' },
   { key: 'orders', label: 'Order #' },

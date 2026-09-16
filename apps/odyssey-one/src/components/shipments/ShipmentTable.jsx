@@ -60,7 +60,7 @@ function OrdersTooltip({ orders, children }) {
 // (the old app-local TruncatedText wrapper had a stale overflow state: it checked
 // only on mount/window-resize, so column drags never re-armed its tooltip; deleted S85).
 export const COLUMN_CONFIG = [
-  { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment Identifier' },
+  { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment ID' },
   { key: 'sellShipment', label: 'Sell Shipment' },
   { key: 'buyShipment', label: 'Buy Shipment' },
   { key: 'customerId', label: 'Customer ID(s)' },
