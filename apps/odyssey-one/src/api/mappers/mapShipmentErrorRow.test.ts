@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { mapShipmentErrorRow } from './mapShipmentErrorRow'
-import { LATE_ADDED_COLUMNS } from '../../components/detail/ColumnPanel.jsx'
+import { ALL_COLUMNS, LATE_ADDED_COLUMNS } from '../../components/detail/ColumnPanel.jsx'
 
 // This mapper is a WHITELIST: it builds a new object, so any field it doesn't
 // name is dropped between the API and the table — invisibly, and with the
@@ -12,6 +12,7 @@ import { LATE_ADDED_COLUMNS } from '../../components/detail/ColumnPanel.jsx'
 // These tests exist so the next added column fails loudly here instead.
 
 const FULL_ROW = {
+  odysseyShipmentIdentifier: 'O50000123',
   buyShipment: '0000000054321',
   sellShipment: '0000000012345',
   orders: ['ORD-1', 'ORD-2'],
@@ -45,7 +46,34 @@ const FULL_ROW = {
   nextShipmentId: '0000000099999',
 }
 
+// Grid columns the LIST endpoint does not send — they exist in the column picker
+// but are fed from the detail payload (or are not wired yet). Everything NOT on
+// this list is expected to arrive from the API and therefore to survive the
+// mapper. Adding a column here is the deliberate act of saying "the list does not
+// carry this"; forgetting the mapper instead fails the test below.
+// Kept in sync with ROW_COLUMNS in api/_lib/shipments.mjs.
+const NOT_IN_LIST_DTO = new Set([
+  'proBookingNumber', 'distance', 'stops', 'shipDirection',
+  'earliestPickupDate', 'latestPickupDate', 'earliestDeliveryDate', 'latestDeliveryDate',
+  'equipmentNumber', 'sealNumber', 'incotermInfo', 'freightTerms',
+  'netWeight', 'tareWeight', 'pkgCount', 'hazardous',
+  'preferredApDirectCost', 'arFreightCost', 'preferredArDirectCost',
+  'loadNumber', 'loadStatus',
+])
+
 describe('mapShipmentErrorRow preserves every displayable field', () => {
+  // The LATE_ADDED-only loop below was the guard when odysseyShipmentIdentifier
+  // shipped (S148) — and it passed, because the new column was never added to
+  // LATE_ADDED_COLUMNS either. So the pin is against the WHOLE catalog now: a
+  // column in the picker that the list endpoint sends must reach the table.
+  test('every list-backed column in ALL_COLUMNS survives the mapper', () => {
+    const vm = mapShipmentErrorRow(FULL_ROW)
+    for (const { key } of ALL_COLUMNS) {
+      if (NOT_IN_LIST_DTO.has(key)) continue
+      expect(vm, `"${key}" is in the column picker but dropped by mapShipmentErrorRow`).toHaveProperty(key)
+    }
+  })
+
   test('the late-added columns survive the mapper', () => {
     const vm = mapShipmentErrorRow(FULL_ROW)
     // The exact regression: these arrived from the API and were dropped here.

@@ -4,6 +4,8 @@
 // the error/list row fields, so we use the current shipments.json row shape as a
 // best-effort DTO and isolate the unknown real names behind mapShipmentErrorRow.
 export interface ShipmentErrorRow {
+  /** The one id common to a shipment's buy and sell side (S148) — display + filter, never a key. */
+  odysseyShipmentIdentifier: string
   buyShipment: string
   sellShipment: string          // contract detail-link id (sell-shipment-out/{id})
   orders: string[]

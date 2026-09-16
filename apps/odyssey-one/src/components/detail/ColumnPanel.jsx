@@ -77,18 +77,37 @@ export const ALL_COLUMNS = [
 //
 // pickupNumbers is here deliberately, reversing the 2026-08-02 "not
 // default-visible" ruling at the user's explicit request this session.
-export const LATE_ADDED_COLUMNS = ['pickupNumbers', 'shipmentType', 'planningType']
+//
+// odysseyShipmentIdentifier is here for the same reason (S149): it shipped as the
+// LEAD default column in S148, but every user with a saved preset — i.e. the only
+// users there are — kept a preset that predates it, so the column was invisible.
+export const LATE_ADDED_COLUMNS = ['pickupNumbers', 'shipmentType', 'planningType', 'odysseyShipmentIdentifier']
 
 /**
- * Append any late-added column a saved preset predates. Order is preserved and
- * nothing is removed — a column the user deliberately dropped stays dropped
- * UNLESS it is in LATE_ADDED_COLUMNS, which by definition they never saw.
+ * Merge in any late-added column a saved preset predates. Existing order is
+ * preserved and nothing is removed — a column the user deliberately dropped
+ * stays dropped UNLESS it is in LATE_ADDED_COLUMNS, which by definition they
+ * never saw. A missing column lands at its ALL_COLUMNS position rather than at
+ * the end: odysseyShipmentIdentifier is the LEAD column, and appending it would
+ * bury the one id the grid is supposed to open with.
  */
 export function mergeLateAddedColumns(cols) {
   if (!Array.isArray(cols) || !cols.length) return cols
   const missing = LATE_ADDED_COLUMNS.filter((k) => !cols.includes(k))
-  return missing.length ? [...cols, ...missing] : cols
+  if (!missing.length) return cols
+  const catalog = ALL_COLUMNS.map((c) => c.key)
+  const out = [...cols]
+  for (const key of missing) {
+    const at = out.findIndex((k) => catalog.indexOf(k) > catalog.indexOf(key))
+    out.splice(at === -1 ? out.length : at, 0, key)
+  }
+  return out
 }
+
+// The default profiles list their columns in display order and then pick up every
+// late-added one. Set-deduped because a late-added column that is ALSO placed
+// explicitly (odysseyShipmentIdentifier leads) would otherwise appear twice.
+const withLateAdded = (cols) => [...new Set([...cols, ...LATE_ADDED_COLUMNS])]
 
 // Odyssey Shipment Identifier leads the default profiles (Laurie + Dave Schultz,
 // 2026-09-15): it is the one ID common to a shipment's buy and sell side and the
@@ -98,26 +117,23 @@ export function mergeLateAddedColumns(cols) {
 // Supersedes the S43 sell-first ordering and the buyShipment-leads ruling
 // (LINX-11591 approved grid field list, LINX-12490 buy-keyed orders endpoint,
 // LINX-13023); see decision-log DEC entry.
-const DEFAULT_COLUMNS = [
+const DEFAULT_COLUMNS = withLateAdded([
   'odysseyShipmentIdentifier', 'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
-  ...LATE_ADDED_COLUMNS,
-]
+])
 
-export const EXCEPTIONS_DEFAULT_COLUMNS = [
+export const EXCEPTIONS_DEFAULT_COLUMNS = withLateAdded([
   'odysseyShipmentIdentifier', 'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
-  ...LATE_ADDED_COLUMNS,
-]
+])
 
-export const MONITORING_DEFAULT_COLUMNS = [
+export const MONITORING_DEFAULT_COLUMNS = withLateAdded([
   'odysseyShipmentIdentifier', 'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'stops',
   'grossWeight', 'mode', 'equipmentCode',
-  ...LATE_ADDED_COLUMNS,
-]
+])
 
 export const PRESETS = {
   custom: [

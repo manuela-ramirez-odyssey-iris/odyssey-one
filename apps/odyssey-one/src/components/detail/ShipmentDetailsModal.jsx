@@ -496,6 +496,14 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
             {tab === 'details' && (
               <SummaryStrip
                 aria-label="Shipment identifiers"
+                // Six cells now share ~776px, so every label and the longer
+                // values ellipsize (S149 measurement: the 27-char "Odyssey
+                // Shipment Identifier" label loses 102px). The identifier's
+                // sequence is unbounded by ruling (Dave Schultz), so its value
+                // will clip further over time — the tooltip makes both
+                // recoverable on hover. The cell geometry itself is a Figma
+                // question for the SummaryStrip master, not a local override.
+                truncationTooltip
                 items={[
                   { label: 'Odyssey Shipment Identifier', value: shipment?.odysseyShipmentIdentifier },
                   { label: 'Buy Shipment',  value: shipment?.buyShipment },

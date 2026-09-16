@@ -37,11 +37,22 @@ describe('late-added columns are visible by default', () => {
 })
 
 describe('mergeLateAddedColumns — the saved-preset layer', () => {
-  test('appends the ones a stale preset predates', () => {
+  test('merges in the ones a stale preset predates, keeping existing order', () => {
     const stale = ['buyShipment', 'customerId', 'origin']
     const merged = mergeLateAddedColumns(stale)
-    expect(merged.slice(0, 3)).toEqual(stale) // order preserved
+    // The kept columns stay in their saved order relative to each other; the
+    // added ones slot in around them.
+    expect(merged.filter((k) => stale.includes(k))).toEqual(stale)
     for (const k of LATE_ADDED_COLUMNS) expect(merged).toContain(k)
+  })
+
+  // odysseyShipmentIdentifier is the LEAD column (Laurie + Dave Schultz,
+  // 2026-09-15). Appending it — the old behaviour — buried the one id the grid
+  // is supposed to open with at the far right of a stale preset.
+  test('a late-added column lands at its catalog position, not the end', () => {
+    const stale = ['buyShipment', 'customerId', 'origin']
+    const merged = mergeLateAddedColumns(stale)
+    expect(merged[0]).toBe('odysseyShipmentIdentifier')
   })
 
   test('does not duplicate one already present', () => {

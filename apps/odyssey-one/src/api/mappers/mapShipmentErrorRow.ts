@@ -10,12 +10,16 @@ import type { ShipmentRowVM } from '../types/shipmentRowVm'
 // the column definition, the API projection and the database are. That is
 // exactly how Pickup # spent months in the column picker rendering only "—",
 // and how Shipment Type / Planning Type arrived empty on the day they shipped.
-// ADD EVERY NEW COLUMN HERE. `mapShipmentErrorRow.test.ts` pins this against
-// ALL_COLUMNS so the next one can't slip through silently.
+// ADD EVERY NEW COLUMN HERE. It happened a third time in S148 —
+// odysseyShipmentIdentifier was correct in the DB, the SELECT list, the column
+// picker, the search registry and five components, and blank everywhere because
+// of this one object literal. `mapShipmentErrorRow.test.ts` now pins this against
+// ALL_COLUMNS (not just LATE_ADDED_COLUMNS, which is what let S148 through).
 export function mapShipmentErrorRow(row: ShipmentErrorRow): ShipmentRowVM {
   const s = (v: string | undefined) => v ?? ''
   return {
     id: row.sellShipment,
+    odysseyShipmentIdentifier: s(row.odysseyShipmentIdentifier),
     buyShipment: s(row.buyShipment),
     sellShipment: s(row.sellShipment),
     orders: row.orders ?? [],

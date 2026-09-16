@@ -2,6 +2,7 @@
 // accessors already read; `id` is the detail-fetch key (= sellShipment).
 export interface ShipmentRowVM {
   id: string                    // = sellShipment
+  odysseyShipmentIdentifier: string
   buyShipment: string
   sellShipment: string
   orders: string[]
