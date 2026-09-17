@@ -127,6 +127,31 @@ describe('ShipmentsGlobalSearch — Case 12 / GS-22 reopened date chip', () => {
   })
 })
 
+describe('ShipmentsGlobalSearch — seedChips (S149: Orders → "See in Shipments")', () => {
+  test('the seed chip is in the bar from the first render and is committed once, without opening the glimpse', async () => {
+    const onCommitQuery = vi.fn()
+    const seed = [{ key: 'order', kind: 'attribute', label: 'Order #: 0000000091009', attrLabel: 'Order #', queryValue: '0000000091009', dataKey: 'orders', group: 'Shipment Identifiers' }]
+    // The real hook takes the seed as `initialChips`; the fake starts with it the same way.
+    const ShipmentsGlobalSearch = await mountWithFakeChipState(seed)
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { container, rerender } = render(withQueryClient(
+      qc,
+      <ShipmentsGlobalSearch onCommitQuery={onCommitQuery} seedChips={seed} />,
+    ))
+    await waitFor(() => expect(onCommitQuery).toHaveBeenCalledTimes(1))
+    expect(onCommitQuery).toHaveBeenCalledWith({ chips: seed, text: '' })
+    // The chip is IN the bar — not just committed to the table behind it.
+    expect(container.querySelector('.global-search-chip')?.textContent).toContain('Order #: 0000000091009')
+    // A programmatic arrival must not pop the results glimpse over the page.
+    expect(panelOpen(container)).toBe(false)
+    // Re-rendering with the same seed does not re-commit.
+    rerender(withQueryClient(qc, <ShipmentsGlobalSearch onCommitQuery={onCommitQuery} seedChips={seed} />))
+    expect(onCommitQuery).toHaveBeenCalledTimes(1)
+    vi.doUnmock('../../contexts/CustomersContext.jsx')
+    vi.doUnmock('../../search/useGlobalSearch')
+  })
+})
+
 describe('ShipmentsGlobalSearch — Fix B (user, 2026-08-03): selecting a shipment is a pure dismissal', () => {
   // Committed and CLOSED at mount (so the initial 0->1 chip commit opens the
   // panel, same as every other test in this file) — reopened via a real click

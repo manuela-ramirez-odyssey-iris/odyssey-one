@@ -11,6 +11,7 @@ import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
+import { attrChip } from '../../components/global-search/savedFilters'
 import { getAllShipments } from '../../data'
 import { PANEL_CONFIG, panelTotals, landingPanel } from '../../data/panelConfig'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
@@ -44,6 +45,13 @@ function ShipmentsRoute() {
   const [requestedTab, setRequestedTab] = useState(location.state?.requestedTab ?? null)
   const [activePanel, setActivePanel] = useState(() => location.state?.panel ?? 'exceptions')
   const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
+  // S149: Orders → "See in Shipments" arrives with `state.orderNumber`; it
+  // becomes a committed Order # chip via the search bar's `seedChips`. Built
+  // once — a new array each render would re-trigger the bar's mount effect.
+  const seedChips = useMemo(
+    () => (location.state?.orderNumber ? [attrChip('order', location.state.orderNumber)] : null),
+    [location.state?.orderNumber],
+  )
   // Committed GlobalSearch criteria — { chips, text } or null (S79c decision 7).
   // Set only by an explicit commit in the navbar search (Show all / Enter);
   // cleared only by an explicit Clear all. Feeds listParams.searchCriteria AND
@@ -405,7 +413,7 @@ function ShipmentsRoute() {
         if (columnPanelOpen) closeColumnPanel() // guarded — may intercept with the unsaved dialog
         if (tabPanelOpen) setTabPanelOpen(false)
       }, [columnPanelOpen, tabPanelOpen, closeColumnPanel])}
-      searchSlot={<ShipmentsGlobalSearch onCommitQuery={handleCommitQuery} onSelectShipment={handleSelectShipment} />}
+      searchSlot={<ShipmentsGlobalSearch onCommitQuery={handleCommitQuery} onSelectShipment={handleSelectShipment} seedChips={seedChips} />}
       filterPanel={
         <>
           {/* Invisible scrim while a right panel is open — the first outside

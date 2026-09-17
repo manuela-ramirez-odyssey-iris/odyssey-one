@@ -122,7 +122,7 @@ const attrByKey = new Map(
 // default takes the IDENTICAL code path (`onApplySaved` → `applyChips`
 // wholesale) as applying a custom filter; nothing downstream can tell the
 // difference.
-function attrChip(key, value) {
+export function attrChip(key, value) {
   const attr = attrByKey.get(key)
   return {
     key, label: `${attr.label}: ${value}`, attrLabel: attr.label, queryValue: value,

@@ -41,6 +41,9 @@ const SAVED_FILTERS_KEY = 'shipments.savedFilters'
  *
  * TYPING NEVER FILTERS THE TABLE (decision 5, S79b). The table pipeline is fed
  * only by explicit commits:
+ * - `seedChips` — chips the bar STARTS with, committed to the table once on
+ *   mount (cross-domain arrival, e.g. Orders → "See in Shipments"). Read at
+ *   mount only; later changes are ignored.
  * - `onCommitQuery({ chips, text })` — "Show all N results" click or Enter in
  *   the input (S79c decision 7: chips + text commit as ONE criteria set; a
  *   chips-only commit works, and committing with empty text no longer clears
@@ -51,7 +54,7 @@ const SAVED_FILTERS_KEY = 'shipments.savedFilters'
  *   with its details); `tab` (from the leading chip via the shared
  *   CELL_TAB_MAP) lands it on the mapped pane, mirroring table cell clicks.
  */
-export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment }) {
+export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips }) {
   // Customer scoping (S79c decision 10): the glimpse must respect the selected
   // customer list, so the domain adapter is wrapped with the selection's dataIds
   // baked into searchShipments. The hook stays domain-agnostic — a selection
@@ -76,7 +79,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     textChip, onTextCommit, onTextRemove, onSetCommit, onDateCommit, onDateToggle, applyChips,
     suggestionSections, suggestionsOpen,
     results, resultTotal, searching, pendingDateChip,
-  } = useGlobalSearch(scopedAdapter, { onLastRemoved: handleLastRemoved })
+  } = useGlobalSearch(scopedAdapter, { onLastRemoved: handleLastRemoved, initialChips: seedChips ?? undefined })
 
   // Saved filters (S108 Phase 1a/1c — hosting move + persistence shape). Lives
   // HERE, not in ShipmentsFiltersView, which unmounts on every panel close
@@ -296,7 +299,10 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // the input (the text becomes a query badge), and without the delta check
   // that query change would re-open the panel right after commitQuery closed it.
   const hasQuery = query.trim().length > 0
-  const prevOpenKeyRef = useRef({ chipCount: 0, query: '', pendingDateChip: false })
+  // Starts at the SEEDED chip count (S149) so an arrival with chips already in
+  // the bar is not read as "a newly committed chip" on the first pass — the
+  // glimpse must not pop open over a page the user never typed into.
+  const prevOpenKeyRef = useRef({ chipCount: seedChips?.length ?? 0, query: '', pendingDateChip: false })
   // Fix B (user, 2026-08-03): selecting a shipment (match row) or clicking the
   // docked ShipmentsBar is a pure UI dismissal — set right before forcing an
   // open date chip closed / the panel closed, so THIS effect's next pass (the
@@ -341,6 +347,20 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
 
   const openFilters = () => { setPanelView('filters'); setResultsOpen(true) }
   const closePanel = useCallback(() => { setResultsOpen(false); setPanelView('results') }, [])
+
+  // Cross-domain arrival with a search already chosen (S149: the Orders row
+  // action "See in Shipments" hands over an Order # chip). The chips are the
+  // hook's INITIAL state (`initialChips` above) — not applied after mount —
+  // so nothing transitions and no open/close heuristic has to be suppressed;
+  // a dismissRef-style guard was tried first and StrictMode's double-invoked
+  // mount effects consumed it on the empty bar. Only the table commit remains
+  // to do here, once.
+  const seededRef = useRef(false)
+  useEffect(() => {
+    if (seededRef.current || !seedChips?.length) return
+    seededRef.current = true
+    onCommitQuery?.({ chips: seedChips, text: '' })
+  }, [seedChips, onCommitQuery])
 
   // Fix B (user, 2026-08-03): a pure UI dismissal — the user's focus moved to
   // a shipment (match-row click, or the docked ShipmentsBar). Closes the

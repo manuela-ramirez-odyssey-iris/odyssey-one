@@ -12,6 +12,17 @@ describe('ordersColumns', () => {
     expect(allTabActionLabels({ orderSource: 'Integrated', status: 'Ready for Planning' })).toEqual(['View', 'Audit Trail', 'Copy'])
     expect(allTabActionLabels({ orderSource: 'Manual', status: 'Cancelled' })).toEqual(['View', 'Audit Trail', 'Copy', 'Restore'])
   })
+  // S149 — "See in Shipments" only where the status MEANS the order is in a
+  // shipment (LINX-7555): Planned Shipment / Shipment Failed. Ready for
+  // Planning and Planned Load precede Planning & Consolidation, so no shipment
+  // exists to link to yet.
+  it('offers See in Shipments only for orders that are in a shipment', () => {
+    expect(allTabActionLabels({ orderSource: 'Integrated', status: 'Planned Shipment' })).toEqual(['View', 'Audit Trail', 'See in Shipments', 'Copy'])
+    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Shipment Failed' })).toEqual(['View', 'Audit Trail', 'See in Shipments', 'Edit', 'Copy', 'Cancel'])
+    for (const status of ['Ready for Planning', 'Planned Load', 'Planning Failed', 'Hold', 'Draft', 'Cancelled']) {
+      expect(allTabActionLabels({ orderSource: 'Manual', status }), status).not.toContain('See in Shipments')
+    }
+  })
   // S131 — opening a row (a search-result click) offers only what that row's own
   // menu offers: Resolve → Edit → View, each gated by its real availability.
   it('picks the first AVAILABLE action, in resolve → edit → view order', () => {

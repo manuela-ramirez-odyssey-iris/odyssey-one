@@ -45,12 +45,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
  * synchronous mirrors of chips/textChip so batched removals (e.g. the Filters
  * view's remove-each "Clear all") still see the emptying transition.
  */
-export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {}) {
+// `initialChips` — chips the bar STARTS with (S149: a cross-domain arrival
+// such as Orders → "See in Shipments"). Initial STATE rather than a post-mount
+// apply so the consumer's "newly committed chip → open the glimpse" heuristic
+// never sees a 0→N transition it would have to be told to ignore.
+export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, initialChips = [] } = {}) {
   const [value, setValue] = useState('')
   const [debouncedValue, setDebouncedValue] = useState('')
   const [focused, setFocused] = useState(false)
   const [sections, setSections] = useState([])
-  const [chips, setChips] = useState([])
+  const [chips, setChips] = useState(initialChips)
   // Committed free-text term shown as a query badge: { key, label, value, kind: 'text' }.
   const [textChip, setTextChip] = useState(null)
   const [results, setResults] = useState([])

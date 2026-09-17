@@ -119,10 +119,27 @@ export const TAB_COLUMNS = {
 // Restore only on Cancelled orders. Audit Trail on EVERY row (ORD-27) — a
 // cancelled order still has a trail, it just stopped growing. Not on Draft
 // (no trail yet) nor Validation Errors (not an order yet).
+// The two lifecycle statuses whose MEANING is "part of a shipment" (LINX-7555
+// status table, orders/domain-analysis.md §4). Ready for Planning and Planned
+// Load have no shipment yet — the shipment is born in Planning & Consolidation,
+// which is what takes an order from Planned Load to Planned Shipment. The
+// seed puts every Planned Load order in a shipment anyway (it never models the
+// pre-shipment load stage); the canon wins here — confirm with Jana before
+// widening this (S149, 2026-09-17).
+export const IN_SHIPMENT_STATUSES = new Set(['Planned Shipment', 'Shipment Failed'])
+
 export function allTabActionLabels(row) {
-  if (row.status === 'Cancelled') return ['View', 'Audit Trail', 'Copy', 'Restore']
-  if (row.orderSource === 'Manual') return ['View', 'Audit Trail', 'Edit', 'Copy', 'Cancel']
-  return ['View', 'Audit Trail', 'Copy']
+  const base = row.status === 'Cancelled' ? ['View', 'Audit Trail', 'Copy', 'Restore']
+    : row.orderSource === 'Manual' ? ['View', 'Audit Trail', 'Edit', 'Copy', 'Cancel']
+    : ['View', 'Audit Trail', 'Copy']
+  // Order → shipment is the one direction the app never offered (shipments
+  // have always listed their orders). The link is a committed Order # search
+  // on the Shipments page rather than a shipment id on the order row: the
+  // order DTO carries no shipment reference, and a search returns EVERY
+  // shipment holding the order, which a multi-leg chain (migration 007) can
+  // legitimately make more than one.
+  if (IN_SHIPMENT_STATUSES.has(row.status)) base.splice(2, 0, 'See in Shipments')
+  return base
 }
 
 export const DRAFT_ACTION_LABELS = ['Edit', 'Submit', 'Cancel']

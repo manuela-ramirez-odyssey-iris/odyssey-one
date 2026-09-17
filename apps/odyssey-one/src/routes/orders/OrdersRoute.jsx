@@ -206,6 +206,9 @@ export default function OrdersRoute() {
     // Resolve/Copy/Restore stay no-ops until their features land.
     if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
     else if (action === 'Audit Trail') navigate(`/orders/${encodeURIComponent(row.id)}/audit-trail`)
+    // The Shipments page seeds its search bar with an Order # chip for this
+    // order and commits it (ShipmentsRoute → ShipmentsGlobalSearch `seedChips`).
+    else if (action === 'See in Shipments') navigate('/shipments', { state: { orderNumber: row.id } })
     else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
     else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
     else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })
