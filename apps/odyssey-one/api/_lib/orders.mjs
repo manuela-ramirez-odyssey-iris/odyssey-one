@@ -3,6 +3,7 @@
 // input reaches SQL ONLY through $N parameters; sort/filter columns come ONLY
 // from the whitelist maps below — never from raw request keys.
 import { deriveAuditTrail } from '../../src/data/auditTrail.js'
+import { buildDirectShipment, buildInsertShipmentQuery, buildLinkOrderQuery, buildSearchIndexQuery } from './planShipment.mjs'
 
 // The three Orders tabs as POPULATIONS, not status filters (ORD-24, user
 // ruling 2026-09-05 — supersedes ORD-23's client-side status intersection,
@@ -728,20 +729,31 @@ export async function createOrder({ body, db }) {
   try {
     const { rows } = await db.query(buildCreateOrderQuery(mo, body?.userId))
     const row = rows[0]
-    return {
-      orderId: row.order_id,
-      success: true,
-      message: `Order ${row.order_number} created successfully`,
-      data: {
-        orderNumber: row.order_number,
-        orderDate: row.created_at.toISOString(),
-        // Q28 open (mock constant, orderService.ts:291-292) — no shipmentMode/
-        // zone derivation exists server-side either; matched verbatim so the
-        // confirmation page renders identically in both modes.
-        orderDateTimeZoneCode: 'EST',
-        shipmentMode: 'Ground',
-      },
+    const data = {
+      orderNumber: row.order_number,
+      orderDate: row.created_at.toISOString(),
+      // Q28 open (mock constant, orderService.ts:291-292) — no shipmentMode/
+      // zone derivation exists server-side either; matched verbatim so the
+      // confirmation page renders identically in both modes.
+      orderDateTimeZoneCode: 'EST',
+      shipmentMode: 'Ground',
     }
+    // Order → load → direct shipment, on creation (Dave Schultz 2026-09-17;
+    // api/_lib/planShipment.mjs). A Draft never plans. Sequenced so a failure
+    // anywhere below leaves the order at a truthful 'Ready for Planning'.
+    if (mo.orderStatus?.orderStatusCode !== 'DRAFT') {
+      const { rows: cust } = await db.query({ text: 'SELECT name FROM customers WHERE id = $1', values: [mo.customerId ?? ''] })
+      const built = buildDirectShipment({
+        mo, orderNumber: row.order_number, orderId: row.order_id,
+        customerName: cust[0]?.name ?? mo.customerId ?? '', now: row.created_at, userName: body?.userId ?? null,
+      })
+      await db.query(buildInsertShipmentQuery(built))
+      await db.query(buildLinkOrderQuery(row.order_number, built.row.sellShipment))
+      await db.query(buildSearchIndexQuery(built.row))
+      data.odysseyShipmentIdentifier = built.row.odysseyShipmentIdentifier
+      data.sellShipment = built.row.sellShipment
+    }
+    return { orderId: row.order_id, success: true, message: `Order ${row.order_number} created successfully`, data }
   } catch (err) {
     // 23505 = any unique violation; orders_number_unique is the only one a
     // sequence-minted id can realistically hit — honest 409, not a 500

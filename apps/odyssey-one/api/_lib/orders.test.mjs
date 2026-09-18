@@ -318,23 +318,55 @@ test('create order: NOT NULL columns satisfied — consignor/consignee/order_sta
   assert.equal(q.values[idx.status], 'Ready for Planning')
 })
 
-test('create order: handler assembles the exact mock response shape', async () => {
-  const created = new Date('2026-08-02T12:00:00.000Z')
+test('create order: a non-draft order also creates its direct shipment and links it', async () => {
+  const created = new Date('2026-09-17T14:00:00Z')
+  const calls = []
   const db = {
-    query: async () => ({ rows: [{ order_number: '0000000001234', order_id: 1234, created_at: created, created_tz: null }] }),
-  }
-  const result = await createOrder({ body: { manualOrder: { orderLines: [] } }, db })
-  assert.deepEqual(result, {
-    orderId: 1234,
-    success: true,
-    message: 'Order 0000000001234 created successfully',
-    data: {
-      orderNumber: '0000000001234',
-      orderDate: created.toISOString(),
-      orderDateTimeZoneCode: 'EST',
-      shipmentMode: 'Ground',
+    query: async (q) => {
+      calls.push(q)
+      if (/INSERT INTO orders/.test(q.text)) return { rows: [{ order_number: '0000000001234', order_id: 1234, created_at: created, created_tz: null }] }
+      if (/FROM customers/.test(q.text)) return { rows: [{ name: 'ERCO Systems Inc' }] }
+      return { rows: [] }
     },
-  })
+  }
+  const result = await createOrder({ body: { manualOrder: { customerId: 'ERCO_SYS_01', orderLines: [] } }, db })
+  assert.equal(result.success, true)
+  assert.equal(result.data.orderNumber, '0000000001234')
+  assert.equal(result.data.shipmentMode, 'Ground')
+  // additive — the confirmation page ignores these today
+  assert.equal(result.data.odysseyShipmentIdentifier, 'O60001234')
+  assert.equal(result.data.sellShipment, '26001234')
+  const texts = calls.map((c) => c.text)
+  assert.match(texts[0], /INSERT INTO orders/)
+  assert.match(texts[1], /SELECT name FROM customers WHERE id = \$1/)
+  assert.match(texts[2], /INSERT INTO shipments/)
+  assert.match(texts[3], /UPDATE orders SET shipment_sell_id/)
+  assert.match(texts[4], /INSERT INTO search_index/)
+  assert.equal(calls.length, 5)
+  assert.equal(calls[2].values[5], 'ERCO Systems Inc') // customer_name on the shipment row
+  assert.deepEqual(calls[3].values, ['26001234', '0000000001234'])
+})
+
+test('create order: a DRAFT save creates no shipment', async () => {
+  const calls = []
+  const db = { query: async (q) => { calls.push(q); return { rows: [{ order_number: '0000000001235', order_id: 1235, created_at: new Date(), created_tz: null }] } } }
+  const result = await createOrder({ body: { manualOrder: { orderStatus: { orderStatusCode: 'DRAFT' }, orderLines: [] } }, db })
+  assert.equal(result.success, true)
+  assert.equal(calls.length, 1)
+  assert.equal(result.data.odysseyShipmentIdentifier, undefined)
+})
+
+test('create order: an unknown customer name falls back to the id, never blocks the create', async () => {
+  const calls = []
+  const db = {
+    query: async (q) => {
+      calls.push(q)
+      if (/INSERT INTO orders/.test(q.text)) return { rows: [{ order_number: 'ORD-9', order_id: 9, created_at: new Date(), created_tz: null }] }
+      return { rows: [] }
+    },
+  }
+  await createOrder({ body: { manualOrder: { customerId: 'ZZZ_01', orderLines: [] } }, db })
+  assert.equal(calls[2].values[5], 'ZZZ_01')
 })
 
 test('create order: missing manualOrder -> 400', async () => {
