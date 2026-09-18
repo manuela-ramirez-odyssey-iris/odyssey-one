@@ -1,10 +1,34 @@
 import shipments from './shipments.json'
 import { EQUIPMENT_CODES } from './master-data'
 
-// ─── Shipment list (statically imported, ~0.9 MB) ───────────
+// ─── Shipment list (statically imported, ~0.9 MB) + runtime overlay ─────────
+// Mock mode keeps a module-level in-memory overlay over shipments.json — the
+// same shape orderService.ts uses for orders (overlayRows). A shipment created
+// in the session (order create → direct shipment, S150) is prepended here and
+// its SellShipmentOut blob is served from `overlayDetails` instead of
+// /details/{id}.json. Lost on refresh — accepted, same as orders.
+let overlayRows = []
+const overlayDetails = new Map()
 
 export function getAllShipments() {
-  return shipments
+  return overlayRows.length ? [...overlayRows, ...shipments] : shipments
+}
+
+/** Register a session-created shipment (row = grid row, detail = SellShipmentOut). */
+export function addShipment(row, detail) {
+  overlayRows = [row, ...overlayRows.filter(r => r.sellShipment !== row.sellShipment)]
+  overlayDetails.set(row.sellShipment, detail)
+}
+
+/** The created shipment's detail blob, or null when the id is a seeded one. */
+export function getOverlayShipmentDetail(sellShipment) {
+  return overlayDetails.get(sellShipment) ?? null
+}
+
+/** Test hook — resets all mock shipment write state. */
+export function __resetShipmentWriteState() {
+  overlayRows = []
+  overlayDetails.clear()
 }
 
 // ─── Search attributes ──────────────────────────────────────
