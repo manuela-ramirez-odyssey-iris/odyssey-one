@@ -46,13 +46,15 @@ export const tokens = [
   { token: '--chart-7', resolves: 'Sunrise Yellow 600', usage: 'chart segment + matching indicator dot' },
   { token: '--chart-8', resolves: 'Sunrise Yellow 300', usage: 'chart segment + matching indicator dot' },
   { token: '--chart-9', resolves: 'Purple 800', usage: 'chart segment + matching indicator dot' },
-  { token: '--chart-10', resolves: 'Bittersweet 600', usage: 'chart segment + matching indicator dot' },
+  { token: '--chart-10', resolves: 'Purple 100', usage: 'chart segment + matching indicator dot' },
+  { token: '--chart-11', resolves: 'Bittersweet 600', usage: 'chart segment + matching indicator dot' },
+  { token: '--chart-12', resolves: 'Bittersweet 100 (Badge red surface)', usage: 'chart segment + matching indicator dot' },
   { token: '--chart-rest', resolves: 'DSN/200', usage: 'unfilled remainder of donut arc — never a legend color' },
   { token: '--widget-height-max', resolves: '420px', usage: 'height ceiling for 3x / 3xChart / 3xCta' },
   { token: '--shadow-panel', resolves: 'shadow/panel', usage: 'card elevation' },
 ]
 
-// One metric per chart color. Ten rows in a shell that fits four is the point:
+// One metric per chart color. Twelve rows in a shell that fits four is the point:
 // the legend scrolls rather than the widget growing.
 const METRICS = [
   { label: 'Date Issues', value: 312, indicatorColor: 'var(--chart-1)' },
@@ -64,7 +66,9 @@ const METRICS = [
   { label: 'PGI/PGR Errors', value: 82, indicatorColor: 'var(--chart-7)' },
   { label: 'Manual PGI/PGR', value: 66, indicatorColor: 'var(--chart-8)' },
   { label: 'Carrier Rejected', value: 54, indicatorColor: 'var(--chart-9)' },
-  { label: 'Missing Documents', value: 40, indicatorColor: 'var(--chart-10)' },
+  { label: 'Awaiting Pickup', value: 48, indicatorColor: 'var(--chart-10)' },
+  { label: 'Missing Documents', value: 40, indicatorColor: 'var(--chart-11)' },
+  { label: 'Rate Expired', value: 28, indicatorColor: 'var(--chart-12)' },
 ]
 
 export default function WidgetDemo() {
@@ -183,12 +187,12 @@ export default function WidgetDemo() {
 
       {/* Height ceiling + full palette */}
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Height ceiling — 10 metrics in a 420px shell</h4>
+        <h4 className="ds-demo-section__title">Height ceiling — 12 metrics in a 420px shell</h4>
         <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
           A widget never grows past <code>--widget-height-max</code> (420px). Past that the
           content scrolls inside its own region — here the legend, while the donut stays
           pinned beside it, and the header and Go-to link stay visible. Also shows the full
-          ten-colour chart palette: one metric per colour, never repeated, since the colour
+          twelve-colour chart palette: one metric per colour, never repeated, since the colour
           is what separates them. <code>--chart-rest</code> is the donut&rsquo;s unfilled
           remainder and is never a legend colour.
         </p>
