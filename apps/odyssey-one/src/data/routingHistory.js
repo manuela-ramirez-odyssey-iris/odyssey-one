@@ -32,6 +32,11 @@
  * there on purpose; kept local here for the same reason).
  */
 
+import { formatDateTimeMDYHM } from '../lib/dates.js'
+// The SAME table the generator seeds `responseComments` from, so the text a
+// derived historical version shows and the text on a current row cannot drift.
+import { responseCommentFor } from './responseComments.js'
+
 // ── PRNG (mulberry32 over an FNV-1a hash of the key) ─────────────────────────
 function hash(str) {
   let h = 0x811c9dc5
@@ -56,27 +61,20 @@ const intIn = (r, min, max) => min + Math.floor(r() * (max - min + 1))
  *  already renders as '--'. */
 const HISTORICAL_STATUSES = ['Declined', 'Cancelled', 'Sent', null]
 
-/** Why a carrier said no. Ours — the seed has no responseComments field, and the
- *  real ShippingOption does (LINX-15895, Saikat 2026-09-15). Paired to a status
- *  so a Declined row never reads like a cancellation, and vice versa. */
-const RESPONSE_COMMENTS = {
-  Declined: [
-    'No capacity available for the requested pickup date.',
-    'Lane not served with this equipment type.',
-    'Rate below contracted minimum for this lane.',
-    'Driver hours will not cover the delivery window.',
-    'Equipment unavailable at origin on the requested date.',
-  ],
-  Cancelled: [
-    'Tender withdrawn by the planner before a response.',
-    'Cancelled — routing re-run after an order change.',
-    'Cancelled — shipment re-planned onto a different route group.',
-  ],
-  Sent: [],
-  null: [],
-}
+/**
+ * How the answer was RECORDED in Odyssey — not the carrier's channel. Same four
+ * values the generator draws from (`generate.mjs` RESPONSE_METHODS), because a
+ * historical version has to read like the Tender screen it is a snapshot of.
+ * 'API Update'/'EDI Update' are the carrier's system writing back, 'Automatic
+ * Update' is Odyssey itself (expiry/timeout), and only 'Manual Update' has a
+ * person behind it — which is what makes `responseUser` ours and optional.
+ */
+const RESPONSE_METHODS = ['API Update', 'EDI Update', 'Manual Update', 'Automatic Update']
 
-const RESPONSE_METHODS = ['EDI', 'Email', 'Phone', 'Portal']
+/** Cancel is OUR action (LINX-5921 lists it among the user's tender actions), so
+ *  a cancelled row was recorded by hand or by the expiry job — never by the
+ *  carrier's feed. */
+const CANCEL_METHODS = ['Manual Update', 'Automatic Update']
 
 /** An ISO instant `hours` before `base`. This module stays pure data — the pane
  *  formats it for display (MM/DD/YYYY HH:MM UTC, the HistoryTab format, D4). */
@@ -123,12 +121,24 @@ function everTendered(options) {
  * Perturb one current option into what it plausibly looked like N versions ago.
  * Cost drifts (a re-route re-rates), the tender outcome becomes a historical
  * one, and the response fields follow from that outcome rather than being drawn
- * independently — an unanswered tender has no response user, date or comment.
+ * independently — an unanswered tender has no response method, user, date or
+ * comment, and only a Manual Update has a person behind it.
+ *
+ * The seeded `responseComments` cannot simply be carried over: this function
+ * REWRITES the status (a historical version never holds an Accepted tender), and
+ * a comment that disagrees with its outcome is exactly the incoherence the seed
+ * fix removed. It re-picks from the same shared table instead.
+ *
+ * @param {string} routedAt  the version's own ISO instant — the response belongs
+ *                           to THIS run, not to the current one the option was
+ *                           read from.
  */
-function historicalOption(r, option, step) {
+function historicalOption(r, option, step, routedAt) {
   const status = pick(r, HISTORICAL_STATUSES)
+  // 'Sent' is a tender still out at the time of this run: notified, unanswered.
   const answered = status === 'Declined' || status === 'Cancelled'
-  const comments = RESPONSE_COMMENTS[status] || []
+  const method = !answered ? null
+    : pick(r, status === 'Cancelled' ? CANCEL_METHODS : RESPONSE_METHODS)
   // Older runs were rated earlier; ±12% around the current cost, biased low so a
   // re-route usually reads as "the price moved up on us", which is why a planner
   // is looking at this tab.
@@ -141,9 +151,11 @@ function historicalOption(r, option, step) {
     cost,
     rate: cost,
     status,
-    responseMethod: status ? pick(r, RESPONSE_METHODS) : '',
-    responseUser: answered ? option.modifyUser || option.responseUser : null,
-    responseComments: answered && comments.length ? pick(r, comments) : '',
+    responseMethod: method,
+    // Ours, and only when a person keyed it in.
+    responseUser: method === 'Manual Update' ? (option.modifyUser || option.responseUser) : null,
+    responseDateTime: answered ? formatDateTimeMDYHM(new Date(routedAt), { utc: true }) : null,
+    responseComments: responseCommentFor(status, hash(`${option.scac}:${step}`)),
     // A quote is a live-screen affordance, never a historical fact to re-offer.
     quoteFlag: undefined,
     quoteAudit: undefined,
@@ -186,12 +198,15 @@ export function deriveRoutingHistory(details, key, now = new Date()) {
     // The orders on the shipment at the time: a prefix of today's list, growing
     // with the version (D8). Never empty — a routing execution needs freight.
     const orderCount = Math.max(1, Math.ceil((version / (count + 1)) * orders.length))
+    // Hoisted: every carrier response in this version is timestamped to the run
+    // it belongs to, not to the current one the options were read from.
+    const routedAt = isoMinus(anchor, hoursBack)
 
     versions.push({
       version,
-      routedAt: isoMinus(anchor, hoursBack),
+      routedAt,
       orders: orders.slice(0, orderCount),
-      options: options.map((o) => historicalOption(r, o, step)),
+      options: options.map((o) => historicalOption(r, o, step, routedAt)),
       // Routing legitimately drops different carriers on different runs; an older
       // run's list is a subset of today's, at least one row whenever there are any.
       droppedCarriers: dropped.length

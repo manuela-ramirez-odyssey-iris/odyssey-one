@@ -75,6 +75,9 @@ import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 // Row capacity per Level-1 error class — single source of truth, shared with
 // the resolve view so a seeded count can never exceed what the derive renders.
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
+// LINX-15895 — shared with src/data/routingHistory.js so the seeded comment and
+// the one a derived historical version shows come from ONE table.
+import { responseCommentFor } from '../src/data/responseComments.js'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -1182,6 +1185,54 @@ function generateShipment(index, chainOverride) {
         initialApAmount: null,
         finalApAmount: _apTotal,
       };
+    }
+
+    // LINX-15895 / LINX-5921 — the four RESPONSE fields are DERIVED from the
+    // tender outcome, never drawn independently, so this block adds zero faker
+    // calls and cannot renumber the shipment ids that later draws produce (the
+    // quote block above works the same way and for the same reason).
+    //
+    // WHAT A RESPONSE IS. LINX-5921 splits the two directions: Odyssey NOTIFIES
+    // the carrier ("tender messages must be sent to carriers using API, email,
+    // EDI and Manual" — our `apiSource`/`notifyDateTime`), and the carrier
+    // RESPONDS back ("carrier actions or system updates (user actions as well)
+    // modify tender outcomes"). `responseMethod` names the mechanism that
+    // RECORDED that answer inside Odyssey, not the carrier's channel:
+    //   • 'API Update' / 'EDI Update' — the carrier's system wrote it. No user.
+    //   • 'Manual Update'  — an Odyssey person keyed in a phoned/emailed answer.
+    //   • 'Automatic Update' — Odyssey itself (expiry, timeout). No user.
+    // So `responseUser` is OURS, and exists only on a Manual Update.
+    //
+    // THE DEFECT THIS FIXES (measured, 9,880 options): three independent gates
+    // described one fact — method+user on `wasTendered` but date on
+    // `isAccepted`. 5,210 Declined/Cancelled rows named a responder and a
+    // channel for a response with no date; 312 `Sent` rows named a responder for
+    // a response that had not happened; and 4,583 API/EDI/Automatic rows named a
+    // person for an update no person made. Same class as S151's monitoring tabs.
+    const _answered = status === 'Accepted' || status === 'Declined' || status === 'Cancelled';
+    if (!_answered) {
+      // Still out (or never tendered): nobody has answered, so nothing about an
+      // answer may be recorded. `pick(RESPONSE_METHODS)` and the name draw above
+      // still HAPPENED — the roll is kept and discarded, which is what keeps the
+      // stream where it was (S151's accessorials trick).
+      option.responseMethod = null;
+      option.responseUser = null;
+      option.responseDateTime = null;
+      option.responseComments = null;
+    } else {
+      // Cancel is OUR action, not the carrier's — LINX-5921 lists it among the
+      // actions "the user should be able to perform" — so a cancelled row cannot
+      // have been written by the carrier's own API/EDI feed. Remapped, not
+      // re-drawn; `lcePkId` is already on the row.
+      if (status === 'Cancelled' && (option.responseMethod === 'API Update' || option.responseMethod === 'EDI Update')) {
+        option.responseMethod = option.lcePkId % 2 ? 'Manual Update' : 'Automatic Update';
+      }
+      if (option.responseMethod !== 'Manual Update') option.responseUser = null;
+      // An answer has a time. Accepted rows already carry one from the draw
+      // above; the rest get the same pure expression (genDate/formatDateTime
+      // touch no faker), a day after `notifyDateTime`'s genDate(baseDate, -1).
+      if (!option.responseDateTime) option.responseDateTime = formatDateTime(genDate(baseDate, 0));
+      option.responseComments = responseCommentFor(status, option.lcePkId);
     }
 
     return option;

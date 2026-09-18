@@ -1537,3 +1537,59 @@ test('the optimization pool is majority Direct, so it is pickable (S151 follow-u
   const full = pool.filter((s) => Number(s.orderCount) > 2)
   assert.equal(full.length, 0, `${full.length} shipments with >2 orders are still in the pool`)
 })
+
+// LINX-15895 / LINX-5921 — a tender RESPONSE is one fact, so the four fields that
+// describe it must agree. Before this, three independent gates produced rows that
+// contradicted themselves: 5,210 Declined/Cancelled rows named a responder and a
+// channel for a response with no date, 312 `Sent` rows named a responder for a
+// response that had not happened, and 4,583 API/EDI/Automatic rows named a person
+// for an update no person made. Same class as S151's monitoring tabs.
+//
+// `responseMethod` is the mechanism that RECORDED the answer inside Odyssey, not
+// the carrier's channel — which is what makes `responseUser` ours and present
+// only on a 'Manual Update'.
+test('a tender response is internally coherent (LINX-15895)', () => {
+  const ds = buildDataset()
+  const ANSWERED = ['Accepted', 'Declined', 'Cancelled']
+  let answered = 0, unanswered = 0, manual = 0, cancelled = 0
+  for (const d of ds.details.values()) {
+    for (const o of d.shippingOptionList ?? []) {
+      const isAnswered = ANSWERED.includes(o.status)
+      if (isAnswered) {
+        answered++
+        // An answer happened at a time.
+        assert.ok(o.responseDateTime, `${o.scac} answered '${o.status}' with no response date`)
+        assert.ok(o.responseMethod, `${o.scac} answered '${o.status}' with no response method`)
+        // Only a person keying it in leaves a person behind.
+        if (o.responseUser) {
+          manual++
+          assert.equal(o.responseMethod, 'Manual Update',
+            `${o.scac} names a response user on a '${o.responseMethod}'`)
+        }
+        // Cancel is OUR action (LINX-5921), so the carrier's own feed cannot be
+        // what recorded it.
+        if (o.status === 'Cancelled') {
+          cancelled++
+          assert.ok(['Manual Update', 'Automatic Update'].includes(o.responseMethod),
+            `a cancelled tender was recorded by '${o.responseMethod}' — the carrier's feed`)
+        }
+        // A carrier that said no said why; a cancellation records why we pulled it.
+        if (o.status !== 'Accepted') {
+          assert.ok(o.responseComments, `${o.scac} '${o.status}' carries no comment`)
+        }
+      } else {
+        unanswered++
+        // Nothing has answered, so nothing about an answer may be recorded.
+        for (const k of ['responseMethod', 'responseUser', 'responseDateTime', 'responseComments']) {
+          assert.equal(o[k], null, `${o.scac} status '${o.status}' carries ${k}`)
+        }
+      }
+    }
+  }
+  // Both branches are actually reachable — an all-null corpus would pass every
+  // assertion above vacuously.
+  assert.ok(answered > 1000, `only ${answered} answered options`)
+  assert.ok(unanswered > 1000, `only ${unanswered} unanswered options`)
+  assert.ok(manual > 100, `only ${manual} manually-recorded responses — responseUser is unreachable`)
+  assert.ok(cancelled > 100, `only ${cancelled} cancelled options`)
+})

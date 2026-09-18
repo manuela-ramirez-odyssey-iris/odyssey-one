@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deriveRoutingHistory } from './routingHistory.js'
+import { formatDateTimeMDYHM } from '../lib/dates.js'
 
 // A shipment that HAS been tendered — one accepted carrier, one that declined.
 const detail = (overrides = {}) => ({
@@ -106,22 +107,45 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
   })
 
   it('pairs the response fields to the outcome rather than drawing them apart', () => {
+    let manual = 0
     for (let i = 0; i < 100; i++) {
       for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
         for (const o of v.options) {
           const answered = o.status === 'Declined' || o.status === 'Cancelled'
-          // An unanswered tender has no responder and no comment to show.
           if (!answered) {
+            // Nothing has answered, so nothing about an answer is recorded —
+            // null, the same absence the seed writes (not '').
             expect(o.responseUser ?? null).toBeNull()
-            expect(o.responseComments).toBe('')
+            expect(o.responseMethod).toBeNull()
+            expect(o.responseDateTime).toBeNull()
+            expect(o.responseComments).toBeNull()
           } else {
-            expect(o.responseComments).not.toBe('')
+            expect(o.responseComments).toBeTruthy()
+            expect(o.responseMethod).toBeTruthy()
+            // The response belongs to THIS run, not to the current one the
+            // option was read from.
+            expect(o.responseDateTime).toBe(
+              formatDateTimeMDYHM(new Date(v.routedAt), { utc: true }),
+            )
+            // `responseUser` is OURS and only a 'Manual Update' has a person
+            // behind it — an API/EDI/Automatic update names nobody.
+            if (o.responseUser) {
+              manual++
+              expect(o.responseMethod).toBe('Manual Update')
+            }
+            // Cancel is our action (LINX-5921), never the carrier's own feed.
+            if (o.status === 'Cancelled') {
+              expect(['Manual Update', 'Automatic Update']).toContain(o.responseMethod)
+            }
           }
           // A quote is a live-screen affordance, never re-offered on history.
           expect(o.quoteFlag).toBeUndefined()
         }
       }
     }
+    // The Manual branch is reachable — otherwise the user assertion above is
+    // vacuous and a regression that nulled every user would still pass.
+    expect(manual).toBeGreaterThan(20)
   })
 
   it('keeps dropped carriers a non-empty subset when the shipment has any', () => {

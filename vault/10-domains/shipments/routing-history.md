@@ -120,6 +120,35 @@ Two consequences:
 | Response method/user/comment **follow** the outcome; an unanswered tender has none. | The defect class S151 found in the monitoring tabs: two independent draws describing one fact. |
 | A version's orders are a **prefix** of today's, growing with the version. | The AC's own example: `V1 - O1, O2` / `V2 - O1, O2, O3`. |
 
+### What a "response" is (DEC-173)
+
+LINX-5921, the parent epic, splits the two directions, and the distinction is what makes the
+**Response Comments** section readable:
+
+* **Notify** — Odyssey → carrier. *"Tender messages must be sent to carriers using … API, email
+  (system-generated web links for carrier acceptance), EDI and Manual."* Ours: `apiSource`
+  ("Notify Method") and `notifyDateTime`.
+* **Response** — carrier → Odyssey. *"UI must clearly show when **carrier actions or system updates
+  (user actions as well)** modify tender outcomes."*
+
+`responseMethod` is **not** the carrier's channel — it names the mechanism that RECORDED the answer
+inside Odyssey:
+
+| Method | Who acted | Odyssey user? |
+|---|---|---|
+| `API Update` / `EDI Update` | the carrier's system, machine-to-machine | **no** |
+| `Manual Update` | an Odyssey person keying in a phoned/emailed answer | **yes — ours** |
+| `Automatic Update` | Odyssey itself (expiry, timeout) | **no** |
+
+So **`Response User` is our user, not the carrier's.** And `Cancelled` is **our** action — 5921
+lists Cancel among the actions *"the user should be able to perform"* (Re-tender, Cancel, Decline,
+Accept) — so a cancelled row can never have been written by the carrier's own feed.
+
+This is now seeded rather than invented at read time (DEC-174): `responseComments` is a real
+generator field, and all four response fields are derived from the outcome as one fact. The measured
+defect it replaced — 5,210 answered rows with no date, 312 `Sent` rows with a responder, 4,583
+machine updates naming a person — is in DEC-174.
+
 ## 4. Layout (VD)
 
 Collapsed `2257:68313` · expanded `2259:70116`.
@@ -151,7 +180,9 @@ header prop** (DEC-172).
 | Q-RH-3 | Are *associated orders* the orders **at routing time** or the shipment's current orders? We assume at-routing-time — the AC's example only makes sense that way. | Jana |
 | Q-RH-4 | May a planner **Process SCAC / reinstate** a dropped carrier from a version that is no longer current? 13954 poses exactly this and does not answer it; we built read-only. | Jana / Dave |
 | Q-RH-5 | Retention — all versions forever, or a rolling window? | Jana |
-| Q-RH-6 | Is *Response Comments* really a distinct section, or the Tender tab's *Notify & Response Method* under a different name? We built it as distinct. | Jana |
+| Q-RH-6 | Is *Response Comments* really a distinct section, or the Tender tab's *Notify & Response Method* under a different name? We built it as distinct, and DEC-173 shows the two carry genuinely different facts (notify = outbound, response = inbound). | Jana |
+| Q-RH-8 | The real `ShippingOption` carries **both** `responseReason` (a code) and `responseComments` (free text). We seed only the text — is there a reason-code vocabulary, and does the section show it as its own column? | Jana / Saikat |
+| Q-RH-9 | Does an `Automatic Update` (expiry/timeout) really leave no user, or does the system write a service account the UI should show? | Jana |
 | Q-RH-7 | Does the **current** version get a number the user can see (the Tender tab shows none), and what format? Soni's original question asked for the format and never got an answer. | Jana |
 
 ## See also
