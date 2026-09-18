@@ -133,6 +133,9 @@ export interface CreatedOrderData {
   orderDate: string             // ISO
   orderDateTimeZoneCode: string // "EST"
   shipmentMode: string          // "Ground" — derivation open (Q28); mock constant
+  /** S150 — the direct shipment created with the order (both runtimes). Absent on a draft. */
+  odysseyShipmentIdentifier?: string
+  sellShipment?: string
 }
 
 export interface CreateOrderResponse {

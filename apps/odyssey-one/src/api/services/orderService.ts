@@ -12,7 +12,10 @@ import { totalErrorCount } from '../mappers/mapOrderListRow'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
-import { CHEMICAL_PRODUCTS } from '../../data/master-data'
+import { CHEMICAL_PRODUCTS, OWNING_ORGS, EXTRA_ORGS } from '../../data/master-data'
+import { addShipment } from '../../data'
+import { buildDirectShipment } from '../../../api/_lib/planShipment.mjs'
+import { clearShipmentSearchIndex } from '../../search/shipments/searchIndex'
 import type { OrderFormValues } from '../types/orderFormVm'
 import type { AuditTrailPage, AuditTrailRequest, AuditTrailOrderMeta } from '../types/auditTrail'
 import { mapAuditReportRow, type AuditReportWireRow } from '../mappers/mapAuditReportRow'
@@ -630,6 +633,21 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   row.createdAt = localNowIso()
   row.createdBy = usernameFor(currentUser.name)
   row.createdTimeZoneCode = CREATED_TZ
+  // Order → load → direct shipment, on creation (Dave Schultz 2026-09-17;
+  // api/_lib/planShipment.mjs is the one builder both runtimes use). The
+  // shipment goes into the shipments overlay (src/data/index.js) and the
+  // order is planned — 'Planned Load' is a blink nobody sees.
+  const customerName = [...OWNING_ORGS, ...EXTRA_ORGS].find(o => o.value === mo.customerId)?.label ?? mo.customerId ?? ''
+  // buildDirectShipment's JSDoc types row/detail as bare `object` (planShipment.mjs
+  // is JS, shared with the live handler) — cast for property access, same allowJs
+  // boundary candidateOrders.mjs crosses via getCandidateOrders' typed return above.
+  const built = buildDirectShipment({ mo, orderNumber, orderId, customerName, now: new Date(), userName: row.createdBy }) as {
+    row: { odysseyShipmentIdentifier: string; sellShipment: string; [k: string]: unknown }
+    detail: unknown
+  }
+  addShipment(built.row, built.detail)
+  clearShipmentSearchIndex()
+  row.orderStatus = 'Planned Shipment'
   overlayRows = [row, ...overlayRows.filter(r => r.orderNumber !== orderNumber)]
   return {
     orderId,
@@ -640,6 +658,8 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
       orderDate: new Date().toISOString(),
       orderDateTimeZoneCode: CREATED_TZ,
       shipmentMode: 'Ground', // Q28 open — derivation unknown; mock constant
+      odysseyShipmentIdentifier: built.row.odysseyShipmentIdentifier,
+      sellShipment: built.row.sellShipment,
     },
   }
 }

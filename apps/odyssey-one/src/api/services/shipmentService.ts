@@ -4,7 +4,7 @@ import { mapSellShipmentOutToDetail } from '../mappers/mapSellShipmentOutToDetai
 import type { SellShipmentOut, SellShipmentStop } from '../types/sellShipmentOut'
 import type { ShipmentDetailVM } from '../types/shipmentDetail'
 import { buildCandidateRows } from '../../../api/_lib/candidateOrders.mjs'
-import { getAllShipments } from '../../data'
+import { getAllShipments, getOverlayShipmentDetail } from '../../data'
 import { getAllOrders } from '../../data/orders'
 
 export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailVM> {
@@ -15,7 +15,10 @@ export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailV
     return mapSellShipmentOutToDetail(dto)
   }
 
-  // mock: load the generated SellShipmentOut DTO file and run it through the mapper
+  // mock: a shipment created in this session lives in the overlay (S150) —
+  // serve its blob; otherwise load the generated SellShipmentOut DTO file.
+  const local = getOverlayShipmentDetail(id)
+  if (local) return mapSellShipmentOutToDetail(structuredClone(local) as SellShipmentOut)
   const res = await fetch(`/details/${id}.json`)
   if (!res.ok) throw new Error(`Failed to load details for ${id}`)
   const dto = (await res.json()) as SellShipmentOut

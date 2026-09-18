@@ -4,13 +4,14 @@ vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
 vi.mock('../../data/orders', () => ({ getAllOrders: () => [], getOrderEnrichment: () => null }))
 
 import { createOrder, updateOrder, saveDraft, getDraft, getOrderList, getAuditTrail, __resetOrderWriteState } from './orderService'
+import { getAllShipments, getOverlayShipmentDetail, __resetShipmentWriteState } from '../../data'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
 const sample = () => structuredClone(orderFormValuesSample)
 const page = () => ({ pagination: { pageNumber: 1, pageSize: 20 } })
 
-beforeEach(() => __resetOrderWriteState())
+beforeEach(() => { __resetOrderWriteState(); __resetShipmentWriteState() })
 
 describe('orderService.createOrder (mock)', () => {
   it('returns the LINX-9340 envelope with orderNumber = orderId when blank (LINX-9742)', async () => {
@@ -29,16 +30,43 @@ describe('orderService.createOrder (mock)', () => {
     expect(res.data!.orderNumber).toBe('ORD-1001')
   })
 
-  it('appends a Ready for Planning row the Summary grid can see', async () => {
+  it('appends a Planned Shipment row the Summary grid can see', async () => {
     await createOrder(mapFormToOrderInterface(sample()))
     const list = await getOrderList(page())
     const row = list.orders.find(o => o.orderNumber === 'ORD-1001')
     expect(row).toBeDefined()
-    expect(row!.orderStatus).toBe('Ready for Planning')
+    expect(row!.orderStatus).toBe('Planned Shipment') // S150: the shipment exists, so the order is planned (Dave 2026-09-17)
     expect(row!.orderSource).toBe('MANUAL')
     expect(row!.customer).toBe('ERCO_SYS_01')
     expect(row!.consignor.locationId).toBe('EW-TX-001')
     expect(row!.grossWeight).toEqual({ value: 4300, uom: 'lb' })
+  })
+
+  it('creates ONE direct shipment holding the order, parked in Monitoring › Consolidation', async () => {
+    const res = await createOrder(mapFormToOrderInterface(sample()))
+    const ship = getAllShipments()[0]
+    expect(ship.orders).toEqual(['ORD-1001'])
+    expect(ship.shipmentType).toBe('Direct')
+    expect(ship.odysseyShipmentIdentifier).toMatch(/^O6\d{7}$/)
+    expect(ship.panel).toBe('monitoring')
+    expect(ship.category).toBe('consolidation')
+    expect(ship.tenderStatus).toBe('')
+    expect(ship.customerName).toBe('ERCO Systems Inc')
+    expect(res.data!.odysseyShipmentIdentifier).toBe(ship.odysseyShipmentIdentifier)
+    expect(res.data!.sellShipment).toBe(ship.sellShipment)
+    expect(getOverlayShipmentDetail(ship.sellShipment)!.orderList[0].orderId).toBe('ORD-1001')
+  })
+
+  it('an order with Consolidatable unchecked parks its shipment on Hold', async () => {
+    const v = sample(); v.general.consolidatable = false
+    await createOrder(mapFormToOrderInterface(v))
+    expect(getAllShipments()[0].category).toBe('hold')
+  })
+
+  it('a draft save creates no shipment', async () => {
+    const before = getAllShipments().length
+    await saveDraft(sample())
+    expect(getAllShipments().length).toBe(before)
   })
 
   // Finding 1 (S147): the created row must carry an anchor createdAt/createdBy
