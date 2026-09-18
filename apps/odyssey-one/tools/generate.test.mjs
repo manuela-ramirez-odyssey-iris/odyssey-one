@@ -1406,3 +1406,20 @@ test('consolidation payload is deterministic across builds and ids match the pre
   assert.ok(s)
   assert.deepEqual(a.details.get(s.sellShipment).orderChange.consolidation, b.details.get(s.sellShipment).orderChange.consolidation)
 })
+
+test('lifecycle bands: pre-tender and spot exist, and the mix is what was decided (S151)', () => {
+  const ds = buildDataset()
+  const n = ds.shipments.length
+  const share = (pred) => ds.shipments.filter(pred).length / n
+  // Decided 2026-09-18 — see the plan header. Tolerances are ±4 points on 2,200 rows.
+  const accepted = share((s) => s.tenderStatus === 'Accepted')
+  const sent     = share((s) => s.tenderStatus === 'Sent')
+  const preTender = share((s) => s.tenderStatus === '' && s.panel === 'monitoring')
+  const spot     = share((s) => s.category === 'spotbid')
+  const failed   = share((s) => s.panel === 'exceptions' && s.category !== 'order-change')
+  assert.ok(Math.abs(accepted - 0.28) < 0.04 + 0.05, `accepted ${accepted.toFixed(3)}`)   // +order-change diversion pulls ~15% of these out
+  assert.ok(Math.abs(sent - 0.14) < 0.04 + 0.03, `sent ${sent.toFixed(3)}`)
+  assert.ok(Math.abs(preTender - 0.21) < 0.04, `pre-tender ${preTender.toFixed(3)}`)
+  assert.ok(Math.abs(spot - 0.07) < 0.03, `spot ${spot.toFixed(3)}`)
+  assert.ok(preTender > 0.15, 'the pool Dave describes must actually exist in the data')
+})

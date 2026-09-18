@@ -961,13 +961,39 @@ function generateShipment(index, chainOverride) {
   const routingCount = faker.number.int({ min: 3, max: 6 });
   const routingCarriers = faker.helpers.arrayElements(CARRIERS, routingCount);
 
-  // Determine tendering scenario
+  // ── Lifecycle — ONE draw, everything downstream derives from it (S151) ──
+  // Dave Schultz (2026-09-17): every shipment is created into the optimization
+  // pool / Hold / Review and only LATER tenders; the pool is exactly where
+  // manual consolidation picks from, so it has to exist in the seed. Spot is
+  // the PRD's overflow: the guide was exhausted (every carrier declined) and
+  // a planner opened a bid — never an active tender (PRD Feature 1).
+  //   accepted   28%  → Monitoring › Approved
+  //   sent       14%  → Monitoring › Tender Sent
+  //   preTender  21%  → Monitoring › Consolidation (pool-eligible) | Hold
+  //   spot        7%  → Monitoring › SpotBid   (all options declined/cancelled)
+  //   failed     30%  → Exceptions (all options declined/cancelled)
+  // Shares decided 2026-09-18 (user: "you decide this").
   const scenarioRoll = faker.number.float({ min: 0, max: 1 });
-  const tenderCompleted = scenarioRoll < 0.55;    // 55% → Accepted → Monitoring
-  const tenderInProgress = scenarioRoll >= 0.55 && scenarioRoll < 0.70;  // 15% → Sent → Monitoring
-  const tenderFailed = scenarioRoll >= 0.70;       // 30% → All failed → Exceptions
-  // Pick which rank is the "decisive" carrier (accepted or currently sent) — not used for tenderFailed
-  const decisiveRank = tenderFailed ? null : faker.number.int({ min: 1, max: routingCount }); // 1-based
+  const lifecycle =
+    scenarioRoll < 0.28 ? 'accepted' :
+    scenarioRoll < 0.42 ? 'sent' :
+    scenarioRoll < 0.63 ? 'preTender' :
+    scenarioRoll < 0.70 ? 'spot' : 'failed';
+  const tenderCompleted  = lifecycle === 'accepted';
+  const tenderInProgress = lifecycle === 'sent';
+  const preTender        = lifecycle === 'preTender';
+  const isSpot           = lifecycle === 'spot';
+  const tenderFailed     = lifecycle === 'failed' || isSpot; // every carrier answered no
+  // Pool vs Hold is the order's Consolidatable flag (Ramesh: "Allow
+  // Optimization"); the orders built below INHERIT this so the header flag,
+  // the tab and the history all say the same thing. A multi-order shipment is
+  // pool-eligible by construction (it IS a consolidation).
+  // ponytail: faker.datatype.boolean() needs {probability} object form in
+  // this installed faker (9.9.0), not a bare number — float compare instead.
+  const poolEligible = orderCount > 1 || faker.number.float({ min: 0, max: 1 }) < 0.70;
+  // Which rank is the "decisive" carrier (accepted or currently sent) — not
+  // used when nobody was tendered (preTender) or everybody declined (failed/spot).
+  const decisiveRank = (tenderCompleted || tenderInProgress) ? faker.number.int({ min: 1, max: routingCount }) : null;
 
   // Route ranks: unique per carrier, shuffled so routeRank !== rank
   const routeRanks = faker.helpers.shuffle(Array.from({ length: routingCount }, (_, i) => i + 1));
@@ -980,7 +1006,11 @@ function generateShipment(index, chainOverride) {
   const routingOptions = routingCarriers.map((rc, ri) => {
     const rank = ri + 1;
     let status;
-    if (tenderFailed) {
+    if (preTender) {
+      // Routing happened (options exist, rates exist) but nothing was tendered
+      // yet — the shipment is parked in the pool/Hold until its window (Dave).
+      status = null;
+    } else if (tenderFailed) {
       // Scenario C: all carriers failed — no Accepted, no Sent, no null
       status = pick(['Declined', 'Cancelled']);
     } else if (tenderCompleted) {
@@ -1141,7 +1171,12 @@ function generateShipment(index, chainOverride) {
   const hasAccepted = routingStatuses.includes('Accepted');
   const hasSent = routingStatuses.includes('Sent');
   // tenderStatus = the status of the "active" routing option (accepted or sent carrier)
-  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
+  // The `: 'Sent'` fallback used to be dead code — every prior scenario (accepted/
+  // sent/failed) guaranteed at least one non-null routing status, so routingStatuses
+  // was never empty. preTender (S151) makes it reachable for real: every option is
+  // null (never tendered), .filter(Boolean) drops them all, and the empty case now
+  // means exactly what it says — no tender exists yet — so the fallback is '' not 'Sent'.
+  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : '');
   // shipmentStatus derived from tender statuses. `let`: the order-change
   // diversion below is the ONE legitimate override (LINX-8284's documented
   // state transition) — everything else (hasAccepted/hasSent/tenderStatus/
