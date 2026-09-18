@@ -40,7 +40,13 @@ describe('mergeTabOrder', () => {
   })
 
   test('a well-formed, up-to-date stored order round-trips unchanged', () => {
-    const reordered = ['order', 'spot', 'product', 'stops', 'routing', 'cost', 'instructions', 'documents', 'notes', 'history', 'tender']
+    // DERIVED from the live list, not spelled out: a hardcoded fixture here is
+    // "stale by one tab" the day any tab ships (it was, when Routing History
+    // landed — LINX-15895), and the merge would correctly append the new key
+    // while the test read it as a regression. SpotBid pulled up to second is
+    // enough to prove the stored ORDER survives.
+    const rest = DEFAULT_TAB_ORDER.filter((k) => k !== 'order' && k !== 'spot')
+    const reordered = ['order', 'spot', ...rest]
     expect(mergeTabOrder(reordered)).toEqual(reordered)
   })
 

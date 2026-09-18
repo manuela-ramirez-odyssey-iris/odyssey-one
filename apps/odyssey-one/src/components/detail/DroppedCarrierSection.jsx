@@ -180,6 +180,10 @@ export default function DroppedCarrierSection({
   // alone already stops it opening — the header row below just makes sure a
   // click on it doesn't feel like a dead button.
   locked = false,
+  // LINX-15895 — a routing version in the Routing History tab owes the AC's own
+  // verbatim line ("This routing version does not contain any dropped
+  // carriers.") rather than this one, which is written for the live shipment.
+  emptyMessage = 'Routing did not drop any carriers for this shipment.',
 }) {
 
   // Two disclosure levels, both open by default:
@@ -261,7 +265,7 @@ export default function DroppedCarrierSection({
       >
         {carriers.length === 0 ? (
           <p className="dropped-carrier__empty text-label-sm-regular">
-            Routing did not drop any carriers for this shipment.
+            {emptyMessage}
           </p>
         ) : (
           <GroupTable

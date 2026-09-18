@@ -1040,12 +1040,62 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Note on the mechanism, unchanged:** the action still lands on a committed **Order #** search rather than a shipment id on the row. `orders.shipment_sell_id` is written by `planShipment.mjs` but is **never projected into the order-list DTO**, so the order row still carries no shipment reference — and a search still returns every shipment holding the order, which multi-leg chains can make more than one.
 - **Source:** review of S150/S151 against DEC-155, session S151.
 
+
+---
+
+## Routing History — DEC-165 … DEC-172 (LINX-15895)
+
+### DEC-165: the Routing History tab exists because Dropped Carrier asked for it
+- **Previous:** one Tender tab showing the routing options of the run that happened last; every earlier run's carriers, responses and dropped carriers simply gone. The backend behaves the same way — `ShipmentProcessServiceImpl.replaceShippingOptions` **clears** the previous run's `ShippingOption` rows before writing the new ones, so there is no stored history to read (Saikat Ghosh's code read, LINX-15895 comment 2026-09-15).
+- **Decision:** a new shipment-level tab, **Routing History**, appended after Tender History, read-only, listing every PRIOR routing version newest-first. The Tender tab keeps showing the current active version only.
+- **Source:** LINX-15895 (Jana, Final Review, Phoenix Sprint 43), VD by Manuela at Jana's request (`2257:68313` collapsed / `2259:70116` expanded). The story's own origin is **Soni Sinha on LINX-13953, 2026-08-24**: *"Each order update triggers a shipment update and a routing call. How should usable and dropped carriers for each order update appear in the UI? Should they be grouped under a version number…?"* — and Dave Schultz's answer, per Jana, was to add this tab.
+- **Why it matters beyond this tab:** it makes "routing version" a first-class noun in the domain. LINX-13954 already has an unanswered question keyed on it (*"which version of the routing response should be used when processing a dropped carrier?"*), and DEC-166 is our provisional answer.
+
+### DEC-166: a historical version is READ-ONLY — no Process SCAC, no tender action, no quote
+- **Previous:** the Dropped Carrier section carries a per-row **Reinstate** (Process SCAC, LINX-13954) wherever it appears.
+- **Decision:** Routing History renders `DroppedCarrierSection` **without** `onProcess`, so the action lane is not rendered at all; no tender action, quote affordance or column-arrangement gear reaches a past run either.
+- **Source:** 15895's *"Historical routing versions shall be available in read-only mode"*, and 13954's open **Routing Version Selection** question — which offers *"SCAC options be available only from the latest routing option version"* as one of its two candidate answers and has no ruling.
+- **Status:** OURS, provisional. **Ask Jana/Dave:** may a planner reinstate a carrier from a version that is no longer current?
+
+### DEC-167: the history is DERIVED at read time, never seeded
+- **Previous:** every other Shipments surface reads seeded data out of `tools/generate.mjs` / Neon.
+- **Decision:** `src/data/routingHistory.js` builds the versions from the shipment's own detail with a PRNG keyed on the shipment identifier — the `src/data/auditTrail.js` precedent (S147). No generator change, no migration, no reseed, and **the same code serves mock and live**, because its input is the `ShipmentDetailVM` both runtimes already return.
+- **Why:** a new faker draw in the generator re-numbers every seeded id, and a sibling session owned the seed and the database while this shipped. It is also honest about the real system: there is no stored routing version to read yet, so a seeded one would be a fiction wearing the clothes of data.
+- **Consequence to remember:** what the tab shows is a *plausible reconstruction for review*, not a read. Every rule in DEC-168…170 is ours.
+
+### DEC-168: a shipment that was never tendered has NO routing history
+- **Decision:** when no current routing option carries a tender status, the tab shows its empty state — one routing execution has happened and the Tender tab owns it.
+- **Why:** the AC opens *"Given a shipment has multiple routing executions"*, and S151's lifecycle work made the pre-tender state real (492 pre-tender rows where there had been zero). Coupling the count to the lifecycle rather than to a free coin-flip keeps both the positive and the negative case reachable, and keeps the tab from claiming history a shipment cannot have had.
+- **Rule:** never tendered ⇒ 0 versions · otherwise 1–4 · **+1** when any option is Declined or Cancelled, a dead tender being what sends a planner back through routing.
+
+### DEC-169: a historical version never holds an Accepted tender
+- **Decision:** historical tender outcomes are drawn from Declined / Cancelled / Sent / none.
+- **Why:** an accepted tender ends the routing story — a shipment whose carrier accepted would not have been re-routed, so an Accepted row in *history* is a state routing cannot have produced. Response method, user and comment follow the outcome rather than being drawn beside it: an unanswered tender has no responder and no comment. (Same class of defect S151 found in the monitoring tabs — two independent draws describing one fact.)
+- **Status:** OURS, provisional, for Jana.
+
+### DEC-170: the orders on a version accumulate; the sections are the Tender tab's own
+- **Decision (orders):** version *k*'s order list is a **prefix** of the current one, growing with the version — straight off the AC's example (`V1 -Orders: O1, O2` / `V2 -Orders: O1, O2, O3`).
+- **Decision (sections):** Routing Options / View Volume Commitment / Additional Info / Others render the Tender screen's **own** column groups, extracted unchanged from `RoutingGuideTab.jsx` into `components/detail/tenderColumns.js` so one definition serves both surfaces. Routing Options carries the full locked column set; the others carry Route Rank · Rank · SCAC · Carrier Name so each reads on its own. Dropped Carriers reuses the 13953/13954 component, per the AC's *"shall follow"*, with the AC's verbatim empty line — *"This routing version does not contain any dropped carriers."*
+- **Why:** *"the snapshot of the data captured during that routing execution"* is a snapshot of what the Tender screen shows. Restating the columns here would be a second copy to keep in sync.
+
+### DEC-171: "Response Comments" is real response data, not the Tender tab's second sub-tab
+- **Previous:** our Tender screen's second sub-tab is **Notify & Response Method** — Pro # · Transporting Carrier · Equip # · Route Group, a grouping inherited from the `Shipments-Monitoring.pptx` slide split (DEC Q3, Mar 31).
+- **Decision:** the AC's **Response Comments** section shows SCAC · Carrier Name · Tender Status · Response Method · Response Date · Response User · **Comments**, with the comment text derived (DEC-167) and paired to the outcome.
+- **Source:** user ruling, 2026-09-18. The AC names *"carrier responses … response comments"* as its own data category, and the real `ShippingOption` carries `responseComments` / `responseReason` — which our seed does not.
+- **Owed:** the seed has no `responseComments` field at all. If this section survives grooming, that is a generator field, not a render-time invention.
+
+### DEC-172: the version header is built through SubAccordion's `title` slot, and the component owes a prop
+- **Observation:** the VD's version card is a **DETACHED** SubAccordion — the master cannot draw a header carrying a title, a badge, a timestamp, an Orders chip row and a trailing "Read-only". A detach is the mock saying the component owes a real prop.
+- **Decision:** built by passing a composed node through the existing `title` slot plus app-local CSS, so no released `@odyssey/ui` molecule changes and no normalize cycle opens inside a product story. The leading `›` the VD draws beside the timestamp is **dropped** — it is static in both frames, so it is a leftover of the detach, not a second affordance (user ruling, 2026-09-18).
+- **Owed:** if a second surface needs this header, run the Figma-first cycle on SubAccordion rather than composing it twice.
+
 ---
 
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 18, 2026 | DEC-165 through DEC-172 (S152) — the **Routing History tab** (LINX-15895): a read-only tab listing every prior routing version newest-first, born out of Soni's 2026-08-24 question on Dropped Carrier; the history is **derived at read time** rather than seeded (the auditTrail precedent — no generator change, no reseed, and one module serving mock and live, because the backend has no stored version to read either); a never-tendered shipment has **no** history and a historical version **never** holds an Accepted tender; the sections reuse the Tender screen's own column groups, extracted into `tenderColumns.js`, except **Response Comments**, which becomes real carrier-response data on a user ruling; and the version header is composed through SubAccordion's `title` slot with the molecule recorded as **owing a header prop** |
 | Sep 18, 2026 | DEC-158 through DEC-164 (S151) — the **monitoring tabs derive from one lifecycle**: `category` was drawn beside the tender state, so "Tender Sent" was 84% already-accepted, SpotBid held accepted rows and 137 tendered shipments sat in the consolidation pool; one lifecycle draw now derives tabs, tender, history and order status, the **pre-tender pool exists** (492 rows where there were zero), a shipped order is always `Planned Shipment` (a failed tender is not a failed shipment), the sell/buy renumber is accepted with both counters **verified** unmoved — and **DEC-155's status gate is corrected to `Planned Shipment` alone**, its "no shipment before Planning & Consolidation" premise having been overturned by Dave Schultz in DEC-156 |
 | Sep 17, 2026 | DEC-156 + DEC-157 (S150) — **order creation plants a direct shipment**: a valid non-draft order creation now also creates ONE direct shipment holding its load (Dave Schultz, 2026-09-17), moving the order straight to `Planned Shipment` and parking the shipment in Monitoring › Consolidation or Hold per its Consolidatable flag — one pure builder (`api/_lib/planShipment.mjs`) serves both runtimes; draft submit, the Review creation state, and pool-exit timers are recorded as deliberately out of scope |
 | Sep 17, 2026 | DEC-155 (S149) — **Orders → Shipments**: a "See in Shipments" row action lands on the Shipments page with a committed Order # chip (a search, not a shipment id: the order DTO carries none and a multi-leg chain can hold the order on several shipments); offered only for *Planned Shipment* / *Shipment Failed*, the statuses whose meaning is "in a shipment" |

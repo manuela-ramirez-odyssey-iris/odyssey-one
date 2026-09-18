@@ -20,6 +20,7 @@ const DocumentsTab = React.lazy(() => import('./DocumentsTab'))
 const NotesTab = React.lazy(() => import('./NotesTab'))
 const HistoryTab = React.lazy(() => import('./HistoryTab'))
 const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
+const RoutingHistoryTab = React.lazy(() => import('./RoutingHistoryTab'))
 
 // Fix (2026-08-10, user report "put the spinner in the vertical middle of
 // the slot" — it wasn't): the S79f comment this replaced claimed height:100%
@@ -72,6 +73,11 @@ export const TABS = [
   { key: 'notes', label: 'Notes' },
   { key: 'history', label: 'History' },
   { key: 'tender', label: 'Tender History' },
+  // LINX-15895 — appended, per the VD's own tab strip (2257:68313). A key absent
+  // from a stored order but also absent from its `knownKeys` epoch is treated as
+  // NEW and appended, so existing arrangements pick this up with no migration
+  // (mergeTabOrder, Fix D / LINX-11786).
+  { key: 'routingHistory', label: 'Routing History' },
 ]
 
 export const DEFAULT_TAB_ORDER = TABS.map(t => t.key)
@@ -446,6 +452,9 @@ export default function BottomBar({
       case 'notes': return <NotesTab data={shownDetails.notesData} />
       case 'history': return <HistoryTab data={shownDetails.historyData} />
       case 'tender': return <TenderHistoryTab />
+      // LINX-15895 — prior routing versions, derived from the detail itself
+      // (src/data/routingHistory.js); no API of its own in either runtime.
+      case 'routingHistory': return <RoutingHistoryTab details={shownDetails} shipment={shipment} />
       default: return null
     }
   }
