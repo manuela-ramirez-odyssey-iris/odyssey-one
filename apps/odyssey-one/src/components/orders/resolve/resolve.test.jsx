@@ -536,10 +536,19 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
       } else if (trash) {
         fireEvent.click(trash)
       } else {
+        // quantity-mismatch: the fix is making the LINE's gross weight equal the
+        // SCHEDULE's, which isStructuralFixed compares as strings — so the test
+        // has to type that exact value, and the modal states it in the hint
+        // ("schedule says 10520 LB"). This branch was previously looking for
+        // `getByText(/^\d/)`, which can never match a hint that starts with a
+        // word; it went unnoticed because L1_MIXED's structural fault had always
+        // landed on timezone-missing or extra-schedule until the S151 regenerate
+        // moved it here (S151 T6).
         const weight = modal.querySelector('input[type="text"], input:not([type])')
         if (weight) {
-          const target = within(modal).getByText(/^\d/)
-          fireEvent.change(weight, { target: { value: target.textContent.trim() } })
+          const hint = modal.querySelector('.structural-grid__hint').textContent
+          const scheduleQty = hint.replace(/^\s*schedule says\s+/, '').trim().split(/\s+/)[0]
+          fireEvent.change(weight, { target: { value: scheduleQty } })
         }
       }
     }
