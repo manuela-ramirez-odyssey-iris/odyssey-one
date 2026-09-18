@@ -10,6 +10,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
+  approved: true,
 }
 
 export const props = [

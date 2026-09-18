@@ -12,6 +12,7 @@ export const meta = {
   figmaNode: '514:2479',
   codeConnect: 'packages/ui/src/SidebarButton.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [
