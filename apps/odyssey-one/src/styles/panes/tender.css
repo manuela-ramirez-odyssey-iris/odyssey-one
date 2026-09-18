@@ -472,6 +472,17 @@
 .routing-version__orders-label {
   color: var(--text-secondary);
 }
+/* The rule between the version header and its content (VD 2259:70166). Drawn
+   FULL-BLEED — it runs to the card's edges, past the 24px horizontal padding the
+   content sits inside — so the margins cancel the padding rather than the card
+   being re-padded. Scoped to this pane, not pushed into the molecule: only the
+   OUTER version card has it (the inner section cards do not), so it is this
+   surface's treatment rather than a SubAccordion capability. */
+.routing-version > .sub-accordion__reveal .routing-version__body {
+  border-top: 1px solid var(--border-subtle);
+  margin: 0 calc(-1 * var(--spacing-6));
+  padding: var(--spacing-5) var(--spacing-6) 0;
+}
 .routing-version__body {
   display: flex;
   flex-direction: column;
@@ -482,4 +493,23 @@
 }
 .routing-version__subtitle {
   color: var(--text-secondary);
+}
+
+/* The six section cards INSIDE a version (VD 2259:70166). Two deviations from
+   the default SubAccordion, both scoped here for the same reason as the rule
+   above — they are this surface's nesting treatment, and SubAccordion is mid-
+   port at GATE C-twin, where a contract change would re-open the Angular batch.
+
+   1. An outlined card rather than a shadowed one: a shadow inside a shadowed
+      parent reads as a smudge, and the VD draws a 1px edge.
+   2. A 16px title (--font-size-base) against the version card's 18px
+      (--font-size-lg), so the nesting is legible as hierarchy and not as two
+      peers stacked. User ruling, 2026-09-18. */
+.routing-version__body .sub-accordion {
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+.routing-version__body .sub-accordion__title {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }

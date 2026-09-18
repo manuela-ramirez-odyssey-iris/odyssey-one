@@ -2418,7 +2418,17 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .sub-accordion__chevron {
   transition: transform var(--transition-reveal);
 }
-.sub-accordion--expanded .sub-accordion__chevron {
+/* SCOPED TO THE CARD'S OWN HEADER (S153). These two rules were DESCENDANT
+   selectors, so an expanded SubAccordion reached every SubAccordion nested
+   inside it: a nested section rendered open with an up-chevron no matter what
+   its own state said. Browser-measured in the Routing History tab — five
+   sections reporting aria-expanded="false" and lacking --expanded, all sitting
+   at 264px with `matrix(-1,0,0,-1,0,0)` chevrons, while the same component
+   collapsed to 0px on the DSM where nothing nests it.
+   The chevron lives under the card's own `__header-row`, and the reveal is its
+   direct child, so scoping by combinator fixes both without touching a single
+   consumer. Nesting is the only case that changes. */
+.sub-accordion--expanded > .sub-accordion__header-row .sub-accordion__chevron {
   /* rendered geometry at rest matches the Figma chevron-up master exactly;
      rotating (vs swapping masters) is what makes the flip animatable */
   transform: rotate(180deg);
@@ -2428,7 +2438,7 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   grid-template-rows: 0fr;
   transition: grid-template-rows var(--transition-reveal);
 }
-.sub-accordion--expanded .sub-accordion__reveal {
+.sub-accordion--expanded > .sub-accordion__reveal {
   grid-template-rows: 1fr;
 }
 .sub-accordion__reveal-inner {

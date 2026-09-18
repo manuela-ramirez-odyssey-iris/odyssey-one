@@ -114,6 +114,12 @@ function VersionCard({ version, newest }) {
   return (
     <SubAccordion
       className="routing-version"
+      // The newest historical version opens on arrival — it is the one directly
+      // behind what the Tender tab is showing, so it is what a planner came to
+      // read. The rest stay collapsed, which is what makes "expand and review
+      // each routing version independently" (AC) a usable list rather than a
+      // wall. User ruling, 2026-09-18.
+      defaultExpanded={newest}
       title={`Version ${version.version}`}
       // Only the newest carries it — "most recent HISTORICAL", the one directly
       // behind what the Tender tab is showing.

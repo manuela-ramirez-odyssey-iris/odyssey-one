@@ -70,17 +70,35 @@ describe('RoutingHistoryTab (LINX-15895)', () => {
     }
   })
 
-  it('starts every version collapsed, and opens them independently', () => {
+  it('opens the newest version on arrival and leaves the rest collapsed', () => {
     render(<RoutingHistoryTab details={details()} />)
     const headerOf = (card) => within(card).getByText(/^Version \d+$/).closest('button')
     const all = cards()
-    expect(all.every((c) => headerOf(c).getAttribute('aria-expanded') === 'false')).toBe(true)
-
-    fireEvent.click(headerOf(all[0]))
+    expect(all.length).toBeGreaterThan(1)
+    // The newest historical version is the one directly behind what the Tender
+    // tab shows, so it is what the planner came to read (user, 2026-09-18).
     expect(headerOf(all[0]).getAttribute('aria-expanded')).toBe('true')
-    // "Users should be able to expand and review each routing version
-    // independently" — opening one must not open its neighbours.
+    // Everything older stays shut — otherwise the AC's "expand and review each
+    // routing version independently" is a wall rather than a list.
     expect(all.slice(1).every((c) => headerOf(c).getAttribute('aria-expanded') === 'false')).toBe(true)
+  })
+
+  it('opens and closes versions independently of each other', () => {
+    render(<RoutingHistoryTab details={details()} />)
+    const headerOf = (card) => within(card).getByText(/^Version \d+$/).closest('button')
+    const all = cards()
+
+    // Opening an older one leaves its neighbours exactly as they were.
+    fireEvent.click(headerOf(all[1]))
+    expect(headerOf(all[1]).getAttribute('aria-expanded')).toBe('true')
+    expect(headerOf(all[0]).getAttribute('aria-expanded')).toBe('true')
+    expect(all.slice(2).every((c) => headerOf(c).getAttribute('aria-expanded') === 'false')).toBe(true)
+
+    // And the default-open one still closes — `defaultExpanded` seeds the
+    // uncontrolled state, it does not pin it.
+    fireEvent.click(headerOf(all[0]))
+    expect(headerOf(all[0]).getAttribute('aria-expanded')).toBe('false')
+    expect(headerOf(all[1]).getAttribute('aria-expanded')).toBe('true')
   })
 
   it('gives each version the six AC sections, in order, each collapsed', () => {
@@ -142,5 +160,44 @@ describe('RoutingHistoryTab (LINX-15895)', () => {
     cleanup()
     render(<RoutingHistoryTab details={bare} shipment={{ buyShipment: 'B999' }} />)
     expect(document.querySelectorAll('.routing-version').length + a).toBeGreaterThan(1)
+  })
+
+  // The markup contract S153's nesting fix depends on. `.sub-accordion--expanded`
+  // used to reach nested SubAccordions through a DESCENDANT selector, so every
+  // section inside an open version rendered open with an up-chevron regardless
+  // of its own state (browser-measured: aria-expanded="false" at 264px, while
+  // the same component collapsed to 0px on the DSM where nothing nests it).
+  // components.css now scopes both rules with `>`:
+  //   .sub-accordion--expanded > .sub-accordion__reveal
+  //   .sub-accordion--expanded > .sub-accordion__header-row .sub-accordion__chevron
+  // jsdom cannot see the heights those rules produce (no app CSS, no layout), so
+  // this pins the STRUCTURE they select on — the thing a refactor would break
+  // silently.
+  it('keeps the DOM shape the nested-collapse CSS selects on', () => {
+    render(<RoutingHistoryTab details={details()} />)
+    const version = document.querySelector('.routing-version')
+
+    // 1. A card's reveal is its DIRECT child, or `--expanded > __reveal` misses.
+    expect(version.querySelector(':scope > .sub-accordion__reveal')).toBeTruthy()
+    // 2. Its chevron hangs off its OWN header row, not off the reveal.
+    expect(
+      version.querySelector(':scope > .sub-accordion__header-row .sub-accordion__chevron'),
+    ).toBeTruthy()
+
+    // 3. The load-bearing one: a nested section's reveal and chevron must NOT be
+    //    reachable by those same child-scoped selectors from the version card —
+    //    that is exactly what the descendant version got wrong.
+    const sections = [...version.querySelectorAll('.routing-version__body > .sub-accordion')]
+    expect(sections.length).toBeGreaterThan(1)
+    for (const s of sections) {
+      expect(s.parentElement.closest('.sub-accordion')).toBe(version)
+      expect(version.querySelector(':scope > .sub-accordion__reveal'))
+        .not.toBe(s.querySelector(':scope > .sub-accordion__reveal'))
+      // Each chevron belongs to the card it toggles — the nested one's nearest
+      // .sub-accordion ancestor is the SECTION, never the version card.
+      const chevron = s.querySelector('.sub-accordion__chevron')
+      expect(chevron.closest('.sub-accordion')).toBe(s)
+      expect(chevron.closest('.sub-accordion__header-row').parentElement).toBe(s)
+    }
   })
 })
