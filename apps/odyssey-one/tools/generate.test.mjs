@@ -1416,9 +1416,17 @@ test('consolidation payload is deterministic across builds and ids match the pre
   // including the legacy `pick(DRAFT_ORDER_STATUS_POOL)` sites. The known
   // trap: collapsing that pool to a 1-element array makes faker's
   // arrayElement skip its RNG draw, renumbering everything after it.
-  assert.equal(a.shipments.at(-1).sellShipment, '25110970')
+  //
+  // RE-CAPTURED S151 under the accepted renumber (DEC-163): the lifecycle draw
+  // only takes `decisiveRank` when someone was actually tendered, which moves
+  // the stream from that point on. Index 0 above is unchanged because it is
+  // drawn before the first lifecycle branch — which is exactly why it "alone
+  // proves nothing" and these two exist. Previous goldens: '25110970' and
+  // 'KEM-91932'. The last order number also changed FORMAT, auto vs
+  // customer-prefixed being a genOrderNumber faker draw, not a counter.
+  assert.equal(a.shipments.at(-1).sellShipment, '25983311')
   // orders[] ends with number-less pending rows, so pin the last real one.
-  assert.equal(a.orders.map(o => o.orderNumber).filter(Boolean).at(-1), 'KEM-91932')
+  assert.equal(a.orders.map(o => o.orderNumber).filter(Boolean).at(-1), '0000000091909')
   const s = a.shipments.find(x => x.category === 'order-change' && a.details.get(x.sellShipment).orderList.length > 1)
   assert.ok(s)
   assert.deepEqual(a.details.get(s.sellShipment).orderChange.consolidation, b.details.get(s.sellShipment).orderChange.consolidation)
