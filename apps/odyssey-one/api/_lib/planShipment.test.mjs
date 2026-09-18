@@ -137,6 +137,22 @@ test('a blank delivery date yields empty display + null ts, never a crash', () =
   assert.equal(deliveryTs, null)
 })
 
+test('mode follows the weight threshold: LTL under 10,000 lb, TL at and above', () => {
+  const at = (w) => { const a = args(); a.mo.grossWeightValue = w; return buildDirectShipment(a).row.mode }
+  assert.equal(at(9_999), 'LTL')
+  assert.equal(at(10_000), 'TL')
+  assert.equal(at(10_001), 'TL')
+})
+
+test('stop packageCount is null — not 0 — when no line carries a handling-unit count', () => {
+  const a = args()
+  a.mo.orderLines = a.mo.orderLines.map(({ handlingUnitCount, ...rest }) => rest)
+  const { detail } = buildDirectShipment(a)
+  assert.equal(detail.shipmentStopList[0].packageCount, null)
+  // and it still sums when counts ARE present
+  assert.equal(buildDirectShipment(args()).detail.shipmentStopList[0].packageCount, 4)
+})
+
 test('insert query: seed.mjs column order, detail as JSON, ts columns from the builder', () => {
   const built = buildDirectShipment(args())
   const q = buildInsertShipmentQuery(built)

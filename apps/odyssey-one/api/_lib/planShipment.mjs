@@ -49,6 +49,9 @@ const COUNTRY_CODE = { 'United States': 'US', Canada: 'CA', Mexico: 'MX' }
 const countryCode = (c) => COUNTRY_CODE[c] ?? (c || 'US')
 
 // '2026-06-15T08:00:00' + 'CST' → '06/15/2026 08:00 CST' (generate.mjs formatDateTime shape)
+// ponytail: trusts the YYYY-MM-DD shape. A partial date ('2026-06') renders
+// '06/undefined/2026' rather than failing loudly — acceptable only because the
+// create form validates the date before it gets here.
 function fmtDisplay(iso, tz) {
   if (!iso) return ''
   const [d, t = '00:00'] = iso.split('T')
@@ -56,6 +59,10 @@ function fmtDisplay(iso, tz) {
   return `${mm}/${dd}/${yyyy} ${t.slice(0, 5)} ${tz || 'CST'}`
 }
 // '2026-06-15T08:00:00' + 'CST' → '2026-06-15T08:00:00-06:00'; null when unknown
+// ponytail: assumes a WALL-CLOCK string with no zone suffix — which is all
+// mapFormToOrderInterface's toIsoTimestamp ever emits. Given '…T08:00:00.000Z'
+// it would return '…T08:00:00.000Z-06:00', a malformed timestamptz. If a real
+// ERP payload ever reaches this, parse the suffix instead of appending one.
 function toTs(iso, tz) {
   if (!iso) return null
   const offset = TZ_OFFSETS[tz || 'CST']
@@ -131,7 +138,12 @@ export function buildDirectShipment({ mo, orderNumber, orderId, customerName, no
   const deliveryDate = fmtDisplay(deliveryIso, deliveryTz)
   const grossWeight = mo.grossWeightValue ?? lines.reduce((s, l) => s + (l.grossWeightValue ?? 0), 0)
   const volume = mo.volumeValue ?? lines.reduce((s, l) => s + (l.volumeValue ?? 0), 0)
-  const packageCount = lines.reduce((s, l) => s + (l.handlingUnitCount ?? 0), 0)
+  // null, not 0, when NO line carries a count: handlingUnitCount is optional
+  // (blank is normal), and mapStop renders `0` literally while the summary's
+  // sumOrderPackages renders '--' for the same unknown — one screen, two
+  // spellings of "we don't know". Mirror the summary.
+  const counts = lines.map((l) => l.handlingUnitCount).filter((v) => v != null)
+  const packageCount = counts.length ? counts.reduce((s, v) => s + v, 0) : null
   const equipmentCode = mo.orderCarrierEquipDetailList?.[0]?.equipmentCode ?? ''
   const origin = toAddress(mo, 'origin')
   const destination = toAddress(mo, 'destination')
@@ -155,8 +167,8 @@ export function buildDirectShipment({ mo, orderNumber, orderId, customerName, no
     customerName: customerName ?? mo.customerId ?? '',
     consignor: origin.fullName,
     consignee: destination.fullName,
-    origin: `${origin.city} ${origin.region} ${origin.country} ${origin.postal}`.trim(),
-    destination: `${destination.city} ${destination.region} ${destination.country} ${destination.postal}`.trim(),
+    origin: [origin.city, origin.region, origin.country, origin.postal].filter(Boolean).join(' '),
+    destination: [destination.city, destination.region, destination.country, destination.postal].filter(Boolean).join(' '),
     pickupDate, deliveryDate,
     mode: modeFor(grossWeight),
     equipmentCode,
