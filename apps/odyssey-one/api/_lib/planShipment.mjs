@@ -338,12 +338,23 @@ export function buildSearchIndexQuery(row) {
     shipment_type: row.shipmentType, planning_type: row.planningType,
   }
   const rows = projectRow('shipments', src, row.sellShipment)
+  // ON CONFLICT DO NOTHING guards against a row already in the TABLE — it does
+  // NOT cover two identical tuples inside the SAME multi-row INSERT, which
+  // postgres rejects with "ON CONFLICT DO NOTHING command cannot affect row a
+  // second time". Safe today only because buildDirectShipment's orders/
+  // pickupNumbers arrays are singletons; a multi-order consolidation would hit
+  // this. Same guard as tools/project-search.mjs's buildProjection, keyed on
+  // the table's PRIMARY KEY (attr, value) the same way.
+  const seen = new Set()
   const values = [], tuples = []
-  rows.forEach((r, i) => {
-    const b = i * 5
+  for (const r of rows) {
+    const pk = `${r.attr}|${r.value}`
+    if (seen.has(pk)) continue
+    seen.add(pk)
+    const b = tuples.length * 5
     tuples.push(`($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5})`)
     values.push(r.domain, r.entity_id, r.attr, r.value, r.display)
-  })
+  }
   return {
     text: `INSERT INTO search_index (domain, entity_id, attr, value, display) VALUES ${tuples.join(', ')} ON CONFLICT DO NOTHING`,
     values,

@@ -389,6 +389,57 @@ test('create order: unknown/absent customerId (FK violation) -> honest 400, not 
   )
 })
 
+// Failure paths for statements 2-4 (shipment domain, S150 review). The design's
+// safety claim is: a failure anywhere in the shipment sequence leaves the order
+// truthful and never partially links it. These pin that claim per statement.
+test('create order: a failing shipment INSERT never links the order', async () => {
+  const calls = []
+  const db = {
+    query: async (q) => {
+      calls.push(q.text)
+      if (/INSERT INTO orders/.test(q.text)) return { rows: [{ order_number: 'ORD-5', order_id: 5, created_at: new Date(), created_tz: null }] }
+      if (/FROM customers/.test(q.text)) return { rows: [{ name: 'ERCO Systems Inc' }] }
+      if (/INSERT INTO shipments/.test(q.text)) throw Object.assign(new Error('boom'), { code: '08006' })
+      return { rows: [] }
+    },
+  }
+  await assert.rejects(() => createOrder({ body: { manualOrder: { customerId: 'ERCO_SYS_01', orderLines: [] } }, db }))
+  // the order was created, but nothing claims it belongs to a shipment
+  assert.ok(!calls.some((t) => /UPDATE orders SET shipment_sell_id/.test(t)))
+  assert.ok(!calls.some((t) => /INSERT INTO search_index/.test(t)))
+})
+
+test('create order: a failing link UPDATE leaves the KNOWN orphan — pinned, not fixed', async () => {
+  const calls = []
+  const db = {
+    query: async (q) => {
+      calls.push(q.text)
+      if (/INSERT INTO orders/.test(q.text)) return { rows: [{ order_number: 'ORD-6', order_id: 6, created_at: new Date(), created_tz: null }] }
+      if (/FROM customers/.test(q.text)) return { rows: [{ name: 'ERCO Systems Inc' }] }
+      if (/UPDATE orders SET shipment_sell_id/.test(q.text)) throw Object.assign(new Error('boom'), { code: '08006' })
+      return { rows: [] }
+    },
+  }
+  await assert.rejects(() => createOrder({ body: { manualOrder: { customerId: 'ERCO_SYS_01', orderLines: [] } }, db }))
+  // documents the accepted gap: the shipment row IS committed, unlinked.
+  assert.ok(calls.some((t) => /INSERT INTO shipments/.test(t)))
+  assert.ok(!calls.some((t) => /INSERT INTO search_index/.test(t)))
+})
+
+test('create order: a failing customer lookup never reaches the shipment', async () => {
+  const calls = []
+  const db = {
+    query: async (q) => {
+      calls.push(q.text)
+      if (/INSERT INTO orders/.test(q.text)) return { rows: [{ order_number: 'ORD-7', order_id: 7, created_at: new Date(), created_tz: null }] }
+      if (/FROM customers/.test(q.text)) throw Object.assign(new Error('boom'), { code: '08006' })
+      return { rows: [] }
+    },
+  }
+  await assert.rejects(() => createOrder({ body: { manualOrder: { customerId: 'ERCO_SYS_01', orderLines: [] } }, db }))
+  assert.ok(!calls.some((t) => /INSERT INTO shipments/.test(t)))
+})
+
 // ── Panel filters: Draft + Validation Errors + location triples ─────────────
 // (LINX-11663 / LINX-11659 / LINX-10285). These keys are whitelisted in
 // ARRAY_FILTERS / DATE_FILTERS / LOCATION_FILTERS — an unlisted key is silently

@@ -740,7 +740,18 @@ export async function createOrder({ body, db }) {
     }
     // Order → load → direct shipment, on creation (Dave Schultz 2026-09-17;
     // api/_lib/planShipment.mjs). A Draft never plans. Sequenced so a failure
-    // anywhere below leaves the order at a truthful 'Ready for Planning'.
+    // anywhere below leaves the ORDER truthful — it stays 'Ready for Planning'
+    // and is never linked to a shipment that does not exist.
+    //
+    // ponytail: the reverse orphan is NOT handled — if the shipment INSERT
+    // lands and the link UPDATE or search_index INSERT then throws (a dropped
+    // Neon connection between statements), a grid-visible, searchable shipment
+    // is committed whose order never points back at it. The client gets a 500
+    // for a request whose order WAS created. Accepted for a prototype: the
+    // window is two statements wide and the cleanup is one DELETE. The fix is a
+    // transaction around these three statements only (the order INSERT stays
+    // outside, so the user never loses the form they filled) — which needs
+    // db.connect() rather than the pool, and a fake client in the tests.
     if (mo.orderStatus?.orderStatusCode !== 'DRAFT') {
       const { rows: cust } = await db.query({ text: 'SELECT name FROM customers WHERE id = $1', values: [mo.customerId ?? ''] })
       const built = buildDirectShipment({
@@ -755,6 +766,11 @@ export async function createOrder({ body, db }) {
     }
     return { orderId: row.order_id, success: true, message: `Order ${row.order_number} created successfully`, data }
   } catch (err) {
+    // NOTE: this message assumes the violation came from the ORDER insert. It is
+    // accurate today because the shipment ids derive from orders.id (a serial
+    // TRUNCATE never resets), so the shipment INSERT cannot realistically 23505.
+    // Revisit if a future path derives shipment ids any other way.
+    //
     // 23505 = any unique violation; orders_number_unique is the only one a
     // sequence-minted id can realistically hit — honest 409, not a 500
     // (mirrors preferences.mjs's 23503→400 pattern for the FK case).

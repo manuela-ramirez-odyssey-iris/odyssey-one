@@ -187,3 +187,11 @@ test('search-index query: one row per projected attribute, keyed by sell_shipmen
   assert.ok(q.values.includes('ORD-1001'))
   assert.ok(q.values.every((v, i) => i % 5 !== 1 || v === '26090001'))
 })
+
+test('search-index query: duplicate array values are deduped, not left to ON CONFLICT', () => {
+  const { row } = buildDirectShipment(args())
+  const dup = { ...row, orders: ['ORD-1001', 'ORD-1001'] }
+  const q = buildSearchIndexQuery(dup)
+  const orderRows = q.values.filter((v, i) => i % 5 === 2 && v === 'order').length
+  assert.equal(orderRows, 1) // not 2 — the repeat is dropped before the INSERT
+})
