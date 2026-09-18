@@ -47,8 +47,9 @@ function matchInfo(values, query) {
  * the first time that attribute is asked about.
  *
  * ponytail: the per-attribute distinct set is cached for the process lifetime.
- * Runtime-created rows (the shipments overlay, src/data/index.js) call `clear()`
- * after each mutation so the next probe re-reads the source.
+ * A row source that mutates at runtime (the shipments overlay in
+ * src/data/index.js) MUST call `clear()` after each mutation, or the next probe
+ * serves a stale set.
  */
 export function createSearchIndex(getRows) {
   const distinctCache = new Map()
