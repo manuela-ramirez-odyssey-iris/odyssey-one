@@ -1001,12 +1001,52 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Source:** session S150; Dave Schultz call 2026-09-17 at 00:23:17 (auto-tendering is backend), 00:24:33 (the backend owns when time runs out).
 - **Affects:** backlog — three open follow-ups (draft submit planning, the Review state, pool-exit timers).
 
+### DEC-158: the Monitoring tabs are derived from ONE lifecycle state, not drawn beside it
+- **Previous:** `category` was an independent `weightedPick`. Measured on the committed corpus 2026-09-17: every monitoring tab carried the same ~78/22 Accepted/Sent split — the signature of two independent draws. **"Tender Sent" was 261 Accepted against 48 Sent** (84% already accepted), SpotBid held **168 Accepted** rows, and **137 tendered shipments sat in the consolidation pool** — which under Dave's *"you can't put a tendered direct shipment in a consolidation"* makes every seeded candidate ineligible for the feature the pool exists to feed.
+- **Decision (S151):** one `lifecycle` draw per shipment — `accepted` / `sent` / `preTender` / `spot` / `failed` — derives the routing-option statuses, `tenderStatus`, `shipmentStatus`, `panel`, `category`, the history trail and the orders' status. The regenerated cross-tab is single-valued per row: `approved` 521 Accepted · `sent` 269 Sent · `consolidation` 434 blank · `hold` 58 blank · `spotbid` 145 Declined/Cancelled, and nothing else.
+- **Source:** Dave Schultz (designed the legacy TMS; highest authority on this domain), call 2026-09-17 — 00:21:30 the three creation states, 00:08:15 no tendered direct in a consolidation. SpotBid entry from PRD §2/Feature 1 (SPB-12): a spot bid starts only when there is **no** active or accepted tender, so a `spotbid` row's options are all Declined/Cancelled.
+- **Affects:** `tools/generate.mjs`, every seeded row's tab, `src/data/*.json`.
+
+### DEC-159: the pre-tender pool exists in the seed
+- **Previous:** unreachable. A dead `: 'Sent'` fallback made tendering universal — there was no state in which a shipment had been routed but not yet tendered, which is the state Dave says **every** shipment starts in.
+- **Decision (S151):** 21% of shipments are untendered, parked in `consolidation` (pool-eligible) or `hold`. Regenerated: **492 pre-tender rows** where there were zero. The shares are OUR call (user 2026-09-18: *"you decide this"*), not a stakeholder ruling.
+- **Affects:** the Consolidation tab now has real candidates for the Oct-MVP consolidate action.
+
+### DEC-160: pool vs Hold is the Consolidatable flag alone, and the flag is inherited rather than drawn
+- **Decision (S151):** `poolEligible = orderCount > 1 || p(0.70)`; the shipment's orders INHERIT the flag so the order header, the tab and the history agree. A multi-order shipment is pool-eligible by construction — it already **is** a consolidation.
+- **Provisional.** Dave never named OCM for manual planning; revisit if Ramesh's OCM 97–101 turns out to gate it.
+- **Measured tension, logged not fixed:** the regenerated pool is **262 Consolidation / 172 Direct**. Dave also ruled that a from-scratch consolidation can only pick **direct** shipments — so 60% of the pool cannot be picked by the very feature the pool feeds. Either the pool should hold directs only, or an already-consolidated shipment sits there for a different purpose (adding loads to it). **Ask Dave.**
+
+### DEC-161: no new shipment-status value for the pool — silent resolve
+- **Decision (S151, user "silent resolve"):** a pre-tender row keeps `shipmentStatus: ''`; the tab carries the meaning and the badge renders `—`.
+- **Rationale:** a new status enum would ripple into the search vocabulary and the two Cognizant progression sheets, which are a shipped spec. Revisit with Dave.
+
+### DEC-162: a shipped order is `Planned Shipment`; a failed tender is not a failed shipment
+- **Previous:** the orders-side mapping read Sent → `Planned Load` and a declined tender → `Shipment Failed`, conflating two axes — the order's membership in a shipment, and that shipment's tender outcome.
+- **Decision (S151):** an order that HAS a shipment is `Planned Shipment`, full stop. `Planned Load` and `Shipment Failed` are no longer produced for shipped orders; `Planning Failed` / `Cancelled` / `Hold` / `Ready for Planning` / `Draft` remain reachable only through `generateUnshippedOrder`, where no shipment exists.
+- **Source:** Dave Schultz 2026-09-17 at 00:02:02 — a load is always in a shipment from the moment the order exists.
+- **Consequence worth stating:** the invariant is now exact — **an order has a shipment ⟺ its status is `Planned Shipment`** (verified on the regenerated corpus: 0 orders marked `Planned Shipment` without a shipment). The only orders in a shipment that are not `Planned Shipment` are the 290 Validation-Errors rows, whose `orderStatus` is `null` because they never entered the lifecycle — a pre-existing overlap (278 on the old corpus), not a product of this change. This is what DEC-164 rests on.
+- **Affects:** the Orders grid status distribution, `orderStatusLabel`, and DEC-155's status gate.
+
+### DEC-163: one deliberate renumber of the internal sell/buy ids
+- **Decision (S151, user 2026-09-18: *"dont worry about anything that user saved… we are doing a prototype"*):** the lifecycle change moves the faker stream (`decisiveRank` is now drawn only when someone was actually tendered), so `sellShipment` / `buyShipment` re-mint. Accepted, with every hardcoded seeded id re-anchored in the same change.
+- **What did NOT move, verified rather than asserted:** the Odyssey Shipment Identifier **sequence** is position-identical across all 2,200 rows (0 moved) — the 1,082 identifiers that differ do so **only in the `O`/`C` prefix**, which is derived from `shipmentType` and follows the accepted renumber; prefix ⟺ `shipmentType` violations: **0**, so DEC-150's absolute invariant holds. The numeric `orderId` is a strict prefix-stable counter — no id disappeared, the run simply extended it by 29 orders.
+- **Correction to the plan's own gate:** the plan said to STOP if the Odyssey identifiers or order lists were not byte-identical. Both differ, and the gate was **mis-specified** — it compared two values that derive from faker-driven fields (`shipmentType` for the prefix; `genOrderNumber`'s auto-vs-user format draw, which flipped the rendered string for 2,496 of 5,057 shared ids) rather than the counters it meant to protect. The counters hold; the work proceeded on that evidence.
+
+### DEC-164: "See in Shipments" is gated on `Planned Shipment` alone — DEC-155's premise was overturned
+- **Previous:** DEC-155 (S149) gated the Orders row action on `Planned Shipment` **or** `Shipment Failed`, reasoning from the LINX-7555 status table and Jana's planning quote that *"Ready for Planning and Planned Load have no shipment yet — the shipment is born in Planning & Consolidation."*
+- **What changed:** DEC-156 records Dave Schultz overturning exactly that premise — **a load is always in a shipment from the moment the order exists** — and DEC-162 collapses every shipped order to `Planned Shipment`. Neither S150 nor S151 noticed DEC-155 keyed on the semantics they were rewriting: the gate was never revisited, and `Shipment Failed` became a branch the generator can no longer produce.
+- **Decision (S151):** the gate is `Planned Shipment` alone, and it is now an exact statement of DEC-162's invariant rather than an inference from a status table. Verified against the regenerated corpus and the reseeded database.
+- **Note on the mechanism, unchanged:** the action still lands on a committed **Order #** search rather than a shipment id on the row. `orders.shipment_sell_id` is written by `planShipment.mjs` but is **never projected into the order-list DTO**, so the order row still carries no shipment reference — and a search still returns every shipment holding the order, which multi-leg chains can make more than one.
+- **Source:** review of S150/S151 against DEC-155, session S151.
+
 ---
 
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 18, 2026 | DEC-158 through DEC-164 (S151) — the **monitoring tabs derive from one lifecycle**: `category` was drawn beside the tender state, so "Tender Sent" was 84% already-accepted, SpotBid held accepted rows and 137 tendered shipments sat in the consolidation pool; one lifecycle draw now derives tabs, tender, history and order status, the **pre-tender pool exists** (492 rows where there were zero), a shipped order is always `Planned Shipment` (a failed tender is not a failed shipment), the sell/buy renumber is accepted with both counters **verified** unmoved — and **DEC-155's status gate is corrected to `Planned Shipment` alone**, its "no shipment before Planning & Consolidation" premise having been overturned by Dave Schultz in DEC-156 |
 | Sep 17, 2026 | DEC-156 + DEC-157 (S150) — **order creation plants a direct shipment**: a valid non-draft order creation now also creates ONE direct shipment holding its load (Dave Schultz, 2026-09-17), moving the order straight to `Planned Shipment` and parking the shipment in Monitoring › Consolidation or Hold per its Consolidatable flag — one pure builder (`api/_lib/planShipment.mjs`) serves both runtimes; draft submit, the Review creation state, and pool-exit timers are recorded as deliberately out of scope |
 | Sep 17, 2026 | DEC-155 (S149) — **Orders → Shipments**: a "See in Shipments" row action lands on the Shipments page with a committed Order # chip (a search, not a shipment id: the order DTO carries none and a multi-leg chain can hold the order on several shipments); offered only for *Planned Shipment* / *Shipment Failed*, the statuses whose meaning is "in a shipment" |
 | Sep 16, 2026 | DEC-152 through DEC-154 (S149) — the identifier **reached the table**: `mapShipmentErrorRow` was dropping it (3rd instance of the whitelist-mapper class) behind a test that claimed to pin `ALL_COLUMNS` but pinned only `LATE_ADDED_COLUMNS`; the pin is now the whole catalog, the column joins `LATE_ADDED_COLUMNS` so saved presets stop hiding it, `mergeLateAddedColumns` places rather than appends, and the bar label is shortened to **Odyssey Shipment ID** with the field name untouched |
