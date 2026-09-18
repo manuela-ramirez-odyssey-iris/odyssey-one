@@ -89,7 +89,15 @@
      standalone mark on a light surface. */
   --text-warning: var(--sunrise-yellow-600);
 
-  /* --- Semantic: Chart palette (pie segments + corresponding inline indicator dots) --- */
+  /* --- Semantic: Chart palette (pie segments + corresponding inline indicator dots) ---
+     ORDERING RULE (user, 2026-09-18): same tones stay adjacent — a hue's saturated step
+     immediately followed by its light step — WHERE THAT GROUPING MAKES SEMANTIC SENSE.
+     The palette should read as families, not a spread of unrelated hues. Don't break a
+     pair because one light step measures poorly alone: a donut arc is a much bigger
+     target than an 8px dot, and Badge already uses these tints behind dark text. The
+     "where sensible" clause is the escape hatch — don't force a pair whose second step
+     has no real use. Pairs: 1/2 Ice Blue · 3/4 Tan Hide · 5/6 Caribbean Green ·
+     7/8 Sunrise Yellow · 9/10 Purple · 11/12 Bittersweet. */
   --chart-1: var(--ice-blue-600);
   --chart-2: var(--ice-blue-200);
   --chart-3: var(--tan-hide-600);
