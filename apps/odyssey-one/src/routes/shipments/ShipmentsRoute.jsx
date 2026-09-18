@@ -160,6 +160,14 @@ function ShipmentsRoute() {
   // Full set kept for: the grand-total count and the selected-row lookup
   // (BottomBar consumes the raw row shape). In live mode these become lookup
   // endpoints / the grid row already in hand — deferred.
+  //
+  // S150 — this memo never re-runs, so a shipment created DURING a session
+  // (order create → direct shipment, src/data/index.js's overlay) only lands
+  // here because /orders/create is a separate top-level route: returning to
+  // Shipments remounts this component. That remount is load-bearing, not
+  // incidental — if create ever becomes a modal or this route gains a
+  // persistent layout, this memo needs a real dependency or the new shipment
+  // goes missing from the count and the selected-row fallback below.
   const allShipments = useMemo(() => getAllShipments(), [])
 
   // Fix A (2026-08-10): `error` is the real ApiError/Error the query threw

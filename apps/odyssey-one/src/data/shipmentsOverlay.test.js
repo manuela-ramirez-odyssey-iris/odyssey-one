@@ -1,5 +1,6 @@
 import { beforeEach, describe, it, expect } from 'vitest'
 import { getAllShipments, addShipment, getOverlayShipmentDetail, __resetShipmentWriteState } from './index'
+import shipmentsJson from './shipments.json'
 
 const row = { sellShipment: '26090001', buyShipment: '900090001', odysseyShipmentIdentifier: 'O60090001', orders: ['0000000090001'] }
 const detail = { shipmentId: '26090001', orderList: [], shipmentStopList: [], historyList: [] }
@@ -32,5 +33,14 @@ describe('shipments overlay', () => {
     __resetShipmentWriteState()
     expect(getOverlayShipmentDetail('26090001')).toBeNull()
     expect(getAllShipments()[0].sellShipment).not.toBe('26090001')
+  })
+
+  it('returns the base array BY REFERENCE while the overlay is empty', () => {
+    // The conditional in getAllShipments exists for exactly this: hot call sites
+    // (ShipmentsRoute's useMemo, the search index cache) hold the result and
+    // compare identity. An unconditional spread would break them invisibly.
+    expect(getAllShipments()).toBe(shipmentsJson)
+    addShipment(row, detail)
+    expect(getAllShipments()).not.toBe(shipmentsJson)
   })
 })
