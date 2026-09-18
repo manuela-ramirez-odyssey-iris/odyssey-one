@@ -13,9 +13,11 @@ import { formatDateTimeMDYHM } from '../../lib/dates.js'
  * Tender tab keeps showing the CURRENT active version only; nothing here can be
  * acted on, because a past routing execution is a record, not a workspace.
  *
- * VD: collapsed 2257:68313 · expanded 2259:70116. One SubAccordion per version
- * (title · "Most recent historical" on the newest · the run's timestamp · the
- * orders on the shipment at the time · a "Read-only" marker), revealing the
+ * VD: collapsed 2257:68313 · expanded 2259:70116. One SubAccordion per version,
+ * its header built from the molecule's own `badge` / `meta` / `trail` slots —
+ * added in this cycle precisely because this card had to detach the master to
+ * draw them (D15). Title · "Most recent historical" on the newest · the run's
+ * timestamp · the orders on the shipment at the time · "Read-only", revealing the
  * AC's six sections — Routing Options, Response Comments, View Volume
  * Commitment, Additional Info, Others, Dropped Carriers — each itself collapsed
  * until opened, "so users can expand and review each routing version
@@ -94,7 +96,7 @@ function rowValues(option, columns) {
 
 function VersionSection({ section, options }) {
   return (
-    <SubAccordion title={section.label} showIcon={false}>
+    <SubAccordion title={section.label}>
       <GroupTable
         flat
         columns={section.columns}
@@ -112,22 +114,17 @@ function VersionCard({ version, newest }) {
   return (
     <SubAccordion
       className="routing-version"
-      showIcon={false}
-      title={
-        <span className="routing-version__header">
-          <span className="routing-version__id">
-            <span className="text-heading-lg-semibold">Version {version.version}</span>
-            {/* Only the newest carries it — "most recent HISTORICAL", the one
-                directly behind what the Tender tab is showing. */}
-            {newest && <Badge variant="purple">Most recent historical</Badge>}
-          </span>
-          <span className="routing-version__meta">
-            <span className="text-label-sm-regular routing-version__time">
-              {formatDateTimeMDYHM(new Date(version.routedAt), { utc: true })} UTC
-            </span>
-            {/* "Historical routing versions shall be available in read-only mode"
-                — said on the card rather than implied by the absence of controls. */}
-            <span className="text-label-sm-regular routing-version__readonly">Read-only</span>
+      title={`Version ${version.version}`}
+      // Only the newest carries it — "most recent HISTORICAL", the one directly
+      // behind what the Tender tab is showing.
+      badge={newest ? <Badge variant="purple">Most recent historical</Badge> : undefined}
+      // "Historical routing versions shall be available in read-only mode" —
+      // said on the card rather than implied by the absence of controls.
+      trail="Read-only"
+      meta={
+        <>
+          <span className="text-label-sm-regular routing-version__time">
+            {formatDateTimeMDYHM(new Date(version.routedAt), { utc: true })} UTC
           </span>
           <span className="routing-version__orders">
             <span className="text-label-sm-regular routing-version__orders-label">Orders</span>
@@ -135,7 +132,7 @@ function VersionCard({ version, newest }) {
               <Badge key={order} variant="gray">{order}</Badge>
             ))}
           </span>
-        </span>
+        </>
       }
     >
       <div className="routing-version__body">

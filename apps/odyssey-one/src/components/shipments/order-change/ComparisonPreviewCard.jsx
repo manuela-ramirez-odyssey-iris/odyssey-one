@@ -42,7 +42,7 @@ export default function ComparisonPreviewCard({ title, differences = [], default
   )
 
   return (
-    <SubAccordion title={heading} showIcon={false} defaultExpanded={defaultExpanded}>
+    <SubAccordion title={heading} defaultExpanded={defaultExpanded}>
       <div className="comparison-preview__body">{children}</div>
     </SubAccordion>
   )

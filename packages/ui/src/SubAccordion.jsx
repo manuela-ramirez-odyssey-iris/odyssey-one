@@ -10,10 +10,40 @@ import Button from './Button.jsx'
  * information sections (e.g. a created-orders summary in the Shipments orders tab).
  *
  * Figma: SubAccordion set 4083:5044 (Components-Molecules),
- * State=Collapsed|Expanded|Static. `Title` TEXT → title; `Show Icon` BOOLEAN →
- * showIcon; `Icon` INSTANCE_SWAP → icon (swap slot, placeholder-20 in Figma —
- * code defaults to the info glyph); `Content` SLOT → children. The 20px chevron
- * is always present on the collapsible states (no boolean).
+ * State=Collapsed|Expanded|Static. `Title` TEXT → title; `Show header icon`
+ * BOOLEAN → showHeaderIcon; `Icon` INSTANCE_SWAP → icon (swap slot,
+ * placeholder-20 in Figma — code defaults to the info glyph); `Content` SLOT →
+ * children. The 20px chevron is always present on the collapsible states (no
+ * boolean).
+ *
+ * ── THE HEADER CARRIES MORE THAN A TITLE (S152) ────────────────────────────
+ * Three optional slots, all off by default, added because LINX-15895's
+ * routing-version card had to DETACH the master to draw its header — a detach
+ * is the mock saying the component owes a prop. They borrow HeaderStrip's
+ * vocabulary rather than inventing their own, because they do the same jobs:
+ *
+ *   `badge` — a node immediately AFTER the title, inside the title row. Same
+ *             rule HeaderStrip states: it stays glued to the text it qualifies.
+ *             (Figma: `Show Badge` BOOLEAN + an EXPOSED Badge instance, so the
+ *             Variant picker is on every SubAccordion instance.)
+ *   `meta`  — rows UNDER the title row, still inside the header. A column with
+ *             the same 12px rhythm as Figma's Meta frame, so a consumer passing
+ *             a fragment of rows gets the spacing for free.
+ *             (Figma: `Show Meta` BOOLEAN.)
+ *   `trail` — pinned to the header's trailing edge, before the chevron (before
+ *             the Static action cluster). A string renders as the label; a node
+ *             renders as-is — Figma models the common case as a `Trail label`
+ *             TEXT property, code keeps the wider node contract.
+ *             (Figma: `Show Trail` BOOLEAN + `Trail label` TEXT.)
+ *
+ * The title, chevron and action cluster stay the component's, so a header built
+ * from these still reads as a SubAccordion. That is the whole reason this is
+ * three named props and not one escape-hatch slot.
+ *
+ * ⚠️ BREAKING (S152): `showIcon` → **`showHeaderIcon`, and it now defaults to
+ * FALSE**. 28 of the 35 call sites were passing `showIcon={false}` — the
+ * default was backwards, and it is the Figma default too (`Show header icon`,
+ * user ruling 2026-09-18). A consumer that WANTS the glyph now opts in.
  *
  * `collapsible={false}` (Figma State=Static) renders the NON-COLLAPSIBLE
  * flavor: the header is a plain heading row (no button, no chevron, no
@@ -54,7 +84,10 @@ import Button from './Button.jsx'
  */
 export default function SubAccordion({
   title,
-  showIcon = true,
+  badge,
+  meta,
+  trail,
+  showHeaderIcon = false,
   icon,
   collapsible = true,
   expanded,
@@ -94,14 +127,24 @@ export default function SubAccordion({
           aria-controls={collapsible ? contentId : undefined}
           onClick={collapsible ? handleToggle : undefined}
         >
-          <span className="sub-accordion__lead">
-            <span className="sub-accordion__title text-heading-lg-semibold">{title}</span>
-            {showIcon && (
-              <span className="sub-accordion__info" aria-hidden="true">
-                {icon || <Info {...ICON_LG} />}
-              </span>
-            )}
+          {/* Title block — the title row, plus whatever `meta` puts under it.
+              Mirrors Figma's `Title block` frame; it is what lets the trail and
+              the chevron centre on the whole header rather than on row 1. */}
+          <span className="sub-accordion__title-block">
+            <span className="sub-accordion__lead">
+              <span className="sub-accordion__title text-heading-lg-semibold">{title}</span>
+              {badge}
+              {showHeaderIcon && (
+                <span className="sub-accordion__info" aria-hidden="true">
+                  {icon || <Info {...ICON_LG} />}
+                </span>
+              )}
+            </span>
+            {meta && <span className="sub-accordion__meta">{meta}</span>}
           </span>
+          {trail && (
+            <span className="sub-accordion__trail text-label-sm-regular">{trail}</span>
+          )}
           {collapsible && (
             <span className="sub-accordion__chevron-wrapper" aria-hidden="true">
               <ChevronDown {...ICON_LG} className="sub-accordion__chevron" />

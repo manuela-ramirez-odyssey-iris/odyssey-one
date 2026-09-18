@@ -678,7 +678,6 @@ export default function CarrierBid() {
           <div className={sectionEnterClass} style={{ '--enter-delay': `${0 * ENTER_STEP_MS}ms` }}>
           <SubAccordion
             title={`Shipment Detail — Quote ${quote.quoteId}`}
-            showIcon={false}
             defaultExpanded
           >
             {/* Descriptive values, not blocked form fields — TitleSubtitle pairs
@@ -746,7 +745,7 @@ export default function CarrierBid() {
           </div>
 
           <div className={sectionEnterClass} style={{ '--enter-delay': `${1 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Your Bid" showIcon={false} defaultExpanded>
+          <SubAccordion title="Your Bid" defaultExpanded>
             <div className="carrier-bid-card__grid">
               <section className="carrier-bid-bid__section">
                 <h3 className="text-label-base-semibold carrier-bid-bid__section-title">Base Charge</h3>
@@ -892,7 +891,7 @@ export default function CarrierBid() {
           </div>
 
           <div className={sectionEnterClass} style={{ '--enter-delay': `${2 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Summary" showIcon={false} defaultExpanded>
+          <SubAccordion title="Summary" defaultExpanded>
             {/* Modeled on QuoteModal's local SummaryCard (now exported for
                 reuse) — no markup line: QMU is Odyssey-side, applied after
                 award, and carriers never see it (SPB-15). */}

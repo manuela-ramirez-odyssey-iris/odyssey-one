@@ -124,7 +124,6 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
             (Figma SubAccordion `Show Button`, S80) */}
         <SubAccordion
           title="All Documents"
-          showIcon={false}
           collapsible={false}
           action={
             <Button

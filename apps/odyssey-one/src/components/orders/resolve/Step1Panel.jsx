@@ -210,7 +210,13 @@ function ReceivedData({ draft, expanded, onToggle }) {
     // SubAccordion has no description slot, so the "Everything the customer
     // system sent, as received." copy is dropped rather than smuggled in as a
     // second title line (report: flagging this to the caller).
-    <SubAccordion title="Received order data" expanded={expanded} onToggle={onToggle}>
+    //
+    // S152 — the ONE call site in the app that relied on `showIcon` defaulting
+    // to true. Kept explicit through the rename + default flip so that change is
+    // provably invisible on screen; if the glyph was never wanted here (it reads
+    // like an inherited default rather than a decision), drop the prop and the
+    // section loses it.
+    <SubAccordion title="Received order data" showHeaderIcon expanded={expanded} onToggle={onToggle}>
       <dl className="step1-panel__received">
         {RECEIVED_FIELDS.map(([label, path]) => {
           // A conflicting field has no single header value (applyErrors blanks

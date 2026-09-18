@@ -452,51 +452,16 @@
    LINX-15895 — Routing History
    ═══════════════════════════════════════════════════════════
 
-   One SubAccordion per prior routing version. Its header is richer than the
-   molecule's own single title row (VD 2257:68313: title + badge, timestamp +
-   "Read-only", then an Orders chip row), so the composed node goes through the
-   existing `title` slot and these rules undo the slot's single-line geometry.
-   The alternative — new header props on a released @odyssey/ui molecule — is a
-   Figma-first normalize cycle in both DSMs; flagged in the plan, not smuggled
-   in here. */
-.routing-version .sub-accordion__lead,
-.routing-version .sub-accordion__title {
-  /* The title span is `overflow:hidden; white-space:nowrap; text-overflow:
-     ellipsis` for a one-line heading — all three fight a three-row header. */
-  white-space: normal;
-  overflow: visible;
-  flex: 1;
-  min-width: 0;
-}
-.routing-version .sub-accordion__header {
-  /* The chevron sits against the card's right edge with the header's rows to
-     its left, and it centres on the whole block rather than on row 1. */
-  align-items: center;
-}
-.routing-version__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  width: 100%;
-}
-.routing-version__id {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  color: var(--text-primary);
-}
-.routing-version__meta {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-}
+   One SubAccordion per prior routing version. Its header — title + badge, a
+   timestamp and an orders chip row underneath, "Read-only" at the trailing
+   edge — is built from the molecule's OWN `badge` / `meta` / `trail` slots
+   (D15). Those slots exist because of this card: the VD had to detach the
+   SubAccordion master to draw this header, and a detach is the mock saying the
+   component owes a prop. The four override rules that used to live here —
+   undoing the title span's `white-space: nowrap` / `overflow: hidden` so a
+   three-row header could fit through a one-line slot — are gone with it. */
 .routing-version__time {
   color: var(--text-secondary);
-}
-/* Pinned to the trailing edge, beside the chevron — the VD's placement. */
-.routing-version__readonly {
-  margin-left: auto;
-  color: var(--text-placeholder);
 }
 .routing-version__orders {
   display: flex;

@@ -68,7 +68,6 @@ export function GeneralInfoCard({ d, references, instructions, expanded, onToggl
   return (
     <SubAccordion
       title="General Information"
-      showIcon={false}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -154,7 +153,6 @@ export function PickupDeliveryCard({ d, expanded, onToggle }) {
   return (
     <SubAccordion
       title="Pickup and Delivery"
-      showIcon={false}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -219,7 +217,6 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
   return (
     <SubAccordion
       title="Product Information"
-      showIcon={false}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -325,7 +322,6 @@ export function SpecialServicesCard({ services, expanded, onToggle }) {
   return (
     <SubAccordion
       title="Special Services (Optional)"
-      showIcon={false}
       expanded={expanded}
       onToggle={onToggle}
     >

@@ -2353,12 +2353,41 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .sub-accordion--static .sub-accordion__header {
   cursor: default;
 }
+/* Title block (S152) — the title row plus the optional `meta` rows, mirroring
+   Figma's `Title block` frame. It takes the header's free space, which is what
+   pins `trail` and the chevron to the trailing edge and centres them on the
+   whole block instead of on the title row alone. */
+.sub-accordion__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+  flex: 1;
+}
 .sub-accordion__lead {
   display: flex;
   align-items: center;
   gap: var(--spacing-1);
   min-width: 0;
   flex: 1;
+}
+/* A column so a consumer passing a fragment of rows gets Figma's 12px rhythm
+   without restating it. `text-align: left` because the header is a <button> on
+   the collapsible states and would otherwise centre inherited text. */
+.sub-accordion__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+  text-align: left;
+}
+/* Trailing marker — last thing before the chevron. Tertiary because it
+   qualifies the section rather than naming it (Figma: Trail label on
+   `label/sm regular` + Text/tertiary). A node passed instead of a string
+   brings its own colour. */
+.sub-accordion__trail {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
 }
 .sub-accordion__title {
   color: var(--text-primary);

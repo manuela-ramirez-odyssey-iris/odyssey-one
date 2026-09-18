@@ -423,7 +423,7 @@ export default function SetupCarriers({
             └──────────────────────────────────────────────────────────┘
                    Save · Send x/y RFQ  ← actions, always mounted, no Cancel,
                                            still BELOW the accordion */}
-      <SubAccordion title="Setup & Carriers" showIcon={false} collapsible={false}>
+      <SubAccordion title="Setup & Carriers" collapsible={false}>
         <div className="order-pane__section setup-carriers">
           <div className="order-pane__block">
 

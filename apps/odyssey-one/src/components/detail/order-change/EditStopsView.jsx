@@ -229,7 +229,6 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         // User ruling 2026-09-09: All Stops header carries no icon in either
         // mode (SubAccordion's Info glyph defaults on) — Prior-vs-New no
         // longer applies here.
-        showIcon={false}
         buttonToggle={(
           <ButtonToggle
             firstLabel="New"

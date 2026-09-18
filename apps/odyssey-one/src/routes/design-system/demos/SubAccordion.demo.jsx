@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Info, Package, ClipboardList, Plus, LayoutGrid, List } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
-import { Button, ButtonToggle, SubAccordion, TitleSubtitle } from '@odyssey/ui'
+import { Badge, Button, ButtonToggle, SubAccordion, TitleSubtitle } from '@odyssey/ui'
 import { DemoControls, DemoControlGroup, DemoToggle, DemoSelect, DemoField } from '../demoControls.jsx'
 
 export const meta = {
@@ -9,14 +9,20 @@ export const meta = {
   tier: 'molecule',
   version: '1.8.0',
   createdVersion: '0.6.0',
-  normalizing: false,
+  // S152 / D15 — modified normalized component goes BACK to NORMALIZING in both
+  // DSMs: three new header slots (badge / meta / trail) plus a BREAKING rename
+  // of showIcon → showHeaderIcon, now defaulting false. Angular twin OWED.
+  normalizing: true,
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
 }
 
 export const props = [
   { name: 'title', type: 'string', desc: 'The section title, heading/lg semibold. (Figma: Title TEXT prop.)' },
-  { name: 'showIcon', type: 'boolean', desc: 'Renders the trailing header icon (20px, DSN/400, non-interactive) beside the title. Default true. (Figma: Show Icon BOOLEAN.)' },
+  { name: 'badge', type: 'node', desc: 'Optional node immediately AFTER the title, inside the title row — by convention a `Badge`. Same rule HeaderStrip states: it stays glued to the text it qualifies. (Figma: Show Badge BOOLEAN + an EXPOSED Badge instance, so its Variant picker is on every instance.)' },
+  { name: 'meta', type: 'node', desc: 'Optional rows UNDER the title row, still inside the header control — so clicking them toggles the section. Rendered as a column with the same 12px rhythm as Figma\'s Meta frame: pass a fragment of rows and the spacing comes for free. (Figma: Show Meta BOOLEAN.)' },
+  { name: 'trail', type: 'node | string', desc: 'Optional trailing marker, last thing before the chevron (before the action cluster on Static). A string renders as a label/sm tertiary line; a node renders as-is and brings its own colour. (Figma: Show Trail BOOLEAN + Trail label TEXT.)' },
+  { name: 'showHeaderIcon', type: 'boolean', default: 'false', desc: 'Renders the trailing header icon (20px, DSN/400, non-interactive) beside the title. BREAKING in S152: was `showIcon`, and was default TRUE — 28 of 35 call sites were overriding it to false, so the default was backwards. (Figma: Show header icon BOOLEAN, default false.)' },
   { name: 'icon', type: 'node', desc: 'Swaps the header icon. Defaults to lucide/info. (Figma: Icon INSTANCE_SWAP, placeholder-20 default.)' },
   { name: 'collapsible', type: 'boolean', desc: 'Default true. False renders the NON-COLLAPSIBLE flavor: plain heading row (no button/chevron/aria-expanded), content always revealed. (Figma: State=Static.)' },
   { name: 'expanded', type: 'boolean', desc: 'Controlled expansion. Omit for uncontrolled (defaultExpanded). Ignored when collapsible={false}. (Figma: State VARIANT Collapsed|Expanded|Static.)' },
@@ -88,7 +94,6 @@ function Schematic() {
         {/* Static flavor — the header actions (ButtonToggle + expand-all link + primary sm) */}
         <SubAccordion
           title="All Documents"
-          showIcon={false}
           collapsible={false}
           buttonToggle={
             <ButtonToggle
@@ -110,7 +115,10 @@ function Schematic() {
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="card" tier="molecule">Collapsible shell: <code>--bg-primary</code>, <code>--radius-2xl</code>, <code>--shadow-sm</code>, padding 16/24 — the simplified Accordion (no stepper).</LegendRow>
         <LegendRow part="header" nested>Full-width toggle button — title (<code>heading/lg semibold</code>) + optional info glyph left, chevron right.</LegendRow>
-        <LegendRow part="header icon" nested>Swap slot (<code>icon</code>, default <code>lucide/info</code>), 20px, <code>--text-placeholder</code> — optional (<code>showIcon</code>). (Figma: Icon INSTANCE_SWAP, placeholder-20.)</LegendRow>
+        <LegendRow part="header icon" nested>Swap slot (<code>icon</code>, default <code>lucide/info</code>), 20px, <code>--text-placeholder</code> — opt in via <code>showHeaderIcon</code>, which is OFF by default. (Figma: Show header icon BOOLEAN + Icon INSTANCE_SWAP, placeholder-20.)</LegendRow>
+        <LegendRow part="badge" tier="atom" nested>Optional <code>badge</code> node immediately after the title, inside the title row — glued to the text it qualifies, HeaderStrip's rule. (Figma: Show Badge BOOLEAN, EXPOSED Badge instance.)</LegendRow>
+        <LegendRow part="meta" nested>Optional <code>meta</code> rows under the title row, inside the header control — a column at the header's own 12px rhythm. (Figma: Show Meta BOOLEAN.)</LegendRow>
+        <LegendRow part="trail" nested>Optional <code>trail</code> marker at the header's trailing edge, before the chevron — <code>label/sm regular</code>, <code>--text-tertiary</code> for a string. (Figma: Show Trail BOOLEAN + Trail label TEXT.)</LegendRow>
         <LegendRow part="chevron" nested><code>lucide/chevron-down</code>, 20px, <code>--text-tertiary</code>; rotates 180° on expand — collapsible states only.</LegendRow>
         <LegendRow part="buttonToggle" tier="molecule" nested>Static-only optional <code>ButtonToggle</code> at the head of the action cluster — renders when <code>buttonToggle</code> is passed.</LegendRow>
         <LegendRow part="expand-all action" tier="atom" nested>Static-only optional control right of the header row — <code>Button variant="link"</code> by default, or a Secondary Button via <code>toggleAllVariant</code> — renders when <code>onToggleAll</code> is provided; <code>allExpanded</code> flips "Expand All" <code>chevrons-up-down</code> ↔ "Collapse All" <code>chevrons-down-up</code> (16px). A SIBLING of the header heading, never nested in a button. (Figma: Show Expand All BOOLEAN.)</LegendRow>
@@ -155,7 +163,10 @@ const ICON_OPTIONS = {
 
 function Playground() {
   const [title, setTitle] = useState('Order Summary')
-  const [showIcon, setShowIcon] = useState(true)
+  const [showIcon, setShowIcon] = useState(false)
+  const [showBadge, setShowBadge] = useState(true)
+  const [showMeta, setShowMeta] = useState(true)
+  const [trailLabel, setTrailLabel] = useState('Read-only')
   const [iconKey, setIconKey] = useState('info (default)')
   const [collapsible, setCollapsible] = useState(true)
   const [expanded, setExpanded] = useState(true)
@@ -214,21 +225,38 @@ function Playground() {
 
         <DemoControlGroup label="Content">
           <DemoField label="title" value={title} onChange={setTitle} />
-          <DemoToggle label="showIcon" value={showIcon} onChange={setShowIcon} />
+          <DemoToggle label="badge" value={showBadge} onChange={setShowBadge} />
+          <DemoToggle label="meta" value={showMeta} onChange={setShowMeta} />
+          <DemoField label="trail" value={trailLabel} onChange={setTrailLabel} />
+          <DemoToggle label="showHeaderIcon" value={showIcon} onChange={setShowIcon} />
           <DemoSelect
             label="icon"
             value={iconKey}
             onChange={setIconKey}
             options={Object.keys(ICON_OPTIONS)}
             disabled={!showIcon}
-            hint={!showIcon ? 'No icon is rendered while showIcon is off' : undefined}
+            hint={!showIcon ? 'No icon is rendered while showHeaderIcon is off' : undefined}
           />
         </DemoControlGroup>
       </DemoControls>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <SubAccordion
           title={title}
-          showIcon={showIcon}
+          badge={showBadge ? <Badge variant="purple">Most recent</Badge> : undefined}
+          meta={showMeta ? (
+            <>
+              <span className="text-label-sm-regular" style={{ color: 'var(--text-secondary)' }}>
+                05/12/2026 14:02 UTC
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', flexWrap: 'wrap' }}>
+                <span className="text-label-sm-regular" style={{ color: 'var(--text-secondary)' }}>Orders</span>
+                <Badge variant="gray">ORD-S2600074M</Badge>
+                <Badge variant="gray">ORD-JAN7ERCO7</Badge>
+              </span>
+            </>
+          ) : undefined}
+          trail={trailLabel || undefined}
+          showHeaderIcon={showIcon}
           icon={ICON_OPTIONS[iconKey]}
           collapsible={collapsible}
           expanded={collapsible ? expanded : undefined}

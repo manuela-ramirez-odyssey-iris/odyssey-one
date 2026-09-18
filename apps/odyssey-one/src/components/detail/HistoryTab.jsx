@@ -125,7 +125,7 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
       <div className="pane-col pane-col--narrow">
         {/* Static SubAccordion card — no disclosure, no info icon (Figma
             State=Static, same idiom as DocumentsTab's "All Documents" card) */}
-        <SubAccordion title="Shipment History" collapsible={false} showIcon={false}>
+        <SubAccordion title="Shipment History" collapsible={false}>
           <div className="history-list">
             {entries.map((entry, i) => (
               <div className="history-entry" key={i}>

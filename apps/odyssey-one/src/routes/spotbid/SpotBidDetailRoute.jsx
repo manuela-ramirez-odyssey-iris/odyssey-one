@@ -151,7 +151,7 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
   const total = subtotal + chargeTotal
 
   return (
-    <SubAccordion title="Quote Entry" showIcon={false} defaultExpanded>
+    <SubAccordion title="Quote Entry" defaultExpanded>
       <div className="spotbid-qe__label text-label-sm-medium">Base Charge</div>
       <div className="spotbid-qe__grid">
         {/* Linehaul + Currency merged into one field (FormField trailingSelect
@@ -187,7 +187,6 @@ function QuoteEntryForm({ quote, bid, onSubmit, onDecline, chargesExpanded, onTo
 
       <SubAccordion
         title={`Additional charges (${CHARGE_NAMES.length} available)`}
-        showIcon={false}
         expanded={chargesExpanded}
         onToggle={onToggleCharges}
       >
@@ -235,7 +234,7 @@ function YourQuoteSummary({ quote, bid, onUpdate, chargesExpanded, onToggleCharg
   const total = totalFor(quote, bid)
   const addedCharges = Object.keys(bid.chargeAmounts ?? {}).filter((name) => bid.chargeAmounts[name] > 0)
   return (
-    <SubAccordion title="Your Quote" showIcon={false} defaultExpanded>
+    <SubAccordion title="Your Quote" defaultExpanded>
       <div className="spotbid-qe__grid">
         <TitleSubtitle title={fmtDollar(bid.linehaul)} subtitle="Linehaul" />
         <TitleSubtitle
@@ -246,7 +245,6 @@ function YourQuoteSummary({ quote, bid, onUpdate, chargesExpanded, onToggleCharg
       </div>
       <SubAccordion
         title={`Additional charges (${addedCharges.length} added)`}
-        showIcon={false}
         expanded={chargesExpanded}
         onToggle={onToggleCharges}
       >
@@ -344,7 +342,7 @@ export default function SpotBidDetailRoute() {
       <div className="spotbid-detail">
         <BreadcrumbRow quoteId={quote.quoteId} onHome={goHome} />
 
-        <SubAccordion title="Load Summary" showIcon={false} defaultExpanded>
+        <SubAccordion title="Load Summary" defaultExpanded>
           <div className="spotbid-detail__shipper-row">
             <TitleSubtitle title={quote.shipper} subtitle="Shipper" />
             <TitleSubtitle title={<AddressLines address={quote.shipFrom} />} subtitle="Ship From" />
@@ -362,11 +360,11 @@ export default function SpotBidDetailRoute() {
           </div>
         </SubAccordion>
 
-        <SubAccordion title="Items" showIcon={false} defaultExpanded>
+        <SubAccordion title="Items" defaultExpanded>
           <DataTable table={itemsTable} ariaLabel="Items" />
         </SubAccordion>
 
-        <SubAccordion title="Instructions" showIcon={false} defaultExpanded>
+        <SubAccordion title="Instructions" defaultExpanded>
           <p className="text-label-sm-regular spotbid-detail__instructions">
             {quote.instructions || 'No instructions.'}
           </p>

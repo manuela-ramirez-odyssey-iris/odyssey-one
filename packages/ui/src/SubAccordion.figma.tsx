@@ -5,10 +5,17 @@ import SubAccordion from './SubAccordion'
 // Accordion — collapsible card, no stepper. `State` VARIANT {Collapsed,
 // Expanded, Static} → `expanded`/`collapsible` booleans (Static = the
 // non-collapsible flavor: no chevron, content always revealed); `Title` TEXT →
-// title; `Show Icon` BOOLEAN → showIcon; `Icon` INSTANCE_SWAP → icon
-// (placeholder-20 in Figma; code defaults to lucide/info when omitted);
+// title; `Show header icon` BOOLEAN → showHeaderIcon; `Icon` INSTANCE_SWAP →
+// icon (placeholder-20 in Figma; code defaults to lucide/info when omitted);
 // `Content` SLOT → children. The chevron is always present on the collapsible
 // states; the expand/collapse animation is code-only.
+//
+// S152 header slots: `Show Trail` + `Trail label` TEXT → `trail` (mapped: the
+// label a designer types lands in the snippet, and the boolean gates it).
+// `Show Badge` → `badge` and `Show Meta` → `meta` are NOT mapped, for the same
+// reason `action` and `buttonToggle` aren't — the Figma boolean gates a node
+// the designer composes on canvas, and a node's presence IS the switch in code.
+// Both are documented in the demo.
 //
 // The header actions are NOT mapped. `Show Expand All` and `Show Secondary
 // Button` are the same action drawn two ways, and together they correspond to
@@ -26,12 +33,20 @@ figma.connect(
       expanded: figma.enum('State', { Collapsed: false, Expanded: true, Static: true }),
       collapsible: figma.enum('State', { Collapsed: true, Expanded: true, Static: false }),
       title: figma.string('Title'),
-      showIcon: figma.boolean('Show Icon'),
+      showHeaderIcon: figma.boolean('Show header icon'),
+      trail: figma.boolean('Show Trail', { true: figma.string('Trail label'), false: undefined }),
       icon: figma.instance('Icon'),
       children: figma.instance('Content'),
     },
-    example: ({ expanded, collapsible, title, showIcon, icon, children }) => (
-      <SubAccordion title={title} showIcon={showIcon} icon={icon} collapsible={collapsible} defaultExpanded={expanded}>
+    example: ({ expanded, collapsible, title, showHeaderIcon, trail, icon, children }) => (
+      <SubAccordion
+        title={title}
+        trail={trail}
+        showHeaderIcon={showHeaderIcon}
+        icon={icon}
+        collapsible={collapsible}
+        defaultExpanded={expanded}
+      >
         {children}
       </SubAccordion>
     ),

@@ -20,7 +20,7 @@ const COLUMNS = [
 export default function DraftsPanel({ drafts, restoreDisabled, onRestore, onDelete }) {
   return (
     <div className="pane-col pane-col--wide">
-      <SubAccordion title="Drafts" showIcon={false} collapsible={false}>
+      <SubAccordion title="Drafts" collapsible={false}>
         {drafts.length === 0 ? (
           <EmptyState message="No saved drafts yet — Save Draft from Setup & Carriers." />
         ) : (

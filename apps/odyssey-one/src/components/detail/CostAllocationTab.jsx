@@ -210,7 +210,6 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
           <div className="pane-col pane-col--narrow">
             <SubAccordion
               title="Compare AP/AR"
-              showIcon={false}
               collapsible={false}
               allExpanded={orders.length > 0 ? allExpanded : undefined}
               onToggleAll={orders.length > 0 ? toggleAll : undefined}

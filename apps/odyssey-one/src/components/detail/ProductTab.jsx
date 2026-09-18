@@ -84,7 +84,6 @@ const ProductTab = React.memo(function ProductTab({ data }) {
       <div className="pane-col pane-col--wide">
         <SubAccordion
           title="Product"
-          showIcon={false}
           collapsible={false}
           allExpanded={allExpanded}
           onToggleAll={toggleAll}

@@ -379,7 +379,7 @@ export default function LiveBids({
       )}
 
       <div className="pane-col pane-col--wide">
-      <SubAccordion title="Live Bids" showIcon={false} collapsible={false}>
+      <SubAccordion title="Live Bids" collapsible={false}>
         <div className="live-bids">
           <GroupTable
             columns={columns}
