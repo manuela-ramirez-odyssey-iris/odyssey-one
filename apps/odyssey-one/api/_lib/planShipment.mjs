@@ -118,6 +118,15 @@ function toLine(l, i) {
 }
 
 /**
+ * The grid row a created shipment produces. Only the fields TypeScript callers
+ * read are named; the rest travel as-is into the overlay / the INSERT, which
+ * take the whole object. Full shape: src/api/types/shipmentErrorList.ts.
+ * @typedef {{ odysseyShipmentIdentifier: string, sellShipment: string, buyShipment: string,
+ *             orders: string[], shipmentType: string, panel: string, category: string,
+ *             customerName: string, tenderStatus: string, [k: string]: unknown }} DirectShipmentRow
+ */
+
+/**
  * @param {object} a
  * @param {object} a.mo            ManualOrder (src/api/types/createOrder.ts)
  * @param {string} a.orderNumber   the assigned order number (user-supplied or padded id)
@@ -125,7 +134,7 @@ function toLine(l, i) {
  * @param {string} a.customerName  display name for mo.customerId
  * @param {Date}   a.now           creation instant (history timestamps)
  * @param {string} a.userName      creating user (kept for the caller's audit; not on the row)
- * @returns {{ row: object, detail: object, pickupTs: string|null, deliveryTs: string|null }}
+ * @returns {{ row: DirectShipmentRow, detail: object, pickupTs: string|null, deliveryTs: string|null }}
  */
 export function buildDirectShipment({ mo, orderNumber, orderId, customerName, now = new Date(), userName }) {
   const ids = idsFor(orderId)

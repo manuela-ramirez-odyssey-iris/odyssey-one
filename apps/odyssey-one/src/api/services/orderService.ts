@@ -638,13 +638,7 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   // shipment goes into the shipments overlay (src/data/index.js) and the
   // order is planned — 'Planned Load' is a blink nobody sees.
   const customerName = [...OWNING_ORGS, ...EXTRA_ORGS].find(o => o.value === mo.customerId)?.label ?? mo.customerId ?? ''
-  // buildDirectShipment's JSDoc types row/detail as bare `object` (planShipment.mjs
-  // is JS, shared with the live handler) — cast for property access, same allowJs
-  // boundary candidateOrders.mjs crosses via getCandidateOrders' typed return above.
-  const built = buildDirectShipment({ mo, orderNumber, orderId, customerName, now: new Date(), userName: row.createdBy }) as {
-    row: { odysseyShipmentIdentifier: string; sellShipment: string; [k: string]: unknown }
-    detail: unknown
-  }
+  const built = buildDirectShipment({ mo, orderNumber, orderId, customerName, now: new Date(), userName: row.createdBy })
   addShipment(built.row, built.detail)
   clearShipmentSearchIndex()
   row.orderStatus = 'Planned Shipment'
