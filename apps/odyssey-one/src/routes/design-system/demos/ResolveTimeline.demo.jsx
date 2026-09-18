@@ -12,6 +12,7 @@ export const meta = {
   figmaNode: '6551:921',
   codeConnect: 'packages/ui/src/ResolveTimeline.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [
