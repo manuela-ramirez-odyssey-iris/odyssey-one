@@ -46,9 +46,9 @@ function matchInfo(values, query) {
  * An index bound to one row source. `getRows` is called lazily, per attribute,
  * the first time that attribute is asked about.
  *
- * ponytail: the per-attribute distinct set is cached for the process lifetime —
- * correct for a static seed, stale if rows are created at runtime. Call
- * `clear()` from whatever mutates the source if that ever becomes real.
+ * ponytail: the per-attribute distinct set is cached for the process lifetime.
+ * Runtime-created rows (the shipments overlay, src/data/index.js) call `clear()`
+ * after each mutation so the next probe re-reads the source.
  */
 export function createSearchIndex(getRows) {
   const distinctCache = new Map()

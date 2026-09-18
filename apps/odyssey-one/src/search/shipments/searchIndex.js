@@ -15,3 +15,6 @@ const index = createSearchIndex(getAllShipments)
 export const distinctMatches = index.distinctMatches
 export const valueMatchScore = index.valueMatchScore
 export const valueMatchDetail = index.valueMatchDetail
+
+/** Shipments were created at runtime (mock overlay) — forget cached distincts. */
+export const clearShipmentSearchIndex = index.clear
