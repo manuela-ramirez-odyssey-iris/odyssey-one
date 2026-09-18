@@ -37,5 +37,9 @@ describe('useCreateOrder', () => {
     const invalidatedKeys = invalidateSpy.mock.calls.map((call) => call[0]?.queryKey)
     expect(invalidatedKeys).toContainEqual(['order-list'])
     expect(invalidatedKeys).toContainEqual(['order-tab-counts'])
+    // S150: the create also planted a shipment — the Shipments grid and its
+    // tab badges must not show a stale count.
+    expect(invalidatedKeys).toContainEqual(['shipment-error-list'])
+    expect(invalidatedKeys).toContainEqual(['shipment-category-counts'])
   })
 })

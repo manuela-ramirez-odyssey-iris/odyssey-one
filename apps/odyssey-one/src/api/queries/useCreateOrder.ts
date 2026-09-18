@@ -16,6 +16,11 @@ export function useCreateOrder() {
       // order-list).
       queryClient.invalidateQueries({ queryKey: ['order-list'] })
       queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
+      // S150: the create also created a direct shipment (planShipment.mjs) —
+      // the Shipments grid (useShipmentErrorList) and tab counts
+      // (useCategoryCounts) key on these prefixes.
+      queryClient.invalidateQueries({ queryKey: ['shipment-error-list'] })
+      queryClient.invalidateQueries({ queryKey: ['shipment-category-counts'] })
     },
   })
 }
