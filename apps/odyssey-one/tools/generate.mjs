@@ -1723,15 +1723,21 @@ function generateShipment(index, chainOverride) {
     advanceClock(0.02, 0.3);
   }
   const isConsolidation = orderCount > 1;
+  // S151 (Dave Schultz, 2026-09-17): the Consolidation/Hold branch here is
+  // about POOL membership (poolEligible — true for every multi-order
+  // shipment, so existing 'C' rows read exactly as before), not about
+  // whether a real multi-order consolidation happened. isConsolidation stays
+  // reserved below for the ACTUAL consolidation events (Consolidation
+  // Completed, Routing & Rating Completed).
   pushHistory('Optimization Evaluation', 'update', 'Linx',
-    isConsolidation
+    poolEligible
       ? 'Optimization evaluation completed. Shipment moved to Consolidation.'
       : 'Optimization evaluation completed. Shipment moved to Hold.',
     // DEC-87: Consolidation branch advances the lifecycle ('update'); Hold
     // branch completed but the shipment stopped advancing ('neutral') — OUR
     // call, not ratified spec (see outcome contract comment above, resolves
     // the Hold-branch question S114 parked for Pappu).
-    isConsolidation ? 'update' : 'neutral');
+    poolEligible ? 'update' : 'neutral');
 
   if (isConsolidation) {
     // 4. Consolidation Completed
@@ -1747,96 +1753,102 @@ function generateShipment(index, chainOverride) {
       'update'); // DEC-87: advances the lifecycle, not a milestone
   }
 
-  // 6. Ready for Tender
-  advanceClock(1, 48);
-  pushHistory('Ready for Tender', 'update', 'Linx',
-    'Time-to-Tender reached. Shipment is eligible for tendering and moved to auto tender evaluation.',
-    'update'); // DEC-87: advances the lifecycle, not a milestone
+  if (!preTender) {
+    // ── Tendering pipeline — only a shipment whose window has arrived gets
+    // here. A pre-tender shipment is parked in the pool/Hold (Dave 2026-09-17)
+    // and its history ends at Optimization Evaluation above. ──
 
-  // 7. Auto Tender Validation — TRANSIENT only: every shipment below actually
-  // gets tendered (Tender Sent always follows), so a validation failure here
-  // can only be a retried blip, never this shipment's real terminal event.
-  advanceClock(0.01, 0.2);
-  if (faker.number.float({ min: 0, max: 1 }) < 0.05) {
-    pushHistory('Auto Tender Validation', 'tender', 'Linx',
-      'Auto tender validation failed. Shipment moved for User Review.', 'failure');
-    advanceClock(0.01, 0.1);
-  }
-  pushHistory('Auto Tender Validation', 'tender', 'Linx',
-    'Auto tender validation passed. Tender initiated.',
-    'update'); // DEC-87: advances the lifecycle, not a milestone
+    // 6. Ready for Tender
+    advanceClock(1, 48);
+    pushHistory('Ready for Tender', 'update', 'Linx',
+      'Time-to-Tender reached. Shipment is eligible for tendering and moved to auto tender evaluation.',
+      'update'); // DEC-87: advances the lifecycle, not a milestone
 
-  // 8/9. Tender Sent + Tender Response Received name the SAME carrier both
-  // times — this generator doesn't model re-tender cascades (Sheet3 defers
-  // "Manual tendering" from MVP). focusOption is this shipment's real
-  // accepted carrier, its real in-progress "Sent" carrier, or (all-declined
-  // scenario) its rank-1 carrier — never an unrelated pick(CARRIERS) draw.
-  // tenderFailed assigns EVERY rank an independent Declined/Cancelled draw
-  // (not just rank-1), so routingOptions[0] alone can be 'Cancelled' while
-  // another rank on the SAME shipment really was 'Declined' — a genuine
-  // carrier response. Preferring a real Declined option here (before falling
-  // back to rank-1) is what keeps the tender-timeout narrative below honest:
-  // it only fires when NO option on this shipment shows a real response,
-  // never alongside a Declined one.
-  const focusOption = acceptedOption
-    || routingOptions.find(o => o.status === 'Sent')
-    || routingOptions.find(o => o.status === 'Declined')
-    || routingOptions[0];
-  advanceClock(0.01, 0.5);
-  pushHistory('Tender Sent', 'tender', 'Net Native',
-    `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`,
-    'update'); // DEC-87: advances the lifecycle, not a milestone
-
-  if (hasAccepted) {
-    advanceClock(0.5, 24);
-    pushHistory('Tender Response Received', 'tender', 'Net Native',
-      `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Accepted.`,
-      'success'); // DEC-87 milestone #1: a carrier committed
-  } else if (hasSent) {
-    // Genuinely mid-flight (tenderStatus === 'Sent', no accepted carrier
-    // yet) — no response has arrived, so NO Tender Response Received event
-    // is pushed. This is the "no response event on a not-yet-responded
-    // tender" guard made concrete, and it is reachable today (~15% of
-    // shipments, the tenderInProgress scenario).
-  } else {
-    // tenderFailed (isReviewTerminal): every carrier was tendered and every
-    // one declined or was cancelled (never null — routingCount is never 0
-    // and tenderFailed assigns a status to every rank), so a response WAS
-    // received, just not an acceptance. This IS this shipment's real
-    // terminal event — the only stage the cross-tab correction above leaves
-    // standing as coherent with the shipment's own tender data.
-    advanceClock(0.5, 24);
-    if (focusOption.status === 'Declined') {
-      // DEC-81 follow-up (2026-08-10 user ruling): a real carrier decline is
-      // a normal (if unhappy) SYSTEM outcome — the response arrived and was
-      // recorded successfully, so this is not 'failure' (nothing failed) —
-      // but it is also not a good business outcome, and these are exactly
-      // the shipments that end up in Review. Was outcome: 'success' (bare
-      // green) until this ruling; now 'neutral' (amber) per the user's
-      // verbatim call for "a fourth neutral/amber treatment." The Accepted
-      // branch above is untouched — it stays 'success'.
-      pushHistory('Tender Response Received', 'tender', 'Net Native',
-        `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Declined.`,
-        'neutral');
-    } else {
-      // 'Cancelled' maps to the catalog's Timeout variant — this generator's
-      // status enum has no literal "timeout"; "Cancelled" (no active carrier
-      // decision recorded) is the closer real-world analogue than "Declined".
-      pushHistory('Tender Response Received', 'tender', 'Net Native',
-        'No carrier response received. Tender timed out and was automatically declined.', 'failure');
+    // 7. Auto Tender Validation — TRANSIENT only: every shipment below actually
+    // gets tendered (Tender Sent always follows), so a validation failure here
+    // can only be a retried blip, never this shipment's real terminal event.
+    advanceClock(0.01, 0.2);
+    if (faker.number.float({ min: 0, max: 1 }) < 0.05) {
+      pushHistory('Auto Tender Validation', 'tender', 'Linx',
+        'Auto tender validation failed. Shipment moved for User Review.', 'failure');
+      advanceClock(0.01, 0.1);
     }
+    pushHistory('Auto Tender Validation', 'tender', 'Linx',
+      'Auto tender validation passed. Tender initiated.',
+      'update'); // DEC-87: advances the lifecycle, not a milestone
 
-    // PGI Response Received (validation-errors variant) — TERMINAL wrap-up,
-    // gated on a REAL signal rather than another random draw: this
-    // shipment's own orders resolve orderStatus to 'Shipment Failed'
-    // whenever !hasAccepted && !hasSent (see orderStatusLabel a few hundred
-    // lines below), which is exactly the condition guarding this whole branch
-    // (isReviewTerminal). So every shipment that reaches here really does
-    // carry a Shipment-Failed order; the PGI-errors variant is unconditional here,
-    // not a coin flip.
-    advanceClock(1, 24);
-    pushHistory('PGI Response Received', 'completion', 'ERP',
-      'PGI response received with validation errors. Moved to user review for correction.', 'failure');
+    // 8/9. Tender Sent + Tender Response Received name the SAME carrier both
+    // times — this generator doesn't model re-tender cascades (Sheet3 defers
+    // "Manual tendering" from MVP). focusOption is this shipment's real
+    // accepted carrier, its real in-progress "Sent" carrier, or (all-declined
+    // scenario) its rank-1 carrier — never an unrelated pick(CARRIERS) draw.
+    // tenderFailed assigns EVERY rank an independent Declined/Cancelled draw
+    // (not just rank-1), so routingOptions[0] alone can be 'Cancelled' while
+    // another rank on the SAME shipment really was 'Declined' — a genuine
+    // carrier response. Preferring a real Declined option here (before falling
+    // back to rank-1) is what keeps the tender-timeout narrative below honest:
+    // it only fires when NO option on this shipment shows a real response,
+    // never alongside a Declined one.
+    const focusOption = acceptedOption
+      || routingOptions.find(o => o.status === 'Sent')
+      || routingOptions.find(o => o.status === 'Declined')
+      || routingOptions[0];
+    advanceClock(0.01, 0.5);
+    pushHistory('Tender Sent', 'tender', 'Net Native',
+      `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`,
+      'update'); // DEC-87: advances the lifecycle, not a milestone
+
+    if (hasAccepted) {
+      advanceClock(0.5, 24);
+      pushHistory('Tender Response Received', 'tender', 'Net Native',
+        `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Accepted.`,
+        'success'); // DEC-87 milestone #1: a carrier committed
+    } else if (hasSent) {
+      // Genuinely mid-flight (tenderStatus === 'Sent', no accepted carrier
+      // yet) — no response has arrived, so NO Tender Response Received event
+      // is pushed. This is the "no response event on a not-yet-responded
+      // tender" guard made concrete, and it is reachable today (~15% of
+      // shipments, the tenderInProgress scenario).
+    } else {
+      // tenderFailed (isReviewTerminal): every carrier was tendered and every
+      // one declined or was cancelled (never null — routingCount is never 0
+      // and tenderFailed assigns a status to every rank), so a response WAS
+      // received, just not an acceptance. This IS this shipment's real
+      // terminal event — the only stage the cross-tab correction above leaves
+      // standing as coherent with the shipment's own tender data.
+      advanceClock(0.5, 24);
+      if (focusOption.status === 'Declined') {
+        // DEC-81 follow-up (2026-08-10 user ruling): a real carrier decline is
+        // a normal (if unhappy) SYSTEM outcome — the response arrived and was
+        // recorded successfully, so this is not 'failure' (nothing failed) —
+        // but it is also not a good business outcome, and these are exactly
+        // the shipments that end up in Review. Was outcome: 'success' (bare
+        // green) until this ruling; now 'neutral' (amber) per the user's
+        // verbatim call for "a fourth neutral/amber treatment." The Accepted
+        // branch above is untouched — it stays 'success'.
+        pushHistory('Tender Response Received', 'tender', 'Net Native',
+          `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Declined.`,
+          'neutral');
+      } else {
+        // 'Cancelled' maps to the catalog's Timeout variant — this generator's
+        // status enum has no literal "timeout"; "Cancelled" (no active carrier
+        // decision recorded) is the closer real-world analogue than "Declined".
+        pushHistory('Tender Response Received', 'tender', 'Net Native',
+          'No carrier response received. Tender timed out and was automatically declined.', 'failure');
+      }
+
+      // PGI Response Received (validation-errors variant) — TERMINAL wrap-up,
+      // gated on a REAL signal rather than another random draw: this
+      // shipment's own orders resolve orderStatus to 'Shipment Failed'
+      // whenever !hasAccepted && !hasSent (see orderStatusLabel a few hundred
+      // lines below), which is exactly the condition guarding this whole branch
+      // (isReviewTerminal). So every shipment that reaches here really does
+      // carry a Shipment-Failed order; the PGI-errors variant is unconditional here,
+      // not a coin flip.
+      advanceClock(1, 24);
+      pushHistory('PGI Response Received', 'completion', 'ERP',
+        'PGI response received with validation errors. Moved to user review for correction.', 'failure');
+    }
   }
 
   // 10-15. Post-acceptance pipeline — only a shipment actually Accepted
@@ -2164,7 +2176,10 @@ function generateShipment(index, chainOverride) {
     distanceMiles: parseFloat(distance.toFixed(2)),
     totalVolumeValue: totalVolume, // I5 — Σ order volumes
     totalVolumeUomCode: 'cuft',
-    acceptedCarrierLabel: acceptedOption ? `${acceptedOption.scac} - ${mode}` : `${carrier.scac} - ${mode}`,
+    // Only an ACCEPTED carrier is "the" carrier. The old fallback stamped a
+    // random routing carrier onto every un-accepted shipment — including ones
+    // nobody had tendered yet (S151).
+    acceptedCarrierLabel: acceptedOption ? `${acceptedOption.scac} - ${mode}` : null,
     seedEquipment: equipmentCode,
     utilizationPercent: faker.number.int({ min: 50, max: 100 }),
     costSummary: {

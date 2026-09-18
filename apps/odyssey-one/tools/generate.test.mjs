@@ -960,6 +960,12 @@ test('Routing/Optimization/Auto-Tender failures are TRANSIENT only — every shi
   for (const s of ds.shipments) {
     const d = ds.details.get(s.sellShipment)
     assert.ok(d.shippingOptionList.length >= 3, `shipment ${s.buyShipment} has fewer than 3 tender rows — contradicts the real tender-data floor`)
+    // S151: a pre-tender shipment (tenderStatus === '', panel === 'monitoring')
+    // has routing options with status null on every rank — real tender rows,
+    // but nobody has been tendered to yet, so no "Tender Sent" entry exists.
+    // Narrowed rather than dropped: every ACTUALLY-tendered shipment still
+    // must show the entry.
+    if (s.tenderStatus === '' && s.panel === 'monitoring') continue
     assert.ok(d.historyList.some((h) => h.action === 'Tender Sent'), `shipment ${s.buyShipment} has tender rows but no "Tender Sent" history entry`)
     for (const action of TRANSIENT_ONLY_ACTIONS) {
       const entries = d.historyList.filter((h) => h.action === action)
@@ -1440,4 +1446,27 @@ test('monitoring tabs agree with tender state — the S151 invariant', () => {
   // Every monitoring category must be populated — an empty tab is a regression.
   for (const c of ['approved', 'sent', 'consolidation', 'hold', 'spotbid'])
     assert.ok(ds.shipments.some((s) => s.panel === 'monitoring' && s.category === c), `no rows in ${c}`)
+})
+
+test('history ends at Optimization Evaluation for a pre-tender shipment, and names the right pool (S151)', () => {
+  const ds = buildDataset()
+  const rowBySell = new Map(ds.shipments.map((s) => [s.sellShipment, s]))
+  let seenPool = 0, seenHold = 0
+  for (const [id, d] of ds.details) {
+    const s = rowBySell.get(id)
+    const actions = d.historyList.map((h) => h.action)
+    if (s.tenderStatus === '' && s.panel === 'monitoring') {
+      assert.ok(!actions.includes('Ready for Tender'), `${id} pre-tender but reached Ready for Tender`)
+      assert.ok(!actions.includes('Tender Sent'), `${id} pre-tender but has Tender Sent`)
+      const opt = d.historyList.find((h) => h.action === 'Optimization Evaluation' && h.outcome !== 'failure')
+      assert.ok(opt, `${id} has no Optimization Evaluation`)
+      if (s.category === 'consolidation') { assert.match(opt.details, /moved to Consolidation/); seenPool++ }
+      if (s.category === 'hold')          { assert.match(opt.details, /moved to Hold/); seenHold++ }
+      assert.equal(d.acceptedCarrierLabel, null, `${id} pre-tender but shows an accepted carrier`)
+    } else {
+      assert.ok(actions.includes('Tender Sent'), `${id} tendered but no Tender Sent event`)
+    }
+    if (s.tenderStatus !== 'Accepted') assert.equal(d.acceptedCarrierLabel, null, `${id} ${s.tenderStatus} but has acceptedCarrierLabel`)
+  }
+  assert.ok(seenPool > 0 && seenHold > 0)
 })
