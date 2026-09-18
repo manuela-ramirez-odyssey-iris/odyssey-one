@@ -119,14 +119,23 @@ export const TAB_COLUMNS = {
 // Restore only on Cancelled orders. Audit Trail on EVERY row (ORD-27) — a
 // cancelled order still has a trail, it just stopped growing. Not on Draft
 // (no trail yet) nor Validation Errors (not an order yet).
-// The two lifecycle statuses whose MEANING is "part of a shipment" (LINX-7555
-// status table, orders/domain-analysis.md §4). Ready for Planning and Planned
-// Load have no shipment yet — the shipment is born in Planning & Consolidation,
-// which is what takes an order from Planned Load to Planned Shipment. The
-// seed puts every Planned Load order in a shipment anyway (it never models the
-// pre-shipment load stage); the canon wins here — confirm with Jana before
-// widening this (S149, 2026-09-17).
-export const IN_SHIPMENT_STATUSES = new Set(['Planned Shipment', 'Shipment Failed'])
+// The status that MEANS "this order is in a shipment" (DEC-164).
+//
+// S149 gated on `Planned Shipment` OR `Shipment Failed`, reasoning from the
+// LINX-7555 table that a shipment is born in Planning & Consolidation so
+// earlier statuses have nothing to link to. Dave Schultz overturned that
+// premise (DEC-156): a load is always in a shipment from the moment the order
+// exists. DEC-162 then collapsed every shipped order to `Planned Shipment` —
+// a failed TENDER is not a failed SHIPMENT — so the generator no longer
+// produces `Shipment Failed` or `Planned Load` at all.
+//
+// This is now an exact statement of that invariant rather than an inference:
+// an order has a shipment IFF its status is `Planned Shipment`. The only
+// orders in a shipment that are not are Validation-Errors rows, whose status
+// is null because they never entered the lifecycle — and those never reach
+// this function (the VE tab renders its own Resolve button column, not the
+// action menu).
+export const IN_SHIPMENT_STATUSES = new Set(['Planned Shipment'])
 
 export function allTabActionLabels(row) {
   const base = row.status === 'Cancelled' ? ['View', 'Audit Trail', 'Copy', 'Restore']

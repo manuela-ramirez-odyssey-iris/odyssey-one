@@ -12,16 +12,35 @@ describe('ordersColumns', () => {
     expect(allTabActionLabels({ orderSource: 'Integrated', status: 'Ready for Planning' })).toEqual(['View', 'Audit Trail', 'Copy'])
     expect(allTabActionLabels({ orderSource: 'Manual', status: 'Cancelled' })).toEqual(['View', 'Audit Trail', 'Copy', 'Restore'])
   })
-  // S149 — "See in Shipments" only where the status MEANS the order is in a
-  // shipment (LINX-7555): Planned Shipment / Shipment Failed. Ready for
-  // Planning and Planned Load precede Planning & Consolidation, so no shipment
-  // exists to link to yet.
+  // DEC-164 — "See in Shipments" only where the status MEANS the order is in a
+  // shipment. S149 also allowed `Shipment Failed`; DEC-162 retired that for
+  // shipped orders (a failed tender is not a failed shipment), leaving
+  // `Planned Shipment` as the exact invariant.
   it('offers See in Shipments only for orders that are in a shipment', () => {
     expect(allTabActionLabels({ orderSource: 'Integrated', status: 'Planned Shipment' })).toEqual(['View', 'Audit Trail', 'See in Shipments', 'Copy'])
-    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Shipment Failed' })).toEqual(['View', 'Audit Trail', 'See in Shipments', 'Edit', 'Copy', 'Cancel'])
-    for (const status of ['Ready for Planning', 'Planned Load', 'Planning Failed', 'Hold', 'Draft', 'Cancelled']) {
+    expect(allTabActionLabels({ orderSource: 'Manual', status: 'Planned Shipment' })).toEqual(['View', 'Audit Trail', 'See in Shipments', 'Edit', 'Copy', 'Cancel'])
+    for (const status of ['Ready for Planning', 'Planned Load', 'Planning Failed', 'Shipment Failed', 'Hold', 'Draft', 'Cancelled']) {
       expect(allTabActionLabels({ orderSource: 'Manual', status }), status).not.toContain('See in Shipments')
     }
+  })
+
+  // The gate must agree with the corpus, not just with itself: every order the
+  // seed puts in a shipment must be offered the action, and no order outside
+  // one may be. This is what caught DEC-155 going stale when DEC-162 rewrote
+  // the status vocabulary underneath it.
+  it('the gate matches the seeded corpus exactly', async () => {
+    const [{ default: shipments }, { default: orders }] = await Promise.all([
+      import('../../data/shipments.json'),
+      import('../../data/orders.json'),
+    ])
+    const inShipment = new Set(shipments.flatMap((s) => s.orders))
+    const offered = (o) => allTabActionLabels({ orderSource: o.orderSource, status: o.orderStatus }).includes('See in Shipments')
+    // Validation-Errors rows (orderStatus null) never reach this menu.
+    const lifecycle = orders.filter((o) => o.orderStatus)
+    const missed = lifecycle.filter((o) => inShipment.has(o.orderNumber) && !offered(o))
+    const wrong = lifecycle.filter((o) => !inShipment.has(o.orderNumber) && offered(o))
+    expect(missed.map((o) => `${o.orderNumber}:${o.orderStatus}`).slice(0, 5)).toEqual([])
+    expect(wrong.map((o) => `${o.orderNumber}:${o.orderStatus}`).slice(0, 5)).toEqual([])
   })
   // S131 — opening a row (a search-result click) offers only what that row's own
   // menu offers: Resolve → Edit → View, each gated by its real availability.
