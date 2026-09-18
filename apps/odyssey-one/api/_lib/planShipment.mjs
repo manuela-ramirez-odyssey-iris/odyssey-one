@@ -259,3 +259,72 @@ export function buildDirectShipment({ mo, orderNumber, orderId, customerName, no
 
   return { row, detail, pickupTs: toTs(pickupIso, pickupTz), deliveryTs: toTs(deliveryIso, deliveryTz) }
 }
+
+// ── Live SQL ────────────────────────────────────────────────────────────────
+// Column order = tools/seed.mjs:110-116, so a runtime shipment is
+// indistinguishable from a seeded one to every reader (ROW_COLUMNS,
+// buildDetailQuery, the counts query). stops/tenders/events are NOT written:
+// no read path selects from them (grep "FROM stops|FROM events" api/_lib → 0),
+// and the detail blob carries the stops and history the modal renders.
+const INSERT_COLS = [
+  'sell_shipment', 'buy_shipment', 'orders', 'pro', 'customer_id', 'customer_name', 'consignor', 'consignee',
+  'origin', 'destination', 'pickup_date', 'delivery_date', 'pickup_ts', 'delivery_ts', 'mode', 'equipment_code',
+  'equipment', 'seal', 'scac', 'tender_status', 'shipment_status', 'panel', 'category', 'validation_message',
+  'gross_weight', 'load', 'load_count', 'order_count', 'ap_freight_cost', 'pickup_numbers', 'detail',
+  'shipment_type', 'planning_type', 'po_numbers', 'leg_type', 'sequence_leg', 'next_shipment_id',
+  'odyssey_shipment_id',
+]
+
+export function buildInsertShipmentQuery({ row: s, detail, pickupTs, deliveryTs }) {
+  const values = [
+    s.sellShipment, s.buyShipment, s.orders, s.pro, s.customerId, s.customerName, s.consignor, s.consignee,
+    s.origin, s.destination, s.pickupDate, s.deliveryDate, pickupTs, deliveryTs, s.mode, s.equipmentCode,
+    s.equipment, s.seal, s.scac, s.tenderStatus, s.shipmentStatus, s.panel, s.category, s.validationMessage,
+    s.grossWeight, s.load, s.loadCount, s.orderCount, s.apFreightCost, s.pickupNumbers ?? [],
+    JSON.stringify(detail),
+    s.shipmentType ?? null, s.planningType ?? null, s.poNumbers ?? [], s.legType ?? null, s.shipmentSequenceLeg ?? null, s.nextShipmentId ?? null,
+    s.odysseyShipmentIdentifier,
+  ]
+  const placeholders = INSERT_COLS.map((c, i) => {
+    const p = `$${i + 1}`
+    if (c === 'detail') return `${p}::jsonb`
+    if (c === 'pickup_ts' || c === 'delivery_ts') return `${p}::timestamptz`
+    return p
+  })
+  return { text: `INSERT INTO shipments (${INSERT_COLS.join(', ')}) VALUES (${placeholders.join(', ')})`, values }
+}
+
+// orders.shipment_sell_id (001_schema.sql:52) — the FK the seed fills and the
+// runtime never did. Ordered AFTER the shipment insert so a failure between
+// the two leaves a truthful 'Ready for Planning', never a dangling link.
+export function buildLinkOrderQuery(orderNumber, sellShipment) {
+  return {
+    text: `UPDATE orders SET shipment_sell_id = $1, order_status = 'Planned Shipment' WHERE order_number = $2`,
+    values: [sellShipment, orderNumber],
+  }
+}
+
+// search_index is the live free-text/attribute probe (003_search_index.sql);
+// a shipment missing here is invisible to the search bar. Same projection the
+// seed uses (project-search.mjs → search-registry.mjs projectRow), fed the
+// snake_case keys the registry reads.
+export function buildSearchIndexQuery(row) {
+  const src = {
+    odyssey_shipment_id: row.odysseyShipmentIdentifier, buy_shipment: row.buyShipment, sell_shipment: row.sellShipment,
+    orders: row.orders, pro: row.pro, pickup_numbers: row.pickupNumbers, customer_id: row.customerId,
+    customer_name: row.customerName, consignor: row.consignor, consignee: row.consignee, origin: row.origin,
+    destination: row.destination, equipment: row.equipment, seal: row.seal, scac: row.scac, load: row.load,
+    shipment_type: row.shipmentType, planning_type: row.planningType,
+  }
+  const rows = projectRow('shipments', src, row.sellShipment)
+  const values = [], tuples = []
+  rows.forEach((r, i) => {
+    const b = i * 5
+    tuples.push(`($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5})`)
+    values.push(r.domain, r.entity_id, r.attr, r.value, r.display)
+  })
+  return {
+    text: `INSERT INTO search_index (domain, entity_id, attr, value, display) VALUES ${tuples.join(', ')} ON CONFLICT DO NOTHING`,
+    values,
+  }
+}

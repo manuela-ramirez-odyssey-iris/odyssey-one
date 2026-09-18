@@ -136,3 +136,38 @@ test('a blank delivery date yields empty display + null ts, never a crash', () =
   assert.equal(row.deliveryDate, '')
   assert.equal(deliveryTs, null)
 })
+
+test('insert query: seed.mjs column order, detail as JSON, ts columns from the builder', () => {
+  const built = buildDirectShipment(args())
+  const q = buildInsertShipmentQuery(built)
+  assert.match(q.text, /INSERT INTO shipments \(/)
+  assert.match(q.text, /sell_shipment, buy_shipment, orders, pro, customer_id, customer_name, consignor, consignee/)
+  assert.match(q.text, /odyssey_shipment_id/)
+  assert.equal(q.values[0], '26090001')
+  assert.equal(q.values[1], '900090001')
+  assert.deepEqual(q.values[2], ['ORD-1001'])
+  assert.equal(q.values[12], '2026-06-15T08:00:00-06:00') // pickup_ts
+  assert.equal(q.values[13], '2026-06-18T12:00:00-06:00') // delivery_ts
+  assert.equal(typeof q.values[30], 'string')              // detail (JSON string)
+  assert.equal(JSON.parse(q.values[30]).shipmentId, '26090001')
+  assert.equal(q.values.at(-1), 'O60090001')               // odyssey_shipment_id
+  assert.equal(q.values.length, 38)
+})
+
+test('link query: the order points at its shipment and reads Planned Shipment', () => {
+  const q = buildLinkOrderQuery('ORD-1001', '26090001')
+  assert.match(q.text, /UPDATE orders SET shipment_sell_id = \$1, order_status = 'Planned Shipment' WHERE order_number = \$2/)
+  assert.deepEqual(q.values, ['26090001', 'ORD-1001'])
+})
+
+test('search-index query: one row per projected attribute, keyed by sell_shipment', () => {
+  const { row } = buildDirectShipment(args())
+  const q = buildSearchIndexQuery(row)
+  assert.match(q.text, /INSERT INTO search_index \(domain, entity_id, attr, value, display\) VALUES/)
+  assert.match(q.text, /ON CONFLICT DO NOTHING/)
+  // 5 columns per row; values include the odyssey id and the order number
+  assert.equal(q.values.length % 5, 0)
+  assert.ok(q.values.includes('O60090001'))
+  assert.ok(q.values.includes('ORD-1001'))
+  assert.ok(q.values.every((v, i) => i % 5 !== 1 || v === '26090001'))
+})
