@@ -94,6 +94,19 @@
   --chart-2: var(--ice-blue-200);
   --chart-3: var(--tan-hide-600);
   --chart-4: var(--tan-hide-300);
+  /* 5-8 added 2026-09-18 (D17). Same dark/light hue-pair shape as 1-4, built from
+     primitives that already exist -- no new hexes. Needed because a widget legend
+     separates one metric per colour and must not repeat: before this, Home's
+     Shipments Exceptions widget painted its 5th row and segment --chart-rest, the
+     donut's UNFILLED grey, so that metric read as empty space.
+     Deliberately code-only, NOT Figma variables (user ruling 2026-09-18): segments
+     and indicator dots are consumer-passed data (rows[].indicatorColor,
+     chartSegments[].color): the Figma masters draw one example and never enumerate
+     them. tokens-audit walks Figma -> code, so code-only tokens are not drift. */
+  --chart-5: var(--caribbean-green-600);
+  --chart-6: var(--caribbean-green-200);
+  --chart-7: var(--sunrise-yellow-600);
+  --chart-8: var(--sunrise-yellow-300);
   --chart-rest: var(--deep-sea-neutral-200);
 
   /* --- Semantic: Background --- */
@@ -270,6 +283,16 @@
   --home-grid-columns: 6;
   --home-grid-col-min-width: 170px;
   --home-grid-row-min-height: 184px;
+
+  /* --- Widget height ceiling ---
+     Hard cap for the 2x2-span variants (3x / 3xChart / 3xCta), user ruling
+     2026-09-18: the largest widgets must not grow past this, however many rows
+     they are handed. A 2x2 cell already floors at 388px (184*2 + 20 gap) and
+     .home-widget-cell stretches the widget to it, so the widget lives in
+     388..420 and content beyond that scrolls inside its own region rather than
+     pushing the shell. Mirrored in Figma as maxHeight on the three shell
+     variants; there is no Figma variable to bind (max-height is not bindable). */
+  --widget-height-max: 420px;
 
   /* --- Border Radius --- */
   --radius-sm: 4px;

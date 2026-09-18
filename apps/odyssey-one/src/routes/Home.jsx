@@ -188,7 +188,7 @@ const shipmentsExceptionsRows = [
   { label: 'Routing Review', value: '72 (17.39%)', indicatorColor: 'var(--chart-2)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'routing-review' } } },
   { label: 'Tender Issues', value: '161 (38.89%)', indicatorColor: 'var(--chart-3)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'tender-issues' } } },
   { label: 'Tender Review', value: '38 (9.18%)', indicatorColor: 'var(--chart-4)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'tender-review' } } },
-  { label: 'Bid Review', value: '44 (10.63%)', indicatorColor: 'var(--chart-rest)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'bid-review' } } },
+  { label: 'Bid Review', value: '44 (10.63%)', indicatorColor: 'var(--chart-5)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'bid-review' } } },
 ]
 
 const shipmentsExceptionsSegments = [
@@ -196,7 +196,7 @@ const shipmentsExceptionsSegments = [
   { value: 72, color: 'var(--chart-2)' },
   { value: 161, color: 'var(--chart-3)' },
   { value: 38, color: 'var(--chart-4)' },
-  { value: 44, color: 'var(--chart-rest)' },
+  { value: 44, color: 'var(--chart-5)' },
 ]
 
 const shipmentsPgipgrRows = [

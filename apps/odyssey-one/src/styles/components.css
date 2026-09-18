@@ -2947,6 +2947,32 @@ button.breadcrumb__label:focus-visible {
 .widget--3x,
 .widget--3xChart { width: 360px; gap: var(--spacing-6); }
 
+/* Height ceiling for the 2x2-span variants (user ruling 2026-09-18). However many
+   rows a widget is handed, the shell stops at --widget-height-max and the content
+   region scrolls inside it — header and the Go-to link stay pinned and visible.
+   `min-height: 0` is the load-bearing half: flex children default to
+   `min-height: auto` and refuse to shrink below their content, so `overflow-y`
+   alone would do nothing here. Scrollbar styling is the global 6px one at the top
+   of this file — nothing component-specific needed.
+   Mirrored in Figma as maxHeight on shells 1774:1548 / 1774:1629 / 1934:715. */
+.widget--3x,
+.widget--3xChart,
+.widget--3xCta {
+  max-height: var(--widget-height-max);
+}
+/* No donut in these two, so the whole content is the scroll region. */
+.widget__content--3x,
+.widget__content--3xCta {
+  min-height: 0;
+  overflow-y: auto;
+}
+/* 3xChart scrolls only the legend: scrolling the donut out of view would strand
+   the rows that explain it, so the chart section is pinned and the data section
+   is what gives. */
+.widget__content--3xChart {
+  min-height: 0;
+}
+
 /* Content/Button distribution inside the widget shell when it's taller than its
    natural content height (i.e. when placed in a Home-grid cell larger than content).
    - 1x → Content vertically centers between header bottom and shell bottom-padding
@@ -3093,6 +3119,8 @@ button.breadcrumb__label:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 28px;
+  /* Pinned under the --widget-height-max cap — the legend below is what scrolls. */
+  flex-shrink: 0;
 }
 .widget__info-container {
   display: flex;
@@ -3103,6 +3131,10 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
   gap: var(--spacing-2);
   margin-top: var(--spacing-6);
+  /* The 3xChart scroll region (see --widget-height-max above). min-height:0 is
+     required — a flex child defaults to min-height:auto and won't shrink. */
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .widget__pie {
