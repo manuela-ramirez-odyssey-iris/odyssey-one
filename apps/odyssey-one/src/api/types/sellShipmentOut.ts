@@ -457,7 +457,8 @@ export interface SellShipmentOut {
   distanceMiles?: number
   totalVolumeValue?: number
   totalVolumeUomCode?: string
-  acceptedCarrierLabel?: string
+  // null when no carrier accepted — only an ACCEPTED tender names a carrier (S151).
+  acceptedCarrierLabel?: string | null
   seedEquipment?: string
   utilizationPercent?: number
   costSummary?: SellShipmentCostSummary

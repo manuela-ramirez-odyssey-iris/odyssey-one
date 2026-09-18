@@ -2032,7 +2032,10 @@ function generateShipment(index, chainOverride) {
       orderNumber: ord.orderId,
       customerId: shipFromCustomer.id,
       owningOrganization: shipFromCustomer.name,
-      consolidatable: faker.number.float({ min: 0, max: 1 }) < 0.70,
+      // Inherited from the shipment's pool eligibility (Task 1) so the header
+      // checkbox, the Monitoring tab and the Optimization Evaluation history
+      // line cannot disagree. Every order of a C is consolidatable by construction.
+      consolidatable: poolEligible,
       equipmentCode: orderEquipCode,
       equipmentReferenceNumber: orderEquipRef,
       customerRequiredCarrier: orderCarrier,
@@ -2215,7 +2218,13 @@ function generateShipment(index, chainOverride) {
 
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
   // an orders.json row with the SAME id, customer, locations, dates, weights.
-  const orderStatusLabel = hasAccepted ? 'Planned Shipment' : hasSent ? 'Planned Load' : 'Shipment Failed'; // I6
+  // Dave Schultz (2026-09-17): a load is always in a shipment from the moment the
+  // order exists — so an order that HAS a shipment is Planned Shipment, full
+  // stop. The tender's fate is the shipment's story, not the order's. The old
+  // mapping read Sent as 'Planned Load' and a declined tender as 'Shipment
+  // Failed'; both conflated axes. Planning Failed / Shipment Failed remain
+  // reachable only through generateUnshippedOrder (no shipment exists there).
+  const orderStatusLabel = 'Planned Shipment'; // I6, revised S151
   orders.forEach((ord, oi) => {
     const h = orderHeaders[oi];
     const w = ord.window;

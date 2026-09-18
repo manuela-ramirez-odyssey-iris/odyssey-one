@@ -847,10 +847,10 @@ test('history coherence: every identifier named in details belongs to that shipm
 
 // ── Failure-scenario pass (2026-08-10, same-day follow-up to DEC-80) ───────
 // The lifecycle failure statuses — unrelated to Validation Errors since
-// ORD-24 (user ruling 2026-09-05): these are ordinary Created-tab rows now,
-// this list exists only to check the PGI-errors history entry lines up with
-// a real Planning/Shipment-Failed order below.
-const LIFECYCLE_FAILURE_STATUSES = ['Planning Failed', 'Shipment Failed']
+// ORD-24 (user ruling 2026-09-05): these are ordinary Created-tab rows now.
+// S151: no longer reachable from a shipped order (a shipped order always
+// reads Planned Shipment or null-via-VE) — the PGI-errors test below checks
+// against that instead.
 
 test('every history entry carries a valid outcome (success | failure | update | neutral | info)', () => {
   const ds = buildDataset({ totalShipments: 300 })
@@ -987,7 +987,12 @@ test('PGI validation-errors variant only appears on shipments that actually carr
     const orderIds = d.orderList.map((o) => o.orderNumber)
     const ownOrders = ds.orders.filter((o) => orderIds.includes(o.orderNumber))
     assert.ok(ownOrders.length > 0, `shipment ${s.buyShipment} has a PGI-errors entry but no matching order rows found`)
-    assert.ok(ownOrders.every((o) => LIFECYCLE_FAILURE_STATUSES.includes(o.orderStatus)), `shipment ${s.buyShipment} has a PGI-errors entry but its orders aren't in a lifecycle failure status`)
+    // S151 (Dave Schultz): a shipped order reads Planned Shipment regardless
+    // of the tender's outcome — LIFECYCLE_FAILURE_STATUSES no longer applies
+    // to a SHIPPED order (it's reachable only through generateUnshippedOrder
+    // now). null is still allowed: VE (D1) can overwrite orderStatus
+    // independently of this shipment's own PGI-errors history.
+    assert.ok(ownOrders.every((o) => o.orderStatus === 'Planned Shipment' || o.orderStatus === null), `shipment ${s.buyShipment} has a PGI-errors entry but its orders aren't Planned Shipment`)
     checked++
   }
   assert.ok(checked > 0, 'no PGI-errors entries found — widen totalShipments if this flakes')
@@ -1338,8 +1343,14 @@ test('at least one multi-order order-change row has no active tender and a null 
     const d = ds.details.get(s.sellShipment)
     return d.orderList.length > 1
   })
-  assert.ok(scenarioBRows.length >= 10 && scenarioBRows.length <= 20,
-    `expected 10-20 no-active-tender multi-order order-change rows, got ${scenarioBRows.length}`)
+  // S151: the floor was 10 before Task 4 dropped a faker draw from the order
+  // headers (consolidatable now reads poolEligible instead of drawing its own
+  // float — plan's "renumbering is accepted"), which re-shuffled the shared
+  // stream and shrank this population to 5. Floor lowered to keep guarding
+  // the real risk this test exists for — the population going to zero, not
+  // its exact size, which was never a design target.
+  assert.ok(scenarioBRows.length >= 3 && scenarioBRows.length <= 20,
+    `expected 3-20 no-active-tender multi-order order-change rows, got ${scenarioBRows.length}`)
   for (const s of scenarioBRows) {
     const d = ds.details.get(s.sellShipment)
     const c = d.orderChange.consolidation
@@ -1469,4 +1480,31 @@ test('history ends at Optimization Evaluation for a pre-tender shipment, and nam
     if (s.tenderStatus !== 'Accepted') assert.equal(d.acceptedCarrierLabel, null, `${id} ${s.tenderStatus} but has acceptedCarrierLabel`)
   }
   assert.ok(seenPool > 0 && seenHold > 0)
+})
+
+test('every order that has a shipment reads Planned Shipment — a failed tender is not a failed shipment (S151)', () => {
+  const ds = buildDataset()
+  const shipped = new Set(ds.shipments.flatMap((s) => s.orders))
+  for (const o of ds.orders) {
+    if (!shipped.has(o.orderNumber)) continue
+    // VE (validation-errors, D1/D4) is an orthogonal population marker drawn
+    // independently over ALL INTEGRATED rows, shipped or not — it overwrites
+    // orderStatus to null ("never entered the lifecycle") regardless of
+    // whether a real shipment exists. Pre-existing behavior, not touched by
+    // S151 — narrowed out here rather than asserted against.
+    if (o.orderStatus === null) continue
+    assert.equal(o.orderStatus, 'Planned Shipment', `${o.orderNumber} is shipped but reads ${o.orderStatus}`)
+  }
+  // Unshipped orders keep their own ladder — nothing here may have touched them.
+  assert.ok(ds.orders.some((o) => !shipped.has(o.orderNumber) && o.orderStatus === 'Ready for Planning'))
+})
+
+test('the Consolidatable flag on the order agrees with the pool/Hold tab (S151)', () => {
+  const ds = buildDataset()
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    if (s.orders.length > 1) { for (const o of d.orderList) assert.equal(o.consolidatable, true, `${s.sellShipment} is a C but an order is not consolidatable`); continue }
+    if (s.category === 'consolidation') assert.equal(d.orderList[0].consolidatable, true, s.sellShipment)
+    if (s.category === 'hold')          assert.equal(d.orderList[0].consolidatable, false, s.sellShipment)
+  }
 })
