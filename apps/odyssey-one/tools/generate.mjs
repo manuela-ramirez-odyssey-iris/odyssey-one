@@ -88,6 +88,13 @@ import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.
 // Module-level mutable state (orderSeq, orderRows, orderEnrichments,
 // usedSellShipments) is reset by buildDataset() so repeated in-process calls
 // stay deterministic. resetGeneratorState() zeroes it all at once.
+// An already-consolidated shipment sits in the optimization pool only while it
+// can still take more loads (S151 follow-up, user 2026-09-18: bring the pool's
+// consolidated share from 60% down to ~40%). Order count is a PROXY for "has
+// room" — the real constraint is weight/volume against the equipment, which
+// this generator does not model; revisit when Dave gives us the capacity rule.
+const CONSOLIDATION_POOL_MAX_ORDERS = 2;
+
 const ORDER_ID_BASE = 91000; // 5-digit family; ~5k orders/run stays 5-digit
 let orderSeq = ORDER_ID_BASE;
 function nextOrderId() { return orderSeq++; }
@@ -984,13 +991,27 @@ function generateShipment(index, chainOverride) {
   const preTender        = lifecycle === 'preTender';
   const isSpot           = lifecycle === 'spot';
   const tenderFailed     = lifecycle === 'failed' || isSpot; // every carrier answered no
-  // Pool vs Hold is the order's Consolidatable flag (Ramesh: "Allow
-  // Optimization"); the orders built below INHERIT this so the header flag,
-  // the tab and the history all say the same thing. A multi-order shipment is
-  // pool-eligible by construction (it IS a consolidation).
+  // Consolidatable — the ORDER's own flag (Ramesh: "Allow Optimization"); the
+  // orders built below INHERIT it, so the header flag says the same thing the
+  // shipment does. A multi-order shipment is consolidatable by construction:
+  // it IS a consolidation, so its orders plainly allowed being combined.
   // ponytail: faker.datatype.boolean() needs {probability} object form in
   // this installed faker (9.9.0), not a bare number — float compare instead.
-  const poolEligible = orderCount > 1 || faker.number.float({ min: 0, max: 1 }) < 0.70;
+  const consolidatable = orderCount > 1 || faker.number.float({ min: 0, max: 1 }) < 0.70;
+  // Pool vs Hold is a SEPARATE question from that flag (S151 follow-up).
+  // Equating them made the pool 60% already-consolidated — and Dave ruled a
+  // from-scratch consolidation can only pick DIRECT shipments, so most of the
+  // pool was unpickable by the feature the pool exists to feed. An
+  // already-consolidated shipment belongs there only while it can still TAKE
+  // loads, which is the other thing Dave said consolidation does.
+  //
+  // "Still has room" is proxied by order count until Dave gives us the real
+  // capacity rule — the honest constraint is weight/volume against the
+  // equipment, which this generator does not model. At <= 2 the pool lands at
+  // ~43% consolidated (user asked for ~40%); the knob is this constant alone.
+  // Deliberately NOT a new faker draw: a draw here would re-mint every seeded
+  // id downstream, and this is a placement rule, not a random one.
+  const inPool = consolidatable && orderCount <= CONSOLIDATION_POOL_MAX_ORDERS;
   // Which rank is the "decisive" carrier (accepted or currently sent) — not
   // used when nobody was tendered (preTender) or everybody declined (failed/spot).
   const decisiveRank = (tenderCompleted || tenderInProgress) ? faker.number.int({ min: 1, max: routingCount }) : null;
@@ -1208,7 +1229,7 @@ function generateShipment(index, chainOverride) {
   } else if (isSpot) {
     category = 'spotbid';
   } else {
-    category = poolEligible ? 'consolidation' : 'hold';
+    category = inPool ? 'consolidation' : 'hold';
   }
   let validationMessage = (panel === 'exceptions' && category)
     ? pick(VALIDATION_MESSAGES[category])
@@ -1724,20 +1745,20 @@ function generateShipment(index, chainOverride) {
   }
   const isConsolidation = orderCount > 1;
   // S151 (Dave Schultz, 2026-09-17): the Consolidation/Hold branch here is
-  // about POOL membership (poolEligible — true for every multi-order
-  // shipment, so existing 'C' rows read exactly as before), not about
-  // whether a real multi-order consolidation happened. isConsolidation stays
-  // reserved below for the ACTUAL consolidation events (Consolidation
-  // Completed, Routing & Rating Completed).
+  // about POOL membership (`inPool`), not about whether a real multi-order
+  // consolidation happened, and not about the order's Consolidatable flag —
+  // a full consolidation is consolidatable but is not waiting in the pool.
+  // isConsolidation stays reserved below for the ACTUAL consolidation events
+  // (Consolidation Completed, Routing & Rating Completed).
   pushHistory('Optimization Evaluation', 'update', 'Linx',
-    poolEligible
+    inPool
       ? 'Optimization evaluation completed. Shipment moved to Consolidation.'
       : 'Optimization evaluation completed. Shipment moved to Hold.',
     // DEC-87: Consolidation branch advances the lifecycle ('update'); Hold
     // branch completed but the shipment stopped advancing ('neutral') — OUR
     // call, not ratified spec (see outcome contract comment above, resolves
     // the Hold-branch question S114 parked for Pappu).
-    poolEligible ? 'update' : 'neutral');
+    inPool ? 'update' : 'neutral');
 
   if (isConsolidation) {
     // 4. Consolidation Completed
@@ -2035,7 +2056,7 @@ function generateShipment(index, chainOverride) {
       // Inherited from the shipment's pool eligibility (Task 1) so the header
       // checkbox, the Monitoring tab and the Optimization Evaluation history
       // line cannot disagree. Every order of a C is consolidatable by construction.
-      consolidatable: poolEligible,
+      consolidatable,
       equipmentCode: orderEquipCode,
       equipmentReferenceNumber: orderEquipRef,
       customerRequiredCarrier: orderCarrier,

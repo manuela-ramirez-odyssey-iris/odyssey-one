@@ -1507,6 +1507,10 @@ test('every order that has a shipment reads Planned Shipment — a failed tender
   assert.ok(ds.orders.some((o) => !shipped.has(o.orderNumber) && o.orderStatus === 'Ready for Planning'))
 })
 
+// The flag and the tab are related but NOT equivalent (S151 follow-up): the
+// flag is the ORDER's ("may this be combined?"), the tab is the SHIPMENT's
+// ("is it waiting to be?"). A full consolidation is consolidatable and still
+// sits in Hold, which is why multi-order rows are exempt from the tab check.
 test('the Consolidatable flag on the order agrees with the pool/Hold tab (S151)', () => {
   const ds = buildDataset()
   for (const s of ds.shipments) {
@@ -1515,4 +1519,21 @@ test('the Consolidatable flag on the order agrees with the pool/Hold tab (S151)'
     if (s.category === 'consolidation') assert.equal(d.orderList[0].consolidatable, true, s.sellShipment)
     if (s.category === 'hold')          assert.equal(d.orderList[0].consolidatable, false, s.sellShipment)
   }
+})
+
+// Dave Schultz: a from-scratch consolidation can only pick DIRECT shipments.
+// S151's first cut put every multi-order shipment in the pool, so 60% of it was
+// unpickable by the feature the pool exists to feed. An already-consolidated
+// shipment now sits there only while it can still take loads.
+test('the optimization pool is majority Direct, so it is pickable (S151 follow-up)', () => {
+  const ds = buildDataset()
+  const pool = ds.shipments.filter((s) => s.category === 'consolidation')
+  const consolidated = pool.filter((s) => s.shipmentType === 'Consolidation').length
+  const share = consolidated / pool.length
+  assert.ok(pool.length > 200, `pool must stay populated, got ${pool.length}`)
+  // Target ~40% (user, 2026-09-18); the knob is CONSOLIDATION_POOL_MAX_ORDERS.
+  assert.ok(share > 0.30 && share < 0.50, `pool is ${(share * 100).toFixed(1)}% consolidated`)
+  // The rule itself, stated directly: nothing already full is waiting for more.
+  const full = pool.filter((s) => Number(s.orderCount) > 2)
+  assert.equal(full.length, 0, `${full.length} shipments with >2 orders are still in the pool`)
 })
