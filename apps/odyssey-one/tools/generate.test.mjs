@@ -293,15 +293,22 @@ test('each stop of a multi-stop shipment gets its OWN appointment hour', () => {
   assert.ok(new Set(hours).size > 1, `every stop shares appointment hour ${hours[0]}`)
 })
 
-test('detail carries a Tracking Link built from the shipment Pro # (R2-1)', () => {
+test('detail carries a Tracking Link built from the shipment Pro # — and ONLY on an accepted tender (R2-1, S149)', () => {
   const ds = buildDataset()
-  const [sellId, d] = [...ds.details.entries()][0]
-  const row = ds.shipments.find((s) => s.sellShipment === sellId)
-  assert.ok(d.trackingUrl, 'no trackingUrl on the detail blob')
+  const rowBySell = new Map(ds.shipments.map((s) => [s.sellShipment, s]))
+  // Pick a shipment that actually has a link: only an accepted tender does.
+  const [sellId, d] = [...ds.details.entries()].find(([id]) => rowBySell.get(id)?.tenderStatus === 'Accepted')
+  const row = rowBySell.get(sellId)
+  assert.ok(d.trackingUrl, 'no trackingUrl on an accepted-tender detail')
   assert.match(d.trackingUrl, /^https:\/\/tracking\.oneodyssey\.com\/t\//)
   assert.ok(d.trackingUrl.endsWith(row.pro), `${d.trackingUrl} does not hang off pro ${row.pro}`)
-  // Every shipment, not just the sampled one — the strip dashes on any miss.
-  for (const det of ds.details.values()) assert.ok(det.trackingUrl)
+  // The S149 rule, both directions: only an ACCEPTED tender puts a carrier on
+  // the freight, so only that shipment has anything to track.
+  for (const [id, det] of ds.details) {
+    const s = rowBySell.get(id)
+    if (s?.tenderStatus === 'Accepted') assert.ok(det.trackingUrl, `${id} accepted but no trackingUrl`)
+    else assert.equal(det.trackingUrl, null, `${id} is ${s?.tenderStatus} but has a trackingUrl`)
+  }
 })
 
 // ── S104 Task 10 Step 3: Pickup # is an ORDER-header reference (R2-2 / D3) ────
