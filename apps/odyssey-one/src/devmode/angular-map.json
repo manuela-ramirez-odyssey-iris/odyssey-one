@@ -2853,6 +2853,33 @@
       }
     ]
   },
+  "ResolveTimeline": {
+    "selector": "odyssey-resolve-timeline",
+    "version": null,
+    "normalizing": true,
+    "props": [
+      {
+        "name": "steps",
+        "type": "[{ key, label, detail, status, passed?, onClick? }]",
+        "desc": "One entry per dot. status off|on|error maps onto StepIndicator. A step is clickable only when onClick is set. (Figma: one ResolveTimelineStep instance per entry — the master shows three because the OIF page has three, not because three is the contract.)"
+      },
+      {
+        "name": "current",
+        "type": "string",
+        "desc": "Key of the step whose body is shown — its label renders in text-primary. (Figma: ResolveTimelineStep State=Current, which recolours the LABEL only.)"
+      },
+      {
+        "name": "passed",
+        "type": "boolean (per step)",
+        "desc": "Drives the segment LEAVING this step, not its dot. A dot goes green when the step's errors clear; the line fills only once the planner has actually advanced past it — two different facts, which is why this is not derived from `status`. (Figma: ResolveTimelineSegment State=On.)"
+      },
+      {
+        "name": "(arrive)",
+        "type": "EventEmitter<string>",
+        "desc": "React `onArrive`. Fires with the arriving step's key when the fill LANDS (not when the pop finishes), so a consumer can reveal that step in sync with the motion instead of ahead of it. Code-only — motion has no Figma representation. Inert when nobody subscribes."
+      }
+    ]
+  },
   "RightPanel": {
     "selector": "odyssey-right-panel",
     "version": "0.7.0",
@@ -3386,9 +3413,44 @@
         "desc": "The section title, heading/lg semibold. (Figma: Title TEXT prop.)"
       },
       {
-        "name": "showIcon",
+        "name": "showBadge",
         "type": "boolean",
-        "desc": "Renders the trailing header icon (20px, DSN/400, non-interactive) beside the title. Default true. (Figma: Show Icon BOOLEAN.)"
+        "desc": "Projects [slot=badge] immediately AFTER the title, inside the title row — by convention an odyssey-badge. Same rule HeaderStrip states: it stays glued to the text it qualifies. Angular deviation: React passes the node directly as the `badge` prop. Default false. (Figma: Show Badge BOOLEAN + an EXPOSED Badge instance.)"
+      },
+      {
+        "name": "[slot=badge]",
+        "type": "projection",
+        "desc": "The badge rendered after the title (showBadge=true) — by convention an odyssey-badge."
+      },
+      {
+        "name": "showMeta",
+        "type": "boolean",
+        "desc": "Projects [slot=meta] UNDER the title row but still INSIDE the header control — so clicking the meta rows toggles the section. Rendered as a column at the header's own 12px rhythm: project a set of rows and the spacing comes for free. Angular deviation: React passes the node directly as the `meta` prop. Default false. (Figma: Show Meta BOOLEAN.)"
+      },
+      {
+        "name": "[slot=meta]",
+        "type": "projection",
+        "desc": "The meta rows under the title row (showMeta=true) — a column at 12px rhythm, inside the header control."
+      },
+      {
+        "name": "trail",
+        "type": "string",
+        "desc": "Trailing marker label — the last thing before the chevron (before the action cluster on Static), label/sm regular + --text-tertiary. A non-empty string renders the trail on its own. (Figma: Show Trail BOOLEAN + Trail label TEXT.)"
+      },
+      {
+        "name": "showTrail",
+        "type": "boolean",
+        "desc": "Renders the trail wrapper for a projected [slot=trail] node. Angular deviation: React's `trail` takes node | string in one prop; Angular splits the string into [trail] and the node into [slot=trail] + showTrail. Default false."
+      },
+      {
+        "name": "[slot=trail]",
+        "type": "projection",
+        "desc": "The trailing marker as a node (showTrail=true) — brings its own colour, unlike the [trail] string."
+      },
+      {
+        "name": "showHeaderIcon",
+        "type": "boolean",
+        "desc": "Default false. Renders the trailing header icon (20px, DSN/400, non-interactive) beside the title. BREAKING in S152: was `showIcon`, and was default TRUE — 28 of the React canon's 35 call sites were overriding it to false, so the default was backwards. (Figma: Show header icon BOOLEAN, default false.)"
       },
       {
         "name": "showDefaultIcon",
@@ -3475,17 +3537,17 @@
   "SummaryStrip": {
     "selector": "odyssey-summary-strip",
     "version": "1.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "truncationTooltip",
         "type": "boolean",
-        "desc": "Opt-in, strip-level. On hover, scans the cell (both <dt> and <dd>) for real overflow (scrollWidth > clientWidth) and shows the normalized Tooltip with the full text — mirrors DataTable's truncationTooltip mechanism, but gates on hidden CHARACTERS (hiddenCharCount, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. Suppresses the native title while on so the browser tooltip doesn't double up; default false is byte-identical to every existing caller."
+        "desc": "Opt-in, strip-level. On hover, scans the cell's <dt> and <dd> for real overflow and raises the normalized Tooltip showing the WHOLE cell — the label as the group's `subtitle` over the value as its `content` (2026-09-16), not just the run that clipped: a bare value leaves the reader guessing which field it is, and a clipped label over a complete value is an equally unreadable cell. A label-less or value-less cell raises the half it has. Mirrors DataTable's truncationTooltip mechanism, but gates on hidden CHARACTERS (hiddenCharCount, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. The gate is applied per element, so a label clipped by one glyph no longer suppresses the tooltip for a badly-clipped value below it. Suppresses the native title while on so the browser tooltip doesn't double up; default false is byte-identical to every existing caller."
       },
       {
         "name": "items",
-        "type": "[{ label, value, tone?, truncate? }]",
-        "desc": "The stat cells, in order (OdysseySummaryStripItem[]). `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via the `title` attribute (code extension)."
+        "type": "[{ label, value, tone?, truncate?, emphasis? }]",
+        "desc": "The stat cells, in order (OdysseySummaryStripItem[]). `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via the `title` attribute (code extension); `emphasis: 'display'` swaps the value to display/4xl semibold (code extension, SPB-43 bid countdown digits)."
       },
       {
         "name": "ariaLabel",
