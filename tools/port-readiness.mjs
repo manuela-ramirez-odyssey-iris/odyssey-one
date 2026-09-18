@@ -268,8 +268,22 @@ export function extractLegendRows(demoSrc) {
 
 // ── Angular-side diffs ───────────────────────────────────────────────────────
 
-export function missingTokens(tokens, tokensScss) {
-  return tokens.filter((t) => !new RegExp(`${t}\\s*:`).test(tokensScss));
+/**
+ * Tokens the Angular twin will need from `_tokens.scss` — i.e. referenced but
+ * not satisfied.
+ *
+ * `ownCss` matters: a component may DECLARE its own custom property and then
+ * use it (`.resolve-timeline { --resolve-timeline-fill: 900ms }`, read back at
+ * runtime so the CSS value is the single source of truth). That is a
+ * component-internal constant, not a design token, and the twin carries the
+ * declaration in its own SCSS the same way. Without this, every such property
+ * reads as a missing token and the "fix" is to promote a private duration into
+ * the global token file — drift, invented by a lint rule. Found D16, when
+ * ResolveTimeline's port was blocked on exactly that false positive.
+ */
+export function missingTokens(tokens, tokensScss, ownCss = '') {
+  return tokens.filter((t) =>
+    !new RegExp(`${t}\\s*:`).test(tokensScss) && !new RegExp(`${t}\\s*:`).test(ownCss));
 }
 
 export function missingTextUtils(utils, typographyScss) {
@@ -314,7 +328,7 @@ export function gather(component) {
     cssBlocks,
     tokens,
     textUtils,
-    missingTokens: missingTokens(tokens, ngTokens),
+    missingTokens: missingTokens(tokens, ngTokens, cssText),
     missingTextUtils: missingTextUtils(textUtils, ngTypo),
     demoPath,
     demoSrc,

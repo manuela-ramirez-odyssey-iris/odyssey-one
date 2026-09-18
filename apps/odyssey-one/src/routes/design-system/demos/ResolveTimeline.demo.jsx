@@ -5,19 +5,29 @@ export const meta = {
   name: 'ResolveTimeline',
   tier: 'molecule',
   normalizing: true,
-  figmaNode: null,
-  codeConnect: null,
+  // D16 (2026-09-18) — the master finally exists. Built as a transcription of
+  // the shipped component: ResolveTimeline 6551:921 composes
+  // ResolveTimelineStep 6551:915 + ResolveTimelineSegment 6551:920, both in
+  // Components-Atoms › Sections beside the StepIndicator atom they build on.
+  figmaNode: '6551:921',
+  codeConnect: 'packages/ui/src/ResolveTimeline.figma.tsx',
+  approved: true,
 }
 
 export const props = [
-  { name: 'steps', type: '[{ key, label, detail, status, onClick? }]', desc: 'One entry per dot. status off|on|error maps onto StepIndicator. A step is clickable only when onClick is set.' },
-  { name: 'current', type: 'string', desc: 'Key of the step whose body is shown — its label renders in text-primary.' },
+  { name: 'steps', type: '[{ key, label, detail, status, passed?, onClick? }]', desc: 'One entry per dot. status off|on|error maps onto StepIndicator. A step is clickable only when onClick is set. (Figma: one ResolveTimelineStep instance per entry — the master shows three because the OIF page has three, not because three is the contract.)' },
+  { name: 'current', type: 'string', desc: 'Key of the step whose body is shown — its label renders in text-primary. (Figma: ResolveTimelineStep State=Current, which recolours the LABEL only.)' },
+  { name: 'passed', type: 'boolean (per step)', desc: 'Drives the segment LEAVING this step, not its dot. A dot goes green when the step\'s errors clear; the line fills only once the planner has actually advanced past it — two different facts, which is why this is not derived from `status`. (Figma: ResolveTimelineSegment State=On.)' },
+  { name: 'onArrive', type: '(stepKey: string) => void', desc: 'Fires when the fill lands on the next step, so a consumer can reveal that step in sync with the motion instead of ahead of it. Code-only — motion has no Figma representation.' },
 ]
 
 export const tokens = [
   { token: '--deep-sea-neutral-200', resolves: 'Deep Sea Neutral/200', usage: 'pending track segment' },
   { token: '--caribbean-green-600', resolves: 'Caribbean Green/600', usage: 'passed segment' },
-  { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'erroring segment' },
+  // The segment has NO error colour: red belongs to the dot alone (S147 ruling —
+  // "you dont need to show the red when a step is red"). Bittersweet reaches
+  // this component only through StepIndicator's own error variant.
+  { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error dot, via StepIndicator — never the segment' },
   { token: '--text-primary / --text-secondary / --text-tertiary', resolves: 'DSN/900 / 700 / 500', usage: 'current / other / locked labels' },
 ]
 
