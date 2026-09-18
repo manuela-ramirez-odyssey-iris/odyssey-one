@@ -28,7 +28,7 @@ const mo = () => ({
   ],
   userFieldList: [{ userfieldType: 'FLAG', name: 'CONSOLIDATABLE', value: 'Y' }],
 })
-const args = () => ({ mo: mo(), orderNumber: 'ORD-1001', orderId: 90001, customerName: 'ERCO Systems Inc', now: new Date('2026-09-17T14:00:00Z'), userName: 'amy.cook' })
+const args = () => ({ mo: mo(), orderNumber: 'ORD-1001', orderId: 90001, customerName: 'ERCO Systems Inc', now: new Date('2026-09-17T14:00:00Z') })
 
 test('consolidatableOf: FLAG Y/absent → true, N → false', () => {
   assert.equal(consolidatableOf(mo()), true)

@@ -7,6 +7,7 @@ import { createOrder, updateOrder, saveDraft, getDraft, getOrderList, getAuditTr
 import { getAllShipments, getOverlayShipmentDetail, __resetShipmentWriteState } from '../../data'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
+import { distinctMatches } from '../../search/shipments/searchIndex'
 
 const sample = () => structuredClone(orderFormValuesSample)
 const page = () => ({ pagination: { pageNumber: 1, pageSize: 20 } })
@@ -80,6 +81,17 @@ describe('orderService.createOrder (mock)', () => {
     expect(page.order!.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)
     expect(page.order!.createdBy).toBeTruthy()
     expect(page.rows[0].changeCategory).toBe('Order Creation')
+  })
+
+  it('the created shipment is findable by search — the index was told to forget', async () => {
+    // Prime the per-attribute cache so a stale read is possible, then create.
+    // No seeded shipment starts with 'O6' (that band is reserved for
+    // session-created ids — see planShipment.mjs idsFor), so this primes an
+    // empty result for the query below.
+    distinctMatches('odysseyShipmentIdentifier', 'O6', 50)
+    const res = await createOrder(mapFormToOrderInterface(sample()))
+    expect(distinctMatches('odysseyShipmentIdentifier', 'O6', 50))
+      .toContain(res.data!.odysseyShipmentIdentifier)
   })
 })
 

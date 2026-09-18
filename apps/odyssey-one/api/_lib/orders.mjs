@@ -756,7 +756,7 @@ export async function createOrder({ body, db }) {
       const { rows: cust } = await db.query({ text: 'SELECT name FROM customers WHERE id = $1', values: [mo.customerId ?? ''] })
       const built = buildDirectShipment({
         mo, orderNumber: row.order_number, orderId: row.order_id,
-        customerName: cust[0]?.name ?? mo.customerId ?? '', now: row.created_at, userName: body?.userId ?? null,
+        customerName: cust[0]?.name ?? mo.customerId ?? '', now: row.created_at,
       })
       await db.query(buildInsertShipmentQuery(built))
       await db.query(buildLinkOrderQuery(row.order_number, built.row.sellShipment))

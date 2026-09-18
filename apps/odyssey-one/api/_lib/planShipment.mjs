@@ -133,10 +133,9 @@ function toLine(l, i) {
  * @param {number} a.orderId       the order's serial id (drives every shipment id)
  * @param {string} a.customerName  display name for mo.customerId
  * @param {Date}   a.now           creation instant (history timestamps)
- * @param {string} a.userName      creating user (kept for the caller's audit; not on the row)
  * @returns {{ row: DirectShipmentRow, detail: object, pickupTs: string|null, deliveryTs: string|null }}
  */
-export function buildDirectShipment({ mo, orderNumber, orderId, customerName, now = new Date(), userName }) {
+export function buildDirectShipment({ mo, orderNumber, orderId, customerName, now = new Date() }) {
   const ids = idsFor(orderId)
   const consolidatable = consolidatableOf(mo)
   const lines = mo.orderLines ?? []

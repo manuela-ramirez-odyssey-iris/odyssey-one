@@ -637,8 +637,16 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   // api/_lib/planShipment.mjs is the one builder both runtimes use). The
   // shipment goes into the shipments overlay (src/data/index.js) and the
   // order is planned — 'Planned Load' is a blink nobody sees.
+  //
+  // NOTE — failure semantics differ from live ON PURPOSE. Here the shipment is
+  // built BEFORE the order reaches overlayRows, so a throw loses the order
+  // entirely; in live (api/_lib/orders.mjs) the order row is already committed,
+  // so the same throw leaves an order at 'Ready for Planning' with no shipment.
+  // Building first is what lets `row` be pushed once, fully formed, instead of
+  // mutating an object the overlay already holds. The input is form-validated
+  // before it gets here, so the throw is not a path the UI can reach today.
   const customerName = [...OWNING_ORGS, ...EXTRA_ORGS].find(o => o.value === mo.customerId)?.label ?? mo.customerId ?? ''
-  const built = buildDirectShipment({ mo, orderNumber, orderId, customerName, now: new Date(), userName: row.createdBy })
+  const built = buildDirectShipment({ mo, orderNumber, orderId, customerName, now: new Date() })
   addShipment(built.row, built.detail)
   clearShipmentSearchIndex()
   row.orderStatus = 'Planned Shipment'
