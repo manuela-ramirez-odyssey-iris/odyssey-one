@@ -1170,21 +1170,25 @@ function generateShipment(index, chainOverride) {
   const routingStatuses = routingOptions.map(r => r.status).filter(Boolean);
   const hasAccepted = routingStatuses.includes('Accepted');
   const hasSent = routingStatuses.includes('Sent');
-  // tenderStatus = the status of the "active" routing option (accepted or sent carrier)
-  // The `: 'Sent'` fallback used to be dead code — every prior scenario (accepted/
-  // sent/failed) guaranteed at least one non-null routing status, so routingStatuses
-  // was never empty. preTender (S151) makes it reachable for real: every option is
-  // null (never tendered), .filter(Boolean) drops them all, and the empty case now
-  // means exactly what it says — no tender exists yet — so the fallback is '' not 'Sent'.
-  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : '');
-  // shipmentStatus derived from tender statuses. `let`: the order-change
-  // diversion below is the ONE legitimate override (LINX-8284's documented
-  // state transition) — everything else (hasAccepted/hasSent/tenderStatus/
-  // routing-option statuses) stays untouched, on purpose (see below).
-  let shipmentStatus = hasAccepted ? 'Done' : hasSent ? '' : 'Review';
+  // tenderStatus = the active option's status, or the last real carrier answer
+  // when every carrier said no, or '' when nothing has been tendered yet
+  // (preTender: routingStatuses is EMPTY by construction — Task 1).
+  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent'
+    : (routingStatuses.length > 0 ? routingStatuses[0] : '');
+  // shipmentStatus: Done once a carrier committed; Review when the tender
+  // failed and a human must act; '' while mid-flight OR parked pre-tender
+  // (decided 2026-09-18: no new "Consolidation"/"Hold" status value — the tab
+  // carries that meaning; a new enum would ripple into the search vocabulary).
+  // `let`: the order-change diversion below is the ONE legitimate override.
+  let shipmentStatus = hasAccepted ? 'Done' : (hasSent || preTender || isSpot) ? '' : 'Review';
 
-  // Panel and category derived from tender outcome
-  let panel = (hasAccepted || hasSent) ? 'monitoring' : 'exceptions';
+  // Panel + category DERIVED from the lifecycle — the category used to be a
+  // separate weighted pick that never looked at the tender state beside it,
+  // which put 137 tender-accepted shipments in the pool and made "Tender Sent"
+  // 84% already-accepted (measured 2026-09-17, S150). Exceptions categories
+  // stay a weighted pick: nothing in the data distinguishes a date issue from a
+  // routing review yet (out of scope, see plan header).
+  let panel = (lifecycle === 'failed') ? 'exceptions' : 'monitoring';
   // Snapshot BEFORE the order-change diversion below can mutate `panel` —
   // NOTE_BUCKET_WEIGHTS further down (note-count seeding) also keys off
   // `panel`, and faker.helpers.weightedArrayElement's OUTPUT (not just its
@@ -1194,9 +1198,18 @@ function generateShipment(index, chainOverride) {
   // later shipment's id despite the diversion draw itself costing 0 faker
   // calls. Caught by the id-stability check (S134 — do not remove).
   const originalPanel = panel;
-  let category = panel === 'exceptions'
-    ? weightedPick(CATEGORY_WEIGHTS.exceptions.items, CATEGORY_WEIGHTS.exceptions.weights)
-    : weightedPick(CATEGORY_WEIGHTS.monitoring.items, CATEGORY_WEIGHTS.monitoring.weights);
+  let category;
+  if (panel === 'exceptions') {
+    category = weightedPick(CATEGORY_WEIGHTS.exceptions.items, CATEGORY_WEIGHTS.exceptions.weights);
+  } else if (hasAccepted) {
+    category = 'approved';
+  } else if (hasSent) {
+    category = 'sent';
+  } else if (isSpot) {
+    category = 'spotbid';
+  } else {
+    category = poolEligible ? 'consolidation' : 'hold';
+  }
   let validationMessage = (panel === 'exceptions' && category)
     ? pick(VALIDATION_MESSAGES[category])
     : null;
@@ -1218,7 +1231,8 @@ function generateShipment(index, chainOverride) {
   // PRNG (not faker), so it consumes zero faker draws and id stability holds
   // by construction — same reasoning as buildOrderChange's own PRNG.
   let orderChangePayload = null;
-  if (panel === 'monitoring') {
+  // LINX-14509 — an order change is an exception ON a live tender; a pre-tender or spot row has none (S151).
+  if (panel === 'monitoring' && (hasAccepted || hasSent)) {
     const rnd = mulberry32(seedFrom(sellShipment));
     if (rnd() < 0.15) {
       panel = 'exceptions';
@@ -2384,10 +2398,7 @@ const CATEGORY_WEIGHTS = {
     items:   ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review'],
     weights: [28, 22, 22, 18, 10], // date-issues most common, bid-review least
   },
-  monitoring: {
-    items:   ['sent', 'hold', 'consolidation', 'spotbid', 'approved'],
-    weights: [25, 15, 15, 15, 30], // approved most common (accepted carriers), sent next
-  },
+  // monitoring categories are DERIVED from the lifecycle (S151) — see the derivation block after routingStatuses
   pgipgr: {
     items:   ['pgipgr-errors', 'manual-pgipgr', 'rating-failure'],
     weights: [45, 33, 22], // PGI errors most common

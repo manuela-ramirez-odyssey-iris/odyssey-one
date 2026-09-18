@@ -1423,3 +1423,21 @@ test('lifecycle bands: pre-tender and spot exist, and the mix is what was decide
   assert.ok(Math.abs(spot - 0.07) < 0.03, `spot ${spot.toFixed(3)}`)
   assert.ok(preTender > 0.15, 'the pool Dave describes must actually exist in the data')
 })
+
+test('monitoring tabs agree with tender state — the S151 invariant', () => {
+  const ds = buildDataset()
+  for (const s of ds.shipments) {
+    if (s.panel !== 'monitoring') continue
+    switch (s.category) {
+      case 'approved':      assert.equal(s.tenderStatus, 'Accepted', s.sellShipment); break
+      case 'sent':          assert.equal(s.tenderStatus, 'Sent', s.sellShipment); break
+      case 'consolidation':
+      case 'hold':          assert.equal(s.tenderStatus, '', `${s.sellShipment} in the pool but tendered`); assert.equal(s.shipmentStatus, ''); break
+      case 'spotbid':       assert.ok(['Declined', 'Cancelled'].includes(s.tenderStatus), `${s.sellShipment} in spot with an active tender (PRD Feature 1)`); break
+      default: assert.fail(`${s.sellShipment} unknown monitoring category ${s.category}`)
+    }
+  }
+  // Every monitoring category must be populated — an empty tab is a regression.
+  for (const c of ['approved', 'sent', 'consolidation', 'hold', 'spotbid'])
+    assert.ok(ds.shipments.some((s) => s.panel === 'monitoring' && s.category === c), `no rows in ${c}`)
+})
