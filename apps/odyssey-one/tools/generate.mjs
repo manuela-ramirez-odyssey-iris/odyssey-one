@@ -1270,15 +1270,21 @@ function generateShipment(index, chainOverride) {
     : faker.number.float({ min: 500, max: 5000, fractionDigits: 2 });
   const apFuel = Math.round(apBase * faker.number.float({ min: 0.25, max: 0.45, fractionDigits: 2 }) * 100) / 100;
   const apDiscount = faker.datatype.boolean() ? Math.round(apBase * faker.number.float({ min: 0.03, max: 0.1, fractionDigits: 2 }) * 100) / 100 : 0;
-  const apAccessorials = faker.datatype.boolean() ? faker.number.float({ min: 50, max: 400, fractionDigits: 2 }) : 0;
-  const apTotal = apBase + apFuel - apDiscount + apAccessorials;
+  // ponytail: this roll no longer sets the accessorial AMOUNT — that is now
+  // DERIVED from HZC+SOC below (Dave Schultz, 2026-09-17: "accessorials is
+  // everything that's not base, fuel, or discount"). It is still drawn, and
+  // still gates the 'Non-Transportation Relevant' history branch, because
+  // consuming one draw fewer here would shift every shipment id allocated after
+  // this one and 404 the spotboard demo fixtures anchored to real seeded ids
+  // (same trap buildAuthor documents). Upgrade path: if the seed is ever
+  // reallocated on purpose, collapse this into the derived value and re-anchor
+  // those fixtures in the same commit.
+  const apAccessorialsRoll = faker.datatype.boolean() ? faker.number.float({ min: 50, max: 400, fractionDigits: 2 }) : 0;
   const marginPct = faker.number.float({ min: 0.18, max: 0.35, fractionDigits: 2 });
   // AR breakdown: apply margin to each component individually
   const arBase = Math.round(apBase * (1 + marginPct) * 100) / 100;
   const arFuel = Math.round(apFuel * (1 + marginPct) * 100) / 100;
   const arDiscount = Math.round(apDiscount * (1 + marginPct) * 100) / 100;
-  const arTotal = Math.round((arBase + arFuel - arDiscount + Math.round(apAccessorials * (1 + marginPct) * 100) / 100) * 100) / 100;
-  const marginAmt = Math.round((arTotal - apTotal) * 100) / 100;
 
   // Generate random weight shares that sum to 1.0 (simulates weight-based distribution)
   const rawShares = orders.map(() => faker.number.float({ min: 0.1, max: 1.0 }));
@@ -1290,6 +1296,13 @@ function generateShipment(index, chainOverride) {
   const shipApSoc = faker.datatype.boolean() ? faker.number.float({ min: 20, max: 120, fractionDigits: 2 }) : 0;
   const shipArHzc = shipApHzc > 0 ? Math.round(shipApHzc * (1 + marginPct) * 100) / 100 : 0;
   const shipArSoc = shipApSoc > 0 ? Math.round(shipApSoc * (1 + marginPct) * 100) / 100 : 0;
+
+  // Dave Schultz, 2026-09-17: accessorials IS the HZC+SOC total, not a separate
+  // roll — the summary must equal the sum of what the orders actually carry.
+  const apAccessorials = Math.round((shipApHzc + shipApSoc) * 100) / 100;
+  const apTotal = apBase + apFuel - apDiscount + apAccessorials;
+  const arTotal = Math.round((arBase + arFuel - arDiscount + Math.round(apAccessorials * (1 + marginPct) * 100) / 100) * 100) / 100;
+  const marginAmt = Math.round((arTotal - apTotal) * 100) / 100;
 
   const costOrders = orders.map((ord, oi) => {
     const share = shares[oi];
@@ -1826,7 +1839,7 @@ function generateShipment(index, chainOverride) {
       pushHistory('Shipment Updated', 'update', 'ERP',
         `Shipment updated (Transportation Relevant). AP Cost: $${fmt(apTotal)}; AR Rate: $${fmt(arTotal)}. Routing and rating recalculated successfully.`,
         'update');
-    } else if (apAccessorials > 0) {
+    } else if (apAccessorialsRoll > 0) {
       advanceClock(1, 24);
       pushHistory('Shipment Updated', 'update', 'ERP',
         `Shipment updated (Non-Transportation Relevant). AP Cost: $${fmt(apTotal)}; AR Rate: $${fmt(arTotal)}. Rating recalculated successfully.`,
