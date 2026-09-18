@@ -107,6 +107,16 @@
   --chart-6: var(--caribbean-green-200);
   --chart-7: var(--sunrise-yellow-600);
   --chart-8: var(--sunrise-yellow-300);
+  /* 9-10 added 2026-09-18 (D17, same session): purple and red, user request.
+     Both are the saturated step of their ramp rather than the pale partner --
+     Purple/100 (#EDE9FE) and Bittersweet/200 measure ~1.1:1 and ~1.3:1 on white
+     and would disappear as an 8px dot. Bittersweet/600 also backs the error text
+     token -- on a legend row it is a category, not a failure. If that ever reads
+     wrong the answer is a dedicated categorical ramp from Efrain, not a swap here.
+     (Kept free of a literal token-colon pattern: tokens-audit parses this file
+     line-wise and reads `--name:` inside a comment as a real declaration.) */
+  --chart-9: var(--purple-800);
+  --chart-10: var(--bittersweet-600);
   --chart-rest: var(--deep-sea-neutral-200);
 
   /* --- Semantic: Background --- */
