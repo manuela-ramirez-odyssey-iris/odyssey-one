@@ -182,6 +182,24 @@ for this routing version"* — over the six sections, each itself collapsed, so 
 version and one section at a time (the AC's *"expand and review each routing version
 independently"*).
 
+Three surface rulings on top of the frames (DEC-176, user 2026-09-18):
+
+* **The newest version opens on arrival**; older ones stay collapsed. It is the one directly
+  behind what the Tender tab shows, so it is what the planner came to read.
+* **Each section shows only its own data.** The five column groups come from the Tender screen,
+  where they are *sub-tabs of one table* and the four locked identity columns are meant to hold
+  still while the tab changes; stacked as accordions they repeated the same four carrier rows
+  five times (64 columns, 16 pure repeats). Secondary sections now anchor on **SCAC alone**;
+  Routing Options drops **Response Method / Date / User**, which have their own section here.
+  64 → 49 columns; Response Comments and Volume Commitment no longer scroll. `Tender Status`
+  stays in both Routing Options and Response Comments on purpose — a response without its
+  outcome is meaningless.
+* **The section cards are outlined, not shadowed, with 16px titles** against the version card's
+  18px, under a full-bleed rule between the version header and its content (`2259:70166`).
+
+The story governs none of this — its last AC line defers *"layout, expand/collapse behavior,
+section organization, and version presentation details"* to the View Design, which is ours.
+
 Two deviations from the drawn mock, both ruled by the user on 2026-09-18:
 
 * The leading `›` beside the timestamp is **dropped** — it is static in both frames, a leftover of
