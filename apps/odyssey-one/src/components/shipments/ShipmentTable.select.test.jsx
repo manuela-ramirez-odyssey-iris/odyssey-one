@@ -67,4 +67,12 @@ describe('ShipmentTable — selectable mode', () => {
     fireEvent.click(screen.getByText('O1'))
     expect(onRowSelect).not.toHaveBeenCalled()
   })
+
+  test('an ineligible row exposes its reason to assistive tech, not just on hover', () => {
+    renderTable({ selectable: true, selection: new Map(), onSelectionChange: vi.fn(), eligibility })
+    const blocked = screen.getByRole('checkbox', { name: 'Select O2' })
+    expect(blocked.getAttribute('title')).toBe('Tendered — cancel the tender first')
+    // The accessible NAME must not change — title is a description, not a label.
+    expect(screen.getByRole('checkbox', { name: 'Select O1' }).getAttribute('title')).toBeNull()
+  })
 })

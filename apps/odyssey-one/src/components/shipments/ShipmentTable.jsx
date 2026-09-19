@@ -352,11 +352,17 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             aria-label={`Select ${r.odysseyShipmentIdentifier || r.buyShipment || r.sellShipment}`}
             disabled={!!reason}
             checked={isSelected(r)}
+            title={reason || undefined}
             onChange={(e) => onSelectionChange?.([r], e.target.checked)}
           />
         )
         // A disabled input swallows pointer events, so the tooltip anchors on
-        // a wrapping span (TooltipTrigger listens on the anchor, not the input).
+        // a wrapping span (TooltipTrigger listens on the anchor, not the input) —
+        // that's the styled hover affordance for sighted mouse users. A disabled
+        // input can't be focused or hovered, so keyboard/AT users never reach it;
+        // `title` on the Checkbox rides through to the native input (it spreads
+        // ...rest) and becomes the accessible DESCRIPTION without touching the
+        // explicit aria-label NAME above.
         return reason
           ? <TooltipTrigger asSpan tooltipProps={{ groups: [{ content: reason }] }}><span style={{ display: 'inline-flex' }}>{box}</span></TooltipTrigger>
           : box

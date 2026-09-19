@@ -7814,6 +7814,20 @@ button.breadcrumb__label:focus-visible {
   padding-left: 0;
   padding-right: 0;
   overflow: hidden;
+  /* Local duration mirror: --transition-sidebar (packages/tokens/tokens.css) is
+     a composite width+easing value with no separately-exposed duration, so the
+     delay below is pinned to its current 300ms by hand — bump both together if
+     that token's timing ever changes. */
+  --transition-sidebar-duration: 300ms;
+  /* visibility (not display) drops the clipped rows out of the tab order, so a
+     keyboard user can't land on invisible rail links. Delayed by the collapse
+     duration so the slide still animates before they vanish; removing the
+     class restores visibility instantly, because .sidebar doesn't transition it. */
+  visibility: hidden;
+  transition:
+    width var(--transition-sidebar),
+    padding var(--transition-sidebar),
+    visibility 0s linear var(--transition-sidebar-duration);
 }
 /* Hover is just another trigger for the same `expanded` state as the
    hamburger (see SidebarContext.jsx) — one width transition, respected here
