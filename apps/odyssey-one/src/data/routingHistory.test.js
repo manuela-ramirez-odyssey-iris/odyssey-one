@@ -1,6 +1,17 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { deriveRoutingHistory } from './routingHistory.js'
 import { formatDateTimeMDYHM } from '../lib/dates.js'
+
+// public/details/*.json — the 2,200 generated shipment details (gitignored,
+// present only in a dev checkout). Not committed, so this guard degrades to
+// `it.skip` rather than fail when the corpus isn't there.
+const DETAILS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../public/details')
+const DETAIL_FILES = existsSync(DETAILS_DIR)
+  ? readdirSync(DETAILS_DIR).filter((f) => f.endsWith('.json'))
+  : []
 
 // A shipment that HAS been tendered — one accepted carrier, one that declined.
 const detail = (overrides = {}) => ({
@@ -16,11 +27,38 @@ const detail = (overrides = {}) => ({
   ],
   routingData: {
     options: [
-      { rank: 1, routeRank: 1, scac: 'CNWY', carrierName: 'CONWAY FREIGHT', cost: '$804.94', status: 'Accepted', modifyUser: 'George Schultz' },
+      { rank: 1, routeRank: 1, scac: 'CNWY', carrierName: 'CONWAY FREIGHT', cost: '$804.94', status: 'Accepted', modifyUser: 'George Schultz', carrierPickup: 'ABC12345', proNumber: 'PRO-1', deliveryNum: 'DEL-1' },
       { rank: 2, routeRank: 2, scac: 'JBHT', carrierName: 'J.B. HUNT', cost: '$912.10', status: 'Declined', modifyUser: 'Amy Cook' },
     ],
   },
+  // No order change by default — DEC-175 R1 only fires when this is set.
+  orderChange: null,
   ...overrides,
+})
+
+// DEC-175 R1 — an order-change shipment: the seed's real prior routing
+// version, Accepted row (with its acceptance artifacts) included.
+const withOrderChange = detail({
+  orderChange: {
+    priorTenderList: [
+      {
+        rank: 1, routeRank: 1, scac: 'CNWY', carrierName: 'CONWAY FREIGHT', cost: '$804.94',
+        status: 'Accepted', carrierPickup: 'ABC12345', proNumber: 'PRO-1', deliveryNum: 'DEL-1',
+        responseDateTime: '09/01/2026 10:00 CDT', responseMethod: 'Manual Update',
+        quoteFlag: 'Y', quoteAudit: { by: 'George Schultz' },
+      },
+      {
+        rank: 2, routeRank: 2, scac: 'JBHT', carrierName: 'J.B. HUNT', cost: '$912.10', status: 'Declined',
+      },
+    ],
+    newTenderList: [
+      { rank: 1, routeRank: 1, scac: 'CNWY', carrierName: 'CONWAY FREIGHT', cost: '$850.00', status: 'Sent' },
+    ],
+    droppedCarriers: {
+      prior: [{ scac: 'ODFL', carrierName: 'OLD DOMINION', reason: 'No Rates' }],
+      new: [],
+    },
+  },
 })
 
 const NEVER_TENDERED = detail({
@@ -95,13 +133,78 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
     }
   })
 
-  it('never puts an Accepted tender in a historical version (D7)', () => {
-    // An accepted tender ends the routing story — that shipment would not have
-    // been re-routed, so an Accepted row in HISTORY is a state routing cannot
-    // have produced. Checked across many keys, not just one lucky draw.
+  it('never puts an Accepted tender in a historical version, unless the seed carries the real prior version (D7/DEC-175)', () => {
+    // The PERTURBATION path never invents an Accepted row — the only
+    // documented route into one is a real prior version, which this fixture
+    // (no orderChange) doesn't have. Checked across many keys, not just one
+    // lucky draw.
     for (let i = 0; i < 200; i++) {
       for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
         for (const o of v.options) expect(o.status).not.toBe('Accepted')
+      }
+    }
+  })
+
+  describe('DEC-175 — order-change shipments carry their real prior version', () => {
+    it('R1: returns the real prior version verbatim, Accepted row and artifacts included', () => {
+      const versions = derive(withOrderChange)
+      expect(versions).toHaveLength(1)
+      expect(versions[0].version).toBe(1)
+
+      const expectedOptions = withOrderChange.orderChange.priorTenderList.map((o) => ({
+        ...o, quoteFlag: undefined, quoteAudit: undefined,
+      }))
+      expect(versions[0].options).toEqual(expectedOptions)
+      expect(versions[0].droppedCarriers).toEqual(withOrderChange.orderChange.droppedCarriers.prior)
+
+      const accepted = versions[0].options.find((o) => o.status === 'Accepted')
+      expect(accepted).toBeTruthy()
+      expect(accepted.carrierPickup).toBe('ABC12345')
+      expect(accepted.proNumber).toBe('PRO-1')
+      expect(accepted.deliveryNum).toBe('DEL-1')
+    })
+
+    it('R1: no invented versions under the real prior — always exactly one', () => {
+      for (let i = 0; i < 50; i++) {
+        const versions = deriveRoutingHistory(withOrderChange, `SHP-${i}`, NOW)
+        expect(versions).toHaveLength(1)
+        expect(versions[0].version).toBe(1)
+      }
+    })
+
+    it('passes the real prior rows through untouched, seeded response fields included', () => {
+      const versions = derive(withOrderChange)
+      const accepted = versions[0].options.find((o) => o.status === 'Accepted')
+      expect(accepted.responseDateTime).toBe('09/01/2026 10:00 CDT')
+      expect(accepted.responseMethod).toBe('Manual Update')
+      expect(accepted.quoteFlag).toBeUndefined()
+      expect(accepted.quoteAudit).toBeUndefined()
+    })
+
+    it('an EMPTY prior list is not a real prior version — falls through to the normal perturbation', () => {
+      // orderChange present, but priorTenderList: [] has nothing to show —
+      // rendering an empty-table version card is undecided territory
+      // (Q-RH-2), so this is NOT R1's path. Must behave identically to the
+      // non-order-change fixture for the same key.
+      const emptyPrior = detail({
+        orderChange: { priorTenderList: [], droppedCarriers: { prior: [], new: [] } },
+      })
+      expect(derive(emptyPrior)).toEqual(derive(detail()))
+    })
+  })
+
+  it('R3: no acceptance artifact survives a rewritten (perturbed) status', () => {
+    // Prove it fails first (spec item 4): the current code spreads `...option`
+    // through unchanged, so the fixture's Accepted-row carrierPickup/proNumber/
+    // deliveryNum ride along onto whatever status the perturbation rewrites it
+    // to — a Carrier Pickup # for a tender nobody accepted.
+    for (let i = 0; i < 100; i++) {
+      for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
+        for (const o of v.options) {
+          expect(o.carrierPickup).toBeNull()
+          expect(o.proNumber).toBeNull()
+          expect(o.deliveryNum).toBeNull()
+        }
       }
     }
   })
@@ -146,6 +249,12 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
     // The Manual branch is reachable — otherwise the user assertion above is
     // vacuous and a regression that nulled every user would still pass.
     expect(manual).toBeGreaterThan(20)
+
+    // The order-change fixture's real prior rows are NOT perturbed — they
+    // pass through untouched, seeded response fields and all (DEC-175 R4).
+    const [ocVersion] = derive(withOrderChange)
+    const acceptedReal = ocVersion.options.find((o) => o.status === 'Accepted')
+    expect(acceptedReal.responseDateTime).toBe('09/01/2026 10:00 CDT')
   })
 
   it('keeps dropped carriers a non-empty subset when the shipment has any', () => {
@@ -179,4 +288,40 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
     versions[0].orders.push('ORD-INJECTED')
     expect(JSON.stringify(d)).toBe(before)
   })
+
+  // Spec item 5 — the one that catches the defect CLASS, not just the fixture:
+  // every seeded detail run through the real derive. Builds the VM the way the
+  // spec's own snippet does — raw field names, no mapper — so a non-accepted
+  // seeded row's `carrierPickup`/`proNumber`/`deliveryNum` stay the seed's real
+  // `null` rather than a mapper's '--' placeholder, which would make this guard
+  // fire on rows that never claimed an artifact at all.
+  ;(DETAIL_FILES.length > 0 ? it : it.skip)(
+    'corpus guard — 0 historical rows carry an acceptance artifact under a non-Accepted status, and Accepted is reachable (public/details not present locally: skipped)',
+    () => {
+      let violations = 0
+      let acceptedCount = 0
+      for (const file of DETAIL_FILES) {
+        const raw = JSON.parse(readFileSync(path.join(DETAILS_DIR, file), 'utf8'))
+        const vm = {
+          odysseyShipmentIdentifier: raw.odysseyShipmentIdentifier,
+          orderDetails: (raw.orderList ?? []).map((o) => ({ orderNumber: o.orderNumber })),
+          droppedCarriers: raw.droppedCarrierList ?? [],
+          routingData: { options: raw.shippingOptionList ?? [] },
+          orderChange: raw.orderChange ?? null,
+        }
+        const versions = deriveRoutingHistory(vm, vm.odysseyShipmentIdentifier || file)
+        for (const v of versions) {
+          for (const o of v.options) {
+            if (o.status === 'Accepted') {
+              acceptedCount++
+            } else if (o.carrierPickup != null || o.proNumber != null || o.deliveryNum != null) {
+              violations++
+            }
+          }
+        }
+      }
+      expect(violations).toBe(0)
+      expect(acceptedCount).toBeGreaterThan(0)
+    },
+  )
 })

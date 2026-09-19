@@ -21,8 +21,14 @@
  * could not have produced:
  *   • A shipment that has never been tendered (no option carries a status) has
  *     NO history: one routing execution, and it is the current one.
- *   • A historical version never holds an Accepted tender — an accepted tender
- *     ends the routing story, so that shipment would not have been re-routed.
+ *   • An order-change shipment carries its REAL prior version — Accepted
+ *     included — verbatim from `details.orderChange.priorTenderList` (DEC-175,
+ *     reversing DEC-169). Jana's own definition of a version starts from a
+ *     routed shipment that *changed* (new order, new stop, origin), and the
+ *     Order Change stories run that from an Accepted shipment; the seed
+ *     already holds that real prior version, so nothing is invented under it.
+ *     Elsewhere, no Accepted is ever drawn — the perturbation has no source
+ *     for inventing one, so it doesn't.
  *   • Orders accumulate with the version number (the AC's own example: V1 has
  *     O1+O2, V2 has O1+O2+O3), so an older version carries a prefix of today's.
  *   • Older versions are older in time, strictly: each step back subtracts at
@@ -56,9 +62,13 @@ function rng(seed) {
 const pick = (r, arr) => arr[Math.floor(r() * arr.length)]
 const intIn = (r, min, max) => min + Math.floor(r() * (max - min + 1))
 
-/** A historical version's tender outcomes. Accepted is absent on purpose (D7);
- *  `null` is "tendered nothing / no response recorded", which the Tender screen
- *  already renders as '--'. */
+/** A PERTURBED historical version's tender outcomes. Accepted is absent on
+ *  purpose (D7/DEC-175 R2): the only documented route into an Accepted
+ *  history row is a real prior version (`orderChange.priorTenderList`,
+ *  handled separately, below), and inventing one here with no source is
+ *  exactly what DEC-175 reversed DEC-169 for doing. `null` is "tendered
+ *  nothing / no response recorded", which the Tender screen already renders
+ *  as '--'. */
 const HISTORICAL_STATUSES = ['Declined', 'Cancelled', 'Sent', null]
 
 /**
@@ -125,9 +135,11 @@ function everTendered(options) {
  * comment, and only a Manual Update has a person behind it.
  *
  * The seeded `responseComments` cannot simply be carried over: this function
- * REWRITES the status (a historical version never holds an Accepted tender), and
- * a comment that disagrees with its outcome is exactly the incoherence the seed
- * fix removed. It re-picks from the same shared table instead.
+ * REWRITES the status (the perturbation never draws an Accepted outcome —
+ * DEC-175 R2; an order-change shipment's real prior version, which CAN hold
+ * one, never passes through here), and a comment that disagrees with its
+ * outcome is exactly the incoherence the seed fix removed. It re-picks from
+ * the same shared table instead.
  *
  * @param {string} routedAt  the version's own ISO instant — the response belongs
  *                           to THIS run, not to the current one the option was
@@ -159,7 +171,45 @@ function historicalOption(r, option, step, routedAt) {
     // A quote is a live-screen affordance, never a historical fact to re-offer.
     quoteFlag: undefined,
     quoteAudit: undefined,
+    // DEC-175 R3: the status above was just REWRITTEN away from whatever it
+    // really was, to a non-Accepted outcome. Carrier Pickup # / Pro # /
+    // delivery # only ever exist because of an acceptance — whether they are
+    // issued on acceptance or on any carrier response is undocumented
+    // (Q-RH-10), and it doesn't matter which: the rewrite itself is the
+    // fiction, so nothing downstream of it may survive on this row either.
+    carrierPickup: null,
+    proNumber: null,
+    deliveryNum: null,
   }
+}
+
+/**
+ * DEC-175 R1 — an order-change shipment's history is not perturbed at all: the
+ * seed already holds its REAL prior routing execution
+ * (`orderChange.priorTenderList` / `droppedCarriers.prior`), the true "V1"
+ * LINX-15435 describes (the Tender tab's current options are V2). Returned
+ * verbatim — Accepted status and its acceptance artifacts included — except
+ * `quoteFlag`/`quoteAudit`, stripped for the same reason the perturbation
+ * strips them: a quote is a live-screen affordance, never a historical fact.
+ * No older version is invented under it (spec: a fact sitting on fictions is
+ * worse than one fact alone).
+ */
+function orderChangeVersion(orderChange, currentOptions, orders, key, now) {
+  const r = rng(hash(`routing-history:${key}`))
+  const anchor = anchorInstant(currentOptions, now)
+  const routedAt = isoMinus(anchor, intIn(r, 2, 20))
+  const priorTenderList = orderChange.priorTenderList ?? []
+
+  return [{
+    version: 1,
+    routedAt,
+    // DEC-170's prefix rule, applied to the single real prior version (count
+    // === 1, version === 1): the AC's own example is an order being ADDED,
+    // so the prior list is shorter than today's.
+    orders: orders.slice(0, Math.max(1, Math.ceil(orders.length / 2))),
+    options: priorTenderList.map((o) => ({ ...o, quoteFlag: undefined, quoteAudit: undefined })),
+    droppedCarriers: orderChange.droppedCarriers?.prior ?? [],
+  }]
 }
 
 /**
@@ -178,6 +228,15 @@ export function deriveRoutingHistory(details, key, now = new Date()) {
   const orders = (details?.orderDetails ?? [])
     .map((o) => o.orderNumber || o.orderId)
     .filter(Boolean)
+
+  // DEC-175 R1 — checked first, but gated on a REAL prior list existing, not
+  // just `orderChange` being present: an order-change payload with an empty
+  // `priorTenderList` has nothing to show, and rendering a version card with
+  // empty tables ("routing produced nothing") is a state nobody has ruled on
+  // (Q-RH-2 territory) — falls through to the normal perturbation instead.
+  if (details?.orderChange?.priorTenderList?.length) {
+    return orderChangeVersion(details.orderChange, options, orders, key, now)
+  }
 
   if (options.length === 0 || !everTendered(options)) return []
 
