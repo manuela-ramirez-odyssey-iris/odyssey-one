@@ -1,0 +1,59 @@
+/* Review & Apply Manual Consolidation (VD 2249:46444). Reuses .order-change
+   for the page column + breadcrumb row; everything else is scoped here.
+   Tokens only — no raw colours, radii or type sizes. */
+
+.consolidation-review__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-6);
+}
+
+.consolidation-review__side {
+  flex: 0 0 307px; /* VD SidePanel width */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-5);
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+}
+.consolidation-review__side-title { margin: 0; }
+.consolidation-review__counts { display: flex; flex-direction: column; gap: var(--spacing-3); }
+
+.consolidation-review__stop { display: flex; flex-direction: column; gap: var(--spacing-1); }
+.consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
+.consolidation-review__stop-date { color: var(--text-tertiary); }
+
+.consolidation-review__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.consolidation-review__main > h2 { margin: 0; }
+
+.consolidation-review__info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+}
+.consolidation-review__info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-4) var(--spacing-3);
+}
+.consolidation-review__info-cell + .consolidation-review__info-cell { border-left: 1px solid var(--border-subtle); }
+.consolidation-review__label { color: var(--text-tertiary); }
+.consolidation-review__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
+.consolidation-review__table-count { color: var(--text-tertiary); padding-bottom: var(--spacing-3); }
+
+/* Bleed the footer to the main-content width, like create-order's .co-footer. */
+.consolidation-review__footer {
+  margin-inline: calc(-1 * var(--spacing-8));
+  margin-top: auto;
+}
