@@ -4,6 +4,7 @@ import { render, screen, cleanup, fireEvent, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ConsolidationReviewRoute from './ConsolidationReviewRoute.jsx'
+import { getSellShipmentDetail } from '../../api/services/shipmentService'
 import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
@@ -91,6 +92,13 @@ describe('ConsolidationReviewRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
     expect(screen.queryByText('Are you sure you want to apply this consolidation?')).toBeNull()
     expect(screen.getByRole('heading', { name: 'Review & Apply Manual Consolidation' })).toBeTruthy()
+  })
+
+  test('a failed detail fetch shows the alert but still renders the weight total', async () => {
+    vi.mocked(getSellShipmentDetail).mockImplementationOnce(() => Promise.reject(new Error('boom')))
+    renderReview({ rows })
+    expect(await screen.findByText("Couldn't load volume and hazmat for every selected shipment. The totals below are incomplete.")).toBeTruthy()
+    expect(screen.getByText('27,500 LB')).toBeTruthy()
   })
 
   test('no rows in state → empty state with a way back', () => {

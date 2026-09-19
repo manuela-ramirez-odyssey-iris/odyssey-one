@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { resolveOrderChange } from '../services/shipmentService'
+import { shipmentDetailQueryKeyPrefix } from './useShipmentDetail'
 import type { SellShipmentStop } from '../types/sellShipmentOut'
 
 export interface ResolveOrderChangeInput {
@@ -50,7 +51,7 @@ export function useResolveOrderChange() {
     onSuccess: () => {
       // Prefix, not the exact key: a 15872 move also changes SOURCE
       // shipments' cached detail (their orderList/stops), not just this one.
-      queryClient.invalidateQueries({ queryKey: ['shipment', 'detail'] })
+      queryClient.invalidateQueries({ queryKey: shipmentDetailQueryKeyPrefix })
       queryClient.invalidateQueries({ queryKey: ['shipment-error-list'] })
       queryClient.invalidateQueries({ queryKey: ['shipment-category-counts'] })
     },

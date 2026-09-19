@@ -1,12 +1,20 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { getSellShipmentDetail } from '../services/shipmentService'
 
+// Prefix for every shipment-detail query key; exported so a caller that needs
+// to invalidate ALL of them (useResolveOrderChange) doesn't reconstruct it.
+export const shipmentDetailQueryKeyPrefix = ['shipment', 'detail'] as const
+
+/** The one cache key for a shipment's detail. Shared so the detail bar and the
+ *  consolidation review screen hit the SAME entry instead of double-fetching. */
+export const shipmentDetailQueryKey = (id: string) => [...shipmentDetailQueryKeyPrefix, id] as const
+
 // Server-state for one shipment's detail. Replaces the manual fetch + detailsCache
 // in ShipmentsRoute. Both mock and live modes return a mapped ShipmentDetailVM
 // (mock loads the generated SellShipmentOut JSON; live calls the real endpoint).
 export function useShipmentDetail(id: string | null) {
   return useQuery({
-    queryKey: ['shipment', 'detail', id],
+    queryKey: shipmentDetailQueryKey(id as string),
     queryFn: () => getSellShipmentDetail(id as string),
     enabled: !!id,
     // Fix B (2026-08-10, user ruling / DEC-61): while a NEWLY selected

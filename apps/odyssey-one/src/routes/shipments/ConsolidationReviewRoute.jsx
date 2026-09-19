@@ -3,11 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { Inbox, MapPin, Pencil } from 'lucide-react'
-import { Badge, Breadcrumb, Button, DataTable, EmptyState, PageHeader, StepperButtonsFooter, SubAccordion, SummaryStrip, Timeline } from '@odyssey/ui'
+import { Alert, Badge, Breadcrumb, Button, DataTable, EmptyState, PageHeader, StepperButtonsFooter, SubAccordion, SummaryStrip, Timeline } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { getSellShipmentDetail } from '../../api/services/shipmentService'
+import { shipmentDetailQueryKey } from '../../api/queries/useShipmentDetail'
 import { buildProposal } from '../../consolidation/proposal'
 import '../../components/shipments/order-change/order-change.css'
 import './consolidation-review.css'
@@ -51,13 +52,14 @@ export default function ConsolidationReviewRoute() {
   // Volume and hazmat live on the detail, not the grid row (proposal.js).
   const detailQueries = useQueries({
     queries: rows.map((r) => ({
-      queryKey: ['shipment', 'detail', r.sellShipment],
+      queryKey: shipmentDetailQueryKey(r.sellShipment),
       queryFn: () => getSellShipmentDetail(r.sellShipment),
     })),
   })
   const details = detailQueries.map((q) => q.data)
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- `details` is a fresh array each render; its CONTENTS are the real input
-  const proposal = useMemo(() => buildProposal(rows, details), [rows, ...details])
+  const detailsFailed = detailQueries.some((q) => q.isError)
+  // buildProposal is a cheap reduce over a handful of rows — no memo needed.
+  const proposal = buildProposal(rows, details)
 
   const backInMode = () => navigate('/shipments', { state: { consolidate: { rows } } })
   const leave = () => navigate('/shipments')
@@ -128,6 +130,13 @@ export default function ConsolidationReviewRoute() {
                 </div>
               </div>
             </div>
+            {detailsFailed && (
+              <Alert variant="error" showClose={false}>
+                Couldn't load volume and hazmat for every selected shipment. The totals below are incomplete.
+              </Alert>
+            )}
+            {/* Weight/Weight Utilization come from the grid rows (proposal.js), not the
+                per-shipment detail fetch above — a failed detail fetch doesn't affect them. */}
             <SummaryStrip
               className="consolidation-review__strip"
               items={[
