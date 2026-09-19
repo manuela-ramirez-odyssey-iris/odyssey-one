@@ -57,6 +57,9 @@ describe('Widget onSelect', () => {
     expect(hits).toBe(1)
   })
 
+  // CONTRACT: pass onSelect only on a card with no interactive children (a
+  // button inside a button is invalid HTML). Where one exists anyway — the
+  // edit-mode close button — it still owns its own click.
   it('a click on an inner control does NOT select — the control owns it', () => {
     let cardHits = 0, rowHits = 0
     const card = drawSel(() => { cardHits += 1 }, { onClick: () => { rowHits += 1 } })
@@ -68,11 +71,31 @@ describe('Widget onSelect', () => {
     if (row) { fireEvent.click(row); expect(cardHits).toBe(0); expect(rowHits).toBe(1) }
   })
 
-  it('is NOT given role=button — it contains buttons, and nesting them is invalid', () => {
-    const card = drawSel(() => {})
-    expect(card.getAttribute('role')).toBeNull()
-    expect(card.getAttribute('tabindex')).toBeNull()
+  it('becomes a real control: role, tab stop, pressed state, Enter and Space', () => {
+    let hits = 0
+    const card = render(
+      <Widget variant="3x" title="T" rows={[{ label: 'a', value: 1 }]}
+        selected onSelect={() => { hits += 1 }} />,
+    ).container.firstChild
+    expect(card.getAttribute('role')).toBe('button')
+    expect(card.getAttribute('tabindex')).toBe('0')
+    expect(card.getAttribute('aria-pressed')).toBe('true')
     expect(card.className).toContain('widget--selectable')
+    fireEvent.keyDown(card, { key: 'Enter' }); expect(hits).toBe(1)
+    fireEvent.keyDown(card, { key: ' ' }); expect(hits).toBe(2)
+    fireEvent.keyDown(card, { key: 'a' }); expect(hits).toBe(2)   // other keys pass through
+  })
+
+  // The card carries role="button" itself, so the "an inner control owns the
+  // click" guard has to match STRICT descendants — a plain closest() finds the
+  // card and swallows every one of its own clicks. This is that regression.
+  it('the card being role=button does not swallow its own clicks', () => {
+    let hits = 0
+    const card = render(
+      <Widget variant="3x" title="T" rows={[{ label: 'a', value: 1 }]} onSelect={() => { hits += 1 }} />,
+    ).container.firstChild
+    fireEvent.click(card.querySelector('.widget__title'))
+    expect(hits).toBe(1)
   })
 
   it('without onSelect the card is inert and unmarked', () => {

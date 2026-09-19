@@ -86,13 +86,47 @@ export default function Widget({
     onSelect && 'widget--selectable', className].filter(Boolean).join(' ')
   // "unless another clickable element inside takes a click space" — anything
   // focusable/actionable under the pointer owns the click.
-  const handleCardClick = onSelect
-    ? (e) => { if (!e.target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]')) onSelect(e) }
+  // "unless another clickable element inside takes a click space" — anything
+  // focusable/actionable under the pointer owns the event. `!== currentTarget`
+  // is load-bearing: the card itself carries role="button" below, so a plain
+  // closest() match finds the CARD and would swallow every one of its own
+  // clicks. Only a STRICT descendant counts.
+  const INTERACTIVE = 'button, a, input, select, textarea, [role="button"], [role="menuitem"]'
+  const ownedByAChild = (e) => {
+    const hit = e.target.closest(INTERACTIVE)
+    return hit && hit !== e.currentTarget
+  }
+  const handleCardClick = onSelect ? (e) => { if (!ownedByAChild(e)) onSelect(e) } : undefined
+  // Enter/Space, so the card is operable without a pointer.
+  const handleCardKeyDown = onSelect
+    ? (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        if (ownedByAChild(e)) return
+        e.preventDefault()
+        onSelect(e)
+      }
     : undefined
+  // role=button + tabIndex only when the consumer asked for selection. CONTRACT:
+  // pass `onSelect` only on a card with no interactive children — a button
+  // inside a button is invalid HTML and an AT trap. That is why the Shipments
+  // PGI/PGR cards drop their footer Go-to link and their row handlers.
+  const selectAttrs = onSelect
+    ? { role: 'button', tabIndex: 0, 'aria-pressed': selected, onKeyDown: handleCardKeyDown }
+    : {}
   const editAttrs = editMode ? { 'data-edit-mode': 'true' } : {}
   const [rootRef, inView] = useInView()
+  // Replay the entry animation (donut grow-in + count-up) whenever the card
+  // BECOMES selected — same contract WidgetMini has, and the same false→true
+  // edge so deselecting or first mount never double-paints. The bump rides
+  // into Content as `replayKey`, which folds into the pie's remount key.
+  const prevSelected = useRef(selected)
+  const [replayKey, setReplayKey] = useState(0)
+  useEffect(() => {
+    if (selected && !prevSelected.current) setReplayKey((k) => k + 1)
+    prevSelected.current = selected
+  }, [selected])
   return (
-    <div ref={rootRef} className={cls} onClick={handleCardClick} {...editAttrs} {...rest}>
+    <div ref={rootRef} className={cls} onClick={handleCardClick} {...selectAttrs} {...editAttrs} {...rest}>
       <Header
         variant={variant}
         title={title}
@@ -113,6 +147,7 @@ export default function Widget({
         chartDelayMs={chartDelayMs}
         onGoToClick={onGoToClick}
         play={inView}
+        replayKey={replayKey}
       />
       {variant !== '1x' && variant !== '3xCta' && onGoToClick && goToLabel && (
         <Button
@@ -257,11 +292,13 @@ function useAnimateGate(play, delayMs) {
   return ready
 }
 
-function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, chartDelayMs, onGoToClick, play = true }) {
+function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, chartDelayMs, onGoToClick, play = true, replayKey = 0 }) {
   // Remount the pie chart whenever its data changes so the grow-in animation
   // replays (e.g. tracking-load-status going from its 0/placeholder state to
   // live fetched numbers). A fresh mount paints at 0 first, then animates.
-  const pieKey = (chartSegments || []).map((s) => `${s.value}:${s.color}`).join('|') + `|${chartTotal ?? ''}`
+  // `replayKey` joins the data key so a selection bump remounts the chart the
+  // same way a data change does — one mechanism, not two.
+  const pieKey = (chartSegments || []).map((s) => `${s.value}:${s.color}`).join('|') + `|${chartTotal ?? ''}|${replayKey}`
   const animPlay = useAnimateGate(play, chartDelayMs)
   if (variant === '1x') {
     return (
@@ -272,7 +309,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
         disabled={!onGoToClick}
       >
         <span className="widget__value-row">
-          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={animPlay} /></span>
+          <span className="text-display-3xl-semibold widget__value"><CountUp key={replayKey} value={value} play={animPlay} /></span>
           <ArrowRight {...ICON_MD} className="widget__inline-arrow" aria-hidden="true" />
         </span>
         <span className="text-label-sm-regular widget__label">{label}</span>
@@ -283,7 +320,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
     return (
       <div className="widget__content widget__content--2x">
         <div className="widget__data-container">
-          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={animPlay} /></span>
+          <span className="text-display-3xl-semibold widget__value"><CountUp key={replayKey} value={value} play={animPlay} /></span>
           <span className="text-label-sm-medium widget__label">{label}</span>
         </div>
         {showChart && (
@@ -326,7 +363,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
       <div className="widget__content widget__content--3xChart">
         <div className="widget__chart-section">
           <div className="widget__info-container">
-            <span className="text-display-4xl-semibold widget__value"><CountUp value={value} play={animPlay} /></span>
+            <span className="text-display-4xl-semibold widget__value"><CountUp key={replayKey} value={value} play={animPlay} /></span>
             <span className="text-label-sm-medium widget__label">{label}</span>
           </div>
           <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} size="lg" delayMs={0} play={animPlay} />
