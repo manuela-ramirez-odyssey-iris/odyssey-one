@@ -97,7 +97,7 @@
      target than an 8px dot, and Badge already uses these tints behind dark text. The
      "where sensible" clause is the escape hatch — don't force a pair whose second step
      has no real use. Pairs: 1/2 Ice Blue · 3/4 Tan Hide · 5/6 Caribbean Green ·
-     7/8 Sunrise Yellow · 9/10 Purple · 11/12 Bittersweet. */
+     7/8 Sunrise Yellow · 9 Purple (single) · 10/11 Bittersweet. */
   --chart-1: var(--ice-blue-600);
   --chart-2: var(--ice-blue-200);
   --chart-3: var(--tan-hide-600);
@@ -115,21 +115,18 @@
   --chart-6: var(--caribbean-green-200);
   --chart-7: var(--sunrise-yellow-600);
   --chart-8: var(--sunrise-yellow-300);
-  /* 9-12 added 2026-09-18 (D17): purple and red, user request, kept in the same
-     dark/light pairs per hue that 1-8 use. Bittersweet/100 is Badge's own red
-     surface (--badge-red-bg), which is where the user asked it be taken from.
-     Caveat on the two light steps: Purple/100 and Bittersweet/100 measure ~1.1:1
-     on white, so they read well as a donut arc but are faint as an 8px indicator
-     dot -- Badge uses them behind dark text, not as a standalone mark.
-     Bittersweet also backs the error text token; on a legend row it is a
-     category, not a verdict.
-     (Comment deliberately carries no literal `--name` + colon pattern:
-     tokens-audit parses this file line-wise and would read one as a real
-     declaration -- it did, once, and reported false drift.) */
+  /* 9-11 added 2026-09-18 (D17), user request. Purple is deliberately a SINGLE —
+     Purple/100 was tried and dropped as too light to earn a slot, which is the
+     "where semantically sensible" half of the ordering rule above doing its job.
+     Red is a pair, with the light step at 300 rather than the 100 Badge uses as a
+     surface: 100 (#FDE5E3) was also judged too light for a standalone mark.
+     Bittersweet also backs the error text token; on a legend row it is a category,
+     not a verdict.
+     (No literal `--name` + colon pattern in here: tokens-audit parses this file
+     line-wise and would read one as a real declaration — it did, once.) */
   --chart-9: var(--purple-800);
-  --chart-10: var(--purple-100);
-  --chart-11: var(--bittersweet-600);
-  --chart-12: var(--bittersweet-100);
+  --chart-10: var(--bittersweet-600);
+  --chart-11: var(--bittersweet-300);
   --chart-rest: var(--deep-sea-neutral-200);
 
   /* --- Semantic: Background --- */

@@ -46,15 +46,14 @@ export const tokens = [
   { token: '--chart-7', resolves: 'Sunrise Yellow 600', usage: 'chart segment + matching indicator dot' },
   { token: '--chart-8', resolves: 'Sunrise Yellow 300', usage: 'chart segment + matching indicator dot' },
   { token: '--chart-9', resolves: 'Purple 800', usage: 'chart segment + matching indicator dot' },
-  { token: '--chart-10', resolves: 'Purple 100', usage: 'chart segment + matching indicator dot' },
-  { token: '--chart-11', resolves: 'Bittersweet 600', usage: 'chart segment + matching indicator dot' },
-  { token: '--chart-12', resolves: 'Bittersweet 100 (Badge red surface)', usage: 'chart segment + matching indicator dot' },
+  { token: '--chart-10', resolves: 'Bittersweet 600', usage: 'chart segment + matching indicator dot' },
+  { token: '--chart-11', resolves: 'Bittersweet 300', usage: 'chart segment + matching indicator dot' },
   { token: '--chart-rest', resolves: 'DSN/200', usage: 'unfilled remainder of donut arc — never a legend color' },
   { token: '--widget-height-max', resolves: '420px', usage: 'height ceiling for 3x / 3xChart / 3xCta' },
   { token: '--shadow-panel', resolves: 'shadow/panel', usage: 'card elevation' },
 ]
 
-// One metric per chart color. Twelve rows in a shell that fits four is the point:
+// One metric per chart color. Eleven rows in a shell that fits four is the point:
 // the legend scrolls rather than the widget growing.
 const METRICS = [
   { label: 'Date Issues', value: 312, indicatorColor: 'var(--chart-1)' },
@@ -66,10 +65,22 @@ const METRICS = [
   { label: 'PGI/PGR Errors', value: 82, indicatorColor: 'var(--chart-7)' },
   { label: 'Manual PGI/PGR', value: 66, indicatorColor: 'var(--chart-8)' },
   { label: 'Carrier Rejected', value: 54, indicatorColor: 'var(--chart-9)' },
-  { label: 'Awaiting Pickup', value: 48, indicatorColor: 'var(--chart-10)' },
-  { label: 'Missing Documents', value: 40, indicatorColor: 'var(--chart-11)' },
-  { label: 'Rate Expired', value: 28, indicatorColor: 'var(--chart-12)' },
+  { label: 'Missing Documents', value: 40, indicatorColor: 'var(--chart-10)' },
+  { label: 'Rate Expired', value: 28, indicatorColor: 'var(--chart-11)' },
 ]
+
+// 3x has no donut, so its rows carry no indicator — the point here is purely that
+// the shell stops at the ceiling and the list scrolls under a pinned header/link.
+const MANY_ROWS = Array.from({ length: 14 }, (_, i) => ({
+  label: ['In Transit', 'At Risk', 'Delayed', 'Delivered', 'Booked', 'Tendered', 'Picked Up', 'At Consignee',
+    'Awaiting POD', 'Short Shipped', 'Damaged', 'Refused', 'Reconsigned', 'Closed'][i],
+  value: String(720 - i * 47),
+}))
+
+const MANY_CTAS = (icons) => [
+  'View active shipments', 'Review exceptions', 'Manage carriers', 'User management',
+  'Create an order', 'Track a shipment', 'Run a report', 'Open the spot board', 'Bulk tender',
+].map((label, i) => ({ icon: icons[i % icons.length], label, onClick: () => {} }))
 
 export default function WidgetDemo() {
   return (
@@ -187,14 +198,21 @@ export default function WidgetDemo() {
 
       {/* Height ceiling + full palette */}
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Height ceiling — 12 metrics in a 420px shell</h4>
+        <h4 className="ds-demo-section__title">Height ceiling — the ceiling across all three variants</h4>
         <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-          A widget never grows past <code>--widget-height-max</code> (420px). Past that the
-          content scrolls inside its own region — here the legend, while the donut stays
-          pinned beside it, and the header and Go-to link stay visible. Also shows the full
-          twelve-colour chart palette: one metric per colour, never repeated, since the colour
-          is what separates them. <code>--chart-rest</code> is the donut&rsquo;s unfilled
-          remainder and is never a legend colour.
+          No widget grows past <code>--widget-height-max</code> (420px). Past that the content
+          scrolls inside its own region while the header — and the Go-to link, where the
+          variant has one — stay pinned. All three 2×2-span variants are shown here
+          overflowing, since the rule is a height ceiling and not a row count.
+        </p>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          <strong>3xChart</strong> scrolls its legend <em>only</em> — the chart section is
+          pinned, because scrolling the donut away would strand the rows that explain it.
+          <strong> 3x</strong> and <strong>3xCta</strong> have no donut, so the whole content
+          scrolls. The 3xChart below also carries the full eleven-colour palette: one metric
+          per colour, never repeated, since the colour is what separates them.
+          <code>--chart-rest</code> is the donut&rsquo;s unfilled remainder and is never a
+          legend colour.
         </p>
         <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
           <Widget
@@ -207,6 +225,22 @@ export default function WidgetDemo() {
             rows={METRICS.map((r) => ({ ...r, value: String(r.value) }))}
             onGoToClick={() => {}}
             goToLabel="Go to Shipments"
+          />
+          <Widget
+            variant="3x"
+            title="Shipments"
+            domainIcon={<Truck {...ICON_LG} />}
+            rows={MANY_ROWS}
+            onGoToClick={() => {}}
+            goToLabel="Go to Shipments"
+          />
+          <Widget
+            variant="3xCta"
+            title="Quick Actions"
+            ctaRows={MANY_CTAS([
+              <Truck {...ICON_LG} />, <AlertCircle {...ICON_LG} />,
+              <Ship {...ICON_LG} />, <Users {...ICON_LG} />, <Package {...ICON_LG} />,
+            ])}
           />
         </div>
       </div>
