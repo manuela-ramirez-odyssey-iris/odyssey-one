@@ -1,6 +1,6 @@
 # Routing History — an Accepted tender in a historical version (DEC-175)
 
-**Status:** spec, awaiting implementation. **Implementer:** Sonnet subagent. **Reviewer:** main thread.
+**Status:** implemented — R1/R3 in `f0c289b`, R2′ in `42cceab` (2026-09-18); browser-proven on live Neon. **Implementer:** Sonnet subagent. **Reviewer:** main thread.
 **Touches:** `src/data/routingHistory.js` and its test only. Nothing else.
 
 ## Why
