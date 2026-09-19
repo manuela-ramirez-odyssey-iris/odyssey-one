@@ -2957,6 +2957,15 @@ button.breadcrumb__label:focus-visible {
 .widget--3x,
 .widget--3xChart { width: 360px; gap: var(--spacing-6); }
 
+/* The category row's selected state, for the PGI/PGR panel's 3xChart widgets
+   (S153). WidgetMini has a `selected` axis; Widget does not — this is the same
+   affordance expressed app-side rather than a new prop on a released molecule,
+   and it matches WidgetMini's selected border so the two modes read alike. */
+.widget--current {
+  border-color: var(--deep-sea-neutral-900);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Height ceiling for the 2x2-span variants (user ruling 2026-09-18). However many
    rows a widget is handed, the shell stops at --widget-height-max and the content
    region scrolls inside it — header and the Go-to link stay pinned and visible.

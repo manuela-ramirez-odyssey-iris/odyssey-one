@@ -1,6 +1,9 @@
 import React from 'react'
-import { Tab, ButtonToggle, PillTab, WidgetMini } from '@odyssey/ui'
+import { Container } from 'lucide-react'
+import { ICON_LG } from '@odyssey/tokens'
+import { Tab, ButtonToggle, PillTab, Widget, WidgetMini } from '@odyssey/ui'
 import { PANEL_CONFIG } from '../../data/panelConfig'
+import { PGIPGR_WIDGETS, widgetTotal } from '../../data/pgipgrWidgets'
 
 // Shipments panel header — replaces the retired MonitorPanels + ShipmentTabs.
 // Two rows, per Efrain's 2026-07-04 Shipments redesign (Figma usage frames
@@ -68,7 +71,34 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
           secondAriaLabel="Show categories as widgets"
         />
       </div>
-      {viewMode === 'widgets' ? (
+      {viewMode === 'widgets' && activePanel === 'pgipgr' ? (
+        // PGI/PGR's three subtabs each carry a breakdown the other panels have
+        // no equivalent for, so in widget mode they render as full 3xChart
+        // widgets (donut + legend) rather than the WidgetMini strip (user,
+        // 2026-09-18). Counts are hardcoded — nothing in the corpus is on this
+        // panel; see pgipgrWidgets.js. Selection stays the category row's job:
+        // the footer link commits the subtab, which is a real Button, where a
+        // click handler on the card would not be reachable by keyboard.
+        <div className="flex" style={{ gap: 'var(--spacing-3)', alignItems: 'stretch' }}>
+          {PGIPGR_WIDGETS.map((w, i) => (
+            <Widget
+              key={w.key}
+              variant="3xChart"
+              className={activeTab === w.key ? 'widget--current' : ''}
+              style={{ flex: 1, minWidth: 0 }}
+              title={w.title}
+              domainIcon={<Container {...ICON_LG} />}
+              value={counts[w.badgeKey] || widgetTotal(w)}
+              label={w.metricLabel}
+              rows={w.slices.map(s => ({ label: s.label, value: s.value, indicatorColor: s.color }))}
+              chartSegments={w.slices.map(s => ({ value: s.value, color: s.color }))}
+              goToLabel={activeTab === w.key ? 'Showing these shipments' : 'View these shipments'}
+              onGoToClick={() => onTabSelect(w.key)}
+              chartDelayMs={i * 90}
+            />
+          ))}
+        </div>
+      ) : viewMode === 'widgets' ? (
         <div className="flex" style={{ gap: 'var(--spacing-3)' }}>
           {rows.map(row => (
             <WidgetMini

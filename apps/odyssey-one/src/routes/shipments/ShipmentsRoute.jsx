@@ -14,6 +14,7 @@ import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGloba
 import { attrChip } from '../../components/global-search/savedFilters'
 import { getAllShipments } from '../../data'
 import { PANEL_CONFIG, panelTotals, landingPanel } from '../../data/panelConfig'
+import { PGIPGR_DEMO_COUNTS } from '../../data/pgipgrWidgets'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useUserPreference } from '../../api/queries/useUserPreference'
@@ -267,9 +268,14 @@ function ShipmentsRoute() {
       sent: c(monitoringCounts, 'sent'),
       spotBid: c(monitoringCounts, 'spotbid'),
       approved: c(monitoringCounts, 'approved'),
-      pgipgrErrors: c(pgipgrCounts, 'pgipgr-errors'),
-      ratingFailure: c(pgipgrCounts, 'rating-failure'),
-      manualPgipgr: c(pgipgrCounts, 'manual-pgipgr'),
+      // No shipment is seeded onto the PGI/PGR panel, so these are 0 and the
+      // widget mode's donuts would sit beside "0" badges. Fall back to the
+      // widgets' own totals so the tab, the pill and the widget all say the
+      // same number — and the moment PGI/PGR is really modelled, the live
+      // count is non-zero and wins without anyone editing this.
+      pgipgrErrors: c(pgipgrCounts, 'pgipgr-errors') || PGIPGR_DEMO_COUNTS.pgipgrErrors,
+      ratingFailure: c(pgipgrCounts, 'rating-failure') || PGIPGR_DEMO_COUNTS.ratingFailure,
+      manualPgipgr: c(pgipgrCounts, 'manual-pgipgr') || PGIPGR_DEMO_COUNTS.manualPgipgr,
     }
   }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
