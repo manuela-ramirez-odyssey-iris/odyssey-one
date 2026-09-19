@@ -24,6 +24,23 @@ const setup = (props = {}) =>
 // equivalent for, so widget mode renders them as 3xChart widgets, not the
 // WidgetMini strip.
 describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
+  it('leads with an All widget as 3x — multi-row, no donut of its own', () => {
+    const { container } = setup()
+    const all = container.querySelector('.widget--3x')
+    expect(all).toBeTruthy()
+    expect(all.querySelectorAll('svg circle')).toHaveLength(0)
+    // Its rows are the three widgets beside it, at the same numbers.
+    for (const w of PGIPGR_WIDGETS) expect(within(all).getByText(w.title)).toBeTruthy()
+    expect(all.parentElement.firstElementChild).toBe(all)  // leads the row
+  })
+
+  it('an All row selects that subtab', () => {
+    const onTabSelect = vi.fn()
+    const { container } = setup({ onTabSelect })
+    fireEvent.click(within(container.querySelector('.widget--3x')).getByText('Manual PGI/PGR'))
+    expect(onTabSelect).toHaveBeenCalledWith('manual-pgipgr')
+  })
+
   it('renders one 3xChart widget per subtab, with its centre metric', () => {
     const { container } = setup()
     const widgets = container.querySelectorAll('.widget--3xChart')
@@ -55,11 +72,16 @@ describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
     expect(onTabSelect).toHaveBeenCalledWith('rating-failure')
   })
 
-  it('marks the active subtab, and only it', () => {
+  it('marks the active subtab, and only it — All included', () => {
     const { container } = setup({ activeTab: 'manual-pgipgr' })
-    const current = container.querySelectorAll('.widget--current')
+    let current = container.querySelectorAll('.widget--current')
     expect(current).toHaveLength(1)
     expect(current[0].textContent).toContain('Manual PGI/PGR')
+    cleanup()
+    const onAll = setup({ activeTab: 'all' }).container
+    current = onAll.querySelectorAll('.widget--current')
+    expect(current).toHaveLength(1)
+    expect(current[0].classList.contains('widget--3x')).toBe(true)
   })
 
   // The other two panels keep the WidgetMini strip — this is a PGI/PGR-only

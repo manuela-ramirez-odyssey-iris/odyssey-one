@@ -80,6 +80,24 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
         // the footer link commits the subtab, which is a real Button, where a
         // click handler on the card would not be reachable by keyboard.
         <div className="flex" style={{ gap: 'var(--spacing-3)', alignItems: 'stretch' }}>
+          {/* "All" keeps its place at the head of the category row, as the
+              3x multi-row variant: it has no breakdown of its own, so a donut
+              would be the same three numbers drawn twice. Its rows ARE the
+              three widgets beside it, and each one selects that subtab. */}
+          <Widget
+            variant="3x"
+            className={activeTab === 'all' ? 'widget--current' : ''}
+            style={{ flex: 1, minWidth: 0 }}
+            title="All"
+            domainIcon={<Container {...ICON_LG} />}
+            rows={PGIPGR_WIDGETS.map(w => ({
+              label: w.title,
+              value: counts[w.badgeKey] || widgetTotal(w),
+              onClick: () => onTabSelect(w.key),
+            }))}
+            goToLabel={activeTab === 'all' ? 'Showing all shipments' : 'View all shipments'}
+            onGoToClick={() => onTabSelect('all')}
+          />
           {PGIPGR_WIDGETS.map((w, i) => (
             <Widget
               key={w.key}
