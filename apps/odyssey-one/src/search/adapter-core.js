@@ -125,3 +125,15 @@ export function nextProgressionGroup(progression, chips) {
   }
   return null
 }
+
+// Consolidate mode (S154): restrict the suggestion sections an adapter returns
+// to an attribute allow-list. Non-attribute items (dates, set-type) pass
+// through; a section left with no items disappears. A null allow-list is a
+// no-op so callers can pass the mode conditionally.
+export function narrowSuggestionSections(sections, allowedKeys) {
+  if (!allowedKeys) return sections
+  const allowed = new Set(allowedKeys)
+  return sections
+    .map((s) => ({ ...s, items: s.items.filter((it) => it.kind !== 'attribute' || allowed.has(it.key)) }))
+    .filter((s) => s.items.length > 0)
+}

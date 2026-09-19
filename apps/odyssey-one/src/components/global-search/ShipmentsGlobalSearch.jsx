@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments'
+import { narrowSuggestionSections } from '../../search/adapter-core'
 import { DATE_LIKE } from '../../search/shipments/adapter'
 import { parseSearchDate } from '../../search/shipments/criteria'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
@@ -54,7 +55,7 @@ const SAVED_FILTERS_KEY = 'shipments.savedFilters'
  *   with its details); `tab` (from the leading chip via the shared
  *   CELL_TAB_MAP) lands it on the mapped pane, mirroring table cell clicks.
  */
-export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips }) {
+export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips, attributeKeys = null, placeholder = 'Search in Shipments' }) {
   // Customer scoping (S79c decision 10): the glimpse must respect the selected
   // customer list, so the domain adapter is wrapped with the selection's dataIds
   // baked into searchShipments. The hook stays domain-agnostic — a selection
@@ -64,7 +65,12 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
     ...shipmentsSearchAdapter,
     searchShipments: (chips, query) =>
       shipmentsSearchAdapter.searchShipments(chips, query, selectedDataIds),
-  }), [selectedDataIds])
+    // Consolidate mode narrows what the bar SUGGESTS (spec §3.5). Called as
+    // methods on the base adapter so its internal `this.getInitial` /
+    // `this.validateCodes` keep working.
+    getInitial: async (...args) => narrowSuggestionSections(await shipmentsSearchAdapter.getInitial(...args), attributeKeys),
+    getSuggestions: async (...args) => narrowSuggestionSections(await shipmentsSearchAdapter.getSuggestions(...args), attributeKeys),
+  }), [selectedDataIds, attributeKeys])
 
   // Removing the LAST remaining committed item (final attribute chip or the
   // free-text query badge) is the explicit full clear — same as the bar's X:
@@ -615,7 +621,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
         onFocus={handleFocus}
         onBlur={onBlur}
         onCopy={handleCopy}
-        placeholder="Search in Shipments"
+        placeholder={placeholder}
         chips={barChips}
         onChipRemove={handleChipRemove}
         onChipClick={() => setResultsOpen(true)}
