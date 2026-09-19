@@ -5,9 +5,11 @@
 // pickup in selection order, then every delivery in selection order.
 import { capacityFor, utilizationPct } from './equipmentCapacity'
 
-// "12,500" / "1,375 cuft" / "--" / null → number | null
+// "12,500" / "1,375 cuft" / "--" / null → number | null. A negative measure
+// isn't a usable weight or volume, so it's null too, never its magnitude.
 export function parseMeasure(s) {
   if (s == null || s === '' || s === '--') return null
+  if (String(s).trim().startsWith('-')) return null
   const n = Number(String(s).replace(/[^0-9.]/g, ''))
   return Number.isFinite(n) && String(s).match(/\d/) ? n : null
 }

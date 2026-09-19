@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { buildProposal } from './proposal'
+import { buildProposal, parseMeasure } from './proposal'
 import { capacityFor, utilizationPct, DEFAULT_CAPACITY, EQUIPMENT_CAPACITY } from './equipmentCapacity'
 
 const row = (i, over = {}) => ({
@@ -24,6 +24,27 @@ describe('equipmentCapacity', () => {
     expect(utilizationPct(22500, 45000)).toBe(50)
     expect(utilizationPct(1, 3)).toBe(33)
     expect(utilizationPct(null, 45000)).toBeNull()
+  })
+})
+
+describe('parseMeasure', () => {
+  test('parses plain and unit-suffixed numbers, with separators', () => {
+    expect(parseMeasure('12,500')).toBe(12500)
+    expect(parseMeasure('1,375 cuft')).toBe(1375)
+    expect(parseMeasure('12.5')).toBe(12.5)
+    expect(parseMeasure(10000)).toBe(10000)
+  })
+  test('no usable number → null', () => {
+    expect(parseMeasure(null)).toBeNull()
+    expect(parseMeasure(undefined)).toBeNull()
+    expect(parseMeasure('')).toBeNull()
+    expect(parseMeasure('--')).toBeNull()
+    expect(parseMeasure('abc')).toBeNull()
+  })
+  test('a negative measure is not a usable weight or volume — null, never its magnitude', () => {
+    expect(parseMeasure('-500')).toBeNull()
+    expect(parseMeasure(-500)).toBeNull()
+    expect(parseMeasure('-1,375 cuft')).toBeNull()
   })
 })
 
