@@ -3184,6 +3184,8 @@ button.breadcrumb__label:focus-visible {
   justify-content: space-between;
   width: 100%;
   gap: var(--spacing-3);
+  /* Same reason as .widget-cta-row — a row must scroll, never compress. */
+  flex-shrink: 0;
   font-family: var(--font-primary);
   background: transparent;
   border: none;
@@ -3292,6 +3294,12 @@ button.breadcrumb__label:focus-visible {
   text-align: left;
   transition: background var(--transition-fast);
   box-sizing: border-box;
+  /* A row keeps its full height inside the scrolling content region. Without
+     this, flex-shrink defaults to 1 and the 72px above is only a suggestion —
+     an overflowing 3xCta squeezed its rows to ~41px instead of scrolling them,
+     so the widget changed its look under overflow rather than just gaining a
+     scrollbar. See --widget-height-max. */
+  flex-shrink: 0;
 }
 .widget-cta-row:last-child {
   border-bottom: none;
