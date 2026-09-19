@@ -3005,9 +3005,18 @@ button.breadcrumb__label:focus-visible {
   margin-top: auto;
   margin-bottom: auto;
 }
-.widget__content--2x,
-.widget__content--3xChart {
+.widget__content--2x {
   margin-top: auto;
+}
+/* 3xChart does NOT get pushed down. When a grid cell is taller than the widget's
+   natural height, `margin-top: auto` here sent every spare pixel into the gap
+   between header and content, sliding the donut and its number down the card
+   while the chart-to-rows gap stayed fixed. The donut is the thing you read
+   first, so it stays put under the header and the content absorbs the slack
+   instead — released between the donut and the rows (see .widget__chart-section
+   margin-bottom below). User ruling 2026-09-18. */
+.widget__content--3xChart {
+  flex: 1 1 auto;
 }
 .widget--3x > .btn--link {
   margin-top: auto;
@@ -3140,6 +3149,10 @@ button.breadcrumb__label:focus-visible {
   gap: 28px;
   /* Pinned under the --widget-height-max cap — the legend below is what scrolls. */
   flex-shrink: 0;
+  /* Holds the donut at the top and pushes spare height into the gap ABOVE the
+     rows. The rows keep their own 24px top margin, so the tight case is
+     unchanged — this only spends height the widget was given and didn't need. */
+  margin-bottom: auto;
 }
 .widget__info-container {
   display: flex;
