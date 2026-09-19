@@ -15,9 +15,9 @@
  * COLOUR IS SEMANTIC AT THE TOP LEVEL. The All donut sets three categories
  * against each other, so its three colours have to mean something:
  *   PGI/PGR Errors  Bittersweet  — data arrived and FAILED validation
- *   Rating Failure  Sunrise      — nothing is broken, it just isn't rated yet
+ *   Rating Failure  Tan Hide/300 — light orange: nothing is broken, not yet rated
  *   Manual PGI/PGR  Ice Blue     — not an error at all: work waiting on a person
- * Red / amber / blue reads error → gap → routine, which is the actual shape of
+ * Red / orange / blue reads error → gap → routine, which is the actual shape of
  * these three. Inside a single widget every slice is the SAME kind of thing
  * (all ten are validation errors), so there is no severity to encode — the job
  * there is only distinctness, and the ramp below carries the card's identity
@@ -56,7 +56,7 @@ export const PGIPGR_WIDGETS = [
     key: 'rating-failure',
     // Colour for THIS category in the All roll-up (one per hue family, so the
     // summary donut reads as three categories, not three shades).
-    rollupColor: 'var(--chart-8)',    // Sunrise Yellow, the BRIGHT step — rated nothing yet, but nothing is broken
+    rollupColor: 'var(--chart-4)',    // Tan Hide/300 — LIGHT ORANGE: rated nothing yet, but nothing is broken
     badgeKey: 'ratingFailure',
     title: 'Rating Failure',
     metricLabel: 'Unrated shipments',
@@ -94,7 +94,11 @@ export const PGIPGR_WIDGETS = [
 const PALETTE = Array.from({ length: 11 }, (_, i) => `var(--chart-${i + 1})`)
 
 for (const w of PGIPGR_WIDGETS) {
-  const start = PALETTE.indexOf(w.rollupColor)
+  // The card's biggest slice is the colour that card has in All, so one
+  // identity carries from summary into breakdown. `rampStart` is the escape
+  // hatch for a card whose own ramp should begin elsewhere — unused today,
+  // every card leads with its rollup colour.
+  const start = PALETTE.indexOf(w.rampStart ?? w.rollupColor)
   w.slices.forEach((s, i) => { s.color = PALETTE[(start + i) % PALETTE.length] })
 }
 
