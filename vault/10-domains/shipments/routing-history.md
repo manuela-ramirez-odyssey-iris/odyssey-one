@@ -116,7 +116,29 @@ Two consequences:
 |---|---|
 | A shipment that has **never been tendered** has **no** history. | The AC opens *"Given a shipment has multiple routing executions"*. One execution ⇒ the Tender tab owns it. |
 | 1–4 prior versions, **+1** when a tender died (Declined/Cancelled). | A dead tender is what sends a planner back through routing. |
-| A historical version **never** holds an Accepted tender. | An accepted tender ends the routing story; that shipment would not have been re-routed. |
+| ~~A historical version **never** holds an Accepted tender.~~ **Reversed (DEC-175).** A version holds whatever its execution held, Accepted included; an order-change shipment's newest historical version is its **real** prior option set (`orderChange.priorTenderList`). | Jana's own definition of a version starts from a routed shipment that *changed* — *"a new order added or a new stop came in or the origin changed"* (Mar 25) — and LINX-14509/14514 run that from **Accepted**. See §3a. |
+
+### 3a. The documented routes from an accepted tender into history (DEC-175)
+
+An accepted tender does **not** end the routing story. Three routes put an Accepted row into a
+prior version, two of them in stories:
+
+| Route | Source | What the prior version holds |
+|---|---|---|
+| **Order change** — new order, stop, origin, weight, volume, dates | Jana Mar 25; LINX-14509 (*"routing and rating re-run … produce a new Tender Option Version"*, entry from *To Be Tendered, Sent, Accepted*); LINX-15438 (auto re-route on non-location changes); LINX-15435/15438 (*"new list becomes V2 … V1 = prior"*) | the Accepted row, its cost, and its acceptance artifacts. LINX-14514 *Keep Carrier & Re-Tender* moves the carrier back to **Sent** (*"an accepted carrier must re-accept"*); *Bypass* keeps **Accepted** across the version change. |
+| **Planner intervention** — Cancel / Decline / Re-Tender on an Accepted status | LINX-15899 *Tender Actions and Tender Status Management at Option Level* (Final Review; per Rovo 2026-09-18 — **not yet in the vault, pull the export**) | the Accepted row as it stood when the planner acted. |
+| **Carrier giveback** — equipment, capacity, hours-of-service | general TMS practice; no story cites it | the Accepted row, then a late decline. |
+
+What history *contains* is settled by the AC, not by us: *"the snapshot of the data captured
+during that routing execution … shall not be updated when subsequent routing executions
+occur."* So a Carrier Pickup # issued on V1's accepted row stays on V1 — which is the column's
+operational job: a planner or CSR chasing a carrier about a cancelled or re-routed load cites the
+**historical** pickup number, not the live one.
+
+**What populates Carrier Pickup # at all is undocumented.** The sources hold the column name
+(Monitoring PPT, §Additional Info) and one sample value (`SAA9999`, Exceptions PPT), nothing
+more. "On acceptance" was ours (read off the seed's `isAccepted` gate); "on the carrier's
+response" was S113's audit inference. Both are open — Q-RH-10.
 | Response method/user/comment **follow** the outcome; an unanswered tender has none. | The defect class S151 found in the monitoring tabs: two independent draws describing one fact. |
 | A version's orders are a **prefix** of today's, growing with the version. | The AC's own example: `V1 - O1, O2` / `V2 - O1, O2, O3`. |
 
@@ -176,7 +198,9 @@ header prop** (DEC-172).
 | # | Question | Who |
 |---|---|---|
 | Q-RH-1 | Does the backend snapshot a routing version yet, and if not, which story owns it? LINX-16278/16279 are Closed and may already answer this. | Venkata / Saikat |
-| Q-RH-2 | Does a **failed** routing run (no usable carriers, QCP error) produce a version? Today those paths never touch `ShippingOption` at all. | Jana / Dave |
+| Q-RH-2 | Does a **failed** routing run (no usable carriers, QCP error) produce a version? Today those paths never touch `ShippingOption` at all. *(The other half of this question — does a re-run after an **acceptance** produce a version — is answered: yes, LINX-14509/15435, DEC-175.)* | Jana / Dave |
+| Q-RH-10 | **What populates Carrier Pickup #** (and Pro #, delivery #)? The sources hold only the column name and one sample value. On acceptance? On any carrier response? Carrier-supplied or Odyssey-assigned? And S113's question, open since Aug 10: does a **re-tender void** the prior cycle's number on the *live* row? (History snapshots regardless.) | Jana |
+| Q-RH-11 | **LINX-15899** *Tender Actions and Tender Status Management at Option Level* (Final Review) is cited by Rovo as permitting Cancel / Decline / Re-Tender on an **Accepted** status. It is not in the vault. Pull the export, confirm, and check whether it bears on Q-RH-4. | us |
 | Q-RH-3 | Are *associated orders* the orders **at routing time** or the shipment's current orders? We assume at-routing-time — the AC's example only makes sense that way. | Jana |
 | Q-RH-4 | May a planner **Process SCAC / reinstate** a dropped carrier from a version that is no longer current? 13954 poses exactly this and does not answer it; we built read-only. | Jana / Dave |
 | Q-RH-5 | Retention — all versions forever, or a rolling window? | Jana |
