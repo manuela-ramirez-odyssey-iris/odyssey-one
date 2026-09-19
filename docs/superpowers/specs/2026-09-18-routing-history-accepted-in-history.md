@@ -64,6 +64,47 @@ because the rewrite itself is the fiction.
 **R4 — Response coupling is untouched.** The real prior rows come from the seed, which DEC-174
 made coherent; pass through. Perturbed rows keep `historicalOption`'s existing coupling.
 
+## Amendment 2026-09-18 — R2 was too conservative (user: *"fix it"*)
+
+R2 as written left the column filled on **4%** of shipments (the 81 order-change ones). It held
+the invented histories to a "no source, no Accepted" standard that the perturbation already
+violates for every other field, and it contradicts the documented norm: LINX-14514 *Keep Carrier &
+Re-Tender* — *"Sent, from Sent **or Accepted** — an accepted carrier must re-accept"* — is the
+ordinary re-route story: accepted → shipment changed → re-tendered → accepted again. A history
+that never shows it is less faithful, not more.
+
+**R2′ replaces R2.** For a shipment with **no** `orderChange` whose **current** options hold an
+Accepted row — call that row **A** (there is at most one; the seed's tender cascade guarantees it):
+
+| in every historical version | rule |
+|---|---|
+| A's row | **status `Accepted`**, the seed's own `carrierPickup` / `proNumber` / `deliveryNum` **verbatim** (never invented — S113 ruled that out), `responseMethod` / `responseUser` / `responseComments` as seeded (DEC-174 made them coherent), `responseDateTime` = this version's `routedAt` (the response belongs to the run it happened in), cost drifted as today, `quoteFlag` / `quoteAudit` stripped. |
+| every other row | as today — Declined / Cancelled / **none**, with R3's artifact nulling. **`Sent` is excluded from a version that holds an Accepted row**: a tender still in flight beside an acceptance is a state the cascade cannot produce (the seed's own scenario A: ranks below the decisive one Declined/Cancelled, the decisive one Accepted, the rest never tendered). |
+
+Shipments with **no** accepted current carrier are unchanged: Declined / Cancelled / Sent / none,
+artifacts nulled. There is nothing to anchor an acceptance to without inventing an identifier.
+
+Effect: the column fills on the accepted row of every version of every shipment that has an
+accepted carrier today — ~600 shipments — plus the 81. **~30% of the corpus, always on an
+Accepted row, no identifier invented.** The remaining ~70% have no accepted carrier, so `--` is
+the true answer for them.
+
+**Test changes for R2′** (in addition to the six below, which stay):
+- The base `detail()` fixture's rank-1 row is Accepted with the three artifacts — assert over 100
+  keys that **every** version holds **exactly one** Accepted row, it is that carrier's `scac`, its
+  three artifacts `===` the seeded values, its `responseDateTime` equals the version's `routedAt`
+  formatted, and **no** row in that version is `Sent`.
+- A fixture with **no** Accepted current row: no version holds an Accepted row; artifacts null
+  everywhere (the old behaviour, now scoped).
+- The corpus guard keeps "0 artifacts under a non-Accepted status" and raises its floor:
+  derived Accepted rows **> 500** (was > 0).
+- Test 3's name changes again: *"holds an Accepted row only for the carrier that is accepted
+  today, or from a real prior version — never invented for another carrier."*
+
+**Measure and report (R2′):** over the full corpus, the number of shipments whose history shows
+≥ 1 non-`--` Carrier Pickup # (expect ≈ 81 + the count of shipments with an Accepted current
+option, ≈ 680), and the artifact-under-non-Accepted count (must stay **0**).
+
 ## Tests (`src/data/routingHistory.test.js`)
 
 Fixture: extend the existing `detail()` builder with an `orderChange` variant carrying a
