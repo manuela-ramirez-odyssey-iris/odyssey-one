@@ -107,4 +107,10 @@ describe('ConsolidationReviewRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to Shipments' }))
     expect(screen.getByTestId('shipments-probe')).toBeTruthy()
   })
+
+  test('the rail is hidden — the review continues consolidate mode, and the VD has no sidebar', () => {
+    const { container } = renderReview({ rows })
+    expect(container.querySelector('.sidebar--hidden')).toBeTruthy()
+    expect(container.querySelector('.sidebar:not(.sidebar--hidden)')).toBeNull()
+  })
 })

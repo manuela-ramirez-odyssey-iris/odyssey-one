@@ -66,7 +66,7 @@ export default function ConsolidationReviewRoute() {
 
   if (!rows.length) {
     return (
-      <AppShell titleMode={{ title: 'Manual Consolidation', onClose: leave }}>
+      <AppShell titleMode={{ title: 'Manual Consolidation', onClose: leave }} sidebarHidden>
         <div className="order-change">
           <EmptyState icon={<Inbox size={32} />} message="No consolidation to review." />
           <div><Button variant="secondary" onClick={leave}>Back to Shipments</Button></div>
@@ -94,7 +94,10 @@ export default function ConsolidationReviewRoute() {
   }))
 
   return (
-    <AppShell titleMode={{ title: 'Manual Consolidation', onClose: backInMode }}>
+    // sidebarHidden: the VD (2249:46444) shows no rail, and this screen
+    // continues consolidate mode from /shipments, which already hid it —
+    // it should stay hidden for the rest of the flow.
+    <AppShell titleMode={{ title: 'Manual Consolidation', onClose: backInMode }} sidebarHidden>
       <div className="order-change consolidation-review">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Shipments Consolidation" onClick={backInMode} />
