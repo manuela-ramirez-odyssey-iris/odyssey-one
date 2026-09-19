@@ -2957,14 +2957,17 @@ button.breadcrumb__label:focus-visible {
 .widget--3x,
 .widget--3xChart { width: 360px; gap: var(--spacing-6); }
 
-/* The category row's selected state, for the PGI/PGR panel's 3xChart widgets
-   (S153). WidgetMini has a `selected` axis; Widget does not — this is the same
-   affordance expressed app-side rather than a new prop on a released molecule,
-   and it matches WidgetMini's selected border so the two modes read alike. */
-.widget--current {
+/* `selected` — active-filter state for a row of widgets used AS the filter
+   control (S153, Shipments category row). Same treatment WidgetMini has, so
+   the two view modes read alike. Border COLOUR and shadow only: the 1px width
+   is unchanged, so selecting never resizes the card or reflows the row. */
+.widget--selected {
   border-color: var(--deep-sea-neutral-900);
   box-shadow: var(--shadow-sm);
 }
+/* `onSelect` — the whole card is the hit area. Cursor only; the footer link
+   inside keeps its own pointer and remains the keyboard/AT control. */
+.widget--selectable { cursor: pointer; }
 
 /* Height ceiling for the 2x2-span variants (user ruling 2026-09-18). However many
    rows a widget is handed, the shell stops at --widget-height-max and the content

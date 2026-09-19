@@ -43,6 +43,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
 
   const categories = PANEL_CONFIG[activePanel]?.categories ?? []
   const total = panelTotal(activePanel)
+  const allTotal = PGIPGR_WIDGETS.reduce((sum, w) => sum + (counts[w.badgeKey] || widgetTotal(w)), 0)
   const rows = [
     { key: 'all', label: 'All', count: total },
     ...categories.map(c => ({ key: c.key, label: c.label, count: counts[c.badgeKey] ?? 0 })),
@@ -80,20 +81,28 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
         // the footer link commits the subtab, which is a real Button, where a
         // click handler on the card would not be reachable by keyboard.
         <div className="flex" style={{ gap: 'var(--spacing-3)', alignItems: 'stretch' }}>
-          {/* "All" keeps its place at the head of the category row, as the
-              3x multi-row variant: it has no breakdown of its own, so a donut
-              would be the same three numbers drawn twice. Its rows ARE the
-              three widgets beside it, and each one selects that subtab. */}
+          {/* "All" keeps its place at the head of the category row. Its donut
+              is the three CATEGORIES against each other — one hue family each —
+              where the cards beside it break each category down internally.
+              Its rows select that subtab, so the summary is a way in. */}
           <Widget
-            variant="3x"
-            className={activeTab === 'all' ? 'widget--current' : ''}
+            variant="3xChart"
+            selected={activeTab === 'all'}
+            onSelect={() => onTabSelect('all')}
             style={{ flex: 1, minWidth: 0 }}
             title="All"
             domainIcon={<Container {...ICON_LG} />}
+            value={allTotal}
+            label="PGI/PGR shipments"
             rows={PGIPGR_WIDGETS.map(w => ({
               label: w.title,
               value: counts[w.badgeKey] || widgetTotal(w),
+              indicatorColor: w.rollupColor,
               onClick: () => onTabSelect(w.key),
+            }))}
+            chartSegments={PGIPGR_WIDGETS.map(w => ({
+              value: counts[w.badgeKey] || widgetTotal(w),
+              color: w.rollupColor,
             }))}
             goToLabel={activeTab === 'all' ? 'Showing all shipments' : 'View all shipments'}
             onGoToClick={() => onTabSelect('all')}
@@ -102,7 +111,8 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
             <Widget
               key={w.key}
               variant="3xChart"
-              className={activeTab === w.key ? 'widget--current' : ''}
+              selected={activeTab === w.key}
+              onSelect={() => onTabSelect(w.key)}
               style={{ flex: 1, minWidth: 0 }}
               title={w.title}
               domainIcon={<Container {...ICON_LG} />}
