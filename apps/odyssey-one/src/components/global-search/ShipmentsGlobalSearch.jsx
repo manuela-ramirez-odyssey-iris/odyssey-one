@@ -67,7 +67,10 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
       shipmentsSearchAdapter.searchShipments(chips, query, selectedDataIds),
     // Consolidate mode narrows what the bar SUGGESTS (spec §3.5). Called as
     // methods on the base adapter so its internal `this.getInitial` /
-    // `this.validateCodes` keep working.
+    // `this.validateCodes` keep working. `attributeKeys` MUST be a stable
+    // module-level reference (e.g. CONSOLIDATION_ATTRIBUTE_KEYS) — an inline
+    // array literal re-identifies this memo (and the adapter it returns)
+    // every render, which re-fires the suggestion fetch in useGlobalSearch.
     getInitial: async (...args) => narrowSuggestionSections(await shipmentsSearchAdapter.getInitial(...args), attributeKeys),
     getSuggestions: async (...args) => narrowSuggestionSections(await shipmentsSearchAdapter.getSuggestions(...args), attributeKeys),
   }), [selectedDataIds, attributeKeys])

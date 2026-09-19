@@ -22,4 +22,10 @@ describe('narrowSuggestionSections', () => {
       { title: 'Filter by date', items: [{ key: 'date-pickup', kind: 'date', label: 'Pickup Date' }] },
     ])
   })
+  test('an empty allow-list is not a no-op — it strips every attribute item', () => {
+    const out = narrowSuggestionSections(sections, [])
+    expect(out).toEqual([
+      { title: 'Filter by date', items: [{ key: 'date-pickup', kind: 'date', label: 'Pickup Date' }] },
+    ])
+  })
 })
