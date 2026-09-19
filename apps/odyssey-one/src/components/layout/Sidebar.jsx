@@ -67,13 +67,15 @@ function activeIdFor(pathname) {
   return match?.id
 }
 
-const Sidebar = React.memo(function Sidebar({ expanded = false, onHoverChange }) {
+const Sidebar = React.memo(function Sidebar({ expanded = false, onHoverChange, hidden = false }) {
   const { pathname } = useLocation()
 
   return (
     <OdysseySidebar
-      expanded={expanded}
-      onHoverChange={onHoverChange}
+      // A hidden rail must not peek open on hover mid-slide.
+      expanded={expanded && !hidden}
+      onHoverChange={hidden ? undefined : onHoverChange}
+      className={hidden ? 'sidebar--hidden' : undefined}
       topItems={topItems}
       bottomItems={bottomItems}
       activeId={activeIdFor(pathname)}

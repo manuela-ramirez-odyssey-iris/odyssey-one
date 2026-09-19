@@ -5,7 +5,7 @@ import { useEditMode } from '../../contexts/EditModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useSidebar } from '../../contexts/SidebarContext.jsx'
 
-export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false, searchSlot, titleMode }) {
+export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false, searchSlot, titleMode, sidebarHidden = false }) {
   const { isEditMode } = useEditMode()
   const { modalOpen } = useCustomers()
   // Lives in a provider above the router: every route renders its own AppShell,
@@ -33,7 +33,7 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
           scrollbar to recover. clip renders identically but is unscrollable. */}
       <div className="flex flex-1 min-h-0 overflow-clip">
         {!isEditMode && (
-          <Sidebar expanded={sidebarExpanded} onHoverChange={setSidebarPeeking} />
+          <Sidebar expanded={sidebarExpanded} onHoverChange={setSidebarPeeking} hidden={sidebarHidden} />
         )}
         <main
           className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col"

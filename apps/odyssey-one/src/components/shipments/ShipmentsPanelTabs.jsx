@@ -33,6 +33,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   onViewModeChange,
   visiblePanels = null,
   hideZeroCategories = false,
+  hideViewToggle = false,
 }) {
   const counts = metrics || {}
   const panelTotal = (key) =>
@@ -63,14 +64,16 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
             />
           ))}
         </div>
-        <ButtonToggle
-          firstLabel="Pill tabs mode"
-          secondLabel="Widget mode"
-          selected={viewMode === 'widgets' ? 'second' : 'first'}
-          onChange={(next) => onViewModeChange?.(next === 'second' ? 'widgets' : 'pills')}
-          firstAriaLabel="Show categories as pill tabs"
-          secondAriaLabel="Show categories as widgets"
-        />
+        {!hideViewToggle && (
+          <ButtonToggle
+            firstLabel="Pill tabs mode"
+            secondLabel="Widget mode"
+            selected={viewMode === 'widgets' ? 'second' : 'first'}
+            onChange={(next) => onViewModeChange?.(next === 'second' ? 'widgets' : 'pills')}
+            firstAriaLabel="Show categories as pill tabs"
+            secondAriaLabel="Show categories as widgets"
+          />
+        )}
       </div>
       {viewMode === 'widgets' && activePanel === 'pgipgr' ? (
         // PGI/PGR's three subtabs each carry a breakdown the other panels have
