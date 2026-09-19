@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Widget } from '@odyssey/ui'
 import { Package, Ship, Truck, Users, BarChart3, AlertCircle } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
+import { DemoControls, DemoToggle } from '../demoControls.jsx'
 
 export const meta = {
   name: 'Widget',
@@ -85,6 +87,15 @@ const MANY_CTAS = (icons) => [
 ].map((label, i) => ({ icon: icons[i % icons.length], label, onClick: () => {} }))
 
 export default function WidgetDemo() {
+  // The Height-ceiling row doubles as the `selected` / `onSelect` playground:
+  // it already shows all three 2x2-span variants side by side, which is exactly
+  // what the selection axis has to be checked against.
+  const [selectable, setSelectable] = useState(true)
+  const [picked, setPicked] = useState('3xChart')
+  const selectProps = (variant) => (selectable
+    ? { selected: picked === variant, onSelect: () => setPicked(variant) }
+    : {})
+
   return (
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
@@ -216,9 +227,25 @@ export default function WidgetDemo() {
           <code>--chart-rest</code> is the donut&rsquo;s unfilled remainder and is never a
           legend colour.
         </p>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          <strong>This row is also the <code>selected</code> / <code>onSelect</code>
+          playground.</strong> With selection on, the whole card is the control —
+          <code>role=&quot;button&quot;</code>, a tab stop, <code>aria-pressed</code> and
+          Enter/Space — so <em>tab to a card and press Enter</em>, not just click. Selecting
+          replays that card&rsquo;s donut grow-in and count-up. The state is border COLOUR
+          plus shadow only, never the border width: watch that the row does not shift a
+          pixel as selection moves. Note the 3xChart keeps its Go-to link here, so it is
+          also the case the click guard exists for — clicking that link must NOT select the
+          card. Pass <code>onSelect</code> only where the card has no interactive children;
+          this row deliberately breaks that rule to show the guard working.
+        </p>
+        <DemoControls>
+          <DemoToggle label="selectable (onSelect)" value={selectable} onChange={setSelectable} />
+        </DemoControls>
         <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
           <Widget
             variant="3xChart"
+            {...selectProps('3xChart')}
             title="Shipment Exceptions"
             domainIcon={<AlertCircle {...ICON_LG} />}
             value="1,284"
@@ -230,6 +257,7 @@ export default function WidgetDemo() {
           />
           <Widget
             variant="3x"
+            {...selectProps('3x')}
             title="Shipments"
             domainIcon={<Truck {...ICON_LG} />}
             rows={MANY_ROWS}
@@ -238,6 +266,7 @@ export default function WidgetDemo() {
           />
           <Widget
             variant="3xCta"
+            {...selectProps('3xCta')}
             title="Quick Actions"
             ctaRows={MANY_CTAS([
               <Truck {...ICON_LG} />, <AlertCircle {...ICON_LG} />,
