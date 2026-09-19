@@ -10,6 +10,7 @@ export const meta = {
   figmaNode: '1825:7',
   codeConnect: 'packages/ui/src/Widget.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

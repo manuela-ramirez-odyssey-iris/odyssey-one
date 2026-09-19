@@ -22,10 +22,11 @@
 
 ### Owed
 
-1. **`Widget` is NORMALIZING in both DSMs** (`dsm-flags.mjs Widget --demote`, `angular-map.json` regenerated). **GATE B not run** — nobody has reviewed the demo yet.
-2. **The Angular twin owes the same CSS** — the cap, the two scroll regions and `flex-shrink` on the chart section. Not started; it joins the next batch.
-3. **Nothing deployed.** The 5th-metric colour fix is live only in the working tree.
-4. **A11y ceiling, named not fixed:** a scroll region needs a focusable child to be keyboard-scrollable. Every row in Home carries `onClick`/`nav` and renders as a `<button>`, so it is reachable today — but a `3x` widget handed rows with no `onClick` renders `<div>`s and its overflow would be mouse-only. Adding `tabIndex={0}` to the region would fix it; not done, because it needs a call on whether a non-interactive stat list should take focus at all.
+1. **GATE B PASSED** — user approved 2026-09-18 after reviewing the demo. `approved: true` on the React meta, `normalizing: true` kept per the staging model, so the DSM badge reads APPROVED (green) while Cognizant still sees "don't consume yet". Reversible; no version stamped. The Angular meta stays NORMALIZING — in Angular, `approved` means "twin visually approved", which cannot be true before the twin exists.
+2. **Batch approval not given.** GATE B is per-component; the Angular port needs a separate explicit command, and Widget is currently the only component in this batch.
+3. **The Angular twin owes the same CSS** — the cap, the two scroll regions and `flex-shrink` on the chart section. Not started; it joins the next batch.
+4. **Nothing deployed.** The 5th-metric colour fix is live only in the working tree.
+5. **A11y ceiling, named not fixed:** a scroll region needs a focusable child to be keyboard-scrollable. Every row in Home carries `onClick`/`nav` and renders as a `<button>`, so it is reachable today — but a `3x` widget handed rows with no `onClick` renders `<div>`s and its overflow would be mouse-only. Adding `tabIndex={0}` to the region would fix it; not done, because it needs a call on whether a non-interactive stat list should take focus at all.
 
 ## Session D16 — September 18, 2026
 
