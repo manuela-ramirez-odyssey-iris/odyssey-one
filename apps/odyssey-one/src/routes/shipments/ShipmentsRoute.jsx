@@ -452,7 +452,9 @@ function ShipmentsRoute() {
   }, [])
 
   const enterConsolidate = useCallback(() => {
-    setConsolidate({ rows: new Map() })
+    // Snapshot the UI state this mode overwrites below, so exiting restores
+    // what the planner actually had instead of a hardcoded default.
+    setConsolidate({ rows: new Map(), priorSorting: sorting, priorViewMode: viewMode })
     setSelectedShipmentId(null)   // the detail bar is hidden in mode; nothing stays "open"
     setViewMode('pills')          // the widgets toggle is hidden; pills are the mode's face
     // Direct shipments IDs sort AFTER Consolidation ones under the default
@@ -461,17 +463,22 @@ function ShipmentsRoute() {
     // eligible (Direct) rows first while selecting — same sortBy/orderBy the
     // header already drives, just re-seeded for this mode.
     setSorting([{ id: 'shipmentType', desc: true }])
-  }, [])
+  }, [sorting, viewMode])
   const exitConsolidate = useCallback(() => {
+    // Restore the snapshot taken on entry. Re-entering via "Modify Selection"
+    // (the lazy useState initialiser above) creates `{ rows }` with no
+    // snapshot — there is nothing prior to restore, so leave sorting/viewMode
+    // as they are; the optional chaining below no-ops in that case.
+    if (consolidate?.priorSorting) setSorting(consolidate.priorSorting)
+    if (consolidate?.priorViewMode) setViewMode(consolidate.priorViewMode)
     setConsolidate(null)
-    setSorting(DEFAULT_SORTING)
-  }, [])
+  }, [consolidate])
   const handleSelectionChange = useCallback((rows, checked) => {
     setConsolidate((prev) => {
       if (!prev) return prev
       const next = new Map(prev.rows)
       for (const r of rows) checked ? next.set(r.id, r) : next.delete(r.id)
-      return { rows: next }
+      return { ...prev, rows: next }
     })
   }, [])
   const eligibility = useCallback((row) => consolidationEligibility(row, anchorCustomerId), [anchorCustomerId])

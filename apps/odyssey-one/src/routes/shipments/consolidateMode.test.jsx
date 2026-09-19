@@ -2,7 +2,7 @@
 // Consolidate mode (S154) end-to-end through the real ShipmentsRoute + mock
 // grid service. Same harness as tabOrderPersistence.test.jsx.
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ShipmentsRoute from './ShipmentsRoute.jsx'
@@ -103,6 +103,45 @@ describe('consolidate mode', () => {
     expect(rowBoxes()).toHaveLength(0)
     fireEvent.click(screen.getByRole('button', { name: 'Consolidate' }))
     expect(await screen.findByRole('button', { name: '0 Shipments Selected' })).toBeTruthy()
+  })
+
+  test('Cancel restores the sort and view mode the planner had before entering', async () => {
+    renderRoute()
+    await screen.findByRole('heading', { name: 'Shipments' })
+    // Switch to widgets view, which the mode hides and forces back to pills.
+    const toggle = document.querySelector('.button-toggle')
+    const widgets = toggle && within(toggle).getAllByRole('button')[1]
+    if (widgets) fireEvent.click(widgets)
+    const before = document.querySelector('.button-toggle')?.innerHTML
+    await enterMode()
+    expect(document.querySelector('.button-toggle')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await waitFor(() => expect(document.querySelector('.button-toggle')).toBeTruthy())
+    expect(document.querySelector('.button-toggle')?.innerHTML).toBe(before)
+  })
+
+  test('the selection survives the first checkbox click without losing mode state', async () => {
+    renderRoute()
+    await screen.findByRole('heading', { name: 'Shipments' })
+    // Widgets view is the "prior" state the snapshot must carry past a
+    // checkbox click — a spread bug in handleSelectionChange would drop it.
+    const toggle = document.querySelector('.button-toggle')
+    const widgets = toggle && within(toggle).getAllByRole('button')[1]
+    if (widgets) fireEvent.click(widgets)
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(0))
+    fireEvent.click(enabledRowBoxes()[0])
+    await screen.findByText('Selected Customer:')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await screen.findByRole('heading', { name: 'Shipments' })
+    const toggleAfter = await waitFor(() => {
+      const el = document.querySelector('.button-toggle')
+      if (!el) throw new Error('toggle not back yet')
+      return el
+    })
+    const widgetsAfter = within(toggleAfter).getAllByRole('button')[1]
+    expect(widgetsAfter.getAttribute('aria-pressed')).toBe('true')
   })
 
   test('location.state.consolidate re-enters the mode with the selection', async () => {
