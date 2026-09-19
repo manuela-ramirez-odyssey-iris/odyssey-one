@@ -41,11 +41,13 @@ describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
       .toBe(Object.values(metrics).reduce((a, b) => a + b, 0))
   })
 
-  it('an All row selects that subtab', () => {
+  it('All rows are read-only — the three cards beside it are the way in', () => {
     const onTabSelect = vi.fn()
     const { container } = setup({ onTabSelect })
-    fireEvent.click(within(container.querySelectorAll('.widget--3xChart')[0]).getByText('Manual PGI/PGR'))
-    expect(onTabSelect).toHaveBeenCalledWith('manual-pgipgr')
+    const all = container.querySelectorAll('.widget--3xChart')[0]
+    fireEvent.click(within(all).getByText('Manual PGI/PGR'))
+    // Clicking a row selects the CARD it is in (All), never a sibling subtab.
+    expect(onTabSelect).not.toHaveBeenCalledWith('manual-pgipgr')
   })
 
   it('renders one 3xChart widget per subtab, with its centre metric', () => {
@@ -81,22 +83,28 @@ describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
     expect(onTabSelect).toHaveBeenCalledWith('manual-pgipgr')
   })
 
-  it('a click on an inner control wins over the card', () => {
-    const onTabSelect = vi.fn()
-    const { container } = setup({ onTabSelect })
-    const all = container.querySelectorAll('.widget--3xChart')[0]
-    // A row inside All targets ITS subtab, not All.
-    fireEvent.click(within(all).getByText('Rating Failure'))
-    expect(onTabSelect).toHaveBeenCalledWith('rating-failure')
-    expect(onTabSelect).not.toHaveBeenCalledWith('all')
+  // No footer Go-to link on any of the four (user, 2026-09-18) — which is also
+  // what makes the card safe to expose as a button: nothing interactive inside.
+  it('carries no footer link and no interactive descendants', () => {
+    const { container } = setup()
+    for (const card of container.querySelectorAll('.widget--3xChart')) {
+      expect(within(card).queryByText(/shipments →|View |Showing /)).toBeNull()
+      // The card itself is the only control.
+      const inner = [...card.querySelectorAll('button, a, input, [role="button"]')]
+        .filter((el) => el !== card)
+      expect(inner.map((el) => el.textContent.slice(0, 20))).toEqual([])
+    }
   })
 
-  it('the footer link commits that subtab', () => {
+  it('each card is a keyboard-operable button announcing its pressed state', () => {
     const onTabSelect = vi.fn()
-    const { container } = setup({ onTabSelect })
+    const { container } = setup({ onTabSelect, activeTab: 'rating-failure' })
     const card = [...container.querySelectorAll('.widget--3xChart')]
       .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'Rating Failure')
-    fireEvent.click(within(card).getByRole('button', { name: /View these shipments/ }))
+    expect(card.getAttribute('role')).toBe('button')
+    expect(card.getAttribute('tabindex')).toBe('0')
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.keyDown(card, { key: 'Enter' })
     expect(onTabSelect).toHaveBeenCalledWith('rating-failure')
   })
 
