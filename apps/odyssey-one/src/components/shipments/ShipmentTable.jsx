@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
+import { Badge, Button, Checkbox, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
@@ -215,19 +215,25 @@ const colLabel = (key) => COLUMN_CONFIG_MAP[key]?.label ?? ALL_COLUMNS.find((c) 
 // the SAME state the future RightPanel will drive — the old panel is just an early
 // driver of it. The column SET is stable (see the master `columns` below); only
 // visibility + order change.
-function deriveColumnState(visibleColumns) {
+function deriveColumnState(visibleColumns, selectable = false) {
   const visibleKeys = (visibleColumns && visibleColumns.length)
     ? visibleColumns.filter((k) => ALL_KEYS.includes(k))
     : COLUMN_CONFIG.map((c) => c.key)
 
-  const columnVisibility = {}
+  const columnVisibility = { select: selectable, action: !selectable }
   for (const k of ALL_KEYS) columnVisibility[k] = visibleKeys.includes(k)
   const hidden = ALL_KEYS.filter((k) => !visibleKeys.includes(k))
-  const columnOrder = [...visibleKeys, ...hidden, 'action']
+  const columnOrder = ['select', ...visibleKeys, ...hidden, 'action']
   return { columnVisibility, columnOrder }
 }
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isFetchingRows = false, isError = false, error, onRetry }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isFetchingRows = false, isError = false, error, onRetry,
+  // Consolidate mode (S154): a multi-select checkbox lane replaces the actions
+  // column and row clicks go inert. `selection` is the parent's Map<id, row>;
+  // `onSelectionChange(rows[], checked)` reports one row (cell) or every
+  // eligible row on the page (header). `eligibility(row)` returns null or the
+  // reason shown as the disabled checkbox's tooltip.
+  selectable = false, selection, onSelectionChange, eligibility }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
   const navigate = useNavigate()
@@ -318,20 +324,66 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       meta: { sticky: 'right', fixedWidth: true, forwardClick: true },
     })
 
-    return [...dataCols, actionColumn]
-  }, [onToggleColumnPanel, navigate])
+    const isSelected = (r) => !!selection?.has(r.id)
+    const selectColumn = columnHelper.display({
+      id: 'select',
+      enableResizing: false,
+      enableSorting: false,
+      header: ({ table }) => {
+        const eligible = table.getRowModel().rows.map((r) => r.original).filter((r) => !eligibility?.(r))
+        const picked = eligible.filter(isSelected)
+        return (
+          <Checkbox
+            showLabel={false}
+            aria-label="Select all eligible shipments on this page"
+            disabled={eligible.length === 0}
+            checked={eligible.length > 0 && picked.length === eligible.length}
+            indeterminate={picked.length > 0 && picked.length < eligible.length}
+            onChange={(e) => onSelectionChange?.(eligible, e.target.checked)}
+          />
+        )
+      },
+      cell: ({ row }) => {
+        const r = row.original
+        const reason = eligibility?.(r) ?? null
+        const box = (
+          <Checkbox
+            showLabel={false}
+            aria-label={`Select ${r.odysseyShipmentIdentifier || r.buyShipment || r.sellShipment}`}
+            disabled={!!reason}
+            checked={isSelected(r)}
+            onChange={(e) => onSelectionChange?.([r], e.target.checked)}
+          />
+        )
+        // A disabled input swallows pointer events, so the tooltip anchors on
+        // a wrapping span (TooltipTrigger listens on the anchor, not the input).
+        return reason
+          ? <TooltipTrigger asSpan tooltipProps={{ groups: [{ content: reason }] }}><span style={{ display: 'inline-flex' }}>{box}</span></TooltipTrigger>
+          : box
+      },
+      meta: { fixedWidth: true },
+    })
+
+    return [selectColumn, ...dataCols, actionColumn]
+  }, [onToggleColumnPanel, navigate, selection, onSelectionChange, eligibility])
 
   // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their
   // ORDER via TanStack column state — the column SET above stays stable.
   const { columnVisibility, columnOrder } = useMemo(
-    () => deriveColumnState(visibleColumns),
-    [visibleColumns]
+    () => deriveColumnState(visibleColumns, selectable),
+    [visibleColumns, selectable]
   )
 
-  // Selection is CONTROLLED by the parent: rowSelection mirrors selectedId, and
-  // the click path (onCellClick → onRowSelect) drives the parent's toggle. We pass
-  // a no-op onRowSelectionChange so TanStack treats the state as controlled.
-  const rowSelection = useMemo(() => (selectedId ? { [selectedId]: true } : {}), [selectedId])
+  // Selection is CONTROLLED by the parent: rowSelection mirrors selectedId (or,
+  // in consolidate mode, the parent's multi-row `selection` Map), and the click
+  // path (onCellClick → onRowSelect) drives the parent's toggle. We pass a no-op
+  // onRowSelectionChange so TanStack treats the state as controlled.
+  // Single-row (detail bar) vs multi-row (consolidate mode) selection — both
+  // controlled by the parent; TanStack only mirrors it for the row tint.
+  const rowSelection = useMemo(() => {
+    if (selectable) return Object.fromEntries([...(selection?.keys() ?? [])].map((id) => [id, true]))
+    return selectedId ? { [selectedId]: true } : {}
+  }, [selectable, selection, selectedId])
   const pagination = useMemo(() => ({ pageIndex: pageNumber, pageSize }), [pageNumber, pageSize])
 
   const handlePaginationChange = useCallback((updater) => {
@@ -351,7 +403,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     onPaginationChange: handlePaginationChange,
     onSortingChange,
     enableRowSelection: true,
-    enableMultiRowSelection: false,
+    enableMultiRowSelection: selectable,
     enableColumnResizing: true,
     columnResizeMode: 'onChange',
     getRowId: (row) => row.id,
@@ -379,7 +431,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       // the auto-scroll (600ms after open) has room to pull a bottom row into the
       // visible gap above the bar. Without it the page is already at max-scroll and
       // scrollBy() is a no-op. Collapses back to the strip height on deselect (S82).
-      style={{ paddingBottom: selectedId ? 'var(--bottombar-partial)' : 'var(--bottombar-collapsed)' }}
+      style={{ paddingBottom: selectedId && !selectable ? 'var(--bottombar-partial)' : 'var(--bottombar-collapsed)' }}
     >
       {shipments.length === 0 && !isLoading && !isError ? (
         <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
@@ -410,7 +462,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // Keep the selected row visible between the sticky header and the open
           // detail bar (S82 origin-row rule, componentized S93). freshDelay lets
           // the bar's open animation land before its top is measured.
-          scrollSelectedIntoView={{
+          scrollSelectedIntoView={selectable ? false : {
             bottomBoundary: () => (document.querySelector('[data-bottombar]')?.getBoundingClientRect().top ?? window.innerHeight) - 12,
           }}
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
@@ -419,7 +471,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // (12px) below the content edge; the gap filler above covers that slot.
           stickyTop="calc(-1 * var(--spacing-8) + var(--spacing-3))"
           ariaLabel="Shipments"
-          onCellClick={handleCellClick}
+          onCellClick={selectable ? undefined : handleCellClick}
           // S116: the grid error is now the SHELL's third body state (Figma
           // `Table Container Error`), not a surface rendered instead of the table.
           // The header + chrome survive the failure, which is what S114 said this
