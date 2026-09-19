@@ -27,8 +27,13 @@
  *     routed shipment that *changed* (new order, new stop, origin), and the
  *     Order Change stories run that from an Accepted shipment; the seed
  *     already holds that real prior version, so nothing is invented under it.
- *     Elsewhere, no Accepted is ever drawn — the perturbation has no source
- *     for inventing one, so it doesn't.
+ *   • Elsewhere (the perturbation), a version holds an Accepted row ONLY for
+ *     the carrier that is accepted TODAY (DEC-175 R2′, amendment — LINX-14514
+ *     "an accepted carrier must re-accept" makes accepted→re-routed→accepted
+ *     the ordinary story, not an exception) — never invented for a different
+ *     carrier. When that carrier's row is drawn Accepted, no OTHER row in the
+ *     same version may be 'Sent': a tender still in flight beside an
+ *     acceptance is a state the cascade cannot produce.
  *   • Orders accumulate with the version number (the AC's own example: V1 has
  *     O1+O2, V2 has O1+O2+O3), so an older version carries a prefix of today's.
  *   • Older versions are older in time, strictly: each step back subtracts at
@@ -62,14 +67,17 @@ function rng(seed) {
 const pick = (r, arr) => arr[Math.floor(r() * arr.length)]
 const intIn = (r, min, max) => min + Math.floor(r() * (max - min + 1))
 
-/** A PERTURBED historical version's tender outcomes. Accepted is absent on
- *  purpose (D7/DEC-175 R2): the only documented route into an Accepted
- *  history row is a real prior version (`orderChange.priorTenderList`,
- *  handled separately, below), and inventing one here with no source is
- *  exactly what DEC-175 reversed DEC-169 for doing. `null` is "tendered
- *  nothing / no response recorded", which the Tender screen already renders
- *  as '--'. */
+/** A PERTURBED historical version's tender outcomes for every row OTHER than
+ *  the current accepted carrier's (DEC-175 R2′, amendment): Accepted is
+ *  absent here on purpose — it is never invented for a carrier that isn't
+ *  accepted today (`acceptedHistoricalOption`, below, owns that one row).
+ *  `null` is "tendered nothing / no response recorded", which the Tender
+ *  screen already renders as '--'. */
 const HISTORICAL_STATUSES = ['Declined', 'Cancelled', 'Sent', null]
+/** Same, but for a version that already holds the accepted carrier's row —
+ *  'Sent' drops out (R2′): a tender still in flight beside an acceptance is
+ *  a state the seed's own tender cascade cannot produce. */
+const HISTORICAL_STATUSES_NO_SENT = ['Declined', 'Cancelled', null]
 
 /**
  * How the answer was RECORDED in Odyssey — not the carrier's channel. Same four
@@ -134,19 +142,23 @@ function everTendered(options) {
  * independently — an unanswered tender has no response method, user, date or
  * comment, and only a Manual Update has a person behind it.
  *
+ * NEVER called for the current accepted carrier's own row (DEC-175 R2′ —
+ * `acceptedHistoricalOption`, below, owns that one) — every OTHER row, so an
+ * Accepted outcome is never among `statuses` to draw from.
+ *
  * The seeded `responseComments` cannot simply be carried over: this function
- * REWRITES the status (the perturbation never draws an Accepted outcome —
- * DEC-175 R2; an order-change shipment's real prior version, which CAN hold
- * one, never passes through here), and a comment that disagrees with its
- * outcome is exactly the incoherence the seed fix removed. It re-picks from
- * the same shared table instead.
+ * REWRITES the status, and a comment that disagrees with its outcome is
+ * exactly the incoherence the seed fix removed. It re-picks from the same
+ * shared table instead.
  *
  * @param {string} routedAt  the version's own ISO instant — the response belongs
  *                           to THIS run, not to the current one the option was
  *                           read from.
+ * @param {string[]} statuses  HISTORICAL_STATUSES, or the no-'Sent' variant
+ *                              when this version also holds an Accepted row.
  */
-function historicalOption(r, option, step, routedAt) {
-  const status = pick(r, HISTORICAL_STATUSES)
+function historicalOption(r, option, step, routedAt, statuses = HISTORICAL_STATUSES) {
+  const status = pick(r, statuses)
   // 'Sent' is a tender still out at the time of this run: notified, unanswered.
   const answered = status === 'Declined' || status === 'Cancelled'
   const method = !answered ? null
@@ -180,6 +192,36 @@ function historicalOption(r, option, step, routedAt) {
     carrierPickup: null,
     proNumber: null,
     deliveryNum: null,
+  }
+}
+
+/**
+ * DEC-175 R2′ (amendment, 2026-09-18 — "R2 was too conservative") — the row
+ * for the carrier that IS accepted on the shipment TODAY, in a version that
+ * (like every version, once such a carrier exists) holds it. Nothing about
+ * the acceptance is invented: `carrierPickup` / `proNumber` / `deliveryNum`
+ * and `responseMethod` / `responseUser` / `responseComments` all pass
+ * through from `...option` verbatim (DEC-174 already made them one coherent
+ * seeded fact) — the only thing R2′ overrides is `responseDateTime`, because
+ * the response belongs to THIS run's timeline, not the current one's. Cost
+ * still drifts (a re-route re-rates); a quote is still a live-screen
+ * affordance, never a historical fact. No status is drawn here — there is
+ * nothing to pick, this row's outcome is not being rewritten away from
+ * Accepted the way `historicalOption`'s rows are.
+ */
+function acceptedHistoricalOption(r, option, step, routedAt) {
+  const currentCost = Number(String(option.cost ?? '').replace(/[^0-9.]/g, '')) || 0
+  const drift = 1 - (0.12 * r()) - 0.01 * step
+  const cost = currentCost ? `$${(currentCost * drift).toFixed(2)}` : option.cost
+
+  return {
+    ...option,
+    cost,
+    rate: cost,
+    status: 'Accepted',
+    responseDateTime: formatDateTimeMDYHM(new Date(routedAt), { utc: true }),
+    quoteFlag: undefined,
+    quoteAudit: undefined,
   }
 }
 
@@ -243,6 +285,19 @@ export function deriveRoutingHistory(details, key, now = new Date()) {
   const r = rng(hash(`routing-history:${key}`))
   const anchor = anchorInstant(options, now)
 
+  // DEC-175 R2′ — the carrier accepted TODAY, if any (at most one; the
+  // seed's tender cascade guarantees it — lowest `rank` wins on the
+  // theoretical tie). Every version holds this exact row Accepted, never a
+  // different carrier, and a version that holds it excludes 'Sent' from
+  // every other row (a tender in flight beside an acceptance is a state the
+  // cascade cannot produce).
+  const acceptedOption = options.reduce((best, o) => {
+    if (o.status !== 'Accepted') return best
+    if (best === null) return o
+    return (o.rank ?? Infinity) < (best.rank ?? Infinity) ? o : best
+  }, null)
+  const otherStatuses = acceptedOption ? HISTORICAL_STATUSES_NO_SENT : HISTORICAL_STATUSES
+
   // 1–4 executions before the current one, +1 when a tender died — a Declined or
   // Cancelled carrier is what sends a planner back through routing (D6).
   const died = options.some((o) => o.status === 'Declined' || o.status === 'Cancelled')
@@ -265,7 +320,11 @@ export function deriveRoutingHistory(details, key, now = new Date()) {
       version,
       routedAt,
       orders: orders.slice(0, orderCount),
-      options: options.map((o) => historicalOption(r, o, step, routedAt)),
+      options: options.map((o) =>
+        o === acceptedOption
+          ? acceptedHistoricalOption(r, o, step, routedAt)
+          : historicalOption(r, o, step, routedAt, otherStatuses),
+      ),
       // Routing legitimately drops different carriers on different runs; an older
       // run's list is a subset of today's, at least one row whenever there are any.
       droppedCarriers: dropped.length

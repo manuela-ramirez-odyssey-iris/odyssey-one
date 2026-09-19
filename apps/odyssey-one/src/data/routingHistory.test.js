@@ -70,6 +70,18 @@ const NEVER_TENDERED = detail({
   },
 })
 
+// DEC-175 R2′ — a shipment that HAS been tendered but has no accepted current
+// carrier (Declined + still Sent): nothing to anchor an acceptance to, so the
+// old (pre-amendment) behaviour holds unchanged.
+const NO_ACCEPTED = detail({
+  routingData: {
+    options: [
+      { rank: 1, routeRank: 1, scac: 'CNWY', carrierName: 'CONWAY FREIGHT', cost: '$804.94', status: 'Declined', modifyUser: 'George Schultz' },
+      { rank: 2, routeRank: 2, scac: 'JBHT', carrierName: 'J.B. HUNT', cost: '$912.10', status: 'Sent', modifyUser: 'Amy Cook' },
+    ],
+  },
+})
+
 const NOW = new Date('2026-09-14T15:20:00Z')
 const derive = (d = detail(), key = 'SHP-B28826319') => deriveRoutingHistory(d, key, NOW)
 
@@ -133,16 +145,53 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
     }
   })
 
-  it('never puts an Accepted tender in a historical version, unless the seed carries the real prior version (D7/DEC-175)', () => {
-    // The PERTURBATION path never invents an Accepted row — the only
-    // documented route into one is a real prior version, which this fixture
-    // (no orderChange) doesn't have. Checked across many keys, not just one
-    // lucky draw.
+  it('holds an Accepted row only for the carrier that is accepted today, or from a real prior version — never invented for another carrier', () => {
+    // DEC-175 R2′ (amendment): the perturbation DOES hold an Accepted row now
+    // (the base fixture's current rank-1 carrier, CNWY, is accepted) — but
+    // always that same carrier, never a different one invented out of thin
+    // air. Checked across many keys, not just one lucky draw.
     for (let i = 0; i < 200; i++) {
       for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
-        for (const o of v.options) expect(o.status).not.toBe('Accepted')
+        const acceptedRows = v.options.filter((o) => o.status === 'Accepted')
+        expect(acceptedRows).toHaveLength(1)
+        expect(acceptedRows[0].scac).toBe('CNWY')
       }
     }
+  })
+
+  describe('DEC-175 R2′ (amendment) — a version holds the CURRENT accepted carrier\'s row, verbatim', () => {
+    it('every version holds exactly one Accepted row: that carrier, its seeded artifacts, this run\'s response time, and no Sent alongside it', () => {
+      for (let i = 0; i < 100; i++) {
+        for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
+          const acceptedRows = v.options.filter((o) => o.status === 'Accepted')
+          expect(acceptedRows).toHaveLength(1)
+          const [a] = acceptedRows
+          expect(a.scac).toBe('CNWY')
+          // The seed's own artifacts, never invented — S113 ruled that out.
+          expect(a.carrierPickup).toBe('ABC12345')
+          expect(a.proNumber).toBe('PRO-1')
+          expect(a.deliveryNum).toBe('DEL-1')
+          // The response belongs to THIS run's timeline, not the current one's.
+          expect(a.responseDateTime).toBe(formatDateTimeMDYHM(new Date(v.routedAt), { utc: true }))
+          // A tender in flight beside an acceptance is a state the cascade
+          // cannot produce.
+          expect(v.options.some((o) => o.status === 'Sent')).toBe(false)
+        }
+      }
+    })
+
+    it('a shipment with no accepted current carrier never holds an Accepted row (the old behaviour, now scoped)', () => {
+      for (let i = 0; i < 100; i++) {
+        for (const v of deriveRoutingHistory(NO_ACCEPTED, `SHP-${i}`, NOW)) {
+          for (const o of v.options) {
+            expect(o.status).not.toBe('Accepted')
+            expect(o.carrierPickup).toBeNull()
+            expect(o.proNumber).toBeNull()
+            expect(o.deliveryNum).toBeNull()
+          }
+        }
+      }
+    })
   })
 
   describe('DEC-175 — order-change shipments carry their real prior version', () => {
@@ -193,17 +242,24 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
     })
   })
 
-  it('R3: no acceptance artifact survives a rewritten (perturbed) status', () => {
-    // Prove it fails first (spec item 4): the current code spreads `...option`
-    // through unchanged, so the fixture's Accepted-row carrierPickup/proNumber/
-    // deliveryNum ride along onto whatever status the perturbation rewrites it
-    // to — a Carrier Pickup # for a tender nobody accepted.
+  it('R3: no acceptance artifact survives a REWRITTEN status — except the accepted carrier\'s own row (R2′), which was never rewritten', () => {
+    // Every OTHER row's status was just rewritten away from whatever it
+    // really was, so nothing that only exists because of an acceptance may
+    // survive on it. The current accepted carrier's own row is different —
+    // R2′ never rewrites it away from Accepted, so its artifacts are real,
+    // not a fiction, and must pass through.
     for (let i = 0; i < 100; i++) {
       for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
         for (const o of v.options) {
-          expect(o.carrierPickup).toBeNull()
-          expect(o.proNumber).toBeNull()
-          expect(o.deliveryNum).toBeNull()
+          if (o.status === 'Accepted') {
+            expect(o.carrierPickup).toBe('ABC12345')
+            expect(o.proNumber).toBe('PRO-1')
+            expect(o.deliveryNum).toBe('DEL-1')
+          } else {
+            expect(o.carrierPickup).toBeNull()
+            expect(o.proNumber).toBeNull()
+            expect(o.deliveryNum).toBeNull()
+          }
         }
       }
     }
@@ -214,6 +270,10 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
     for (let i = 0; i < 100; i++) {
       for (const v of deriveRoutingHistory(detail(), `SHP-${i}`, NOW)) {
         for (const o of v.options) {
+          // The accepted carrier's own row is governed by R2′'s tests, above
+          // — it is never REWRITTEN, so this outcome-pairing logic (which is
+          // about what a REWRITE leaves behind) does not apply to it.
+          if (o.status === 'Accepted') continue
           const answered = o.status === 'Declined' || o.status === 'Cancelled'
           if (!answered) {
             // Nothing has answered, so nothing about an answer is recorded —
@@ -294,9 +354,12 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
   // spec's own snippet does — raw field names, no mapper — so a non-accepted
   // seeded row's `carrierPickup`/`proNumber`/`deliveryNum` stay the seed's real
   // `null` rather than a mapper's '--' placeholder, which would make this guard
-  // fire on rows that never claimed an artifact at all.
+  // fire on rows that never claimed an artifact at all. Floor raised for R2′
+  // (amendment): the accepted-today carrier's row now legitimately draws
+  // Accepted across ~600 shipments' worth of perturbed versions, not just the
+  // 81 order-change ones — > 500 is the amendment's own stated expectation.
   ;(DETAIL_FILES.length > 0 ? it : it.skip)(
-    'corpus guard — 0 historical rows carry an acceptance artifact under a non-Accepted status, and Accepted is reachable (public/details not present locally: skipped)',
+    'corpus guard — 0 historical rows carry an acceptance artifact under a non-Accepted status, and Accepted is reachable at scale (public/details not present locally: skipped)',
     () => {
       let violations = 0
       let acceptedCount = 0
@@ -321,7 +384,7 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
         }
       }
       expect(violations).toBe(0)
-      expect(acceptedCount).toBeGreaterThan(0)
+      expect(acceptedCount).toBeGreaterThan(500)
     },
   )
 })

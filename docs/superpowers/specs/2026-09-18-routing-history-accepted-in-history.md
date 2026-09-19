@@ -103,7 +103,7 @@ the true answer for them.
 
 **Measure and report (R2′):** over the full corpus, the number of shipments whose history shows
 ≥ 1 non-`--` Carrier Pickup # (expect ≈ 81 + the count of shipments with an Accepted current
-option, ≈ 680), and the artifact-under-non-Accepted count (must stay **0**).
+option — **measured 602**: the 81 order-change shipments are a *subset*, their current carrier still Accepted per LINX-14514 Bypass, so 521 + 81), and the artifact-under-non-Accepted count (must stay **0**).
 
 ## Tests (`src/data/routingHistory.test.js`)
 
