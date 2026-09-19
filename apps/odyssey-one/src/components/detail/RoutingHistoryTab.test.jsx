@@ -122,10 +122,14 @@ describe('RoutingHistoryTab (LINX-15895)', () => {
     const section = [...cards()[0].querySelectorAll('.sub-accordion')]
       .find((s) => s.querySelector('.sub-accordion__title')?.textContent === 'Response Comments')
     const headers = [...section.querySelectorAll('th')].map((th) => th.textContent)
-    expect(headers).toEqual(expect.arrayContaining([
-      'SCAC', 'Carrier Name', 'Tender Status', 'Response Method', 'Response Date',
+    // EXACTLY these — the section shows its own data plus the one column that
+    // anchors the row to a carrier, and nothing else (user, 2026-09-18).
+    expect(headers).toEqual([
+      'SCAC', 'Tender Status', 'Response Method', 'Response Date',
       'Response User', 'Comments',
-    ]))
+    ])
+    // Not the Tender tab's Notify & Response Method group, which is a different
+    // set of facts entirely.
     expect(headers).not.toContain('Pro #')
   })
 
@@ -198,6 +202,39 @@ describe('RoutingHistoryTab (LINX-15895)', () => {
       const chevron = s.querySelector('.sub-accordion__chevron')
       expect(chevron.closest('.sub-accordion')).toBe(s)
       expect(chevron.closest('.sub-accordion__header-row').parentElement).toBe(s)
+    }
+  })
+
+  // The repetition review (user, 2026-09-18). The five sections used to head with
+  // Route Rank / Rank / SCAC / Carrier Name apiece — 64 columns over five tables,
+  // 16 of them pure repeats of the same four carrier rows — because the groups
+  // were lifted from the Tender screen, where they are SUB-TABS of one table and
+  // the locked columns are meant to hold STILL while the tab changes.
+  it('never repeats an identity column outside Routing Options', () => {
+    render(<RoutingHistoryTab details={details()} />)
+    const sections = [...cards()[0].querySelectorAll('.routing-version__body > .sub-accordion')]
+    const headersOf = (s) => [...s.querySelectorAll('th')].map((th) => th.textContent)
+
+    // Routing Options IS the identity + outcome view, so it keeps the full set.
+    expect(headersOf(sections[0]).slice(0, 4))
+      .toEqual(['Route Rank', 'Rank', 'SCAC', 'Carrier Name'])
+
+    for (const s of sections.slice(1)) {
+      const headers = headersOf(s)
+      // SCAC alone anchors the row — GroupTable's flat mode only falls back to
+      // `group.label` when the LEAD column is empty, so dropping it too would
+      // leave the rows anonymous.
+      expect(headers[0]).toBe('SCAC')
+      for (const repeated of ['Route Rank', 'Rank', 'Carrier Name']) {
+        expect(headers).not.toContain(repeated)
+      }
+    }
+
+    // And the response fields live in ONE section, not two: the Tender screen
+    // hangs them off Routing Options because it has no Response Comments tab.
+    for (const key of ['Response Method', 'Response Date', 'Response User']) {
+      expect(headersOf(sections[0])).not.toContain(key)
+      expect(headersOf(sections[1])).toContain(key)
     }
   })
 })

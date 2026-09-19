@@ -43,15 +43,53 @@ import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
 const DASH = '--' // LINX-13590 — empty optional values read '--'
 
-/** The four columns that identify a carrier row, so every section can be read on
- *  its own and lined up against the Routing Options table above it. Routing
- *  Options itself gets the full locked set (it IS the identity + outcome view). */
-const IDENTITY_COLUMNS = LOCKED_COLUMNS.slice(0, 4)
+/**
+ * The ONE column that anchors a carrier row in the secondary sections.
+ *
+ * Was `LOCKED_COLUMNS.slice(0, 4)` — Route Rank · Rank · SCAC · Carrier Name —
+ * repeated at the head of all five sections. Measured on a real version: 64
+ * columns across the five tables, 20 of them identity, 16 of those pure repeats,
+ * and the same four carrier rows restated five times.
+ *
+ * That repetition was inherited, not designed. Those five column groups are
+ * SUB-TABS of one table on the Tender screen, which is what `LOCKED_COLUMNS`
+ * means — locked WHILE THE TAB CHANGES. Stacking the groups as accordions
+ * duplicates the locked columns instead of holding them still, which throws away
+ * the reason they were locked.
+ *
+ * Nothing in LINX-15895 asked for it: the AC names the five sections and defers
+ * everything else — *"Refer to the View Design for layout, expand/collapse
+ * behavior, section organization, and version presentation details"*.
+ *
+ * SCAC alone survives (user ruling, 2026-09-18: drop Route Rank / Rank / SCAC /
+ * Carrier Name, show only what is relevant per section). It is kept because a
+ * row still has to be attributable to a carrier and SCAC is this domain's
+ * canonical carrier id — and because GroupTable's flat mode only falls back to
+ * `group.label` when the LEAD COLUMN is empty, so dropping it entirely would
+ * leave the rows anonymous rather than labelled. Rank ordering is not lost: the
+ * rows keep Routing Options' order, and Routing Options itself still carries the
+ * full locked set, being the identity + outcome view.
+ */
+const IDENTITY_COLUMNS = [{ ...LOCKED_COLUMNS[2], primary: true }]
 
 /** LINX-15895 AC — the section list, in the AC's own order. Dropped Carriers is
  *  NOT here: it follows 13953/13954 and already exists as its own component. */
+/** The response fields the Tender screen hangs off its Routing Options sub-tab.
+ *  Here they have a section of their own, so carrying them in BOTH is the same
+ *  duplication the identity columns were (user ruling, 2026-09-18: show only what
+ *  is relevant per section). Subtracted for THIS surface only — `tenderColumns.js`
+ *  is shared with the live Tender tab, where the grouping is correct. */
+const RESPONSE_KEYS = new Set(['responseMethod', 'responseDateTime', 'responseUser'])
+
 const SECTIONS = [
-  { key: 'routing-options', label: 'Routing Options', columns: [...LOCKED_COLUMNS, ...TAB_COLUMNS['routing-options']] },
+  {
+    key: 'routing-options',
+    label: 'Routing Options',
+    columns: [
+      ...LOCKED_COLUMNS,
+      ...TAB_COLUMNS['routing-options'].filter((c) => !RESPONSE_KEYS.has(c.key)),
+    ],
+  },
   {
     key: 'response-comments',
     label: 'Response Comments',
