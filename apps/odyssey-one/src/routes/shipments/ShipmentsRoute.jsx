@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
@@ -8,8 +8,8 @@ import BottomBar, { DEFAULT_TAB_ORDER, mergeTabOrder } from '../../components/de
 import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS, mergeLateAddedColumns } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
-import { FileText } from 'lucide-react'
-import { PageHeader } from '@odyssey/ui'
+import { FileText, Boxes, Combine } from 'lucide-react'
+import { PageHeader, Badge, Button } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
 import { attrChip } from '../../components/global-search/savedFilters'
 import { getAllShipments } from '../../data'
@@ -21,6 +21,11 @@ import { useUserPreference } from '../../api/queries/useUserPreference'
 import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
 import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
 import { getShipmentErrorList, RELEVANCE_SORT } from '../../api/services/gridService'
+import { consolidationEligibility, CONSOLIDATION_ATTRIBUTE_KEYS } from '../../consolidation/eligibility'
+
+// Stable empty Map — `selection` must never change identity when nothing is
+// selected (a fresh `new Map()` every render would re-identify it downstream).
+const EMPTY_SELECTION = new Map()
 
 // The table is never unsorted — this is the column that drives until a search
 // commits (relevance) or the user picks another.
@@ -40,6 +45,31 @@ function ShipmentsRoute() {
   // below because they now read from it (a lazy initialiser referencing
   // `location` before this line would hit the TDZ).
   const location = useLocation()
+  const navigate = useNavigate()
+  // Consolidate mode (S154, spec §3). `null` = normal Shipments. In mode,
+  // `rows` is the selection: Map<sellShipment, row VM> — the row snapshot
+  // rides with the id so the review renders without a refetch and a row paged
+  // or filtered away stays selected. Re-entered from the review screen's
+  // "Modify Selection" via location.state.consolidate.rows (an array).
+  const [consolidate, setConsolidate] = useState(() => (
+    location.state?.consolidate
+      ? { rows: new Map((location.state.consolidate.rows ?? []).map((r) => [r.id, r])) }
+      : null
+  ))
+  const inMode = consolidate !== null
+  const selection = consolidate?.rows ?? EMPTY_SELECTION
+  // The first checked row locks the customer (user, 2026-09-19): derived from
+  // the selection's insertion order, never stored separately.
+  const anchor = selection.size ? selection.values().next().value : null
+  const anchorCustomerId = anchor?.customerId ?? null
+  // Customer lock (spec §3.4): while a row is selected, the list AND the tab
+  // counts scope to that one customer. `dataId` in the Customers panel IS the
+  // customerId stamped on rows (CustomersContext.jsx), so the anchor's id goes
+  // straight into the same param the panel drives.
+  const effectiveCustomerIds = useMemo(
+    () => (anchorCustomerId ? [anchorCustomerId] : selectedDataIds),
+    [anchorCustomerId, selectedDataIds],
+  )
   const [selectedShipmentId, setSelectedShipmentId] = useState(location.state?.selectedShipmentId ?? null)
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
@@ -191,7 +221,7 @@ function ShipmentsRoute() {
   // scope) changes. Done during render (React's documented "adjust state on change"
   // pattern) rather than in an effect, so the stale-page query never fires — avoids
   // a wasted round-trip on every filter interaction in live mode.
-  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, selectedDataIds, sorting])
+  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, effectiveCustomerIds, sorting])
   const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
   if (queryIdentity !== prevQueryIdentity) {
     setPrevQueryIdentity(queryIdentity)
@@ -206,7 +236,7 @@ function ShipmentsRoute() {
     pageSize,
     // FIRST-order customer scope (S79c decision 10) — the selected customers'
     // shipment dataIds, applied by gridService before panel/category/search.
-    customerIds: selectedDataIds,
+    customerIds: effectiveCustomerIds,
     // Committed GlobalSearch criteria (S79c). The legacy searchTerm /
     // searchAttributeKey params are still supported by gridService (and
     // tested) but the route no longer sends them — searchCriteria replaces
@@ -214,7 +244,7 @@ function ShipmentsRoute() {
     searchCriteria: searchCriteria ?? undefined,
     sortBy: sorting[0]?.id,
     orderBy: sorting[0]?.desc ? 'desc' : 'asc',
-  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, selectedDataIds, sorting])
+  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, effectiveCustomerIds, sorting])
 
   const {
     data: listData,
@@ -249,9 +279,9 @@ function ShipmentsRoute() {
   // scoped to the selected customers (decision 10) and filtered by the committed
   // search criteria (decision 7) so panel totals, category pills and the glimpse
   // total all agree.
-  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', searchCriteria ?? undefined, selectedDataIds)
-  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', searchCriteria ?? undefined, selectedDataIds)
-  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', searchCriteria ?? undefined, selectedDataIds)
+  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', searchCriteria ?? undefined, effectiveCustomerIds)
+  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', searchCriteria ?? undefined, effectiveCustomerIds)
+  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', searchCriteria ?? undefined, effectiveCustomerIds)
   const countsReady = !exceptionsCountsLoading && !monitoringCountsLoading && !pgipgrCountsLoading
 
   const metrics = useMemo(() => {
@@ -421,13 +451,50 @@ function ShipmentsRoute() {
     if (tab) setRequestedTab({ key: tab, expandGeneral: !!expandGeneral })
   }, [])
 
+  const enterConsolidate = useCallback(() => {
+    setConsolidate({ rows: new Map() })
+    setSelectedShipmentId(null)   // the detail bar is hidden in mode; nothing stays "open"
+    setViewMode('pills')          // the widgets toggle is hidden; pills are the mode's face
+    // Direct shipments IDs sort AFTER Consolidation ones under the default
+    // odysseyShipmentIdentifier order ("C..." < "O..."), so the default column
+    // sort would bury every eligible row past the first page. Surface the
+    // eligible (Direct) rows first while selecting — same sortBy/orderBy the
+    // header already drives, just re-seeded for this mode.
+    setSorting([{ id: 'shipmentType', desc: true }])
+  }, [])
+  const exitConsolidate = useCallback(() => {
+    setConsolidate(null)
+    setSorting(DEFAULT_SORTING)
+  }, [])
+  const handleSelectionChange = useCallback((rows, checked) => {
+    setConsolidate((prev) => {
+      if (!prev) return prev
+      const next = new Map(prev.rows)
+      for (const r of rows) checked ? next.set(r.id, r) : next.delete(r.id)
+      return { rows: next }
+    })
+  }, [])
+  const eligibility = useCallback((row) => consolidationEligibility(row, anchorCustomerId), [anchorCustomerId])
+  const proceedToReview = useCallback(() => {
+    navigate('/shipments/consolidate/review', { state: { rows: [...selection.values()] } })
+  }, [navigate, selection])
+
   return (
     <AppShell
+      sidebarHidden={inMode}
       onMainClick={useCallback(() => {
         if (columnPanelOpen) closeColumnPanel() // guarded — may intercept with the unsaved dialog
         if (tabPanelOpen) setTabPanelOpen(false)
       }, [columnPanelOpen, tabPanelOpen, closeColumnPanel])}
-      searchSlot={<ShipmentsGlobalSearch onCommitQuery={handleCommitQuery} onSelectShipment={handleSelectShipment} seedChips={seedChips} />}
+      searchSlot={
+        <ShipmentsGlobalSearch
+          onCommitQuery={handleCommitQuery}
+          onSelectShipment={handleSelectShipment}
+          seedChips={seedChips}
+          attributeKeys={inMode ? CONSOLIDATION_ATTRIBUTE_KEYS : null}
+          placeholder={anchor ? `Search for ${anchor.customerName || anchor.customerId}` : 'Search in Shipments'}
+        />
+      }
       filterPanel={
         <>
           {/* Invisible scrim while a right panel is open — the first outside
@@ -473,7 +540,27 @@ function ShipmentsRoute() {
         </>
       }
     >
-      <PageHeader title="Shipments" style={{ marginBottom: 25 }} />
+      <PageHeader title={inMode ? 'Shipments Consolidation' : 'Shipments'} style={{ marginBottom: anchor ? 12 : 25 }}>
+        {inMode && (
+          <span className="consolidate-cancel">
+            <Button variant="secondary" onClick={exitConsolidate}>Cancel</Button>
+          </span>
+        )}
+        <Button
+          variant="primary"
+          icon={inMode ? <Combine size={20} /> : <Boxes size={20} />}
+          disabled={inMode && selection.size < 2}
+          onClick={inMode ? proceedToReview : enterConsolidate}
+        >
+          {inMode ? `${selection.size} Shipments Selected` : 'Consolidate'}
+        </Button>
+      </PageHeader>
+      {anchor && (
+        <div className="consolidate-customer text-label-sm-regular">
+          <span>Selected Customer:</span>
+          <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
+        </div>
+      )}
       <ShipmentsPanelTabs
         activePanel={activePanel}
         onPanelSelect={handlePanelSelect}
@@ -484,9 +571,11 @@ function ShipmentsRoute() {
         onViewModeChange={setViewMode}
         visiblePanels={visiblePanels}
         hideZeroCategories={searchActive}
+        hideViewToggle={inMode}
       />
       <TableControls
         itemCount={totalCount}
+        hideExport={inMode}
         onExport={async (mode) => {
           // Export all matching rows (not just the current page) — fetch them through
           // the grid service with the current filters and a large page size. In live
@@ -525,7 +614,7 @@ function ShipmentsRoute() {
       ) : (
         <ShipmentTable
           shipments={pageRows}
-          selectedId={selectedShipmentId}
+          selectedId={inMode ? null : selectedShipmentId}
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
@@ -541,31 +630,37 @@ function ShipmentsRoute() {
           isError={listError}
           error={listErrorDetail}
           onRetry={refetchList}
+          selectable={inMode}
+          selection={selection}
+          onSelectionChange={handleSelectionChange}
+          eligibility={eligibility}
         />
       )}
       {/* No onToggleColumnPanel prop here (Fix 3, 2026-08-10) — BottomBar dropped
           its own onToggleColumnPanel prop since the Routing Guide tab (its only
           consumer) removed the gear that used to call it; ShipmentTable above
           still gets handleToggleColumnPanel for the shipments-list column panel. */}
-      <BottomBar
-        selectedShipmentId={selectedShipmentId}
-        requestedTab={requestedTab}
-        onClose={() => setSelectedShipmentId(null)}
-        shipmentDetails={shipmentDetails}
-        shipment={selectedShipment}
-        rightOffset={rightOffset}
-        onTabArrangement={handleToggleTabPanel}
-        tabOrder={tabOrder}
-        detailsLoading={detailsLoading}
-        detailsError={detailsError}
-        error={detailsErrorDetail}
-        detailsStale={detailsStale}
-        onRetryDetails={refetchDetails}
-        onPrevShipment={handlePrevShipment}
-        onNextShipment={handleNextShipment}
-        prevDisabled={pageRows.length === 0 || selectedRowIndex === 0}
-        nextDisabled={pageRows.length === 0 || selectedRowIndex === pageRows.length - 1}
-      />
+      {!inMode && (
+        <BottomBar
+          selectedShipmentId={selectedShipmentId}
+          requestedTab={requestedTab}
+          onClose={() => setSelectedShipmentId(null)}
+          shipmentDetails={shipmentDetails}
+          shipment={selectedShipment}
+          rightOffset={rightOffset}
+          onTabArrangement={handleToggleTabPanel}
+          tabOrder={tabOrder}
+          detailsLoading={detailsLoading}
+          detailsError={detailsError}
+          error={detailsErrorDetail}
+          detailsStale={detailsStale}
+          onRetryDetails={refetchDetails}
+          onPrevShipment={handlePrevShipment}
+          onNextShipment={handleNextShipment}
+          prevDisabled={pageRows.length === 0 || selectedRowIndex === 0}
+          nextDisabled={pageRows.length === 0 || selectedRowIndex === pageRows.length - 1}
+        />
+      )}
     </AppShell>
   )
 }

@@ -7961,3 +7961,22 @@ button.breadcrumb__label:focus-visible {
 /* The rail's NavLinks are layout-transparent wrappers, not visual rows. */
 .sidebar a { display: block; text-decoration: none; }
 
+
+/* Consolidate mode (S154). The Cancel button slides in beside the primary;
+   the Selected Customer row sits under the PageHeader. */
+@keyframes consolidate-slide-in {
+  from { opacity: 0; transform: translateX(var(--spacing-4)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.consolidate-cancel {
+  display: inline-flex;
+  animation: consolidate-slide-in var(--transition-panel);
+}
+@media (prefers-reduced-motion: reduce) { .consolidate-cancel { animation: none; } }
+.consolidate-customer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-4);
+}
