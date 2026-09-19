@@ -10,7 +10,6 @@ export const meta = {
   figmaNode: '1825:7',
   codeConnect: 'packages/ui/src/Widget.figma.tsx',
   normalizing: true,
-  approved: true,
 }
 
 export const props = [
@@ -30,6 +29,7 @@ export const props = [
   { name: 'showChart', type: 'boolean', desc: '2x only — hide the donut for stat-only widgets. Default true.' },
   { name: 'chartDelayMs', type: 'number', desc: 'Delay in ms before the entry animations (count-up + donut grow-in) start, so both begin together. Default 0.' },
   { name: 'ctaRows', type: 'Array<{ icon, label, onClick }>', desc: '3xCta only — call-to-action link rows (up to 4).' },
+  { name: 'selected', type: 'boolean', default: 'false', desc: "Active-filter state, mirroring WidgetMini's `selected` axis — for consumers that use a ROW of widgets as the filter control (the Shipments PGI/PGR category row). Appearance only: border COLOUR + shadow, never the border width, so selecting a card cannot resize it or reflow the row. Code-only extension — the Figma master has no selected axis yet (Pending Figma Sync)." },
   { name: 'editMode', type: 'boolean', desc: 'Forces grip on, dims CTAs, overlays a close button wired to onRemove. Default false.' },
   { name: 'onRemove', type: '() => void', desc: 'Called when the edit-mode close button is clicked.' },
 ]

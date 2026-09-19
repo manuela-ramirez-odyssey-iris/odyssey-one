@@ -14,7 +14,7 @@ import WidgetCtaRow from './WidgetCtaRow.jsx'
  * resizing in the UI is a `variant` prop change, not a component swap. Figma mirrors this
  * as a single component set with `Variant=1x|2x|3x|3xChart|3xCta`.
  *
- * Common props:  variant, title, domainIcon, showGrip, onClose, onGoToClick, goToLabel
+ * Common props:  variant, title, domainIcon, showGrip, onClose, onGoToClick, goToLabel, selected, onSelect
  * 1x:            value, label                                          (Header arrow takes you to source)
  * 2x:            value, label, percentage, chartSegments               (small donut beside metric)
  * 3x:            rows (array of { label, value, indicatorColor? })     (4-6 rows of stats)
@@ -57,6 +57,24 @@ export default function Widget({
   // settled. Default 0 = animate on next frame. Despite the "chart" name this
   // now gates CountUp too — kept for backwards compat with existing callers.
   chartDelayMs = 0,
+  // Active-filter state, mirroring WidgetMini's `selected` axis — for consumers
+  // that use a row of widgets AS the filter control (the Shipments category
+  // row). Appearance only, and deliberately only border-colour + shadow: the
+  // border WIDTH never changes, so selecting a card cannot shift its size or
+  // reflow the row (`box-sizing: border-box` plus a 1px border either way).
+  selected = false,
+  // Makes the WHOLE card the select target, not just the footer link (user,
+  // 2026-09-18). A click anywhere on the card fires this — EXCEPT one that
+  // lands on an interactive descendant, which keeps its own behaviour: the
+  // footer Go-to link, a metric row with an onClick, the grip/close buttons.
+  //
+  // The card is deliberately NOT given role="button". Unlike WidgetMini (a
+  // real <button> with no interactive children), Widget CONTAINS buttons, and
+  // a button inside a button is invalid HTML and an AT trap. So this is a
+  // pointer affordance layered over the footer link, which stays the keyboard
+  // and screen-reader path — that link is the accessible control, this is the
+  // large hit area.
+  onSelect,
   // Edit mode — Home dashboard "Add Widgets" flow. Forces grip on, dims CTAs to
   // non-interactive, and overlays a top-right close button wired to onRemove.
   editMode = false,
@@ -64,11 +82,17 @@ export default function Widget({
   className = '',
   ...rest
 }) {
-  const cls = `widget widget--${variant} ${className}`.trim()
+  const cls = ['widget', `widget--${variant}`, selected && 'widget--selected',
+    onSelect && 'widget--selectable', className].filter(Boolean).join(' ')
+  // "unless another clickable element inside takes a click space" — anything
+  // focusable/actionable under the pointer owns the click.
+  const handleCardClick = onSelect
+    ? (e) => { if (!e.target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]')) onSelect(e) }
+    : undefined
   const editAttrs = editMode ? { 'data-edit-mode': 'true' } : {}
   const [rootRef, inView] = useInView()
   return (
-    <div ref={rootRef} className={cls} {...editAttrs} {...rest}>
+    <div ref={rootRef} className={cls} onClick={handleCardClick} {...editAttrs} {...rest}>
       <Header
         variant={variant}
         title={title}
