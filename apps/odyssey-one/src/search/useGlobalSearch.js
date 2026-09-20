@@ -168,9 +168,11 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
   const onClear = useCallback(() => {
     setValue('')
     setDebouncedValue('')
-    chipsRef.current = []
+    // A locked chip (consolidate mode's customer filter) is host-enforced, not
+    // planner state — "Clear search" wipes the planner's own chips/text only.
+    chipsRef.current = chipsRef.current.filter((c) => c.locked)
     textChipRef.current = null
-    setChips([])
+    setChips(chipsRef.current)
     setTextChip(null)
   }, [])
 
@@ -184,10 +186,18 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
   }
 
   const onChipCommit = useCallback((item) => {
+    // A locked key is host-owned (consolidate mode's customer filter) — a
+    // suggestion commit targeting it is IGNORED, not applied: the lock means
+    // the planner changes that attribute by clearing their selection, not by
+    // picking a fresh suggestion on the same key. Checked per-branch below
+    // since the resultant chip key isn't always `item.key` (set-type asserts
+    // `item.attr.key`).
+    const lockedKey = chipsRef.current.find((c) => c.locked)?.key
     // Case 12 — a date / date-range suggestion commits an EXPANDED date chip:
     // the CalendarPicker opens right away (defaultOpen) so the user finishes
     // the bound(s) in place. A complete typed date pre-fills `from`.
     if (item.kind === 'date' || item.kind === 'date-range-suggest') {
+      if (item.key === lockedKey) return
       const chip = {
         key: item.key,
         attrLabel: item.attr.label,
@@ -215,6 +225,7 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
     // matching via queryValue), revalidated per that attribute; codes that
     // don't match under it stay in the chip but red + decounted.
     if (item.kind === 'set-type' && textChipRef.current?.kind === 'set') {
+      if (item.attr.key === lockedKey) return
       const values = textChipRef.current.codes.map((c) => c.value)
       const codes = adapter?.validateCodes
         ? adapter.validateCodes(values, item.attr.dataKey)
@@ -238,6 +249,7 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
       setDebouncedValue('')
       return
     }
+    if (item.key === lockedKey) return
     chipsRef.current = [...chipsRef.current.filter((c) => c.key !== item.key), item]
     setChips(chipsRef.current)
     setValue('')
@@ -267,7 +279,10 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
   // committed TABLE criteria still move only on explicit commit).
   const onDateCommit = useCallback((key, { from, to }) => {
     chipsRef.current = chipsRef.current.map((c) => {
-      if (c.key !== key) return c
+      // A locked chip is always `kind: 'attribute'` today, so a date-picker
+      // callback can't reach it in practice — guarded anyway since nothing
+      // enforces that shape.
+      if (c.key !== key || c.locked) return c
       const next = { ...c, from: from ?? null, to: to ?? null }
       next.label = dateChipLabel(next)
       return next
@@ -289,8 +304,16 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
   // header), and applying a filter WHOLESALE means the old bar's stray text
   // must go too, hence explicit `null` when the saved filter carried none.
   const applyChips = useCallback((next, nextTextChip) => {
-    chipsRef.current = next
-    setChips(next)
+    // A locked chip (consolidate mode's customer lock) is host-enforced, not
+    // planner state — a wholesale replace (Saved filter, Filters "Show
+    // results") must not drop or duplicate it. If `next` itself carries the
+    // locked key (e.g. a saved filter that predates the lock), the HOST's
+    // locked chip wins over whatever value it carries.
+    const lockedChip = chipsRef.current.find((c) => c.locked)
+    chipsRef.current = lockedChip
+      ? [...next.filter((c) => c.key !== lockedChip.key), lockedChip]
+      : next
+    setChips(chipsRef.current)
     if (nextTextChip !== undefined) {
       textChipRef.current = nextTextChip
       setTextChip(nextTextChip)
@@ -335,8 +358,11 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
     const codes = adapter?.validateCodes
       ? adapter.validateCodes(values, chip.dataKey)
       : values.map((value) => ({ value, valid: true }))
+    // A locked chip is always `kind: 'attribute'` today (never `'set'`), so
+    // this update branch can't reach it in practice — guarded anyway since
+    // nothing enforces that shape.
     chipsRef.current = chipsRef.current.map((c) =>
-      c.key === key ? { ...c, queryValue: text, codes } : c,
+      c.key === key && !c.locked ? { ...c, queryValue: text, codes } : c,
     )
     setChips(chipsRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
