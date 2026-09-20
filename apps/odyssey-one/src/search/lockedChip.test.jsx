@@ -102,4 +102,22 @@ describe('useGlobalSearch — locked chips', () => {
     act(() => result.current.onChipCommit({ key: 'scac', label: 'SCAC', attrLabel: 'SCAC', queryValue: 'SEFL', dataKey: 'scac', kind: 'attribute' }))
     expect(result.current.chips.map((c) => c.key).sort()).toEqual(['customer-id', 'scac'])
   })
+
+  test('locking REPLACES a same-key chip rather than sitting beside it', () => {
+    const prior = { key: 'customer-id', label: 'Customer ID: A, B', queryValue: 'A, B', kind: 'attribute' }
+    const { result } = renderHook(() => useGlobalSearch(null, { initialChips: [plain, prior] }))
+    act(() => result.current.setLockedChip({ key: 'customer-id', label: 'Customer ID: A', queryValue: 'A', kind: 'attribute' }))
+    const customerChips = result.current.chips.filter((c) => c.key === 'customer-id')
+    expect(customerChips).toHaveLength(1)
+    expect(customerChips[0].label).toBe('Customer ID: A')
+    expect(customerChips[0].locked).toBe(true)
+    // the planner's OTHER chips are untouched
+    expect(result.current.chips.some((c) => c.key === 'origin')).toBe(true)
+  })
+
+  test('clearing the lock removes only the locked chip', () => {
+    const { result } = renderHook(() => useGlobalSearch(null, { initialChips: [plain, locked] }))
+    act(() => result.current.setLockedChip(null))
+    expect(result.current.chips.map((c) => c.key)).toEqual(['origin'])
+  })
 })
