@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
-import { Inbox, MapPin, Pencil } from 'lucide-react'
-import { Alert, Badge, Breadcrumb, Button, DataTable, EmptyState, PageHeader, StepperButtonsFooter, SubAccordion, SummaryStrip, Timeline } from '@odyssey/ui'
+import { Inbox, MapPin } from 'lucide-react'
+import { Alert, Badge, Breadcrumb, Button, Checkbox, DataTable, EmptyState, PageHeader, StepperButtonsFooter, SubAccordion, SummaryStrip, Timeline } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
@@ -29,17 +29,67 @@ const fmtLb = (n) => `${Math.round(n).toLocaleString('en-US')} LB`
 const fmtCuft = (n) => (n == null ? '--' : `${Math.round(n).toLocaleString('en-US')} cuft`)
 const fmtPct = (n) => (n == null ? '--' : `${n}%`)
 
-function SelectedShipmentsTable({ rows }) {
-  const columns = useMemo(() => REVIEW_COLUMNS.map((key) => {
-    const cfg = COLUMN_BY_KEY[key]
-    return columnHelper.accessor(key, {
-      id: key,
-      header: cfg?.label ?? key,
-      cell: cfg?.render ? ({ row }) => cfg.render(row.original) : ({ getValue }) => getValue() ?? '—',
+// checkedIds: Set of row.id INCLUDED in the consolidation. Unchecking a row
+// never removes it from the table — it stays visible, grayed (CSS, keyed off
+// TanStack rowSelection → data-selected, see consolidation-review.css) — so
+// the planner can put it back.
+function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll }) {
+  const columns = useMemo(() => {
+    const selectColumn = columnHelper.display({
+      id: 'select',
       enableSorting: false,
+      header: () => {
+        const allChecked = rows.length > 0 && rows.every((r) => checkedIds.has(r.id))
+        const someChecked = rows.some((r) => checkedIds.has(r.id))
+        return (
+          <Checkbox
+            showLabel={false}
+            aria-label="Include all shipments to consolidate"
+            checked={allChecked}
+            indeterminate={someChecked && !allChecked}
+            onChange={(e) => onToggleAll(e.target.checked)}
+          />
+        )
+      },
+      cell: ({ row }) => {
+        const r = row.original
+        return (
+          <Checkbox
+            showLabel={false}
+            aria-label={`Include ${r.buyShipment || r.sellShipment}`}
+            checked={checkedIds.has(r.id)}
+            onChange={(e) => onToggle(r.id, e.target.checked)}
+          />
+        )
+      },
+      meta: { fixedWidth: true },
     })
-  }), [])
-  const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), getRowId: (r) => r.id })
+    const dataCols = REVIEW_COLUMNS.map((key) => {
+      const cfg = COLUMN_BY_KEY[key]
+      return columnHelper.accessor(key, {
+        id: key,
+        header: cfg?.label ?? key,
+        cell: cfg?.render ? ({ row }) => cfg.render(row.original) : ({ getValue }) => getValue() ?? '—',
+        enableSorting: false,
+      })
+    })
+    return [selectColumn, ...dataCols]
+  }, [rows, checkedIds, onToggle, onToggleAll])
+
+  // rowSelection is CONTROLLED from checkedIds so row.getIsSelected() (and the
+  // DataTable-owned data-selected attribute) reflects INCLUDED, not excluded.
+  const rowSelection = useMemo(
+    () => Object.fromEntries([...checkedIds].map((id) => [id, true])),
+    [checkedIds],
+  )
+  const table = useReactTable({
+    data: rows,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (r) => r.id,
+    state: { rowSelection },
+    enableRowSelection: true,
+  })
   return <DataTable table={table} ariaLabel="Selected shipments to consolidate" truncationTooltip />
 }
 
@@ -48,6 +98,15 @@ export default function ConsolidationReviewRoute() {
   const location = useLocation()
   const rows = location.state?.rows ?? []
   const [pending, setPending] = useState(null) // 'apply' | 'cancel' | null
+  // Checked = INCLUDED in the consolidation. Every row starts checked;
+  // unchecking trims the consolidation without hiding the row (S154).
+  const [checkedIds, setCheckedIds] = useState(() => new Set(rows.map((r) => r.id)))
+  const toggleChecked = (id, checked) => setCheckedIds((prev) => {
+    const next = new Set(prev)
+    if (checked) next.add(id); else next.delete(id)
+    return next
+  })
+  const toggleAllChecked = (checked) => setCheckedIds(checked ? new Set(rows.map((r) => r.id)) : new Set())
 
   // Volume and hazmat live on the detail, not the grid row (proposal.js).
   const detailQueries = useQueries({
@@ -57,11 +116,17 @@ export default function ConsolidationReviewRoute() {
     })),
   })
   const details = detailQueries.map((q) => q.data)
-  const detailsFailed = detailQueries.some((q) => q.isError)
+  // Everything on this screen — totals, stops, chips, the error banner — is
+  // derived from the CHECKED subset only (S154): an excluded row stops
+  // counting the moment it's unchecked, even though it stays in the table.
+  const checkedIdx = rows.map((_, i) => i).filter((i) => checkedIds.has(rows[i].id))
+  const checkedRows = checkedIdx.map((i) => rows[i])
+  const checkedDetails = checkedIdx.map((i) => details[i])
+  const detailsFailed = checkedIdx.some((i) => detailQueries[i].isError)
   // buildProposal is a cheap reduce over a handful of rows — no memo needed.
-  const proposal = buildProposal(rows, details)
+  const proposal = buildProposal(checkedRows, checkedDetails)
 
-  const backInMode = () => navigate('/shipments', { state: { consolidate: { rows } } })
+  const backInMode = () => navigate('/shipments', { state: { consolidate: { rows: checkedRows } } })
   const leave = () => navigate('/shipments')
 
   if (!rows.length) {
@@ -104,9 +169,7 @@ export default function ConsolidationReviewRoute() {
           <Breadcrumb label="Review & Apply" current />
         </nav>
 
-        <PageHeader title="Review & Apply Manual Consolidation">
-          <Button variant="secondary" icon={<Pencil size={20} />} onClick={backInMode}>Modify Selection</Button>
-        </PageHeader>
+        <PageHeader title="Review & Apply Manual Consolidation" />
 
         <div className="consolidation-review__body">
           <aside className="consolidation-review__side">
@@ -127,7 +190,7 @@ export default function ConsolidationReviewRoute() {
                 <span className="text-label-md-semibold">{proposal.customerName || proposal.customerId || '--'}</span>
               </div>
               <div className="consolidation-review__info-cell">
-                <span className="text-label-xs-regular consolidation-review__label">Selected Shipments ({rows.length})</span>
+                <span className="text-label-xs-regular consolidation-review__label">Selected Shipments ({checkedRows.length})</span>
                 <div className="consolidation-review__chips">
                   {proposal.identifiers.map((id) => <Badge key={id} variant="purple">{id}</Badge>)}
                 </div>
@@ -150,9 +213,15 @@ export default function ConsolidationReviewRoute() {
                 { label: 'Hazmat', value: proposal.hazmat == null ? '--' : (proposal.hazmat ? 'Yes' : 'No'), tone: proposal.hazmat ? 'negative' : undefined },
               ]}
             />
-            <SubAccordion title="Selected shipments to consolidate" defaultExpanded>
+            <SubAccordion
+              title="Selected shipments to consolidate"
+              collapsible={false}
+              action={
+                <Button variant="primary" size="sm" onClick={backInMode}>Modify Whole Selection</Button>
+              }
+            >
               <div className="consolidation-review__table-count text-label-sm-regular">{rows.length} items</div>
-              <SelectedShipmentsTable rows={rows} />
+              <SelectedShipmentsTable rows={rows} checkedIds={checkedIds} onToggle={toggleChecked} onToggleAll={toggleAllChecked} />
             </SubAccordion>
           </section>
         </div>
@@ -162,6 +231,7 @@ export default function ConsolidationReviewRoute() {
             cancelLabel="Cancel and Modify Selection"
             primaryLabel="Apply Consolidation"
             showSave={false}
+            primaryDisabled={checkedRows.length < 2}
             onCancel={() => setPending('cancel')}
             onPrimary={() => setPending('apply')}
           />

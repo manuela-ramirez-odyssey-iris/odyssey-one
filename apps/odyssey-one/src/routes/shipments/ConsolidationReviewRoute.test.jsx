@@ -61,17 +61,71 @@ describe('ConsolidationReviewRoute', () => {
     expect(within(table).getByText('BUY-B')).toBeTruthy()
   })
 
+  test('every row starts checked, and totals reflect all rows', () => {
+    renderReview({ rows })
+    expect(screen.getByRole('checkbox', { name: 'Include BUY-A' }).checked).toBe(true)
+    expect(screen.getByRole('checkbox', { name: 'Include BUY-B' }).checked).toBe(true)
+    expect(screen.getByText('27,500 LB')).toBeTruthy()
+    expect(screen.getByText('Selected Shipments (2)')).toBeTruthy()
+  })
+
+  test('unchecking a row keeps it in the table but drops its totals and chip', async () => {
+    renderReview({ rows })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
+    const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
+    expect(within(table).getByText('BUY-A')).toBeTruthy() // still there, just excluded
+    expect(screen.getByText('12,500 LB')).toBeTruthy() // row b only
+    expect(screen.getByText('Selected Shipments (1)')).toBeTruthy()
+    expect(screen.queryByText('O00000001')).toBeNull()
+    expect(screen.getByText('O00000002')).toBeTruthy()
+  })
+
+  test('an unchecked row loses data-selected on its <tr> (the graying hook)', () => {
+    renderReview({ rows })
+    const rowEl = screen.getByText('BUY-A').closest('tr')
+    expect(rowEl.hasAttribute('data-selected')).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
+    expect(rowEl.hasAttribute('data-selected')).toBe(false)
+  })
+
+  test('Apply Consolidation is disabled once fewer than 2 rows are checked', () => {
+    renderReview({ rows })
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
+  })
+
+  test('the "Selected shipments to consolidate" SubAccordion is not collapsible', () => {
+    renderReview({ rows })
+    expect(screen.queryByRole('button', { name: 'Selected shipments to consolidate' })).toBeNull()
+    expect(screen.getByText('Selected shipments to consolidate')).toBeTruthy()
+    // content is always revealed for a static (non-collapsible) accordion — no chevron control hides it
+    const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
+    expect(within(table).getByText('BUY-A')).toBeTruthy()
+  })
+
   test('stop timeline lists pickups then deliveries in selection order', () => {
     renderReview({ rows })
     const labels = screen.getAllByText(/^(P|D)\d$/).map((el) => el.textContent)
     expect(labels).toEqual(['P1', 'P2', 'D1', 'D2'])
   })
 
-  test('Modify Selection returns to Shipments in mode with the rows', () => {
+  test('Modify Whole Selection returns to Shipments in mode with the rows, lives in the accordion action slot, no pencil icon', () => {
     renderReview({ rows })
-    fireEvent.click(screen.getByRole('button', { name: 'Modify Selection' }))
+    expect(screen.queryByRole('button', { name: 'Modify Selection' })).toBeNull()
+    const button = screen.getByRole('button', { name: 'Modify Whole Selection' })
+    expect(button.querySelector('svg')).toBeNull() // no icon
+    fireEvent.click(button)
     const state = JSON.parse(screen.getByTestId('shipments-probe').textContent)
     expect(state.consolidate.rows.map((r) => r.id)).toEqual(['a', 'b'])
+  })
+
+  test('Modify Whole Selection carries only the CHECKED rows back', () => {
+    renderReview({ rows })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-B' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Modify Whole Selection' }))
+    const state = JSON.parse(screen.getByTestId('shipments-probe').textContent)
+    expect(state.consolidate.rows.map((r) => r.id)).toEqual(['a'])
   })
 
   test('Cancel and Modify Selection asks "Yes, Cancel", then leaves with nothing retained', () => {
