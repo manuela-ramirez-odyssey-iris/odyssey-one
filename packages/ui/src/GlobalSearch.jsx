@@ -224,7 +224,8 @@ function GlobalSearchSearch({
       }
     }
     if (e.key === 'Backspace' && !value && chips.length > 0) {
-      onChipRemove?.(chips[chips.length - 1].key)
+      const last = [...chips].reverse().find((c) => !c.locked)
+      if (last) onChipRemove?.(last.key)
     }
   }
 
@@ -280,15 +281,20 @@ function GlobalSearchSearch({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onChipClick?.(chip) }}
     >
       {chip.label}
-      <button
-        type="button"
-        className="global-search-chip__remove"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={(e) => { e.stopPropagation(); onChipRemove?.(chip.key) }}
-        aria-label={`Remove ${chip.label}`}
-      >
-        <X size={12} strokeWidth={2.25} />
-      </button>
+      {/* A locked chip is a filter the host is enforcing (consolidate mode's
+          customer lock) — it renders as a normal chip but offers no way to
+          remove it, because removing it would break the rule it encodes. */}
+      {!chip.locked && (
+        <button
+          type="button"
+          className="global-search-chip__remove"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => { e.stopPropagation(); onChipRemove?.(chip.key) }}
+          aria-label={`Remove ${chip.label}`}
+        >
+          <X size={12} strokeWidth={2.25} />
+        </button>
+      )}
     </span>
   )
 

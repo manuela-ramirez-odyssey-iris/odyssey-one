@@ -360,6 +360,9 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
   }, [])
 
   const onChipRemove = useCallback((key) => {
+    // A locked chip is enforced by the host (consolidate mode's customer
+    // filter); no removal route may drop it.
+    if (chipsRef.current.find((c) => c.key === key)?.locked) return
     const before = chipsRef.current.length
     chipsRef.current = chipsRef.current.filter((c) => c.key !== key)
     setChips(chipsRef.current)
@@ -367,6 +370,15 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
       handleBarEmptiedByRemoval()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Host-enforced chip (consolidate mode's customer lock). Adds it, replaces it
+  // in place when the value changes, or clears it — never touching the
+  // planner's own chips.
+  const setLockedChip = useCallback((chip) => {
+    const rest = chipsRef.current.filter((c) => !c.locked)
+    chipsRef.current = chip ? [...rest, { ...chip, locked: true }] : rest
+    setChips(chipsRef.current)
   }, [])
 
   // Case 12: an OPEN date chip — its CalendarPicker owns the space below the
@@ -390,6 +402,7 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
     chips,
     onChipCommit,
     onChipRemove,
+    setLockedChip,
     textChip,
     onTextCommit,
     onTextRemove,
