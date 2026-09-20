@@ -120,4 +120,38 @@ describe('useGlobalSearch — locked chips', () => {
     act(() => result.current.setLockedChip(null))
     expect(result.current.chips.map((c) => c.key)).toEqual(['origin'])
   })
+
+  // S154: releasing the lock must restore the same-key chip it displaced
+  // (e.g. a two-customer filter narrowed to the anchor while locked) —
+  // the old "restore" only ever worked by accident (the prior chip sat
+  // unlocked in the bar the whole time); this pins the real round trip.
+  test('a displaced same-key chip is gone while locked and restored on unlock', () => {
+    const prior = { key: 'customer-id', label: 'Customer ID: A, B', queryValue: 'A, B', kind: 'attribute' }
+    const { result } = renderHook(() => useGlobalSearch(null, { initialChips: [plain, prior] }))
+    act(() => result.current.setLockedChip({ key: 'customer-id', label: 'Customer ID: A', queryValue: 'A', kind: 'attribute' }))
+    // Displaced while locked — no unlocked duplicate sitting in the bar.
+    expect(result.current.chips).toEqual([plain, { key: 'customer-id', label: 'Customer ID: A', queryValue: 'A', kind: 'attribute', locked: true }])
+    act(() => result.current.setLockedChip(null))
+    // Restored exactly as it was, unlocked, once the lock releases.
+    expect(result.current.chips).toEqual([plain, prior])
+  })
+
+  test('changing the locked VALUE mid-lock does not lose the displaced memory', () => {
+    const prior = { key: 'customer-id', label: 'Customer ID: A, B', queryValue: 'A, B', kind: 'attribute' }
+    const { result } = renderHook(() => useGlobalSearch(null, { initialChips: [plain, prior] }))
+    act(() => result.current.setLockedChip({ key: 'customer-id', label: 'Customer ID: A', queryValue: 'A', kind: 'attribute' }))
+    // The anchor switches to a different row/customer while still locked.
+    act(() => result.current.setLockedChip({ key: 'customer-id', label: 'Customer ID: C', queryValue: 'C', kind: 'attribute' }))
+    expect(result.current.chips.find((c) => c.key === 'customer-id').label).toBe('Customer ID: C')
+    act(() => result.current.setLockedChip(null))
+    // Still restores the ORIGINAL pre-lock chip, not the intermediate value.
+    expect(result.current.chips).toEqual([plain, prior])
+  })
+
+  test('no pre-existing same-key chip when the lock engages means nothing to restore', () => {
+    const { result } = renderHook(() => useGlobalSearch(null, { initialChips: [plain] }))
+    act(() => result.current.setLockedChip({ key: 'customer-id', label: 'Customer ID: A', queryValue: 'A', kind: 'attribute' }))
+    act(() => result.current.setLockedChip(null))
+    expect(result.current.chips).toEqual([plain])
+  })
 })

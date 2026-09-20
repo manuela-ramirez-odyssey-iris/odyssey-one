@@ -398,17 +398,33 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved, init
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // What the lock displaced, so releasing it restores the planner's own filter
+  // (user, 2026-09-20: a two-customer filter is narrowed while locked and comes
+  // back afterwards). Captured only on the engaging edge (no locked chip yet),
+  // so a later change to the locked VALUE (the anchor customer switching)
+  // doesn't overwrite it.
+  const displacedRef = useRef(null)
+
   // Host-enforced chip (consolidate mode's customer lock). Adds it, replaces it
   // in place when the value changes, or clears it — never touching the
   // planner's own chips.
   //
   // Locking REPLACES any chip on the same key — the planner's own customer
   // filter is narrowed to the anchor, not duplicated beside it (user,
-  // 2026-09-20: "the customer filtering will be modified"). The route
-  // snapshots the prior criteria and restores them when the lock releases.
+  // 2026-09-20: "the customer filtering will be modified"). Releasing the lock
+  // (`setLockedChip(null)`) restores whatever same-key chip it displaced.
   const setLockedChip = useCallback((chip) => {
-    const rest = chipsRef.current.filter((c) => !c.locked && (!chip || c.key !== chip.key))
-    chipsRef.current = chip ? [...rest, { ...chip, locked: true }] : rest
+    const current = chipsRef.current
+    if (chip) {
+      if (!current.some((c) => c.locked)) {
+        displacedRef.current = current.find((c) => !c.locked && c.key === chip.key) ?? null
+      }
+      chipsRef.current = [...current.filter((c) => !c.locked && c.key !== chip.key), { ...chip, locked: true }]
+    } else {
+      const rest = current.filter((c) => !c.locked)
+      chipsRef.current = displacedRef.current ? [...rest, displacedRef.current] : rest
+      displacedRef.current = null
+    }
     setChips(chipsRef.current)
   }, [])
 
