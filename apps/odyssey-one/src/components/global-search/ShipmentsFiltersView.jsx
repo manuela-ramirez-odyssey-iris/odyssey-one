@@ -262,9 +262,10 @@ function FieldLabel({ label, info = false }) {
 // `.badge-interactive`, which retints the badge's own tokens for
 // hover/active/pressed. Replaces the app-local chip that had been sitting
 // here "pending Efrain's FilterChip master" — the master already existed.
-function EnumChips({ attr, value, onChange }) {
+function EnumChips({ attr, value, onChange, disabled = false }) {
   const selected = new Set(value ? value.split(',') : [])
   const toggle = (v) => {
+    if (disabled) return
     if (selected.has(v)) selected.delete(v)
     else selected.add(v)
     onChange(attr.values.filter((x) => selected.has(x)).join(','))
@@ -277,6 +278,7 @@ function EnumChips({ attr, value, onChange }) {
           type="button"
           className="badge-interactive"
           aria-pressed={selected.has(v)}
+          disabled={disabled}
           onClick={() => toggle(v)}
         >
           <Badge variant="gray">{v}</Badge>
@@ -298,7 +300,7 @@ function EnumChips({ attr, value, onChange }) {
 // { options, total }, which is what puts the ComboBox in paged/lazy-load mode —
 // it re-calls loadOptions with the accumulated count when the list is scrolled
 // to its end. Dropping the argument here would silently re-request page 1.
-function ValueComboBox({ attr, value, onChange }) {
+function ValueComboBox({ attr, value, onChange, disabled = false }) {
   const hasSuggestions = !!shipmentsSearchAdapter.getAttributeValues
   return (
     <ComboBox
@@ -306,6 +308,7 @@ function ValueComboBox({ attr, value, onChange }) {
       placeholder={`Select ${attr.label}`}
       value={value}
       onChange={onChange}
+      disabled={disabled}
       {...(hasSuggestions && {
         onSelect: (v) => onChange(v || ''),
         loadOptions: (q, skip) => shipmentsSearchAdapter.getAttributeValues(attr.dataKey, q, skip),
@@ -315,15 +318,16 @@ function ValueComboBox({ attr, value, onChange }) {
   )
 }
 
-function renderControl(attr, value, onChange) {
-  if (attr.match === 'enum') return <EnumChips attr={attr} value={value} onChange={onChange} />
-  if (attr.match === 'letters') return <ValueComboBox attr={attr} value={value} onChange={onChange} />
+function renderControl(attr, value, onChange, disabled = false) {
+  if (attr.match === 'enum') return <EnumChips attr={attr} value={value} onChange={onChange} disabled={disabled} />
+  if (attr.match === 'letters') return <ValueComboBox attr={attr} value={value} onChange={onChange} disabled={disabled} />
   return (
     <FormField
       showLabel={false}
       placeholder={`Enter ${attr.label}`}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
     />
   )
 }
@@ -332,18 +336,19 @@ function renderControl(attr, value, onChange) {
 // search bar's plain/Range chip pairing. Split into two builders (S107
 // addendum) so Schedule & Appointments can lay them out as two PAIRED rows
 // (all singles, then all ranges) instead of vertically per attribute.
-function dateSingleField(attr, filters, setFilter) {
+function dateSingleField(attr, filters, setFilter, isLocked) {
   return (
     <div key={attr.key} className="shipments-filters__field">
       <FieldLabel label={attr.label} />
       <DatePicker
         value={isoToDate(filters[attr.key])}
         onChange={(d) => setFilter(attr.key, dateToIso(d))}
+        disabled={isLocked?.(attr.key)}
       />
     </div>
   )
 }
-function dateRangeField(attr, filters, setFilter) {
+function dateRangeField(attr, filters, setFilter, isLocked) {
   const rangeKey = `${attr.key}-range`
   const [fromIso = '', toIso = ''] = (filters[rangeKey] || '').split('|')
   return (
@@ -357,17 +362,19 @@ function dateRangeField(attr, filters, setFilter) {
           const to = dateToIso(r?.end)
           setFilter(rangeKey, from || to ? `${from}|${to}` : '')
         }}
+        disabled={isLocked?.(rangeKey)}
       />
     </div>
   )
 }
 
 // Section-level field, unwrapped from the two-column-pairs special cases below.
-function plainField(attr, filters, setFilter) {
+function plainField(attr, filters, setFilter, isLocked) {
+  const locked = isLocked?.(attr.key)
   return (
     <div key={attr.key} className="shipments-filters__field">
       <FieldLabel label={attr.label} info={attr.match === 'letters'} />
-      {renderControl(attr, filters[attr.key] || '', (v) => setFilter(attr.key, v))}
+      {renderControl(attr, filters[attr.key] || '', (v) => setFilter(attr.key, v), locked)}
     </div>
   )
 }
@@ -388,15 +395,15 @@ const TWO_COLUMN_GROUPS = new Set([
 //     by side), then a ranges row (their Range twins side by side).
 //   TWO_COLUMN_GROUPS       — all fields in a two-column grid.
 //   everything else         — unchanged single column.
-function renderGroupBody(group, filters, setFilter) {
+function renderGroupBody(group, filters, setFilter, isLocked) {
   if (group.group === 'Schedule & Appointments') {
     return (
       <>
         <div className="shipments-filters__grid-2">
-          {group.attributes.map((attr) => dateSingleField(attr, filters, setFilter))}
+          {group.attributes.map((attr) => dateSingleField(attr, filters, setFilter, isLocked))}
         </div>
         <div className="shipments-filters__grid-2">
-          {group.attributes.map((attr) => dateRangeField(attr, filters, setFilter))}
+          {group.attributes.map((attr) => dateRangeField(attr, filters, setFilter, isLocked))}
         </div>
       </>
     )
@@ -410,10 +417,10 @@ function renderGroupBody(group, filters, setFilter) {
     const fields = group.attributes.filter((attr) => attr.match !== 'enum')
     return (
       <>
-        {enums.map((attr) => plainField(attr, filters, setFilter))}
+        {enums.map((attr) => plainField(attr, filters, setFilter, isLocked))}
         {fields.length > 0 && (
           <div className="shipments-filters__grid-2">
-            {fields.map((attr) => plainField(attr, filters, setFilter))}
+            {fields.map((attr) => plainField(attr, filters, setFilter, isLocked))}
           </div>
         )}
       </>
@@ -421,14 +428,20 @@ function renderGroupBody(group, filters, setFilter) {
   }
   return group.attributes.flatMap((attr) =>
     attr.match === 'date'
-      ? [dateSingleField(attr, filters, setFilter), dateRangeField(attr, filters, setFilter)]
-      : [plainField(attr, filters, setFilter)],
+      ? [dateSingleField(attr, filters, setFilter, isLocked), dateRangeField(attr, filters, setFilter, isLocked)]
+      : [plainField(attr, filters, setFilter, isLocked)],
   )
 }
 
 export default function ShipmentsFiltersView({
   chips = [],
   resultTotal = 0,
+  // S154 Task 2 — attribute keys the host is enforcing (consolidate mode's
+  // customer lock) and this view must never edit or clear. A filter key is
+  // `<attr.key>` or, for a date-range control, `<attr.key>-range` — `isLocked`
+  // below normalizes via the same `baseAttrKey` helper the chip<->filter
+  // mapping already uses, so passing either form of a locked date key works.
+  lockedKeys = [],
   onBack,
   onClose,
   onClearAll,
@@ -546,7 +559,16 @@ export default function ShipmentsFiltersView({
   const [activeTab, setActiveTab] = useState('all')
   const [filters, setFilters] = useState(() => chipsToFilters(chips))
 
-  const setFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val }))
+  // S154 Task 2 — the locked attribute's control must not change value from
+  // inside this panel, in ANY mode (free or edit-filter): the lock is a
+  // host-enforced rule, not a per-mode convenience. Normalizes a `-range`
+  // filter key to its base attribute key (same helper the chip<->filter
+  // mapping uses) so a locked date attribute's range twin is covered too.
+  const isLocked = (key) => lockedKeys.includes(baseAttrKey(key))
+  const setFilter = (key, val) => {
+    if (isLocked(key)) return
+    setFilters((f) => ({ ...f, [key]: val }))
+  }
 
   // "Clear all" has to empty the FIELDS, not just the bar's committed chips
   // (S130). The panel's controls are this component's own `filters` state,
@@ -559,9 +581,14 @@ export default function ShipmentsFiltersView({
   // Each key is set to '' rather than dropping the object: mergeFiltersIntoChips
   // reads a key PRESENT and empty as "remove this chip", while an ABSENT key
   // means "leave whatever chip exists alone" — so `{}` would let a cleared
-  // field's chip come back on the next Apply.
+  // field's chip come back on the next Apply. The locked key is the one
+  // exception: its current value is left as-is (not blanked to ''), which
+  // keeps it "present and unchanged" for that same merge — a blank locked
+  // value would read as "remove this chip" the moment Show results applies it.
   const handleClearAll = () => {
-    setFilters((f) => Object.fromEntries(Object.keys(f).map((key) => [key, ''])))
+    setFilters((f) => Object.fromEntries(
+      Object.keys(f).map((key) => [key, isLocked(key) ? f[key] : '']),
+    ))
     onClearAll?.()
   }
   // Tab count is MODE-DEPENDENT (S110 rev2 spec item 1: "free mode counts the
@@ -1293,7 +1320,7 @@ export default function ShipmentsFiltersView({
           SHIPMENTS_PROGRESSION.map((group) => (
             <div key={group.group} className="shipments-filters__section">
               <SectionHeader>{group.group}</SectionHeader>
-              {renderGroupBody(group, filters, setFilter)}
+              {renderGroupBody(group, filters, setFilter, isLocked)}
             </div>
           ))
         ) : (

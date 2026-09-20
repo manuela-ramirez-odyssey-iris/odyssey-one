@@ -55,7 +55,7 @@ const SAVED_FILTERS_KEY = 'shipments.savedFilters'
  *   with its details); `tab` (from the leading chip via the shared
  *   CELL_TAB_MAP) lands it on the mapped pane, mirroring table cell clicks.
  */
-export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips, attributeKeys = null, placeholder = 'Search in Shipments' }) {
+export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips, attributeKeys = null, placeholder = 'Search in Shipments', lockedChip = null }) {
   // Customer scoping (S79c decision 10): the glimpse must respect the selected
   // customer list, so the domain adapter is wrapped with the selection's dataIds
   // baked into searchShipments. The hook stays domain-agnostic — a selection
@@ -84,11 +84,41 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
 
   const {
     value, query, onChange, onClear, onFocus, onBlur,
-    chips, onChipCommit, onChipRemove,
+    chips, onChipCommit, onChipRemove, setLockedChip,
     textChip, onTextCommit, onTextRemove, onSetCommit, onDateCommit, onDateToggle, applyChips,
     suggestionSections, suggestionsOpen,
     results, resultTotal, searching, pendingDateChip,
   } = useGlobalSearch(scopedAdapter, { onLastRemoved: handleLastRemoved, initialChips: seedChips ?? undefined })
+
+  // Host-enforced locked chip (consolidate mode's customer filter, S154 Task
+  // 2 — the route wiring it up is a later task; here we just react to the
+  // prop). Content-compared, not reference-compared: a host re-render can
+  // hand us a brand-new object literal carrying the SAME lock, and a
+  // reference check would recommit (and, via the "newly committed chip"
+  // heuristic above, re-open the results glimpse) on every unrelated
+  // re-render.
+  //
+  // Routed through the exact apply-then-commit SHAPE `handleApplyFilters`'s
+  // commit branch and `handleApplySaved` already use below (`applyChips`/
+  // `setLockedChip` first, then `onCommitQuery({ chips, text })` with the
+  // RESULTING chip set) — not a hand-built criteria object. `setLockedChip`
+  // is the hook's own dedicated equivalent of `applyChips` for the locked
+  // slot (Task 1, useGlobalSearch.js): it splices the locked chip into
+  // `chips` in place, so mirroring that same splice here (to know what the
+  // commit's `chips` payload will be) keeps the committed criteria — table,
+  // category counts, glimpse — in lockstep with what the bar just got, same
+  // contract every other commit already promises callers.
+  const lockedChipKey = lockedChip ? JSON.stringify(lockedChip) : null
+  const appliedLockedChipKeyRef = useRef(null)
+  useEffect(() => {
+    if (lockedChipKey === appliedLockedChipKeyRef.current) return
+    appliedLockedChipKeyRef.current = lockedChipKey
+    setLockedChip(lockedChip)
+    const rest = chips.filter((c) => !c.locked)
+    const nextChips = lockedChip ? [...rest, { ...lockedChip, locked: true }] : rest
+    onCommitQuery?.({ chips: nextChips, text: textChip?.value || '' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedChipKey])
 
   // Saved filters (S108 Phase 1a/1c — hosting move + persistence shape). Lives
   // HERE, not in ShipmentsFiltersView, which unmounts on every panel close
@@ -158,12 +188,28 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
   // panel out from under a click the spec says should land back on Saved.
   // Same `dismissRef`/`splitFreeText` machinery as `handleApplySaved`, same
   // reasoning (see that callback's own comment).
+  // Re-appends the CURRENT locked chip (if any) after a wholesale chip
+  // replace — `mergeFiltersIntoChips`'s saved-profile chips never carry one
+  // (a saved profile is a persisted planner search, never the host's runtime
+  // lock), so a bare wholesale swap would silently drop the lock. Strips by
+  // KEY, not just `.locked`: a saved profile CAN legitimately hold its own
+  // plain value for the same attribute (e.g. a Customer ID filter saved
+  // before consolidate mode) — the host's lock always wins that key, never
+  // coexists alongside it. Shared by `applyUpdatedFilterToBar` and
+  // `handleApplySaved` below — both replace `chips` outright via
+  // `applyChips`, unlike `handleApplyFilters`'s merge.
+  const withCurrentLock = useCallback((nextChips) => {
+    const lockedNow = chips.find((c) => c.locked)
+    return lockedNow ? [...nextChips.filter((c) => c.key !== lockedNow.key), lockedNow] : nextChips
+  }, [chips])
+
   const applyUpdatedFilterToBar = useCallback((filterChips) => {
     const { chips: realChips, freeText } = splitFreeText(filterChips)
+    const nextChips = withCurrentLock(realChips)
     dismissRef.current = true
-    applyChips(realChips, freeText)
-    onCommitQuery?.({ chips: realChips, text: freeText?.value || '' })
-  }, [applyChips, onCommitQuery])
+    applyChips(nextChips, freeText)
+    onCommitQuery?.({ chips: nextChips, text: freeText?.value || '' })
+  }, [withCurrentLock, applyChips, onCommitQuery])
 
   // Shared filters (S108 Phase 3d — the Odyssey group's shared half; the
   // migration + API + service landed in earlier phases, this wires the UI).
@@ -420,7 +466,16 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
   // the criteria); a Saved profile REPLACES the chips (a profile is a whole
   // search) and shows the glimpse without committing.
   const handleApplyFilters = useCallback((filters, { commit = false, replace = false } = {}) => {
-    const nextChips = mergeFiltersIntoChips(replace ? [] : chips, filters)
+    // `replace` starts from an empty base (a Saved profile IS a whole
+    // search) — but the locked chip is host-enforced, not part of any
+    // profile, so it has to survive a replace too. Seeding the base with the
+    // CURRENT locked chip (if any) means `mergeFiltersIntoChips` sees it as
+    // `existing`, and since the Filters view never lets `filters[lockedKey]`
+    // change (ShipmentsFiltersView's own guard), the merge's unchanged-value
+    // skip leaves it untouched rather than rebuilding it chip-object-fresh
+    // (which would silently drop `locked: true`).
+    const base = replace ? chips.filter((c) => c.locked) : chips
+    const nextChips = mergeFiltersIntoChips(base, filters)
     // S108 1e bonus fix (spec "Behaviour" 9): committing here is ALSO the
     // pre-existing All-tab bug — applyChips changes `chips` (often GROWING it
     // by the chip just edited), which re-fires the open/close effect below;
@@ -465,13 +520,14 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
   // left in the bar, matching "wholesale replace."
   const handleApplySaved = useCallback((filterChips) => {
     const { chips: realChips, freeText } = splitFreeText(filterChips)
+    const nextChips = withCurrentLock(realChips)
     // Same reopen-suppression as the All-tab commit above (spec "Behaviour" 9,
     // this task's primary case — the All-tab fix piggybacks on this one).
     dismissRef.current = true
-    applyChips(realChips, freeText)
-    onCommitQuery?.({ chips: realChips, text: freeText?.value || '' })
+    applyChips(nextChips, freeText)
+    onCommitQuery?.({ chips: nextChips, text: freeText?.value || '' })
     closePanel()
-  }, [applyChips, onCommitQuery, closePanel])
+  }, [withCurrentLock, applyChips, onCommitQuery, closePanel])
 
   // Match-row click → select that shipment (docked bar opens with its details,
   // whether or not the row is on the current table page) and dismiss the
@@ -671,6 +727,10 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
             <ShipmentsFiltersView
               chips={chips}
               resultTotal={resultTotal}
+              // S154 Task 2 — the locked attribute's key (consolidate mode's
+              // customer lock). Its control renders disabled and is excluded
+              // from every Clear/write-back path inside the view.
+              lockedKeys={lockedChip ? [lockedChip.key] : []}
               onBack={() => { if (chips.length > 0 || hasQuery) setPanelView('results'); else closePanel() }}
               onClose={closePanel}
               onClearAll={() => chips.forEach((c) => onChipRemove(c.key))}
