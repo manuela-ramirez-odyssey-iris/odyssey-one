@@ -62,14 +62,33 @@ function ShipmentsRoute() {
   // the selection's insertion order, never stored separately.
   const anchor = selection.size ? selection.values().next().value : null
   const anchorCustomerId = anchor?.customerId ?? null
-  // Customer lock (spec §3.4): while a row is selected, the list AND the tab
-  // counts scope to that one customer. `dataId` in the Customers panel IS the
-  // customerId stamped on rows (CustomersContext.jsx), so the anchor's id goes
-  // straight into the same param the panel drives.
-  const effectiveCustomerIds = useMemo(
-    () => (anchorCustomerId ? [anchorCustomerId] : selectedDataIds),
-    [anchorCustomerId, selectedDataIds],
+  // Customer lock (S154, reverses CNS-10): the lock used to be a private
+  // `effectiveCustomerIds` override feeding listParams/useCategoryCounts
+  // directly, invisible to the planner. Now it's a committed, visible filter
+  // chip (`lockedChip` below) handed to ShipmentsGlobalSearch — the table,
+  // the category counts and the search glimpse all narrow through the same
+  // `searchCriteria` pipeline they already honour, so no override is needed
+  // here at all.
+  //
+  // The customer lock is a real, visible filter chip — the same filtering the
+  // planner already uses — not a private query override (user, 2026-09-20).
+  // ShipmentsGlobalSearch commits it, so the table, the pills and the glimpse
+  // all narrow through the normal criteria pipeline.
+  const lockedChip = useMemo(
+    () => (anchorCustomerId ? { ...attrChip('customer-id', anchorCustomerId), locked: true } : null),
+    [anchorCustomerId],
   )
+  // The customer attribute is owned by the lock while it's active — offering
+  // it in suggestions would invite a commit the lock immediately overrides.
+  // Stable reference (spec §3, GS-16 lesson): an inline array would
+  // re-identify the search adapter every render and refire its suggestion
+  // fetch, so the "nothing locked" path returns the module constant itself.
+  const searchAttributeKeys = useMemo(() => {
+    if (!inMode) return null
+    return lockedChip
+      ? CONSOLIDATION_ATTRIBUTE_KEYS.filter((k) => k !== 'customer-id' && k !== 'customer-name')
+      : CONSOLIDATION_ATTRIBUTE_KEYS
+  }, [inMode, lockedChip])
   const [selectedShipmentId, setSelectedShipmentId] = useState(location.state?.selectedShipmentId ?? null)
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
@@ -221,7 +240,7 @@ function ShipmentsRoute() {
   // scope) changes. Done during render (React's documented "adjust state on change"
   // pattern) rather than in an effect, so the stale-page query never fires — avoids
   // a wasted round-trip on every filter interaction in live mode.
-  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, effectiveCustomerIds, sorting])
+  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, selectedDataIds, sorting])
   const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
   if (queryIdentity !== prevQueryIdentity) {
     setPrevQueryIdentity(queryIdentity)
@@ -236,7 +255,7 @@ function ShipmentsRoute() {
     pageSize,
     // FIRST-order customer scope (S79c decision 10) — the selected customers'
     // shipment dataIds, applied by gridService before panel/category/search.
-    customerIds: effectiveCustomerIds,
+    customerIds: selectedDataIds,
     // Committed GlobalSearch criteria (S79c). The legacy searchTerm /
     // searchAttributeKey params are still supported by gridService (and
     // tested) but the route no longer sends them — searchCriteria replaces
@@ -244,7 +263,7 @@ function ShipmentsRoute() {
     searchCriteria: searchCriteria ?? undefined,
     sortBy: sorting[0]?.id,
     orderBy: sorting[0]?.desc ? 'desc' : 'asc',
-  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, effectiveCustomerIds, sorting])
+  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, selectedDataIds, sorting])
 
   const {
     data: listData,
@@ -279,9 +298,9 @@ function ShipmentsRoute() {
   // scoped to the selected customers (decision 10) and filtered by the committed
   // search criteria (decision 7) so panel totals, category pills and the glimpse
   // total all agree.
-  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', searchCriteria ?? undefined, effectiveCustomerIds)
-  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', searchCriteria ?? undefined, effectiveCustomerIds)
-  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', searchCriteria ?? undefined, effectiveCustomerIds)
+  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', searchCriteria ?? undefined, selectedDataIds)
+  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', searchCriteria ?? undefined, selectedDataIds)
+  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', searchCriteria ?? undefined, selectedDataIds)
   const countsReady = !exceptionsCountsLoading && !monitoringCountsLoading && !pgipgrCountsLoading
 
   const metrics = useMemo(() => {
@@ -431,11 +450,21 @@ function ShipmentsRoute() {
     const text = (criteria?.text ?? '').trim()
     const next = chips.length || text ? { chips, text } : null
     setSearchCriteria(next)
-    // A committed search takes over the sort (GS-16). Without this the seeded
-    // column sort below keeps driving and relevance never reaches the grid.
-    setSorting(next ? [{ id: RELEVANCE_SORT, desc: false }] : DEFAULT_SORTING)
-    setLandOnPanel(next ? (opts?.landOnPanel ?? 'auto') : null)
-  }, [])
+    // A committed search takes over the sort (GS-16) and can auto-jump the
+    // panel (GS-18) — both wrong for the customer LOCK's own automatic
+    // recommit (S154): ShipmentsGlobalSearch calls this same onCommitQuery
+    // path the moment `lockedChip` changes, purely to narrow the criteria,
+    // not because the planner searched anything. Consolidate mode already
+    // owns its sort (enterConsolidate seeds shipmentType so eligible Direct
+    // rows surface first) and its panel (the planner is scanning to check
+    // rows, not landing on a search's fullest panel) — a real commit from
+    // the planner while in mode still narrows the table via searchCriteria
+    // above, it just doesn't fight those two.
+    if (!inMode) {
+      setSorting(next ? [{ id: RELEVANCE_SORT, desc: false }] : DEFAULT_SORTING)
+      setLandOnPanel(next ? (opts?.landOnPanel ?? 'auto') : null)
+    }
+  }, [inMode])
 
   // Match-row click in the navbar search glimpse → select that shipment. The
   // docked ShipmentsBar opens with its details regardless of table visibility
@@ -471,16 +500,38 @@ function ShipmentsRoute() {
     // as they are; the optional chaining below no-ops in that case.
     if (consolidate?.priorSorting) setSorting(consolidate.priorSorting)
     if (consolidate?.priorViewMode) setViewMode(consolidate.priorViewMode)
+    // Cancelling while the customer lock is engaged restores whatever search
+    // criteria were committed before the first checked row locked it — same
+    // snapshot `handleSelectionChange` took, same restore as emptying the
+    // selection by hand. `'priorCriteria' in consolidate` (not truthiness)
+    // distinguishes "never locked this visit" from "locked, and there was
+    // genuinely no prior filter" (a real `null` snapshot) — re-entry via
+    // "Modify Selection" never took a snapshot, so this correctly no-ops.
+    if (consolidate && 'priorCriteria' in consolidate) setSearchCriteria(consolidate.priorCriteria ?? null)
     setConsolidate(null)
   }, [consolidate])
   const handleSelectionChange = useCallback((rows, checked) => {
-    setConsolidate((prev) => {
-      if (!prev) return prev
-      const next = new Map(prev.rows)
-      for (const r of rows) checked ? next.set(r.id, r) : next.delete(r.id)
-      return { ...prev, rows: next }
+    if (!consolidate) return
+    const next = new Map(consolidate.rows)
+    for (const r of rows) checked ? next.set(r.id, r) : next.delete(r.id)
+    const wasEmpty = consolidate.rows.size === 0
+    const nowEmpty = next.size === 0
+    setConsolidate({
+      ...consolidate,
+      rows: next,
+      // The first checked row locks the customer (anchor, derived above from
+      // Map insertion order) — snapshot the planner's own committed filter
+      // here so releasing the lock (emptying the selection, or Cancel above)
+      // can restore it instead of leaving the lock's narrowing stuck.
+      ...(wasEmpty && !nowEmpty ? { priorCriteria: searchCriteria } : {}),
     })
-  }, [])
+    // Unchecking back to zero releases the lock the same way Cancel does —
+    // restore what was committed before the lock engaged. Guarded the same
+    // way as exitConsolidate's restore above.
+    if (!wasEmpty && nowEmpty && 'priorCriteria' in consolidate) {
+      setSearchCriteria(consolidate.priorCriteria ?? null)
+    }
+  }, [consolidate, searchCriteria])
   const eligibility = useCallback((row) => consolidationEligibility(row, anchorCustomerId), [anchorCustomerId])
   const proceedToReview = useCallback(() => {
     navigate('/shipments/consolidate/review', { state: { rows: [...selection.values()] } })
@@ -498,7 +549,8 @@ function ShipmentsRoute() {
           onCommitQuery={handleCommitQuery}
           onSelectShipment={handleSelectShipment}
           seedChips={seedChips}
-          attributeKeys={inMode ? CONSOLIDATION_ATTRIBUTE_KEYS : null}
+          attributeKeys={searchAttributeKeys}
+          lockedChip={lockedChip}
           placeholder={anchor ? `Search for ${anchor.customerName || anchor.customerId}` : 'Search in Shipments'}
         />
       }
@@ -559,7 +611,7 @@ function ShipmentsRoute() {
           disabled={inMode && selection.size < 2}
           onClick={inMode ? proceedToReview : enterConsolidate}
         >
-          {inMode ? `${selection.size} Shipments Selected` : 'Consolidate'}
+          {inMode ? `Consolidate ${selection.size} Shipments` : 'Consolidate'}
         </Button>
       </PageHeader>
       {anchor && (
