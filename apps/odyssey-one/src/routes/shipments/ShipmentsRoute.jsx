@@ -75,7 +75,12 @@ function ShipmentsRoute() {
   // ShipmentsGlobalSearch commits it, so the table, the pills and the glimpse
   // all narrow through the normal criteria pipeline.
   const lockedChip = useMemo(
-    () => (anchorCustomerId ? { ...attrChip('customer-id', anchorCustomerId), locked: true } : null),
+    // `exact` matters: attrChip inherits the attribute's matching rule, and
+    // `customer-id` matches by SUBSTRING for ordinary typed searches. The lock
+    // is a machine-derived customer identity, not a typed query, and it must
+    // not admit a second customer whose id merely contains this one — the
+    // scope parameter it replaced was exact everywhere.
+    () => (anchorCustomerId ? { ...attrChip('customer-id', anchorCustomerId), exact: true, locked: true } : null),
     [anchorCustomerId],
   )
   // The customer attribute is owned by the lock while it's active — offering

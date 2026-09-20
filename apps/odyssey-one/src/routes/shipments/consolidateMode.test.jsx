@@ -11,6 +11,8 @@ import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
 import { __clearMockPreferences } from '../../api/services/preferenceService'
 import { shipmentsSearchAdapter } from '../../search/shipments'
+import { matchesChip } from '../../search/shipments/criteria'
+import { attrChip } from '../../components/global-search/savedFilters'
 
 beforeEach(() => {
   __clearMockPreferences()
@@ -293,5 +295,17 @@ describe('consolidate mode — the customer lock is a committed filter chip (S15
     const texts = [...document.querySelectorAll('.filter-suggestions__chip')].map((el) => el.textContent)
     expect(texts.some((t) => t.startsWith('Customer ID'))).toBe(false)
     expect(texts.some((t) => t.startsWith('Customer Name'))).toBe(false)
+  })
+
+  // S154 correctness gap (code review): `customer-id` has no `exact` flag in
+  // progression.js, so an ordinary attrChip('customer-id', …) matches by
+  // SUBSTRING (criteria-core.js matchesChip). ShipmentsRoute's lockedChip
+  // forces `exact: true` on the CHIP itself — the scope parameter it
+  // replaced (`customerIds`) was exact everywhere, and a substring lock would
+  // silently admit a second customer whose id merely contains the anchor's.
+  test('the lock chip matches the anchor customer exactly, not a customer whose id merely contains it', () => {
+    const lockedChip = { ...attrChip('customer-id', 'CUST_1'), exact: true, locked: true }
+    expect(matchesChip({ customerId: 'CUST_1' }, lockedChip)).toBe(true)
+    expect(matchesChip({ customerId: 'CUST_10' }, lockedChip)).toBe(false)
   })
 })
