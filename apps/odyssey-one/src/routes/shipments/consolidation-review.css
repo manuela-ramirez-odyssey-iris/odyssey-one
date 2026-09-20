@@ -80,9 +80,14 @@
   margin-top: auto;
 }
 
-/* The footer bleeds to the page edge; .order-change's bottom padding lifts it
-   off the bottom, so this page cancels it. */
-.order-change.consolidation-review { padding-bottom: 0; }
+/* The footer bleeds to the page edge and pins to the bottom: .order-change's
+   bottom padding lifted it off the edge, and the page must claim <main>'s
+   leftover height for the footer's `margin-top: auto` to have anything to
+   push against. */
+.order-change.consolidation-review {
+  padding-bottom: 0;
+  flex: 1;
+}
 
 /* Unchecked rows (S154): still in the table (findable, re-checkable), just
    grayed out. `data-selected` is TanStack rowSelection = INCLUDED, so an
