@@ -231,7 +231,7 @@ export default function ConsolidationReviewRoute() {
               title="Selected shipments to consolidate"
               collapsible={false}
               action={
-                <Button variant="primary" size="sm" onClick={backInMode}>Modify Whole Selection</Button>
+                <Button variant="secondary" size="sm" onClick={backInMode}>Modify Whole Selection</Button>
               }
             >
               <div className="consolidation-review__table-count text-label-sm-regular">{rows.length} items</div>
