@@ -1,0 +1,11 @@
+/* Full-page breadcrumb views slide in from the right and back out on close.
+   Transform only — no fade (user, 2026-09-20). */
+@keyframes slide-route-in  { from { transform: translateX(100%); } to   { transform: translateX(0); } }
+@keyframes slide-route-out { from { transform: translateX(0); }    to   { transform: translateX(100%); } }
+
+.slide-route { animation: slide-route-in var(--transition-drawer); will-change: transform; }
+.slide-route--leaving { animation: slide-route-out var(--transition-drawer) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-route, .slide-route--leaving { animation: none; }
+}

@@ -126,25 +126,27 @@ describe('ConsolidationReviewRoute', () => {
     expect(container.querySelectorAll('.stop-badge__status')).toHaveLength(0)
   })
 
-  test('Modify Whole Selection returns to Shipments in mode with the rows, lives in the accordion action slot, no pencil icon', () => {
+  // S154 — Modify Whole Selection now exits through the slide-out (useSlideRoute);
+  // the nav fires after the slide duration, so the probe has to be awaited.
+  test('Modify Whole Selection returns to Shipments in mode with the rows, lives in the accordion action slot, no pencil icon', async () => {
     renderReview({ rows })
     expect(screen.queryByRole('button', { name: 'Modify Selection' })).toBeNull()
     const button = screen.getByRole('button', { name: 'Modify Whole Selection' })
     expect(button.querySelector('svg')).toBeNull() // no icon
     fireEvent.click(button)
-    const state = JSON.parse(screen.getByTestId('shipments-probe').textContent)
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
     expect(state.consolidate.rows.map((r) => r.id)).toEqual(['a', 'b'])
   })
 
-  test('Modify Whole Selection carries only the CHECKED rows back', () => {
+  test('Modify Whole Selection carries only the CHECKED rows back', async () => {
     renderReview({ rows })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-B' }))
     fireEvent.click(screen.getByRole('button', { name: 'Modify Whole Selection' }))
-    const state = JSON.parse(screen.getByTestId('shipments-probe').textContent)
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
     expect(state.consolidate.rows.map((r) => r.id)).toEqual(['a'])
   })
 
-  test('Cancel and Modify Selection asks "Yes, Cancel", then leaves with nothing retained', () => {
+  test('Cancel and Modify Selection asks "Yes, Cancel", then leaves with nothing retained', async () => {
     renderReview({ rows })
     fireEvent.click(screen.getByRole('button', { name: 'Cancel and Modify Selection' }))
     expect(screen.getByText(/Are you sure you want to cancel the proposed consolidation\?/)).toBeTruthy()
@@ -152,7 +154,7 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.queryByText(/Are you sure you want to cancel/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel and Modify Selection' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
-    expect(JSON.parse(screen.getByTestId('shipments-probe').textContent)).toBeNull()
+    expect(JSON.parse((await screen.findByTestId('shipments-probe')).textContent)).toBeNull()
   })
 
   test('Apply Consolidation confirms; Yes is a stub that stays on the page', () => {
@@ -171,11 +173,11 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByText('27,500 LB')).toBeTruthy()
   })
 
-  test('no rows in state → empty state with a way back', () => {
+  test('no rows in state → empty state with a way back', async () => {
     renderReview(undefined)
     expect(screen.getByText('No consolidation to review.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Back to Shipments' }))
-    expect(screen.getByTestId('shipments-probe')).toBeTruthy()
+    expect(await screen.findByTestId('shipments-probe')).toBeTruthy()
   })
 
   test('the rail is hidden — the review continues consolidate mode, and the VD has no sidebar', () => {

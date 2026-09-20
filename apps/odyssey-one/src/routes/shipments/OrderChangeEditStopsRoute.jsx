@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
@@ -7,7 +7,9 @@ import EditStopsView from '../../components/detail/order-change/EditStopsView.js
 import ReviewKpiStrip from '../../components/detail/order-change/ReviewKpiStrip.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
+import useSlideRoute from './useSlideRoute'
 import '../../components/shipments/order-change/order-change.css'
+import '../../styles/slide-route.css'
 
 // Edit Shipment Stops — /shipments/order-change/:sellShipment/stops,
 // LINX-15667…15671/15869/15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
@@ -28,8 +30,8 @@ import '../../components/shipments/order-change/order-change.css'
 // embedding it in the detail bar's tab pane.
 export default function OrderChangeEditStopsRoute() {
   const { sellShipment } = useParams()
-  const navigate = useNavigate()
   const location = useLocation()
+  const { className: slideClassName, leaveTo } = useSlideRoute()
   const buyShipment = location.state?.buyShipment
   const odysseyShipmentIdentifier = location.state?.odysseyShipmentIdentifier
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
@@ -47,7 +49,7 @@ export default function OrderChangeEditStopsRoute() {
   // Exit back to this shipment's Stops tab (LINX-15667 — "cancel returns to
   // the review screen") — ShipmentsRoute.jsx:41-46 reads exactly these four
   // state keys to open the detail bar on the right shipment/tab.
-  const exit = () => navigate('/shipments', {
+  const exit = () => leaveTo('/shipments', {
     state: {
       selectedShipmentId: sellShipment,
       requestedTab: { key: 'stops' },
@@ -85,11 +87,11 @@ export default function OrderChangeEditStopsRoute() {
             // Direct review screen so the planner can resolve it with the
             // new stops plan. No `from` key — the Direct route only reads
             // 'from-tender' semantics via from === 'tender', which this exit isn't.
-            navigate(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, odysseyShipmentIdentifier } })
+            leaveTo(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, odysseyShipmentIdentifier } })
           } else {
             // Scenario B — no active tender yet: send the planner to Tender
             // to start one on the finalized plan, still parked on the Order Change tab.
-            navigate('/shipments', {
+            leaveTo('/shipments', {
               state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
             })
           }
@@ -106,9 +108,9 @@ export default function OrderChangeEditStopsRoute() {
         onClose: exit,
       }}
     >
-      <div className="order-change">
+      <div className={`order-change ${slideClassName}`}>
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Shipment" onClick={() => navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
+          <Breadcrumb label="Shipment" onClick={() => leaveTo('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
           <Breadcrumb label="Review Order Change" onClick={exit} />
           <Breadcrumb label="Edit Shipment Stops" current />
         </nav>

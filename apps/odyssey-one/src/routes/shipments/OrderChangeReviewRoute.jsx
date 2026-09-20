@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
@@ -10,7 +10,9 @@ import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import { fmtDollar } from '../../utils/money'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
+import useSlideRoute from './useSlideRoute'
 import '../../components/shipments/order-change/order-change.css'
+import '../../styles/slide-route.css'
 
 // Review Order Change (Direct Shipment) — /shipments/order-change/:sellShipment,
 // LINX-14509…14515. Reached from the shipments table's row menu, order-change
@@ -99,8 +101,8 @@ export function landingFor(action, sellShipment) {
 
 export default function OrderChangeReviewRoute() {
   const { sellShipment } = useParams()
-  const navigate = useNavigate()
   const location = useLocation()
+  const { className: slideClassName, leaveTo } = useSlideRoute()
   const buyShipment = location.state?.buyShipment
   const odysseyShipmentIdentifier = location.state?.odysseyShipmentIdentifier
   // Where the planner CAME FROM (S135): 'tender' when opened from the Tender
@@ -175,7 +177,7 @@ export default function OrderChangeReviewRoute() {
       },
       {
         onSuccess: () => {
-          navigate('/shipments', { state: landingFor(action, sellShipment) })
+          leaveTo('/shipments', { state: landingFor(action, sellShipment) })
         },
         onError: () => {
           setResolveError("Couldn't resolve this tender. Please try again.")
@@ -191,17 +193,17 @@ export default function OrderChangeReviewRoute() {
     <AppShell
       titleMode={{
         title: 'Review Order Change',
-        onClose: () => navigate('/shipments', { state: closeState }),
+        onClose: () => leaveTo('/shipments', { state: closeState }),
       }}
     >
-      <div className="order-change">
+      <div className={`order-change ${slideClassName}`}>
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Shipment" onClick={() => navigate('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
+          <Breadcrumb label="Shipment" onClick={() => leaveTo('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
           {/* Every ancestor step is clickable (designer, S135): 'Tender'
               opens THIS shipment's detail on its Tender screen — the same
               destination the navbar Close uses when the planner came from
               there. */}
-          <Breadcrumb label="Tender" onClick={() => navigate('/shipments', { state: tenderScreenState })} />
+          <Breadcrumb label="Tender" onClick={() => leaveTo('/shipments', { state: tenderScreenState })} />
           <Breadcrumb label="Review Order Change" current />
         </nav>
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { Inbox, MapPin } from 'lucide-react'
@@ -10,8 +10,10 @@ import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { getSellShipmentDetail } from '../../api/services/shipmentService'
 import { shipmentDetailQueryKey } from '../../api/queries/useShipmentDetail'
 import { buildProposal } from '../../consolidation/proposal'
+import useSlideRoute from './useSlideRoute'
 import '../../components/shipments/order-change/order-change.css'
 import './consolidation-review.css'
+import '../../styles/slide-route.css'
 
 // Review & Apply Manual Consolidation — /shipments/consolidate/review
 // (LINX-15787; VD x38TOJGsNryYl3LsKhCtSc node 2249:46444). Input is the
@@ -94,8 +96,8 @@ function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll }) {
 }
 
 export default function ConsolidationReviewRoute() {
-  const navigate = useNavigate()
   const location = useLocation()
+  const { className: slideClassName, leaveTo } = useSlideRoute()
   const rows = location.state?.rows ?? []
   const [pending, setPending] = useState(null) // 'apply' | 'cancel' | null
   // Checked = INCLUDED in the consolidation. Every row starts checked;
@@ -126,13 +128,13 @@ export default function ConsolidationReviewRoute() {
   // buildProposal is a cheap reduce over a handful of rows — no memo needed.
   const proposal = buildProposal(checkedRows, checkedDetails)
 
-  const backInMode = () => navigate('/shipments', { state: { consolidate: { rows: checkedRows } } })
-  const leave = () => navigate('/shipments')
+  const backInMode = () => leaveTo('/shipments', { state: { consolidate: { rows: checkedRows } } })
+  const leave = () => leaveTo('/shipments')
 
   if (!rows.length) {
     return (
       <AppShell titleMode={{ title: 'Manual Consolidation', onClose: leave }} sidebarHidden>
-        <div className="order-change">
+        <div className={`order-change ${slideClassName}`}>
           <EmptyState icon={<Inbox size={32} />} message="No consolidation to review." />
           <div><Button variant="secondary" onClick={leave}>Back to Shipments</Button></div>
         </div>
@@ -168,7 +170,7 @@ export default function ConsolidationReviewRoute() {
     // continues consolidate mode from /shipments, which already hid it —
     // it should stay hidden for the rest of the flow.
     <AppShell titleMode={{ title: 'Manual Consolidation', onClose: backInMode }} sidebarHidden>
-      <div className="order-change consolidation-review">
+      <div className={`order-change consolidation-review ${slideClassName}`}>
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Shipments Consolidation" onClick={backInMode} />
           <Breadcrumb label="Review & Apply" current />
