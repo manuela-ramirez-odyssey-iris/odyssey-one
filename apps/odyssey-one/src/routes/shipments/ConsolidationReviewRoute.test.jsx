@@ -110,6 +110,22 @@ describe('ConsolidationReviewRoute', () => {
     expect(labels).toEqual(['P1', 'P2', 'D1', 'D2'])
   })
 
+  test('pickup and delivery stop markers are visually distinguished (S154)', () => {
+    const { container } = renderReview({ rows })
+    const badgeFor = (label) => screen.getByText(label).closest('.stop-badge')
+    // Both are the solid `completed` skin (white label, no status circle) —
+    // the pickup/delivery split comes from the extra tint class Timeline
+    // forwards, not from status.
+    expect(badgeFor('P1').className).toContain('stop-badge--completed')
+    expect(badgeFor('D1').className).toContain('stop-badge--completed')
+    expect(badgeFor('P1').className).toContain('consolidation-review__stop-badge--pickup')
+    expect(badgeFor('P2').className).toContain('consolidation-review__stop-badge--pickup')
+    expect(badgeFor('D1').className).not.toContain('consolidation-review__stop-badge--pickup')
+    expect(badgeFor('D2').className).not.toContain('consolidation-review__stop-badge--pickup')
+    // No status circle overlay on planned-stop markers.
+    expect(container.querySelectorAll('.stop-badge__status')).toHaveLength(0)
+  })
+
   test('Modify Whole Selection returns to Shipments in mode with the rows, lives in the accordion action slot, no pencil icon', () => {
     renderReview({ rows })
     expect(screen.queryByRole('button', { name: 'Modify Selection' })).toBeNull()

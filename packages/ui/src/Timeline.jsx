@@ -12,8 +12,12 @@ import StopBadge from './StopBadge'
  *   pending→pending     : empty track
  * ("issue" counts as reached, i.e. fills like completed.)
  *
- * items: [{ key, label, status, content }] — content renders to the right of
- * the rail; the connector stretches with it, so row height is content-driven.
+ * items: [{ key, label, status, content, badgeClassName, showStatusBadge }] —
+ * content renders to the right of the rail; the connector stretches with it,
+ * so row height is content-driven. `badgeClassName` and `showStatusBadge` are
+ * forwarded straight to the item's StopBadge (S154) — a per-item escape hatch
+ * for a consumer that needs to tint or reshape one marker (e.g. a scoped CSS
+ * rule recoloring a `completed`-status marker) without a new StopBadge status.
  * `animate` runs the arrival choreography on mount (CSS-only, disabled under
  * prefers-reduced-motion): reached badges start in the pending skin, fills
  * grow top-down sequentially (one segment per beat), and each badge "lights
@@ -39,13 +43,17 @@ export default function Timeline({ items = [], animate = false, className = '', 
           ? (reached(next.status) ? 'full' : 'partial')
           : 'none'
         const lit = animate && reached(item.status)
+        const badgeClassName = [lit ? 'odyssey-timeline__badge' : null, item.badgeClassName || null]
+          .filter(Boolean)
+          .join(' ') || undefined
         return (
           <div className="odyssey-timeline__row" key={item.key ?? item.label}>
             <div className="odyssey-timeline__rail" aria-hidden="true">
               <StopBadge
                 label={item.label}
                 status={item.status}
-                className={lit ? 'odyssey-timeline__badge' : undefined}
+                showStatusBadge={item.showStatusBadge}
+                className={badgeClassName}
                 style={lit ? { animationDelay: `${i * BEAT_MS}ms` } : undefined}
               />
               {!isLast && (

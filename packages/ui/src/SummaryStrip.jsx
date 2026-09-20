@@ -69,6 +69,14 @@ import Tooltip from './Tooltip.jsx'
  *
  * Semantics: a <dl> of dt/dd pairs (each cell a div group — valid HTML).
  * Pass `aria-label` (forwarded via rest) to name the region.
+ *
+ * - `background` (default true): drops the band fill and bottom hairline
+ *   when false (`.summary-strip--plain`), leaving cells/dividers/spacing/type
+ *   untouched. The Figma master (4234:1291) has no such axis — this is a
+ *   deliberate code-only extension (user ruling, 2026-09-20, S154: "lets
+ *   make the strip background toggleable, no need to do it in figma") for a
+ *   consumer that wants the strip's layout without reading as a card. The
+ *   next Figma sync should not "correct" this away.
  */
 /**
  * Estimated count of characters hidden behind a cell's ellipsis. Same
@@ -90,7 +98,7 @@ export function hiddenCharCount(text, clientWidth, scrollWidth) {
 // rather than a magic number inline in onCellEnter.
 export const TOOLTIP_MIN_HIDDEN_CHARS = 3
 
-export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, ...rest }) {
+export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, background = true, ...rest }) {
   // Overflow tooltip state — see docblock. Detected at hover time, never at mount
   // (a stale mount-time check is a bug this codebase already shed once — see the
   // TruncatedText deletion in playground/normalization-tracker.md).
@@ -123,7 +131,7 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
   const onCellLeave = () => setTip(null)
 
   return (
-    <dl role="region" className={`summary-strip${className ? ` ${className}` : ''}`} {...rest}>
+    <dl role="region" className={`summary-strip${background ? '' : ' summary-strip--plain'}${className ? ` ${className}` : ''}`} {...rest}>
       {items.map((item, index) => {
         const { label, tone, truncate, emphasis } = item
         const hasValue = 'value' in item

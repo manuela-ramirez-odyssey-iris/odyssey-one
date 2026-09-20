@@ -251,6 +251,26 @@ describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTo
   })
 })
 
+describe('SummaryStrip background (S154 — toggleable band fill, code-only extension)', () => {
+  it('default (no `background` prop) keeps the plain band untouched — existing callers unaffected', () => {
+    render(<SummaryStrip items={[{ label: 'Total Weight', value: '1,000 LB' }]} />)
+    const dl = screen.getByRole('region')
+    expect(dl.className).toContain('summary-strip')
+    expect(dl.className).not.toContain('summary-strip--plain')
+    expect(screen.getByText('Total Weight')).toBeTruthy()
+    expect(screen.getByText('1,000 LB')).toBeTruthy()
+  })
+
+  it('background={false} adds the --plain modifier class, but cells and values still render', () => {
+    render(<SummaryStrip items={[{ label: 'Total Weight', value: '1,000 LB' }]} background={false} />)
+    const dl = screen.getByRole('region')
+    expect(dl.className).toContain('summary-strip')
+    expect(dl.className).toContain('summary-strip--plain')
+    expect(screen.getByText('Total Weight')).toBeTruthy()
+    expect(screen.getByText('1,000 LB')).toBeTruthy()
+  })
+})
+
 describe('hiddenCharCount (pure function)', () => {
   it('returns 0 when nothing is clipped (scrollWidth <= clientWidth + 1)', () => {
     expect(hiddenCharCount('hello world', 100, 100)).toBe(0)

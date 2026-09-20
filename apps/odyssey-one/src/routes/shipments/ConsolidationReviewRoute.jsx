@@ -143,10 +143,15 @@ export default function ConsolidationReviewRoute() {
   const timelineItems = proposal.stops.map((s) => ({
     key: s.key,
     label: s.label,
-    // StopBadge has no "planned" skin yet — `pending` (white) is the honest
-    // state for a stop that has not happened. The VD's blue/green stop pills
-    // are a StopBadge variant owed to the design-system thread.
-    status: 'pending',
+    // S154: the VD's marker pills are SOLID with white text, not the
+    // outlined "pending" skin — `completed` is already exactly the delivery
+    // marker (Caribbean Green/600 + white); pickup reuses it as its base and
+    // gets re-tinted blue by a scoped CSS rule (Timeline forwards
+    // badgeClassName to StopBadge). No status circle — these are planned
+    // stops, not tracked progress.
+    status: 'completed',
+    showStatusBadge: false,
+    badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
     content: (
       <div className="consolidation-review__stop">
         <div className="consolidation-review__stop-head">
@@ -173,12 +178,18 @@ export default function ConsolidationReviewRoute() {
 
         <div className="consolidation-review__body">
           <aside className="consolidation-review__side">
-            <h2 className="text-display-xs-semibold consolidation-review__side-title">Proposed Stop Count &amp; Sequence</h2>
+            <h2 className="text-heading-xl-semibold consolidation-review__side-title">Proposed Stop Count &amp; Sequence</h2>
             <div className="consolidation-review__counts">
-              <Badge variant="blue" leftIcon={<MapPin size={16} />}>{proposal.pickupCount} Pickup Stops</Badge>
-              <Badge variant="green" leftIcon={<MapPin size={16} />}>{proposal.deliveryCount} Delivery Stops</Badge>
+              <div className="consolidation-review__count consolidation-review__count--pickup">
+                <MapPin size={16} />
+                <span className="text-label-sm-medium">{proposal.pickupCount} Pickup Stops</span>
+              </div>
+              <div className="consolidation-review__count consolidation-review__count--delivery">
+                <MapPin size={16} />
+                <span className="text-label-sm-medium">{proposal.deliveryCount} Delivery Stops</span>
+              </div>
             </div>
-            <h3 className="text-label-md-semibold">Planned Stops</h3>
+            <h3 className="text-label-base-semibold consolidation-review__stops-heading">Planned Stops</h3>
             <Timeline items={timelineItems} aria-label="Planned stops" />
           </aside>
 
@@ -205,6 +216,7 @@ export default function ConsolidationReviewRoute() {
                 per-shipment detail fetch above — a failed detail fetch doesn't affect them. */}
             <SummaryStrip
               className="consolidation-review__strip"
+              background={false}
               items={[
                 { label: 'Total Weight', value: fmtLb(proposal.weightLb) },
                 { label: 'Weight Utilization', value: fmtPct(proposal.weightUtilization) },

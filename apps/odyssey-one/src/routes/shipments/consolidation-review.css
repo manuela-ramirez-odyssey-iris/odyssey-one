@@ -18,12 +18,35 @@
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
 }
-.consolidation-review__side-title { margin: 0; }
+.consolidation-review__side-title { margin: 0; color: var(--text-primary); }
+.consolidation-review__stops-heading { color: var(--text-primary); }
 .consolidation-review__counts { display: flex; flex-direction: column; gap: var(--spacing-3); }
+
+/* Pickup/Delivery count badges — full-width solid blocks, not the compact
+   Badge pill (VD 2249:46444 side panel). Icon inherits `color` via currentColor. */
+.consolidation-review__count {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-lg);
+}
+.consolidation-review__count--pickup { background: var(--badge-blue-bg); color: var(--badge-blue-text); }
+.consolidation-review__count--delivery { background: var(--badge-green-bg); color: var(--badge-green-text); }
 
 .consolidation-review__stop { display: flex; flex-direction: column; gap: var(--spacing-1); }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
-.consolidation-review__stop-date { color: var(--text-tertiary); }
+.consolidation-review__stop-date { color: var(--text-secondary-soft); }
+
+/* Marker pills (S154): both use StopBadge status="completed" as the SOLID
+   white-label base (Caribbean Green/600 — already exactly the delivery
+   marker); pickup markers are re-tinted here since StopBadge has no blue
+   status. Fill is --badge-blue-text (the dark blue ink token), not
+   --badge-blue-bg (the pale badge tint) — the VD's pickup marker is solid,
+   not soft. */
+.consolidation-review__stop-badge--pickup.stop-badge--completed {
+  background: var(--badge-blue-text);
+}
 
 .consolidation-review__main {
   flex: 1 1 auto;
@@ -34,12 +57,12 @@
 }
 .consolidation-review__main > h2 { margin: 0; }
 
+/* S154: plain content on the page canvas, not a card — no background,
+   border, divider or shadow (user ruling, 2026-09-20). Same SummaryStrip
+   idea as the strip below it, just a grid instead of a row. */
 .consolidation-review__info {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-primary);
 }
 .consolidation-review__info-cell {
   display: flex;
@@ -47,7 +70,6 @@
   gap: var(--spacing-1);
   padding: var(--spacing-4) var(--spacing-3);
 }
-.consolidation-review__info-cell + .consolidation-review__info-cell { border-left: 1px solid var(--border-subtle); }
 .consolidation-review__label { color: var(--text-tertiary); }
 .consolidation-review__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
 .consolidation-review__table-count { color: var(--text-tertiary); padding-bottom: var(--spacing-3); }

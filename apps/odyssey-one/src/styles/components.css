@@ -6583,6 +6583,13 @@ button.breadcrumb__label:focus-visible {
   overflow: hidden;                 /* absolute no-horizontal-overflow guarantee (user, 2026-08-03) — cells shrink instead; this is a backstop, not the mechanism */
   min-width: 0;                    /* flex-item default is content-width — let the band shrink to its container instead of pushing it wider (belt-and-braces, S107) */
 }
+/* `background={false}` (S154) — drops the band fill + bottom hairline for a
+   consumer that wants the strip's cell layout without a card look (Consolidation
+   Summary). Cells/dividers/spacing/type are untouched. */
+.summary-strip--plain {
+  background: none;
+  border-bottom: none;
+}
 .summary-strip__cell {
   /* Figma: 152px is the DESIRED cell width, not a floor or a ceiling. Was
      `flex: 0 0 auto; min-width: 152px` (a hard floor) — that's an ABSOLUTE
@@ -7978,5 +7985,5 @@ button.breadcrumb__label:focus-visible {
   align-items: center;
   gap: var(--spacing-2);
   color: var(--text-tertiary);
-  margin-bottom: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
 }
