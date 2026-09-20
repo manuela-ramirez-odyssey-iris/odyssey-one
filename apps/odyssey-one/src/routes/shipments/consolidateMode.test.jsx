@@ -57,7 +57,7 @@ describe('consolidate mode', () => {
     await enterMode()
     expect(screen.queryByRole('button', { name: /export/i })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Shipment actions' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Consolidate 0 Shipments' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Select to Consolidate' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy()
     await waitFor(() => expect(rowBoxes().length).toBeGreaterThan(0))
     expect(document.querySelector('.sidebar--hidden')).toBeTruthy()
@@ -77,7 +77,7 @@ describe('consolidate mode', () => {
     // it, same as any other committed chip. The chip is the visible signal.
     fireEvent.focus(screen.getByRole('combobox'))
     expect(document.querySelector('.global-search-chip')?.textContent).toContain('Customer ID')
-    expect(screen.getByRole('button', { name: 'Consolidate 1 Shipments' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Consolidate 1 Shipment' }).disabled).toBe(true)
     fireEvent.click(screen.getByRole('checkbox', { name: label }))
     await waitFor(() => expect(screen.queryByText('Selected Customer:')).toBeNull())
     expect(screen.getByPlaceholderText('Search in Shipments')).toBeTruthy()
@@ -110,7 +110,7 @@ describe('consolidate mode', () => {
     expect(screen.queryByText('Selected Customer:')).toBeNull()
     expect(rowBoxes()).toHaveLength(0)
     fireEvent.click(screen.getByRole('button', { name: 'Consolidate' }))
-    expect(await screen.findByRole('button', { name: 'Consolidate 0 Shipments' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Select to Consolidate' })).toBeTruthy()
   })
 
   test('Cancel restores the sort and view mode the planner had before entering', async () => {
@@ -162,6 +162,63 @@ describe('consolidate mode', () => {
     expect(screen.getByRole('button', { name: 'Consolidate 2 Shipments' }).disabled).toBe(false)
     expect(screen.getByText('Selected Customer:')).toBeTruthy()
     expect(screen.getByText('Valtris')).toBeTruthy()
+  })
+
+  test('the primary button label: 0 selected reads "Select to Consolidate", 1 is singular, 2+ pluralizes', async () => {
+    renderRoute()
+    await enterMode()
+    expect(screen.getByRole('button', { name: 'Select to Consolidate' }).disabled).toBe(true)
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(1))
+    fireEvent.click(enabledRowBoxes()[0])
+    const oneLabel = await screen.findByRole('button', { name: 'Consolidate 1 Shipment' })
+    expect(oneLabel.disabled).toBe(true)
+    await waitFor(() => expect(enabledRowBoxes().filter((c) => !c.checked).length).toBeGreaterThan(0))
+    fireEvent.click(enabledRowBoxes().filter((c) => !c.checked)[0])
+    const twoLabel = await screen.findByRole('button', { name: 'Consolidate 2 Shipments' })
+    expect(twoLabel.disabled).toBe(false)
+  })
+})
+
+// S154 — PGI/PGR holds no shipments (its panel renders a "Coming soon"
+// placeholder; its tab counts come from PGIPGR_DEMO_COUNTS) so it can never
+// offer a consolidation candidate. It's hidden for the DURATION of consolidate
+// mode only — the S104 ruling that panel tabs never vanish for a SEARCH still
+// stands; this is a distinct page stage, not a filter.
+describe('consolidate mode — PGI/PGR is hidden (S154)', () => {
+  test('in consolidate mode the PGI/PGR tab is gone; the other two panel tabs remain', async () => {
+    renderRoute()
+    await enterMode()
+    expect(screen.getByRole('button', { name: /^Shipment Exceptions/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Monitoring/ })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^PGI\/PGR/ })).toBeNull()
+  })
+
+  test('leaving the mode brings PGI/PGR back', async () => {
+    renderRoute()
+    await enterMode()
+    expect(screen.queryByRole('button', { name: /^PGI\/PGR/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await screen.findByRole('heading', { name: 'Shipments' })
+    expect(screen.getByRole('button', { name: /^PGI\/PGR/ })).toBeTruthy()
+  })
+
+  test('entering the mode from the PGI/PGR panel lands the planner on Shipment Exceptions with the table visible', async () => {
+    renderRoute({ panel: 'pgipgr' })
+    await screen.findByRole('heading', { name: 'Shipments' })
+    expect(screen.getByText('Coming soon')).toBeTruthy()
+    await enterMode()
+    expect(screen.queryByText('Coming soon')).toBeNull()
+    await waitFor(() => expect(rowBoxes().length).toBeGreaterThan(0))
+  })
+
+  test('cancelling from that state returns the planner to PGI/PGR', async () => {
+    renderRoute({ panel: 'pgipgr' })
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await enterMode()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await screen.findByRole('heading', { name: 'Shipments' })
+    expect(await screen.findByText('Coming soon')).toBeTruthy()
+    expect(screen.queryAllByRole('checkbox').filter((c) => c.getAttribute('aria-label')?.startsWith('Select '))).toHaveLength(0)
   })
 })
 

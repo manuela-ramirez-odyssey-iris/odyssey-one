@@ -347,7 +347,17 @@ function ShipmentsRoute() {
   // This RETIRES the panel half of S79c decision 8 (zero-total panels used to
   // hide, with PGI/PGR exempt) and its selection-fallback machinery with it.
   // Category PILLS still hide at zero — those are a filter, not the structure.
-  const visiblePanels = useMemo(() => Object.keys(PANEL_CONFIG), [])
+  //
+  // S154: that ruling is about a SEARCH narrowing the tabs — it still stands.
+  // Consolidate mode is a different thing: a distinct stage of the page, not a
+  // filter. PGI/PGR holds no shipments (its panel is a "Coming soon"
+  // placeholder; its counts come from PGIPGR_DEMO_COUNTS) and can never offer a
+  // consolidation candidate, so the tab is noise for the DURATION of the mode
+  // only — it returns the moment the planner leaves.
+  const visiblePanels = useMemo(
+    () => (inMode ? Object.keys(PANEL_CONFIG).filter((k) => k !== 'pgipgr') : Object.keys(PANEL_CONFIG)),
+    [inMode],
+  )
 
   // A hidden category pill can still be the selected one — fall back to All.
   // Adjusted during render (same pattern as the page reset above).
@@ -487,8 +497,19 @@ function ShipmentsRoute() {
 
   const enterConsolidate = useCallback(() => {
     // Snapshot the UI state this mode overwrites below, so exiting restores
-    // what the planner actually had instead of a hardcoded default.
-    setConsolidate({ rows: new Map(), priorSorting: sorting, priorViewMode: viewMode })
+    // what the planner actually had instead of a hardcoded default. Includes
+    // the panel/category tab (S154) — the planner may be ON PGI/PGR (hidden
+    // for the duration of the mode, see visiblePanels above) when they press
+    // Consolidate, and `handleSelectionChange`'s `{ ...prev, rows: next }`
+    // spread below carries these two fields through the first checkbox click
+    // unchanged, same as priorSorting/priorViewMode.
+    setConsolidate({
+      rows: new Map(),
+      priorSorting: sorting,
+      priorViewMode: viewMode,
+      priorPanel: activePanel,
+      priorTab: activeTab,
+    })
     setSelectedShipmentId(null)   // the detail bar is hidden in mode; nothing stays "open"
     setViewMode('pills')          // the widgets toggle is hidden; pills are the mode's face
     // Direct shipments IDs sort AFTER Consolidation ones under the default
@@ -497,14 +518,24 @@ function ShipmentsRoute() {
     // eligible (Direct) rows first while selecting — same sortBy/orderBy the
     // header already drives, just re-seeded for this mode.
     setSorting([{ id: 'shipmentType', desc: true }])
-  }, [sorting, viewMode])
+    // Land on the normal landing panel (same target/reset handlePanelSelect
+    // uses) — PGI/PGR just vanished from the tab row and can hold no
+    // consolidation candidate, so staying on it would strand the planner on
+    // a tab that no longer renders.
+    setActivePanel('exceptions')
+    setActiveTab('all')
+  }, [sorting, viewMode, activePanel, activeTab])
   const exitConsolidate = useCallback(() => {
     // Restore the snapshot taken on entry. Re-entering via "Modify Selection"
     // (the lazy useState initialiser above) creates `{ rows }` with no
-    // snapshot — there is nothing prior to restore, so leave sorting/viewMode
-    // as they are; the optional chaining below no-ops in that case.
+    // snapshot — there is nothing prior to restore, so leave sorting/viewMode/
+    // panel as they are; the optional chaining below no-ops in that case.
     if (consolidate?.priorSorting) setSorting(consolidate.priorSorting)
     if (consolidate?.priorViewMode) setViewMode(consolidate.priorViewMode)
+    if (consolidate?.priorPanel) {
+      setActivePanel(consolidate.priorPanel)
+      setActiveTab(consolidate.priorTab ?? 'all')
+    }
     // Cancelling while the customer lock is engaged restores whatever search
     // criteria were committed before the first checked row locked it — same
     // snapshot `handleSelectionChange` took, same restore as emptying the
@@ -616,7 +647,14 @@ function ShipmentsRoute() {
           disabled={inMode && selection.size < 2}
           onClick={inMode ? proceedToReview : enterConsolidate}
         >
-          {inMode ? `Consolidate ${selection.size} Shipments` : 'Consolidate'}
+          {/* S154 (user, 2026-09-20): the primary reads "Select to Consolidate"
+              at zero — "Consolidate 0 Shipments" implied a valid action —
+              then pluralizes correctly from 1 up (was hardcoded plural,
+              "Consolidate 1 Shipments"). The button itself stays disabled
+              until 2 are selected regardless of label. */}
+          {inMode
+            ? (selection.size === 0 ? 'Select to Consolidate' : `Consolidate ${selection.size} Shipment${selection.size === 1 ? '' : 's'}`)
+            : 'Consolidate'}
         </Button>
       </PageHeader>
       {anchor && (
