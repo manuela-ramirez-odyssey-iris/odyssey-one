@@ -372,6 +372,22 @@ describe('DataTable sticky-left column (meta.sticky: \'left\')', () => {
     // and never the right-side modifier
     expect(container.querySelector('.odyssey-table__cell--sticky-right')).toBeNull()
   })
+
+  it('toggles data-scrolled-x on the root as the body scroller crosses scrollLeft 0', () => {
+    const { container } = render(<StickyLeftHarness />)
+    const root = container.querySelector('.odyssey-data-table')
+    const wrap = container.querySelector('.odyssey-data-table__body')
+    expect(root.hasAttribute('data-scrolled-x')).toBe(false)
+
+    // jsdom does no layout, so scrollLeft never moves on its own — set it, then fire.
+    Object.defineProperty(wrap, 'scrollLeft', { value: 400, writable: true, configurable: true })
+    fireEvent.scroll(wrap)
+    expect(root.hasAttribute('data-scrolled-x')).toBe(true)
+
+    wrap.scrollLeft = 0
+    fireEvent.scroll(wrap)
+    expect(root.hasAttribute('data-scrolled-x')).toBe(false)
+  })
 })
 
 describe('DataTable highlightRowId', () => {

@@ -336,6 +336,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   const bandTop = actionsStickyTop != null && actionsH
     ? `calc(${actionsStickyTop} + ${actionsH}px)`
     : stickyTopValue
+  const rootRef = useRef(null)       // .odyssey-data-table — carries data-scrolled-x
   const headRef = useRef(null)       // head-inner (overflow:hidden); scrollLeft set on it mirrors the body — the split-header trick, NOT a bug
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
@@ -445,7 +446,19 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
     const wrap = wrapRef.current
     const head = headRef.current
     if (!wrap || !head) return
-    const onScroll = () => { head.scrollLeft = wrap.scrollLeft }
+    // `data-scrolled-x` on the root gates the pinned columns' edge shadow (CSS): only
+    // paint it while content is actually hidden under the pinned cell. Written straight
+    // to the DOM, and only on a change — React state here would re-render every row per
+    // scroll frame.
+    const onScroll = () => {
+      head.scrollLeft = wrap.scrollLeft
+      const scrolled = wrap.scrollLeft > 0
+      const root = rootRef.current
+      if (root && root.hasAttribute('data-scrolled-x') !== scrolled) {
+        if (scrolled) root.setAttribute('data-scrolled-x', '')
+        else root.removeAttribute('data-scrolled-x')
+      }
+    }
     wrap.addEventListener('scroll', onScroll, { passive: true })
     return () => wrap.removeEventListener('scroll', onScroll)
   }, [])
@@ -611,7 +624,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   )
 
   return (
-    <div className={`odyssey-data-table${onCellClick ? ' odyssey-data-table--cell-clickable' : ''}${className ? ` ${className}` : ''}`}>
+    <div ref={rootRef} className={`odyssey-data-table${onCellClick ? ' odyssey-data-table--cell-clickable' : ''}${className ? ` ${className}` : ''}`}>
       {/* Table Actions (S116): a sibling ABOVE the card, on the page canvas — NOT a
           row inside <table>, so it never participates in the horizontal scroll and
           never needs a colSpan. `sticky` decides only whether it leaves the VERTICAL
