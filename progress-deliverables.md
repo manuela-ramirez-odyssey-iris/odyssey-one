@@ -2,6 +2,21 @@
 
 > Parallel to `progress.md` (the product-prototyping build log). This file is the **design-system / dev-tooling thread**: story packs and PM/dev-facing artifacts, dev mode, DSM work, and **normalization cycles** — anything about the design system and its delivery, as opposed to product feature prototyping and domain discoveries. Separate log so the two threads can run as independent agent work streams. Sessions numbered D1, D2, … A session touching both threads logs to both files with a one-line cross-reference.
 
+## Session D19 — September 20–21, 2026
+
+**COMPONENT SIDE EFFECTS OF S155 (product thread: `progress.md` S155).** Three `@odyssey/ui` changes were made in service of manual consolidation and are logged here because they change library contracts; the product narrative stays in S155. **D18 is still unlogged** — its three commits (`26f021f`, `1fd5adb`, `e77cdc5`: Widget `selected`/`onSelect`) came from a sibling session and the decisions live there; the numbering gap is deliberate.
+
+- **DataTable** — `meta.sticky` now accepts `'left' | 'right'` (new `odyssey-table__cell--sticky-left`; the pinned-left shadow renders only while the wrap is horizontally scrolled, via a `data-scrolled-x` attribute the existing passive scroll handler toggles without React state); new `highlightRowId` prop → `data-highlight` on that `<tr>` (`@keyframes odyssey-row-highlight`, two symmetric pulses, reduced-motion → none). **Root-cause fix in `components.css`:** the grip-anchor rule `th:not(.…sticky-right) { position: relative }` un-stickied any pinned-left header — the `:not()` now exempts `[class*='odyssey-table__cell--sticky-']`. Verified in headless Chrome. `DataTable.demo.jsx` documents both. **Demoted to NORMALIZING in both DSMs** (`tools/dsm-flags.mjs DataTable --demote`; the Angular meta edit is local-only, unpushed) and `angular-map.json` regenerated.
+- **SummaryStrip** — a React-node `value` renders as-is (no `--` placeholder, no truncation, no `title`); the consolidation review passes its identifier chips through it. Already `normalizing: true`.
+- **ConfirmDialog** (app-local) — `message` may be a node.
+- **AppShell** (app-local) — `--sidebar-current` inline var (0 / expanded / collapsed) so fixed-position docks follow the rail.
+
+### Owed
+
+1. **Angular twins** for DataTable (sticky-left + scrolled-x shadow + `highlightRowId`) and SummaryStrip (node value) — next batch port; no `@oneodyssey/ui` publish until then (Cognizant publishes).
+2. `playground/normalization-tracker.md` DataTable row needs the S155 mod noted.
+3. The sibling Angular repo has an unrelated pre-existing `domain-usage.json` modification plus today's `data-table.demo.meta.ts` flag — both local, unpushed, awaiting the user's go.
+
 ## Session D17 — September 18, 2026
 
 **THE ASK CHANGED SHAPE ONE ANSWER IN, AND THE PALETTE TURNED OUT TO BE A LIVE BUG.** It arrived as *"in WidgetContent we can have 4 WidgetMetricRow max, if more are added then a vertical scroll"* — a row count. One clarifying round later the real rule was **a 420px height ceiling**: *"is not about the rows count is about avoiding the largest widgets going above 420px height"*, and it covers `3x` and `3xCta` too, not just the charted variant. Building the first framing would have produced a row-slicing prop that counts to four and a palette sized to match; the actual change counts nothing. The second half — "a bunch of other of our own colors… cannot be repeated since we are separating metrics visibility" — read as future-proofing and was not: **`--chart-1..4` had already run out on production.** Home's Shipments Exceptions widget needs five, so `Home.jsx:191`/`:199` were painting its 5th row *and* its 5th donut segment `--chart-rest` — the grey the donut uses for its **unfilled remainder** — so a real metric had been rendering as empty space. Sibling: none; this is D-thread only.
