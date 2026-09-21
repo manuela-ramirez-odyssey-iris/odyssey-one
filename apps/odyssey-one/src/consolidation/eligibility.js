@@ -20,6 +20,18 @@ export function consolidationEligibility(row, anchorCustomerId = null) {
 // Keys are SHIPMENTS_PROGRESSION attribute keys; the filter is applied at the
 // adapter (narrowSuggestionSections), so progression.js and the Cognizant
 // progression sheets are untouched.
+/**
+ * Row-menu "Edit" on a Consolidation row re-enters consolidate mode with it as
+ * the anchor (S155). Same tender rule as the checkbox: a tendered consolidation
+ * is not editable — cancel the tender first.
+ * @returns {string|null} null = editable; otherwise the reason
+ */
+export function consolidationEditReason(row) {
+  if (row.shipmentType !== 'Consolidation') return 'Only consolidated shipments can be edited here'
+  if (ACTIVE_TENDER.has(row.tenderStatus)) return 'Tendered — cancel the tender first'
+  return null
+}
+
 export const CONSOLIDATION_ATTRIBUTE_KEYS = [
   'odyssey-shipment', 'order', 'customer-id', 'customer-name', 'origin', 'destination',
   'pickup-date', 'delivery-date', 'equipment-code', 'mode', 'shipment-type', 'gross-weight',

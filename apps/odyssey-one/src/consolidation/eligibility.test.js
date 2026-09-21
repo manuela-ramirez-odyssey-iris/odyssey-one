@@ -38,3 +38,12 @@ describe('CONSOLIDATION_ATTRIBUTE_KEYS', () => {
     ])
   })
 })
+
+describe('consolidationEditReason (S155)', () => {
+  it('a tendered consolidation is not editable; an untendered one is; a Direct row is not applicable', async () => {
+    const { consolidationEditReason } = await import('./eligibility')
+    expect(consolidationEditReason({ shipmentType: 'Consolidation', tenderStatus: 'Accepted' })).toMatch(/Tendered/)
+    expect(consolidationEditReason({ shipmentType: 'Consolidation', tenderStatus: '' })).toBeNull()
+    expect(consolidationEditReason({ shipmentType: 'Direct', tenderStatus: '' })).toMatch(/consolidated/)
+  })
+})

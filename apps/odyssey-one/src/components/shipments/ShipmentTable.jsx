@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { consolidationEditReason } from '../../consolidation/eligibility'
 import { useNavigate } from 'react-router-dom'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
@@ -208,6 +209,9 @@ const columnHelper = createColumnHelper()
 const shipmentActions = (row, onEditConsolidation) => [
   {
     label: 'Edit',
+    // A tendered consolidation cannot be edited (same rule as the checkbox in
+    // consolidate mode — CNS-08). Direct rows keep the stub, untouched.
+    disabled: row.shipmentType === 'Consolidation' && !!consolidationEditReason(row),
     onSelect: row.shipmentType === 'Consolidation' && onEditConsolidation
       ? () => onEditConsolidation(row)
       : () => {},
