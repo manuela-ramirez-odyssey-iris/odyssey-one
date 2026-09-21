@@ -186,11 +186,13 @@
    and fades back to the cell's own background. Animation only, no persistent
    fill, so nothing has to clear it. */
 @keyframes odyssey-row-highlight {
-  from { background: var(--carolina-blue-100); }
-  to { background: transparent; }
+  from, to { background: transparent; }
+  50% { background: var(--carolina-blue-100); }
 }
 .odyssey-table tbody tr[data-highlight] td {
-  animation: odyssey-row-highlight 1.2s ease-out 2; /* two pulses (user, 2026-09-21), same 2.4s total */
+  /* Two symmetric pulses (user, 2026-09-21): each iteration fades IN and
+     out, so the second repeat doesn't snap to full blue. 2.4s total. */
+  animation: odyssey-row-highlight 1.2s ease-in-out 2;
 }
 @media (prefers-reduced-motion: reduce) {
   .odyssey-table tbody tr[data-highlight] td {
