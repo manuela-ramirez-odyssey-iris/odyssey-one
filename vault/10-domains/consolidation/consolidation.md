@@ -259,6 +259,32 @@ Rule 2 is a hard behavioural rule that will outlive the descope.
 9. **`View Shipment`** on the success modal — presumably deep-links to the newly created
    consolidated shipment; unconfirmed.
 
+## 9. Review of the shipped loop (S155, 2026-09-21) — gaps against LINX-15762/15786/15787/15896
+
+Read against the story ACs (converted from `vault/00-inbox/LINX-*.doc`) and the deck. What is built: select (Direct-only list, one customer, ≥2) → review (stops, totals, utilization against placeholder capacity, hazmat) → confirm → ONE `C…` shipment created in both runtimes, loads/orders unioned, sources removed, orders repointed, success banner with View Shipment, post-apply preview, edit via the row menu (id kept). Verified: same-customer re-checked server-side; missing volume never blocks (15787 BR 3/4); selections retained on Modify; Cancel discards without writes (15787 Sc. 5). Not built, by story: the six validation gates and the Validation Status panel; Load IDs anywhere; the "Proposed Consolidation Cancelled" banner; audit-trail events on the sources and an actor-bearing "Consolidation Applied" event; utilization targets and UoM from the Customer Profile; a tendering window.
+
+### Questions to take to grooming (Q-CNS)
+
+| # | Question | Why it matters / what we assumed |
+|---|---|---|
+| Q-CNS-1 | **Where does the new consolidated shipment land?** LINX-15762 III.2 says the result *"shall no longer be a part of the Consolidation Pool"*; Dave (2026-09-17) says every new shipment is born in the pool / Hold / Review, never tendering. | We put it in **Monitoring › Consolidation, untendered**. If it should go to Hold, Review or straight to the tendering window, `category`/`tenderStatus` in the builder change. |
+| Q-CNS-2 | **Eligibility: Dave's rule or the pool's?** Stories gate on Shipment Status = Consolidation, Allow Optimization = Yes, OCM 97–101, load not Cancelled, window not reached. Dave: Direct + untendered + one customer, exceptions irrelevant. | We use Dave's. A Direct on the **Hold** tab (Allow Optimization = No) is selectable today. Which tabs should offer candidates? |
+| Q-CNS-3 | **What are the six pre-apply validations concretely?** "Equipment compatibility", "Hazmat restrictions", "OCM profile rules" — rules, not names, are needed. Does the Validation Status panel return? | We validate only same-customer, ≥2, ids exist. |
+| Q-CNS-4 | **Which equipment does the consolidation get** when sources carry different equipment codes, and where do equipment capacities live? | We take the anchor's code; capacities are a placeholder table (utilization can exceed 100% silently). |
+| Q-CNS-5 | **Customer Profile: utilization target and UoM.** Where are they stored; what happens at exactly-target; is the target a hard block or advice? | Unmodelled; LB/cuft assumed. |
+| Q-CNS-6 | **Are Load IDs user-visible in this domain?** Every story/mock column shows Load ID; Jana's rule (Shipments) hides loads. | We show none. The builder joins loads internally. |
+| Q-CNS-7 | **Who sequences the stops?** V1 proposes pickups-then-deliveries in selection order (Dave 00:33:20). Is re-sequencing on the review, via Edit Stops after creation, or optimizer-only? | No re-sequencing UI. |
+| Q-CNS-8 | **Audit trail: actor and location.** 15788 lists `Consolidation Applied` by a **user** and `Load Reassigned` per source. Once the source shell is removed, where does its trail live? Is the actor the planner or `OdysseyONE`? | We write two system-authored history entries on the new shipment only. |
+| Q-CNS-9 | **What happens to the emptied direct shipments?** DEC-156 says soft-delete; Dave undecided where they are viewed (deck audit shows `SH1001 → SH3001`). | Mock tombstones, live DELETEs — indistinguishable to every reader today. |
+| Q-CNS-10 | **Editing a materialized consolidation.** May a planner add loads to an existing consolidation before tender (we allow, id kept)? May a load be **removed** from one (un-consolidate → returns as what)? May two consolidations be merged? | Add: yes, id reused. Remove: not supported. Merge two C…: new id minted. |
+| Q-CNS-11 | **Tendering window.** What is it relative to (pickup date? customer profile?) — it is the pool's main exit criterion and we have no concept of it. | No window; a Direct stays eligible until tendered. |
+| Q-CNS-12 | **Order-level effects.** Does the order's status or anything on the order change when its load moves into a consolidation? Does an open Order-Change exception on a source carry over to the new shipment? | Orders stay `Planned Shipment` and repoint to the new shipment; exceptions do not carry over (the new row is born in Monitoring). |
+| Q-CNS-13 | **Is there a maximum number of shipments per consolidation** (or is capacity the only limit)? | None. |
+| Q-CNS-14 | **Cancel feedback.** The deck shows a "Proposed Consolidation Cancelled Successfully!" banner after Cancel. Wanted? | Not built; Cancel returns silently to Shipments. |
+| Q-CNS-15 | **"SLS Only (Oct MVP)"** on 15787 — what is SLS? | Unknown; nothing built against it. |
+
+Closed by the stories since S148: **cross-customer** (§8.8) — every story says one customer (settled); **Consolidation ID** (§8.1) — CNS-09; **`Single` vs `Direct`** (§8.6) — 15786 says "Single Load", our LINX-11597 `Direct` (same thing, label drift only).
+
 ## Related
 
 - [[_moc|Consolidation MOC]] · [[decisions/decision-log|Consolidation decision log]]
