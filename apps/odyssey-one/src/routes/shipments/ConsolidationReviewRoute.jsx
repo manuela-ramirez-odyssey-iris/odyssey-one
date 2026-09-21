@@ -159,6 +159,7 @@ export default function ConsolidationReviewRoute() {
   const backInModeWith = (rowsBack) => leaveTo('/shipments', { state: { consolidate: { rows: rowsBack } } })
   const backInMode = () => backInModeWith(checkedRows)
   const leave = () => leaveTo('/shipments')
+  const viewCreated = () => leaveTo('/shipments', { state: { createdShipment: applied.row } })
 
   if (!rows.length) {
     return (
@@ -212,7 +213,7 @@ export default function ConsolidationReviewRoute() {
             variant="success"
             showLink
             linkLabel="View Shipment"
-            onLinkClick={() => leaveTo('/shipments', { state: { createdShipment: applied.row } })}
+            onLinkClick={viewCreated}
             onClose={() => setAlertDismissed(true)}
           >
             Consolidation Successfully Applied! Consolidation ID: {applied.row.odysseyShipmentIdentifier}. {checkedRows.length} Shipments successfully consolidated.
@@ -249,7 +250,7 @@ export default function ConsolidationReviewRoute() {
                 label/value idea on the page instead of a bespoke grid (S155 §2.2).
                 The identifier list rides through as a NODE value. */}
             <SummaryStrip
-              className="consolidation-review__strip"
+              className="consolidation-review__strip consolidation-review__info-strip"
               background={false}
               aria-label="Consolidation summary"
               items={[
@@ -296,7 +297,9 @@ export default function ConsolidationReviewRoute() {
               cancelLabel="Back to Shipments"
               primaryLabel="Edit Consolidated Shipment"
               showSave={false}
-              onCancel={leave}
+              // Same exit as the banner's "View Shipment" (user, 2026-09-21):
+              // both land on Shipments with the new row pinned + highlighted.
+              onCancel={viewCreated}
               // The created C… row goes back into consolidate mode as the
               // anchor selection — a consolidation is itself a source (§3.3,
               // CNS-09 id reuse).

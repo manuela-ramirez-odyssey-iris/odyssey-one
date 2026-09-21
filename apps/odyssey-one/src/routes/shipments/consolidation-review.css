@@ -95,3 +95,8 @@
 .consolidation-review tbody tr:not([data-selected]) .control--checkbox {
   opacity: 1;
 }
+
+/* Customer Name / Selected Shipments strip (S155, user 2026-09-21): the two
+   cells fill the full row — the identifier chips need the width — so the
+   strip's 160px growth ceiling is lifted for this one strip only. */
+.consolidation-review__info-strip .summary-strip__cell { max-width: none; }

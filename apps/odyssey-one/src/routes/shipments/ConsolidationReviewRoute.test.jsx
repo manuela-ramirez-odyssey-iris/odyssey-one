@@ -225,11 +225,12 @@ describe('ConsolidationReviewRoute', () => {
     expect(state.consolidate.rows.map((r) => r.id)).toEqual(['27000001'])
   })
 
-  test('after Apply: Back to Shipments leaves with no dialog and no state', async () => {
+  test('after Apply: Back to Shipments is the same exit as View Shipment — lands with the created row', async () => {
     await applyAndWait()
     fireEvent.click(screen.getByRole('button', { name: 'Back to Shipments' }))
     expect(screen.queryByText(/Are you sure/)).toBeNull()
-    expect(JSON.parse((await screen.findByTestId('shipments-probe')).textContent)).toBeNull()
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
+    expect(state.createdShipment.id).toBe('27000001')
   })
 
   test('a failed Apply shows the error and leaves the page editable', async () => {

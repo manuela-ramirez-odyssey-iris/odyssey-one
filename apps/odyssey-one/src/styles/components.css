@@ -192,7 +192,7 @@
 .odyssey-table tbody tr[data-highlight] td {
   /* Two symmetric pulses (user, 2026-09-21): each iteration fades IN and
      out, so the second repeat doesn't snap to full blue. 2.4s total. */
-  animation: odyssey-row-highlight 1.2s ease-in-out 2;
+  animation: odyssey-row-highlight 2s ease-in-out 2; /* 4s total (user, 2026-09-21: longer) */
 }
 @media (prefers-reduced-motion: reduce) {
   .odyssey-table tbody tr[data-highlight] td {
