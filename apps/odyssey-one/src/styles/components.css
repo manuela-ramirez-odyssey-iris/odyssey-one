@@ -190,7 +190,7 @@
   to { background: transparent; }
 }
 .odyssey-table tbody tr[data-highlight] td {
-  animation: odyssey-row-highlight 2.4s ease-out 1;
+  animation: odyssey-row-highlight 1.2s ease-out 2; /* two pulses (user, 2026-09-21), same 2.4s total */
 }
 @media (prefers-reduced-motion: reduce) {
   .odyssey-table tbody tr[data-highlight] td {
