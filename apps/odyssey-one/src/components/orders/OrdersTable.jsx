@@ -26,6 +26,9 @@ export default function OrdersTable({
   onSortingChange,
   totalCount,
   onRowAction,
+  // Order number of a just-created row to flash once (spec §4.3); getRowId is
+  // the order number, so it passes straight through.
+  highlightRowId,
   // First mount, no data at all yet → the shell's whole-table Spinner (no rows).
   loading = false,
   // Background refetch (keepPreviousData) → per-cell "Loading…" text.
@@ -104,6 +107,7 @@ export default function OrdersTable({
       loading={loading}
       loadingRows={loadingRows}
       ariaLabel="Orders"
+      highlightRowId={highlightRowId}
       sortable
       footer={<Paginator table={table} />}
     />

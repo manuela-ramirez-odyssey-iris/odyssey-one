@@ -40,6 +40,12 @@ const formatOrderDate = (iso, tz) => {
  */
 export default function ConfirmationView({ data, values, variant, successMessage }) {
   const navigate = useNavigate()
+  // Every way back to the list from here follows a successful write, so it
+  // names the row the grid should land on and highlight (spec §4.3). The
+  // Alert's "Click here" keeps its own target (the order's summary page,
+  // user ruling 2026-07-28).
+  const backToList = () =>
+    navigate('/orders', { state: { createdOrder: data?.orderNumber } })
   const [alertOpen, setAlertOpen] = useState(true)
   const startedAsync =
     variant === 'async' || !values?.general?.orderNumber?.trim() || !data?.orderNumber
@@ -77,7 +83,7 @@ export default function ConfirmationView({ data, values, variant, successMessage
   // getOrderView serves it); async (no number yet) → the Orders list.
   const alert = alertOpen ? (
     isAsync ? (
-      <Alert variant="info" showLink onLinkClick={() => navigate('/orders')} onClose={() => setAlertOpen(false)}>
+      <Alert variant="info" showLink onLinkClick={backToList} onClose={() => setAlertOpen(false)}>
         Your order is being processed and an order number will be assigned shortly.
         No further action is needed—we&apos;ll notify you once it&apos;s ready.
       </Alert>
@@ -96,7 +102,7 @@ export default function ConfirmationView({ data, values, variant, successMessage
   return (
     <>
       <nav className="order-summary__crumbs" aria-label="Breadcrumb">
-        <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+        <Breadcrumb label="Orders" onClick={backToList} />
         <Breadcrumb label="Create new order" current />
       </nav>
       <OrderSummaryView vm={vm} alert={alert} />

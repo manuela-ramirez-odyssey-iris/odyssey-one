@@ -82,7 +82,7 @@ describe('OrdersRoute — tab identity (ORD-24)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))
 
     spy.mockClear()
-    fireEvent.click(await screen.findByRole('button', { name: 'Draft' }))
+    fireEvent.click(await screen.findByRole('button', { name: /^Draft/ }))
     await waitFor(() => expect(spy).toHaveBeenCalled())
     const last = spy.mock.calls.at(-1)[0]
     expect(last.tab).toBe('draft')
@@ -118,7 +118,7 @@ describe('OrdersRoute — empty-tab landing jump', () => {
     await waitFor(() => expect(listSpy).toHaveBeenCalled())
 
     listSpy.mockClear()
-    fireEvent.click(await screen.findByRole('button', { name: 'Draft' }))
+    fireEvent.click(await screen.findByRole('button', { name: /^Draft/ }))
     await waitFor(() => expect(listSpy).toHaveBeenCalled())
     expect(listSpy.mock.calls.at(-1)[0].tab).toBe('draft')
   })
@@ -186,5 +186,62 @@ describe('OrdersRoute — tab badges follow the criteria', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => expect(counts.mock.calls.at(-1)[1].searchText).toBe('091000'))
+  })
+})
+
+// Spec §4.3 — landing from a successful create: Created tab + the new row
+// flashes once. Orders' row id IS the order number (mapOrderListRow), and the
+// Created default sort is `created desc`, so no pinning is needed.
+describe('OrdersRoute — created-order highlight', () => {
+  const list = (numbers) => ({
+    orders: numbers.map(orderNumber => ({ orderNumber, orderId: orderNumber })),
+    pagination: { totalCount: numbers.length, pageNumber: 1, pageSize: 25 },
+  })
+
+  const renderWithState = (state) => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return render(
+      <QueryClientProvider client={qc}>
+        <EditModeProvider>
+          <CreateOrderModeProvider>
+            <CustomersProvider>
+              <MemoryRouter initialEntries={[{ pathname: '/orders', state }]}>
+                <Routes>
+                  <Route path="/orders" element={<OrdersRoute />} />
+                </Routes>
+              </MemoryRouter>
+            </CustomersProvider>
+          </CreateOrderModeProvider>
+        </EditModeProvider>
+      </QueryClientProvider>,
+    )
+  }
+
+  test('state.createdOrder lands on Created and highlights that row', async () => {
+    const spy = vi.spyOn(orderService, 'getOrderList').mockResolvedValue(list(['S26NEW', 'S26OLD']))
+    renderWithState({ tab: 'draft', createdOrder: 'S26NEW' })
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    // The created tab wins over a stale `tab` riding on the same state object.
+    expect(spy.mock.calls[0][0].tab).toBe('created')
+    await waitFor(() => {
+      const highlighted = document.querySelectorAll('tr[data-highlight]')
+      expect(highlighted).toHaveLength(1)
+      expect(highlighted[0].textContent).toContain('S26NEW')
+    })
+  })
+
+  test('the highlight clears once the planner moves on (tab switch)', async () => {
+    vi.spyOn(orderService, 'getOrderList').mockResolvedValue(list(['S26NEW']))
+    renderWithState({ createdOrder: 'S26NEW' })
+    await waitFor(() => expect(document.querySelectorAll('tr[data-highlight]')).toHaveLength(1))
+    fireEvent.click(await screen.findByRole('button', { name: /^Draft/ }))
+    await waitFor(() => expect(document.querySelectorAll('tr[data-highlight]')).toHaveLength(0))
+  })
+
+  test('no createdOrder → nothing is highlighted', async () => {
+    vi.spyOn(orderService, 'getOrderList').mockResolvedValue(list(['S26NEW']))
+    renderOrders()
+    await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(1))
+    expect(document.querySelectorAll('tr[data-highlight]')).toHaveLength(0)
   })
 })

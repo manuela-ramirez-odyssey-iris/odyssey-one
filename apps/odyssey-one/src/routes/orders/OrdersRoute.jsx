@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -73,9 +73,15 @@ export default function OrdersRoute() {
   // Main tabs (Orders Tabs mock) — three populations (ORD-24). LEGACY_TAB_MAP
   // covers a deep link built before the All → Created rename.
   const [activeTab, setActiveTab] = useState(() => {
-    const requested = location.state?.tab ?? 'created'
+    // Arriving from a successful create lands on Created, where the new order
+    // is (spec §4.3) — it outranks a stale `tab` on the same state object.
+    const requested = location.state?.createdOrder ? 'created' : (location.state?.tab ?? 'created')
     return LEGACY_TAB_MAP[requested] ?? requested
   })
+  // The row to flash once (DataTable `highlightRowId`). Orders' row id IS the
+  // order number (mapOrderListRow) and the Created default sort is created
+  // desc, so no pinning is needed — the row is already on page 1.
+  const [highlightRowId, setHighlightRowId] = useState(location.state?.createdOrder ?? null)
   // Never strand the planner on an empty tab (user, 2026-09-07). Set whenever
   // the CRITERIA change (search commit, filter apply); consumed once the new
   // counts arrive. Not set by a tab CLICK — an explicitly chosen tab sticks
@@ -130,6 +136,15 @@ export default function OrdersRoute() {
       ...(Object.keys(reqFilters).length ? { filters: reqFilters } : {}),
     }
   }, [activeTab, pagination, sortField, sorting, panelFilters, searchText, searchChips])
+
+  // The highlight is a one-shot: the moment the planner changes tab, sort,
+  // page or search, they have moved on and the flash must not replay on the
+  // refetch. Skips its own first run (the arriving render).
+  const firstRequestRef = useRef(true)
+  useEffect(() => {
+    if (firstRequestRef.current) { firstRequestRef.current = false; return }
+    setHighlightRowId(null)
+  }, [request])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -377,6 +392,7 @@ export default function OrdersRoute() {
             onSortingChange={setSorting}
             totalCount={data?.totalCount ?? 0}
             onRowAction={handleRowAction}
+            highlightRowId={highlightRowId}
           />
         )}
 

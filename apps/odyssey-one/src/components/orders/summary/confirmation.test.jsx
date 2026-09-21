@@ -4,8 +4,8 @@
 // product rollups, and the Scenario-2 async flip (number populates, alert
 // flips to success, navbar bell notified).
 import { describe, test, expect, afterEach, vi } from 'vitest'
-import { render, screen, within, cleanup, act } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { render, screen, within, cleanup, act, fireEvent } from '@testing-library/react'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import mapFormVmToOrderPane from './mapFormVmToOrderPane'
 import ConfirmationView from '../create/ConfirmationView'
@@ -201,5 +201,39 @@ describe('ConfirmationView quick/long + async flip', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+// Spec §4.3 — every way back to the list after a successful create names the
+// row the grid should land on and highlight.
+describe('ConfirmationView — back to the list carries createdOrder', () => {
+  const Probe = () => {
+    const { state } = useLocation()
+    return <div data-testid="probe">{JSON.stringify(state)}</div>
+  }
+
+  const renderRouted = (data, values) =>
+    render(
+      <MemoryRouter initialEntries={['/orders/create']}>
+        <Routes>
+          <Route path="/orders/create" element={<ConfirmationView data={data} values={values} />} />
+          <Route path="/orders" element={<Probe />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+  test('the breadcrumb navigates to /orders with the created order number', () => {
+    const values = valuesWith({ products: [product()] })
+    values.general.orderNumber = 'S26TEST'
+    renderRouted({ orderNumber: 'S26TEST' }, values)
+    fireEvent.click(screen.getByText('Orders'))
+    expect(screen.getByTestId('probe').textContent).toBe('{"createdOrder":"S26TEST"}')
+  })
+
+  test('the async alert link goes back to the list with the same state', () => {
+    const values = valuesWith({ products: [product()] }) // blank order number → async
+    renderRouted({ orderNumber: 'S26ASYNC' }, values)
+    fireEvent.click(screen.getByRole('button', { name: /click here/i }))
+    expect(screen.getByTestId('probe').textContent).toBe('{"createdOrder":"S26ASYNC"}')
   })
 })
