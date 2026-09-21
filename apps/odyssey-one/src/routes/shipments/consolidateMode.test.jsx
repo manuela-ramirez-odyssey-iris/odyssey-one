@@ -418,8 +418,70 @@ describe('consolidate mode — the customer lock is a committed filter chip (S15
   test('with no selection, the mode explains what to select', async () => {
     renderRoute()
     await enterMode()
-    expect(screen.getByText('Select shipments you want to consolidate. Only direct shipments are consolidatable')).toBeTruthy()
+    expect(screen.getByText('Select to consolidate. Only direct shipments are consolidatable')).toBeTruthy()
     expect(screen.queryByText('Selected Customer:')).toBeNull()
+  })
+})
+
+// S155 (user, 2026-09-20: "C shipments can appear only in non consol mode") —
+// consolidate mode LISTS only Direct shipments. Structural to the mode like
+// hiding PGI/PGR, and deliberately not a visible chip (contrast the CNS-10
+// customer lock, which is one). Ineligible rows used to stay listed behind a
+// disabled checkbox.
+describe('consolidate mode — only Direct shipments are listed (S155)', () => {
+  // The Odyssey Shipment Identifier is `C…` for Consolidation and `O…` for
+  // Direct (generate.mjs) — the cheapest true read of the listed shipment type.
+  const odysseyIds = () => [...document.querySelectorAll('tbody td')]
+    .map((td) => td.textContent.trim())
+    .filter((t) => /^[CO]\d+$/.test(t))
+  const itemCount = () => Number(screen.getByText(/^\d+ items$/).textContent.match(/\d+/)[0])
+
+  test('a Consolidation row is listed normally but never in the mode, and the count drops with it', async () => {
+    renderRoute()
+    await screen.findByRole('heading', { name: 'Shipments' })
+    // Default sort is odysseyShipmentIdentifier ASC and "C…" < "O…", so page 1
+    // of the normal list is where the Consolidation rows live.
+    await waitFor(() => expect(odysseyIds().some((id) => id.startsWith('C'))).toBe(true))
+    const before = itemCount()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(0))
+    expect(odysseyIds().length).toBeGreaterThan(0)
+    expect(odysseyIds().some((id) => id.startsWith('C'))).toBe(false)
+    expect(itemCount()).toBeLessThan(before)
+  })
+
+  test('re-entering from the review screen lists only Direct rows too', async () => {
+    // The old shipmentType sort reseed only ran in enterConsolidate, so this
+    // path (location.state.consolidate) surfaced Consolidation rows.
+    const rows = [
+      { id: 'a', sellShipment: 'a', customerId: 'VALTRIS_01', customerName: 'Valtris', shipmentType: 'Direct', tenderStatus: '', orders: [], pickupNumbers: [], poNumbers: [] },
+      { id: 'b', sellShipment: 'b', customerId: 'VALTRIS_01', customerName: 'Valtris', shipmentType: 'Direct', tenderStatus: '', orders: [], pickupNumbers: [], poNumbers: [] },
+    ]
+    renderRoute({ consolidate: { rows } })
+    await screen.findByRole('heading', { name: 'Shipments Consolidation' })
+    await waitFor(() => expect(document.querySelectorAll('tbody tr').length).toBeGreaterThan(0))
+    expect(odysseyIds().some((id) => id.startsWith('C'))).toBe(false)
+  })
+})
+
+// S155 — editing an existing consolidation starts from the row's actions
+// menu. The seeded C row is not LISTED in the mode (above) and eligibility
+// would refuse its checkbox; it lives in the selection, the header count and
+// the review screen only.
+describe('consolidate mode — Edit on a Consolidation row (S155)', () => {
+  test('the Edit action enters the mode with that shipment selected and the customer locked', async () => {
+    renderRoute()
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Shipment actions' }).length).toBeGreaterThan(0))
+    // Page 1, default sort: "C…" sorts before "O…", so the first row is a
+    // Consolidation one.
+    const firstRow = document.querySelectorAll('tbody tr')[0]
+    expect([...firstRow.querySelectorAll('td')].some((td) => /^C\d+$/.test(td.textContent.trim()))).toBe(true)
+    fireEvent.click(within(firstRow).getByRole('button', { name: 'Shipment actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }))
+    expect(await screen.findByRole('heading', { name: 'Shipments Consolidation' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Consolidate 1 Shipment' })).toBeTruthy()
+    expect(screen.getByText('Selected Customer:')).toBeTruthy()
   })
 })
 

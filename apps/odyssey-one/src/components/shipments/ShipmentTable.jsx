@@ -201,9 +201,17 @@ const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 
 const columnHelper = createColumnHelper()
 
-// Inert until each wires to its feature (carried verbatim from the old menu).
-const SHIPMENT_ACTIONS = [
-  { label: 'Edit', onSelect: () => {} },
+// Inert until each wires to its feature (carried verbatim from the old menu),
+// EXCEPT Edit on a Consolidation row: that's the doorway into consolidate mode
+// with this shipment pre-selected (S155). Direct rows keep the stub — editing a
+// direct shipment is a different, unspecced surface.
+const shipmentActions = (row, onEditConsolidation) => [
+  {
+    label: 'Edit',
+    onSelect: row.shipmentType === 'Consolidation' && onEditConsolidation
+      ? () => onEditConsolidation(row)
+      : () => {},
+  },
   { label: 'Tender by Preferred Carrier', onSelect: () => {} },
 ]
 
@@ -234,6 +242,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   // eligible row on the page (header). `eligibility(row)` returns null or the
   // reason shown as the disabled checkbox's tooltip.
   selectable = false, selection, onSelectionChange, eligibility,
+  // S155 — the row-menu "Edit" on a Consolidation row; the host enters
+  // consolidate mode with that shipment already selected.
+  onEditConsolidation,
   // S155 §4.2 — the row id (= sellShipment) just created elsewhere; DataTable
   // flashes it so the planner sees what they made. Pure pass-through.
   highlightId = null }) {
@@ -314,9 +325,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                       ? onRowSelect(row.original.id, 'stops', false)
                       : navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment, odysseyShipmentIdentifier: row.original.odysseyShipmentIdentifier } }),
                   },
-                  ...SHIPMENT_ACTIONS,
+                  ...shipmentActions(row.original, onEditConsolidation),
                 ]
-              : SHIPMENT_ACTIONS
+              : shipmentActions(row.original, onEditConsolidation)
           }
           align="right"
           ariaLabel="Shipment actions"
@@ -381,7 +392,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     })
 
     return [selectColumn, ...dataCols, actionColumn]
-  }, [onToggleColumnPanel, navigate, selection, onSelectionChange, eligibility])
+  }, [onToggleColumnPanel, navigate, selection, onSelectionChange, eligibility, onEditConsolidation])
 
   // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their
   // ORDER via TanStack column state — the column SET above stays stable.

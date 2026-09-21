@@ -248,11 +248,30 @@ function ShipmentsRoute() {
     refetch: refetchDetails,
   } = useShipmentDetail(selectedShipmentId)
 
+  // Consolidate mode lists ONLY Direct shipments (user, 2026-09-20: "C
+  // shipments can appear only in non consol mode"). Ineligible rows used to
+  // stay listed behind a disabled checkbox, and re-entering the mode from the
+  // review screen (location.state.consolidate) had no sort reseed at all, so
+  // Consolidation rows surfaced anyway. This is a MODE RULE, structural like
+  // hiding the PGI/PGR tab — and deliberately NOT a visible chip, unlike the
+  // CNS-10 customer lock (which IS one, because the planner chose it by
+  // checking a row). It rides on the same criteria pipeline the table, the
+  // counts and the glimpse already honour, so `searchCriteria` — the BAR's
+  // own state — is left untouched and the planner's filter is restored intact
+  // on exit.
+  const effectiveCriteria = useMemo(() => {
+    if (!inMode) return searchCriteria
+    return {
+      chips: [...(searchCriteria?.chips ?? []), attrChip('shipment-type', 'Direct')],
+      text: searchCriteria?.text ?? '',
+    }
+  }, [inMode, searchCriteria])
+
   // Reset to the first page whenever the query identity (panel/tab/search/customer
   // scope) changes. Done during render (React's documented "adjust state on change"
   // pattern) rather than in an effect, so the stale-page query never fires — avoids
   // a wasted round-trip on every filter interaction in live mode.
-  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, selectedDataIds, sorting])
+  const queryIdentity = JSON.stringify([activePanel, activeTab, effectiveCriteria, selectedDataIds, sorting])
   const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
   if (queryIdentity !== prevQueryIdentity) {
     setPrevQueryIdentity(queryIdentity)
@@ -272,10 +291,10 @@ function ShipmentsRoute() {
     // searchAttributeKey params are still supported by gridService (and
     // tested) but the route no longer sends them — searchCriteria replaces
     // that path with the shared chip+text matcher.
-    searchCriteria: searchCriteria ?? undefined,
+    searchCriteria: effectiveCriteria ?? undefined,
     sortBy: sorting[0]?.id,
     orderBy: sorting[0]?.desc ? 'desc' : 'asc',
-  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, selectedDataIds, sorting])
+  }), [activePanel, activeTab, pageNumber, pageSize, effectiveCriteria, selectedDataIds, sorting])
 
   const {
     data: listData,
@@ -327,9 +346,9 @@ function ShipmentsRoute() {
   // scoped to the selected customers (decision 10) and filtered by the committed
   // search criteria (decision 7) so panel totals, category pills and the glimpse
   // total all agree.
-  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', searchCriteria ?? undefined, selectedDataIds)
-  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', searchCriteria ?? undefined, selectedDataIds)
-  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', searchCriteria ?? undefined, selectedDataIds)
+  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', effectiveCriteria ?? undefined, selectedDataIds)
+  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', effectiveCriteria ?? undefined, selectedDataIds)
+  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', effectiveCriteria ?? undefined, selectedDataIds)
   const countsReady = !exceptionsCountsLoading && !monitoringCountsLoading && !pgipgrCountsLoading
 
   const metrics = useMemo(() => {
@@ -493,10 +512,10 @@ function ShipmentsRoute() {
     // panel (GS-18) — both wrong for the customer LOCK's own automatic
     // recommit (S154): ShipmentsGlobalSearch calls this same onCommitQuery
     // path the moment `lockedChip` changes, purely to narrow the criteria,
-    // not because the planner searched anything. Consolidate mode already
-    // owns its sort (enterConsolidate seeds shipmentType so eligible Direct
-    // rows surface first) and its panel (the planner is scanning to check
-    // rows, not landing on a search's fullest panel) — a real commit from
+    // not because the planner searched anything. In consolidate mode the
+    // planner's own sort is left exactly as it was on entry, and the panel is
+    // theirs too (they are scanning to check rows, not landing on a search's
+    // fullest panel) — a real commit from
     // the planner while in mode still narrows the table via searchCriteria
     // above, it just doesn't fight those two.
     if (!inMode) {
@@ -519,42 +538,55 @@ function ShipmentsRoute() {
     if (tab) setRequestedTab({ key: tab, expandGeneral: !!expandGeneral })
   }, [])
 
-  const enterConsolidate = useCallback(() => {
+  // `seedRow` — the row the planner is EDITING (the actions-menu "Edit" on a
+  // Consolidation row, S155). It starts in the selection, so the anchor (and
+  // with it the customer lock) exists from the first render; `priorCriteria`
+  // is snapshotted here for exactly the reason `handleSelectionChange` takes
+  // it on the first check — the lock is about to narrow the bar and exiting
+  // must give the planner their own filter back.
+  //
+  // The seeded C row is NOT listed in the table (effectiveCriteria above lists
+  // Direct only) and eligibility would refuse its checkbox anyway — it lives
+  // purely in the selection Map, the header count and the review screen. The
+  // review's post-apply "Edit Consolidated Shipment" already re-enters this
+  // way through location.state.consolidate.rows, so it needs no change.
+  const enterConsolidate = useCallback((seedRow) => {
     // Snapshot the UI state this mode overwrites below, so exiting restores
     // what the planner actually had instead of a hardcoded default. Includes
     // the panel/category tab (S154) — the planner may be ON PGI/PGR (hidden
     // for the duration of the mode, see visiblePanels above) when they press
     // Consolidate, and `handleSelectionChange`'s `{ ...prev, rows: next }`
-    // spread below carries these two fields through the first checkbox click
-    // unchanged, same as priorSorting/priorViewMode.
+    // spread below carries these fields through the first checkbox click
+    // unchanged, same as priorViewMode.
     setConsolidate({
-      rows: new Map(),
-      priorSorting: sorting,
+      rows: seedRow ? new Map([[seedRow.id, seedRow]]) : new Map(),
+      ...(seedRow ? { priorCriteria: searchCriteria } : {}),
       priorViewMode: viewMode,
       priorPanel: activePanel,
       priorTab: activeTab,
     })
     setSelectedShipmentId(null)   // the detail bar is hidden in mode; nothing stays "open"
     setViewMode('pills')          // the widgets toggle is hidden; pills are the mode's face
-    // Direct shipments IDs sort AFTER Consolidation ones under the default
-    // odysseyShipmentIdentifier order ("C..." < "O..."), so the default column
-    // sort would bury every eligible row past the first page. Surface the
-    // eligible (Direct) rows first while selecting — same sortBy/orderBy the
-    // header already drives, just re-seeded for this mode.
-    setSorting([{ id: 'shipmentType', desc: true }])
+    // No sort reseed: the mode used to force `shipmentType desc` purely to
+    // float Direct rows above Consolidation ones. The mode now LISTS only
+    // Direct rows (effectiveCriteria above), so there is nothing to float and
+    // the planner's own sort survives the round trip untouched.
+    //
     // Land on the normal landing panel (same target/reset handlePanelSelect
     // uses) — PGI/PGR just vanished from the tab row and can hold no
     // consolidation candidate, so staying on it would strand the planner on
     // a tab that no longer renders.
     setActivePanel('exceptions')
     setActiveTab('all')
-  }, [sorting, viewMode, activePanel, activeTab])
+  }, [searchCriteria, viewMode, activePanel, activeTab])
+  // Stable identity — ShipmentTable's column defs memo on it; an inline arrow
+  // would rebuild every column on every render.
+  const handleEditConsolidation = useCallback((row) => enterConsolidate(row), [enterConsolidate])
   const exitConsolidate = useCallback(() => {
     // Restore the snapshot taken on entry. Re-entering via "Modify Selection"
     // (the lazy useState initialiser above) creates `{ rows }` with no
-    // snapshot — there is nothing prior to restore, so leave sorting/viewMode/
-    // panel as they are; the optional chaining below no-ops in that case.
-    if (consolidate?.priorSorting) setSorting(consolidate.priorSorting)
+    // snapshot — there is nothing prior to restore, so leave viewMode/panel
+    // as they are; the optional chaining below no-ops in that case.
     if (consolidate?.priorViewMode) setViewMode(consolidate.priorViewMode)
     if (consolidate?.priorPanel) {
       setActivePanel(consolidate.priorPanel)
@@ -693,7 +725,7 @@ function ShipmentsRoute() {
           variant="primary"
           icon={inMode ? <Combine size={20} /> : <Boxes size={20} />}
           disabled={inMode && selection.size < 2}
-          onClick={inMode ? proceedToReview : enterConsolidate}
+          onClick={inMode ? proceedToReview : () => enterConsolidate()}
         >
           {/* S154 (user, 2026-09-20): the primary reads "Select to Consolidate"
               at zero — "Consolidate 0 Shipments" implied a valid action —
@@ -717,7 +749,7 @@ function ShipmentsRoute() {
               <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
             </>
           ) : (
-            <span>Select shipments you want to consolidate. Only direct shipments are consolidatable</span>
+            <span>Select to consolidate. Only direct shipments are consolidatable</span>
           )}
         </div>
       )}
@@ -795,6 +827,7 @@ function ShipmentsRoute() {
           selection={selection}
           onSelectionChange={handleSelectionChange}
           eligibility={eligibility}
+          onEditConsolidation={handleEditConsolidation}
         />
       )}
       {/* No onToggleColumnPanel prop here (Fix 3, 2026-08-10) — BottomBar dropped

@@ -389,6 +389,11 @@
   position: sticky;
   left: 0;
   z-index: 2;
+}
+
+/* The edge shadow is the "there is content hidden under me" signal — at rest
+   (scrollLeft 0) nothing is hidden, so it only paints once scrolled. */
+.odyssey-data-table[data-scrolled-x] .odyssey-table__cell--sticky-left {
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -427,12 +432,13 @@
    the page canvas (S79b, decision 6) — no chrome of its own; the Paginator
    brings its layout. Outside the body scroller, so no sticky-left needed. */
 
-/* Header cells anchor the resize grip — but NOT the sticky-right action header: a
-   `position: sticky` cell already establishes a containing block for the absolutely
-   positioned grip, and forcing `position: relative` here would override its sticky pin
-   (the grip-anchor rule out-specifies the sticky-right rule), detaching the header cell
-   from its still-pinned body cell on horizontal scroll. */
-.odyssey-data-table .odyssey-table th:not(.odyssey-table__cell--sticky-right) { position: relative; }
+/* Header cells anchor the resize grip — but NOT a PINNED header (sticky-right action
+   column, sticky-left select column): a `position: sticky` cell already establishes a
+   containing block for the absolutely positioned grip, and forcing `position: relative`
+   here would override its sticky pin (the grip-anchor rule out-specifies the sticky
+   rules), detaching the header cell from its still-pinned body cell on horizontal
+   scroll. */
+.odyssey-data-table .odyssey-table th:not([class*='odyssey-table__cell--sticky-']) { position: relative; }
 
 /* Resize grip — a thin hit-area on the header's right edge, wired to TanStack's
    getResizeHandler. The hair-line indicator brightens on hover / while dragging. */
@@ -525,12 +531,14 @@
 .odyssey-bottom-bar {
   position: fixed;
   bottom: 0;
-  left: var(--sidebar-width);
+  /* AppShell publishes the rail's live width (S155) — fixed surfaces are out
+     of flow, so a hardcoded --sidebar-width slid under the expanded rail. */
+  left: var(--sidebar-current, var(--sidebar-width));
   right: 0;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle);
   z-index: 40;
-  transition: height var(--transition-slow);
+  transition: height var(--transition-slow), left var(--transition-sidebar);
   height: var(--bottombar-collapsed);
   overflow: hidden;
 }
@@ -4314,10 +4322,12 @@ button.breadcrumb__label:focus-visible {
 .shipments-bar__scrim {
   position: fixed;
   top: var(--navbar-height);
-  left: var(--sidebar-width);
+  /* See .odyssey-bottom-bar — the rail's live width, not the collapsed one. */
+  left: var(--sidebar-current, var(--sidebar-width));
   right: 0;
   bottom: 0;
   z-index: 39;
+  transition: left var(--transition-sidebar);
 }
 .right-panel-dock .right-panel {
   position: absolute;
@@ -5928,7 +5938,8 @@ button.breadcrumb__label:focus-visible {
   --shipmentsbar-lead-offset: 168px;
   position: fixed;
   bottom: 0;
-  left: var(--sidebar-width);
+  /* See .odyssey-bottom-bar — the rail's live width, not the collapsed one. */
+  left: var(--sidebar-current, var(--sidebar-width));
   /* DSN/100 canvas behind the Content slot (per the designer's master edit);
      the strip paints itself white on top. */
   background: var(--deep-sea-neutral-100);
@@ -5938,7 +5949,7 @@ button.breadcrumb__label:focus-visible {
      transitions (S79d) — interpolate-size was retired: its `auto` endpoint
      resolves UNCAPPED, so panes taller than the max-height cap made the
      animation slam into the clamp (the "two-step" open / snap close). */
-  transition: height var(--transition-drawer), right var(--transition-base);
+  transition: height var(--transition-drawer), right var(--transition-base), left var(--transition-sidebar);
   z-index: 40;
   display: flex;
   flex-direction: column;
