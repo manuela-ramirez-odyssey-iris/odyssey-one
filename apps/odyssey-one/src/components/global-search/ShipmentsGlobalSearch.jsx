@@ -16,6 +16,7 @@ import {
 } from '../../api/services/sharedFilterService'
 import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersView'
 import SaveFilterModal from './SaveFilterModal'
+import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import { hydrate, newFilter, splitFreeText, toStored, formatChipsForCopy } from './savedFilters'
 import { tabForDataKey } from '../shipments/cellTabMap'
 import { inFieldPopover } from './fieldPopovers'
@@ -55,7 +56,7 @@ const SAVED_FILTERS_KEY = 'shipments.savedFilters'
  *   with its details); `tab` (from the leading chip via the shared
  *   CELL_TAB_MAP) lands it on the mapped pane, mirroring table cell clicks.
  */
-export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips, attributeKeys = null, placeholder = 'Search in Shipments', lockedChip = null }) {
+export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment, seedChips, attributeKeys = null, placeholder = 'Search in Shipments', lockedChip = null, lockedClearMessage = null, onClearLocked }) {
   // Customer scoping (S79c decision 10): the glimpse must respect the selected
   // customer list, so the domain adapter is wrapped with the selection's dataIds
   // baked into searchShipments. The hook stays domain-agnostic — a selection
@@ -357,6 +358,11 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
   // Starts at the SEEDED chip count (S149) so an arrival with chips already in
   // the bar is not read as "a newly committed chip" on the first pass — the
   // glimpse must not pop open over a page the user never typed into.
+  // S155 §1.1: LOCKED chips are excluded from both sides of that count. The
+  // host commits the lock (consolidate mode's customer chip) on the planner's
+  // behalf — it is not "a chip the user just committed", so counting it pops
+  // the glimpse open over a page nobody searched in.
+  const unlockedChipCount = chips.filter((c) => !c.locked).length
   const prevOpenKeyRef = useRef({ chipCount: seedChips?.length ?? 0, query: '', pendingDateChip: false })
   // Fix B (user, 2026-08-03): selecting a shipment (match row) or clicking the
   // docked ShipmentsBar is a pure UI dismissal — set right before forcing an
@@ -366,7 +372,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
   const dismissRef = useRef(false)
   useEffect(() => {
     const prev = prevOpenKeyRef.current
-    prevOpenKeyRef.current = { chipCount: chips.length, query, pendingDateChip }
+    prevOpenKeyRef.current = { chipCount: unlockedChipCount, query, pendingDateChip }
     if (dismissRef.current) { dismissRef.current = false; return }
     const q = query.trim()
     // Case 12 / GS-22 refinement: an open date chip suppresses the panel only
@@ -393,12 +399,12 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
       return
     }
     const dateCompleted = prev.pendingDateChip && !pendingDateChip && chips.length > 0
-    if ((q && query !== prev.query) || chips.length > prev.chipCount || dateCompleted) {
+    if ((q && query !== prev.query) || unlockedChipCount > prev.chipCount || dateCompleted) {
       setResultsOpen(true)
     } else if (!q && chips.length === 0 && !textChip && panelViewRef.current === 'results') {
       setResultsOpen(false)
     }
-  }, [chips, query, textChip, pendingDateChip])
+  }, [chips, unlockedChipCount, query, textChip, pendingDateChip])
 
   const openFilters = () => { setPanelView('filters'); setResultsOpen(true) }
   const closePanel = useCallback(() => { setResultsOpen(false); setPanelView('results') }, [])
@@ -456,10 +462,21 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
   // Explicit Clear all — wipes the bar (chips + text, via the hook's onClear)
   // AND the committed table criteria. This is the only gesture that clears the
   // committed criteria (decision 7); an empty commit does not.
-  const handleClearAll = useCallback(() => {
+  // S155 §1.2: while the host holds a LOCK (consolidate mode's customer chip),
+  // clearing the bar also throws away the planner's selection — the lock is
+  // derived from it. Too destructive to do on one X click, so it asks first;
+  // `onClearLocked` is what actually drops the selection host-side, and the
+  // lock chip then leaves the bar on the next render (the lock effect above
+  // reacts to `lockedChip` going null).
+  const [confirmClear, setConfirmClear] = useState(false)
+  const clearAll = useCallback(() => {
     onClear()
     onCommitQuery?.(null)
   }, [onClear, onCommitQuery])
+  const handleClearAll = useCallback(() => {
+    if (lockedChip) { setConfirmClear(true); return }
+    clearAll()
+  }, [lockedChip, clearAll])
 
   // Filters outbound wiring: edited filter values become chips. "Show N
   // results" MERGES into the current chips and commits to the table (chips are
@@ -793,6 +810,17 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment,
           — see the `saveModalOpen` block near the top of this component for
           why. `barChips` (not the bare `chips`) so the free-text/set query
           badge is included in what gets saved (spec "Behaviour" 1). */}
+      {confirmClear && (
+        <ConfirmDialog
+          title="Clear Customer Selection"
+          message={lockedClearMessage}
+          confirmLabel="Yes, Clear"
+          cancelLabel="No"
+          onConfirm={() => { setConfirmClear(false); onClearLocked?.(); clearAll() }}
+          onCancel={() => setConfirmClear(false)}
+        />
+      )}
+
       {saveModalOpen && (
         <SaveFilterModal
           chips={barChips}

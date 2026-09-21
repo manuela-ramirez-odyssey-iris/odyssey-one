@@ -182,6 +182,22 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* S155 — "here is what you just created": the pinned/created row flashes once
+   and fades back to the cell's own background. Animation only, no persistent
+   fill, so nothing has to clear it. */
+@keyframes odyssey-row-highlight {
+  from { background: var(--carolina-blue-100); }
+  to { background: transparent; }
+}
+.odyssey-table tbody tr[data-highlight] td {
+  animation: odyssey-row-highlight 2.4s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .odyssey-table tbody tr[data-highlight] td {
+    animation: none;
+  }
+}
+
 .odyssey-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -364,6 +380,18 @@
 /* A column pinned to the right edge (survives horizontal scroll) — applies in
    both halves of the split table (header strip + body). Set per column via
    TanStack `column.meta.sticky === 'right'`. */
+/* A column pinned to the LEFT edge (the select column in consolidate mode) —
+   mirror of the sticky-right rule below, shadow flipped. No background rule is
+   needed: `.odyssey-table th, .odyssey-table td` already paint `--bg-primary`
+   (and the hover/selected rules repaint it), so the pinned cell stays opaque
+   over content scrolling beneath it. */
+.odyssey-data-table .odyssey-table__cell--sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
 .odyssey-data-table .odyssey-table__cell--sticky-right {
   position: sticky;
   right: 0;
@@ -7985,5 +8013,6 @@ button.breadcrumb__label:focus-visible {
   align-items: center;
   gap: var(--spacing-2);
   color: var(--text-tertiary);
-  margin-bottom: var(--spacing-6);
+  /* S155 §1.4: more air between this row and the panel tabs below. */
+  margin-bottom: var(--spacing-8);
 }

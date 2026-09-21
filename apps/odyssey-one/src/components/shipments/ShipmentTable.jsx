@@ -233,7 +233,10 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   // `onSelectionChange(rows[], checked)` reports one row (cell) or every
   // eligible row on the page (header). `eligibility(row)` returns null or the
   // reason shown as the disabled checkbox's tooltip.
-  selectable = false, selection, onSelectionChange, eligibility }) {
+  selectable = false, selection, onSelectionChange, eligibility,
+  // S155 §4.2 — the row id (= sellShipment) just created elsewhere; DataTable
+  // flashes it so the planner sees what they made. Pure pass-through.
+  highlightId = null }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
   const navigate = useNavigate()
@@ -339,7 +342,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             disabled={eligible.length === 0}
             checked={eligible.length > 0 && picked.length === eligible.length}
             indeterminate={picked.length > 0 && picked.length < eligible.length}
-            onChange={(e) => onSelectionChange?.(eligible, e.target.checked)}
+            // S155 §1.3: checking reports the page's eligible rows (the host
+            // narrows them to one customer); UNCHECKING reports the WHOLE
+            // selection, not just this page's share — a selected row paged or
+            // filtered away would otherwise survive a "deselect all" and keep
+            // the customer locked with nothing visibly checked.
+            onChange={(e) => onSelectionChange?.(e.target.checked ? eligible : [...(selection?.values() ?? [])], e.target.checked)}
           />
         )
       },
@@ -367,7 +375,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           ? <TooltipTrigger asSpan tooltipProps={{ groups: [{ content: reason }] }}><span style={{ display: 'inline-flex' }}>{box}</span></TooltipTrigger>
           : box
       },
-      meta: { fixedWidth: true },
+      // sticky-left keeps the checkbox reachable while the planner scrolls the
+      // wide grid sideways to read a candidate row (S155 §1.5).
+      meta: { fixedWidth: true, sticky: 'left' },
     })
 
     return [selectColumn, ...dataCols, actionColumn]
@@ -461,6 +471,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // `sortable` OFF (S85 test) — the sorting plumbing (state → gridService
           // sortBy/orderBy) stays wired; re-adding the prop turns the buttons back on.
           truncationTooltip
+          highlightRowId={highlightId ?? undefined}
           // First mount, no data at all yet — whole-table Spinner (no rows).
           loading={isLoading && shipments.length === 0}
           // Stale placeholder pages (TanStack keepPreviousData) render Loading… cells.

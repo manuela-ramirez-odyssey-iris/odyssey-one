@@ -94,6 +94,13 @@ function ShipmentsRoute() {
       ? CONSOLIDATION_ATTRIBUTE_KEYS.filter((k) => k !== 'customer-id' && k !== 'customer-name')
       : CONSOLIDATION_ATTRIBUTE_KEYS
   }, [inMode, lockedChip])
+  // S155 §4.2 — "see what you created": a shipment just made elsewhere (the
+  // consolidation Apply screen's "View Shipment") rides back as a full row VM.
+  // The table's default sort is by identifier, so a new `C7…` id would land
+  // pages away; while this is set the row is PINNED to the top of page 1 and
+  // highlighted. Cleared the moment the planner moves the query on (effect
+  // below) — the pin is a one-time "here it is", not a sticky row.
+  const [created, setCreated] = useState(location.state?.createdShipment ?? null)
   const [selectedShipmentId, setSelectedShipmentId] = useState(location.state?.selectedShipmentId ?? null)
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
@@ -281,6 +288,23 @@ function ShipmentsRoute() {
 
   const pageRows = listData?.rows ?? []
   const totalCount = listData?.totalCount ?? 0
+
+  // The pin (S155 §4.2). Page 1 only — pinning it onto every page would be a
+  // row that follows the planner around. `filter` first so a row that IS on
+  // this page isn't rendered twice.
+  const tableRows = useMemo(() => (
+    created && pageNumber === 0 ? [created, ...pageRows.filter((r) => r.id !== created.id)] : pageRows
+  ), [created, pageNumber, pageRows])
+
+  // The planner moved on (sort, page, search, tab, customer scope) — the pin
+  // has done its job and must not outlive the query it was pinned into. Skips
+  // the first run: `listParams` is a fresh object on mount and would otherwise
+  // clear the pin before it ever rendered.
+  const pinnedParamsRef = useRef(null)
+  useEffect(() => {
+    if (pinnedParamsRef.current === null) { pinnedParamsRef.current = listParams; return }
+    if (pinnedParamsRef.current !== listParams) setCreated(null)
+  }, [listParams])
 
   // Selection id = sellShipment (the contract detail-link key). The raw row for
   // BottomBar (buy label + summary) comes from the LIVE page rows first — the
@@ -548,8 +572,16 @@ function ShipmentsRoute() {
   }, [consolidate])
   const handleSelectionChange = useCallback((rows, checked) => {
     if (!consolidate) return
+    // One customer per consolidation (CNS-10). The anchor normally enforces it
+    // through `eligibility`, but a BATCH check arriving before any anchor
+    // exists (the header checkbox on a fresh mode) would check every eligible
+    // row across every customer — the first one then locks the customer, the
+    // table narrows, and the rest stay selected but invisible. Narrowing here,
+    // in the one path every caller routes through, is the whole fix (S155 §1.3).
+    const scopeId = anchorCustomerId ?? rows[0]?.customerId
+    const picked = checked ? rows.filter((r) => r.customerId === scopeId) : rows
     const next = new Map(consolidate.rows)
-    for (const r of rows) checked ? next.set(r.id, r) : next.delete(r.id)
+    for (const r of picked) checked ? next.set(r.id, r) : next.delete(r.id)
     const wasEmpty = consolidate.rows.size === 0
     const nowEmpty = next.size === 0
     setConsolidate({
@@ -567,7 +599,19 @@ function ShipmentsRoute() {
     if (!wasEmpty && nowEmpty && 'priorCriteria' in consolidate) {
       setSearchCriteria(consolidate.priorCriteria ?? null)
     }
-  }, [consolidate, searchCriteria])
+  }, [consolidate, searchCriteria, anchorCustomerId])
+  // Clear all in the search bar while the lock is engaged (S155 §1.2): the
+  // planner confirmed they also want the selection gone. Deliberately does NOT
+  // restore `priorCriteria` — they asked for an EMPTY bar, not their old
+  // filter back — and drops the key so the next lock snapshots afresh.
+  const handleClearLocked = useCallback(() => {
+    setConsolidate((prev) => {
+      if (!prev) return prev
+      // eslint-disable-next-line no-unused-vars
+      const { priorCriteria, ...rest } = prev
+      return { ...rest, rows: new Map() }
+    })
+  }, [])
   const eligibility = useCallback((row) => consolidationEligibility(row, anchorCustomerId), [anchorCustomerId])
   const proceedToReview = useCallback(() => {
     navigate('/shipments/consolidate/review', { state: { rows: [...selection.values()] } })
@@ -587,6 +631,10 @@ function ShipmentsRoute() {
           seedChips={seedChips}
           attributeKeys={searchAttributeKeys}
           lockedChip={lockedChip}
+          lockedClearMessage={anchor
+            ? `Clearing the search will also clear all ${selection.size} selected shipment${selection.size === 1 ? '' : 's'} for ${anchor.customerName || anchor.customerId}.`
+            : null}
+          onClearLocked={handleClearLocked}
           placeholder={anchor ? `Search for ${anchor.customerName || anchor.customerId}` : 'Search in Shipments'}
         />
       }
@@ -635,7 +683,7 @@ function ShipmentsRoute() {
         </>
       }
     >
-      <PageHeader title={inMode ? 'Shipments Consolidation' : 'Shipments'} style={{ marginBottom: anchor ? 12 : 25 }}>
+      <PageHeader title={inMode ? 'Shipments Consolidation' : 'Shipments'} style={{ marginBottom: inMode ? 8 : 25 }}>
         {inMode && (
           <span className="consolidate-cancel">
             <Button variant="secondary" onClick={exitConsolidate}>Cancel</Button>
@@ -657,10 +705,20 @@ function ShipmentsRoute() {
             : 'Consolidate'}
         </Button>
       </PageHeader>
-      {anchor && (
+      {/* The row holds the same slot for the whole mode (S155 §1.4) — before
+          an anchor exists it carries the instruction, after it the locked
+          customer. Rendering it only when anchored made the tabs jump the
+          moment the first row was checked. */}
+      {inMode && (
         <div className="consolidate-customer text-label-sm-regular">
-          <span>Selected Customer:</span>
-          <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
+          {anchor ? (
+            <>
+              <span>Selected Customer:</span>
+              <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
+            </>
+          ) : (
+            <span>Select shipments you want to consolidate. Only direct shipments are consolidatable</span>
+          )}
         </div>
       )}
       <ShipmentsPanelTabs
@@ -715,7 +773,8 @@ function ShipmentsRoute() {
         </div>
       ) : (
         <ShipmentTable
-          shipments={pageRows}
+          shipments={tableRows}
+          highlightId={created?.id ?? null}
           selectedId={inMode ? null : selectedShipmentId}
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}

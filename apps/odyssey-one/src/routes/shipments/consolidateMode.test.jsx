@@ -6,6 +6,7 @@ import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-li
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ShipmentsRoute from './ShipmentsRoute.jsx'
+import ShipmentTable from '../../components/shipments/ShipmentTable.jsx'
 import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
@@ -364,5 +365,123 @@ describe('consolidate mode — the customer lock is a committed filter chip (S15
     const lockedChip = { ...attrChip('customer-id', 'CUST_1'), exact: true, locked: true }
     expect(matchesChip({ customerId: 'CUST_1' }, lockedChip)).toBe(true)
     expect(matchesChip({ customerId: 'CUST_10' }, lockedChip)).toBe(false)
+  })
+
+  // S155 §1.1 — the lock is committed BY THE HOST, so the bar's "a chip was
+  // just committed → show the glimpse" heuristic must not fire on it. Checking
+  // a row is a table gesture; nothing should drop over the page.
+  test('locking the customer does not open the results glimpse', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(0))
+    fireEvent.click(enabledRowBoxes()[0])
+    await screen.findByText('Selected Customer:')
+    expect(document.querySelector('.shipments-results-panel')).toBeNull()
+  })
+
+  // S155 §1.2 — Clear all while locked also throws away the selection, so it
+  // asks first.
+  test('clearing the bar while locked confirms, then empties the selection', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(0))
+    fireEvent.click(enabledRowBoxes()[0])
+    await screen.findByText('Selected Customer:')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }))
+    expect(await screen.findByText('Clear Customer Selection')).toBeTruthy()
+    expect(screen.getByText(/1 selected shipment /)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, Clear' }))
+    await waitFor(() => expect(screen.queryByText('Selected Customer:')).toBeNull())
+    expect(screen.getByRole('button', { name: 'Select to Consolidate' })).toBeTruthy()
+    expect(committedChipTexts().some((t) => t.includes('Customer ID'))).toBe(false)
+  })
+
+  // S155 §1.3 — the header checkbox with no anchor used to check every
+  // eligible row on the page ACROSS customers; the first one locked the
+  // customer, the table narrowed, and the rest stayed selected but invisible
+  // (the count outran what was on screen). Now the batch is narrowed to the
+  // first eligible row's customer before anything is stored.
+  test('select-all with no anchor selects only the first eligible row\'s customer', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(1))
+    // Page 1 of the seed carries eligible rows for a dozen-odd customers, so
+    // "all of them" and "the anchor's" are very different numbers — the count
+    // in the primary button is where the surplus showed.
+    const eligibleOnPage = enabledRowBoxes().length
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all eligible shipments on this page' }))
+    await screen.findByText('Selected Customer:')
+    const selected = Number(screen.getByRole('button', { name: /Consolidate|Select to Consolidate/ }).textContent.match(/\d+/)?.[0] ?? 1)
+    expect(selected).toBeLessThan(eligibleOnPage)
+  })
+
+  test('with no selection, the mode explains what to select', async () => {
+    renderRoute()
+    await enterMode()
+    expect(screen.getByText('Select shipments you want to consolidate. Only direct shipments are consolidatable')).toBeTruthy()
+    expect(screen.queryByText('Selected Customer:')).toBeNull()
+  })
+})
+
+// S155 §1.3 (table half) — unchecking the header clears the WHOLE selection,
+// including rows that are not on this page. Driven at the table level: the
+// route can't easily be pushed into "selected rows off the current page"
+// without a second page of seeded data.
+describe('ShipmentTable — header uncheck clears off-page selections (S155)', () => {
+  const row = (i, over = {}) => ({
+    id: `s${i}`, sellShipment: `s${i}`, buyShipment: `b${i}`, odysseyShipmentIdentifier: `O${i}`,
+    orders: [], pickupNumbers: [], poNumbers: [], customerId: 'VALTRIS_01', shipmentType: 'Direct',
+    tenderStatus: '', shipmentStatus: '', category: 'consolidation', grossWeight: '100', ...over,
+  })
+
+  test('the header reports every selected row, not just the page\'s', () => {
+    const pageRows = [row(1), row(2)]
+    const offPage = row(9)
+    const onSelectionChange = vi.fn()
+    render(
+      <MemoryRouter>
+        <ShipmentTable
+          shipments={pageRows}
+          onRowSelect={vi.fn()}
+          selectedId={null}
+          onToggleColumnPanel={vi.fn()}
+          visibleColumns={['odysseyShipmentIdentifier', 'customerId']}
+          sorting={[]}
+          onSortingChange={vi.fn()}
+          onPageChange={vi.fn()}
+          onPageSizeChange={vi.fn()}
+          totalCount={3}
+          selectable
+          selection={new Map([['s1', pageRows[0]], ['s2', pageRows[1]], ['s9', offPage]])}
+          onSelectionChange={onSelectionChange}
+          eligibility={() => null}
+        />
+      </MemoryRouter>,
+    )
+    const header = screen.getByRole('checkbox', { name: 'Select all eligible shipments on this page' })
+    expect(header.checked).toBe(true)
+    fireEvent.click(header)
+    const [rows, checked] = onSelectionChange.mock.calls.at(-1)
+    expect(checked).toBe(false)
+    expect(rows.map((r) => r.id)).toEqual(['s1', 's2', 's9'])
+  })
+})
+
+// S155 §4.2 — arriving from Apply's "View Shipment" pins the created row to
+// the top of page 1 (the default sort is by identifier, so a new C7… id would
+// otherwise land pages away) and asks DataTable to highlight it.
+describe('created-shipment pin (S155 §4.2)', () => {
+  test('state.createdShipment renders first', async () => {
+    const created = {
+      id: 'C70000001', sellShipment: 'C70000001', buyShipment: 'b1', odysseyShipmentIdentifier: 'C70000001',
+      orders: [], pickupNumbers: [], poNumbers: [], customerId: 'VALTRIS_01', customerName: 'Valtris',
+      shipmentType: 'Consolidated', tenderStatus: '', shipmentStatus: '', category: 'consolidation', grossWeight: '100',
+    }
+    renderRoute({ createdShipment: created })
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await waitFor(() => expect(document.querySelectorAll('tbody tr').length).toBeGreaterThan(1))
+    const first = document.querySelectorAll('tbody tr')[0]
+    expect(first.textContent).toContain('C70000001')
+    expect(first.getAttribute('data-highlight')).toBe('true')
   })
 })
