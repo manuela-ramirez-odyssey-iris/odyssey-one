@@ -9,13 +9,33 @@ import { EQUIPMENT_CODES } from './master-data'
 // /details/{id}.json. Lost on refresh — accepted, same as orders.
 let overlayRows = []
 const overlayDetails = new Map()
+// Consolidation empties its source shipments and they go away (CNS-01 /
+// DEC-156). The seed is a frozen JSON import, so "removed" is a tombstone set
+// filtered on read — the mock twin of the live DELETE. DEC-156's wording is
+// "soft delete"; nothing in this prototype shows a deleted shell, so a
+// tombstone and a DELETE are indistinguishable to every reader.
+// ponytail: session-scoped, like the overlay — a refresh brings the sources back.
+const removedSellShipments = new Set()
 
 export function getAllShipments() {
-  return overlayRows.length ? [...overlayRows, ...shipments] : shipments
+  const rows = overlayRows.length ? [...overlayRows, ...shipments] : shipments
+  // Tombstones are filtered from BOTH halves: a consolidation can consume a
+  // shipment this session created as easily as a seeded one.
+  return removedSellShipments.size ? rows.filter((r) => !removedSellShipments.has(r.sellShipment)) : rows
+}
+
+/** Consolidation took these shipments' loads — they no longer exist (CNS-01). */
+export function removeShipments(sellShipmentIds = []) {
+  for (const id of sellShipmentIds) removedSellShipments.add(id)
 }
 
 /** Register a session-created shipment (row = grid row, detail = SellShipmentOut). */
 export function addShipment(row, detail) {
+  // A re-added id is not a removed one: re-applying a consolidation reuses the
+  // C… shipment's own id (CNS-09), so it is both a source (tombstoned) and the
+  // result. Registering wins over removing — same as the live handler, which
+  // deletes the old row and INSERTs the new one under the same PK.
+  removedSellShipments.delete(row.sellShipment)
   overlayRows = [row, ...overlayRows.filter(r => r.sellShipment !== row.sellShipment)]
   overlayDetails.set(row.sellShipment, detail)
 }
@@ -29,6 +49,7 @@ export function getOverlayShipmentDetail(sellShipment) {
 export function __resetShipmentWriteState() {
   overlayRows = []
   overlayDetails.clear()
+  removedSellShipments.clear()
 }
 
 // ─── Search attributes ──────────────────────────────────────

@@ -15,18 +15,27 @@ export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailV
     return mapSellShipmentOutToDetail(dto)
   }
 
-  // mock: a shipment created in this session lives in the overlay (S150) —
-  // serve its blob; otherwise load the generated SellShipmentOut DTO file.
+  return mapSellShipmentOutToDetail(await getRawSellShipmentOut(id))
+}
+
+/**
+ * The RAW SellShipmentOut, unmapped — mock only. Consolidation (S155 §3.2)
+ * rebuilds a detail blob from its sources' blobs, so it needs the contract
+ * object, not the view-model `getSellShipmentDetail` returns. Same two
+ * branches that function always had, lifted so there is one lookup rule.
+ */
+export async function getRawSellShipmentOut(id: string): Promise<SellShipmentOut> {
+  // a shipment created in this session lives in the overlay (S150) — serve its
+  // blob; otherwise load the generated SellShipmentOut DTO file.
   const local = getOverlayShipmentDetail(id)
   // structuredClone for PARITY, not defense: the /details fetch path re-parses
   // JSON and so returns a fresh object per call. Without this the overlay would
   // hand the same reference to every caller — a difference no consumer exploits
   // today, and none should have to think about.
-  if (local) return mapSellShipmentOutToDetail(structuredClone(local) as SellShipmentOut)
+  if (local) return structuredClone(local) as SellShipmentOut
   const res = await fetch(`/details/${id}.json`)
   if (!res.ok) throw new Error(`Failed to load details for ${id}`)
-  const dto = (await res.json()) as SellShipmentOut
-  return mapSellShipmentOutToDetail(dto)
+  return (await res.json()) as SellShipmentOut
 }
 
 /**

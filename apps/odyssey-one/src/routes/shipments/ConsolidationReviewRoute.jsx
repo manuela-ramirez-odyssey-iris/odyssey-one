@@ -9,6 +9,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { getSellShipmentDetail } from '../../api/services/shipmentService'
 import { shipmentDetailQueryKey } from '../../api/queries/useShipmentDetail'
+import { useApplyConsolidation } from '../../api/queries/useApplyConsolidation'
 import { buildProposal } from '../../consolidation/proposal'
 import useSlideRoute from './useSlideRoute'
 import '../../components/shipments/order-change/order-change.css'
@@ -19,9 +20,9 @@ import '../../styles/slide-route.css'
 // (LINX-15787; VD x38TOJGsNryYl3LsKhCtSc node 2249:46444). Input is the
 // selection ShipmentsRoute's consolidate mode hands over in
 // location.state.rows; nothing is fetched to render the page except each
-// shipment's detail, for volume and hazmat. Apply is a confirm-dialog STUB
-// this session (user ruling, Task 7 spec) — the eventual mechanics are the
-// next session's work.
+// shipment's detail, for volume and hazmat. Apply (S155) creates the `C…`
+// shipment through useApplyConsolidation and turns this page into a read-only
+// preview of what it made.
 
 const COLUMN_BY_KEY = Object.fromEntries(COLUMN_CONFIG.map((c) => [c.key, c]))
 const REVIEW_COLUMNS = ['buyShipment', 'customerId', 'shipmentStatus', 'orderCount', 'orders', 'pickupDate']
@@ -35,7 +36,7 @@ const fmtPct = (n) => (n == null ? '--' : `${n}%`)
 // never removes it from the table — it stays visible, grayed (CSS, keyed off
 // TanStack rowSelection → data-selected, see consolidation-review.css) — so
 // the planner can put it back.
-function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll }) {
+function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll, readOnly = false }) {
   const columns = useMemo(() => {
     const selectColumn = columnHelper.display({
       id: 'select',
@@ -64,7 +65,9 @@ function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll }) {
           />
         )
       },
-      meta: { fixedWidth: true },
+      // sticky-left so the include/exclude control survives the table's
+      // horizontal scroll — the one control the planner reaches for (S155 §1.5).
+      meta: { fixedWidth: true, sticky: 'left' },
     })
     const dataCols = REVIEW_COLUMNS.map((key) => {
       const cfg = COLUMN_BY_KEY[key]
@@ -75,8 +78,10 @@ function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll }) {
         enableSorting: false,
       })
     })
-    return [selectColumn, ...dataCols]
-  }, [rows, checkedIds, onToggle, onToggleAll])
+    // Applied: there is nothing left to include or exclude, so the column goes
+    // rather than rendering dead checkboxes (S155 §2.6).
+    return readOnly ? dataCols : [selectColumn, ...dataCols]
+  }, [rows, checkedIds, onToggle, onToggleAll, readOnly])
 
   // rowSelection is CONTROLLED from checkedIds so row.getIsSelected() (and the
   // DataTable-owned data-selected attribute) reflects INCLUDED, not excluded.
@@ -100,15 +105,36 @@ export default function ConsolidationReviewRoute() {
   const { className: slideClassName, leaveTo } = useSlideRoute()
   const rows = location.state?.rows ?? []
   const [pending, setPending] = useState(null) // 'apply' | 'cancel' | null
+  // The rows a refused toggle tried to uncheck (S155 §2.4) — null when the
+  // minimum-two dialog is closed. Carried so "Modify Selection" can leave with
+  // the planner's INTENT (the set minus those rows), not the set they were
+  // stuck with.
+  const [blockedUncheck, setBlockedUncheck] = useState(null)
+  const apply = useApplyConsolidation()
+  const applied = apply.data ?? null
+  const [alertDismissed, setAlertDismissed] = useState(false)
   // Checked = INCLUDED in the consolidation. Every row starts checked;
   // unchecking trims the consolidation without hiding the row (S154).
   const [checkedIds, setCheckedIds] = useState(() => new Set(rows.map((r) => r.id)))
-  const toggleChecked = (id, checked) => setCheckedIds((prev) => {
-    const next = new Set(prev)
-    if (checked) next.add(id); else next.delete(id)
-    return next
-  })
-  const toggleAllChecked = (checked) => setCheckedIds(checked ? new Set(rows.map((r) => r.id)) : new Set())
+  // A consolidation needs at least two shipments (LINX-15787), so a toggle that
+  // would drop below two is REFUSED rather than disabling the last checkbox:
+  // the planner's real intent is to change the selection, and the dialog is
+  // what routes them there. Guarded in ONE place so the row checkbox and the
+  // header checkbox can never disagree.
+  const guardMinimum = (nextIds, tried) => {
+    if (nextIds.size >= 2) { setCheckedIds(nextIds); return }
+    setBlockedUncheck(tried)
+  }
+  const toggleChecked = (id, checked) => {
+    const next = new Set(checkedIds)
+    if (checked) { next.add(id); setCheckedIds(next); return }
+    next.delete(id)
+    guardMinimum(next, [id])
+  }
+  const toggleAllChecked = (checked) => {
+    if (checked) { setCheckedIds(new Set(rows.map((r) => r.id))); return }
+    guardMinimum(new Set(), [...checkedIds])
+  }
 
   // Volume and hazmat live on the detail, not the grid row (proposal.js).
   const detailQueries = useQueries({
@@ -128,7 +154,10 @@ export default function ConsolidationReviewRoute() {
   // buildProposal is a cheap reduce over a handful of rows — no memo needed.
   const proposal = buildProposal(checkedRows, checkedDetails)
 
-  const backInMode = () => leaveTo('/shipments', { state: { consolidate: { rows: checkedRows } } })
+  // Zero-arg on purpose — these are click handlers, and a default parameter
+  // would swallow the event object as its argument.
+  const backInModeWith = (rowsBack) => leaveTo('/shipments', { state: { consolidate: { rows: rowsBack } } })
+  const backInMode = () => backInModeWith(checkedRows)
   const leave = () => leaveTo('/shipments')
 
   if (!rows.length) {
@@ -169,14 +198,33 @@ export default function ConsolidationReviewRoute() {
     // sidebarHidden: the VD (2249:46444) shows no rail, and this screen
     // continues consolidate mode from /shipments, which already hid it —
     // it should stay hidden for the rest of the flow.
-    <AppShell titleMode={{ title: 'Manual Consolidation', onClose: backInMode }} sidebarHidden>
+    <AppShell titleMode={{ title: 'Manual Consolidation', onClose: applied ? leave : backInMode }} sidebarHidden>
       <div className={`order-change consolidation-review ${slideClassName}`}>
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Shipments Consolidation" onClick={backInMode} />
-          <Breadcrumb label="Review & Apply" current />
+          <Breadcrumb label="Shipments Consolidation" onClick={applied ? leave : backInMode} />
+          <Breadcrumb label={applied ? `Review ${applied.row.odysseyShipmentIdentifier}` : 'Review & Apply'} current />
         </nav>
 
-        <PageHeader title="Review & Apply Manual Consolidation" />
+        {/* Outcome banners sit ABOVE the header (VD): the result of the action
+            the planner just took outranks the page's own title. */}
+        {applied && !alertDismissed && (
+          <Alert
+            variant="success"
+            showLink
+            linkLabel="View Shipment"
+            onLinkClick={() => leaveTo('/shipments', { state: { createdShipment: applied.row } })}
+            onClose={() => setAlertDismissed(true)}
+          >
+            Consolidation Successfully Applied! Consolidation ID: {applied.row.odysseyShipmentIdentifier}. {checkedRows.length} Shipments successfully consolidated.
+          </Alert>
+        )}
+        {apply.isError && (
+          <Alert variant="error" showClose={false}>
+            {apply.error?.message || "Couldn't apply the consolidation. Nothing was changed."}
+          </Alert>
+        )}
+
+        <PageHeader title={applied ? `Review ${applied.row.odysseyShipmentIdentifier}` : 'Review & Apply Manual Consolidation'} />
 
         <div className="consolidation-review__body">
           <aside className="consolidation-review__side">
@@ -192,23 +240,30 @@ export default function ConsolidationReviewRoute() {
               </div>
             </div>
             <h3 className="text-label-base-semibold consolidation-review__stops-heading">Planned Stops</h3>
-            <Timeline items={timelineItems} aria-label="Planned stops" />
+            <Timeline items={timelineItems} animate aria-label="Planned stops" />
           </aside>
 
           <section className="consolidation-review__main">
-            <h2 className="text-display-xs-semibold">Consolidation Summary</h2>
-            <div className="consolidation-review__info">
-              <div className="consolidation-review__info-cell">
-                <span className="text-label-xs-regular consolidation-review__label">Customer Name</span>
-                <span className="text-label-md-semibold">{proposal.customerName || proposal.customerId || '--'}</span>
-              </div>
-              <div className="consolidation-review__info-cell">
-                <span className="text-label-xs-regular consolidation-review__label">Selected Shipments ({checkedRows.length})</span>
-                <div className="consolidation-review__chips">
-                  {proposal.identifiers.map((id) => <Badge key={id} variant="purple">{id}</Badge>)}
-                </div>
-              </div>
-            </div>
+            <h2 className="text-heading-xl-semibold">Consolidation Summary</h2>
+            {/* Same strip molecule as the metrics below, backgroundless — one
+                label/value idea on the page instead of a bespoke grid (S155 §2.2).
+                The identifier list rides through as a NODE value. */}
+            <SummaryStrip
+              className="consolidation-review__strip"
+              background={false}
+              aria-label="Consolidation summary"
+              items={[
+                { label: 'Customer Name', value: proposal.customerName || proposal.customerId || '--' },
+                {
+                  label: `Selected Shipments (${checkedRows.length})`,
+                  value: (
+                    <div className="consolidation-review__chips">
+                      {proposal.identifiers.map((id) => <Badge key={id} variant="purple">{id}</Badge>)}
+                    </div>
+                  ),
+                },
+              ]}
+            />
             {detailsFailed && (
               <Alert variant="error" showClose={false}>
                 Couldn't load volume and hazmat for every selected shipment. The totals below are incomplete.
@@ -218,7 +273,6 @@ export default function ConsolidationReviewRoute() {
                 per-shipment detail fetch above — a failed detail fetch doesn't affect them. */}
             <SummaryStrip
               className="consolidation-review__strip"
-              background={false}
               items={[
                 { label: 'Total Weight', value: fmtLb(proposal.weightLb) },
                 { label: 'Weight Utilization', value: fmtPct(proposal.weightUtilization) },
@@ -227,30 +281,54 @@ export default function ConsolidationReviewRoute() {
                 { label: 'Hazmat', value: proposal.hazmat == null ? '--' : (proposal.hazmat ? 'Yes' : 'No'), tone: proposal.hazmat ? 'negative' : undefined },
               ]}
             />
-            <SubAccordion
-              title="Selected shipments to consolidate"
-              collapsible={false}
-              action={
-                <Button variant="secondary" size="sm" onClick={backInMode}>Modify Whole Selection</Button>
-              }
-            >
+            {/* The accordion's action slot is empty since S155: "Edit
+                Consolidation" in the footer is the one way back. */}
+            <SubAccordion title="Selected shipments to consolidate" collapsible={false}>
               <div className="consolidation-review__table-count text-label-sm-regular">{rows.length} items</div>
-              <SelectedShipmentsTable rows={rows} checkedIds={checkedIds} onToggle={toggleChecked} onToggleAll={toggleAllChecked} />
+              <SelectedShipmentsTable rows={rows} checkedIds={checkedIds} onToggle={toggleChecked} onToggleAll={toggleAllChecked} readOnly={!!applied} />
             </SubAccordion>
           </section>
         </div>
 
         <div className="consolidation-review__footer">
-          <StepperButtonsFooter
-            cancelLabel="Cancel and Modify Selection"
-            primaryLabel="Apply Consolidation"
-            showSave={false}
-            primaryDisabled={checkedRows.length < 2}
-            onCancel={() => setPending('cancel')}
-            onPrimary={() => setPending('apply')}
-          />
+          {applied ? (
+            <StepperButtonsFooter
+              cancelLabel="Back to Shipments"
+              primaryLabel="Edit Consolidated Shipment"
+              showSave={false}
+              onCancel={leave}
+              // The created C… row goes back into consolidate mode as the
+              // anchor selection — a consolidation is itself a source (§3.3,
+              // CNS-09 id reuse).
+              onPrimary={() => backInModeWith([applied.row])}
+            />
+          ) : (
+            <StepperButtonsFooter
+              cancelLabel="Cancel Consolidation"
+              showSave
+              saveLabel="Edit Consolidation"
+              primaryLabel="Apply Consolidation"
+              primaryDisabled={checkedRows.length < 2}
+              saving={apply.isPending}
+              onCancel={() => setPending('cancel')}
+              onSave={backInMode}
+              onPrimary={() => setPending('apply')}
+            />
+          )}
         </div>
 
+        {blockedUncheck && (
+          <ConfirmDialog
+            title="Minimum Two Shipments"
+            message="A consolidation needs at least two shipments. To change the selection, go back to Shipments Consolidation and modify it."
+            confirmLabel="Modify Selection"
+            cancelLabel="Stay"
+            // Leave with what the planner ASKED for — the rows they tried to
+            // uncheck are gone, even though the toggle itself was refused.
+            onConfirm={() => backInModeWith(checkedRows.filter((r) => !blockedUncheck.includes(r.id)))}
+            onCancel={() => setBlockedUncheck(null)}
+          />
+        )}
         {pending === 'cancel' && (
           <ConfirmDialog
             title="Cancel Proposed Consolidation"
@@ -264,14 +342,20 @@ export default function ConsolidationReviewRoute() {
         {pending === 'apply' && (
           <ConfirmDialog
             title="Apply Proposed Consolidation"
-            message="Are you sure you want to apply this consolidation?"
-            confirmLabel="Yes"
+            message={
+              <>
+                <p className="text-label-sm-regular">Are you sure you want to apply the proposed consolidation?</p>
+                <div className="consolidation-review__chips">
+                  {proposal.identifiers.map((id) => <Badge key={id} variant="purple">{id}</Badge>)}
+                </div>
+              </>
+            }
+            confirmLabel="Yes, Apply"
             cancelLabel="No"
-            // ponytail: Apply is a stub — creating the consolidated shipment,
-            // moving the loads and soft-deleting the emptied direct
-            // shipments is the next session's work. Yes just closes the
-            // dialog and stays on the page (user ruling, Task 7 spec).
-            onConfirm={() => setPending(null)}
+            onConfirm={() => {
+              setPending(null)
+              apply.mutate({ sellShipments: checkedRows.map((r) => r.sellShipment) })
+            }}
             onCancel={() => setPending(null)}
           />
         )}

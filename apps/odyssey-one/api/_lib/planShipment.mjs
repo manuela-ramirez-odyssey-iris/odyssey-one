@@ -14,7 +14,7 @@ import { projectRow } from './search-registry.mjs'
 
 // Same table seed.mjs uses to turn the generator's display strings into
 // timestamptz — the abbreviation already encodes the DST decision.
-const TZ_OFFSETS = {
+export const TZ_OFFSETS = {
   EST: '-05:00', EDT: '-04:00', CST: '-06:00', CDT: '-05:00', MST: '-07:00', MDT: '-06:00',
   PST: '-08:00', PDT: '-07:00', AKST: '-09:00', AKDT: '-08:00', HST: '-10:00',
 }
@@ -73,7 +73,7 @@ function toTs(iso, tz) {
 
 // ponytail: mode from weight — LTL under 10,000 lb, TL otherwise. Real mode
 // comes from routing, which does not exist here; replace when it does.
-const modeFor = (w) => (Number(w ?? 0) < 10_000 ? 'LTL' : 'TL')
+export const modeFor = (w) => (Number(w ?? 0) < 10_000 ? 'LTL' : 'TL')
 
 function toAddress(mo, p) {
   return {

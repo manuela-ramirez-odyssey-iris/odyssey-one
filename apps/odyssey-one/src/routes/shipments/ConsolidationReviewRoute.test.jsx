@@ -5,9 +5,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ConsolidationReviewRoute from './ConsolidationReviewRoute.jsx'
 import { getSellShipmentDetail } from '../../api/services/shipmentService'
+import { applyConsolidation } from '../../api/services/consolidationService'
 import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
+
+vi.mock('../../api/services/consolidationService', () => ({
+  applyConsolidation: vi.fn(async ({ sellShipments }) => ({
+    row: { id: '27000001', sellShipment: '27000001', buyShipment: '910000001', odysseyShipmentIdentifier: 'C70000001', orders: sellShipments },
+    detail: {},
+  })),
+}))
 
 vi.mock('../../api/services/shipmentService', () => ({
   getSellShipmentDetail: vi.fn(async (id) => ({
@@ -16,12 +24,16 @@ vi.mock('../../api/services/shipmentService', () => ({
   })),
 }))
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.mocked(applyConsolidation).mockClear() })
 
 const rows = [
   { id: 'a', sellShipment: 'a', buyShipment: 'BUY-A', odysseyShipmentIdentifier: 'O00000001', customerId: 'VALTRIS_01', customerName: 'Valtris Specialty Chemicals', origin: 'Sparta, NJ', destination: 'Baltimore, MD', pickupDate: '12/16/2026 08:00 CST', deliveryDate: '12/17/2026 08:00 CST', grossWeight: '15000', equipmentCode: 'TL', shipmentType: 'Direct', tenderStatus: '', shipmentStatus: '', orders: ['ORD-1'], orderCount: '1', pickupNumbers: [], poNumbers: [] },
   { id: 'b', sellShipment: 'b', buyShipment: 'BUY-B', odysseyShipmentIdentifier: 'O00000002', customerId: 'VALTRIS_01', customerName: 'Valtris Specialty Chemicals', origin: 'Sewaren, NJ', destination: 'Fairfax, VA', pickupDate: '12/16/2026 12:00 CST', deliveryDate: '12/18/2026 08:00 CST', grossWeight: '12500', equipmentCode: 'TL', shipmentType: 'Direct', tenderStatus: '', shipmentStatus: '', orders: ['ORD-2'], orderCount: '1', pickupNumbers: [], poNumbers: [] },
 ]
+
+// A third row, so a single uncheck still leaves two and is NOT refused by the
+// minimum-two guard (S155 §2.4).
+const rows3 = [...rows, { ...rows[1], id: 'c', sellShipment: 'c', buyShipment: 'BUY-C', odysseyShipmentIdentifier: 'O00000003', orders: ['ORD-3'] }]
 
 function ShipmentsProbe() {
   const { state } = useLocation()
@@ -70,100 +82,164 @@ describe('ConsolidationReviewRoute', () => {
   })
 
   test('unchecking a row keeps it in the table but drops its totals and chip', async () => {
-    renderReview({ rows })
+    renderReview({ rows: rows3 })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
     const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
     expect(within(table).getByText('BUY-A')).toBeTruthy() // still there, just excluded
-    expect(screen.getByText('12,500 LB')).toBeTruthy() // row b only
-    expect(screen.getByText('Selected Shipments (1)')).toBeTruthy()
+    expect(screen.getByText('25,000 LB')).toBeTruthy() // rows b + c
+    expect(screen.getByText('Selected Shipments (2)')).toBeTruthy()
     expect(screen.queryByText('O00000001')).toBeNull()
     expect(screen.getByText('O00000002')).toBeTruthy()
   })
 
   test('an unchecked row loses data-selected on its <tr> (the graying hook)', () => {
-    renderReview({ rows })
+    renderReview({ rows: rows3 })
     const rowEl = screen.getByText('BUY-A').closest('tr')
     expect(rowEl.hasAttribute('data-selected')).toBe(true)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
     expect(rowEl.hasAttribute('data-selected')).toBe(false)
   })
 
-  test('Apply Consolidation is disabled once fewer than 2 rows are checked', () => {
+  // S155 §2.4 — a toggle that would leave fewer than two is REFUSED, from the
+  // row checkbox and the header checkbox alike; the dialog routes the planner
+  // to the place the selection can actually be changed.
+  test('unchecking the second-to-last row is refused and opens the minimum-two dialog', () => {
     renderReview({ rows })
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
+    expect(screen.getByText('A consolidation needs at least two shipments. To change the selection, go back to Shipments Consolidation and modify it.')).toBeTruthy()
+    // the toggle did NOT take effect
+    expect(screen.getByRole('checkbox', { name: 'Include BUY-A' }).checked).toBe(true)
+    expect(screen.getByText('27,500 LB')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Stay' }))
+    expect(screen.queryByText(/A consolidation needs at least two shipments/)).toBeNull()
+    expect(screen.getByRole('checkbox', { name: 'Include BUY-A' }).checked).toBe(true)
   })
 
-  test('the "Selected shipments to consolidate" SubAccordion is not collapsible', () => {
+  test('the HEADER checkbox hits the same guard', () => {
     renderReview({ rows })
-    expect(screen.queryByRole('button', { name: 'Selected shipments to consolidate' })).toBeNull()
-    expect(screen.getByText('Selected shipments to consolidate')).toBeTruthy()
-    // content is always revealed for a static (non-collapsible) accordion — no chevron control hides it
-    const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
-    expect(within(table).getByText('BUY-A')).toBeTruthy()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include all shipments to consolidate' }))
+    expect(screen.getByText('Minimum Two Shipments')).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: 'Include BUY-B' }).checked).toBe(true)
   })
 
-  test('stop timeline lists pickups then deliveries in selection order', () => {
+  test('Modify Selection leaves with the rows the planner tried to uncheck removed', async () => {
     renderReview({ rows })
-    const labels = screen.getAllByText(/^(P|D)\d$/).map((el) => el.textContent)
-    expect(labels).toEqual(['P1', 'P2', 'D1', 'D2'])
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-A' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Modify Selection' }))
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
+    expect(state.consolidate.rows.map((r) => r.id)).toEqual(['b'])
   })
 
-  test('pickup and delivery stop markers are visually distinguished (S154)', () => {
+  test('the header-checkbox refusal carries an EMPTY selection back', async () => {
+    renderReview({ rows })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include all shipments to consolidate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Modify Selection' }))
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
+    expect(state.consolidate.rows).toEqual([])
+  })
+
+  test('the select column is pinned left so it survives horizontal scroll', () => {
     const { container } = renderReview({ rows })
-    const badgeFor = (label) => screen.getByText(label).closest('.stop-badge')
-    // Both are the solid `completed` skin (white label, no status circle) —
-    // the pickup/delivery split comes from the extra tint class Timeline
-    // forwards, not from status.
-    expect(badgeFor('P1').className).toContain('stop-badge--completed')
-    expect(badgeFor('D1').className).toContain('stop-badge--completed')
-    expect(badgeFor('P1').className).toContain('consolidation-review__stop-badge--pickup')
-    expect(badgeFor('P2').className).toContain('consolidation-review__stop-badge--pickup')
-    expect(badgeFor('D1').className).not.toContain('consolidation-review__stop-badge--pickup')
-    expect(badgeFor('D2').className).not.toContain('consolidation-review__stop-badge--pickup')
-    // No status circle overlay on planned-stop markers.
-    expect(container.querySelectorAll('.stop-badge__status')).toHaveLength(0)
+    expect(container.querySelector('.odyssey-table__cell--sticky-left')).toBeTruthy()
   })
 
-  // S154 — Modify Whole Selection now exits through the slide-out (useSlideRoute);
-  // the nav fires after the slide duration, so the probe has to be awaited.
-  test('Modify Whole Selection returns to Shipments in mode with the rows, lives in the accordion action slot, no pencil icon', async () => {
+  // S155 — the accordion action is gone; the footer owns the way back.
+  test('Edit Consolidation returns to Shipments in mode with the CHECKED rows', async () => {
     renderReview({ rows })
-    expect(screen.queryByRole('button', { name: 'Modify Selection' })).toBeNull()
-    const button = screen.getByRole('button', { name: 'Modify Whole Selection' })
-    expect(button.querySelector('svg')).toBeNull() // no icon
-    fireEvent.click(button)
+    expect(screen.queryByRole('button', { name: 'Modify Whole Selection' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Consolidation' }))
     const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
     expect(state.consolidate.rows.map((r) => r.id)).toEqual(['a', 'b'])
   })
 
-  test('Modify Whole Selection carries only the CHECKED rows back', async () => {
+  test('Cancel Consolidation asks "Yes, Cancel", then leaves with nothing retained', async () => {
     renderReview({ rows })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Include BUY-B' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Modify Whole Selection' }))
-    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
-    expect(state.consolidate.rows.map((r) => r.id)).toEqual(['a'])
-  })
-
-  test('Cancel and Modify Selection asks "Yes, Cancel", then leaves with nothing retained', async () => {
-    renderReview({ rows })
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel and Modify Selection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
     expect(screen.getByText(/Are you sure you want to cancel the proposed consolidation\?/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'No' }))
     expect(screen.queryByText(/Are you sure you want to cancel/)).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel and Modify Selection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
     expect(JSON.parse((await screen.findByTestId('shipments-probe')).textContent)).toBeNull()
   })
 
-  test('Apply Consolidation confirms; Yes is a stub that stays on the page', () => {
+  test('Apply confirms with the identifier chips, then applies the CHECKED sell shipments', async () => {
     renderReview({ rows })
     fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
-    expect(screen.getByText('Are you sure you want to apply this consolidation?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
-    expect(screen.queryByText('Are you sure you want to apply this consolidation?')).toBeNull()
+    expect(screen.getByText('Are you sure you want to apply the proposed consolidation?')).toBeTruthy()
+    const dialog = document.querySelector('.confirm-dialog')
+    expect(within(dialog).getAllByText(/^O0000000\d$/).length).toBe(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+    await screen.findByText(/Consolidation Successfully Applied!/)
+    // react-query hands the mutationFn a context object alongside the variables
+    expect(vi.mocked(applyConsolidation).mock.calls[0][0].sellShipments).toEqual(['a', 'b'])
+  })
+
+  test('"No" closes the apply dialog without applying', () => {
+    renderReview({ rows })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'No' }))
+    expect(screen.queryByText('Are you sure you want to apply the proposed consolidation?')).toBeNull()
+    expect(vi.mocked(applyConsolidation)).not.toHaveBeenCalled()
+  })
+
+  // S155 §2.6 — after Apply the page is a preview of what was created.
+  async function applyAndWait() {
+    renderReview({ rows })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+    await screen.findByText(/Consolidation Successfully Applied!/)
+  }
+
+  test('after Apply: success alert, renamed header and breadcrumb, read-only table', async () => {
+    await applyAndWait()
+    expect(screen.getByText(/Consolidation ID: C70000001\. 2 Shipments successfully consolidated\./)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Review C70000001' })).toBeTruthy()
+    expect(screen.getAllByText('Review C70000001').length).toBeGreaterThan(1) // header + breadcrumb
+    expect(screen.queryByRole('checkbox', { name: 'Include BUY-A' })).toBeNull()
+    expect(screen.queryByRole('checkbox', { name: 'Include all shipments to consolidate' })).toBeNull()
+    // the table itself stays
+    const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
+    expect(within(table).getByText('BUY-A')).toBeTruthy()
+  })
+
+  test('after Apply: the success alert is dismissable', async () => {
+    await applyAndWait()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByText(/Consolidation Successfully Applied!/)).toBeNull()
+  })
+
+  test('after Apply: View Shipment hands the created row to the grid', async () => {
+    await applyAndWait()
+    fireEvent.click(screen.getByRole('button', { name: /View Shipment/ }))
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
+    expect(state.createdShipment.id).toBe('27000001')
+    expect(state.createdShipment.odysseyShipmentIdentifier).toBe('C70000001')
+  })
+
+  test('after Apply: Edit Consolidated Shipment re-enters mode with the NEW row', async () => {
+    await applyAndWait()
+    expect(screen.queryByRole('button', { name: 'Edit Consolidation' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Consolidated Shipment' }))
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
+    expect(state.consolidate.rows.map((r) => r.id)).toEqual(['27000001'])
+  })
+
+  test('after Apply: Back to Shipments leaves with no dialog and no state', async () => {
+    await applyAndWait()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Shipments' }))
+    expect(screen.queryByText(/Are you sure/)).toBeNull()
+    expect(JSON.parse((await screen.findByTestId('shipments-probe')).textContent)).toBeNull()
+  })
+
+  test('a failed Apply shows the error and leaves the page editable', async () => {
+    vi.mocked(applyConsolidation).mockRejectedValueOnce(new Error('Unknown shipment(s): a'))
+    renderReview({ rows })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+    expect(await screen.findByText('Unknown shipment(s): a')).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Review & Apply Manual Consolidation' })).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: 'Include BUY-A' })).toBeTruthy()
   })
 
   test('a failed detail fetch shows the alert but still renders the weight total', async () => {

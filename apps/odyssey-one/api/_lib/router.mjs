@@ -1,6 +1,7 @@
 // api/_lib/router.mjs — path table for the OdysseyONE-shaped endpoints.
 import { categoryCounts, shipmentErrorList, sellShipmentDetail, saveTender, saveShipmentOverrides, resolveOrderChange, candidateOrders } from './shipments.mjs'
 import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus, createOrder, auditReport } from './orders.mjs'
+import { applyConsolidation } from './consolidations.mjs'
 import { getPreference, putPreference } from './preferences.mjs'
 import { listSharedFilters, createSharedFilter, renameSharedFilter, deleteSharedFilter } from './sharedFilters.mjs'
 import { getSpotState, putSpotState, deleteSpotState } from './spot.mjs'
@@ -17,6 +18,7 @@ export const ROUTES = [
   { name: 'saveTender',        method: 'PUT',  pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)\/tender$/, handler: saveTender },
   { name: 'saveShipmentOverrides', method: 'PATCH', pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)\/overrides$/, handler: saveShipmentOverrides },
   { name: 'resolveOrderChange', method: 'PATCH', pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)\/order-change$/, handler: resolveOrderChange },
+  { name: 'applyConsolidation', method: 'POST', path: '/shipment-service/v1/consolidation',                 handler: applyConsolidation },
   { name: 'orderView',         method: 'POST', path: '/order-service/v3/order/view',                        handler: orderView },
   { name: 'auditReport',       method: 'POST', path: '/order-service/v3/audit-report',                      handler: auditReport },
   { name: 'updateOrder',       method: 'PUT',  path: '/order-service/v3/order',                             handler: updateOrder },

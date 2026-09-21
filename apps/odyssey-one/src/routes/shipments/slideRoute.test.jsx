@@ -57,7 +57,7 @@ describe('useSlideRoute / .slide-route (S154)', () => {
 
   test('clicking an exit control adds slide-route--leaving and does not navigate immediately', () => {
     const { container } = renderReview({ rows })
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel and Modify Selection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
     expect(container.querySelector('.slide-route--leaving')).toBeTruthy()
     expect(screen.queryByTestId('shipments-probe')).toBeNull()
@@ -66,7 +66,7 @@ describe('useSlideRoute / .slide-route (S154)', () => {
   test('navigates after the slide duration, to the same destination and state a direct call would have used', async () => {
     vi.useFakeTimers()
     renderReview({ rows })
-    fireEvent.click(screen.getByRole('button', { name: 'Modify Whole Selection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Consolidation' }))
     expect(screen.queryByTestId('shipments-probe')).toBeNull()
     await act(async () => { vi.advanceTimersByTime(300) })
     const state = JSON.parse(screen.getByTestId('shipments-probe').textContent)
@@ -78,7 +78,7 @@ describe('useSlideRoute / .slide-route (S154)', () => {
     window.matchMedia = (q) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener() {}, removeEventListener() {} })
     try {
       const { container } = renderReview({ rows })
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel and Modify Selection' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
       fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
       expect(container.querySelector('.slide-route--leaving')).toBeNull()
       expect(JSON.parse(screen.getByTestId('shipments-probe').textContent)).toBeNull()

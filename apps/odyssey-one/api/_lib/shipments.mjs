@@ -17,7 +17,7 @@ const RELEVANCE_SORT = 'relevance'
 // Shipment Details modal writes shipment-stage edits there (PATCH .../overrides)
 // — without this the grid would keep showing the pre-edit value right after
 // the user saved a new one in the modal.
-const ROW_COLUMNS = `
+export const ROW_COLUMNS = `
   -- odyssey_shipment_id is the grid's far-left column (S148) — there is no
   -- left-pin mechanism, so it must lead the SELECT list to lead the row.
   odyssey_shipment_id AS "odysseyShipmentIdentifier",
