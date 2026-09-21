@@ -20,7 +20,22 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
   const { expanded: sidebarExpanded, pinned: sidebarPinned, setPeeking: setSidebarPeeking, toggle: toggleSidebar } = useSidebar()
 
   return (
-    <div className="flex flex-col h-screen">
+    <div
+      className="flex flex-col h-screen"
+      // The rail is a flex child, so its width is the left edge of <main> —
+      // but `position: fixed` surfaces (the docked ShipmentsBar, the bottom
+      // bar, the bar scrim) are out of flow and used to hardcode
+      // `left: var(--sidebar-width)`, so they slid under the rail the moment
+      // it expanded. Publishing the rail's CURRENT width here is the single
+      // source they all read (S155): one var, set where the rail's state
+      // actually lives, instead of a class on every fixed surface.
+      // isEditMode doesn't render the rail at all — same as hidden, 0.
+      style={{
+        '--sidebar-current': (sidebarHidden || isEditMode)
+          ? '0px'
+          : sidebarExpanded ? 'var(--sidebar-width-expanded)' : 'var(--sidebar-width)',
+      }}
+    >
       <Navbar
         searchSlot={searchSlot}
         titleMode={titleMode}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, test, expect, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AppShell from './AppShell.jsx'
@@ -34,6 +34,23 @@ describe('consolidate-mode chrome switches', () => {
       </QueryClientProvider>,
     )
     expect(container.querySelector('.sidebar.sidebar--hidden')).toBeTruthy()
+  })
+
+  // S155 — fixed-position surfaces (the docked ShipmentsBar, the bottom bar,
+  // the bar scrim) are out of flow and can't read the rail's flex width, so
+  // AppShell publishes it. Hidden = 0, expanded = 240, otherwise the rail.
+  test('AppShell publishes the rail width as --sidebar-current', () => {
+    const { container } = wrap(<AppShell><div /></AppShell>)
+    const shell = container.firstChild
+    expect(shell.style.getPropertyValue('--sidebar-current')).toBe('var(--sidebar-width)')
+
+    // Peeking over the rail is the same expand machinery the hamburger drives.
+    fireEvent.mouseEnter(container.querySelector('.sidebar'))
+    expect(shell.style.getPropertyValue('--sidebar-current')).toBe('var(--sidebar-width-expanded)')
+
+    cleanup()
+    const hidden = wrap(<AppShell sidebarHidden><div /></AppShell>)
+    expect(hidden.container.firstChild.style.getPropertyValue('--sidebar-current')).toBe('0px')
   })
 
   test('TableControls hideExport removes the Export button', () => {
