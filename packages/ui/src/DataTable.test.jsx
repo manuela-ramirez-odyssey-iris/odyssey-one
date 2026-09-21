@@ -327,8 +327,12 @@ describe('headClassName', () => {
       .toBe('text-label-sm-semibold odyssey-table__cell--control')
   })
   it('appends meta.headClass and the sticky-right modifier', () => {
-    expect(headClassName({ headClass: 'odyssey-table__cell--control' }, true))
+    expect(headClassName({ headClass: 'odyssey-table__cell--control' }, 'right'))
       .toBe('text-label-sm-semibold odyssey-table__cell--control odyssey-table__cell--sticky-right')
+  })
+  it("S155: sticky 'left' yields the sticky-left modifier", () => {
+    expect(headClassName({ headClass: 'odyssey-table__cell--control' }, 'left'))
+      .toBe('text-label-sm-semibold odyssey-table__cell--control odyssey-table__cell--sticky-left')
   })
 })
 
@@ -337,12 +341,51 @@ describe('cellClassName', () => {
     expect(cellClassName(undefined, false)).toBe('text-label-sm-regular')
   })
   it('uses meta.cellClass when present and adds the sticky-right modifier', () => {
-    expect(cellClassName({ cellClass: 'odyssey-table__cell--title text-label-sm-medium' }, true))
+    expect(cellClassName({ cellClass: 'odyssey-table__cell--title text-label-sm-medium' }, 'right'))
       .toBe('odyssey-table__cell--title text-label-sm-medium odyssey-table__cell--sticky-right')
   })
+  it("S155: sticky 'left' yields the sticky-left modifier", () => {
+    expect(cellClassName({ cellClass: 'odyssey-table__cell--control' }, 'left'))
+      .toBe('odyssey-table__cell--control odyssey-table__cell--sticky-left')
+  })
   it('adds the forward-click modifier when the column opts into meta.forwardClick (drives cursor:pointer)', () => {
-    expect(cellClassName({ forwardClick: true }, true))
+    expect(cellClassName({ forwardClick: true }, 'right'))
       .toBe('text-label-sm-regular odyssey-table__cell--sticky-right odyssey-table__cell--forward-click')
+  })
+})
+
+// ── S155: sticky-left columns + the created-row highlight ───────────────────
+describe('DataTable sticky-left column (meta.sticky: \'left\')', () => {
+  function StickyLeftHarness() {
+    const table = useReactTable({
+      data: ROWS,
+      columns: [col.accessor('name', { header: 'Name', meta: { sticky: 'left' } })],
+      getCoreRowModel: getCoreRowModel(),
+    })
+    return <DataTable table={table} ariaLabel="Sticky left" />
+  }
+
+  it('renders the sticky-left modifier on the head cell and every body cell', () => {
+    const { container } = render(<StickyLeftHarness />)
+    expect(container.querySelectorAll('th.odyssey-table__cell--sticky-left')).toHaveLength(1)
+    expect(container.querySelectorAll('td.odyssey-table__cell--sticky-left')).toHaveLength(ROWS.length)
+    // and never the right-side modifier
+    expect(container.querySelector('.odyssey-table__cell--sticky-right')).toBeNull()
+  })
+})
+
+describe('DataTable highlightRowId', () => {
+  it('sets data-highlight on exactly the matching row', () => {
+    // TanStack default row ids are the row INDEX as a string (no getRowId here).
+    const { container } = render(<Harness highlightRowId="0" />)
+    const highlighted = container.querySelectorAll('tbody tr[data-highlight]')
+    expect(highlighted).toHaveLength(1)
+    expect(highlighted[0].textContent).toContain('Atlanta')
+  })
+
+  it('highlights nothing by default', () => {
+    const { container } = render(<Harness />)
+    expect(container.querySelector('tbody tr[data-highlight]')).toBeNull()
   })
 })
 

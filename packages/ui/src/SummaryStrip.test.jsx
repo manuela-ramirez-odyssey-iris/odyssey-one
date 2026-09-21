@@ -292,3 +292,22 @@ describe('hiddenCharCount (pure function)', () => {
     expect(hiddenCharCount('ABCDEFGHIJ', 70, 100)).toBe(TOOLTIP_MIN_HIDDEN_CHARS)
   })
 })
+
+// ── S155 §2.2: a node `value` (a Badge list) renders verbatim ───────────────
+describe('SummaryStrip node value', () => {
+  it('renders a node value as-is — no title, no lead-truncation class', () => {
+    const { container } = render(
+      <SummaryStrip items={[{ label: 'Selected Shipments (2)', value: <span data-testid="badges"><em>S1</em><em>S2</em></span>, truncate: 'lead' }]} />,
+    )
+    expect(screen.getByTestId('badges')).toBeTruthy()
+    const dd = container.querySelector('dd')
+    expect(dd.getAttribute('title')).toBeNull()
+    expect(dd.className).not.toContain('truncate-lead')
+    expect(container.querySelector('.summary-strip__cell--truncate')).toBeNull()
+  })
+
+  it("still shows the '--' placeholder for an empty STRING value", () => {
+    render(<SummaryStrip items={[{ label: 'Customer', value: '' }]} />)
+    expect(screen.getByText('--')).toBeTruthy()
+  })
+})

@@ -194,25 +194,26 @@ export function renderCell(renderer, context) {
 }
 
 /** `<th>` classes: the `text-label-sm-semibold` base is ALWAYS included;
- *  `meta.headClass` is additive on top of it; `odyssey-table__cell--sticky-right`
- *  when the column is pinned right. */
-export function headClassName(meta, isStickyRight) {
+ *  `meta.headClass` is additive on top of it; `odyssey-table__cell--sticky-left`
+ *  / `--sticky-right` when the column is pinned (second arg = `meta.sticky`). */
+export function headClassName(meta, side) {
   return [
     'text-label-sm-semibold',
     meta?.headClass,
-    isStickyRight && 'odyssey-table__cell--sticky-right',
+    (side === 'left' || side === 'right') && `odyssey-table__cell--sticky-${side}`,
   ].filter(Boolean).join(' ')
 }
 
 /** `<td>` classes: `meta.cellClass` REPLACES the `text-label-sm-regular` default
  *  entirely (a Title cell passes `'odyssey-table__cell--title text-label-sm-medium'`);
- *  `odyssey-table__cell--sticky-right` when the column is pinned right;
+ *  `odyssey-table__cell--sticky-left` / `--sticky-right` when the column is pinned
+ *  (second arg = `meta.sticky`);
  *  `odyssey-table__cell--forward-click` when the column opts into whole-cell click
  *  forwarding (drives the pointer cursor independently of onCellClick). */
-export function cellClassName(meta, isStickyRight) {
+export function cellClassName(meta, side) {
   return [
     meta?.cellClass ?? 'text-label-sm-regular',
-    isStickyRight && 'odyssey-table__cell--sticky-right',
+    (side === 'left' || side === 'right') && `odyssey-table__cell--sticky-${side}`,
     meta?.forwardClick && 'odyssey-table__cell--forward-click',
   ].filter(Boolean).join(' ')
 }
@@ -296,8 +297,11 @@ export function cellClassName(meta, isStickyRight) {
 //                       Renders as a sibling of the horizontal scroller, so a table wider
 //                       than the viewport can't drag the centered block sideways (same
 //                       reasoning as `loading`).
+//   highlightRowId    — S155: the row whose `row.id` matches gets `data-highlight` (a
+//                       one-shot "here is what you just created" flash; the CSS owns the
+//                       animation). Sibling of `data-selected`; null/undefined → no row.
 //   (column resize stays a TanStack option: enableColumnResizing on the table.)
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, loading = false, scrollSelectedIntoView = false, actionsRow, composeRows, error, className = '' }) {
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, loading = false, scrollSelectedIntoView = false, actionsRow, composeRows, error, highlightRowId = null, className = '' }) {
   // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
   // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
   // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
@@ -674,7 +678,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                       return (
                         <th
                           key={header.id}
-                          className={headClassName(meta, meta?.sticky === 'right')}
+                          className={headClassName(meta, meta?.sticky)}
                           aria-sort={sortBtn ? ariaSortValue(sorted) : undefined}
                         >
                           {sortBtn ? (
@@ -744,6 +748,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                 <tr
                   key={row.id}
                   data-selected={row.getIsSelected() || undefined}
+                  data-highlight={row.id === highlightRowId || undefined}
                   onClick={onRowClick
                     ? (e) => {
                         // Interactive elements keep their native behavior (same
@@ -763,7 +768,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                     return (
                       <td
                         key={cell.id}
-                        className={cellClassName(meta, meta?.sticky === 'right')}
+                        className={cellClassName(meta, meta?.sticky)}
                         onMouseEnter={truncationTooltip ? onCellEnter : undefined}
                         onMouseLeave={truncationTooltip ? onCellLeave : undefined}
                         onClick={(onCellClick || forwardClick)

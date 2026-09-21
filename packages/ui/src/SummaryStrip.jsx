@@ -135,8 +135,12 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
       {items.map((item, index) => {
         const { label, tone, truncate, emphasis } = item
         const hasValue = 'value' in item
+        // A non-string/non-number value is a NODE (S155 §2.2: a Badge list) — it
+        // renders verbatim: no '--' placeholder (a node is never "empty"), no
+        // lead-truncation, no `title` (a node has no text to put in one).
+        const isNode = hasValue && item.value != null && typeof item.value !== 'string' && typeof item.value !== 'number'
         const display = hasValue ? (item.value == null || item.value === '' ? '--' : item.value) : null
-        const lead = truncate === 'lead' && display != null && display !== '--'
+        const lead = !isNode && truncate === 'lead' && display != null && display !== '--'
         return (
           <div
             key={index}
@@ -146,11 +150,16 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
           >
             {label != null && <dt className="summary-strip__label">{label}</dt>}
             {display != null && (
+              /* ponytail: inline style, not a modifier class — the strip's base
+                 value rule is nowrap+ellipsis (built for text) and a node must be
+                 free to wrap. Promote to `.summary-strip__value--node` if a second
+                 node consumer appears. */
               <dd
                 className={`summary-strip__value${
                   tone === 'positive' || tone === 'negative' ? ` summary-strip__value--${tone}` : ''
                 }${emphasis === 'display' ? ' summary-strip__value--display' : ''}${lead ? ' summary-strip__value--truncate-lead' : ''}`}
                 title={lead && !truncationTooltip ? display : undefined}
+                style={isNode ? { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip' } : undefined}
               >
                 {lead ? <bdi>{display}</bdi> : display}
               </dd>

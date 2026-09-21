@@ -12,6 +12,10 @@ import { Button, ModalMedium } from '@odyssey/ui'
  * like LINX-13895's dates-unavailable message, which has nothing to cancel
  * out of. ModalMedium routes the header X, overlay click and Escape to
  * `onCancel`, so the safe exit is always the same action.
+ *
+ * `message` may be a node (S155 §2.5: a sentence + a wrapped Badge list) —
+ * it is then rendered as-is and owns its own markup; a string keeps the
+ * `<p class="text-label-sm-regular">` wrapper.
  */
 export default function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', onConfirm, onCancel }) {
   return createPortal(
@@ -27,7 +31,7 @@ export default function ConfirmDialog({ title, message, confirmLabel, cancelLabe
         </>
       }
     >
-      <p className="text-label-sm-regular">{message}</p>
+      {typeof message === 'string' ? <p className="text-label-sm-regular">{message}</p> : message}
     </ModalMedium>,
     document.body,
   )
