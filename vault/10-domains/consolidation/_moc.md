@@ -16,7 +16,7 @@ existing one ([[decisions/decision-log|CNS-01]]).
 - [[consolidation|Consolidation domain canon]] — the Oct MVP surfaces, the flow, the audit vocabulary, the build delta
 
 ## Decisions
-- [[decisions/decision-log|Consolidation decision log]] — CNS-01 … CNS-06
+- [[decisions/decision-log|Consolidation decision log]] — CNS-01 … CNS-17 (CNS-13…17 = Doug's TMS model, 2026-09-21)
 
 ## Oct MVP stories
 | Story | Surface |
@@ -26,6 +26,9 @@ existing one ([[decisions/decision-log|CNS-01]]).
 | LINX-15788 | Consolidation Audit Trail |
 
 Descoped for Oct ([[decisions/decision-log|CNS-06]]): LINX-14633, 13292, 13291, 14687, 13472 (Optimizer).
+
+## Calls
+- 2026-09-15 Ramesh walkthrough · 2026-09-17 Dave + Adam · **2026-09-21 Doug (TMS model)** — canon §10 · next 2026-09-23 with Jana
 
 ## Neighbours
 - [[../shipments/order-change|Shipments — Order Change]] — the surfaces slide 15 integrates with

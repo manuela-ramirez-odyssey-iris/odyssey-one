@@ -2,6 +2,18 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 156 — September 21–22, 2026
+
+**THE DOUG CALL, A NEON QUOTA, AND A PAUSE.** Short session: production went down on a database quota, the Doug transcript was taken into canon, and consolidation is **paused** pending the 2026-09-23 meeting with Jana. Vault + logs only; no product code.
+
+- **Prod 500s were Neon, not the deploy.** Every DB-backed endpoint returned *"Your account or project has exceeded the quota"* — the Marketplace Neon resource (`neon-coffee-flame`, under the team's Storage tab, not the project's) had hit the Free tier; the database is **386 MB** against a 0.5 GB cap. User upgraded to **Launch** (storage ≈ $0.15/mo; compute is the variable). Cap advice given: max compute = min = 0.25 CU in the Neon console, scale-to-zero on. Recovered without a redeploy.
+- **Doug (TMS engineer) answered the Q-CNS list from TMS, and said so** — *"are you changing the business model?"* Taken into `vault/10-domains/consolidation/consolidation.md` §10 + **CNS-13…17**: nothing is ever deleted (a consolidation is one foreign key on the load; the load is locked while keyed and restored when unkeyed); same C number through every edit, cancelled and never reused when emptied, no one-load C; nothing blocks but stop sequence/dates, equipment is a derived **seed** plus comparison list; a C is **routed at creation** and may auto-tender per OCM; a tendered standalone cannot join; planners hold this model; Alexey's two suggestion tools are not MVP. Build delta in canon: the S155 **removal of the source shipments is the big contradiction** (Dave said soft-delete, LINX marks deleted, Doug keeps-and-locks) — **recorded as a tension, not resolved**; user stance is to preserve the planners' mental model (keep + lock + link). Questions for the 23rd rewritten in TMS language.
+- **Inbox finally clean, five sessions late.** Nineteen files from four earlier intakes (deck + Ramesh walkthrough, Dave 09-17 call, LINX-15895 + references, the consolidation stories) moved to `vault-sources/` and the three `vault/00-inbox/…` source citations repointed. The Doug VTT archived with them.
+
+**Still open.** Three new drops appeared in the inbox during the archive (LINX-15795, 15796, 15800) — **not read, not part of this intake**; next session's `/analyze` step 0. The keep-and-lock change to Apply (CNS-13/16) needs a spec once the 23rd settles it. Angular twins for DataTable/SummaryStrip still owed (D19).
+
+**What's next (user, 2026-09-22):** consolidation paused until the 2026-09-23 meeting; `/analyze` the three new stories when the user says which topic they are.
+
 ## Session 155 — September 20–21, 2026
 
 **APPLY EXISTS, THE LOOP IS CLOSED, AND THE STORIES LOST THEIR VOTE.** S154 left manual consolidation "minus Apply". This session Apply creates the `C…` shipment in **both runtimes**, the review becomes a preview of what it made, the planner is carried back to Shipments with the new row pinned and pulsing, and a day of user-driven bug fixing on the mode landed alongside. 23 commits, all `S155:`. Tests **2,804 → 2,842** (206 files) + 255 node:test, build green, **deployed to prod and bundle-grepped** (six session-unique strings in the live JS, the route answers 400 on an empty body). Design-system side effects logged in D19.

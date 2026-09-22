@@ -67,7 +67,7 @@ Decisions about the *identifier* itself live in
 - **Previous state:** CNS-02 recorded consolidation as a 7th top-level sidebar area with three sub-pages (Candidate Workbench / Review & Apply / Audit Trail), read off the Cognizant mockup deck.
 - **Decision:** for the Oct MVP surface, consolidation is a *stage* of `/shipments` — a "Consolidate" button turns the existing shipments table into a selection surface — plus one new route `/shipments/consolidate/review`. CNS-02 stands as the deck's reading; this supersedes it for what we build.
 - **Rationale:** the user's ruling 2026-09-19 (*"we are building this on top of shipments like a shipments extra feature"*), and Dave Schultz on the 2026-09-17 call rejecting the separate-module model outright (at 01:04:18, on Ramesh's framing: *"Yeah, and it's not, it's not"*; Adam Shingle at 01:04:05 naming the disagreement: *"he's thinking consolidations are a different module"*). Manuela proposed exactly this button-in-Shipments shape on that call at 00:51:08 and Dave answered *"Oh yeah, yeah, absolutely"*, Adam *"Yes"*. It also keeps Dave's one-list requirement (00:54:12, *"I have to be able to see them all in one list"*) — the mode overlays the table the planner already has, tabs included.
-- **Source:** `vault/00-inbox/Planning and Consolidation.vtt` (2026-09-17 Dave Schultz + Adam Shingle call); user ruling 2026-09-19, session S154; `docs/superpowers/specs/2026-09-19-manual-consolidation-mode-design.md`.
+- **Source:** `vault-sources/10-domains/shipments/sources/dave-adam-planning-consolidation-2026-09-17.vtt` (2026-09-17 Dave Schultz + Adam Shingle call); user ruling 2026-09-19, session S154; `docs/superpowers/specs/2026-09-19-manual-consolidation-mode-design.md`.
 - **Affects:** `ShipmentsRoute`, `App.jsx`, `AppShell`; supersedes CNS-02 for the build.
 
 ### CNS-08 — Checkbox eligibility is Direct + no active tender + one customer (PROVISIONAL)
@@ -76,7 +76,7 @@ Decisions about the *identifier* itself live in
 - **Decision:** a row's checkbox is enabled when the shipment is `Direct`, its tender status is not `Sent` or `Accepted`, and (once one row is checked) it belongs to the same customer. Ineligible rows stay VISIBLE with a disabled checkbox naming the reason — nothing is filtered out of the list.
 - **Rationale:** Dave Schultz 2026-09-17 — a from-scratch consolidation is built from direct shipments only (00:37:46, 00:40:19, 00:42:08: *"The from-scratch shipments have to be direct shipments"*); a tendered direct shipment cannot give up its load until the tender is cancelled (00:08:17 *"if it's already tendered, you can't put it in a consolidation"*, 00:10:51, 00:15:38); and an exception is irrelevant to eligibility (00:09:06, 00:52:43) so Exceptions-tab rows are selectable. Same-customer per Ramesh 2026-09-15 at 00:05:00 and LINX-15762 / LINX-15786 business rules.
 - **Not applied, deliberately:** Ramesh's pool gates — Allow Optimization = Yes, OCM profile 97–101 validation, `Shipment Status = Consolidation` (LINX-15786 BR I). Those describe backend pool membership; the checkbox encodes Dave's rules. **The user flagged the whole gate as provisional** (2026-09-19: *"we need to discuss this in the future but do your suggestion"*), so expect it to move.
-- **Source:** `vault/00-inbox/Planning and Consolidation.vtt` (2026-09-17); `vault/00-inbox/Consolidation.vtt` (2026-09-15, Ramesh walkthrough); LINX-15762, LINX-15786; user ruling 2026-09-19.
+- **Source:** `vault-sources/10-domains/shipments/sources/dave-adam-planning-consolidation-2026-09-17.vtt` (2026-09-17); `vault-sources/10-domains/consolidation/sources/ramesh-consolidation-walkthrough-2026-09-15.vtt` (2026-09-15, Ramesh walkthrough); LINX-15762, LINX-15786; user ruling 2026-09-19.
 - **Affects:** `src/consolidation/eligibility.js`; open question for Dave — does a Declined tender really return a direct shipment to eligibility?
 
 **Amended 2026-09-20 (S155):** ineligible-by-TYPE rows are no longer listed at all. In consolidate mode the list and the tab counts carry Direct shipments only (user: *"C shipments can appear only in non consol mode"*), applied as a mode rule like the hidden PGI/PGR tabs — not a visible chip, unlike the CNS-10 customer lock. The checkbox reasons still guard tender and customer on the Direct rows that ARE listed. Editing an existing consolidation starts from its row-menu **Edit** (disabled while tendered), which enters the mode with that row as the anchor; the row is in the selection and the review, never in the mode's list. Affects: `ShipmentsRoute.jsx` (`effectiveCriteria`, `enterConsolidate(seedRow)`), `ShipmentTable.jsx` (`onEditConsolidation`), `eligibility.js` (`consolidationEditReason`).
@@ -86,7 +86,7 @@ Decisions about the *identifier* itself live in
 - **Previous state:** CNS-04 logged an unresolved tension: the deck's audit trail carries `Shipment ID` (`SH3001`) and `Consolidation ID` (`CON001`) as separate columns, and CNS-04 said not to assume they are the same thing.
 - **Decision:** they are the same. A consolidation's identity is its Odyssey Shipment Identifier, which carries the `C` prefix (direct shipments carry `O`). No separate `CON-…` key is modelled.
 - **Rationale:** on the 2026-09-17 call Manuela stated it (00:51:01, *"that is why we have an Odyssey shipment ID… the prefix C are for consolidated ones"*) and both Adam Shingle (*"Yep, that's correct"*) and Dave Schultz (*"Yep"*) confirmed. Ramesh had only ever guessed at a separate ID (2026-09-15 at 00:13:45, *"I am guessing it could be some kind of a consolidation ID"*) and conceded the Odyssey identifier could serve at 00:14:44.
-- **Source:** `vault/00-inbox/Planning and Consolidation.vtt` (2026-09-17); `vault/00-inbox/Consolidation.vtt` (2026-09-15).
+- **Source:** `vault-sources/10-domains/shipments/sources/dave-adam-planning-consolidation-2026-09-17.vtt` (2026-09-17); `vault-sources/10-domains/consolidation/sources/ramesh-consolidation-walkthrough-2026-09-15.vtt` (2026-09-15).
 - **Affects:** closes CNS-04; the review screen labels selected shipments by `odysseyShipmentIdentifier`; whatever Apply eventually creates gets a `C…` identifier, not a new key. Ties to the Shipments log's DEC-144…151.
 
 ### CNS-10 — The first selected row locks the customer, and the lock scopes the list
@@ -122,3 +122,43 @@ Decisions about the *identifier* itself live in
 - **Rationale:** user bug list 2026-09-20 (select-all "gets weird", clear-bar dialog, "we cannot have <2 selected rows", the empty-state customer row).
 - **Source:** user, 2026-09-20, session S155; spec §1, §2.4.
 - **Affects:** `ShipmentsRoute.jsx` (`handleSelectionChange`, `handleClearLocked`), `ShipmentTable.jsx` (header uncheck, sticky-left select column), `ShipmentsGlobalSearch.jsx` (`lockedClearMessage` / `onClearLocked`, locked chips excluded from the glimpse heuristic), `ConsolidationReviewRoute.jsx` (`guardMinimum`).
+
+### CNS-13 — In TMS nothing is deleted — consolidation is one foreign key on the load, and the load is locked while it holds it
+- **Decided:** 2026-09-22 (S156 intake of the 2026-09-21 Doug call). **Recorded as a TMS fact to validate**, not as a build ruling — Doug: *"are you changing the business model?"* (00:37:16).
+- **Previous state:** DEC-156 (Dave, 2026-09-17): emptied directs are soft-deleted shells; S155 (CNS-11) removes them.
+- **Decision:** Record Doug's model: standalone load `ALD` and consolidation header `ACOL`; consolidating sets `ALD.ACOL_ID`. The load persists unchanged; while keyed it cannot be tendered or edited (UI guard: *"this is part of a console"*); its own carrier list is ignored in favour of the C's; breaking the key restores it as standalone with the carrier list it already had. **Tension with DEC-156 and with LINX's mark-deleted behaviour is recorded in canon §10, unresolved** — for the 2026-09-23 meeting.
+- **Rationale:** *"We don't delete anything ever"* (00:10:58); *"No data was deleted, no data was moved around. It's just a foreign key relationship"* (00:11:30); *"the standalone load is locked down… while it's in a console"* (00:24:51).
+- **Source:** `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` 00:06–00:12, 00:24–00:26.
+- **Affects:** If adopted: `consolidateShipments.mjs`/`consolidations.mjs` stop removing sources and instead link + lock them (a `consolidatedInto` field, refused tender/edit actions, a visible state); `data/index.js` tombstones go away.
+
+### CNS-14 — A consolidation keeps its C number through every edit; emptied, it is cancelled and never reused; one load is not a consolidation
+- **Decided:** 2026-09-22 (S156 intake of the 2026-09-21 Doug call). **Recorded as a TMS fact to validate**, not as a build ruling — Doug: *"are you changing the business model?"* (00:37:16).
+- **Previous state:** CNS-11 reuses the id only when exactly one source is a C; no remove path; ≥2 enforced on the review.
+- **Decision:** New C on first creation; add/remove/reorder loads keep the same C; removing all loads cancels the C and the number is never reused; a one-load C cannot be saved. Planners hold this model (*"Yes"*, 00:21:09) and would be confused by a C that is recreated on edit.
+- **Rationale:** *"you get a brand new C number"* (00:18:21); *"it's still the same C number. You're just modifying it"* (00:18:30); *"the C number gets cancelled. And it will not be reused"* (00:20:26); *"you can't have a consolidation with only one load"* (00:20:4x); *"they would be very confused"* (00:23:07).
+- **Source:** `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` 00:18–00:23.
+- **Affects:** Confirms CNS-11's id reuse and the ≥2 guard; adds remove-load and cancel-when-empty as gaps.
+
+### CNS-15 — Nothing but stop sequence and dates blocks a consolidation; equipment is a derived seed plus a comparison list
+- **Decided:** 2026-09-22 (S156 intake of the 2026-09-21 Doug call). **Recorded as a TMS fact to validate**, not as a build ruling — Doug: *"are you changing the business model?"* (00:37:16).
+- **Previous state:** S155 enforces only same-customer and ≥2; the anchor's equipment code is taken; Ramesh's six validation gates were not built (S155 review).
+- **Decision:** Equipment mismatch, hazmat mixing and date spread do not block (*"Nope, you can do that"*). Save-time errors are out-of-order stop sequence or dates; TMS guesses a sequence and the planner owns it. Equipment: a database package derives a **seed equipment** from all loads, the **equipment comparison list** follows from the seed, and the carrier list/tender is always single carrier, single equipment from that list.
+- **Rationale:** 00:29:16–00:29:25 (validation); 00:30:58–00:34:40 (seed, comparison list, tank truck example, single equipment on tender). Package name unknown — *"It's been like 15 years"*.
+- **Source:** `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` 00:29–00:35.
+- **Affects:** Closes Q-CNS-3 for TMS; opens Q: where the seed package lives (Thomas/Adam to trace).
+
+### CNS-16 — A consolidation is routed at creation and may auto-tender per OCM profile; a tendered standalone cannot join
+- **Decided:** 2026-09-22 (S156 intake of the 2026-09-21 Doug call). **Recorded as a TMS fact to validate**, not as a build ruling — Doug: *"are you changing the business model?"* (00:37:16).
+- **Previous state:** DEC-156/157: every new shipment is born untendered and never auto-re-tenders; S155 creates the C with no carrier list.
+- **Decision:** Creating the C generates its carrier list (*"you should have created a carrier list"*, 00:04:00); auto-tender on that list follows OCM-profile configuration (00:28:51). A currently tendered standalone load cannot be put into a C (00:27:15). The keyed standalone never auto-tenders while keyed.
+- **Rationale:** Doug 00:03–00:04, 00:27–00:29. **Partial tension with DEC-156's "never tendering on creation"** — Dave spoke of no auto-RE-tender after order change; Doug speaks of routing at birth. Record both.
+- **Source:** `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` 00:03–00:05, 00:27–00:29.
+- **Affects:** If adopted: Apply returns a C with `shippingOptionList` populated (routing), and the Tender tab is not empty.
+
+### CNS-17 — Alexey's suggestion tools (LP multi-stop + PL/SQL aggregation) exist in TMS, are not MVP, and are unaccounted for in the event-topic design
+- **Decided:** 2026-09-22 (S156 intake of the 2026-09-21 Doug call). **Recorded as a TMS fact to validate**, not as a build ruling — Doug: *"are you changing the business model?"* (00:37:16).
+- **Previous state:** CNS-06 descoped optimizer integration for Oct.
+- **Decision:** Two further TMS forms present Alexey's suggestions (LP solver run hourly → TMS tables; aggregation heuristic in database code); planners take, modify, or drop a suggestion into an existing C. Adam: not MVP; timeline *"January"* (00:45:30). Thomas: the new event-topic flow has not considered those tables; raised for the optimization call with Laurie the same day.
+- **Rationale:** 00:21:23–00:22:xx, 00:38–00:46.
+- **Source:** `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` 00:38–00:46.
+- **Affects:** None for the build; canon §6 stands.

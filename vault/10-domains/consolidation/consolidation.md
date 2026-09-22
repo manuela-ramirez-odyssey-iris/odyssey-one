@@ -294,6 +294,58 @@ Rule 2 is a hard behavioural rule that will outlive the descope.
 
 Closed by consensus since S148: **cross-customer** (§8.8) — one customer, every source agrees; **Consolidation ID** (§8.1) — CNS-09; **`Single` vs `Direct`** (§8.6) — label drift only.
 
+## 10. The TMS consolidation model — Doug, 2026-09-21 (S156 intake)
+
+Source: `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` — Doug (TMS engineer, ~15 years on the code; appears as `@1` in the VTT and is addressed as Doug throughout), Adam Shingle, Soni Sinha, Thomas Quaile, Steve O'Hara, Manuela. Doug answers **from TMS**, and said so twice: *"I don't know links, I don't know Dave's plans for links, but I could just tell you what happens in TMS"* (00:03:xx) and *"are you changing the business model?"* (00:37:16). OdysseyONE adds a layer TMS never had — shipments on top of loads — so every ruling below is a TMS fact to be **validated as an idea**, not copied ([[decisions/decision-log|CNS-13…CNS-20]]).
+
+**The model in one paragraph.** A standalone load (`ALD`) and a consolidation header (`ACOL`) are two records; consolidating sets one **foreign key** on the load. *"No data was deleted, no data was moved around. It's just a foreign key relationship"* (00:11:30). While the key is set the load is **locked** — the UI refuses tender and edits with *"this is part of a console"* (00:24:51–00:25:57; the tender service simply never looks at keyed loads, so the guard is UI-side, 00:26:10). Break the key and the load is standalone again, using the carrier list it already had. Consolidating mints a **brand-new C number** (00:18:21); adding, removing or reordering loads later keeps it (00:18:30); remove every load and the C is **cancelled and never reused** (00:20:26–00:20:32); a **one-load C cannot be saved** (00:20:4x). Creating the C **generates its carrier list** (*"you should have created a carrier list"*, 00:04:00) and it can auto-tender if the OCM profile says so (00:28:51). A currently-tendered standalone **cannot** be put into a C (00:27:15). Planners **do** hold this mental model (00:21:09, one-word *"Yes"*), and *"if they remove the load and we threw away that consolidation and made a new one, they would be very confused"* (00:23:07). Planners work a consolidation screen that lets them *"add… remove loads, reorder loads, redo the dates, the stop offs, whatever"* (00:22:50).
+
+**What does NOT block a consolidation.** Equipment mismatch, hazmat with non-hazmat, dates far apart: *"Nope, you can do that"* (00:29:16). LTL into TL is fine; tank truck would be refused by the equipment list, not by a rule. TMS **derives a seed equipment** from all loads (database package, name unknown after 15 years) and pulls the **equipment comparison list** from it; that list is what may appear on the carrier list, and a tender is always single carrier, single equipment (00:31:13–00:34:40). The only save-time errors are **stop sequence and date order** — TMS guesses the sequence, the planner owns it (00:29:25).
+
+**Beyond MVP, on the record.** Two more TMS forms: Alexey's LP solver (multi-stop, runs hourly, dumps into TMS tables) and an aggregation heuristic in PL/SQL; planners take, modify, or drop a suggestion into an existing C. Adam: *"this isn't for MVP right now"* (00:45:10); Thomas flagged that the event-topic design has not accounted for those tables. Follow-up set for **2026-09-23** with Jana (00:36:25).
+
+### Tension — the shells (record, not resolve)
+
+| Source | What happens to the single-order shipment when its load is consolidated |
+|---|---|
+| Dave, 2026-09-17 (DEC-156) | soft-deleted empty shell; where it is viewed undecided |
+| LINX today (Soni, 00:14:xx) | marked deleted; an order replan later creates a NEW shipment |
+| Doug, 2026-09-21 | nothing deleted; the load stays, keyed to the C, locked; comes back on removal |
+| Ours (S155) | removed (mock tombstone / live DELETE) |
+
+Dave and Doug agree on the load-bearing part — a **new** C that takes loads. They differ on the shells. Manuela on the call: *"I don't think it's a good idea to delete shipments… It needs to be a new shipment for the console and… all the shipments shouldn't be scrapped, should be inside, linked to the C number."* User stance (2026-09-21): preserve the planners' mental model; the OdysseyONE team appears to be deliberately not reusing TMS as-is, which is the thing to settle on the 23rd.
+
+### Build delta — S155 shipped state vs Doug
+
+| Shipped (S155) | Doug | Verdict |
+|---|---|---|
+| Apply mints a new `C…` | brand-new C number | **confirms** CNS-11 |
+| Edit reuses the C id when one source is a C | same C number on modify | **confirms** |
+| Sources removed | kept, keyed, locked, restorable | **contradicts** — the largest delta; also contradicts DEC-156's "soft-deleted" wording |
+| No "remove a load" path | remove/add/reorder freely; empty → cancelled | **gap** |
+| ≥2 enforced | one-load C cannot be saved | **confirms** |
+| No equipment/hazmat gate | none in TMS either; seed equipment derived | **confirms the absence**, adds seed-equipment derivation as a gap |
+| Anchor's equipment code | seed algorithm over all loads | **gap** (package unnamed) |
+| Pickups then deliveries, no re-sequencing | TMS guesses; planner edits sequence + per-stop dates; save validates order | **gap** |
+| Born untendered, no carrier list | carrier list generated on creation; OCM auto-tender may fire | **contradicts** in part — DEC-156/157's "never tendering on creation" holds for the auto-re-tender case Dave described, but Doug says a C gets routed at birth |
+| Tendered directs excluded | tendered standalone cannot join | **confirms** CNS-08 |
+| Eligibility ignores Hold / optimizer | not discussed | still open |
+
+### Q-CNS status after this call
+
+Answered by Doug (TMS): Q-CNS-1 partly (a C is routed at creation; pool vs window still Dave's call), Q-CNS-3 (nothing blocks but sequence/dates), Q-CNS-4 (seed equipment + comparison list; capacities not discussed), Q-CNS-5 (planners think in loads AND the model is loads), Q-CNS-6 (planner re-sequences; TMS guesses), Q-CNS-7 (nothing deleted; history "pieced together from notes" — not designed), Q-CNS-8 (add/remove/merge-by-adding all allowed; empty → cancelled), Q-CNS-13 (no cap beyond the equipment list). Still open: Q-CNS-2 (Hold / declined tender / optimizer lock), Q-CNS-9 (tendering window), Q-CNS-10 (order-side effects), Q-CNS-11 (targets), Q-CNS-12 (audit actor), Q-CNS-14 (SLS).
+
+### Questions for 2026-09-23 (Jana + Doug), in TMS language
+
+1. When a load leaves a C, does the standalone go straight back to planning, or to Hold?
+2. After a C is created and routed, does it wait in the pool or run to its tendering window with that carrier list?
+3. Where does the seed-equipment package live, and who ports it? Is it master-data code or planning code?
+4. What does the TMS load form show on a locked standalone (keyed to a C), so we can mirror the state?
+5. Is the consolidation audit on the C, on each load, or both — and do we get to design it, given TMS has only notes?
+6. Does anything change on the order when its load is keyed to a C?
+7. Beyond "picks before drops, dates in order", are there sequence or date rules the save enforces?
+8. **For Dave/Jana specifically:** do we keep TMS's keep-and-lock model for the single-order shipments, or LINX's mark-deleted? Planners' mental model argues for keep-and-lock.
+
 ## Related
 
 - [[_moc|Consolidation MOC]] · [[decisions/decision-log|Consolidation decision log]]
