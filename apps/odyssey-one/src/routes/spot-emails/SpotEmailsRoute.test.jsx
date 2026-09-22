@@ -19,9 +19,11 @@ describe('SpotEmailsRoute', () => {
     render(<SpotEmailsRoute />)
     expect(screen.getByRole('button', { name: /Closed — out of tolerance/ })).toBeTruthy()
     const frame = screen.getByTitle('Email preview')
-    expect(frame.getAttribute('sandbox')).toBe('allow-same-origin')
+    expect(frame.getAttribute('sandbox')).toContain('allow-same-origin')
+    expect(frame.getAttribute('sandbox')).toContain('allow-popups')
     expect(frame.getAttribute('sandbox')).not.toContain('allow-scripts')
     expect(frame.getAttribute('srcdoc')).toContain('Request for Quote')
+    expect(frame.getAttribute('srcdoc')).toContain('<base target="_blank">')
   })
   it('switching scenario switches the email list', () => {
     render(<SpotEmailsRoute />)

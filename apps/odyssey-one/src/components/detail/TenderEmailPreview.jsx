@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { Button, ModalMedium } from '@odyssey/ui'
 import { tenderEmail } from '../../tender/email/tenderEmail.js'
 import { buildTenderEmailContext } from '../../tender/email/tenderEmailContext.js'
+import { previewDoc } from '../../spotboard/email/previewDoc.js'
 import '../../routes/spot-emails/spotEmails.css'
 
 /**
@@ -34,8 +35,8 @@ export default function TenderEmailPreview({ shipment, option, onClose }) {
       <iframe
         className="spot-emails__frame"
         title="Tender email preview"
-        sandbox="allow-same-origin"
-        srcDoc={email.html}
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        srcDoc={previewDoc(email.html)}
         style={{ height: 500 }}
       />
     </ModalMedium>,

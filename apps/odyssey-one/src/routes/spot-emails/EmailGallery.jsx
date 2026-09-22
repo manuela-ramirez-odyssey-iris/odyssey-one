@@ -7,6 +7,7 @@
 // thin wrapper passing the spot fixture; its rendering/tests are unchanged.
 import { useState, useRef, useEffect } from 'react'
 import { Badge, Button } from '@odyssey/ui'
+import { previewDoc } from '../../spotboard/email/previewDoc.js'
 import './spotEmails.css'
 
 // Fallback for when the frame's document can't be measured (e.g. jsdom, or a
@@ -99,8 +100,8 @@ export default function EmailGallery({ title, lede, scenarios, emailsForScenario
                   ref={frameRef}
                   className="spot-emails__frame"
                   title="Email preview"
-                  sandbox="allow-same-origin"
-                  srcDoc={selected.html}
+                  sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                  srcDoc={previewDoc(selected.html)}
                   style={{ height: frameHeight }}
                   onLoad={measureFrame}
                 />

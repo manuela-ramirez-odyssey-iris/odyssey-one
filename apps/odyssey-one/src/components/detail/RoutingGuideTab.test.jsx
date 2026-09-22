@@ -394,6 +394,9 @@ describe('RoutingGuideTab — tender token mint + email preview (S157)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview tender email' }))
 
     expect(screen.getByRole('dialog', { name: /Tender Notification to ODFL/ })).toBeTruthy()
+    const frame = screen.getByTitle('Tender email preview')
+    expect(frame.getAttribute('sandbox')).toContain('allow-popups')
+    expect(frame.getAttribute('srcdoc')).toContain('<base target="_blank">')
   })
 })
 

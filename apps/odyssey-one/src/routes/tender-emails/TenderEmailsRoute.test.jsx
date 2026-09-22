@@ -16,8 +16,10 @@ describe('TenderEmailsRoute', () => {
     expect(screen.getByRole('button', { name: /Tender sent \(Email & EDI\)/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Consolidation tender/ })).toBeTruthy()
     const frame = screen.getByTitle('Email preview')
-    expect(frame.getAttribute('sandbox')).toBe('allow-same-origin')
+    expect(frame.getAttribute('sandbox')).toContain('allow-same-origin')
+    expect(frame.getAttribute('sandbox')).toContain('allow-popups')
     expect(frame.getAttribute('srcdoc')).toContain('Tender Notification')
+    expect(frame.getAttribute('srcdoc')).toContain('<base target="_blank">')
   })
   it('switching to the Email & EDI scenario previews the TE-2 informational copy', () => {
     render(<TenderEmailsRoute />)
