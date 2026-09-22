@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>[#LINX-15795] Send a Tender Through Email</title>
+    <meta http-equiv="Content-Type" Content="application/vnd.ms-word; charset=UTF-8">
+        <style type="text/css">
+
+.tableBorder, .grid
+{
+    background-color: #fff;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tableBorder td, .grid td
+{
+    vertical-align: top;
+    padding: 2px;
+    border: 1px solid #ccc;
+}
+
+.noPadding
+{
+    padding: 0 !important;
+}
+
+h3 .subText
+{
+    font-size: 60%;
+    font-weight: normal;
+}
+
+.tabLabel
+{
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom:none;
+    padding: 2px;
+    display: inline;
+}
+
+td.blank
+{
+    padding: 0;
+    margin: 0;
+}
+
+.blank td
+{
+    border: none;
+}
+
+#descriptionArea
+{
+    margin: 0;
+    padding: 2px;
+    border: 1px solid #ccc;
+}
+
+hr
+{
+    border-top:1px solid #aaa;
+}
+
+hr.fullcontent
+{
+  height: 15px;
+  padding: 10px 0;
+  background: #fff url('https://odysseylogistics.atlassian.net/images/icons/hr.gif') no-repeat scroll center;
+}
+
+</style>
+
+</head>
+<body>
+
+<table class="tableBorder" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td bgcolor="#f0f0f0" width="100%" colspan="2" valign="top">
+                            <b><a id="parent_issue_summary" href="https://odysseylogistics.atlassian.net/browse/LINX-15789">Enable End-to-End Carrier Tender Communication and Response Management in Odyssey One</a></b>
+                <span style="font-size: 9px">(<a id="parent_issue_key" href="https://odysseylogistics.atlassian.net/browse/LINX-15789">LINX-15789</a>)</span>
+                <h3 class="formtitle"><img src="https://odysseylogistics.atlassian.net/images/icons/link_out_bot.gif" width="16" height="16" />
+                        [LINX-15795]&nbsp;<a href="https://odysseylogistics.atlassian.net/browse/LINX-15795">Send a Tender Through Email</a>
+            <span class="subText">
+               Created: Aug 27, 2026                   &nbsp;Updated: Sep 22, 2026
+
+                                            </span>
+            </h3>
+        </td>
+    </tr>
+    <tr>
+        <td width="20%"><b>Status:</b></td>
+        <td width="80%">Final UX/UI Design</td>
+    </tr>
+    <tr>
+        <td width="20%"><b>Project:</b></td>
+        <td width="80%"><a href="https://odysseylogistics.atlassian.net/secure/BrowseProject.jspa?id=10072">OdysseyONE</a></td>
+    </tr>
+
+        <tr>
+            <td><b>Components:</b></td>
+            <td>
+                                        <a title="OdysseyONE TMS- Shipments"
+                href="https://odysseylogistics.atlassian.net/issues/?jql=project%3D10072%20AND%20%22component%22%3D11879%20ORDER%20BY%20priority%20ASC"
+            >OdysseyONE TMS- Shipments</a>                        </td>
+    </tr>
+    
+
+        <tr>
+            <td><b>Affects versions:</b></td>
+            <td>
+                            None
+                </td>
+    </tr>
+    
+
+        <tr>
+            <td><b>Fix versions:</b></td>
+            <td>
+                            None
+                </td>
+    </tr>
+    
+    
+            <td width="20%"><b>Parent:</b></td>
+        <td width="80%"><a href="https://odysseylogistics.atlassian.net/browse/LINX-15789">Enable End-to-End Carrier Tender Communication and Response Management in Odyssey One</a></td>
+    </table>
+
+<br />
+<table class="grid" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td bgcolor="#f0f0f0" valign="top" width="20%">
+            <b>Type:</b>
+        </td>
+        <td bgcolor="#ffffff" valign="top"  width="30%" >
+            Story
+        </td>
+
+                    <td bgcolor="#f0f0f0">
+                <b>Priority:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" nowrap>
+                Medium
+            </td>
+            </tr>
+    <tr>
+                        <td bgcolor="#f0f0f0" valign="top" width="20%">
+                <b>Reporter:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top"  width="30%" >
+                                        
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_reporter_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                            </td>
+        
+                    <td bgcolor="#f0f0f0" width="20%">
+                <b>Assignee:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" nowrap  width="30%" >
+                                        
+                
+        
+            <a class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5"
+                id="word_assignee_712020:6d28eb2e-099d-416f-922d-daea93ad07d5"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5">
+                    Manuela Ramirez (Iris Software)
+                </a>
+
+                            </td>
+            </tr>
+    	<tr>
+		<td bgcolor="#f0f0f0" width="20%">
+			<b>Resolution:</b>
+		</td>
+		<td bgcolor="#ffffff" valign="top" width="30%" nowrap>
+            				Unresolved
+                    </td>
+                    <td bgcolor="#f0f0f0" width="20%">
+                <b>Votes:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" width="30%" nowrap>
+                0
+            </td>
+        
+    </tr>
+    
+        <tr>
+        <td bgcolor="#f0f0f0" width="20%">
+            <b>Labels:</b>
+        </td>
+        <td id="labels-208965-value" class="value" bgcolor="#ffffff" valign="top" colspan="3" nowrap>
+                            Approved, FUNCTIONAL_PHASE2, MVP, VD_Pending                    </td>
+    </tr>
+    
+    
+    </table>
+
+
+
+    <br />
+
+    	<table class="grid" cellpadding="0" cellspacing="0" border="0" width="100%">
+            
+
+        
+            <tr>
+            <td bgcolor="#f0f0f0" width="20%" valign="top">
+                <b>Issue links:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" class="noPadding">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%" class="blank">
+                                            <tr>
+                            <td colspan="4" bgcolor="#f0f0f0">
+                                <b>Action item</b><br/>
+                            </td>
+                        </tr>
+                                    <tr>
+            <td>
+                has action item
+            </td>
+            <td>
+                <a href="https://odysseylogistics.atlassian.net/browse/LINX-17343">
+                     LINX-17343                 </a>
+            </td>
+            <td>
+                [Tech] Send a Tender Through Email
+            </td>
+            <td>
+                Todo
+            </td>
+        </tr>
+            <tr>
+            <td>
+                has action item
+            </td>
+            <td>
+                <a href="https://odysseylogistics.atlassian.net/browse/LINX-16698">
+                     LINX-16698                 </a>
+            </td>
+            <td>
+                [Tech] POC on Tender Communication VI...
+            </td>
+            <td>
+                Closed
+            </td>
+        </tr>
+                                                                    </table>
+            </td>
+        </tr>
+    
+
+
+    
+                        <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>Acceptance Criteria:</b></td>
+                <td id="customfield_10032-208965-value" class="value" bgcolor="#ffffff" width="80%">      <h3><a name="AC1%3ASendTenderThroughEmail"></a><ins>AC-1: Send Tender Through Email</ins></h3>
+
+<p><b>Given</b> a tender message is received with Communication Method = Email<br/>
+<b>When</b> the Email Communication Service processes the request<br/>
+<b>Then</b> an email shall be generated and sent to the configured recipient list.</p>
+
+<h3><a name="AC2%3AIncludeTenderInformation"></a><ins>AC-2: Include Tender Information</ins></h3>
+
+<p><b>Given</b> an email is generated<br/>
+<b>When</b> the carrier receives the email<br/>
+<b>Then</b> the email shall contain sufficient shipment information to review the tender.</p>
+
+<h3><a name="AC3%3AIncludeRecipientInformation"></a><ins>AC-3: Include Recipient Information</ins></h3>
+
+<p><b>Given</b> email recipient information exists<br/>
+<b>When</b> the email is generated<br/>
+<b>Then</b> the system shall populate:</p>
+
+<ul>
+	<li>To Address(es)</li>
+	<li><del>CC Address(es), if configured</del></li>
+	<li>From Address</li>
+</ul>
+
+
+<p>within the outbound email.</p>
+
+<h3><a name="AC4%3AIncludeAcceptandDeclineActions"></a><ins>AC-4: Include Accept and Decline Actions</ins></h3>
+
+<p><b>Given</b> Communication Method = Email<br/>
+<b>When</b> the email is generated<br/>
+<b>Then</b> the email shall contain secure Accept and Decline links in form of buttons in the Review page where use can reach by clicking on Response link present in the email body'</p>
+
+<h3><a name="AC5%3ATenderReviewLinkSelected%2FClicked"></a><ins>AC-5: Tender Review Link Selected/Clicked</ins></h3>
+
+<p><b>Given</b> a carrier selects/clicks tender review link from the email<br/>
+<b>When</b> the link is opened<br/>
+<b>Then</b> the carrier shall be redirected to a tender review page<br/>
+<b>And</b> the tender shall not automatically be accepted or declined.</p>
+
+<h3><a name="AC6%3AEmail%26EDICommunication"></a><ins>AC-6: Email &amp; EDI Communication</ins></h3>
+
+<p><b>Given</b> Communication Method = Email &amp; EDI<br/>
+<b>When</b> the email is generated<br/>
+<b>Then</b> the email shall be sent to the configured recipients<br/>
+<b>And</b> Accept and Decline links in the form of buttons shall not be displayed in review page</p>
+
+<h3><a name="AC7%3AEmailDeliveryFailure"></a><ins>AC-7: Email Delivery Failure</ins></h3>
+
+<p><b>Given</b> an email communication is initiated<br/>
+<b>When</b> the mail server rejects or cannot accept the request<br/>
+<b>Then</b> the tender status should be changed to Tender Failed<br/>
+<b>And</b> shipment status should be changed to Use Review</p>
+
+<h3><a name="AC8%3ASuccessfulEmailSubmission"></a><ins>AC-8: Successful Email Submission</ins></h3>
+
+<p><b>Given</b> an email communication is initiated<br/>
+<b>When</b> the mail server accepts the email request<br/>
+<b>Then</b> the email communication shall be considered successfully sent.</p>
+  </td>
+            </tr>
+                                <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>Sprint:</b></td>
+                <td id="customfield_10021-208965-value" class="value" bgcolor="#ffffff" width="80%">Skybreakers Sprint 44</td>
+            </tr>
+                                <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>OdysseyONE Scrum Team:</b></td>
+                <td id="customfield_11762-208965-value" class="value" bgcolor="#ffffff" width="80%">    Skybreakers
+</td>
+            </tr>
+            </table>
+
+    <br/>
+
+    <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+    <tr>
+        <td bgcolor="#bbbbbb" width="1%" nowrap align="center">
+            &nbsp;<font color="#ffffff"><b>Description</b></font>&nbsp;
+        </td>
+        <td>&nbsp;</td>
+    </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td id="descriptionArea">
+            <h1><a name="BusinessSummary"></a><ins>Business Summary</ins></h1>
+
+<p><b>As a</b> Tender Dispatcher,<br/>
+<b>I want</b> to transform the standardized tender message into an email communication and send it to the configured recipients,<br/>
+<b>So that</b> the carrier can review the shipment details and respond to the tender.</p>
+
+<h1><a name="BusinessContext"></a><ins>Business Context</ins></h1>
+
+<p>As part of the Tender Communication Solution, when the communication method for a shipping option is configured as <b>Email</b>, the Tender Dispatcher shall route the tender request to the Email Communication Service. The Email Communication Service shall transform the standardized tender message into an outbound email and deliver it to the configured carrier recipients.</p>
+
+<p>The email communication will serve as the carrier-facing tender notification containing shipment details and response options. As per the latest confirmation, attachment will not be the part of Tender communication email as it is happening in current TMS implementation. As per the latest confirmation from Thomas, there will be email and in that email body, there will be response link (In form of “Review &amp; Respond” button). Once user clicks on the (Review &amp; Respond) button, a Review Page will open. Review page will have all the Shipment and tender details. Also, this review page will have Accept and reject button. The exact content of email body and Review page have been confirmed with the discussion with business. And we have informed Manuela to work on the VD for the same.</p>
+
+<h1><a name="BusinessRules"></a><ins>Business Rules</ins></h1>
+
+<h3><a name="BR1%3AEmailCommunicationTrigger"></a>BR-1: Email Communication Trigger</h3>
+
+<p>The Email Communication Service shall be invoked when the communication method in the tender message is configured as:</p>
+
+<ul>
+	<li>Email</li>
+	<li>Email &amp; EDI (Email portion only)</li>
+</ul>
+
+
+<h3><a name="BR2%3AEmailGeneration"></a>BR-2: Email Generation</h3>
+
+<p>The system shall transform the Standard Tender Message into an outbound email communication. The transformation shall occur within the Email Communication Service and shall not be performed by the Tender Dispatcher.</p>
+
+<h3><a name="BR3%3ARecipientInformation"></a>BR-3: Recipient Information</h3>
+
+<p>The email shall support:</p>
+
+<ul>
+	<li>To Recipient(s)</li>
+	<li><del>CC Recipient(s) where configured</del></li>
+	<li>Sender (From Address)</li>
+</ul>
+
+
+<hr />
+
+<ul>
+	<li>When the communication is Email, here is how to get the "To:" list for that email</li>
+</ul>
+
+
+
+<p>mf$get.load_tender_communication (<br/>
+    p_scac_id              IN mf_carrier.carr_scac_id%TYPE                                    &#8211; SCAC of the Carrier being tendered<br/>
+    ,p_business_trans_type  IN mf_distribution_event.de_cd_business_trans_type%TYPE           &#8211; 4 for Tender; 5 for Tender Cancel<br/>
+    ,p_communication_method IN mf_communication_method_lov.cml_cd_communication_method%TYPE   &#8211; 1 <br/>
+    ,p_delimiter            IN varchar2 DEFAULT ','                                           &#8211; just hard-code to ','<br/>
+    ,p_org_operational_id   IN mf_contact.cn_org_operational_id%TYPE                          &#8211; TMS org id of the consignor<br/>
+    ,p_se_equip_id          IN mf_ship_equipment.se_equip_id%TYPE                             &#8211; equipment <br/>
+    ,p_loc_dest_id          IN mf_location.loc_location_id%TYPE                               &#8211; TMS<br/>
+    ,p_ctm_terminal         IN mf_carrier_terminal.ctm_terminal%TYPE DEFAULT NULL             &#8211; this might be a problem.  I don't think Terminal currently comes back from the Routing calls. if we haven't already gotten it added to the extended section, we'll probably need it<br/>
+    ,p_org_id               IN mf_organization.org_id%TYPE DEFAULT NULL                       &#8211; leave null.  There's a different use of this function (not applicable for Email Tender) where SCAC would be NULL, and this would be populated the sasme as p_org_operational_id <br/>
+) RETURN  comm_addresses_format_tabtype IS &#8211; return is an array of structures where each structure has an element that contains one or more email addresses (because there are limits to the number of characters you use in the "To:" section of the email, sometimes this array is more than one entry long<br/>
+&#8211; The way we deal with it today is to just generate a separate email for each entry in this array.</p>
+
+
+
+<hr />
+
+<h3><a name="BR4%3AEmailContent"></a>BR-4: Email Content</h3>
+
+<p>The outbound email shall contain tender-related information required by the carrier to review the shipment. It would be sort of tender summary with response tender link ( In form of “Review &amp; Respond” button.</p>
+
+<p>Please refer the exact content of email body and review page as mentioned in the VD. VD has been prepared taking business team opinions.</p>
+
+<h3><a name="BR5%3AEmailSubject"></a>BR-5: Email Subject</h3>
+
+<p>The system shall generate a subject line that enables the carrier to easily identify the tender communication.</p>
+
+<hr />
+
+<p>The details of the subject are as follows: (As provided by Dave over email)</p>
+
+<p>Updated the attachment with info about getting the “From” and “To” emails.</p>
+
+<p>The subject line is probably better done in the email service itself because it’s built from data in the buyShipmentOut and isn’t subject to alteration by the User.</p>
+
+<p>I use the “&lt;&lt;“ and “&gt;&gt;” to surround data that comes from the buyShipmentOut.</p>
+
+<p>When it’s a Direct Shipment, the subject is:</p>
+
+<p>Tender Notification to &lt;&lt;SCAC&gt;&gt; of Shipment ID:&lt;&lt;OdysseyShipmentIdentifier&gt;&gt;, for &lt;&lt;Customer&gt;&gt; delivery:&lt;&lt;OrderNo&gt;&gt;</p>
+
+<p>e.g.</p>
+
+<p>Tender Notification to FFAJ of Shipment ID:L15653820, for GRACE delivery:0089391595</p>
+
+<p>(Note: TMS was sending the LOAD id; not the OdysseyShipmentIdentifier)</p>
+
+<p>When it is a consolidation, it replaces the delivery section with “, multiple deliveries”</p>
+
+<p>Tender Notification to &lt;&lt;SCAC&gt;&gt; of Shipment ID:&lt;&lt;OdysseyShipmentIdentifier&gt;&gt;, for &lt;&lt;Customer&gt;&gt;, multiple deliveries</p>
+
+<p>e.g.</p>
+
+<p>Tender Notification to CCNI of Shipment ID:C826972, for USALCO, multiple deliveries</p>
+
+<p>I gotta do a little research on how they are coming up with the &lt;&lt;Customer&gt;&gt; for the Shipment.  (I <b>think</b>​ they are doing it with some string manipulation of the org_short_name from TMS…. Strip the leading “*” and remove from “<em>SYS</em>” on…. e.g.  *USALCO_SYS_01 becomes USALCO.</p>
+
+<p>Hmm…. I don’t think we’ve defined what the OdysseyShipmentIdentifier will be when the planning is being done in O2 instead of TMS.  It has to be something that will have the same value in the Buy and Sell shipments…. <span class="error">&#91;and, we can&#39;t use the same “C” and “O” prefix that TMS uses because that could conflict with existing ID’s of other shipments&#93;</span></p>
+
+<hr />
+
+<h3><a name="BR6%3AShipmentPresentationFormat"></a>BR-6: Shipment Presentation Format </h3>
+
+<ul>
+	<li>Email Body will have secured linked (in form of “Review &amp; Respond” button) and click on that “Review &amp; respond” button will open a review page.</li>
+	<li>Review Page will have “Accept” and “Reject” buttons.</li>
+	<li>Email Body - For the exact email body content, please follow the VD for the same.</li>
+	<li>Review page content - For the exact review page content, please follow the VD for the same.</li>
+</ul>
+
+
+<h3><a name="BR7%3ASecureAcceptandDeclineActions"></a>BR-7: Secure Accept and Decline Actions</h3>
+
+<p>For Email communication, Email body will have tender response link (in form of “Review &amp; Respond” button). When users click on the “Review &amp; Respond” button, then review page should open. And, review page contains “Accept” and “Reject” secure links in form of buttons.</p>
+
+<p>The click on “Review &amp; Respond” button shall direct the carrier to a review page where the carrier can:</p>
+
+<ul>
+	<li>Review shipment details. - For the review page content, please have a look into the VD for the same.</li>
+	<li>Review tender information. - For the review page content, please have a look into the VD for the same.</li>
+	<li>Explicitly confirm Accept or Decline.</li>
+</ul>
+
+
+<p>This approach prevents automated email security scanners from unintentionally accepting or declining tenders.</p>
+
+<h3><a name="BR8%3AEmail%26EDIScenario"></a>BR-8: Email &amp; EDI Scenario</h3>
+
+<p>When the communication method is Email &amp; EDI:</p>
+
+<ul>
+	<li>An EDI tender shall be transmitted.</li>
+	<li>An email notification shall also be transmitted.</li>
+</ul>
+
+
+<p>The email content and review page will be same as the communication as Email. But in this scenario, Accept and Decline buttons will not be there in the Review Page.</p>
+
+<h3><a name="BR9%3ACommunicationSuccess"></a>BR-9: Communication Success</h3>
+
+<p>The email communication shall be considered successfully sent when the Email Communication Service successfully submits the email to the configured mail server.</p>
+
+<p>The system is not responsible for determining whether the recipient actually reads the email.</p>
+
+<p>In case of success, Tender Status should be “Sent”</p>
+
+<h3><a name="BR10%3ACommunicationFailure"></a>BR-10: Communication Failure</h3>
+
+<p>If the Email Communication Service cannot submit the email to the mail server:</p>
+
+<ul>
+	<li>The communication attempt shall be considered failed.</li>
+	<li>In case of failure, Tender status will be “Tender Failed”</li>
+	<li><del>Retry processing shall occur according to the configured retry policy.</del></li>
+	<li><del>If all retries are exhausted, the tender shall transition to the appropriate failure status.</del></li>
+</ul>
+
+            <br/>
+        </td>
+    </tr>
+    </table>
+
+    <br/>
+
+    <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+    <tr>
+        <td bgcolor="#bbbbbb" width="1%" nowrap align="center">
+            &nbsp;<font color="#ffffff"><b>Comments</b></font>&nbsp;
+        </td>
+        <td>&nbsp;</td>
+    </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" class="grid" style="margin: 0;">
+                <tr id="comment-header-322748"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 02, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-322748"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316" class="user-hover" rel="63c0150c50b9490924dcf316" data-account-id="63c0150c50b9490924dcf316" accountid="63c0150c50b9490924dcf316" rel="noreferrer">Adam Shingle</a> <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" class="user-hover" rel="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" data-account-id="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" accountid="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" rel="noreferrer">Laurie Blumsack</a> : I have got reviewed this story with <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A03aa3c7b-ea4a-46af-9e43-b286e289791e" class="user-hover" rel="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" data-account-id="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" accountid="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" rel="noreferrer">Dave Schultz</a> <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A66e141e1-170a-4549-b523-6cf72d042a78" class="user-hover" rel="712020:66e141e1-170a-4549-b523-6cf72d042a78" data-account-id="712020:66e141e1-170a-4549-b523-6cf72d042a78" accountid="712020:66e141e1-170a-4549-b523-6cf72d042a78" rel="noreferrer">Thomas Quaile</a> , all looks good but we need to get a confirmation from business regarding the content of email and review page. We have the sample of existing Email communication in TMS. But, for odysseyOne, we need to have your confirmtion, so I have put this story in block status. I have scheduled a call with you for the clarification of email body and review page content. </p>
+        </td></tr>
+                <tr id="comment-header-324800"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 09, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-324800"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A03aa3c7b-ea4a-46af-9e43-b286e289791e" class="user-hover" rel="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" data-account-id="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" accountid="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" rel="noreferrer">Dave Schultz</a> : Please have a talk with the business team and confirm us the Email Body and Email Review screen content on a priority. <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316" class="user-hover" rel="63c0150c50b9490924dcf316" data-account-id="63c0150c50b9490924dcf316" accountid="63c0150c50b9490924dcf316" rel="noreferrer">Adam Shingle</a> : Please make sure that we get the business team confirmation on a priority. It’s critical for the story implementation.</p>
+        </td></tr>
+                <tr id="comment-header-325412"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 10, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-325412"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316" class="user-hover" rel="63c0150c50b9490924dcf316" data-account-id="63c0150c50b9490924dcf316" accountid="63c0150c50b9490924dcf316" rel="noreferrer">Adam Shingle</a> <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" class="user-hover" rel="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" data-account-id="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" accountid="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" rel="noreferrer">Laurie Blumsack</a> : This story has been groomed. and Email body and review page confirmation is going on with business. So, It would be great if you have a look into the story and provide the approval for the same.</p>
+        </td></tr>
+                <tr id="comment-header-325414"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 10, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-325414"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5" class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" data-account-id="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" accountid="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" rel="noreferrer">Manuela Ramirez (Iris Software)</a> : Once email body and review page content gets finalized by business, we would need your help for the creation of VD for this story. Please have some time for that.</p>
+        </td></tr>
+                <tr id="comment-header-327902"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e"
+                id="word_commented_712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3Af8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e">
+                    Mayank Dixit
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 17, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-327902"><td bgcolor="#ffffff">
+            <p>Assigning it to manuela as VD is pending. <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5" class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" data-account-id="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" accountid="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" rel="noreferrer">Manuela Ramirez (Iris Software)</a> . for more details connect pappu. <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8" class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8" data-account-id="712020:19b13425-1480-4f12-ae34-7366112f65c8" accountid="712020:19b13425-1480-4f12-ae34-7366112f65c8" rel="noreferrer">Pappu Ram</a> </p>
+        </td></tr>
+                <tr id="comment-header-329396"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 22, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-329396"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3Af8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e" class="user-hover" rel="712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e" data-account-id="712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e" accountid="712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e" rel="noreferrer">Mayank Dixit</a> : We had a meeting with Manuela and discussed regarding the VD requirement. <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5" class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" data-account-id="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" accountid="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" rel="noreferrer">Manuela Ramirez (Iris Software)</a> : Please let us know when VD is ready for this. It would be great if you  prepare the VD on a priority.</p>
+        </td></tr>
+                <tr id="comment-header-329665"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="63c0150c50b9490924dcf316"
+                id="word_commented_63c0150c50b9490924dcf316"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316">
+                    Adam Shingle
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 22, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-329665"><td bgcolor="#ffffff">
+            <p>approved.</p>
+        </td></tr>
+            </table>
+Generated at Tue Sep 22 16:45:46 UTC 2026 by Manuela Ramirez (Iris Software) using Jira 1001.0.0-SNAPSHOT#100294-rev:c55cfe57b78418b5e438086bd510af0572d7286e.
+
+</body>
+</html>

@@ -1124,10 +1124,76 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 
 ---
 
+### DEC-177: the Tender Review page normalises the VD's spotbid copy to tender wording
+- **Previous:** VD `2509:71686` (and its four siblings) heads the page *Request for quote* with a *Quote #* fact and a *Quote O31936118* title — the SpotBoard carrier page re-dressed.
+- **Decision:** the page renders **Tender** / **Shipment ID** / `<carrier> - Tender <Odyssey Shipment ID>`. The VD rules layout; its text is mock text (Efrain/mock copy is normalised to Jira/user wording as a standing rule). Nothing in LINX-15796 calls the page a quote.
+- **Source:** LINX-15796 BR-02 (*"Shipment Number, Tender Number, Carrier Information…"*); user brief 2026-09-22 (*"based on the same design as the spotbid bidding page"* — design, not copy). Canon [[../tender-communication]] §5.
+
+### DEC-178: the header badge reads *Tendered <notifyDateTime>*, not *Offer expires* — no tender expiry exists
+- **Previous:** VD shows an amber *Offer expires 09/13/2026 12:39 EST* badge, inherited from the spot bid's `closeAt`.
+- **Decision:** blue *Tendered <option.notifyDateTime>*. None of LINX-15795/15796/15800 gives an email tender a response deadline, and the VM has no field for one (`loadboardExpiry` is a loadboard thing). Inventing a countdown would be fabricating a rule. **Open question for Dave/Jana:** does TMS run a tender timeout for email tenders, and does it belong on the page?
+- **Source:** ours, 2026-09-22.
+
+### DEC-179: the recorded-response reference is the Odyssey Shipment Identifier
+- **Previous:** VD banners read *Reference LCE17665976KCNTTL* — a composite that exists nowhere on the wire.
+- **Decision:** *Tender accepted – Recorded on <responseDateTime>. Reference <odysseyShipmentIdentifier>.* The identifier is the one ID common to the buy and sell shipment (DEC-144) and the one Dave puts in the subject line.
+- **Source:** ours; LINX-15795 BR-5 (Dave) for the identifier's role.
+
+### DEC-180: *Mode* and *Freight terms* rows are omitted, not faked
+- **Previous:** VD's Equipment & Freight lists Mode, Equipment, Carrier ID, Total weight, Package count, Requested delivery, Freight terms, Offered rate.
+- **Decision:** Mode and Freight terms are dropped — neither exists on `ShipmentDetailVM` (`shipmentDetail.ts` has `incoterm`, not freight terms, and no mode). A row with a made-up value is worse than no row. Add them when the header exposes them.
+- **Source:** ours, 2026-09-22.
+
+### DEC-181: the email subject is Dave's line verbatim, including his customer short-name guess
+- **Previous:** no tender email existed; TMS sends the LOAD id in its subject.
+- **Decision:** Direct: `Tender Notification to <SCAC> of Shipment ID:<OdysseyShipmentIdentifier>, for <Customer> delivery:<OrderNo>`; consolidation replaces the delivery section with `, multiple deliveries`. `<Customer>` = `customerName` with a leading `*` stripped and everything from `_SYS` on removed — Dave's own *"I think"* reading of TMS's `org_short_name` manipulation, implemented as one regex (`customerForSubject`) and a no-op on our already-clean names. Flagged as his guess, not a rule.
+- **Source:** LINX-15795 BR-5, Dave over email, verbatim.
+
+### DEC-182: decline reasons are the VD's five values, comments optional at 200 characters — pending Dave
+- **Previous:** LINX-15796 BR-06 gives *examples* (Capacity unavailable / Equipment unavailable / Pricing issue / Unable to meet schedule / Other) and says *"allow or require entry of a decline reason based on configured business rules"*; Pappu's questions to Dave (mandatory? which code table?) are unanswered since 2026-09-02.
+- **Decision:** build the VD's list — *No capacity available · Rate too low · Lane not served · Cannot meet pickup or delivery window · Other* — reason **required** to confirm, comments optional (`n/200`). Stored as `declineReason` + `responseComments` on the option. Both the list and the mandatory rule are placeholders until Dave answers.
+- **Source:** VD `2525:41993`; LINX-15796 BR-06 (open).
+
+### DEC-183: the carrier `To:` address is synthesized `ops@<scac>.example.com`
+- **Previous:** LINX-15795 BR-3 sources recipients from TMS's `mf$get.load_tender_communication(...)`, one email per returned entry; the prototype has no carrier contact model.
+- **Decision:** same stand-in convention SpotBoard's `carrierList.js` uses; `From` = the planning-group mailbox (SPB-77). `ponytail:` comment in `tenderEmailContext.js` cites the real function. No CC.
+- **Source:** ours; LINX-15795 BR-3.
+
+### DEC-184: a carrier-side Decline does NOT auto-tender the next carrier
+- **Previous:** the Tender tab's planner Decline/Cancel cascades to the next null-status carrier (Fix 4, S114 — DEC-73).
+- **Decision:** the review page records the Decline and stops. That cascade is planner-side UI; LINX-15796 FR-08 routes the carrier's response *"through the common Tender Response workflow"*, which would own any follow-on tender. **Ask Dave/Jana** whether an emailed Decline should cascade like a planner Decline.
+- **Source:** ours, 2026-09-22.
+
+### DEC-185: Accept has no confirmation dialog
+- **Previous:** SpotBoard's carrier page confirms Submit/Decline in a ModalMedium.
+- **Decision:** the VD shows no dialog on Accept; its lede — *"This decision is final and will be sent to … immediately."* — is the warning. Decline confirms through its own inline form (reason + Confirm Decline), which the VD does draw. The mock answers the ambiguous ask.
+- **Source:** VD `2509:71686` / `2525:41529`.
+
+### DEC-186: the response method is `Email Links Update` and `responseUser` stays null
+- **Previous:** DEC-173 — a response user is OURS and exists only on a `Manual Update`.
+- **Decision:** a carrier clicking the review page is recorded with `responseMethod: 'Email Links Update'` (verbatim LINX-15796 BR-10), `responseDateTime` = now, `responseUser: null` — a carrier is not an Odyssey user. `modifyUser` reads `<SCAC> (email link)` so the audit still says who.
+- **Source:** LINX-15796 BR-10; DEC-173.
+
+### DEC-187: once-only responses are enforced by the API (`expectStatus` → 409), not by the page
+- **Previous:** `PUT …/tender` overwrote the row unconditionally; a second tab could re-record.
+- **Decision:** the review page's write carries `expectStatus: 'Sent'`; `buildTenderUpdateQuery` adds `AND status = $9` and `saveTender` answers **409 `already-processed`** on a zero-row match, with no insert fallback. The page shows BR-07's verbatim *"This tender response has already been submitted and cannot be processed again."* Opening the page writes nothing (BR-04/BR-08), pinned by a test.
+- **Source:** LINX-15796 BR-07 / AC-05 / AC-06; ours for the mechanism.
+
+### DEC-188: seeded tender tokens are deterministic — no faker draw, ids verified unmoved
+- **Previous:** a live token is `mintToken()` with `crypto.randomUUID()`; seed 42 must stay reproducible and every faker draw renumbers the shipment ids.
+- **Decision:** `generate.mjs` stamps `tenderToken = base64url({ s: sellShipment, c: scac, n: 'seed-<lcePkId>' })` on every Sent/Accepted/Declined option whose method is `Email` or `Email & EDI` — derived, not drawn. `ROUTING_APIS` gains `Email & EDI` and `Manual`; `pick()` is one draw regardless of list length. Verified: `shipments.json` and `orders.json` byte-identical after regeneration (2200 ids, 5087 order numbers). **Neon reseed owed** before any of this is reachable live.
+- **Source:** ours; DEC-107 pattern.
+
+### DEC-189: `Manual` notify method — the planner confirms out-of-band contact before Tender/Re-Tender; the cascade is not gated
+- **Previous:** Tender on a row with any method set it `Sent` directly; `Manual` was not a seeded value, so the case was unreachable.
+- **Decision:** `ManualTenderConfirm` (title, message, Confirm/Cancel verbatim from BR-11) opens before the normal Tender/Re-Tender path; Confirm runs that path unchanged (status `Sent`, notify + audit stamps), Cancel changes nothing. The Decline/Cancel auto-tender cascade is deliberately **not** gated — BR-11 scopes the dialog to *"When a user manually initiates tendering from the UI"*. The story's Jira id was not supplied with the paste; BR-11 is recorded by its own number.
+- **Source:** BR-11, user 2026-09-22.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 22, 2026 | **DEC-177 through DEC-189** (S157) — **tender communication** (LINX-15795/15796/15800 + BR-11): the Tender Review page normalises the VD's spotbid copy, shows *Tendered* not *Offer expires* (no tender expiry exists), references the Odyssey Shipment ID and omits rows the VM lacks; Dave's subject line verbatim with his customer-short-name guess; the VD's five decline reasons pending Dave; synthesized `To:`; no carrier-side cascade; no Accept dialog; `Email Links Update` with a null `responseUser`; once-only enforced by `expectStatus` → 409; deterministic seeded tokens with ids verified unmoved (reseed owed); the `Manual` confirm dialog |
 | Sep 18, 2026 | **DEC-176** — the Routing History surface, three user rulings: each section shows **only its own data** (SCAC-only anchor, response columns out of Routing Options; 64 → 49 columns; amends DEC-170), the **newest version opens on arrival**, and the section cards are **outlined with 16px titles** under a full-bleed header rule. Found underneath: **nested SubAccordions had never collapsed** (descendant selectors in `components.css`, now `>`-scoped) — the Angular twin likely carries the same bug |
 | Sep 18, 2026 | **DEC-175 reverses DEC-169** — a historical routing version **can hold an Accepted tender**: Jana's own definition of a version (Mar 25: *"a new order added or a new stop came in or the origin changed"*) and the Order Change stories (LINX-14509/14514/15438, *"V1 = prior"*) all start from an accepted shipment, and LINX-15899 permits Cancel/Re-Tender on Accepted. The seed already carries a genuine V1 for order-change shipments (`orderChange.priorTenderList`); the derive owes a spec-driven change; what populates Carrier Pickup # stays **undocumented** |
 | Sep 18, 2026 | DEC-173, DEC-174 — what a tender **response** actually is (LINX-5921: Odyssey notifies, the carrier answers, and `responseMethod` names the mechanism that RECORDED the answer — so `responseUser` is **ours** and only a `Manual Update` has one, and `Cancelled` is our action, never the carrier's feed), and the four response fields seeded as **one fact** instead of three independent gates, with `responseComments` finally a real generator field; **zero new faker draws**, so nothing renumbered; **Neon reseeded** |

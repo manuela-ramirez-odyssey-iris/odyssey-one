@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>[#LINX-15796] Provide Secure Accept and Decline Actions for Email Tenders</title>
+    <meta http-equiv="Content-Type" Content="application/vnd.ms-word; charset=UTF-8">
+        <style type="text/css">
+
+.tableBorder, .grid
+{
+    background-color: #fff;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tableBorder td, .grid td
+{
+    vertical-align: top;
+    padding: 2px;
+    border: 1px solid #ccc;
+}
+
+.noPadding
+{
+    padding: 0 !important;
+}
+
+h3 .subText
+{
+    font-size: 60%;
+    font-weight: normal;
+}
+
+.tabLabel
+{
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom:none;
+    padding: 2px;
+    display: inline;
+}
+
+td.blank
+{
+    padding: 0;
+    margin: 0;
+}
+
+.blank td
+{
+    border: none;
+}
+
+#descriptionArea
+{
+    margin: 0;
+    padding: 2px;
+    border: 1px solid #ccc;
+}
+
+hr
+{
+    border-top:1px solid #aaa;
+}
+
+hr.fullcontent
+{
+  height: 15px;
+  padding: 10px 0;
+  background: #fff url('https://odysseylogistics.atlassian.net/images/icons/hr.gif') no-repeat scroll center;
+}
+
+</style>
+
+</head>
+<body>
+
+<table class="tableBorder" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td bgcolor="#f0f0f0" width="100%" colspan="2" valign="top">
+                            <b><a id="parent_issue_summary" href="https://odysseylogistics.atlassian.net/browse/LINX-15789">Enable End-to-End Carrier Tender Communication and Response Management in Odyssey One</a></b>
+                <span style="font-size: 9px">(<a id="parent_issue_key" href="https://odysseylogistics.atlassian.net/browse/LINX-15789">LINX-15789</a>)</span>
+                <h3 class="formtitle"><img src="https://odysseylogistics.atlassian.net/images/icons/link_out_bot.gif" width="16" height="16" />
+                        [LINX-15796]&nbsp;<a href="https://odysseylogistics.atlassian.net/browse/LINX-15796">Provide Secure Accept and Decline Actions for Email Tenders</a>
+            <span class="subText">
+               Created: Aug 27, 2026                   &nbsp;Updated: Sep 22, 2026
+
+                                            </span>
+            </h3>
+        </td>
+    </tr>
+    <tr>
+        <td width="20%"><b>Status:</b></td>
+        <td width="80%">Final UX/UI Design</td>
+    </tr>
+    <tr>
+        <td width="20%"><b>Project:</b></td>
+        <td width="80%"><a href="https://odysseylogistics.atlassian.net/secure/BrowseProject.jspa?id=10072">OdysseyONE</a></td>
+    </tr>
+
+        <tr>
+            <td><b>Components:</b></td>
+            <td>
+                                        <a title="OdysseyONE TMS- Shipments"
+                href="https://odysseylogistics.atlassian.net/issues/?jql=project%3D10072%20AND%20%22component%22%3D11879%20ORDER%20BY%20priority%20ASC"
+            >OdysseyONE TMS- Shipments</a>                        </td>
+    </tr>
+    
+
+        <tr>
+            <td><b>Affects versions:</b></td>
+            <td>
+                            None
+                </td>
+    </tr>
+    
+
+        <tr>
+            <td><b>Fix versions:</b></td>
+            <td>
+                            None
+                </td>
+    </tr>
+    
+    
+            <td width="20%"><b>Parent:</b></td>
+        <td width="80%"><a href="https://odysseylogistics.atlassian.net/browse/LINX-15789">Enable End-to-End Carrier Tender Communication and Response Management in Odyssey One</a></td>
+    </table>
+
+<br />
+<table class="grid" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td bgcolor="#f0f0f0" valign="top" width="20%">
+            <b>Type:</b>
+        </td>
+        <td bgcolor="#ffffff" valign="top"  width="30%" >
+            Story
+        </td>
+
+                    <td bgcolor="#f0f0f0">
+                <b>Priority:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" nowrap>
+                Medium
+            </td>
+            </tr>
+    <tr>
+                        <td bgcolor="#f0f0f0" valign="top" width="20%">
+                <b>Reporter:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top"  width="30%" >
+                                        
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_reporter_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                            </td>
+        
+                    <td bgcolor="#f0f0f0" width="20%">
+                <b>Assignee:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" nowrap  width="30%" >
+                                        
+                
+        
+            <a class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5"
+                id="word_assignee_712020:6d28eb2e-099d-416f-922d-daea93ad07d5"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5">
+                    Manuela Ramirez (Iris Software)
+                </a>
+
+                            </td>
+            </tr>
+    	<tr>
+		<td bgcolor="#f0f0f0" width="20%">
+			<b>Resolution:</b>
+		</td>
+		<td bgcolor="#ffffff" valign="top" width="30%" nowrap>
+            				Unresolved
+                    </td>
+                    <td bgcolor="#f0f0f0" width="20%">
+                <b>Votes:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" width="30%" nowrap>
+                0
+            </td>
+        
+    </tr>
+    
+        <tr>
+        <td bgcolor="#f0f0f0" width="20%">
+            <b>Labels:</b>
+        </td>
+        <td id="labels-208968-value" class="value" bgcolor="#ffffff" valign="top" colspan="3" nowrap>
+                            Approved, FUNCTIONAL_PHASE2, MVP, VD_Pending                    </td>
+    </tr>
+    
+    
+    </table>
+
+
+
+    <br />
+
+    	<table class="grid" cellpadding="0" cellspacing="0" border="0" width="100%">
+            
+
+        
+            <tr>
+            <td bgcolor="#f0f0f0" width="20%" valign="top">
+                <b>Issue links:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" class="noPadding">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%" class="blank">
+                                            <tr>
+                            <td colspan="4" bgcolor="#f0f0f0">
+                                <b>Action item</b><br/>
+                            </td>
+                        </tr>
+                                    <tr>
+            <td>
+                has action item
+            </td>
+            <td>
+                <a href="https://odysseylogistics.atlassian.net/browse/LINX-17344">
+                     LINX-17344                 </a>
+            </td>
+            <td>
+                [Tech] Provide Secure Accept and Decl...
+            </td>
+            <td>
+                Todo
+            </td>
+        </tr>
+                                                                    </table>
+            </td>
+        </tr>
+    
+
+
+    
+                        <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>Acceptance Criteria:</b></td>
+                <td id="customfield_10032-208968-value" class="value" bgcolor="#ffffff" width="80%">      <h2><a name="AC01%3AOpenReviewPage"></a><ins>AC-01: Open Review Page</ins></h2>
+
+<p><b>Given</b> a carrier receives an email tender<br/>
+<b>When</b> the carrier selects the Accept or Decline link<br/>
+<b>Then</b> the system shall open the Tender Review page<br/>
+<b>And</b> shall not record a response.</p>
+
+<h2><a name="AC02%3ADisplayTenderInformation"></a><ins>AC-02: Display Tender Information</ins></h2>
+
+<p><b>Given</b> the Tender Review page is opened<br/>
+<b>When</b> tender information is retrieved successfully<br/>
+<b>Then</b> the page shall display shipment and tender details required for review.</p>
+
+<h2><a name="AC03%3AAcceptTender"></a><ins>AC-03: Accept Tender</ins></h2>
+
+<p><b>Given</b> a carrier is viewing the Tender Review page<br/>
+<b>When</b> the carrier selects Accept<br/>
+<b>Then</b> the system shall record an Accept response<br/>
+<b>And</b> generate a Tender Response message<br/>
+<b>And</b> display a success confirmation.</p>
+
+<h2><a name="AC04%3ADeclineTender"></a><ins>AC-04: Decline Tender</ins></h2>
+
+<p><b>Given</b> a carrier is viewing the Tender Review page<br/>
+<b>When</b> the carrier selects Decline<br/>
+<b>Then</b> the system shall record a Decline response<br/>
+<b>And</b> generate a Tender Response message<br/>
+<b>And</b> display a success confirmation.</p>
+
+<h2><a name="AC05%3AEmailScannerValidation"></a><ins>AC-05: Email Scanner Validation</ins></h2>
+
+<p><b>Given</b> an email-security scanner automatically follows the email link<br/>
+<b>When</b> the review page opens<br/>
+<b>Then</b> no tender response shall be recorded<br/>
+<b>And</b> no tender status shall be updated.</p>
+
+<h2><a name="AC06%3APreventDuplicateResponses"></a><ins>AC-06: Prevent Duplicate Responses</ins></h2>
+
+<p><b>Given</b> a tender has already been accepted or declined<br/>
+<b>When</b> the carrier opens the same link again<br/>
+<b>Then</b> the system shall not create another response<br/>
+<b>And</b> shall display a message indicating the tender has already been processed.</p>
+
+<h2><a name="AC07%3AResponseMethodIdentification"></a><ins>AC-07: Response Method Identification</ins></h2>
+
+<p><b>Given</b> a response is submitted through the Tender Review page<br/>
+<b>When</b> the Tender Response message is generated<br/>
+<b>Then</b> the response method shall be set to Email.</p>
+
+<h2><a name="AC08%3AInvalidorExpiredLink"></a><ins>AC-08: Invalid or Expired Link</ins></h2>
+
+<p><b>Given</b> the carrier accesses an invalid or expired link<br/>
+<b>When</b> the page loads<br/>
+<b>Then</b> the system shall display an appropriate error message<br/>
+<b>And</b> shall not expose shipment information<br/>
+<b>And</b> shall not create a response.</p>
+  </td>
+            </tr>
+                                <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>Sprint:</b></td>
+                <td id="customfield_10021-208968-value" class="value" bgcolor="#ffffff" width="80%">Skybreakers Sprint 44</td>
+            </tr>
+                                <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>OdysseyONE Scrum Team:</b></td>
+                <td id="customfield_11762-208968-value" class="value" bgcolor="#ffffff" width="80%">    Skybreakers
+</td>
+            </tr>
+            </table>
+
+    <br/>
+
+    <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+    <tr>
+        <td bgcolor="#bbbbbb" width="1%" nowrap align="center">
+            &nbsp;<font color="#ffffff"><b>Description</b></font>&nbsp;
+        </td>
+        <td>&nbsp;</td>
+    </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td id="descriptionArea">
+            <h1><a name="BusinessSummary"></a><ins>Business Summary</ins></h1>
+
+<p><b>As a</b> carrier recipient,<br/>
+<b>I want</b> an email link (as “Review &amp; Decline” button) on the email body to open a tender review page before I confirm my response,<br/>
+<b>So that</b> the shipment is not accidentally accepted or declined by automated email-security scanners and I can intentionally submit my response after reviewing the tender details.</p>
+
+<h1><a name="BusinessContext"></a><ins>Business Context</ins></h1>
+
+<p>For email-based tender communication, carriers receive an email containing Accept and Decline links (in form of “Review &amp; Respond” button). Historically, email links could directly trigger acceptance or rejection actions. However, many corporate email-security solutions automatically inspect email links by opening them in the background. This behavior can unintentionally trigger business actions and result in shipments being automatically accepted without carrier involvement. Dave Schultz explained that mail inspection programs were automatically following email links and causing tender responses to be submitted without user action. As a result, the solution requires a review page between the email link and the final confirmation action.</p>
+
+<p>The carrier must explicitly review the tender details and manually click an Accept or Decline button on the review page before a tender response is recorded. Simply opening the email link must never update the tender status.</p>
+
+<h1><a name="BusinessRules"></a><ins>Business Rules</ins></h1>
+
+<h2><a name="BR01%3AEmailLinksMustNotDirectlySubmitResponses"></a>BR-01: Email Links Must Not Directly Submit Responses</h2>
+
+<p>User can view the “Review &amp; Respond” button on the email body. When carrier receipts click on the button, they should be directed to the review page where they will be able to view “Accept” and “Decline” button. If they want, they will be able to take action by clicking on “Accept” or “Decline” button.</p>
+
+<p>Clicking a review link (in form of “Review &amp; Respond” button  within the email shall not directly accept or decline the tender.</p>
+
+<p>The email link shall only navigate the carrier to an externally accessible Tender Review page.</p>
+
+<ul>
+	<li>Check VD for the details of content of Email Body and review page.</li>
+</ul>
+
+
+<h2><a name="BR02%3ACarrierReviewIsMandatory"></a>BR-02: Carrier Review Is Mandatory</h2>
+
+<p>Before responding to a tender, the carrier shall be able to review the details of tender in the review page. </p>
+
+<ul>
+	<li>Check VD for the details of content of Email Body and review page.</li>
+</ul>
+
+
+<ul>
+	<li><del>Shipment Number</del></li>
+	<li><del>Tender Number</del></li>
+	<li><del>Carrier Information</del></li>
+	<li><del>Origin Location</del></li>
+	<li><del>Destination Location</del></li>
+	<li><del>Pickup Date</del></li>
+	<li><del>Delivery Date</del></li>
+	<li><del>Shipment Details</del></li>
+	<li><del>Special Instructions (if applicable)</del></li>
+</ul>
+
+
+<p>The carrier must review the information before submitting a response.</p>
+
+<h2><a name="BR03%3AExplicitUserActionIsRequired"></a>BR-03: Explicit User Action Is Required</h2>
+
+<p>A tender response shall only be recorded when the carrier explicitly clicks on:</p>
+
+<ul>
+	<li>“Accept” button</li>
+	<li>“Decline' button</li>
+</ul>
+
+
+<p>from the Tender Review page.</p>
+
+<h2><a name="BR04%3AOpeningtheReviewPageShallNotUpdateTenderStatus"></a>BR-04: Opening the Review Page Shall Not Update Tender Status</h2>
+
+<p>The system shall not:</p>
+
+<ul>
+	<li>update the tender status,</li>
+	<li>record a tender response,</li>
+	<li>generate a tender response message,</li>
+</ul>
+
+
+<p>when a user merely opens the review page.</p>
+
+<h2><a name="BR05%3ATenderResponseMustBeGeneratedOnlyAfterConfirmationDebatable%28ManiandDavewillconfirmthis%29"></a>BR-05: Tender Response Must Be Generated Only After Confirmation - Debatable (Mani and Dave will confirm this)</h2>
+
+<p>When the carrier confirms their action on the review page, the system shall generate a standardized Tender Response message for downstream processing. The response processing workflow must remain consistent with EDI, Net Native, and other supported response channels.</p>
+
+<h2><a name="BR06%3ADeclineDoesn%E2%80%99tRequiresAdditionalInput"></a>BR-06: Decline Doesn’t Requires Additional Input</h2>
+
+<p>If the carrier clicks on <b>Decline</b> button, the system will simply initiate the decline process. <del>allow or require entry of a decline reason based on configured business rules.</del></p>
+
+<p><del>Examples:</del></p>
+
+<ul>
+	<li><del>Capacity unavailable</del></li>
+	<li><del>Equipment unavailable</del></li>
+	<li><del>Pricing issue</del></li>
+	<li><del>Unable to meet schedule</del></li>
+	<li><del>Other</del></li>
+</ul>
+
+
+<p><del>The decline reason shall be included in the generated response message when provided.</del></p>
+
+<p><ins><b><del>Need the following confirmation from Dave:</del></b></ins></p>
+
+<ul>
+	<li><b><del>Decline Reason Requirement</del></b>
+	<ul>
+		<li><del>When a carrier selects</del> <b><del>Decline</del></b><del>, should a decline reason be mandatory or optional?</del></li>
+		<li><del>Are there any business rules that determine when a decline reason is required?</del></li>
+	</ul>
+	</li>
+	<li><b><del>Decline Reason Values</del></b>
+	<ul>
+		<li><del>What list of decline reason codes/values should be presented to the carrier?</del></li>
+		<li><del>Is there an existing code table or master data source that we should reference?</del></li>
+	</ul>
+	</li>
+</ul>
+
+
+<h2><a name="BR07%3ATenderResponsesMustBeIdempotent"></a>BR-07: Tender Responses Must Be Idempotent</h2>
+
+<p>A carrier response shall only be processed once.</p>
+
+<p>If the carrier attempts to use the same tender-response link after a response has already been submitted successfully.</p>
+
+<ul>
+	<li>No duplicate response shall be created.</li>
+	<li>The user shall be informed that the tender has already been processed. A message should be shown in the Review Page if they take action on “Accept” or “Decline” button. - “<b>This tender response has already been submitted and cannot be processed again.</b>”</li>
+</ul>
+
+
+<h2><a name="BR08%3AEmailSecurityScannerAccessMustNotTriggerResponses"></a><del>BR-08: Email Security Scanner Access Must Not Trigger Responses</del></h2>
+
+<p><del>If an email-security tool, anti-malware scanner, email gateway, or link-validation service automatically follows the email link:</del></p>
+
+<ul>
+	<li><del>the review page may be opened;</del></li>
+	<li><del>shipment information may be displayed if permitted;</del></li>
+	<li><del>no tender response shall be generated;</del></li>
+	<li><del>no status update shall occur.</del></li>
+</ul>
+
+
+<p><del>This requirement exists specifically to prevent automated acceptance of tenders.</del></p>
+
+<h2><a name="BR09%3APublicAccessibility"></a>BR-09: Public Accessibility</h2>
+
+<p>The Tender Review page shall be accessible externally without requiring carrier access to internal Odyssey One applications.</p>
+
+<p>The page must be designed specifically for external carrier interactions.</p>
+
+<h2><a name="BR10%3AResponseMethodMustBeIdentified"></a>BR-10: Response Method Must Be Identified</h2>
+
+<p>Responses submitted from the Tender Review page shall be identified as an Email response method in the standardized Tender Response message.</p>
+
+<p><b>Tender Response Method</b></p>
+
+<ul>
+	<li>When a carrier accepts or declines a tender from the secure email tender review page, Tender Response Method should be “<b>Email Links Update</b>”.</li>
+</ul>
+
+
+<h1><a name="FunctionalRequirements"></a>Functional Requirements</h1>
+
+<h2><a name="FR01%3AIncludeActionLinksinEmail"></a>FR-01: Include Action Links in Email</h2>
+
+<p>The tender email shall contain:</p>
+
+<ul>
+	<li>Review / Accept link</li>
+	<li>Review / Decline link</li>
+</ul>
+
+
+<p>Both links shall navigate to the Tender Review page.</p>
+
+<h2><a name="FR02%3ALoadTenderDetails"></a>FR-02: Load Tender Details</h2>
+
+<p>The Tender Review page shall retrieve and display the tender details associated with the link.</p>
+
+<h2><a name="FR03%3ADisplayTenderSummary"></a>FR-03: Display Tender Summary</h2>
+
+<p>The page shall provide sufficient shipment information for the carrier to make a decision.</p>
+
+<h2><a name="FR04%3ADisplayResponseActions"></a>FR-04: Display Response Actions</h2>
+
+<p>The page shall display:</p>
+
+<ul>
+	<li>Accept Button</li>
+	<li>Decline Button</li>
+</ul>
+
+
+<h2><a name="FR05%3AAcceptTender"></a>FR-05: Accept Tender</h2>
+
+<p>When the carrier selects Accept:</p>
+
+<ol>
+	<li>The system validates the tender.</li>
+	<li>The system records the response.</li>
+	<li>The system generates the Tender Response message.</li>
+	<li>The system displays a confirmation message.</li>
+</ol>
+
+
+<h2><a name="FR06%3ADeclineTender"></a>FR-06: Decline Tender</h2>
+
+<p>When the carrier selects Decline:</p>
+
+<ol>
+	<li>The system validates the tender.</li>
+	<li>The system captures the decline reason (if applicable).</li>
+	<li>The system records the response.</li>
+	<li>The system generates the Tender Response message.</li>
+	<li>The system displays a confirmation message.</li>
+</ol>
+
+
+<h2><a name="FR07%3APreventDuplicateResponses"></a>FR-07: Prevent Duplicate Responses</h2>
+
+<p>The system shall prevent multiple responses for the same tender after the first successful response.</p>
+
+<h2><a name="FR08%3AGenerateStandardTenderResponseMessage"></a>FR-08: Generate Standard Tender Response Message</h2>
+
+<p>The response generated shall contain at minimum:</p>
+
+<ul>
+	<li>Shipment Identifier</li>
+	<li>Tender Identifier</li>
+	<li>Response Method = Email</li>
+	<li>Response Decision (Accept / Decline)</li>
+	<li>Response Timestamp</li>
+	<li>Decline Reason (if applicable)</li>
+</ul>
+
+
+<p>This response will subsequently be processed through the common Tender Response workflow.</p>
+
+<h2><a name="FR09%3ADisplayCompletionPage"></a>FR-09: Display Completion Page</h2>
+
+<p>After a valid response is submitted, the carrier shall be shown a confirmation page.</p>
+
+<p>Example:</p>
+
+<p><b>Tender response recorded successfully.</b></p>
+            <br/>
+        </td>
+    </tr>
+    </table>
+
+    <br/>
+
+    <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+    <tr>
+        <td bgcolor="#bbbbbb" width="1%" nowrap align="center">
+            &nbsp;<font color="#ffffff"><b>Comments</b></font>&nbsp;
+        </td>
+        <td>&nbsp;</td>
+    </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" class="grid" style="margin: 0;">
+                <tr id="comment-header-322777"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 02, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-322777"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316" class="user-hover" rel="63c0150c50b9490924dcf316" data-account-id="63c0150c50b9490924dcf316" accountid="63c0150c50b9490924dcf316" rel="noreferrer">Adam Shingle</a> <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" class="user-hover" rel="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" data-account-id="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" accountid="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" rel="noreferrer">Laurie Blumsack</a> : This story has been reviewed by <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A03aa3c7b-ea4a-46af-9e43-b286e289791e" class="user-hover" rel="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" data-account-id="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" accountid="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" rel="noreferrer">Dave Schultz</a> . All looks good but I needed some more input from Dave, I have put all those queiries as part of this email, and also I have dropped an email to Dave for the same. So, I have put this story as blocked.</p>
+
+<p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A03aa3c7b-ea4a-46af-9e43-b286e289791e" class="user-hover" rel="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" data-account-id="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" accountid="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" rel="noreferrer">Dave Schultz</a> : Please have a look into the email and provide the clarification. The details of the email are as follows:</p>
+
+<p>While refining the story <b>"Provide Secure Accept and Decline Actions for Email Tenders"</b>, I came across a few open questions from our discussion that require clarification before we finalize the requirements.</p>
+
+<p>Could you please help with the following?</p>
+
+<ol>
+	<li><b>Tender Response Method</b>
+	<ul>
+		<li>When a carrier accepts or declines a tender from the secure email tender review page, what should be recorded as the Tender Response Method?</li>
+		<li>Should it be recorded as <b>Manual</b>, or should a separate value such as <b>Email</b> be used?</li>
+	</ul>
+	</li>
+	<li><b>Decline Reason Requirement</b>
+	<ul>
+		<li>When a carrier selects <b>Decline</b>, should a decline reason be mandatory or optional?</li>
+		<li>Are there any business rules that determine when a decline reason is required?</li>
+	</ul>
+	</li>
+	<li><b>Decline Reason Values</b>
+	<ul>
+		<li>What list of decline reason codes/values should be presented to the carrier?</li>
+		<li>Is there an existing code table or master data source that we should reference?</li>
+	</ul>
+	</li>
+	<li><b>Proposed Pickup and Delivery Dates</b>
+	<ul>
+		<li>Should carriers be allowed to propose alternate pickup and/or delivery dates from the tender review page?</li>
+		<li>If yes, what are the business rules that determine when date changes are allowed?</li>
+		<li>Is this capability required as part of MVP?</li>
+		<li>Does the current system support this behavior today?</li>
+	</ul>
+	</li>
+</ol>
+
+        </td></tr>
+                <tr id="comment-header-327891"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 17, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-327891"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5" class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" data-account-id="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" accountid="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" rel="noreferrer">Manuela Ramirez (Iris Software)</a> : I will schedule a call with you for the discussion on VD. The call be on Sep 18.</p>
+        </td></tr>
+                <tr id="comment-header-329680"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="63c0150c50b9490924dcf316"
+                id="word_commented_63c0150c50b9490924dcf316"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316">
+                    Adam Shingle
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 22, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-329680"><td bgcolor="#ffffff">
+            <p>approved</p>
+        </td></tr>
+            </table>
+Generated at Tue Sep 22 16:45:39 UTC 2026 by Manuela Ramirez (Iris Software) using Jira 1001.0.0-SNAPSHOT#100294-rev:c55cfe57b78418b5e438086bd510af0572d7286e.
+
+</body>
+</html>

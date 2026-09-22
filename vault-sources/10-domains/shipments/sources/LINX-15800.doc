@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>[#LINX-15800] Send a Tender Through Both Email and EDI</title>
+    <meta http-equiv="Content-Type" Content="application/vnd.ms-word; charset=UTF-8">
+        <style type="text/css">
+
+.tableBorder, .grid
+{
+    background-color: #fff;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tableBorder td, .grid td
+{
+    vertical-align: top;
+    padding: 2px;
+    border: 1px solid #ccc;
+}
+
+.noPadding
+{
+    padding: 0 !important;
+}
+
+h3 .subText
+{
+    font-size: 60%;
+    font-weight: normal;
+}
+
+.tabLabel
+{
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom:none;
+    padding: 2px;
+    display: inline;
+}
+
+td.blank
+{
+    padding: 0;
+    margin: 0;
+}
+
+.blank td
+{
+    border: none;
+}
+
+#descriptionArea
+{
+    margin: 0;
+    padding: 2px;
+    border: 1px solid #ccc;
+}
+
+hr
+{
+    border-top:1px solid #aaa;
+}
+
+hr.fullcontent
+{
+  height: 15px;
+  padding: 10px 0;
+  background: #fff url('https://odysseylogistics.atlassian.net/images/icons/hr.gif') no-repeat scroll center;
+}
+
+</style>
+
+</head>
+<body>
+
+<table class="tableBorder" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td bgcolor="#f0f0f0" width="100%" colspan="2" valign="top">
+                            <b><a id="parent_issue_summary" href="https://odysseylogistics.atlassian.net/browse/LINX-15789">Enable End-to-End Carrier Tender Communication and Response Management in Odyssey One</a></b>
+                <span style="font-size: 9px">(<a id="parent_issue_key" href="https://odysseylogistics.atlassian.net/browse/LINX-15789">LINX-15789</a>)</span>
+                <h3 class="formtitle"><img src="https://odysseylogistics.atlassian.net/images/icons/link_out_bot.gif" width="16" height="16" />
+                        [LINX-15800]&nbsp;<a href="https://odysseylogistics.atlassian.net/browse/LINX-15800">Send a Tender Through Both Email and EDI</a>
+            <span class="subText">
+               Created: Aug 27, 2026                   &nbsp;Updated: Sep 22, 2026
+
+                                            </span>
+            </h3>
+        </td>
+    </tr>
+    <tr>
+        <td width="20%"><b>Status:</b></td>
+        <td width="80%">Final UX/UI Design</td>
+    </tr>
+    <tr>
+        <td width="20%"><b>Project:</b></td>
+        <td width="80%"><a href="https://odysseylogistics.atlassian.net/secure/BrowseProject.jspa?id=10072">OdysseyONE</a></td>
+    </tr>
+
+        <tr>
+            <td><b>Components:</b></td>
+            <td>
+                                        <a title="OdysseyONE TMS- Shipments"
+                href="https://odysseylogistics.atlassian.net/issues/?jql=project%3D10072%20AND%20%22component%22%3D11879%20ORDER%20BY%20priority%20ASC"
+            >OdysseyONE TMS- Shipments</a>                        </td>
+    </tr>
+    
+
+        <tr>
+            <td><b>Affects versions:</b></td>
+            <td>
+                            None
+                </td>
+    </tr>
+    
+
+        <tr>
+            <td><b>Fix versions:</b></td>
+            <td>
+                            None
+                </td>
+    </tr>
+    
+    
+            <td width="20%"><b>Parent:</b></td>
+        <td width="80%"><a href="https://odysseylogistics.atlassian.net/browse/LINX-15789">Enable End-to-End Carrier Tender Communication and Response Management in Odyssey One</a></td>
+    </table>
+
+<br />
+<table class="grid" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td bgcolor="#f0f0f0" valign="top" width="20%">
+            <b>Type:</b>
+        </td>
+        <td bgcolor="#ffffff" valign="top"  width="30%" >
+            Story
+        </td>
+
+                    <td bgcolor="#f0f0f0">
+                <b>Priority:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" nowrap>
+                Medium
+            </td>
+            </tr>
+    <tr>
+                        <td bgcolor="#f0f0f0" valign="top" width="20%">
+                <b>Reporter:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top"  width="30%" >
+                                        
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_reporter_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                            </td>
+        
+                    <td bgcolor="#f0f0f0" width="20%">
+                <b>Assignee:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" nowrap  width="30%" >
+                                        
+                
+        
+            <a class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5"
+                id="word_assignee_712020:6d28eb2e-099d-416f-922d-daea93ad07d5"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5">
+                    Manuela Ramirez (Iris Software)
+                </a>
+
+                            </td>
+            </tr>
+    	<tr>
+		<td bgcolor="#f0f0f0" width="20%">
+			<b>Resolution:</b>
+		</td>
+		<td bgcolor="#ffffff" valign="top" width="30%" nowrap>
+            				Unresolved
+                    </td>
+                    <td bgcolor="#f0f0f0" width="20%">
+                <b>Votes:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" width="30%" nowrap>
+                0
+            </td>
+        
+    </tr>
+    
+        <tr>
+        <td bgcolor="#f0f0f0" width="20%">
+            <b>Labels:</b>
+        </td>
+        <td id="labels-209000-value" class="value" bgcolor="#ffffff" valign="top" colspan="3" nowrap>
+                            FUNCTIONAL_PHASE2, MVP, VD_Pending                    </td>
+    </tr>
+    
+    
+    </table>
+
+
+
+    <br />
+
+    	<table class="grid" cellpadding="0" cellspacing="0" border="0" width="100%">
+            
+
+        
+            <tr>
+            <td bgcolor="#f0f0f0" width="20%" valign="top">
+                <b>Issue links:</b>
+            </td>
+            <td bgcolor="#ffffff" valign="top" class="noPadding">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%" class="blank">
+                                            <tr>
+                            <td colspan="4" bgcolor="#f0f0f0">
+                                <b>Action item</b><br/>
+                            </td>
+                        </tr>
+                                    <tr>
+            <td>
+                has action item
+            </td>
+            <td>
+                <a href="https://odysseylogistics.atlassian.net/browse/LINX-17348">
+                     LINX-17348                 </a>
+            </td>
+            <td>
+                [Tech] Send a Tender Through Both Ema...
+            </td>
+            <td>
+                Todo
+            </td>
+        </tr>
+                                                                    </table>
+            </td>
+        </tr>
+    
+
+
+    
+                        <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>Acceptance Criteria:</b></td>
+                <td id="customfield_10032-209000-value" class="value" bgcolor="#ffffff" width="80%">      <h2><a name="AC1%3AInitiateBothEmailandEDICommunication"></a><ins>AC-1: Initiate Both Email and EDI Communication</ins></h2>
+
+<p><b>Given</b> a valid standardized tender message is received<br/>
+<b>And</b> the communication method is Email and EDI<br/>
+<b>When</b> the Tender Dispatcher processes the message<br/>
+<b>Then</b> it shall initiate an EDI tender submission<br/>
+<b>And</b> it shall initiate an email tender communication<br/>
+<b>And</b> both communications shall represent the same shipment, shipping option, carrier, and tender transaction.</p>
+
+<h2><a name="AC2%3ASendtheEDITender"></a><ins>AC-2: Send the EDI Tender</ins></h2>
+
+<p><b>Given</b> the communication method is Email and EDI<br/>
+<b>When</b> the EDI communication is initiated<br/>
+<b>Then</b> the standardized tender payload shall be submitted to the designated Boomi endpoint<br/>
+<b>And</b> the EDI outcome shall be recorded independently.</p>
+
+<h2><a name="AC3%3ASendtheEmailCopy"></a><ins>AC-3: Send the Email Copy</ins></h2>
+
+<p><b>Given</b> the communication method is Email and EDI<br/>
+<b>When</b> the email communication is initiated<br/>
+<b>Then</b> a human-readable tender email shall be generated<br/>
+<b>And</b> it shall be submitted to the configured carrier recipients<br/>
+<b>And</b> the email outcome shall be recorded independently.</p>
+
+<h2><a name="AC4%3AExcludeAcceptandDeclineActions"></a><ins>AC-4: Exclude Accept and Decline Actions</ins></h2>
+
+<p><b>Given</b> an email is generated for the Email and EDI communication method<br/>
+<b>When</b> the Email Communication Service builds the email<br/>
+<b>Then</b> the review page of Email shall not contain Accept or Decline buttons or links<br/>
+<b>And</b> it shall be used only as an informational tender copy.</p>
+
+<h2><a name="AC5%3ABothCommunicationsSucceed"></a><ins>AC-5: Both Communications Succeed</ins></h2>
+
+<p><b>Given</b> the Email and EDI communication method is being processed<br/>
+<b>When</b> the mail server accepts the email request<br/>
+<b>And</b> the designated Boomi endpoint accepts the EDI request<br/>
+<b>Then</b> both channel outcomes shall be recorded as successful<br/>
+<b>And</b> the combined communication shall be treated as successfully dispatched<br/>
+<b>And</b> the tender shall move to the applicable successful status.</p>
+
+<h2><a name="AC6%3ABothCommunicationsFail"></a><ins>AC-6: Both Communications Fail</ins></h2>
+
+<p><b>Given</b> the Email and EDI communication method is being processed<br/>
+<b>When</b> both the email and EDI submissions fail<br/>
+<b>And</b> all applicable retries are exhausted<br/>
+<b>Then</b> both channel failures shall be recorded<br/>
+<b>And</b> the tender shall be updated to <b>Tender Failed</b><br/>
+<b>And</b> the failure details shall be available for operational investigation.</p>
+
+<h2><a name="AC7%3AEDISucceedsandEmailFails"></a><ins>AC-7: EDI Succeeds and Email Fails</ins></h2>
+
+<p><b>Given</b> the Email and EDI communication method is being processed<br/>
+<b>When</b> the designated Boomi endpoint accepts the EDI request<br/>
+<b>And</b> the email submission fails<br/>
+<b>Then</b> the EDI outcome shall be recorded as successful<br/>
+<b>And</b> the email outcome shall be recorded as failed<br/>
+<b>And</b> Tender should be considered as Tender Failed</p>
+
+
+<h2><a name="AC8%3AEmailSucceedsandEDIFails"></a><ins>AC-8: Email Succeeds and EDI Fails</ins></h2>
+
+<p><b>Given</b> the Email and EDI communication method is being processed<br/>
+<b>When</b> the mail server accepts the email request<br/>
+<b>And</b> the EDI submission fails<br/>
+<b>Then</b> the email outcome shall be recorded as successful<br/>
+<b>And</b> the EDI outcome shall be recorded as failed<br/>
+<b>And</b> Tender should be considered as Tender Failed</p>
+
+<h2><a name="AC9%3AOneChannelFailureDoesNotBlocktheOther"></a><ins>AC-9: One Channel Failure Does Not Block the Other</ins></h2>
+
+<p><b>Given</b> the dispatcher encounters a failure while submitting the first communication<br/>
+<b>When</b> the second communication has not yet been attempted<br/>
+<b>Then</b> the dispatcher shall still attempt the second communication<br/>
+<b>And</b> shall record the result of each channel separately.</p>
+
+<h2><a name="AC10%3AReceiveaResponseThroughEDI"></a><ins>AC-10: Receive a Response Through EDI</ins></h2>
+
+<p><b>Given</b> a tender was sent using Email and EDI<br/>
+<b>When</b> a valid EDI response is received from the carrier<br/>
+<b>Then</b> the response shall be processed through the standardized tender-response workflow<br/>
+<b>And</b> it shall not be rejected because an email copy was also sent.</p>
+
+<h2><a name="AC11%3AReceiveaResponseThroughAnotherSupportedChannel"></a><ins>AC-11: Receive a Response Through Another Supported Channel</ins></h2>
+
+<p><b>Given</b> a tender was sent using Email and EDI<br/>
+<b>When</b> the carrier submits a valid response through Net Native, manual update, API, or another supported channel<br/>
+<b>Then</b> the response shall be processed according to the common tender-response rules<br/>
+<b>And</b> it shall not be rejected solely because it was received through a different channel.</p>
+
+<h2><a name="AC12%3AProcessaResponseAfterPartialCommunicationFailure"></a><ins>AC-12: Process a Response After Partial Communication Failure</ins></h2>
+
+<p><b>Given</b> one outbound communication succeeded and the other failed<br/>
+<b>When</b> a valid carrier response is received<br/>
+<b>Then</b> the system shall process the response<br/>
+<b>And</b> it shall not ignore or reject the response because one outbound channel failed.</p>
+  </td>
+            </tr>
+                                <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>Sprint:</b></td>
+                <td id="customfield_10021-209000-value" class="value" bgcolor="#ffffff" width="80%">Skybreakers Sprint 45</td>
+            </tr>
+                                <tr>
+                <td bgcolor="#f0f0f0" width="20%" valign="top"><b>OdysseyONE Scrum Team:</b></td>
+                <td id="customfield_11762-209000-value" class="value" bgcolor="#ffffff" width="80%">    Skybreakers
+</td>
+            </tr>
+            </table>
+
+    <br/>
+
+    <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+    <tr>
+        <td bgcolor="#bbbbbb" width="1%" nowrap align="center">
+            &nbsp;<font color="#ffffff"><b>Description</b></font>&nbsp;
+        </td>
+        <td>&nbsp;</td>
+    </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+        <td id="descriptionArea">
+            <h2><a name="BusinessSummary"></a><ins>Business Summary</ins></h2>
+
+<p><b>As a</b> Tender Dispatcher,<br/>
+<b>I want</b> to initiate both Email and EDI communication when the configured communication method is <b>Email and EDI</b>,<br/>
+<b>So that</b> the carrier receives both a system-integrated EDI tender and a human-readable email copy.</p>
+
+<h2><a name="BusinessContext"></a><ins>Business Context</ins></h2>
+
+<p>Certain carriers require tender information through two communication channels:</p>
+
+<ul>
+	<li><b>EDI</b>, to load the tender into the carrier’s system automatically.</li>
+	<li><b>Email</b>, to provide a human-readable copy to the carrier’s operational users.</li>
+</ul>
+
+
+<p>When the configured communication method is <b>Email and EDI</b>, the Tender Dispatcher shall initiate both communications using the same standardized tender request. The email serves as an informational copy and shall not provide Accept or Decline actions.  </p>
+
+<p>The method used to send the tender shall not determine or restrict the method through which the carrier responds. A valid response may be received through EDI, Net Native, or another supported response channel and shall be processed independently of the original outbound communication method.</p>
+
+<h1><a name="BusinessRules"></a><ins>Business Rules</ins></h1>
+
+<h2><a name="BR1%3ACombinedCommunicationTrigger"></a>BR-1: Combined Communication Trigger</h2>
+
+<p>The Tender Dispatcher shall initiate combined communication when the standardized tender message contains:</p>
+
+<p><b>Communication Method = Email and EDI</b></p>
+
+<p>The communication method shall be determined before the Tender Dispatcher receives the standardized tender request.</p>
+
+<h2><a name="BR2%3ADualChannelDispatch"></a>BR-2: Dual-Channel Dispatch</h2>
+
+<p>When the communication method is Email and EDI, the Tender Dispatcher shall initiate:</p>
+
+<ol>
+	<li>An EDI tender submission to the designated EDI integration service.</li>
+	<li>An email tender copy to the designated Email Communication Service.</li>
+</ol>
+
+
+<p>Both requests shall originate from the same standardized tender message and represent the same shipment, shipping option, carrier, and tender transaction.</p>
+
+<h2><a name="BR3%3AEDITenderProcessing"></a>BR-3: EDI Tender Processing</h2>
+
+<p>The EDI tender shall be submitted to the designated Boomi endpoint in the agreed standardized format.</p>
+
+<p>Boomi shall be responsible for:</p>
+
+<ul>
+	<li>transforming the tender payload into the required carrier-notification format;</li>
+	<li>generating the applicable EDI transaction; and</li>
+	<li>delivering the EDI tender through the existing carrier-integration process.</li>
+</ul>
+
+
+<p>From the Tender Dispatcher’s perspective, the EDI communication is successful when the designated Boomi endpoint successfully accepts the request.</p>
+
+<h2><a name="BR4%3AEmailTenderCopy"></a>BR-4: Email Tender Copy</h2>
+
+<p>The Email Communication Service shall generate and send a human-readable tender email to the configured carrier recipients.</p>
+
+<p><del>The email may include:</del></p>
+
+<ul>
+	<li><del>shipment number;</del></li>
+	<li><del>carrier information;</del></li>
+	<li><del>origin and destination;</del></li>
+	<li><del>pickup and delivery information;</del></li>
+	<li><del>shipment details;</del></li>
+	<li><del>special instructions;</del></li>
+	<li><del>attachments or embedded tender content;</del></li>
+	<li><del>other information required for carrier review.</del></li>
+</ul>
+
+
+<p>The final email template, content, and attachment requirements shall follow the approved business design.</p>
+
+<h2><a name="BR5%3ANoAcceptorDeclineActionsintheEmail"></a>BR-5: No Accept or Decline Actions in the Email</h2>
+
+<p>When the communication method is Email and EDI, the email shall not contain:</p>
+
+<ul>
+	<li>Email Body and Review Page both will be same as tender communication as email except one. In this scenario, Accept and Reject button will not be available in the Tender Review page.</li>
+</ul>
+
+
+<h2><a name="BR6%3AIndependentChannelProcessing"></a>BR-6: Independent Channel Processing</h2>
+
+<p>The Email and EDI communication requests shall be processed independently.</p>
+
+<p>A failure in one channel shall not prevent the Tender Dispatcher from attempting the other channel. For example:</p>
+
+<ul>
+	<li>If EDI submission fails, the system shall still attempt to send the email.</li>
+	<li>If email submission fails, the system shall still attempt to send the EDI tender.</li>
+</ul>
+
+
+<p>This ensures that the carrier may still receive the tender through one of the configured channels.</p>
+
+<h2><a name="BR7%3AChannelLevelOutcomeTracking"></a>BR-7: Channel-Level Outcome Tracking</h2>
+
+<p>The system shall maintain the outcome of each communication attempt independently.</p>
+
+<p>For the same tender transaction, the system shall capture:</p>
+
+<ul>
+	<li>EDI submission status;</li>
+	<li>Email submission status;</li>
+	<li>EDI submission timestamp;</li>
+	<li>Email submission timestamp;</li>
+	<li><del>number of attempts for each channel;</del></li>
+	<li>failure reason for each unsuccessful channel; and</li>
+	<li>correlation or transaction identifier.</li>
+</ul>
+
+
+<h2><a name="BR8%3ABothChannelsSuccessful"></a>BR-8: Both Channels Successful</h2>
+
+<p>When both EDI and Email submissions succeed:</p>
+
+<ul>
+	<li>the combined communication shall be treated as successfully dispatched;</li>
+	<li>the successful outcome of both channels shall be recorded; and</li>
+	<li>the tender shall move to the applicable successful status, such as <b>Sent</b>.</li>
+</ul>
+
+
+<h2><a name="BR9%3ABothChannelsFailed"></a>BR-9: Both Channels Failed</h2>
+
+<p>When both EDI and Email submissions fail:</p>
+
+<ul>
+	<li>the combined tender communication shall be treated as failed;</li>
+	<li>each channel’s failure reason shall be captured;</li>
+	<li>retry rules shall be applied independently to each channel; and</li>
+	<li>the tender shall move to <b>Tender Failed</b> when applicable retries are exhausted.</li>
+</ul>
+
+
+<h2><a name="BR10%3APartialCommunicationFailureshouldbeconsideredasFailure"></a>BR-10: Partial Communication Failure should be considered as Failure</h2>
+
+<p>A partial communication failure occurs when:</p>
+
+<ul>
+	<li>EDI succeeds and Email fails; or</li>
+	<li>Email succeeds and EDI fails.</li>
+</ul>
+
+
+<p>The system shall record the individual outcome of each channel so that operations and support users can determine which communication succeeded and which failed.</p>
+
+<p>But, overall tender communication will be considered as failure. So, tender status should be <b>Tender Failed</b> and shipment status should be <b>User Review</b>.</p>
+
+<h2><a name="BR12%3AResponseMethodIndependence"></a>BR-12: Response Method Independence</h2>
+
+<p>The original tender communication method shall not restrict the carrier’s response method.</p>
+
+<p>A valid carrier response may be received through any supported method, including:</p>
+
+<ul>
+	<li>EDI Update;</li>
+	<li>Net-Native Update;</li>
+	<li>Manual Update;</li>
+	<li>API Update</li>
+	<li>Automatic Update</li>
+	<li>Email Links Update</li>
+</ul>
+
+
+<p>The response shall be validated and processed based on its tender and shipment identifiers, not solely on the method used to send the tender.</p>
+
+<h2><a name="BR13%3AProcessaResponseAfterPartialDelivery"></a>BR-13: Process a Response After Partial Delivery</h2>
+
+<p>If one outbound channel succeeded and the other failed, a valid carrier response received through a supported channel shall still be processed.</p>
+
+<p>The system shall not reject a valid response solely because:</p>
+
+<ul>
+	<li>one of the two outbound communication attempts failed; or</li>
+	<li>the response arrived through a different method than the successful outbound channel.</li>
+</ul>
+
+
+<h2><a name="BR14%3ACommunicationSuccessBoundaries"></a>BR-14: Communication Success Boundaries</h2>
+
+<p>For the combined communication:</p>
+
+<ul>
+	<li>Email is successful when the configured mail server accepts the email request.</li>
+	<li>EDI is successful when the designated Boomi endpoint accepts the EDI tender request.</li>
+</ul>
+
+
+<p>A successful submission does not confirm that the carrier reviewed or accepted the tender.</p>
+            <br/>
+        </td>
+    </tr>
+    </table>
+
+    <br/>
+
+    <table cellpadding="2" cellspacing="0" border="0" width="100%" align="center">
+    <tr>
+        <td bgcolor="#bbbbbb" width="1%" nowrap align="center">
+            &nbsp;<font color="#ffffff"><b>Comments</b></font>&nbsp;
+        </td>
+        <td>&nbsp;</td>
+    </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" class="grid" style="margin: 0;">
+                <tr id="comment-header-322877"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                id="word_commented_712020:19b13425-1480-4f12-ae34-7366112f65c8"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8">
+                    Pappu Ram
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 02, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-322877"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=63c0150c50b9490924dcf316" class="user-hover" rel="63c0150c50b9490924dcf316" data-account-id="63c0150c50b9490924dcf316" accountid="63c0150c50b9490924dcf316" rel="noreferrer">Adam Shingle</a> <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" class="user-hover" rel="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" data-account-id="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" accountid="712020:5d1c7dfc-e6eb-4f7a-a39b-cab8bf56d4d6" rel="noreferrer">Laurie Blumsack</a> : This story has been reviewed by Dave. And, story is good but we need some clarification. So, I have put the story as blocked.</p>
+
+<p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A03aa3c7b-ea4a-46af-9e43-b286e289791e" class="user-hover" rel="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" data-account-id="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" accountid="712020:03aa3c7b-ea4a-46af-9e43-b286e289791e" rel="noreferrer">Dave Schultz</a> : It would be great if you clarify the following points.</p>
+
+<ol>
+	<li>How we will handle when partial success when communication method is EDI and EMAIL?</li>
+	<li>Do we even need Review Page in case of “EDI and EMAIL” communication method? Since, Accept and Decline button should not be there in this scenario, so is there any point in having the review page concept?</li>
+</ol>
+
+        </td></tr>
+                <tr id="comment-header-328917"><td bgcolor="#f0f0f0">
+            Comment by  
+                                                    
+                
+        
+            <a class="user-hover" rel="712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e"
+                id="word_commented_712020:f8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e"
+                href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3Af8aa95b4-b9ff-4b29-a41a-d2332a5b0f3e">
+                    Mayank Dixit
+                </a>
+
+                                        <font size="-2">
+            [
+                <font color="#336699">Sep 21, 2026</font>
+
+                            ]
+            </font>
+
+        </td></tr>
+        <tr id="comment-body-328917"><td bgcolor="#ffffff">
+            <p><a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A19b13425-1480-4f12-ae34-7366112f65c8" class="user-hover" rel="712020:19b13425-1480-4f12-ae34-7366112f65c8" data-account-id="712020:19b13425-1480-4f12-ae34-7366112f65c8" accountid="712020:19b13425-1480-4f12-ae34-7366112f65c8" rel="noreferrer">Pappu Ram</a> - check with manuela and if VD is provided then review the same and assign the story to Mani and change the status. <a href="https://odysseylogistics.atlassian.net/secure/ViewProfile.jspa?accountId=712020%3A6d28eb2e-099d-416f-922d-daea93ad07d5" class="user-hover" rel="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" data-account-id="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" accountid="712020:6d28eb2e-099d-416f-922d-daea93ad07d5" rel="noreferrer">Manuela Ramirez (Iris Software)</a> - if VD completed assign the story to pappu.</p>
+        </td></tr>
+            </table>
+Generated at Tue Sep 22 16:45:31 UTC 2026 by Manuela Ramirez (Iris Software) using Jira 1001.0.0-SNAPSHOT#100294-rev:c55cfe57b78418b5e438086bd510af0572d7286e.
+
+</body>
+</html>
