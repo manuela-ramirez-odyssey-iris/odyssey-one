@@ -232,6 +232,34 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
     expect(sentOption.responseMethod).toBeUndefined()
   })
 
+  // BR-11 — a Manual communication method generates no tender message, so a
+  // Tender click must stop at the confirm dialog and only proceed if the user
+  // says they contacted the carrier themselves.
+  it('Tender on a Manual-notify option confirms first: Cancel does nothing, Confirm sends', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'OLD DOMINION',
+      equipment: 'Van', cost: '--', status: null, api: 'Manual',
+    }
+    render(<RoutingGuideTab data={{ options: [option] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+    const openMenu = () =>
+      fireEvent.click(document.querySelector('[data-right-table] tbody tr').querySelector('td:last-child'))
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
+    expect(screen.getByText('Manual Carrier Communication Required')).toBeTruthy()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    expect(screen.queryByText('Manual Carrier Communication Required')).toBeNull()
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    expect(saveTenderOption.mock.calls[0][1].status).toBe('Sent')
+  })
+
   // Fix 7, 2026-08-10 — a Re-Tender fires on a Declined/Cancelled row that
   // still carries the PREVIOUS cycle's response. Left in place, the row
   // would read "Declined by Amy Cook at ..." while status says Sent
@@ -1231,6 +1259,31 @@ describe('Process SCAC picker (LINX-15075/76/77)', () => {
     expect(droppedButton.disabled).toBe(true)
 
     await act(async () => {}) // let the picker's own walk finish and unlock
+  })
+
+  it('picker carriers have no pickup/delivery keys — the new row donates dates from the lane, not undefined', async () => {
+    // Regression for the `carrier.pickup !== '--'` bug: picker carriers are
+    // shaped { scac, carrierName, equipment } with no pickup/delivery keys at
+    // all, so `undefined !== '--'` used to read as "has its own dates" and
+    // skip simulatedRoutingDates entirely, landing the new row with undefined
+    // dates instead of donating from the existing dated row below.
+    const before = [
+      {
+        rank: 1, routeRank: 1, scac: 'AAAA', carrierName: 'Carrier A', equipment: 'TL', cost: '--', status: null,
+        pickupDateTime: '2026-09-20T08:00:00Z', deliveryDateTime: '2026-09-22T08:00:00Z',
+      },
+    ]
+    render(<RoutingGuideTab data={{ options: before }} shipmentDetails={{ droppedCarriers: [] }} shipment={shipment} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Carrier' })) // expand the collapsed bar
+    pickCarrier('KNGT', 'TL')
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    })
+
+    const [, sent] = saveTenderOption.mock.calls.find(([, s]) => s.scac === 'KNGT')
+    expect(sent.pickupDateTime).toBe('2026-09-20T08:00:00Z')
+    expect(sent.deliveryDateTime).toBe('2026-09-22T08:00:00Z')
   })
 
   it('routing-failed (PS3, ROUTING_FAILS) inserts the row AND shows the 15076 message', async () => {

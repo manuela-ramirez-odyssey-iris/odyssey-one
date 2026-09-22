@@ -371,6 +371,24 @@ function DeleteQuoteConfirm({ onConfirm, onCancel }) {
 // Escape/the header X already do via ModalMedium's onClose — dismiss, stay on
 // Tender → Routing Options, Quote Entry never opens. Message is VERBATIM from
 // the ticket.
+// BR-11 — Manual communication method: no tender message is generated and no
+// Tender Communication Service is invoked, so the only thing left is to tell
+// the planner they must notify the carrier themselves and ask whether they
+// did. Title/message are VERBATIM from the ticket; OK = "yes, I contacted
+// them" and lets the normal Tender/Re-Tender path run (status → Sent, history
+// + audit stamped by it); Cancel leaves everything untouched.
+function ManualTenderConfirm({ onConfirm, onCancel }) {
+  return (
+    <ConfirmDialog
+      title="Manual Carrier Communication Required"
+      message="The selected carrier uses a Manual communication method. You must contact the carrier outside of the system to complete the tender process. Please confirm whether the tender has been communicated to the carrier."
+      confirmLabel="Confirm"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  )
+}
+
 function DatesUnavailableConfirm({ onDismiss }) {
   return (
     <ConfirmDialog
@@ -916,6 +934,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // to remember: OK/Escape/overlay-click all just dismiss it, there's no
   // "continue" path out the other side the way the two confirms above have.
   const [datesUnavailable, setDatesUnavailable] = useState(false)
+  // BR-11 — `{ rank, action }` pending the "you must contact the carrier
+  // yourself" confirm on a Manual-notify option, or null.
+  const [manualTender, setManualTender] = useState(null)
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
@@ -1155,7 +1176,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     // dates — once the row carries its own, borrowing a sibling's would
     // overwrite real data with a neighbour's. droppedCarrierToOption already
     // falls back to `carrier.pickup`, so passing null is what defers to it.
-    const carrierHasOwnDates = carrier.pickup !== '--' && carrier.delivery !== '--'
+    // Picker carriers ({ scac, carrierName, equipment }) have no pickup/delivery
+    // keys at all, so the check must treat undefined the same as '--'.
+    const hasDate = (v) => v && v !== '--'
+    const carrierHasOwnDates = hasDate(carrier.pickup) && hasDate(carrier.delivery)
     const effectiveDates = isManualRoutingFailure
       ? null
       : dates ?? (carrierHasOwnDates ? null : simulatedRoutingDates(options))
@@ -1348,7 +1372,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
   }, [quoteModal, options, persistTender, currentUser])
 
-  const handleAction = useCallback((rank, action) => {
+  const handleAction = useCallback((rank, action, manualConfirmed = false) => {
     if (action === 'ShowRateDetails') {
       const carrier = options.find(o => o.rank === rank)
       setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier || null })
@@ -1455,6 +1479,17 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     // OUT of the response fields (they're notify events, not responses);
     // this only adds the notify-side fields they were missing.
     const isNotifyAction = action === 'Tender' || action === 'Re-Tender'
+    // BR-11 — a Manual notify method means there is no message to generate;
+    // the user is asked to confirm they notified the carrier out-of-band
+    // first, and the rest of this function runs only once they have. The
+    // Decline/Cancel cascade below is deliberately NOT gated: BR-11 scopes
+    // the dialog to "when a user manually initiates tendering from the UI".
+    if (isNotifyAction && !manualConfirmed
+      && String(options.find((o) => o.rank === rank)?.api ?? '').toLowerCase() === 'manual') {
+      setOpenMenuRank(null)
+      setManualTender({ rank, action })
+      return
+    }
     // The two actions that actually START something: a tender goes out and the
     // row now waits on a carrier. Accept/Decline/Cancel are the opposite — they
     // CLOSE a cycle — so they get no sheen. See processRank's note above.
@@ -1723,6 +1758,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
 
       {confirmDeleteQuoteRank != null && (
         <DeleteQuoteConfirm onConfirm={handleConfirmDeleteQuote} onCancel={handleCancelDeleteQuote} />
+      )}
+
+      {manualTender && (
+        <ManualTenderConfirm
+          onConfirm={() => { const { rank, action } = manualTender; setManualTender(null); handleAction(rank, action, true) }}
+          onCancel={() => setManualTender(null)}
+        />
       )}
 
       {datesUnavailable && (
