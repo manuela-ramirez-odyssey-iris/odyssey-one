@@ -1,0 +1,110 @@
+/* TenderReview — the parts carrierBid.css doesn't already cover (page/card
+   chrome, entrance stagger, actions row are all shared with CarrierBid via
+   that stylesheet — see TenderReview.jsx's import). */
+
+.tender-review-subline {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-2);
+}
+
+.tender-review-lede {
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-3);
+}
+
+.tender-review-lane {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.tender-review-lane__stop {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.tender-review-lane__arrow {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .tender-review-lane {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tender-review-lane__arrow {
+    transform: rotate(90deg);
+    align-self: center;
+  }
+}
+
+/* Equipment & Freight / Load References — two-column label/value rows. */
+.tender-review-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.tender-review-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.tender-review-row:last-child {
+  border-bottom: none;
+}
+
+.tender-review-row--bold {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Pickup and delivery instructions table. */
+.tender-review-instructions {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tender-review-instructions th,
+.tender-review-instructions td {
+  text-align: left;
+  padding: var(--spacing-2) var(--spacing-2);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.tender-review-instructions th {
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+.tender-review-instructions th:first-child,
+.tender-review-instructions td:first-child {
+  width: 40px;
+}
+
+.tender-review-instructions__empty {
+  color: var(--text-tertiary);
+}
+
+/* Decline form. */
+.tender-review-decline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.tender-review-footer {
+  color: var(--text-tertiary);
+  text-align: center;
+  margin: 0 auto;
+  max-width: 720px;
+  width: 100%;
+}

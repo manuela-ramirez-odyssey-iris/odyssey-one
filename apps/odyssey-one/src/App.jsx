@@ -27,6 +27,8 @@ import DevMode from './devmode/DevMode.jsx'
 // Standalone external page (no AppShell) — lazy so the token-decode +
 // shipment-detail bid form never lands in the main app bundle.
 const CarrierBid = lazy(() => import('./routes/CarrierBid.jsx'))
+// Same rationale — the carrier Tender Review page (S157, slice C).
+const TenderReview = lazy(() => import('./routes/TenderReview.jsx'))
 
 // Transition timeline (wall-clock ms from Log In click).
 //   0    → 'intro'   : modal fades out + image fades in (400ms).
@@ -110,6 +112,14 @@ export default function App() {
           element={
             <Suspense fallback={null}>
               <CarrierBid />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/tender-review/:token"
+          element={
+            <Suspense fallback={null}>
+              <TenderReview />
             </Suspense>
           }
         />

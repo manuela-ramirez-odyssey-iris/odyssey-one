@@ -17,6 +17,7 @@ import { fmtDollar } from '../utils/money'
 import { formatDateTimeMDYHM } from '../lib/dates.js'
 import { HERO_IMAGES_LAND, heroPosition } from '../heroImages'
 import { useHeroRotation } from '../hooks/useHeroRotation'
+import { HeroBackground, carrierInitials } from './externalPageChrome.jsx'
 import './carrierBid.css'
 
 // One currency for the WHOLE bid (SPB-66, Kathleen email 2026-08-24 item #3:
@@ -26,18 +27,9 @@ import './carrierBid.css'
 // it, so Kathleen's mid-entry-switch question never arises on this page.
 const round2 = (n) => Math.round(n * 100) / 100
 
-// TrailNav avatar (change 2) — initials from the first two words of the
-// carrier's full name (splitting on space AND hyphen, so "KNIGHT-SWIFT
-// TRANSPORTATION" → "KS", not "KT"). Falls back to the first two SCAC
-// characters when `name` isn't resolved yet (e.g. quote still loading) —
-// no avatar/initials helper already existed in the repo (checked
-// NoteAvatar in components/detail/NotesTab.jsx: same idea, different
-// shape/normalization-candidate status, not reused as-is).
-function carrierInitials(name, scac) {
-  const words = (name ?? '').trim().split(/[\s-]+/).filter(Boolean)
-  if (words.length > 0) return words.slice(0, 2).map((w) => w[0]).join('').toUpperCase()
-  return (scac ?? '').slice(0, 2).toUpperCase()
-}
+// carrierInitials and HeroBackground moved to ./externalPageChrome.jsx
+// (S157, slice C — pure extraction, no behaviour change) so the carrier
+// Tender Review page can share them; see that file for their doc comments.
 
 // Hero background image (plan §3b, §change-2 2026-08-18) — the INITIAL
 // image is deterministic, NOT Home's Math.random()-seeded
@@ -55,32 +47,6 @@ const HERO_SRC = HERO_IMAGES_LAND[HERO_INITIAL_INDEX]
 // Section entrance stagger (plan §3c) — strictly top-to-bottom, no shuffle,
 // no jitter (deliberate deviation from Home's randomized order).
 const ENTER_STEP_MS = 90
-
-// Hero background layer (plan §3b) — same layered "port-at-dusk" treatment
-// as Home (src/styles/hero.css: .hero-bg / .hero-bg__photo), positioned
-// FIXED to the viewport instead of scrolling with the page, and VERTICALLY
-// FLIPPED via the `.hero-bg--flipped` modifier (§change-1, 2026-08-18):
-// light/white sits at the top here, image toward the bottom — the mirror
-// of Home's orientation. The modifier is scoped to this page only (Home's
-// own `.hero-bg` div never carries it), so Home's mask is untouched — see
-// styles/hero.css. Cross-fades through HERO_IMAGES_LAND via the shared
-// useHeroRotation hook (§change-2): one stacked photo div per image, only
-// the active index opaque, same mechanism as Home. Rendered identically in
-// both the closed/expired branch and the active-bid branch below, so it's
-// a shared component rather than duplicated JSX.
-function HeroBackground({ heroIndex }) {
-  return (
-    <div className="carrier-bid-page__bg hero-bg hero-bg--flipped" aria-hidden="true">
-      {HERO_IMAGES_LAND.map((src, i) => (
-        <div
-          key={src}
-          className="hero-bg__photo"
-          style={{ backgroundImage: `url(${src})`, backgroundPosition: heroPosition(src), opacity: i === heroIndex ? 1 : 0 }}
-        />
-      ))}
-    </div>
-  )
-}
 
 // Additional Charges — restored editable grid (QuoteModal.jsx's Additional
 // Charges section is the pattern this models: same Code | Description |
