@@ -240,6 +240,10 @@ export interface SellShipmentRoutingOption {
   note?: string | null
   linehaul?: string
   sl?: string
+  /** LINX-15795/15796 (S156) — see RoutingOptionVM.tenderToken. */
+  tenderToken?: string
+  declineReason?: string | null
+  responseComments?: string | null
 }
 
 export interface SellShipmentCostSummary {

@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -183,6 +183,37 @@ test('saveTender: updates in place, inserts only when no row matched', async () 
 test('saveTender: rejects a missing option or rank', async () => {
   await assert.rejects(() => saveTender({ params: ['1'], body: {}, db: null }), (e) => e.status === 400)
   await assert.rejects(() => saveTender({ params: ['1'], body: { option: { scac: 'X' } }, db: null }), (e) => e.status === 400)
+})
+
+// LINX-15796 BR-07/AC-06 (S156) — the once-only guard: an expectStatus makes
+// the UPDATE conditional on the row's current status.
+test('buildTenderUpdateQuery: appends AND status = $9 only when expectStatus is set', () => {
+  const q = buildTenderUpdateQuery('1', { rank: 2, scac: 'JBHT' })
+  assert.doesNotMatch(q.text, /status = \$9/)
+  assert.equal(q.values.length, 8)
+
+  const guarded = buildTenderUpdateQuery('1', { rank: 2, scac: 'JBHT' }, 'Sent')
+  assert.match(guarded.text, /AND status = \$9/)
+  assert.deepEqual(guarded.values, ['JBHT', null, null, null, null, JSON.stringify({ rank: 2, scac: 'JBHT' }), '1', 2, 'Sent'])
+})
+
+test('saveTender: expectStatus set + zero rows updated -> 409 already-processed, no insert fallback', async () => {
+  const calls = []
+  const db = { query: async (q) => { calls.push(q.text); return { rows: [] } } }
+  await assert.rejects(
+    () => saveTender({ params: ['1'], body: { option: { rank: 2, scac: 'JBHT' }, expectStatus: 'Sent' }, db }),
+    (e) => e.status === 409 && e.message === 'already-processed',
+  )
+  assert.equal(calls.length, 1)              // no INSERT attempted
+  assert.match(calls[0], /AND status = \$9/)
+})
+
+test('saveTender: expectStatus set + row updated -> succeeds normally', async () => {
+  const db = { query: async () => ({ rows: [{ id: 7 }] }) }
+  assert.deepEqual(
+    await saveTender({ params: ['1'], body: { option: { rank: 2, scac: 'JBHT' }, expectStatus: 'Sent' }, db }),
+    { success: true, rank: 2 },
+  )
 })
 
 // ── S104: the gap that produced "search keeps showing me all results" ──

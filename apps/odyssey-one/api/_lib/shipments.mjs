@@ -595,17 +595,20 @@ export async function resolveOrderChange({ params, body, db }) {
 // quote (Add Quote / Edit Quote / a tender-status action). Addressed by rank,
 // which is unique per shipment. ponytail: update-then-insert instead of an
 // ON CONFLICT upsert — no unique index to migrate onto the live table.
-export function buildTenderUpdateQuery(sellShipment, option) {
-  return {
-    text: `UPDATE tenders SET scac = $1, carrier_name = $2, status = $3, route_group = $4,
+// LINX-15796 BR-07/AC-06 (S156) — expectStatus, when passed, makes the UPDATE
+// conditional on the row's CURRENT status: two tabs (or an emailed carrier
+// response racing a planner action) cannot both record a write.
+export function buildTenderUpdateQuery(sellShipment, option, expectStatus) {
+  const text = `UPDATE tenders SET scac = $1, carrier_name = $2, status = $3, route_group = $4,
              rate_amount = $5, option = $6
-           WHERE shipment_sell_id = $7 AND rank = $8 RETURNING id`,
-    values: [
-      option.scac ?? null, option.carrierName ?? null, option.status ?? null,
-      option.routeGroup ?? null, option.rateAmount ?? option.rateDetails?.baseRate ?? null,
-      JSON.stringify(option), sellShipment, option.rank,
-    ],
-  }
+           WHERE shipment_sell_id = $7 AND rank = $8${expectStatus ? ' AND status = $9' : ''} RETURNING id`
+  const values = [
+    option.scac ?? null, option.carrierName ?? null, option.status ?? null,
+    option.routeGroup ?? null, option.rateAmount ?? option.rateDetails?.baseRate ?? null,
+    JSON.stringify(option), sellShipment, option.rank,
+  ]
+  if (expectStatus) values.push(expectStatus)
+  return { text, values }
 }
 
 export function buildTenderInsertQuery(sellShipment, option) {
@@ -627,8 +630,14 @@ export async function saveTender({ params, body, db }) {
     const e = new Error('option required'); e.status = 400; throw e
   }
   if (option.rank == null) { const e = new Error('option.rank required'); e.status = 400; throw e }
-  const updated = await db.query(buildTenderUpdateQuery(sellShipment, option))
-  if (updated.rows.length === 0) await db.query(buildTenderInsertQuery(sellShipment, option))
+  const expectStatus = body?.expectStatus
+  const updated = await db.query(buildTenderUpdateQuery(sellShipment, option, expectStatus))
+  if (updated.rows.length === 0) {
+    if (expectStatus) {
+      const e = new Error('already-processed'); e.status = 409; throw e
+    }
+    await db.query(buildTenderInsertQuery(sellShipment, option))
+  }
   return { success: true, rank: option.rank }
 }
 

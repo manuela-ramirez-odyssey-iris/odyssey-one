@@ -681,6 +681,52 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(reloaded.sl).toBe('92%')
       expect(reloaded.equipment).toBe('--') // DASH round-trips, doesn't become a literal "--" that then breaks
     })
+
+    // LINX-15795/15796 (S156) — whitelist bug class: tenderToken/declineReason/
+    // responseComments must survive a save+reload same as equipment/rate/etc above.
+    it('carries tenderToken, declineReason, and responseComments through a save+reload', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [{
+          rank: 1,
+          scac: 'CCNI',
+          tenderToken: 'eyJzIjoxMjMsImMiOiJDQ05JIn0',
+          declineReason: 'Rate too low',
+          responseComments: 'Comments here',
+        }],
+      }
+      const vm = mapSellShipmentOutToDetail(dto).routingData.options[0]
+      expect(vm.tenderToken).toBe('eyJzIjoxMjMsImMiOiJDQ05JIn0')
+      expect(vm.declineReason).toBe('Rate too low')
+      expect(vm.responseComments).toBe('Comments here')
+
+      const reloaded = mapSellShipmentOutToDetail({
+        ...sellShipmentOutSample,
+        shippingOptionList: [routingOptionVmToDto(vm)],
+      }).routingData.options[0]
+      expect(reloaded.tenderToken).toBe('eyJzIjoxMjMsImMiOiJDQ05JIn0')
+      expect(reloaded.declineReason).toBe('Rate too low')
+      expect(reloaded.responseComments).toBe('Comments here')
+    })
+
+    it('tenderToken stays undefined and declineReason/responseComments default to null when absent', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [{ rank: 1, scac: 'CCNI' }],
+      }
+      const vm = mapSellShipmentOutToDetail(dto).routingData.options[0]
+      expect(vm.tenderToken).toBeUndefined()
+      expect(vm.declineReason).toBeNull()
+      expect(vm.responseComments).toBeNull()
+
+      const reloaded = mapSellShipmentOutToDetail({
+        ...sellShipmentOutSample,
+        shippingOptionList: [routingOptionVmToDto(vm)],
+      }).routingData.options[0]
+      expect(reloaded.tenderToken).toBeUndefined()
+      expect(reloaded.declineReason).toBeNull()
+      expect(reloaded.responseComments).toBeNull()
+    })
   })
 
   // Jira AC audit, 2026-08-10, against LINX-12067/12070/12106/12110.

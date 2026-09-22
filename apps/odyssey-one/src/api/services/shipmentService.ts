@@ -47,9 +47,26 @@ export async function getRawSellShipmentOut(id: string): Promise<SellShipmentOut
 export async function saveTenderOption(
   sellShipment: string,
   option: Record<string, unknown>,
+  opts?: { expectStatus?: string },
 ): Promise<void> {
-  if (getApiMode() !== 'live') return
-  await apiPut(`/shipment-service/v1/sell-shipment-out/${sellShipment}/tender`, { option })
+  const expectStatus = opts?.expectStatus
+  if (getApiMode() !== 'live') {
+    // ponytail: mock has no durable store to write to, but the once-only
+    // guard (LINX-15796 BR-07) still needs to be observable in mock mode for
+    // tests — reject the same way the live 409 would when the locally stored
+    // option's status has already moved past expectStatus.
+    if (expectStatus != null) {
+      const raw = await getRawSellShipmentOut(sellShipment)
+      const current = (raw.shippingOptionList ?? []).find((o) => o.rank === option.rank)
+      if (current?.status !== expectStatus) {
+        const err = new Error('already-processed') as Error & { status?: number }
+        err.status = 409
+        throw err
+      }
+    }
+    return
+  }
+  await apiPut(`/shipment-service/v1/sell-shipment-out/${sellShipment}/tender`, { option, expectStatus })
 }
 
 /**

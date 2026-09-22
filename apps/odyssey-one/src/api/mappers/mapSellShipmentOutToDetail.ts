@@ -412,6 +412,12 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
     orderEquip: orDash(o.orderEquip),
     contactExped: orDash(o.contactExped),
     note: orDash(o.note),
+    // LINX-15795/15796 (S156) — same whitelist bug class as routingFailed
+    // above: passed through, not defaulted, so a field-not-set state
+    // (undefined token, null reason/comments) survives instead of degrading.
+    tenderToken: o.tenderToken,
+    declineReason: o.declineReason ?? null,
+    responseComments: o.responseComments ?? null,
   }
 }
 

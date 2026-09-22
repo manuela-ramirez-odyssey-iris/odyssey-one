@@ -170,7 +170,17 @@ const MODE_WEIGHTS = { TL: 40, LTL: 40, RR: 5, IMD: 5, AIR: 10 };
 const RR_CUSTOMERS = ['BASF_CHM_01'];
 const TENDER_STATUSES = ['Sent', 'Accepted', 'Declined', 'Cancelled'];
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other'];
-const ROUTING_APIS = ['API', 'EDI', 'Email', 'Fax'];
+// 'Email & EDI' added 2026-09-22 (LINX-15800, S156) alongside 'Manual'
+// (LINX-13894/13896). pick() is one arrayElement draw whatever the array
+// length, so lengthening this list does not renumber anything downstream.
+const ROUTING_APIS = ['API', 'EDI', 'Email', 'Email & EDI', 'Fax', 'Manual'];
+
+// Same idea as spotboard/token.js's toBase64Url, copied rather than imported
+// because generate.mjs runs under node (Buffer), not the browser (btoa) that
+// file targets — and Buffer has a native base64url encoding already.
+function toBase64Url(str) {
+  return Buffer.from(str).toString('base64url');
+}
 const RESPONSE_METHODS = ['API Update', 'EDI Update', 'Manual Update', 'Automatic Update'];
 const ROUTE_GROUPS = ['Primary', 'Backup', 'Spot'];
 const PACKAGE_TYPES = ['Boxes', 'Pallets', 'Bags', 'Drums', 'Totes', 'Crates'];
@@ -1233,6 +1243,16 @@ function generateShipment(index, chainOverride) {
       // touch no faker), a day after `notifyDateTime`'s genDate(baseDate, -1).
       if (!option.responseDateTime) option.responseDateTime = formatDateTime(genDate(baseDate, 0));
       option.responseComments = responseCommentFor(status, option.lcePkId);
+    }
+
+    // LINX-15795/15796 (S156) — a Sent/Accepted/Declined option notified by
+    // Email or Email & EDI had a real tender link at some point (Re-Tender
+    // mints a fresh one on the live app, but a seeded row only needs ONE
+    // deterministic, reproducible token — no crypto.randomUUID(), no new
+    // faker draw, so shipment ids downstream do not move).
+    if ((status === 'Sent' || status === 'Accepted' || status === 'Declined')
+      && (option.apiSource === 'Email' || option.apiSource === 'Email & EDI')) {
+      option.tenderToken = toBase64Url(JSON.stringify({ s: sellShipment, c: option.scac, n: `seed-${option.lcePkId}` }));
     }
 
     return option;

@@ -249,6 +249,14 @@ export interface RoutingOptionVM {
   orderEquip: string
   contactExped: string
   note: string
+  /** LINX-15795/15796 (S156) — same whitelist bug class as routingFailed above:
+      a field not named in mapRoutingOption is silently dropped on reload.
+      tenderToken: minted for Email/Email & EDI notify methods, checked by the
+      carrier Tender Review page's forgery guard. declineReason/responseComments:
+      written by that page's Decline action. */
+  tenderToken?: string
+  declineReason: string | null
+  responseComments: string | null
 }
 
 // ── Cost tab ─────────────────────────────────────────────────
