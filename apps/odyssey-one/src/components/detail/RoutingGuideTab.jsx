@@ -17,6 +17,9 @@ import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDa
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { WRAP_HEADER_W, LOCKED_COLUMNS, NEVER_COLLAPSE_KEYS, COLLAPSIBLE_KEYS, TAB_COLUMNS, SUB_TABS } from './tenderColumns.js'
+import { mintToken } from '../../spotboard/token.js'
+import { isEmailNotify } from '../../tender/email/tenderEmail.js'
+import TenderEmailPreview from './TenderEmailPreview.jsx'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -285,6 +288,20 @@ function ActionDropdown({ option, position, onAction, onClose }) {
           {action}
         </button>
       ))}
+      {/* S157 (LINX-15795 §5) — a minted tenderToken means this row's tender
+          went out with a live carrier-review link; offer the same email the
+          carrier received. ponytail: prototype-only demo affordance — the
+          real system SENDS the email, it does not preview it. */}
+      {option.tenderToken && (
+        <button
+          style={btnStyle}
+          onClick={() => onAction('PreviewEmail')}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        >
+          Preview tender email
+        </button>
+      )}
 
       {/* Separator */}
       <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '4px 0' }} />
@@ -937,6 +954,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // BR-11 — `{ rank, action }` pending the "you must contact the carrier
   // yourself" confirm on a Manual-notify option, or null.
   const [manualTender, setManualTender] = useState(null)
+  // S157 — the row whose tender email preview is open, or null. The option
+  // itself, not just a rank: onAction closes the row menu before this reads.
+  const [previewOption, setPreviewOption] = useState(null)
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
@@ -1373,6 +1393,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   }, [quoteModal, options, persistTender, currentUser])
 
   const handleAction = useCallback((rank, action, manualConfirmed = false) => {
+    if (action === 'PreviewEmail') {
+      const carrier = options.find((o) => o.rank === rank)
+      setOpenMenuRank(null)
+      if (carrier) setPreviewOption(carrier)
+      return
+    }
+
     if (action === 'ShowRateDetails') {
       const carrier = options.find(o => o.rank === rank)
       setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier || null })
@@ -1517,6 +1544,15 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
       }
       if (isNotifyAction) {
         next.notifyDateTime = now
+        // S157 (LINX-15796 AC-08) — mint the carrier-review token whenever
+        // this row's method is Email/Email & EDI. Re-Tender re-mints
+        // UNCONDITIONALLY (mintToken has no memory of the old one): that is
+        // exactly what expires the previous link — a stale link's token no
+        // longer string-matches the option's, so the review page falls to
+        // its "invalid or expired" state. A non-email row (EDI/Fax/Manual/
+        // API) gets no token; `next.tenderToken` is left as whatever `opt`
+        // already carried (undefined on a fresh row).
+        if (isEmailNotify(opt.api)) next.tenderToken = mintToken(shipment?.sellShipment, opt.scac)
       }
       if (action === 'Re-Tender') {
         // Fix 7 (2026-08-10): a Re-Tender fires on a Declined/Cancelled row
@@ -1549,7 +1585,17 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
             // notifyDateTime moves here. responseDateTime/responseUser/
             // responseMethod stay untouched until THIS carrier is itself
             // clicked; getting that distinction right is the point of Fix 4.
-            ? { ...opt, status: 'Sent', notifyDateTime: now, modifyUser: currentUser.name, modifyDate: now }
+            // S157 — same token mint as the manual Tender/Re-Tender path
+            // above: this auto-tender is still a notify event, so an
+            // Email/Email & EDI row gets a live carrier-review link too.
+            ? {
+                ...opt,
+                status: 'Sent',
+                notifyDateTime: now,
+                modifyUser: currentUser.name,
+                modifyDate: now,
+                ...(isEmailNotify(opt.api) ? { tenderToken: mintToken(shipment?.sellShipment, opt.scac) } : {}),
+              }
             : opt,
         )
         touched.push(nextNull.rank)
@@ -1561,7 +1607,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     touched.forEach((r) => persistTender(updated.find((o) => o.rank === r)))
 
     setOpenMenuRank(null)
-  }, [options, persistTender, currentUser, startProcessSheen])
+  }, [options, persistTender, currentUser, startProcessSheen, shipment])
 
   // Every option on a shipment shares its pickup/delivery timezone — take the
   // first one that actually carries a value as the shipment's TZ, so a NEW quote
@@ -1769,6 +1815,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
 
       {datesUnavailable && (
         <DatesUnavailableConfirm onDismiss={handleDismissDatesUnavailable} />
+      )}
+
+      {previewOption && (
+        <TenderEmailPreview
+          shipment={shipmentDetails}
+          option={previewOption}
+          onClose={() => setPreviewOption(null)}
+        />
       )}
 
       {/* LINX-13954 */}

@@ -9,6 +9,7 @@ import { MemoryRouter } from 'react-router-dom'
 const render = (ui, options) => rtlRender(ui, { wrapper: MemoryRouter, ...options })
 import RoutingGuideTab, { orderedTabColumns } from './RoutingGuideTab'
 import { TENDER_SCAC_OPTIONS, equipmentForScac } from '../../data/master-data.js'
+import { decodeToken } from '../../spotboard/token.js'
 
 // Mocked so the persist-round-trip test below can inspect the EXACT payload
 // `saveTenderOption` receives — the real function is a live-mode-only no-op
@@ -296,6 +297,103 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
     expect(sentOption.responseUser).toBeNull()
     // Carrier-supplied identifier from the prior cycle — deliberately not cleared.
     expect(sentOption.proNumber).toBe('PRO-EXISTING')
+  })
+})
+
+// S157 (LINX-15795/15796) — Tender/Re-Tender mints the carrier-review token
+// (tenderToken) on an Email/Email & EDI row, so the carrier's link resolves
+// to a live option, and the row menu offers a "Preview tender email" action
+// once that token exists.
+describe('RoutingGuideTab — tender token mint + email preview (S157)', () => {
+  const openMenu = () =>
+    fireEvent.click(document.querySelector('[data-right-table] tbody tr').querySelector('td:last-child'))
+
+  it('Tender on an Email-method row stamps a tenderToken that decodes to this shipment/scac', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: null, api: 'Email',
+    }
+    const shipment = { sellShipment: 'SHIP-1' }
+    render(<RoutingGuideTab data={{ options: [option] }} shipment={shipment} />)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sentOption] = saveTenderOption.mock.calls[0]
+    expect(sentOption.tenderToken).toBeTruthy()
+    expect(decodeToken(sentOption.tenderToken)).toEqual({ shipmentId: 'SHIP-1', scac: 'ODFL' })
+  })
+
+  it('Tender on an EDI-method row leaves tenderToken undefined', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: null, api: 'EDI',
+    }
+    render(<RoutingGuideTab data={{ options: [option] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
+
+    const [, sentOption] = saveTenderOption.mock.calls[0]
+    expect(sentOption.tenderToken).toBeUndefined()
+  })
+
+  it('Re-Tender on a Declined Email row mints a DIFFERENT token than the one it carried', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Declined', api: 'Email', tenderToken: 'stale-token',
+    }
+    render(<RoutingGuideTab data={{ options: [option] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Re-Tender' }))
+
+    const [, sentOption] = saveTenderOption.mock.calls[0]
+    expect(sentOption.tenderToken).toBeTruthy()
+    expect(sentOption.tenderToken).not.toBe('stale-token')
+  })
+
+  it("the Decline/Cancel cascade's auto-tendered next row gets a token when its method is Email", () => {
+    const clicked = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '$100.00 USD', status: 'Sent', api: 'EDI',
+    }
+    const cascaded = {
+      rank: 2, routeRank: 2, scac: 'FEDX', carrierName: 'FedEx Freight',
+      equipment: 'Van', cost: '$200.00 USD', status: null, api: 'Email',
+    }
+    render(<RoutingGuideTab data={{ options: [clicked, cascaded] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(2)
+    const cascadedSent = saveTenderOption.mock.calls.find(([, o]) => o.rank === 2)[1]
+    expect(cascadedSent.tenderToken).toBeTruthy()
+    expect(decodeToken(cascadedSent.tenderToken)).toEqual({ shipmentId: 'SHIP-1', scac: 'FEDX' })
+  })
+
+  it('"Preview tender email" appears only for a row with a token, and clicking it opens a dialog titled with the subject', () => {
+    const noToken = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent', api: 'EDI',
+    }
+    render(<RoutingGuideTab data={{ options: [noToken] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+    openMenu()
+    expect(screen.queryByRole('button', { name: 'Preview tender email' })).toBeNull()
+    cleanup()
+
+    const withToken = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent', api: 'Email',
+      tenderToken: 'a-real-token', odysseyShipmentIdentifier: 'ODY-1',
+    }
+    render(<RoutingGuideTab data={{ options: [withToken] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview tender email' }))
+
+    expect(screen.getByRole('dialog', { name: /Tender Notification to ODFL/ })).toBeTruthy()
   })
 })
 
