@@ -345,3 +345,15 @@ describe('S140 — Tender tab indicators', () => {
     expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
   })
 })
+
+describe('navbar down-shadow (shipments-bar__topshadow)', () => {
+  test('hidden while the bar is closed', () => {
+    render(<BottomBar {...baseProps} selectedShipmentId={null} shipment={null} detailsLoading={false} detailsError={false} />)
+    expect(document.querySelector('.shipments-bar__topshadow--visible')).toBeNull()
+  })
+
+  test('visible while the bar is open', () => {
+    render(<BottomBar {...baseProps} shipmentDetails={{ orderDetails: [{ orderNumber: 'ORD-A' }] }} detailsLoading={false} detailsError={false} />)
+    expect(document.querySelector('.shipments-bar__topshadow--visible')).toBeTruthy()
+  })
+})

@@ -5951,7 +5951,7 @@ button.breadcrumb__label:focus-visible {
      transitions (S79d) — interpolate-size was retired: its `auto` endpoint
      resolves UNCAPPED, so panes taller than the max-height cap made the
      animation slam into the clamp (the "two-step" open / snap close). */
-  transition: height var(--transition-drawer), right var(--transition-base), left var(--transition-sidebar);
+  transition: height var(--transition-drawer), box-shadow var(--transition-drawer), right var(--transition-base), left var(--transition-sidebar);
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -5974,18 +5974,40 @@ button.breadcrumb__label:focus-visible {
 .shipments-bar--partial {
   height: var(--bottombar-partial);
 }
-/* --closing keeps the expanded chrome (shadow) while the height eases back
-   to the strip with the last pane still mounted (S79d) — without it the
-   shadow would vanish a full bar-height early. */
-.shipments-bar--expanded,
-.shipments-bar--closing {
+/* The shadow is on --expanded only, so on close it FADES (box-shadow
+   transition) while the height eases back (user, 2026-09-22 — supersedes the
+   S79d hold-until-closed). --closing keeps the clip so the fading blur still
+   never paints sideways. */
+.shipments-bar--expanded {
   /* up-lg per the Orders-tab wireframe (1210:38232 carried the raw value;
      tokenized S79 — Figma effect style shadow/up-lg pairs with this). */
   box-shadow: var(--shadow-up-lg);
+}
+.shipments-bar--expanded,
+.shipments-bar--closing {
   /* Up-only shadow: clip sideways so the blur (offset -5 + blur 30 ≈ 35px
      visual extent; -40px clears it) never paints over the sidebar/side
      panels (S79b decision 3 — code-only, token unchanged). */
-  clip-path: inset(-40px 0 0 0);
+  clip-path: inset(-64px 0 0 0);
+}
+/* Down-shadow under the navbar (ShipmentsBar renders it as a sibling of the
+   bar). ponytail: a 0-height box casts no shadow, so the strip is 24px tall,
+   sits just ABOVE the navbar edge and clips its own box away — only the blur
+   below the edge paints. Non-interactive so click-behind-to-close still works. */
+.shipments-bar__topshadow {
+  position: fixed;
+  top: calc(var(--navbar-height) - 24px);
+  left: var(--sidebar-current, var(--sidebar-width));
+  height: 24px;
+  z-index: 39;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: var(--shadow-down-lg);
+  clip-path: inset(24px 0 -24px 0);
+  transition: opacity var(--transition-drawer), left var(--transition-sidebar);
+}
+.shipments-bar__topshadow--visible {
+  opacity: 1;
 }
 /* The hairline lives per segment (CurrentShipment + unselected tabs), NOT on
    the strip — the selected tab's DSN/100 fill breaks the line (master edit).

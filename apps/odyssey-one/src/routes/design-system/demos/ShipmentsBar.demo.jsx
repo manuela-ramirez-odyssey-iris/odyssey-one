@@ -41,7 +41,7 @@ export const tokens = [
   { token: '--deep-sea-neutral-50', resolves: '#f7f8fa', usage: 'tab hover fill (code-only)' },
   { token: '--deep-sea-neutral-500', resolves: '#6b7280', usage: 'prev/next arrows' },
   { token: '--spacing-3 / --spacing-6', resolves: '12 / 24', usage: 'PanelActions gap + padding (24 left / 12 right)' },
-  { token: '--shadow-up-lg', resolves: '0 -5px 30px rgba(0,0,0,.2)', usage: 'expanded bar (Figma shadow/up-lg) — clipped up-only via clip-path: inset(-40px 0 0 0) so it never paints over the sidebar/side panels (code-only)' },
+  { token: '--shadow-up-lg', resolves: '0 -8px 40px rgba(0,0,0,.24)', usage: 'expanded bar (Figma shadow/up-lg) — clipped up-only via clip-path: inset(-64px 0 0 0) so it never paints over the sidebar/side panels (code-only)' },
   { token: '--navbar-height', resolves: '64px', usage: "full-stage height: 100dvh − navbar-height — the bar's top edge sits exactly at the navbar's bottom edge (2026-08-15; replaces the retired --bottombar-top-clearance mid-page-title cap)" },
   { token: '--transition-drawer / --transition-base', resolves: '300ms cubic-bezier(0.16,1,0.3,1) / 200ms ease', usage: 'height eases on the non-linear drawer curve in BOTH directions plus content growth (S79d: JS-measured length→length transitions — interpolate-size retired, its uncapped auto endpoint slammed into the max-height clamp; close keeps the last pane mounted, inert, while shrinking); right (panel inset) on base; reduced-motion snaps' },
 ]

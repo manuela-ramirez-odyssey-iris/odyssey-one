@@ -167,6 +167,14 @@ export default function ShipmentsBar({
         onMouseDown={(e) => { e.preventDefault(); onClose ? onClose() : onExpandedChange?.(false) }}
       />
     )}
+    {/* Down-shadow under the navbar, mirror of the bar's up-shadow: the view
+        reads as sunk behind both, i.e. click behind to close. isExpanded only,
+        so it fades out with the bar's own shadow while the bar closes. */}
+    <div
+      className={`shipments-bar__topshadow${isExpanded ? ' shipments-bar__topshadow--visible' : ''}`}
+      style={{ right: rightOffset }}
+      aria-hidden="true"
+    />
     <div
       ref={rootRef}
       data-bottombar
