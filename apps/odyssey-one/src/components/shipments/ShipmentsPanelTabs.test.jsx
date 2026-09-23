@@ -128,9 +128,22 @@ describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
     expect(container.querySelectorAll('.widget-mini').length).toBeGreaterThan(0)
   })
 
-  it('pill mode is untouched on PGI/PGR', () => {
+  // PGI/PGR has no Pill/Widget toggle — it is always widget mode (user,
+  // 2026-09-22), even when viewMode (owned by the route) says 'pills'.
+  it('is always widget mode, with no toggle, regardless of viewMode', () => {
     const { container } = setup({ viewMode: 'pills' })
+    expect(container.querySelectorAll('.widget--3xChart').length).toBeGreaterThan(0)
+    expect(screen.getByText('PGI/PGR shipments')).toBeTruthy()
+    expect(screen.queryByText('Pill tabs mode')).toBeNull()
+    expect(screen.queryByText('Widget mode')).toBeNull()
+  })
+
+  it('shows the toggle on other panels and honors viewMode there', () => {
+    const { container } = setup({ activePanel: 'monitoring', viewMode: 'pills', metrics: { hold: 3, consolidation: 4 } })
+    expect(screen.getByText('Pill tabs mode')).toBeTruthy()
+    expect(screen.getByText('Widget mode')).toBeTruthy()
+    expect(container.querySelectorAll('.widget-mini')).toHaveLength(0)
     expect(container.querySelectorAll('.widget--3xChart')).toHaveLength(0)
-    expect(screen.getByText('PGI/PGR Errors')).toBeTruthy()
+    expect(screen.getByText('Hold')).toBeTruthy()
   })
 })

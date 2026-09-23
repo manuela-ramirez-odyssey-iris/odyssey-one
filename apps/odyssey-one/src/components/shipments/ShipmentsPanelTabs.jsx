@@ -16,6 +16,9 @@ import { PGIPGR_WIDGETS, widgetTotal } from '../../data/pgipgrWidgets'
 // WidgetMini percentage = the category's share of the panel total (the Figma
 // mock's uniform 24% is a placeholder).
 //
+// PGI/PGR has no Pill/Widget toggle — it is always widget mode (user,
+// 2026-09-22). Other panels keep the toggle and their chosen mode.
+//
 // Zero-count hiding (S79c decision 8): while committed search criteria exist,
 // the route passes `visiblePanels` (zero-total panels dropped, PGI/PGR always
 // kept — demo) and `hideZeroCategories` (zero-count pills/widgets dropped, All
@@ -42,6 +45,8 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   const panelEntries = Object.entries(PANEL_CONFIG)
     .filter(([key]) => !visiblePanels || visiblePanels.includes(key))
 
+  const effectiveMode = activePanel === 'pgipgr' ? 'widgets' : viewMode
+
   const categories = PANEL_CONFIG[activePanel]?.categories ?? []
   const total = panelTotal(activePanel)
   const allTotal = PGIPGR_WIDGETS.reduce((sum, w) => sum + (counts[w.badgeKey] || widgetTotal(w)), 0)
@@ -64,7 +69,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
             />
           ))}
         </div>
-        {!hideViewToggle && (
+        {!hideViewToggle && activePanel !== 'pgipgr' && (
           <ButtonToggle
             firstLabel="Pill tabs mode"
             secondLabel="Widget mode"
@@ -75,7 +80,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
           />
         )}
       </div>
-      {viewMode === 'widgets' && activePanel === 'pgipgr' ? (
+      {effectiveMode === 'widgets' && activePanel === 'pgipgr' ? (
         // PGI/PGR's three subtabs each carry a breakdown the other panels have
         // no equivalent for, so in widget mode they render as full 3xChart
         // widgets (donut + legend) rather than the WidgetMini strip (user,
@@ -130,7 +135,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
             />
           ))}
         </div>
-      ) : viewMode === 'widgets' ? (
+      ) : effectiveMode === 'widgets' ? (
         <div className="flex" style={{ gap: 'var(--spacing-3)' }}>
           {rows.map(row => (
             <WidgetMini
