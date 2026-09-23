@@ -302,9 +302,26 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
 
 // S157 (LINX-15795/15796) — Tender/Re-Tender mints the carrier-review token
 // (tenderToken) on an Email/Email & EDI row, so the carrier's link resolves
-// to a live option, and the row menu offers a "Preview tender email" action
-// once that token exists.
-describe('RoutingGuideTab — tender token mint + email preview (S157)', () => {
+// to a live option.
+describe('RoutingGuideTab — tender token mint (S157)', () => {
+  it('Others › Review Link opens /tender-review/<token> only on a row that has a token', () => {
+    const base = { routeRank: 1, carrierName: 'X', equipment: 'Van', cost: '--', status: 'Sent' }
+    render(
+      <RoutingGuideTab
+        data={{ options: [
+          { ...base, rank: 1, scac: 'ODFL', api: 'EDI' },
+          { ...base, rank: 2, scac: 'FEDX', api: 'Email', tenderToken: 'tok-1' },
+        ] }}
+        shipment={{ sellShipment: 'SHIP-1' }}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Others' }))
+    expect(screen.queryByRole('link', { name: /ODFL/ })).toBeNull()
+    const link = screen.getByRole('link', { name: 'Open tender review page for FEDX' })
+    expect(link.getAttribute('href')).toBe('/tender-review/tok-1')
+    expect(link.getAttribute('target')).toBe('_blank')
+  })
+
   const openMenu = () =>
     fireEvent.click(document.querySelector('[data-right-table] tbody tr').querySelector('td:last-child'))
 
@@ -372,31 +389,6 @@ describe('RoutingGuideTab — tender token mint + email preview (S157)', () => {
     const cascadedSent = saveTenderOption.mock.calls.find(([, o]) => o.rank === 2)[1]
     expect(cascadedSent.tenderToken).toBeTruthy()
     expect(decodeToken(cascadedSent.tenderToken)).toEqual({ shipmentId: 'SHIP-1', scac: 'FEDX' })
-  })
-
-  it('"Preview tender email" appears only for a row with a token, and clicking it opens a dialog titled with the subject', () => {
-    const noToken = {
-      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'Van', cost: '--', status: 'Sent', api: 'EDI',
-    }
-    render(<RoutingGuideTab data={{ options: [noToken] }} shipment={{ sellShipment: 'SHIP-1' }} />)
-    openMenu()
-    expect(screen.queryByRole('button', { name: 'Preview tender email' })).toBeNull()
-    cleanup()
-
-    const withToken = {
-      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'Van', cost: '--', status: 'Sent', api: 'Email',
-      tenderToken: 'a-real-token', odysseyShipmentIdentifier: 'ODY-1',
-    }
-    render(<RoutingGuideTab data={{ options: [withToken] }} shipment={{ sellShipment: 'SHIP-1' }} />)
-    openMenu()
-    fireEvent.click(screen.getByRole('button', { name: 'Preview tender email' }))
-
-    expect(screen.getByRole('dialog', { name: /Tender Notification to ODFL/ })).toBeTruthy()
-    const frame = screen.getByTitle('Tender email preview')
-    expect(frame.getAttribute('sandbox')).toContain('allow-popups')
-    expect(frame.getAttribute('srcdoc')).toContain('<base target="_blank">')
   })
 })
 

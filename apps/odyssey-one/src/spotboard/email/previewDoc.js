@@ -1,4 +1,4 @@
-// S157 — email previews (TenderEmailPreview, EmailGallery) render the sent
+// S157 — email previews (EmailGallery) render the sent
 // HTML in a sandboxed iframe so the CTA's landing page opens in the real
 // tab instead of navigating (or being blocked) inside the tiny sandbox.
 // `emailLayout.js`'s `renderHtml` output itself must NOT carry a <base> —

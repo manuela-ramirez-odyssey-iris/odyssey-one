@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import SpotEmailsRoute from './SpotEmailsRoute.jsx'
 
@@ -52,5 +52,22 @@ describe('SpotEmailsRoute', () => {
   it('shows the envelope so the sender rule is legible', () => {
     render(<SpotEmailsRoute />)
     expect(screen.getByText(/planning-charlotte@odysseylogistics\.com/)).toBeTruthy()
+  })
+  it('Download hands over the raw sent html, then the text twin in Text mode', async () => {
+    const blobs = []
+    URL.createObjectURL = vi.fn((b) => { blobs.push(b); return 'blob:x' })
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(<SpotEmailsRoute />)
+    fireEvent.click(screen.getByRole('button', { name: /Download HTML/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Text' }))
+    fireEvent.click(screen.getByRole('button', { name: /Download Text/ }))
+    expect(click).toHaveBeenCalledTimes(2)
+    expect(blobs.map((b) => b.type)).toEqual(['text/html', 'text/plain'])
+    // jsdom's Blob has no .text()
+    const html = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsText(blobs[0]) })
+    expect(html).toContain('<html')
+    expect(html).not.toContain('<base target')
+    click.mockRestore()
   })
 })

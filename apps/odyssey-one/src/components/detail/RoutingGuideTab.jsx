@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, TriangleAlert } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, TriangleAlert, Link as LinkIcon } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
@@ -19,7 +19,6 @@ import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { WRAP_HEADER_W, LOCKED_COLUMNS, NEVER_COLLAPSE_KEYS, COLLAPSIBLE_KEYS, TAB_COLUMNS, SUB_TABS } from './tenderColumns.js'
 import { mintToken } from '../../spotboard/token.js'
 import { isEmailNotify } from '../../tender/email/tenderEmail.js'
-import TenderEmailPreview from './TenderEmailPreview.jsx'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -288,20 +287,6 @@ function ActionDropdown({ option, position, onAction, onClose }) {
           {action}
         </button>
       ))}
-      {/* S157 (LINX-15795 §5) — a minted tenderToken means this row's tender
-          went out with a live carrier-review link; offer the same email the
-          carrier received. ponytail: prototype-only demo affordance — the
-          real system SENDS the email, it does not preview it. */}
-      {option.tenderToken && (
-        <button
-          style={btnStyle}
-          onClick={() => onAction('PreviewEmail')}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-        >
-          Preview tender email
-        </button>
-      )}
 
       {/* Separator */}
       <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '4px 0' }} />
@@ -536,6 +521,20 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
   }
 
   const getCellValue = (option, col) => {
+    // Only a row tendered by Email / Email & EDI carries a token (a page to open).
+    if (col.key === 'reviewLink') {
+      return option.tenderToken ? (
+        <a
+          href={`/tender-review/${option.tenderToken}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Open tender review page for ${option.scac}`}
+          style={{ display: 'inline-flex', color: 'inherit' }}
+        >
+          <LinkIcon {...ICON_MD} aria-hidden="true" />
+        </a>
+      ) : '--'
+    }
     const dataKey = col.dataKey || col.key
     return option[dataKey] ?? '--'
   }
@@ -954,9 +953,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // BR-11 — `{ rank, action }` pending the "you must contact the carrier
   // yourself" confirm on a Manual-notify option, or null.
   const [manualTender, setManualTender] = useState(null)
-  // S157 — the row whose tender email preview is open, or null. The option
-  // itself, not just a rank: onAction closes the row menu before this reads.
-  const [previewOption, setPreviewOption] = useState(null)
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
@@ -1393,12 +1389,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   }, [quoteModal, options, persistTender, currentUser])
 
   const handleAction = useCallback((rank, action, manualConfirmed = false) => {
-    if (action === 'PreviewEmail') {
-      const carrier = options.find((o) => o.rank === rank)
-      setOpenMenuRank(null)
-      if (carrier) setPreviewOption(carrier)
-      return
-    }
 
     if (action === 'ShowRateDetails') {
       const carrier = options.find(o => o.rank === rank)
@@ -1815,14 +1805,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
 
       {datesUnavailable && (
         <DatesUnavailableConfirm onDismiss={handleDismissDatesUnavailable} />
-      )}
-
-      {previewOption && (
-        <TenderEmailPreview
-          shipment={shipmentDetails}
-          option={previewOption}
-          onClose={() => setPreviewOption(null)}
-        />
       )}
 
       {/* LINX-13954 */}

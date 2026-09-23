@@ -7,6 +7,7 @@
 // thin wrapper passing the spot fixture; its rendering/tests are unchanged.
 import { useState, useRef, useEffect } from 'react'
 import { Badge, Button } from '@odyssey/ui'
+import { Download } from 'lucide-react'
 import { previewDoc } from '../../spotboard/email/previewDoc.js'
 import './spotEmails.css'
 
@@ -14,6 +15,18 @@ import './spotEmails.css'
 // browser that refuses the read despite allow-same-origin).
 const FALLBACK_FRAME_HEIGHT = 760
 const FRAME_HEIGHT_ALLOWANCE = 24
+
+// Hands devs the exact sent document (the raw html/text, NOT the previewDoc
+// wrapper with its injected <base>) so nobody has to eyeball the render.
+function download(email, scenarioKey, mode) {
+  const html = mode === 'html'
+  const blob = new Blob([html ? email.html : email.text], { type: html ? 'text/html' : 'text/plain' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${email.kind}-${scenarioKey}.${html ? 'html' : 'txt'}`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
 
 export default function EmailGallery({ title, lede, scenarios, emailsForScenario, defaultEmailIdFor, kindTone }) {
   const [scenarioKey, setScenarioKey] = useState(scenarios[0].key)
@@ -94,6 +107,9 @@ export default function EmailGallery({ title, lede, scenarios, emailsForScenario
               <div className="spot-emails__toolbar" role="group" aria-label="Preview mode">
                 <Button size="sm" variant={mode === 'html' ? 'primary' : 'secondary'} onClick={() => setMode('html')}>HTML</Button>
                 <Button size="sm" variant={mode === 'text' ? 'primary' : 'secondary'} onClick={() => setMode('text')}>Text</Button>
+                <Button size="sm" variant="secondary" icon={<Download size={20} />} className="spot-emails__download" onClick={() => download(selected, scenarioKey, mode)}>
+                  Download {mode === 'html' ? 'HTML' : 'Text'}
+                </Button>
               </div>
               {mode === 'html' ? (
                 <iframe

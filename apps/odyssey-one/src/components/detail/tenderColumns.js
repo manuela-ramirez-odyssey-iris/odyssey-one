@@ -83,6 +83,10 @@ export const TAB_COLUMNS = {
     { key: 'orderEquip', label: 'Order Equip' },
     { key: 'contactExped', label: 'Contact Exped' },
     { key: 'note', label: 'Note' },
+    // Opens the carrier's /tender-review/<token> page — the prototype sends no
+    // real email, so this stands in for the email's CTA (same idea as SpotBid's
+    // Live Bids RFQ link). Live rows only; RoutingHistoryTab drops it.
+    { key: 'reviewLink', label: 'Review Link', narrow: true },
   ],
 }
 

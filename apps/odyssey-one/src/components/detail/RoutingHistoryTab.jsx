@@ -104,7 +104,7 @@ const SECTIONS = [
   },
   { key: 'volume-commitment', label: 'View Volume Commitment', columns: [...IDENTITY_COLUMNS, ...TAB_COLUMNS['volume-commitment']] },
   { key: 'additional-info', label: 'Additional Info', columns: [...IDENTITY_COLUMNS, ...TAB_COLUMNS['additional-info']] },
-  { key: 'others', label: 'Others', columns: [...IDENTITY_COLUMNS, ...TAB_COLUMNS.others] },
+  { key: 'others', label: 'Others', columns: [...IDENTITY_COLUMNS, ...TAB_COLUMNS.others.filter((c) => c.key !== 'reviewLink')] },
 ]
 
 /** AC, verbatim. */
