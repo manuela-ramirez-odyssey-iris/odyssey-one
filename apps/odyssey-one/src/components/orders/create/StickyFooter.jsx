@@ -15,17 +15,18 @@ export default function StickyFooter({
   showSave = true,
 }) {
   return (
-    <div className="co-footer">
-      <StepperButtonsFooter
-        saveLabel={saveLabel}
-        primaryLabel={primaryLabel}
-        showSave={showSave}
-        onCancel={onCancel}
-        onSave={onSave}
-        onPrimary={onCreate}
-        primaryDisabled={createDisabled}
-        saving={saving}
-      />
-    </div>
+    // No wrapper div (S158): the footer pins itself (position: sticky), which only
+    // works as a direct child of the scrolling flow — the bleed rides on className.
+    <StepperButtonsFooter
+      className="co-footer"
+      saveLabel={saveLabel}
+      primaryLabel={primaryLabel}
+      showSave={showSave}
+      onCancel={onCancel}
+      onSave={onSave}
+      onPrimary={onCreate}
+      primaryDisabled={createDisabled}
+      saving={saving}
+    />
   )
 }

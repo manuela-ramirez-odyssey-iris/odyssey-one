@@ -7,7 +7,7 @@ export const meta = {
   tier: 'molecule',
   version: '0.5.0',
   createdVersion: '0.5.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '3164:2169',
   codeConnect: 'packages/ui/src/StepperButtonsFooter.figma.tsx',
 }
@@ -28,6 +28,7 @@ export const props = [
 export const tokens = [
   { token: '--border-subtle', resolves: 'Border/subtle', usage: 'top divider' },
   { token: '--bg-primary', resolves: 'Background/primary', usage: 'bar surface' },
+  { token: '--shadow-up-md', resolves: 'shadow/up-md', usage: 'up shadow over scrolled content (sticky, S158)' },
   { token: '--spacing-3', resolves: '12px', usage: 'padding top + right-group gap' },
   { token: '--spacing-6', resolves: '24px', usage: 'padding horizontal' },
   { token: '--spacing-5', resolves: '20px', usage: 'padding bottom' },

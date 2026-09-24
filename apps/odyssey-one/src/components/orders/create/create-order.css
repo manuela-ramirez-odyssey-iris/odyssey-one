@@ -794,7 +794,7 @@
   color: var(--text-tertiary);
 }
 
-/* ── Form footer (static — sits in flow after the accordions) ── */
+/* ── Form footer (pins to the bottom — sticky lives in StepperButtonsFooter, S158) ── */
 
 .co-footer {
   /* Bleed to full main-content width by cancelling AppShell's side padding. The normalized

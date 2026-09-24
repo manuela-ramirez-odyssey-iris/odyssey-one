@@ -65,15 +65,11 @@
 .consolidation-review__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
 .consolidation-review__table-count { color: var(--text-tertiary); padding-bottom: var(--spacing-3); }
 
-/* Bleed the footer to the main-content width, like create-order's .co-footer,
-   and pin it to the viewport bottom so Apply stays reachable while the planner
-   scrolls a long selection (S155 §2.3). */
+/* Bleed the footer to the main-content width, like create-order's .co-footer.
+   Pinning (S155 §2.3) moved into StepperButtonsFooter itself (S158). */
 .consolidation-review__footer {
   margin-inline: calc(-1 * var(--spacing-8));
   margin-top: auto;
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
 }
 
 /* The footer bleeds to the page edge and pins to the bottom: .order-change's

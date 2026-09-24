@@ -291,9 +291,9 @@ export default function ConsolidationReviewRoute() {
           </section>
         </div>
 
-        <div className="consolidation-review__footer">
-          {applied ? (
+        {applied ? (
             <StepperButtonsFooter
+              className="consolidation-review__footer"
               cancelLabel="Back to Shipments"
               primaryLabel="Edit Consolidated Shipment"
               showSave={false}
@@ -307,6 +307,7 @@ export default function ConsolidationReviewRoute() {
             />
           ) : (
             <StepperButtonsFooter
+              className="consolidation-review__footer"
               cancelLabel="Cancel Consolidation"
               showSave
               saveLabel="Edit Consolidation"
@@ -318,7 +319,6 @@ export default function ConsolidationReviewRoute() {
               onPrimary={() => setPending('apply')}
             />
           )}
-        </div>
 
         {blockedUncheck && (
           <ConfirmDialog
