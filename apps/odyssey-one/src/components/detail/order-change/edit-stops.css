@@ -63,7 +63,8 @@
 
 .edit-stops__fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* One column: Distance sits below Location so New has room (user 2026-09-24). */
+  grid-template-columns: 1fr;
   gap: var(--spacing-3) var(--spacing-4);
   padding: var(--spacing-4);
 }
@@ -198,3 +199,14 @@
 /* The sticky footer sits flush on <main>'s bottom edge — drop the page's own
    bottom padding (same as .consolidation-review). */
 .order-change--edit-stops { padding-bottom: 0; }
+
+/* Motion (user 2026-09-24): whatever an action touched pulses once where it
+   landed — the table's odyssey-row-highlight (components.css), so a moved
+   stop, a set-aside order and an added order read the same way. */
+.edit-stops [data-flash] {
+  animation: odyssey-row-highlight 1.2s ease-in-out 2;
+  border-radius: var(--radius-md);
+}
+@media (prefers-reduced-motion: reduce) {
+  .edit-stops [data-flash] { animation: none; }
+}

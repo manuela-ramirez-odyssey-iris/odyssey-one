@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown, TriangleAlert } from 'lucide-react'
 import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
@@ -87,14 +87,55 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   sb.stops.forEach((s) => s.orderIds.forEach((id) => allOrderIds.add(id)))
   const singleOrderLeft = allOrderIds.size <= 1
 
+  // Motion (user 2026-09-24: "otherwise user don't realize what happened").
+  // A moved stop SLIDES from where it was (FLIP over the New plan's rows,
+  // keyed by stop), and whatever an action touched pulses once where it
+  // landed (the table's odyssey-row-highlight), scrolled into view.
+  // Reduced motion: no slide, no pulse (CSS + the guard below).
+  const newPlanRef = useRef(null)
+  const prevTops = useRef(null)
+  const [flash, setFlash] = useState([])
+  const flashTimer = useRef(null)
+  const flashOn = (keys) => {
+    clearTimeout(flashTimer.current)
+    setFlash(keys)
+    flashTimer.current = setTimeout(() => setFlash([]), 2400)
+  }
+  useEffect(() => () => clearTimeout(flashTimer.current), [])
+  const snapshotTops = () => {
+    // Rows are keyed by stop but carry no key attribute (Timeline is a
+    // normalized @odyssey/ui component) — the card carries data-stop-key.
+    const cards = newPlanRef.current?.querySelectorAll('[data-stop-key]') ?? []
+    prevTops.current = new Map([...cards].map((c) => [c.dataset.stopKey, c.closest('.odyssey-timeline__row').getBoundingClientRect().top]))
+  }
+  useLayoutEffect(() => {
+    const prev = prevTops.current
+    prevTops.current = null
+    if (!prev || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
+    newPlanRef.current?.querySelectorAll('[data-stop-key]').forEach((card) => {
+      const row = card.closest('.odyssey-timeline__row')
+      const was = prev.get(card.dataset.stopKey)
+      const dy = was == null ? 0 : was - row.getBoundingClientRect().top
+      if (dy) row.animate?.([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 360, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' })
+    })
+  }, [sb.stops])
+  useEffect(() => {
+    if (flash.length) document.querySelector('.edit-stops [data-flash]')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+  }, [flash])
+  const flashes = (k) => flash.includes(k) || undefined
+
   const handleMove = (i, dir) => {
     const check = canMoveStop(sb, i, dir)
     if (!check.ok) { setErrorMsg(check.reason); return }
     setErrorMsg(null)
+    snapshotTops()
+    flashOn([`stop:${sb.stops[i].key}`])
     setSb((s) => moveStop(s, i, dir))
   }
   const handleMoveToPending = (id) => {
     setErrorMsg(null)
+    snapshotTops()
+    flashOn([`pending:${id}`])
     setSb((s) => moveToPending(s, id))
   }
   const handleStopDate = (key, date) => {
@@ -103,6 +144,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   }
   const handleAddTo = (id) => {
     setErrorMsg(null)
+    snapshotTops()
+    flashOn([`order:${id}`])
     setSb((s) => addToStop(s, id, allOrders))
   }
 
@@ -170,20 +213,21 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       const isPickup = s.type === 'pickup'
       const removed = isPrior && diff.removedStopKeys.includes(s.key)
       const moved = isPrior && !removed && diff.movedStopKeys.includes(s.key)
-      // Structural edges only (first stop has no up, last has no down) — a
-      // move that's illegal for sequencing reasons (LINX-15669) stays
-      // clickable so canMoveStop's reason can surface in the Alert.
-      const upDisabled = i === 0
-      const downDisabled = i === list.length - 1
+      // User 2026-09-24: an arrow is disabled whenever that move can't happen —
+      // edges AND sequencing (LINX-15669), via the same canMoveStop the move uses.
+      const upDisabled = !canMoveStop(sb, i, 'up').ok
+      const downDisabled = !canMoveStop(sb, i, 'down').ok
       return {
         key: s.key,
         label,
         // User ruling 2026-09-09: purple ('changed'), not the plain green rail —
         // this editor already reads P/D badges as change markers alongside the
         // amber Removed/Moved badges above, so the rail follows suit.
-        status: 'changed',
+        // User 2026-09-24: Prior's P/D markers are green like the plain
+        // Stops tab ('completed'); purple stays on New only.
+        status: isPrior ? 'completed' : 'changed',
         content: (
-          <div className="edit-stops__card">
+          <div className="edit-stops__card" data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
             <HeaderStrip
               title={`Stop ${i + 1}`}
               badge={(
@@ -202,7 +246,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                       too strong in Prior. Canon's "amber = what the planner
                       changed" (§10.3/DEC-136) is stale for this surface pending
                       a docs pass. */}
-                  <Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+                  <Badge variant={isPrior ? 'gray' : 'purple'}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
                   {removed && <Badge variant="gray">Removed</Badge>}
                   {moved && <Badge variant="gray">Moved</Badge>}
                 </>
@@ -227,7 +271,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               {s.orderIds.map((id) => {
                 const isRemovedOrder = diff.removedOrderIds.includes(id)
                 return (
-                  <div className="edit-stops__order-row" key={id}>
+                  <div className="edit-stops__order-row" key={id} data-flash={isPrior ? undefined : flashes(`order:${id}`)}>
                     <div className="edit-stops__order-lead">
                       <span className="edit-stops__order-label text-label-sm-medium">Order #</span>
                       {isRemovedOrder
@@ -305,7 +349,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             <HeaderStrip title="Prior" />
             <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
           </section>
-          <section className="edit-stops__plan" aria-label="New plan">
+          <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef}>
             <HeaderStrip title="New" />
             <Timeline animate items={buildItems(sb.stops, false)} className="edit-stops__rail" aria-label="All stops" />
           </section>
@@ -314,7 +358,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             <HeaderStrip title="Orders Pending To Assign" />
             <Button variant="secondary" className="edit-stops__add-new" onClick={() => setModal('add-orders')}>Add New Order</Button>
             {sb.pending.map((id) => (
-              <div className="edit-stops__pending-row" key={id}>
+              <div className="edit-stops__pending-row" key={id} data-flash={flashes(`pending:${id}`)}>
                 {/* ponytail: no order drill-in yet — deferred, wire up when the
                     Order Compare / detail surface has a route for this VM. */}
                 <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>

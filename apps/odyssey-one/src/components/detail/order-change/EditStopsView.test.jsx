@@ -76,7 +76,9 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   // User ruling 2026-09-09: this editor already carries purple/gray change
   // badges, so the stop-type badge is purple here too (not the canon
   // customer-change color mapping — a deliberate reuse).
-  expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
+  expect(nw().getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
+  // User 2026-09-24: Prior is gray.
+  expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-gray-bg')
 })
 
 it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reordering after a move', () => {
@@ -93,7 +95,7 @@ it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reor
   expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('Y, Town')
 })
 
-it('arrows reorder and renumber; an illegal move shows the 15669 message in an error alert', () => {
+it('arrows reorder and renumber; an illegal move is disabled (user 2026-09-24)', () => {
   setup()
   // Stop 2 (P2) up over Stop 1 (P1) is legal — both pickups, no sequence issue.
   const up = screen.getAllByRole('button', { name: 'Move stop up' })
@@ -102,8 +104,8 @@ it('arrows reorder and renumber; an illegal move shows the 15669 message in an e
   // Now [P2(C), P1(A,B), D1(A,B,C)] — moving the middle stop down over the
   // delivery would put A/B's delivery ahead of their own pickup (LINX-15669).
   const down = screen.getAllByRole('button', { name: 'Move stop down' })
-  fireEvent.click(down[1])
-  expect(screen.getByText('An order must be picked up before it can be delivered.')).toBeTruthy()
+  expect(down[1].disabled).toBe(true)
+  expect(screen.getAllByRole('button', { name: 'Move stop up' })[0].disabled).toBe(true) // first stop can't go up
 })
 
 it('Set Aside moves the order to the pending column; the last remaining order is disabled with the tooltip copy', () => {
@@ -256,4 +258,15 @@ it('the New plan edits a stop date; a date outside an order window flags that or
   fireEvent.blur(input)
   expect(nw().getAllByText('Outside planning window').length).toBe(2)               // A and B on stop 1
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true) // edit un-routes, as any edit does
+})
+
+it('marks what an action touched so it pulses where it landed (user 2026-09-24)', () => {
+  setup()
+  fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0])
+  expect(nw().getByText('Stop 2').closest('.edit-stops__card').hasAttribute('data-flash')).toBe(true)   // moved P1, now second
+  fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
+  const pendingRow = screen.getByRole('button', { name: /^Add order / }).closest('.edit-stops__pending-row')
+  expect(pendingRow.hasAttribute('data-flash')).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: /^Add order / }))
+  expect(document.querySelectorAll('.edit-stops__order-row[data-flash]').length).toBeGreaterThan(0)
 })
