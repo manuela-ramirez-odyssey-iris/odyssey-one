@@ -72,6 +72,10 @@ In `buildConsolidationChange`:
 ### B3. Per-order comparison rows (DEC-196)
 `orderComparisons[id]` grows to the Direct field set (Pickup/Delivery Date, Gross Weight, Package Count, Volume, Incoterm, Ship Direction, Seed Equipment, Distance, Distance Source, Network Leverage, Order Requested Date, Bill To, Freight Terms, Pickup/Delivery Appointment, Ship From/To), sourced from that order's own record, plus a per-line hazmat pair list built from `orderLines` (id-keyed `rnd` only; one changed field on some lines so the path is reachable). Closes OC-open-12.
 
+### B3b. Found in the browser check (live 25412375)
+- Stops are scheduled **outside their own orders' windows**: order windows are seeded in CST, stops in local zones, and e.g. a 14:00 EST pickup falls after the order's 11:30 CST latest. The seed must place each stop's `scheduledDateTime` inside the window of every order on it, so a flag only appears after a planner edit.
+- The editor header's Gross Weight (51,498 LB, summed from the order records) disagrees with the KPI strip's New value (53,812 LB, from `summaryChanges`). One source: `summaryChanges` must equal the sum of the changed orders' own records.
+
 ### B4. Reseed + verification
 - Regenerate. Diff shipment/order **ids** before vs after (must be identical). Reseed Neon. **Explicit user go needed for the reseed.**
 - Probe 3 consolidated shipments live: the header cost equals View Routing's selected row, the header distance equals the sum of legs, and each compare modal has line blocks.
