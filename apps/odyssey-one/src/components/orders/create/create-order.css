@@ -5,7 +5,10 @@
 .create-order-page {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  /* flex: 1 (not min-height: 100%, which never resolves against <main>'s flex
+     height) — the page must fill <main> so the footer's margin-top: auto can
+     push it to the bottom of a short page (S158). */
+  flex: 1;
   /* AppShell <main> pads 32px (inline style, all routes); create-order wants
      24px horizontal (user 2026-07-29) — claw back the 8px difference here
      rather than forking the shared shell. */
@@ -797,11 +800,19 @@
 /* ── Form footer (pins to the bottom — sticky lives in StepperButtonsFooter, S158) ── */
 
 .co-footer {
-  /* Bleed to full main-content width by cancelling AppShell's side padding. The normalized
-     StepperButtonsFooter (@odyssey/ui) provides the border-top + surface + padding + layout. */
-  margin-inline: calc(-1 * var(--spacing-8));
-  margin-top: 30px;
+  /* Bleed to the full <main> width: the page already sits 24px in (AppShell's 32px
+     minus the 8px .create-order-page claws back), so cancel exactly that. width:
+     auto overrides the component's 100% — with the wrapper div gone (S158) the
+     negative margins must WIDEN the bar, not just shift it. The normalized
+     StepperButtonsFooter provides border-top + surface + padding + sticky + shadow.
+     margin-top: auto pins it to the bottom of a short page; the 30px gap above it
+     moved onto whatever precedes it (.co-content / Step 1's column). */
+  margin-inline: calc(-1 * var(--spacing-6));
+  width: auto;
+  margin-top: auto;
 }
+.create-order-page > .co-content,
+.resolve-shell__body > .co-content { margin-bottom: 30px; }
 
 /* ── Modal footer ───────────────────────────────────────── */
 
@@ -988,6 +999,8 @@
 
 /* ── Step 1 panel (LINX-16049 interface errors) ── */
 .step1-panel { display: flex; flex-direction: column; gap: var(--spacing-4); }
+.step1-panel > .co-footer { margin-top: auto; }
+.step1-panel > :nth-last-child(2) { margin-bottom: calc(30px - var(--spacing-4)); }
 .step1-panel__list { display: flex; flex-direction: column; gap: var(--spacing-3); }
 .step1-panel__received { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-3) var(--spacing-6); margin: 0; }
 .step1-panel__received-row dt { color: var(--text-tertiary); }
@@ -1021,7 +1034,13 @@
    a couple of error rows) — tall bodies simply grow past it as they do today. */
 .resolve-shell__body {
   min-height: 420px;
+  /* Fill the page down to <main>'s bottom so each step's footer can pin there
+     on a short body (S158) — Step 1's panel and Step 2's form both flex-grow. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
+.resolve-shell__body > .step1-panel { flex: 1; }
 .resolve-shell__transit {
   min-height: 420px;
   display: flex;

@@ -66,9 +66,11 @@
 .consolidation-review__table-count { color: var(--text-tertiary); padding-bottom: var(--spacing-3); }
 
 /* Bleed the footer to the main-content width, like create-order's .co-footer.
-   Pinning (S155 §2.3) moved into StepperButtonsFooter itself (S158). */
+   Pinning (S155 §2.3) moved into StepperButtonsFooter itself (S158); width: auto
+   overrides its 100% so the negative margins widen the bar instead of shifting it. */
 .consolidation-review__footer {
   margin-inline: calc(-1 * var(--spacing-8));
+  width: auto;
   margin-top: auto;
 }
 
