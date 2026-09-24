@@ -435,7 +435,7 @@ export default function BottomBar({
       // shipment.sellShipment/buyShipment to navigate into the standalone
       // editor route; it was dropped in an earlier cleanup when the button
       // was still disabled.
-      case 'stops': return <StopsTab data={shownDetails.stopsData} orderChange={shownDetails.orderChange} orderDetails={shownDetails.orderDetails} shipment={shipment} />
+      case 'stops': return <StopsTab data={shownDetails.stopsData} orderChange={shownDetails.orderChange} orderDetails={shownDetails.orderDetails} productOrders={shownDetails.productData?.orders} shipment={shipment} />
       case 'product': return <ProductTab data={shownDetails.productData} />
       // No onToggleColumnPanel here (Fix 3, 2026-08-10) — it used to be the SAME
       // handler ShipmentTable uses, so the Routing Guide's gear opened the

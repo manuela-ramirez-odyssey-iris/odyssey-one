@@ -158,7 +158,7 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
 }
 
 // ── Main export ────────────────────────────────────────────────────────────
-const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [], shipment }) {
+const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [], productOrders = [], shipment }) {
   const [modal, setModal] = useState(null) // 'planning' | 'routing' | { order: id }
   const { openSheet } = useSheet()
   if (!data) return <PaneEmpty message="No stops data available." col="medium" />
@@ -258,7 +258,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
 
       {modal === 'planning' && <PlanningDatesModal orders={orderDetails} onClose={() => setModal(null)} />}
       {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}
-      {modal?.order && <OrderCompareModal orderId={modal.order} rows={c?.orderComparisons?.[modal.order] ?? []} onClose={() => setModal(null)} />}
+      {modal?.order && <OrderCompareModal orderId={modal.order} rows={c?.orderComparisons?.[modal.order] ?? []} lines={productOrders.find((o) => o.orderId === modal.order)?.lines ?? []} onClose={() => setModal(null)} />}
     </div>
   )
 })

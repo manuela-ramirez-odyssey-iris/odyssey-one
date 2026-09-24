@@ -24,3 +24,15 @@ it('Go Back closes; empty rows render both bands without crashing', () => {
   fireEvent.click(screen.getByText('Go Back'))
   expect(onClose).toHaveBeenCalled()
 })
+it('renders one block per order line with line-level fields; a changed line is badged (DEC-196)', () => {
+  const l1 = { lineNumber: '001', shipItem: '100034', hazmatUnNumber: 'UN1830', flashPoint: '106 F' }
+  const l2 = { lineNumber: '002', shipItem: '100035', hazmatUnNumber: 'UN1830', flashPoint: '90 F' }
+  const { unmount } = render(<OrderCompareModal orderId="1" rows={rows} lines={[l1, l2]} onClose={() => {}} />)
+  expect(screen.getByRole('region', { name: 'Line 001' })).toBeTruthy()
+  expect(screen.getByRole('region', { name: 'Line 002' })).toBeTruthy()
+  expect(screen.queryByText('Changed')).toBeNull()                       // prior = new from the order record
+  unmount()
+  render(<OrderCompareModal orderId="1" rows={rows} linePairs={[{ prior: l2, new: { ...l2, flashPoint: '95 F' } }]} onClose={() => {}} />)
+  expect(screen.getByText('Changed')).toBeTruthy()
+  expect(screen.getByText('95 F').closest('.text-badge')).toBeTruthy()
+})
