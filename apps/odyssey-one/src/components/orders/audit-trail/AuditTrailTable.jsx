@@ -13,6 +13,9 @@ import './audit-trail.css'
  *
  * no truncationTooltip — the stack cells are multi-line and the detector
  * concatenates them.
+ *
+ * `error` (Part 5, 2026-09-23) — forwarded straight to DataTable's own error
+ * body state ({message, detail, onRetry}), same idiom as ShipmentTable.jsx.
  */
 export default function AuditTrailTable({
   rows,
@@ -23,6 +26,7 @@ export default function AuditTrailTable({
   onSortingChange,
   loading = false,
   loadingRows = false,
+  error,
 }) {
   const table = useReactTable({
     data: rows,
@@ -49,6 +53,10 @@ export default function AuditTrailTable({
       // DataTable.jsx:301-306) — compensate here so the sticky header parks
       // flush with the scroller's visible clip edge.
       stickyTop="calc(-1 * var(--spacing-8))"
+      // Part 5 (2026-09-23, "OIF & Audit Trail review" 2026-09-16): a failed
+      // load renders INSIDE this shell, same as ShipmentTable — the route no
+      // longer owns its own error branch. See OrderAuditTrailRoute.jsx.
+      error={error}
       footer={<Paginator table={table} />}
     />
   )

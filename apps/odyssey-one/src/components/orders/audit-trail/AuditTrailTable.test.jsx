@@ -68,4 +68,14 @@ describe('AuditTrailTable', () => {
     expect(props.onSortingChange).toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: /Change Category/ })).toBeNull()
   })
+
+  it('a failed load renders inside the DataTable shell (Part 5) — message, detail, Retry, no rows', () => {
+    const onRetry = vi.fn()
+    renderTable({ error: { message: "Couldn't load the audit trail.", detail: 'The service is temporarily unavailable.', onRetry } })
+    expect(screen.getByText("Couldn't load the audit trail.")).toBeTruthy()
+    expect(screen.getByText('The service is temporarily unavailable.')).toBeTruthy()
+    expect(screen.queryByText('Order Creation')).toBeNull() // rows suppressed under an error, same as ShipmentTable
+    fireEvent.click(screen.getByRole('button', { name: /Reload/ }))
+    expect(onRetry).toHaveBeenCalled()
+  })
 })

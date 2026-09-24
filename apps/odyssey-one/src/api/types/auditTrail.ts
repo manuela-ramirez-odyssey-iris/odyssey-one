@@ -30,7 +30,12 @@ export interface AuditTrailRow {
   source: string                   // User → "email · Full Name"; System → 'ERP' | 'UI' | 'Legacy TMS' | 'LINX'
   changeType: AuditChangeType
   changeCategory: AuditChangeCategory
-  lineItemId: string | null        // null on header-level rows (renders '--')
+  lineItemId: string | null        // null on header-level rows (renders '--'); the FIRST id when lineItemIds is set
+  // Set only when one save touched more than one real order line (Part 9 line-
+  // count badge, 2026-09-23, "OIF & Audit Trail review" 2026-09-16) — today
+  // only `deriveAuditTrail`'s Partial Cancellation step ever populates it.
+  // Absent/undefined means "just the one line" — `lineItemId` alone.
+  lineItemIds?: string[]
   changes: AuditTrailChange[]      // [] on Creation / Applied on Hold / Cancellation rows
 }
 

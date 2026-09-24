@@ -490,6 +490,12 @@ function auditWireRow(r) {
     changeType: r.changeType,
     changeCategory: r.changeCategory,
     lineItemId: r.lineItemId,
+    // Part 9 (2026-09-23) line-count badge — deriveAuditTrail only sets this
+    // on a multi-line Partial Cancellation row; whitelist mappers are a known
+    // bug class here (a field the derive adds and this wire mapper doesn't
+    // forward goes silently missing on the live path only), so it's carried
+    // through explicitly rather than assumed via spread.
+    ...(r.lineItemIds?.length ? { lineItemIds: r.lineItemIds } : {}),
     changes: r.changes.map((c) => ({ fieldName: c.field, oldValue: c.oldValue, newValue: c.newValue })),
   }
 }

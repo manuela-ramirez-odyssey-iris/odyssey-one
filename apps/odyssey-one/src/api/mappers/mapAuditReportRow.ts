@@ -18,6 +18,10 @@ export interface AuditReportWireRow {
   changeType: string              // 'ORDER_ACTION' | 'ORDER_EVENT' | label
   changeCategory: string          // code | label
   lineItemId?: number | string | null
+  // Part 9 (2026-09-23): a save that touched more than one order line at once
+  // (the wire shape's own guess for this — LINX-8457's field table is still
+  // an unread image, Q-AT-2 — tolerant like everything else in this mapper).
+  lineItemIds?: Array<number | string> | null
   changes?: Array<{ fieldName?: string; field?: string; oldValue?: unknown; newValue?: unknown }>
 }
 
@@ -52,6 +56,7 @@ export function mapAuditReportRow(w: AuditReportWireRow): AuditTrailRow {
     changeType: TYPE[w.changeType] ?? (w.changeType as AuditChangeType),
     changeCategory: CATEGORY[w.changeCategory] ?? (w.changeCategory as AuditChangeCategory),
     lineItemId: w.lineItemId == null || w.lineItemId === '' ? null : String(w.lineItemId),
+    ...(w.lineItemIds?.length ? { lineItemIds: w.lineItemIds.map(String) } : {}),
     changes: (w.changes ?? []).map((c) => ({ field: str(c.fieldName ?? c.field), oldValue: str(c.oldValue), newValue: str(c.newValue) })),
   }
 }

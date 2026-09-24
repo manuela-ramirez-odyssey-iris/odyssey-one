@@ -2,11 +2,12 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
-import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
+import { Breadcrumb, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import AuditTrailTable from '../../components/orders/audit-trail/AuditTrailTable.jsx'
 import { formatAuditTimestamp } from '../../components/orders/audit-trail/auditTrailColumns.jsx'
 import { useAuditTrail } from '../../api/queries/useAuditTrail'
+import { getErrorDetail } from '../../components/common/errorDetail.js'
 import '../../components/orders/audit-trail/audit-trail.css'
 
 /**
@@ -29,7 +30,7 @@ export default function OrderAuditTrailRoute() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 })
   const [sorting, setSorting] = useState([{ id: 'timestamp', desc: true }])
 
-  const { data, isPending, isError, isPlaceholderData, refetch } = useAuditTrail({
+  const { data, isPending, isError, error, isPlaceholderData, refetch } = useAuditTrail({
     orderNumber: orderId,
     pageNumber: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
@@ -52,27 +53,34 @@ export default function OrderAuditTrailRoute() {
 
         {isPending ? (
           <div className="audit-trail__status text-label-sm-regular">Loading audit trail…</div>
-        ) : isError ? (
-          <div className="audit-trail__status">
-            <span className="text-label-sm-regular">Something went wrong loading this audit trail.</span>
-            <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
-          </div>
-        ) : !order ? (
+        ) : !isError && !order ? (
           <EmptyState icon={<Inbox size={32} />} message="Order not found" />
         ) : (
           <div className="audit-trail__content">
             <PageHeader title="Audit Trail" supportingText={supporting} />
-            {data.rows.length === 0 && data.totalCount === 0 ? (
+            {!isError && data.rows.length === 0 && data.totalCount === 0 ? (
               <EmptyState icon={<Inbox size={32} />} message="No changes recorded yet" />
             ) : (
+              // Part 5 (2026-09-23, "OIF & Audit Trail review" 2026-09-16): a
+              // failed load is now the table's OWN third body state (the
+              // ShipmentTable `error` idiom — src/components/shipments/
+              // ShipmentTable.jsx ~505-520), not a surface this route renders
+              // instead of the table. `order` is unset on error (the query
+              // never resolved), so the header above has no supporting text —
+              // that's fine, the Retry button is what matters here.
               <AuditTrailTable
-                rows={data.rows}
-                totalCount={data.totalCount}
+                rows={data?.rows ?? []}
+                totalCount={data?.totalCount ?? 0}
                 pagination={pagination}
                 onPaginationChange={setPagination}
                 sorting={sorting}
                 onSortingChange={setSorting}
                 loadingRows={isPlaceholderData}
+                error={isError ? {
+                  message: "Couldn't load the audit trail.",
+                  detail: getErrorDetail(error),
+                  onRetry: () => refetch(),
+                } : undefined}
               />
             )}
           </div>

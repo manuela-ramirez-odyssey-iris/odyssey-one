@@ -360,7 +360,10 @@ const initialWidgets = [
       title: 'Orders',
       domainIcon: orderIcon,
       value: '829',
-      label: 'All Orders',
+      // 'All Orders' -> 'Created' (Part 9, 2026-09-23, "OIF & Audit Trail
+      // review" 2026-09-16 + ORD-27's Created-orders-only scope) — the Orders
+      // tab already reads "Created", not "All"; this widget label lagged it.
+      label: 'Created',
       percentage: '100%',
       chartSegments: [{ value: 100, color: 'var(--chart-1)' }],
       chartTotal: 100,

@@ -38,6 +38,15 @@ function rng(seed) {
 }
 const pick = (r, arr) => arr[Math.floor(r() * arr.length)]
 const intIn = (r, min, max) => min + Math.floor(r() * (max - min + 1))
+// Sample n distinct elements without replacement — used where a single save
+// can touch more than one real order line (Part 9 line-count badge,
+// 2026-09-23) and the picks must be real lines, never invented ones.
+function pickN(r, arr, n) {
+  const pool = [...arr]
+  const out = []
+  while (out.length < n && pool.length) out.push(pool.splice(Math.floor(r() * pool.length), 1)[0])
+  return out
+}
 
 // ── Vocabulary ───────────────────────────────────────────────────────────────
 const ACTION = 'Order Action'
@@ -160,11 +169,13 @@ export function deriveAuditTrail(row, enrichment) {
   const path = LIFECYCLE_PATH[row.orderStatus] ?? [] // genuinely unknown status string: creation only
 
   // 2. Edits (manual and integrated alike — a customer re-sends, a planner
-  //    corrects). 0–2 header saves of 1–3 fields; a line save when lines exist.
+  //    corrects). 0–2 header saves of 1–4 fields (headerChange's whole pool,
+  //    occasionally all four — the case the UI's "+X more" chip exists for,
+  //    Part 9 2026-09-23); a line save when lines exist.
   const headerSaves = intIn(r, 0, 2)
   for (let k = 0; k < headerSaves; k++) {
     step()
-    const count = intIn(r, 1, 3)
+    const count = intIn(r, 1, 4)
     const changes = []
     const seen = new Set()
     while (changes.length < count) {
@@ -192,9 +203,20 @@ export function deriveAuditTrail(row, enrichment) {
   }
 
   // 4. A partial cancellation on ~10% of multi-line orders that are not cancelled.
+  // A single cancellation save can drop more than one real line at once (Part 9
+  // line-count badge, 2026-09-23, "OIF & Audit Trail review" 2026-09-16) —
+  // picks 1..min(3, lines.length) of the order's OWN lines (pickN, coherent
+  // with the rest of this module — never invented ids). `lineItemId` stays the
+  // first id, preserving the existing per-row invariant every other consumer
+  // and auditTrail.test.js's "9128 blank rules" test key off (non-header
+  // categories always carry a non-null lineItemId); `lineItemIds` carries the
+  // full set and is only set (not just empty) when there's more than one, so
+  // single-line cancellations are byte-identical to before this change.
   if (lines.length > 1 && row.orderStatus !== 'Cancelled' && r() < 0.1) {
     step()
-    push('Order Partial Cancellation', { ...user, lineItemId: String(pick(r, lines).lineIdentifier) })
+    const picked = pickN(r, lines, Math.min(lines.length, intIn(r, 1, 3)))
+    const ids = picked.map((l) => String(l.lineIdentifier))
+    push('Order Partial Cancellation', { ...user, lineItemId: ids[0], ...(ids.length > 1 ? { lineItemIds: ids } : {}) })
   }
 
   // 5. Lifecycle — the planning system moves the order; each hop is a System row.

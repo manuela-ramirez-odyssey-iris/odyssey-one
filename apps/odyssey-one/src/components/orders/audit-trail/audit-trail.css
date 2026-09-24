@@ -42,3 +42,26 @@
   display: flex;
   align-items: center;
 }
+/* "+X more" chip row (Part 9, 2026-09-23) — same min-height as any other
+   stack line, so the Field/Old/New columns keep aligning even on the row
+   whose "newValue" cell is the only one that renders the Button. */
+.audit-stack__more {
+  min-height: 20px;
+}
+
+/* AuditChangesModal's grouped-by-line table (Part 9, 2026-09-23) — plain
+   token-bound table, no DataTable (this is a small, unpaginated, unsorted
+   list inside a ModalMedium, not a grid). */
+.audit-changes-modal__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.audit-changes-modal__table th,
+.audit-changes-modal__table td {
+  text-align: left;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.audit-changes-modal__table th {
+  color: var(--text-tertiary);
+}
