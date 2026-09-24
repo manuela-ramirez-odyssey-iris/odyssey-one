@@ -76,6 +76,9 @@ In `buildConsolidationChange`:
 - Stops are scheduled **outside their own orders' windows**: order windows are seeded in CST, stops in local zones, and e.g. a 14:00 EST pickup falls after the order's 11:30 CST latest. The seed must place each stop's `scheduledDateTime` inside the window of every order on it, so a flag only appears after a planner edit.
 - The editor header's Gross Weight (51,498 LB, summed from the order records) disagrees with the KPI strip's New value (53,812 LB, from `summaryChanges`). One source: `summaryChanges` must equal the sum of the changed orders' own records.
 
+- A location change lives only in `orderChange.consolidation.stopChanges`; the order's own `origin`/`destination` still hold the old site. Setting such an order aside and adding it back puts it at the OLD site. The seed must write the new site onto the order record too.
+- Order `origin.address1` differs from its stop's `address1` for the same site: one address per site.
+
 ### B4. Reseed + verification
 - Regenerate. Diff shipment/order **ids** before vs after (must be identical). Reseed Neon. **Explicit user go needed for the reseed.**
 - Probe 3 consolidated shipments live: the header cost equals View Routing's selected row, the header distance equals the sum of legs, and each compare modal has line blocks.
