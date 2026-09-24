@@ -3,7 +3,7 @@ title: Order Change
 domain: shipments
 type: canon
 tags: [order-change, tender, direct-shipment, consolidation, multi-stop, compare-screen, linx-14509, linx-14515, linx-15435, linx-15872, linx-8820, linx-8284]
-date: 2026-09-08
+date: 2026-09-24
 status: active
 ---
 
@@ -23,6 +23,7 @@ Sources, read together per [[feedback_multi_source_truth]]:
 | Deck *Order changes – Direct and Consolidation – Mock design*, 2026-08-12 | `deck sN` | Layout/field source for Direct; Consolidation slides 8–13 are LLM output (see §8) |
 | Jira ACs LINX-14509…14516 + context LINX-8820/8284/8253/8252 | `LINX-nnnnn` | Primary per [[feedback_stories_are_primary_source]] |
 | Jira ACs LINX-15435…15872 (consolidation, 13 stories, fetched 2026-09-08) | `LINX-nnnnn` | Primary; supersede deck slides 8–13 |
+| Jana's walkthrough of the consolidated build, 2026-09-24 (36 min) | `walk @hh:mm:ss` | Domain intent on Surface B as built; UI suggestions are **his imagining, not rulings** — the user rules presentation ([[feedback_jana_does_not_decide_ui]]) |
 | Laura's VDs — Stops Consolidated `1910-31512`, Planning Dates `2102-10502`, View Routing `2108-14708`, per-order compare `2107-12719` | `VD nnnn` | Layout of record for Surface A; copy normalized to AC wording |
 | Raw archive | `vault-sources/10-domains/shipments/{sources,screenshots/order-change}/` | |
 
@@ -204,6 +205,43 @@ Opened by *Edit Shipment Stops*. **Nothing touches the database until Save** (15
 
 **Surface B slice 2 (S144), 2026-09-09.** Closes the four VD gaps slice 1 left open. **Approve Changes** now opens a confirm (`ConfirmDialog` over `ModalMedium`, VD `2066-77150`): title "Approve Shipment Change", the VD's body verbatim, Cancel / **Approve** — pending orders are dropped from `orderList` at save, the confirm's own promise. *Add to* is a **stop picker** (VD `2076-8110`, user ruling 2026-09-09: the pending column is a buffer pool, the planner chooses): `ActionMenu` rows read `Stop N · Pickup|Delivery · <location>`; picking a stop seats the order there as that stop's leg, and the order's other leg still places per the 15871 match-or-create rule. The order-link hover now goes through the canon **Tooltip** (VD `2143-11775`, "Should Be In A ToolTip"): header "Order Number: N", groups Planning Type · Pickup/Delivery Date Time · Gross Weight (kept from Jana's deck, dropped in the VD) · Volume · Origin · Destination — the VD's light card and "Details" strip have no Tooltip equivalent and are dropped. **Add New Order** ships as `AddOrdersModal` (VD `2137-59231`, LINX-15870): search + Filter + Clear All over a flat selectable `GroupTable`, customer locked to this shipment, this shipment's own orders excluded, the VD's 11 columns, default sort Buy Shipment ascending, a five-pick cap; Filters opens as an inner `ModalMedium` with a back chevron (the DSM's modal navigation stack). Rows whose shipment would fail the 15872 Save check are greyed and unselectable with an explanatory Tooltip (user ruling, closes OC-open-11). An order picked from another shipment enters the sandbox as that source shipment's own `OrderDetailVM` (same mapper, same `fmtLocation`, so matching still works). **Save** performs the 15872 move: revalidate each source shipment, copy its order in, remove it from the source (stops renumbered), all in one transaction. The move writes `shipments.detail`, `orders`, `order_count` and `orders.shipment_sell_id` together; only the shipment row's list aggregates (`gross_weight`) go stale (OC-open-22), and a source left with zero orders ships as an empty shell, unhandled (OC-open-23). **Still not in this slice:** per-stop Planned Date/Time/TZ editing (OC-open-13), a per-order *Move to* between stops (OC-open-21), and 15869's Phase-1 "new shipment for a pending order" (OC-open-19, unspecified).
 
+## 10b. Jana's walkthrough of the consolidated build (2026-09-24)
+
+Jana walked the shipped Surface A + B with the designer (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`). He is the domain authority; the layouts he sketched aloud are **input**, and every presentation choice below is the user's ruling given the same day (DEC-191…DEC-199).
+
+**Domain points (Jana, verbatim intent):**
+- The per-order compare must carry **the same field set as the Direct review**, unchanged fields included, and line-level fields (Hazmat Code, Flash Point, Item Number…) **once per order line** — "line number one, line number two… and within those tell if a particular item has changed" (`walk @00:00:48`, `@00:02:18`).
+- Affected Orders need only appear on **pickup** stops — "everything that is going to be picked up is going to be delivered" (`walk @00:04:40`).
+- The consolidated cost in the header must equal the routing list's (`walk @00:06:43`; he saw the same mismatch on Direct).
+- The planner must see the **prior plan next to the new one** while editing stops — his original mock put both on one page (`walk @00:09:34`).
+- An order may **not** be placed into a stop of the planner's choosing: "you are moving it from Minneapolis stop to Florida stop, which is completely wrong." The planner only removes and adds; **the system places** (existing stop at the same location, else a new `P?`/`D?` for the planner to sequence). The planner's freedom is **stop order**, and which orders stay (`walk @00:12:29–00:18:05`). Same concept for location-changed orders entering the screen (`@00:27:57`).
+- **Distance between consecutive stops** (P1→P2 … D1→D2), recalculated as stops are reordered, so the planner can judge the sequence (`walk @00:18:33`).
+- **Stop pickup/delivery date and time are editable**; the order's planning dates are the customer's reference and are never edited — a stop date outside an order's earliest/latest window is **highlighted**, not blocked (`walk @00:19:53–00:23:28`). A pickup stop shows only a pickup date; a delivery stop only a delivery date (`@00:23:47`). Same-day pickups at distant stops are the planner's judgement, not a rule (`@00:24:47`).
+
+**Raised and not taken up (user, 2026-09-24):**
+- Scroll/pin the accepted carrier in View Routing (`walk @00:08:30`) — Jana himself: "people will scroll… not a big deal". **Left as is.**
+- Open View Routing in a separate window (`walk @00:08:36`) — **to be revised**, OC-open-24.
+- Tender-sent orders addable, blocked only at confirm (`walk @00:26:46`) — Jana could not recall his own rule; **halted**, OC-open-25 (current: blocked at add, OC-open-11).
+- After Approve Changes: re-run routing → new/old route list → planning screen → finalize (tender/bypass) as Direct (`walk @00:30:25–00:33:04`) — Jana is sending the mock he gave Laura; **halted**, OC-open-26.
+- Label "Remove" for *Move To Pending* — the designer rejected it on the call (reads as delete); the user ruled a new word, no icon (DEC-194).
+
+**Build-delta (shipped S142–S144 vs this walkthrough + rulings):**
+
+| # | Shipped | Ruling | Verdict |
+|---|---|---|---|
+| W1 | Affected Orders on every stop | pickup stops only | **Change** — DEC-191 |
+| W2 | Header cost = seed `newConsolidated` (random factor); routing cost = tender list | all values in the feature consistent and read from the DB | **Change** — DEC-192 |
+| W3 | *Add to* = stop picker over every stop (S144 user ruling, OC-open-14) | system places; legs never cross type (pickup ↔ pickup, delivery ↔ delivery) | **Reversed** — DEC-193 |
+| W4 | "Move To Pending" with icon | new word, no icon | **Change** — DEC-194 |
+| W5 | Both dates on every stop, one `--` | own date only | **Change** — DEC-195 |
+| W6 | Consolidated compare: 7 tender rows, no hazmat (OC-open-12) | Direct field set + per-line blocks | **Change** — DEC-196 |
+| W7 | New/Prior toggle | side by side, no collapsing; width from Pending column + stop content | **Change** — DEC-197 |
+| W8 | Per-stop distance `--`; total not recomputed | per-leg distance + recomputed total | **Change** — DEC-198 |
+| W9 | Stop dates read-only (OC-open-13) | editable; out-of-window orders flagged | **Change** — DEC-199 |
+| W10 | `P?`/`D?` for unmatched locations | confirmed as the model | **Confirmed** |
+| W11 | Stop reorder (up/down) | confirmed | **Confirmed** |
+| W12 | Add Orders filters | "fantastic" | **Confirmed** |
+
 ## 11. Build-delta — shipped (S134–S137) vs sources
 
 | # | Shipped state | Ruling / source | Verdict |
@@ -240,15 +278,18 @@ Opened by *Edit Shipment Stops*. **Nothing touches the database until Save** (15
 - **OC-open-9** — Per-order compare modal title: VD 2107-12719 reads "Planning Dates" (copy leftover from the sibling modal); shipped as **"Order Changes"** pending Laura.
 - **OC-open-10** — 15435/15436 are On Hold `optmizer_pending`: the two foundation stories are gated on the Optimizer. Surface A is built on them regardless; confirm with Ramesh/Jana that the hold is scheduling, not scope.
 - **OC-open-11** — CLOSED 2026-09-09: blocked-source rows in the Search & Add Orders grid ship greyed and unselectable with an explanatory Tooltip (user ruling) instead of validating late at Save.
-- **OC-open-13** — Per-stop Planned Date / Time / Time Zone editing (15669 §3–5): the Edit Shipment Stops VD shows dates read-only; the AC requires them editable and complete before routing. Needs a control from Laura (`ManualDatesModal` is a candidate).
-- **OC-open-14** — CLOSED 2026-09-09: VD `2076-8110` + user ruling confirm *Add to* is a stop picker; the other leg still auto-places per 15871.
+- **OC-open-13** — DECIDED 2026-09-24 (DEC-199), build owed. Was: Per-stop Planned Date / Time / Time Zone editing (15669 §3–5): the Edit Shipment Stops VD shows dates read-only; the AC requires them editable and complete before routing. Needs a control from Laura (`ManualDatesModal` is a candidate).
+- **OC-open-14** — REOPENED + REVERSED 2026-09-24 (DEC-193): the stop picker goes; the system places. Was CLOSED 2026-09-09: VD `2076-8110` + user ruling confirm *Add to* is a stop picker; the other leg still auto-places per 15871.
 - **OC-open-15** — CLOSED 2026-09-09: `AddOrdersModal` shipped from VD `2137-59231` (search, inner Filters, 11-column grid, five-pick cap).
 - **OC-open-16** — Footer copy: VD "Approve Changes" vs AC "Save" (15671). Shipped with the VD's label.
 - **OC-open-17** — The Tender-tab *Review Order Change* button jumping to the Stops tab for a consolidated shipment is OUR inference (15435 describes opening the shipment, not a button; the Tender lock itself is a 14509 Direct rule). Confirm with Jana.
-- **OC-open-12** — Per-order compare: the VD (`2107-12719`) lists hazmat rows (Boiling Point, Flash Point) per order; the seed's `orderComparisons` carries tender rows only, so those rows are unreachable until a per-order hazmat pair is seeded (seed gap, same class as build-delta row 14).
+- **OC-open-12** — DECIDED 2026-09-24 (DEC-196): Direct field set + per-line blocks; the seed owes per-order line pairs. Was: Per-order compare: the VD (`2107-12719`) lists hazmat rows (Boiling Point, Flash Point) per order; the seed's `orderComparisons` carries tender rows only, so those rows are unreachable until a per-order hazmat pair is seeded (seed gap, same class as build-delta row 14).
 - **OC-open-18** — VD `2066-77150`'s confirm primary reads "Remove Order" — a copy leftover from the sibling remove dialog. Figma text changed to "Approve" 2026-09-09; tell Laura.
 - **OC-open-19** — An order left pending at Save simply leaves the shipment (dropped from `orderList`, nothing else happens to it). 15869's Phase-1 "creates a new shipment for it" is unspecified and unbuilt.
 - **OC-open-20** — The AC lists eight eligible shipment statuses for Search & Add candidates; the seed only carries `''`/Review/Done. No status gate is applied to the search.
-- **OC-open-21** — A per-order *Move to* between stops: Jana's deck asks for it ("move the order to any stop"), no VD exists, not built. The first pick from *Add to* plus automatic placement of the other leg is the only placement control shipped.
+- **OC-open-21** — CLOSED 2026-09-24, won't build: Jana rules placement is the system's (DEC-193). Was: A per-order *Move to* between stops: Jana's deck asks for it ("move the order to any stop"), no VD exists, not built. The first pick from *Add to* plus automatic placement of the other leg is the only placement control shipped.
 - **OC-open-22** — The 15872 move updates `shipments.detail` (orderList, stops), `orders`, `order_count` AND the `orders` table's `shipment_sell_id` (S144 review fix, all in the same transaction). What still goes stale is the shipment row's own list aggregates — `gross_weight` and friends, the columns the Shipments grid reads — so a moved order changes the detail's totals but not the list row's. Seam to close when the move gets a real backend (or at the next reseed design).
 - **OC-open-23** — A source shipment whose every order was moved is left as an empty shell (no orders, no stops, order_count 0). Not specified by 15872; reject the move, or accept and re-file the shell? Ask Jana.
+- **OC-open-24** — View Routing "open in a separate window" (Jana, `walk @00:08:36`). User: revise later.
+- **OC-open-25** — Tender-sent candidate orders: blocked at add (shipped, OC-open-11) vs addable and blocked at confirm with "cancel the tender first" (Jana `walk @00:26:46`, unsure of his own rule). Check LINX-15870/15872 AC before touching. Halted by user.
+- **OC-open-26** — Post-approval flow for consolidation: re-run routing, new/old route list, planning screen, finalize (tender/bypass) like Direct. Awaiting Jana's latest mock. Halted by user. (Supersedes the question in OC-open-8.)

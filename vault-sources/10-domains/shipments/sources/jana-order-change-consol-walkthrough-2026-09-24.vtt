@@ -1,0 +1,3036 @@
+WEBVTT
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/5-0
+00:00:03.531 --> 00:00:06.247
+<v Janardhana Soundararajan (Cognizant)>Okay,
+what I was saying is it is showing a</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/5-1
+00:00:06.247 --> 00:00:08.331
+<v Janardhana Soundararajan (Cognizant)>limited set of line items, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/8-0
+00:00:09.771 --> 00:00:13.355
+<v Janardhana Soundararajan (Cognizant)>If you remember,
+in the direct shipment change,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/6-0
+00:00:10.011 --> 00:00:10.731
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/8-1
+00:00:13.355 --> 00:00:19.254
+<v Janardhana Soundararajan (Cognizant)>we had already listed a list of items,
+fields that the user would want to see.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/8-2
+00:00:19.254 --> 00:00:19.851
+<v Janardhana Soundararajan (Cognizant)>Correct?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/9-0
+00:00:21.531 --> 00:00:25.861
+<v Janardhana Soundararajan (Cognizant)>The changes will be pushed to the top and
+rest of the ones unchanged fields will</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/9-1
+00:00:25.861 --> 00:00:28.319
+<v Janardhana Soundararajan (Cognizant)>remain in the bottom, right?
+So in this case,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/9-2
+00:00:28.319 --> 00:00:31.259
+<v Janardhana Soundararajan (Cognizant)>the changed fields are showing,
+but for the unchanged,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/9-3
+00:00:31.259 --> 00:00:33.771
+<v Janardhana Soundararajan (Cognizant)>there are a lot more than just the two
+fields.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/10-0
+00:00:37.291 --> 00:00:40.551
+<v Manuela Ramirez (Iris Software)>Okay,
+so you need the same for all all of the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/10-1
+00:00:40.551 --> 00:00:42.251
+<v Manuela Ramirez (Iris Software)>all of the lines, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/12-0
+00:00:42.611 --> 00:00:45.682
+<v Janardhana Soundararajan (Cognizant)>Correct.
+It should exactly be the same as that of</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/12-1
+00:00:45.682 --> 00:00:48.875
+<v Janardhana Soundararajan (Cognizant)>the direct shipment, right?
+In the direct shipment,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/12-2
+00:00:48.875 --> 00:00:52.990
+<v Janardhana Soundararajan (Cognizant)>how many fields you have?
+The same number of fields should be here</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/12-3
+00:00:52.990 --> 00:00:57.227
+<v Janardhana Soundararajan (Cognizant)>for the order change, right?
+And we did talk about if the particular</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/12-4
+00:00:57.227 --> 00:01:01.771
+<v Janardhana Soundararajan (Cognizant)>order has multiple lines, right? Say,
+for example, if you come down to...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/11-0
+00:00:59.411 --> 00:00:59.611
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/13-0
+00:01:01.851 --> 00:01:05.506
+<v Janardhana Soundararajan (Cognizant)>volume, volume, volume is fine,
+gross feed is fine, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/13-1
+00:01:05.506 --> 00:01:09.532
+<v Janardhana Soundararajan (Cognizant)>But if you come down to something like a
+line level item number,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/13-2
+00:01:09.532 --> 00:01:14.116
+<v Janardhana Soundararajan (Cognizant)>item number has changed, right?
+You're showing one item that has changed,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/13-3
+00:01:14.116 --> 00:01:17.585
+<v Janardhana Soundararajan (Cognizant)>but it has the second line item,
+which has not changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/13-4
+00:01:17.585 --> 00:01:21.611
+<v Janardhana Soundararajan (Cognizant)>We are going to display that as well as
+part of the item number.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/15-0
+00:01:23.291 --> 00:01:26.491
+<v Manuela Ramirez (Iris Software)>So you want to display the ones that are
+not changed as well.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/14-0
+00:01:23.691 --> 00:01:24.091
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/16-0
+00:01:26.971 --> 00:01:29.675
+<v Janardhana Soundararajan (Cognizant)>Correct. If you go to direct shipments,
+you have covered that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/16-1
+00:01:29.675 --> 00:01:31.691
+<v Janardhana Soundararajan (Cognizant)>If you close this one,
+go to direct shipments.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/17-0
+00:01:33.771 --> 00:01:34.331
+<v Manuela Ramirez (Iris Software)>This one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/18-0
+00:01:35.611 --> 00:01:39.505
+<v Janardhana Soundararajan (Cognizant)>Right, yeah, go to this is not direct.
+Yeah, this is direct shipment. Yeah,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/18-1
+00:01:39.505 --> 00:01:40.171
+<v Janardhana Soundararajan (Cognizant)>go to tender.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/19-0
+00:01:41.211 --> 00:01:41.851
+<v Janardhana Soundararajan (Cognizant)>End the screen.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/20-0
+00:01:43.051 --> 00:01:44.971
+<v Janardhana Soundararajan (Cognizant)>Right click on Review Order Change.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/21-0
+00:01:46.051 --> 00:01:47.291
+<v Janardhana Soundararajan (Cognizant)>But if you come to the bottom.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/22-0
+00:01:49.051 --> 00:01:52.651
+<v Janardhana Soundararajan (Cognizant)>Right, bottom or come down a little more,
+yeah, click on this.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/23-0
+00:01:53.611 --> 00:01:55.131
+<v Janardhana Soundararajan (Cognizant)>You'll see a lot more fields.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/25-0
+00:01:56.331 --> 00:02:02.485
+<v Manuela Ramirez (Iris Software)>The preview tender details. Okay.
+So you need the same thing there, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/24-0
+00:01:58.251 --> 00:01:59.211
+<v Janardhana Soundararajan (Cognizant)>Right, right.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/28-0
+00:02:01.211 --> 00:02:05.726
+<v Janardhana Soundararajan (Cognizant)>Right, right. Say in this case,
+if you see marine equipment, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/25-1
+00:02:02.485 --> 00:02:02.731
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/28-1
+00:02:05.726 --> 00:02:10.175
+<v Janardhana Soundararajan (Cognizant)>Say for example, let's take one example.
+Ship, not ship direction.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/28-2
+00:02:10.175 --> 00:02:15.353
+<v Janardhana Soundararajan (Cognizant)>If you come down, hazmat code, right?
+Hazmat code would be available for each</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/26-0
+00:02:12.931 --> 00:02:13.491
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/28-3
+00:02:15.353 --> 00:02:18.939
+<v Janardhana Soundararajan (Cognizant)>line item.
+If there are two products within an order,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/27-0
+00:02:15.731 --> 00:02:16.011
+<v Manuela Ramirez (Iris Software)>Touch.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/28-4
+00:02:18.939 --> 00:02:20.731
+<v Janardhana Soundararajan (Cognizant)>right? Line one and line 2.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/29-0
+00:02:21.531 --> 00:02:27.159
+<v Janardhana Soundararajan (Cognizant)>it might have UN 0324, right? 024.
+Then it would have 0023 or 24 is being</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/29-1
+00:02:27.159 --> 00:02:33.623
+<v Janardhana Soundararajan (Cognizant)>repeated on the second line item as well.
+If here you're showing just one line item,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/29-2
+00:02:33.623 --> 00:02:37.729
+<v Janardhana Soundararajan (Cognizant)>but if there are more than one line item
+on an order,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/29-3
+00:02:37.729 --> 00:02:40.771
+<v Janardhana Soundararajan (Cognizant)>then you need to list all those as well.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/30-0
+00:02:42.731 --> 00:02:42.971
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/31-0
+00:02:44.091 --> 00:02:44.571
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/32-0
+00:02:44.891 --> 00:02:45.931
+<v Janardhana Soundararajan (Cognizant)>You're getting my point, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/33-0
+00:02:46.331 --> 00:02:46.811
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/35-0
+00:02:47.771 --> 00:02:51.824
+<v Janardhana Soundararajan (Cognizant)>Yeah, see, yeah, so Flash,
+similarly Flashpoint will have more if</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/34-0
+00:02:47.971 --> 00:02:48.611
+<v Manuela Ramirez (Iris Software)>Yeah, I understand.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/35-1
+00:02:51.824 --> 00:02:55.754
+<v Janardhana Soundararajan (Cognizant)>the product has more,
+if the product listing are more than one,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/35-2
+00:02:55.754 --> 00:02:58.763
+<v Janardhana Soundararajan (Cognizant)>right?
+It has two or more product listing within</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/35-3
+00:02:58.763 --> 00:03:01.956
+<v Janardhana Soundararajan (Cognizant)>the order.
+Like that means that what I mean is line</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/35-4
+00:03:01.956 --> 00:03:06.132
+<v Janardhana Soundararajan (Cognizant)>numbers are more than one.
+So you need to capture all those as line</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/35-5
+00:03:06.132 --> 00:03:07.851
+<v Janardhana Soundararajan (Cognizant)>number one, line number two.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/36-0
+00:03:07.931 --> 00:03:11.580
+<v Janardhana Soundararajan (Cognizant)>to line #3,
+and then within those you need to tell if</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/36-1
+00:03:11.580 --> 00:03:14.891
+<v Janardhana Soundararajan (Cognizant)>a particular item has changed,
+this has changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/37-0
+00:03:16.291 --> 00:03:16.571
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/38-0
+00:03:19.291 --> 00:03:20.171
+<v Manuela Ramirez (Iris Software)>Okay, okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/39-0
+00:03:22.011 --> 00:03:26.855
+<v Janardhana Soundararajan (Cognizant)>Because every example is just showing one
+field, but it won't be like that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/39-1
+00:03:26.855 --> 00:03:29.914
+<v Janardhana Soundararajan (Cognizant)>Some will be having more than one field,
+right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/39-2
+00:03:29.914 --> 00:03:33.802
+<v Janardhana Soundararajan (Cognizant)>So that is why I'm saying wherever those
+are multiple lines,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/39-3
+00:03:33.802 --> 00:03:38.646
+<v Janardhana Soundararajan (Cognizant)>you need to show those multiple lines.
+And all these are line level fields,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/39-4
+00:03:38.646 --> 00:03:41.131
+<v Janardhana Soundararajan (Cognizant)>right? It is not, except for the gross.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/40-0
+00:03:40.491 --> 00:03:45.546
+<v Manuela Ramirez (Iris Software)>But they are together, right?
+Because these ones are like all of all of</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/40-1
+00:03:45.546 --> 00:03:47.371
+<v Manuela Ramirez (Iris Software)>the lines together, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/42-0
+00:03:47.851 --> 00:03:50.659
+<v Janardhana Soundararajan (Cognizant)>Yeah, all of the lines together, correct.
+The line level fields,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/41-0
+00:03:50.051 --> 00:03:50.491
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/42-1
+00:03:50.659 --> 00:03:52.818
+<v Janardhana Soundararajan (Cognizant)>I think I have already mentioned it in
+the story,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/42-2
+00:03:52.818 --> 00:03:55.540
+<v Janardhana Soundararajan (Cognizant)>saying these are line level fields,
+product level information,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/42-3
+00:03:55.540 --> 00:03:57.051
+<v Janardhana Soundararajan (Cognizant)>these are header level information.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/43-0
+00:03:58.491 --> 00:04:02.011
+<v Manuela Ramirez (Iris Software)>Maybe we can have something here visual,
+right, to separate.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/45-0
+00:04:02.891 --> 00:04:06.039
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+you can just put it inside the box saying</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/45-1
+00:04:06.039 --> 00:04:10.171
+<v Janardhana Soundararajan (Cognizant)>that line one and line 2, line one is yes,
+line 2 is no. Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/44-0
+00:04:08.731 --> 00:04:10.651
+<v Manuela Ramirez (Iris Software)>Separator here, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/47-0
+00:04:11.851 --> 00:04:15.964
+<v Janardhana Soundararajan (Cognizant)>We just organize it in such a way that it
+is differentiating between line one and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/46-0
+00:04:12.091 --> 00:04:12.411
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/47-1
+00:04:15.964 --> 00:04:19.977
+<v Janardhana Soundararajan (Cognizant)>line two, right? So line one, line two,
+line three, if you have multiple lines,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/47-2
+00:04:19.977 --> 00:04:23.639
+<v Janardhana Soundararajan (Cognizant)>just list them accordingly, right?
+So that needs to be included in that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/47-3
+00:04:23.639 --> 00:04:24.491
+<v Janardhana Soundararajan (Cognizant)>That's one thing.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/48-0
+00:04:26.211 --> 00:04:27.291
+<v Manuela Ramirez (Iris Software)>Let's go to the next one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/49-0
+00:04:28.171 --> 00:04:33.802
+<v Janardhana Soundararajan (Cognizant)>Okay, these ones are okay. One second.
+Let me go through all this. This is fine.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/49-1
+00:04:33.802 --> 00:04:37.486
+<v Janardhana Soundararajan (Cognizant)>Package count has changed.
+These have changed. Yeah,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/49-2
+00:04:37.486 --> 00:04:40.545
+<v Janardhana Soundararajan (Cognizant)>these looks okay. These are good.
+Affected.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/49-3
+00:04:40.545 --> 00:04:45.758
+<v Janardhana Soundararajan (Cognizant)>And you don't need affected in the
+delivery because you need affected only</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/49-4
+00:04:45.758 --> 00:04:46.731
+<v Janardhana Soundararajan (Cognizant)>in the pickup.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/51-0
+00:04:47.131 --> 00:04:51.376
+<v Janardhana Soundararajan (Cognizant)>Because everything that is going to be
+picked up is going to be delivered, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/51-1
+00:04:51.376 --> 00:04:54.844
+<v Janardhana Soundararajan (Cognizant)>You don't have to show the same thing,
+the affected orders, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/51-2
+00:04:54.844 --> 00:04:57.225
+<v Janardhana Soundararajan (Cognizant)>You don't have to show the same thing in
+the,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/51-3
+00:04:57.225 --> 00:05:01.108
+<v Janardhana Soundararajan (Cognizant)>what I'm saying is highlighting the
+orders, right? Right side, right side.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/50-0
+00:04:59.611 --> 00:04:59.891
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/51-4
+00:05:01.108 --> 00:05:04.680
+<v Janardhana Soundararajan (Cognizant)>Highlighting is fine, but right side,
+right side you have the click,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/51-5
+00:05:04.680 --> 00:05:07.371
+<v Janardhana Soundararajan (Cognizant)>click and open, right? Right side,
+affected orders.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/53-0
+00:05:07.771 --> 00:05:12.811
+<v Manuela Ramirez (Iris Software)>Yeah, this is this looks repeated, right?
+You don't need it. Repeat it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/52-0
+00:05:07.971 --> 00:05:08.891
+<v Janardhana Soundararajan (Cognizant)>You don't need those.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/54-0
+00:05:12.331 --> 00:05:14.531
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+you don't need the affected orders on the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/54-1
+00:05:14.531 --> 00:05:17.051
+<v Janardhana Soundararajan (Cognizant)>again on the delivery, right?
+That is what I'm saying.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/55-0
+00:05:16.451 --> 00:05:18.811
+<v Manuela Ramirez (Iris Software)>Okay, okay, just one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/57-0
+00:05:19.371 --> 00:05:22.826
+<v Janardhana Soundararajan (Cognizant)>Yeah, just on the pickup level,
+on the pickup you can have multiple</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/57-1
+00:05:22.826 --> 00:05:26.891
+<v Janardhana Soundararajan (Cognizant)>different orders on each of the pickup.
+If you can show that only on the pickup</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/57-2
+00:05:26.891 --> 00:05:30.956
+<v Janardhana Soundararajan (Cognizant)>and just not to show them in the delivery,
+that's fine. Affected orders, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/57-3
+00:05:30.956 --> 00:05:35.173
+<v Janardhana Soundararajan (Cognizant)>I'm just talking about the second column.
+Affected orders. In the affected orders,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/57-4
+00:05:35.173 --> 00:05:38.729
+<v Janardhana Soundararajan (Cognizant)>you have the first box has, yeah,
+you don't need that on the delivery</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/57-5
+00:05:38.729 --> 00:05:41.371
+<v Janardhana Soundararajan (Cognizant)>because that is already captured on the
+first part.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/58-0
+00:05:41.531 --> 00:05:42.251
+<v Janardhana Soundararajan (Cognizant)>Right, pick up.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/56-0
+00:05:43.171 --> 00:05:43.371
+<v Manuela Ramirez (Iris Software)>Yep.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/59-0
+00:05:44.571 --> 00:05:48.603
+<v Janardhana Soundararajan (Cognizant)>Right, OK, then once again,
+view view planning dates,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/59-1
+00:05:48.603 --> 00:05:54.278
+<v Janardhana Soundararajan (Cognizant)>view planning dates, you click on that,
+do you see the planning date? Yeah,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/59-2
+00:05:54.278 --> 00:05:56.891
+<v Janardhana Soundararajan (Cognizant)>that's fine. OK, yeah, that's fine.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/60-0
+00:05:58.571 --> 00:06:01.371
+<v Janardhana Soundararajan (Cognizant)>Then if we close that one, please, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/61-0
+00:06:03.931 --> 00:06:07.752
+<v Janardhana Soundararajan (Cognizant)>And view routing,
+can you go to view routing? Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/61-1
+00:06:07.752 --> 00:06:11.131
+<v Janardhana Soundararajan (Cognizant)>this is going to show the new routing,
+right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/62-0
+00:06:12.811 --> 00:06:17.520
+<v Janardhana Soundararajan (Cognizant)>Why this is showing a new routing is
+because it's still a direct shipment.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/62-1
+00:06:17.520 --> 00:06:21.851
+<v Janardhana Soundararajan (Cognizant)>Nothing has changed with related to stop
+level information, correct?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/63-0
+00:06:22.851 --> 00:06:23.451
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/66-0
+00:06:23.931 --> 00:06:28.413
+<v Janardhana Soundararajan (Cognizant)>Right, if you can close this one,
+I just wanted to see if there is any stop</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/66-1
+00:06:28.413 --> 00:06:31.834
+<v Janardhana Soundararajan (Cognizant)>information that has changed. Yeah,
+stop has not changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/66-2
+00:06:31.834 --> 00:06:36.375
+<v Janardhana Soundararajan (Cognizant)>So you have the location the same,
+only the product information has changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/64-0
+00:06:34.331 --> 00:06:34.651
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/66-3
+00:06:36.375 --> 00:06:39.087
+<v Janardhana Soundararajan (Cognizant)>Yeah, that looks correct. Okay,
+view routing,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/66-4
+00:06:39.087 --> 00:06:43.451
+<v Janardhana Soundararajan (Cognizant)>so you have a new console cost. Okay,
+I did notice that you are having...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/65-0
+00:06:42.891 --> 00:06:43.451
+<v Manuela Ramirez (Iris Software)>Thank you.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/68-0
+00:06:43.731 --> 00:06:49.947
+<v Janardhana Soundararajan (Cognizant)>difference in the cost here is 15 to 1.63,
+right? But there on in the front page,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/68-1
+00:06:49.947 --> 00:06:53.434
+<v Janardhana Soundararajan (Cognizant)>the rates are not correct.
+The AP cost rates.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/68-2
+00:06:53.434 --> 00:06:58.891
+<v Janardhana Soundararajan (Cognizant)>The new console cost is different.
+You see that on the top, on the top.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/67-0
+00:06:59.451 --> 00:06:59.931
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/69-0
+00:06:59.771 --> 00:07:05.134
+<v Janardhana Soundararajan (Cognizant)>You can no below new console cost,
+new consolidation cost is there, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/69-1
+00:07:05.134 --> 00:07:05.491
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/70-0
+00:07:05.371 --> 00:07:07.211
+<v Manuela Ramirez (Iris Software)>Oh yeah, it's different than here.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/72-0
+00:07:06.811 --> 00:07:11.051
+<v Janardhana Soundararajan (Cognizant)>Yeah, it's different than here. Yeah,
+it should be 15 to 1.63.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/71-0
+00:07:08.571 --> 00:07:08.971
+<v Manuela Ramirez (Iris Software)>Go.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/73-0
+00:07:11.851 --> 00:07:12.091
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/75-0
+00:07:13.931 --> 00:07:17.976
+<v Janardhana Soundararajan (Cognizant)>Right, so that is that's a small thing,
+but I'm just saying if you want to make</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/74-0
+00:07:15.051 --> 00:07:15.531
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/75-1
+00:07:17.976 --> 00:07:20.807
+<v Janardhana Soundararajan (Cognizant)>it consistent,
+I did notice that in the direct shipment</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/75-2
+00:07:20.807 --> 00:07:21.211
+<v Janardhana Soundararajan (Cognizant)>as well.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/76-0
+00:07:22.731 --> 00:07:27.704
+<v Janardhana Soundararajan (Cognizant)>Right? Okay, 15. Okay, this is good.
+You're actually having JB hunt. Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/76-1
+00:07:27.704 --> 00:07:30.091
+<v Janardhana Soundararajan (Cognizant)>this is good. If you close this one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/77-0
+00:07:31.211 --> 00:07:34.011
+<v Manuela Ramirez (Iris Software)>Maybe they accepted we should put it on
+top, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/78-0
+00:07:34.811 --> 00:07:37.749
+<v Janardhana Soundararajan (Cognizant)>No, that is correct.
+It will go according to the rank, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/78-1
+00:07:37.749 --> 00:07:40.971
+<v Janardhana Soundararajan (Cognizant)>First got cancelled, second is declined,
+the third one is accepted.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/79-0
+00:07:42.011 --> 00:07:42.651
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/80-0
+00:07:42.131 --> 00:07:44.891
+<v Janardhana Soundararajan (Cognizant)>So the current one accepted is ABFS.
+That's fine.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/81-0
+00:07:47.211 --> 00:07:50.528
+<v Janardhana Soundararajan (Cognizant)>It is just that the box needs to be,
+it should not be hidden,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/81-1
+00:07:50.528 --> 00:07:54.220
+<v Janardhana Soundararajan (Cognizant)>it should be visible, right?
+Maybe just focus on the accepted or the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/81-2
+00:07:54.220 --> 00:07:55.771
+<v Janardhana Soundararajan (Cognizant)>current one, the last action.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/82-0
+00:07:57.931 --> 00:07:58.491
+<v Manuela Ramirez (Iris Software)>In where?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/84-0
+00:07:59.731 --> 00:08:01.808
+<v Janardhana Soundararajan (Cognizant)>No,
+what I'm trying to say is if it is</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/84-1
+00:08:01.808 --> 00:08:04.363
+<v Janardhana Soundararajan (Cognizant)>accepted,
+the last one action accepted or sent,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/84-2
+00:08:04.363 --> 00:08:07.451
+<v Janardhana Soundararajan (Cognizant)>that should be the last.
+Now the focus should be on that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/83-0
+00:08:06.411 --> 00:08:06.891
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/85-0
+00:08:08.331 --> 00:08:13.288
+<v Manuela Ramirez (Iris Software)>Yeah, that's what I was saying. Maybe,
+maybe put the rank 3 here. I mean,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/85-1
+00:08:13.288 --> 00:08:17.844
+<v Manuela Ramirez (Iris Software)>the order will be the same,
+but I'm just saying let's put them this</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/85-2
+00:08:17.844 --> 00:08:19.451
+<v Manuela Ramirez (Iris Software)>in the beginning, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/86-0
+00:08:18.411 --> 00:08:21.211
+<v Janardhana Soundararajan (Cognizant)>Scroll it, scroll it,
+and put it on the top. OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/87-0
+00:08:21.851 --> 00:08:24.851
+<v Manuela Ramirez (Iris Software)>But maybe,
+maybe you know the second is accepted,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/87-1
+00:08:24.851 --> 00:08:26.411
+<v Manuela Ramirez (Iris Software)>so it will always be here.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/88-0
+00:08:28.411 --> 00:08:30.702
+<v Janardhana Soundararajan (Cognizant)>Yeah, I think that's fine.
+It is understood.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/88-1
+00:08:30.702 --> 00:08:34.877
+<v Janardhana Soundararajan (Cognizant)>People will scroll and they will be able
+to find out, right? It's not a big deal.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/88-2
+00:08:34.877 --> 00:08:35.131
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/90-0
+00:08:36.331 --> 00:08:39.725
+<v Janardhana Soundararajan (Cognizant)>But I would prefer to,
+if this can open on a separate window,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/89-0
+00:08:36.851 --> 00:08:37.171
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/90-1
+00:08:39.725 --> 00:08:42.407
+<v Janardhana Soundararajan (Cognizant)>right,
+if they can keep it on a separate window,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/90-2
+00:08:42.407 --> 00:08:45.199
+<v Janardhana Soundararajan (Cognizant)>like right click and open it on a
+separate window,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/90-3
+00:08:45.199 --> 00:08:46.731
+<v Janardhana Soundararajan (Cognizant)>that will be really helpful.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/91-0
+00:08:48.011 --> 00:08:50.512
+<v Janardhana Soundararajan (Cognizant)>instead of showing it just as pop-up
+alone,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/91-1
+00:08:50.512 --> 00:08:53.921
+<v Janardhana Soundararajan (Cognizant)>if they can open and keep it in the
+second separate window,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/91-2
+00:08:53.921 --> 00:08:57.160
+<v Janardhana Soundararajan (Cognizant)>because what happens is once they go into
+the next page,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/91-3
+00:08:57.160 --> 00:09:00.796
+<v Janardhana Soundararajan (Cognizant)>they would probably want to see the
+routing information, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/91-4
+00:09:00.796 --> 00:09:05.172
+<v Janardhana Soundararajan (Cognizant)>So it'll be really helpful for them to
+view the keep the routing information</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/91-5
+00:09:05.172 --> 00:09:06.251
+<v Janardhana Soundararajan (Cognizant)>here and review it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/92-0
+00:09:08.211 --> 00:09:08.731
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/93-0
+00:09:09.691 --> 00:09:10.731
+<v Janardhana Soundararajan (Cognizant)>Are you getting my point?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/95-0
+00:09:11.211 --> 00:09:15.451
+<v Manuela Ramirez (Iris Software)>Yeah, trying to stand. Hey, let's go,
+let's go with the next one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/94-0
+00:09:13.611 --> 00:09:14.411
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/97-0
+00:09:16.011 --> 00:09:20.671
+<v Janardhana Soundararajan (Cognizant)>Yeah, let's go into the, okay, edit ship.
+Yeah, edit ship and stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/96-0
+00:09:17.851 --> 00:09:18.811
+<v Manuela Ramirez (Iris Software)>Edit shipment.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/97-1
+00:09:20.671 --> 00:09:25.194
+<v Janardhana Soundararajan (Cognizant)>Now this is fine. Earlier we talked about,
+if you remember right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/97-2
+00:09:25.194 --> 00:09:30.060
+<v Janardhana Soundararajan (Cognizant)>we asked for the earlier plan to be
+available on the left pane, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/97-3
+00:09:30.060 --> 00:09:34.171
+<v Janardhana Soundararajan (Cognizant)>It is a compare screen.
+But here we have only the new plan.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/100-0
+00:09:34.411 --> 00:09:38.634
+<v Janardhana Soundararajan (Cognizant)>but they are not able to see the old plan.
+Correct? See,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/100-1
+00:09:38.634 --> 00:09:44.339
+<v Janardhana Soundararajan (Cognizant)>the old plan is on the previous page.
+If you recall my mock that I gave you,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/98-0
+00:09:41.931 --> 00:09:42.091
+<v Manuela Ramirez (Iris Software)>Right.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/99-0
+00:09:44.131 --> 00:09:44.731
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/100-2
+00:09:44.339 --> 00:09:47.969
+<v Janardhana Soundararajan (Cognizant)>right,
+this and that were part of a single page.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/100-3
+00:09:47.969 --> 00:09:53.451
+<v Janardhana Soundararajan (Cognizant)>And we discussed earlier saying that if
+you could put a pane on the left,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/101-0
+00:09:53.571 --> 00:09:58.213
+<v Janardhana Soundararajan (Cognizant)>which can slide left and right so that it
+can go like between they can review the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/101-1
+00:09:58.213 --> 00:10:02.572
+<v Janardhana Soundararajan (Cognizant)>old and what is the new. In this case,
+it's very straightforward. It's okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/101-2
+00:10:02.572 --> 00:10:06.251
+<v Janardhana Soundararajan (Cognizant)>but if it gets more complex,
+then you have multi-stop shipments.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/102-0
+00:10:09.611 --> 00:10:11.531
+<v Manuela Ramirez (Iris Software)>Let's go with the multi-stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/105-0
+00:10:31.171 --> 00:10:32.011
+<v Manuela Ramirez (Iris Software)>I can not stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/106-0
+00:10:33.771 --> 00:10:34.091
+<v Manuela Ramirez (Iris Software)>Oh.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/107-0
+00:10:39.691 --> 00:10:42.011
+<v Janardhana Soundararajan (Cognizant)>I think the previous one was multi-stop,
+yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/108-0
+00:10:42.811 --> 00:10:44.411
+<v Manuela Ramirez (Iris Software)>This one, this one is pretty big.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/109-0
+00:10:43.291 --> 00:10:45.371
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, yeah. Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/111-0
+00:10:46.651 --> 00:10:50.783
+<v Janardhana Soundararajan (Cognizant)>So if you go here, right,
+right now you're seeing only the new</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/111-1
+00:10:50.783 --> 00:10:54.455
+<v Janardhana Soundararajan (Cognizant)>version of it,
+but you don't get the idea of what's the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/111-2
+00:10:54.455 --> 00:10:58.520
+<v Janardhana Soundararajan (Cognizant)>old version, right?
+That's why we said if you put a left pane</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/111-3
+00:10:58.520 --> 00:11:02.914
+<v Janardhana Soundararajan (Cognizant)>and the plane can close and open,
+then you get the new view fixed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/111-4
+00:11:02.914 --> 00:11:06.651
+<v Janardhana Soundararajan (Cognizant)>But if they would want to reference the
+old means prior.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/112-0
+00:11:06.731 --> 00:11:09.051
+<v Janardhana Soundararajan (Cognizant)>View, you can still keep the prior view.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/113-0
+00:11:12.891 --> 00:11:13.611
+<v Janardhana Soundararajan (Cognizant)>Makes sense.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/114-0
+00:11:13.931 --> 00:11:15.691
+<v Manuela Ramirez (Iris Software)>Yeah, it makes sense. I understand that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/115-0
+00:11:15.131 --> 00:11:20.675
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, yeah, OK. OK, this one, uh,
+it looks good if you, if you go up,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/115-1
+00:11:20.675 --> 00:11:22.571
+<v Janardhana Soundararajan (Cognizant)>if you go up a little bit.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/116-0
+00:11:23.331 --> 00:11:28.008
+<v Janardhana Soundararajan (Cognizant)>Okay, this one prior, new. Okay,
+new consolidation here you don't have</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/116-1
+00:11:28.008 --> 00:11:33.410
+<v Janardhana Soundararajan (Cognizant)>because something has changed related to,
+if you can go back, if you can go back,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/116-2
+00:11:33.410 --> 00:11:36.571
+<v Janardhana Soundararajan (Cognizant)>I just wanted to see what location had
+changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/117-0
+00:11:40.451 --> 00:11:45.634
+<v Janardhana Soundararajan (Cognizant)>Right, in this one, the first location.
+Okay, Houston has changed. Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/117-1
+00:11:45.634 --> 00:11:50.887
+<v Janardhana Soundararajan (Cognizant)>so it is not going to be Houston,
+it is going to be something else. Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/117-2
+00:11:50.887 --> 00:11:53.371
+<v Janardhana Soundararajan (Cognizant)>so now Miami, Florida, Minneapolis.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/119-0
+00:11:54.651 --> 00:11:59.531
+<v Janardhana Soundararajan (Cognizant)>Okay, then, like Houston,
+you have Houston, one other order,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/118-0
+00:11:58.451 --> 00:11:58.971
+<v Manuela Ramirez (Iris Software)>Thank you.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/119-1
+00:11:59.531 --> 00:12:02.091
+<v Janardhana Soundararajan (Cognizant)>and delivery is going to happen.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/120-0
+00:12:03.091 --> 00:12:04.651
+<v Janardhana Soundararajan (Cognizant)>In to.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/121-0
+00:12:05.891 --> 00:12:08.352
+<v Janardhana Soundararajan (Cognizant)>If you come down,
+how many deliveries are there?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/121-1
+00:12:08.352 --> 00:12:10.411
+<v Janardhana Soundararajan (Cognizant)>Four and five? Yeah, four and five. Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/122-0
+00:12:09.851 --> 00:12:15.385
+<v Manuela Ramirez (Iris Software)>One, two, three, no,
+it's just one delivery, 2 deliveries,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/126-0
+00:12:14.611 --> 00:12:18.212
+<v Janardhana Soundararajan (Cognizant)>Yeah, 2 deliveries. Yeah,
+four and five is going to be delivery.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/122-1
+00:12:15.385 --> 00:12:18.011
+<v Manuela Ramirez (Iris Software)>and one, two, three pickups.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/126-1
+00:12:18.212 --> 00:12:21.092
+<v Janardhana Soundararajan (Cognizant)>Three pickups,
+3 pickups and four deliveries. Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/126-2
+00:12:21.092 --> 00:12:25.469
+<v Janardhana Soundararajan (Cognizant)>so now in order to move these up and down,
+you can move it up and down, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/123-0
+00:12:25.211 --> 00:12:25.691
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/126-3
+00:12:25.469 --> 00:12:29.014
+<v Janardhana Soundararajan (Cognizant)>So you can just move. That is fine.
+That functionality is good.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/124-0
+00:12:26.971 --> 00:12:27.291
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/126-4
+00:12:29.014 --> 00:12:32.171
+<v Janardhana Soundararajan (Cognizant)>And move to pending.
+Why do you have to move to pending?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/125-0
+00:12:29.691 --> 00:12:29.931
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/127-0
+00:12:33.131 --> 00:12:37.957
+<v Janardhana Soundararajan (Cognizant)>Oh, for each order. Okay, for each order,
+you're having a move to pending, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/127-1
+00:12:37.957 --> 00:12:38.251
+<v Janardhana Soundararajan (Cognizant)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/128-0
+00:12:38.891 --> 00:12:40.411
+<v Manuela Ramirez (Iris Software)>And you can add it to somewhere.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/131-0
+00:12:41.931 --> 00:12:45.298
+<v Janardhana Soundararajan (Cognizant)>Yeah, okay, okay.
+I will come to that functionality.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/131-1
+00:12:45.298 --> 00:12:50.379
+<v Janardhana Soundararajan (Cognizant)>You cannot add it to somewhere, right?
+You can add it to only to that location.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/131-2
+00:12:50.379 --> 00:12:55.396
+<v Janardhana Soundararajan (Cognizant)>Say you don't give the option to add it
+to stop 2 or stop 3 because it already</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/129-0
+00:12:53.931 --> 00:12:55.291
+<v Manuela Ramirez (Iris Software)>Yes, exactly.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/131-3
+00:12:55.396 --> 00:12:59.080
+<v Janardhana Soundararajan (Cognizant)>has a location.
+So it can go if it is already an existing</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/131-4
+00:12:59.080 --> 00:13:00.731
+<v Janardhana Soundararajan (Cognizant)>location. Say for example,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/132-0
+00:13:01.131 --> 00:13:04.866
+<v Janardhana Soundararajan (Cognizant)>If 947, what is it,
+94740 is a Minneapolis,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/130-0
+00:13:01.371 --> 00:13:01.771
+<v Manuela Ramirez (Iris Software)>Call.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/132-1
+00:13:04.866 --> 00:13:08.771
+<v Janardhana Soundararajan (Cognizant)>you cannot choose it to add it to stop
+three.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/132-2
+00:13:08.771 --> 00:13:12.251
+<v Janardhana Soundararajan (Cognizant)>It should go and add it only to stop two.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/133-0
+00:13:14.571 --> 00:13:15.131
+<v Janardhana Soundararajan (Cognizant)>Makes sense.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/134-0
+00:13:16.411 --> 00:13:20.706
+<v Manuela Ramirez (Iris Software)>Um, but the stop three is is pickup.
+Why not that in here? Ah,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/134-1
+00:13:20.706 --> 00:13:24.251
+<v Manuela Ramirez (Iris Software)>because the does they don't match the
+place, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/136-0
+00:13:24.251 --> 00:13:29.177
+<v Janardhana Soundararajan (Cognizant)>Correct. You can add to a different place.
+That is why you should not give that</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/136-1
+00:13:29.177 --> 00:13:33.364
+<v Janardhana Soundararajan (Cognizant)>functionality there, saying that,
+you know, go and add to the stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/136-2
+00:13:33.364 --> 00:13:38.412
+<v Janardhana Soundararajan (Cognizant)>All that you can say is remove it and add
+it. System will decide where to add it,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/136-3
+00:13:38.412 --> 00:13:43.091
+<v Janardhana Soundararajan (Cognizant)>but you can then readjust it accordingly,
+right? If it is an existing stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/135-0
+00:13:43.371 --> 00:13:43.931
+<v Manuela Ramirez (Iris Software)>Yep.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/137-0
+00:13:43.371 --> 00:13:48.653
+<v Janardhana Soundararajan (Cognizant)>It will go and add it to Minneapolis.
+For example, if the removed order,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/137-1
+00:13:48.653 --> 00:13:53.211
+<v Janardhana Soundararajan (Cognizant)>if you remove 94740,
+can you just remove the 94740 and stop 2?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/138-0
+00:13:55.451 --> 00:13:56.251
+<v Janardhana Soundararajan (Cognizant)>Move to pending.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/139-0
+00:13:57.131 --> 00:13:58.051
+<v Manuela Ramirez (Iris Software)>This one, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/140-0
+00:13:58.171 --> 00:14:03.691
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, remove that. OK,
+now select this and move it to stop one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/141-0
+00:14:05.371 --> 00:14:08.434
+<v Janardhana Soundararajan (Cognizant)>Right?
+This is going to be wrong because you're</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/141-1
+00:14:08.434 --> 00:14:13.282
+<v Janardhana Soundararajan (Cognizant)>moving it from Minneapolis stop to
+Florida stop, which is completely wrong.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/141-2
+00:14:13.282 --> 00:14:15.451
+<v Janardhana Soundararajan (Cognizant)>This order cannot be picked there.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/142-0
+00:14:16.491 --> 00:14:18.331
+<v Manuela Ramirez (Iris Software)>Yeah, OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/143-0
+00:14:17.451 --> 00:14:19.551
+<v Janardhana Soundararajan (Cognizant)>Right?
+That is why I'm saying you should not</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/143-1
+00:14:19.551 --> 00:14:22.538
+<v Janardhana Soundararajan (Cognizant)>give that functionality.
+All that you can say is add or remove.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/143-2
+00:14:22.538 --> 00:14:23.051
+<v Janardhana Soundararajan (Cognizant)>That's all.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/144-0
+00:14:25.131 --> 00:14:25.451
+<v Manuela Ramirez (Iris Software)>Pen.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/146-0
+00:14:26.091 --> 00:14:30.468
+<v Janardhana Soundararajan (Cognizant)>Right? Instead of saying move to pending,
+do you want to say remove?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/146-1
+00:14:30.468 --> 00:14:34.528
+<v Janardhana Soundararajan (Cognizant)>Just keep it as remove.
+I don't know what terminology or word I</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/146-2
+00:14:34.528 --> 00:14:36.811
+<v Janardhana Soundararajan (Cognizant)>gave. I think I said remove and add.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/145-0
+00:14:35.371 --> 00:14:35.931
+<v Manuela Ramirez (Iris Software)>Simple.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/147-0
+00:14:40.131 --> 00:14:40.971
+<v Janardhana Soundararajan (Cognizant)>Right, if you can.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/148-0
+00:14:40.251 --> 00:14:43.682
+<v Manuela Ramirez (Iris Software)>Because remove feels like it's going to
+be removed,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/148-1
+00:14:43.682 --> 00:14:48.827
+<v Manuela Ramirez (Iris Software)>but move depending will be here, right?
+You are not removing anything because</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/148-2
+00:14:48.827 --> 00:14:51.531
+<v Manuela Ramirez (Iris Software)>removing means disappear from everywhere.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/149-0
+00:14:52.011 --> 00:14:55.293
+<v Janardhana Soundararajan (Cognizant)>Yeah, that is delete, right?
+We are not deleting anything.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/149-1
+00:14:55.293 --> 00:14:59.131
+<v Janardhana Soundararajan (Cognizant)>Say remove is remove from the particular
+stop. That's what it means.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/150-0
+00:14:58.291 --> 00:15:03.911
+<v Manuela Ramirez (Iris Software)>I don't know. I mean, to me,
+it feels very weird because remove is</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/150-1
+00:15:03.911 --> 00:15:06.091
+<v Manuela Ramirez (Iris Software)>almost the same as delete.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/155-0
+00:15:06.731 --> 00:15:11.616
+<v Janardhana Soundararajan (Cognizant)>Okay, let's keep it removed to pending.
+Yeah, okay, let's leave it as it is. Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/151-0
+00:15:10.851 --> 00:15:11.051
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/155-1
+00:15:11.616 --> 00:15:16.559
+<v Janardhana Soundararajan (Cognizant)>but I'm saying it's a longer word, right?
+So it is like kind of long and how do you</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/152-0
+00:15:14.411 --> 00:15:14.651
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/155-2
+00:15:16.559 --> 00:15:20.737
+<v Janardhana Soundararajan (Cognizant)>say it's occupying a lot of space.
+That's why I was thinking that just</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/153-0
+00:15:19.691 --> 00:15:20.531
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/155-3
+00:15:20.737 --> 00:15:24.091
+<v Janardhana Soundararajan (Cognizant)>remove would be better, but that's fine.
+Let's leave it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/154-0
+00:15:23.451 --> 00:15:25.531
+<v Manuela Ramirez (Iris Software)>I'll change, I'll look for another one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/157-0
+00:15:25.931 --> 00:15:30.615
+<v Janardhana Soundararajan (Cognizant)>Yeah, okay, so if you remove it,
+it should go there. When a user adds it,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/157-1
+00:15:30.615 --> 00:15:34.033
+<v Janardhana Soundararajan (Cognizant)>it automatically should add it to the
+right location.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/156-0
+00:15:31.931 --> 00:15:33.371
+<v Manuela Ramirez (Iris Software)>Do you want to?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/157-2
+00:15:34.033 --> 00:15:37.451
+<v Janardhana Soundararajan (Cognizant)>That's what the logic should be, right?
+If it is a...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/158-0
+00:15:35.211 --> 00:15:38.343
+<v Manuela Ramirez (Iris Software)>Okay.
+So here I don't have the choice to add</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/158-1
+00:15:38.343 --> 00:15:42.727
+<v Manuela Ramirez (Iris Software)>some more that I think,
+because I was thinking maybe we should</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/158-2
+00:15:42.727 --> 00:15:46.971
+<v Manuela Ramirez (Iris Software)>type everyone else that is not Miami,
+let's say for example.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/159-0
+00:15:49.171 --> 00:15:50.211
+<v Manuela Ramirez (Iris Software)>Just give me one second.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/161-0
+00:15:49.211 --> 00:15:52.546
+<v Janardhana Soundararajan (Cognizant)>You don't have to do it, right?
+System is already going to do it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/161-1
+00:15:52.546 --> 00:15:56.285
+<v Janardhana Soundararajan (Cognizant)>So you just give option to add it.
+So it goes and adds to that particular</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/161-2
+00:15:56.285 --> 00:15:58.963
+<v Janardhana Soundararajan (Cognizant)>stop, right?
+Automatically moves it to that stop and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/161-3
+00:15:58.963 --> 00:16:03.157
+<v Janardhana Soundararajan (Cognizant)>moves it to the right delivery location.
+If that delivery location does not exist,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/160-0
+00:16:01.411 --> 00:16:02.651
+<v Manuela Ramirez (Iris Software)>Thank you.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/161-4
+00:16:03.157 --> 00:16:05.531
+<v Janardhana Soundararajan (Cognizant)>it is going to create a new delivery
+location.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/162-0
+00:16:08.731 --> 00:16:09.451
+<v Janardhana Soundararajan (Cognizant)>Right, and...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/163-0
+00:16:08.731 --> 00:16:13.455
+<v Manuela Ramirez (Iris Software)>And then why do you have the need to,
+if the system is going to decide,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/163-1
+00:16:13.455 --> 00:16:15.291
+<v Manuela Ramirez (Iris Software)>why do you have the need to?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/164-0
+00:16:17.131 --> 00:16:18.411
+<v Manuela Ramirez (Iris Software)>To move it manually.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/166-0
+00:16:19.211 --> 00:16:21.974
+<v Janardhana Soundararajan (Cognizant)>Yeah, how do you change it?
+Say for example,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/165-0
+00:16:19.771 --> 00:16:20.971
+<v Manuela Ramirez (Iris Software)>You don't need it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/166-1
+00:16:21.974 --> 00:16:25.903
+<v Janardhana Soundararajan (Cognizant)>if I want to pick Minneapolis 1st and
+Miami later, I can do it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/166-2
+00:16:25.903 --> 00:16:27.131
+<v Janardhana Soundararajan (Cognizant)>The user can decide.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/167-0
+00:16:30.771 --> 00:16:32.171
+<v Manuela Ramirez (Iris Software)>Let's say this is Miami, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/168-0
+00:16:34.091 --> 00:16:34.571
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/169-0
+00:16:34.331 --> 00:16:37.499
+<v Manuela Ramirez (Iris Software)>So,
+if the system will decide where this is</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/169-1
+00:16:37.499 --> 00:16:37.931
+<v Manuela Ramirez (Iris Software)>going.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/173-0
+00:16:39.011 --> 00:16:44.572
+<v Manuela Ramirez (Iris Software)>Which I think it will put it here,
+then why I have the the option to move it</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/170-0
+00:16:40.891 --> 00:16:41.531
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/173-1
+00:16:44.572 --> 00:16:49.266
+<v Manuela Ramirez (Iris Software)>or to delete it from here?
+It can be that process can be also do</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/171-0
+00:16:45.931 --> 00:16:47.211
+<v Janardhana Soundararajan (Cognizant)>Yeah, it is a...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/173-2
+00:16:49.266 --> 00:16:52.804
+<v Manuela Ramirez (Iris Software)>done automatically when I when I go here,
+right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/172-0
+00:16:49.371 --> 00:16:50.171
+<v Janardhana Soundararajan (Cognizant)>By system.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/173-3
+00:16:52.804 --> 00:16:57.931
+<v Manuela Ramirez (Iris Software)>When I when I when I land in this page,
+system will already design it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/174-0
+00:16:58.051 --> 00:17:00.051
+<v Manuela Ramirez (Iris Software)>That's it.
+You don't need to do it this anymore.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/175-0
+00:17:00.331 --> 00:17:03.782
+<v Janardhana Soundararajan (Cognizant)>Yeah, but how do you want to rearrange?
+System has already decided.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/175-1
+00:17:03.782 --> 00:17:06.471
+<v Janardhana Soundararajan (Cognizant)>This is how you need to pick up.
+There is no choice.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/175-2
+00:17:06.471 --> 00:17:08.855
+<v Janardhana Soundararajan (Cognizant)>This is avoid error from the user side,
+right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/175-3
+00:17:08.855 --> 00:17:11.849
+<v Janardhana Soundararajan (Cognizant)>If you give this option and if you let
+the user to decide,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/175-4
+00:17:11.849 --> 00:17:15.451
+<v Janardhana Soundararajan (Cognizant)>they might plug the wrong order into a
+wrong stop. We don't want that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/176-0
+00:17:14.571 --> 00:17:18.331
+<v Manuela Ramirez (Iris Software)>That's what I'm saying. You don't need it.
+You don't need to decide anymore, Ben.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/178-0
+00:17:18.411 --> 00:17:20.842
+<v Janardhana Soundararajan (Cognizant)>Right,
+that is the reason why we are saying</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/178-1
+00:17:20.842 --> 00:17:23.881
+<v Janardhana Soundararajan (Cognizant)>don't decide it.
+The only option the user will have is</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/178-2
+00:17:23.881 --> 00:17:27.417
+<v Janardhana Soundararajan (Cognizant)>switch between 2 pickups.
+I want to do pickup 2 first right now</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/178-3
+00:17:27.417 --> 00:17:30.731
+<v Janardhana Soundararajan (Cognizant)>instead of pickup one, right?
+That is what they can decide.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/177-0
+00:17:27.771 --> 00:17:27.851
+<v Manuela Ramirez (Iris Software)>The.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/179-0
+00:17:31.771 --> 00:17:36.328
+<v Manuela Ramirez (Iris Software)>The only place then you're saying the
+only place where I can decide is in this</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/179-1
+00:17:36.328 --> 00:17:38.982
+<v Manuela Ramirez (Iris Software)>place, right?
+Let's say here I have 4 orders.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/179-2
+00:17:38.982 --> 00:17:42.731
+<v Manuela Ramirez (Iris Software)>In between those four,
+I can decide which one goes first, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/180-0
+00:17:43.211 --> 00:17:45.880
+<v Janardhana Soundararajan (Cognizant)>Not for goes first,
+which which one I want to keep,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/180-1
+00:17:45.880 --> 00:17:48.651
+<v Janardhana Soundararajan (Cognizant)>which I which one I want to remove, say,
+for example.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/183-0
+00:17:48.651 --> 00:17:51.706
+<v Manuela Ramirez (Iris Software)>Ah, okay, which one I want to keep,
+which one I got,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/183-1
+00:17:51.706 --> 00:17:56.086
+<v Manuela Ramirez (Iris Software)>because you can take it out of here and
+then just approve it and that's it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/181-0
+00:17:53.771 --> 00:17:54.171
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/182-0
+00:17:56.011 --> 00:17:59.611
+<v Janardhana Soundararajan (Cognizant)>That's it. Yeah, right. So that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/183-2
+00:17:56.086 --> 00:18:00.523
+<v Manuela Ramirez (Iris Software)>You are just removing this one. Okay.
+And then you can change their order as</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/183-3
+00:18:00.523 --> 00:18:00.811
+<v Manuela Ramirez (Iris Software)>well.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/185-0
+00:18:01.051 --> 00:18:05.292
+<v Janardhana Soundararajan (Cognizant)>Yeah, you can change the order.
+Say you can move stop 2 to stop one and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/184-0
+00:18:02.971 --> 00:18:03.211
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/185-1
+00:18:05.292 --> 00:18:06.411
+<v Janardhana Soundararajan (Cognizant)>stop one to stop 2.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/188-0
+00:18:07.451 --> 00:18:11.541
+<v Manuela Ramirez (Iris Software)>Yeah, I know the stops,
+but can you change the order of, oh,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/188-1
+00:18:11.541 --> 00:18:16.302
+<v Manuela Ramirez (Iris Software)>they don't have, they don't have, yeah,
+because this is a stop, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/186-0
+00:18:11.891 --> 00:18:13.131
+<v Janardhana Soundararajan (Cognizant)>No, no, no, they...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/188-2
+00:18:16.302 --> 00:18:21.531
+<v Manuela Ramirez (Iris Software)>That means all of the orders will be
+picked up here, right? Okay, okay, okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/187-0
+00:18:16.651 --> 00:18:17.051
+<v Janardhana Soundararajan (Cognizant)>Correct.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/189-0
+00:18:19.291 --> 00:18:22.125
+<v Janardhana Soundararajan (Cognizant)>Here, correct. Exactly.
+It is going to go to one particular</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/189-1
+00:18:22.125 --> 00:18:25.242
+<v Janardhana Soundararajan (Cognizant)>location from, it's going,
+truck is going to go to a location and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/189-2
+00:18:25.242 --> 00:18:27.131
+<v Janardhana Soundararajan (Cognizant)>going to pick up everything in one shot.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/190-0
+00:18:29.051 --> 00:18:29.531
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/192-0
+00:18:30.891 --> 00:18:33.715
+<v Janardhana Soundararajan (Cognizant)>Right, OK,
+so one other thing that is missing is</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/191-0
+00:18:32.051 --> 00:18:32.331
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/192-1
+00:18:33.715 --> 00:18:38.094
+<v Janardhana Soundararajan (Cognizant)>distance between P1 and P2, right?
+It should start calculating the distance</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/192-2
+00:18:38.094 --> 00:18:39.131
+<v Janardhana Soundararajan (Cognizant)>between P1 and P2.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/194-0
+00:18:43.771 --> 00:18:49.371
+<v Manuela Ramirez (Iris Software)>Between P1 and P2. OK,
+maybe show somewhere the distance, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/193-0
+00:18:44.811 --> 00:18:47.531
+<v Janardhana Soundararajan (Cognizant)>P1 and P2, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/196-0
+00:18:49.371 --> 00:18:52.425
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+there you need to show the distance and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/196-1
+00:18:52.425 --> 00:18:57.337
+<v Janardhana Soundararajan (Cognizant)>P2 to P3 and P3 to P4 and D1, D2,
+all that intermediate stops you need to</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/195-0
+00:18:53.611 --> 00:18:54.051
+<v Manuela Ramirez (Iris Software)>But.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/196-2
+00:18:57.337 --> 00:18:58.731
+<v Janardhana Soundararajan (Cognizant)>show distance, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/197-0
+00:18:58.811 --> 00:19:02.411
+<v Manuela Ramirez (Iris Software)>And maybe the total here,
+all these things.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/199-0
+00:19:01.131 --> 00:19:06.204
+<v Janardhana Soundararajan (Cognizant)>Yeah, total is already covered on the top,
+right? You have it on the top, I believe.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/198-0
+00:19:04.491 --> 00:19:08.891
+<v Manuela Ramirez (Iris Software)>Ohh yeah, right, you're right. OK,
+Windows Phone.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/199-1
+00:19:06.204 --> 00:19:09.069
+<v Janardhana Soundararajan (Cognizant)>Yeah.
+So you just need to break it down so that</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/199-2
+00:19:09.069 --> 00:19:13.903
+<v Janardhana Soundararajan (Cognizant)>they know as they keep changing these
+stops, right, adjusting. Say, for example,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/199-3
+00:19:13.903 --> 00:19:16.768
+<v Janardhana Soundararajan (Cognizant)>if they move from stop 2 to stop one,
+say stop,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/199-4
+00:19:16.768 --> 00:19:19.931
+<v Janardhana Soundararajan (Cognizant)>they move stop 2 to stop one and stop one
+to stop 2,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/202-0
+00:19:20.171 --> 00:19:24.435
+<v Janardhana Soundararajan (Cognizant)>maybe the distance has changed, right?
+It's no more consistent or they move stop</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/200-0
+00:19:22.011 --> 00:19:22.331
+<v Manuela Ramirez (Iris Software)>Bing.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/201-0
+00:19:23.931 --> 00:19:24.571
+<v Manuela Ramirez (Iris Software)>Thank you.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/202-1
+00:19:24.435 --> 00:19:28.382
+<v Janardhana Soundararajan (Cognizant)>3 in between stop 2, maybe the distance,
+the overall distance has changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/202-2
+00:19:28.382 --> 00:19:30.171
+<v Janardhana Soundararajan (Cognizant)>System is going to recalculate it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/203-0
+00:19:30.971 --> 00:19:31.411
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/205-0
+00:19:31.291 --> 00:19:33.908
+<v Janardhana Soundararajan (Cognizant)>Right?
+So it gives the user idea of saying,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/205-1
+00:19:33.908 --> 00:19:38.131
+<v Janardhana Soundararajan (Cognizant)>are they making the right decision
+between stops? Right? Is it nearby?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/204-0
+00:19:35.051 --> 00:19:35.531
+<v Manuela Ramirez (Iris Software)>Hey, hold up.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/205-2
+00:19:38.131 --> 00:19:40.331
+<v Janardhana Soundararajan (Cognizant)>Where is it? Right? All those things.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/206-0
+00:19:41.051 --> 00:19:41.291
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/209-0
+00:19:42.411 --> 00:19:46.879
+<v Janardhana Soundararajan (Cognizant)>Okay, that you need to add. Okay,
+this one. Okay, if you go back,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/207-0
+00:19:44.411 --> 00:19:45.051
+<v Manuela Ramirez (Iris Software)>I go see.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/209-1
+00:19:46.879 --> 00:19:49.858
+<v Janardhana Soundararajan (Cognizant)>rest of the ones looks good.
+Delivery date.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/209-2
+00:19:49.858 --> 00:19:53.242
+<v Janardhana Soundararajan (Cognizant)>How do they add the delivery date?
+A pickup date?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/208-0
+00:19:52.651 --> 00:19:52.811
+<v Manuela Ramirez (Iris Software)>The.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/209-3
+00:19:53.242 --> 00:19:55.611
+<v Janardhana Soundararajan (Cognizant)>How do they change the pickup date?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/210-0
+00:19:58.651 --> 00:20:00.251
+<v Manuela Ramirez (Iris Software)>How do we change the pickup date?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/211-0
+00:20:00.651 --> 00:20:03.194
+<v Janardhana Soundararajan (Cognizant)>Right,
+they should be able to change the pickup</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/211-1
+00:20:03.194 --> 00:20:04.571
+<v Janardhana Soundararajan (Cognizant)>date in each of the stops.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/212-0
+00:20:05.291 --> 00:20:09.131
+<v Manuela Ramirez (Iris Software)>Don't have that from Laura. Okay. No,
+I don't.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/213-0
+00:20:10.371 --> 00:20:11.771
+<v Manuela Ramirez (Iris Software)>Give me one second, maybe here.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/214-0
+00:20:13.291 --> 00:20:14.011
+<v Manuela Ramirez (Iris Software)>Do that one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/215-0
+00:20:21.411 --> 00:20:23.291
+<v Manuela Ramirez (Iris Software)>It should be here, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/217-0
+00:20:24.131 --> 00:20:28.737
+<v Janardhana Soundararajan (Cognizant)>No, this is not the one. Yeah,
+this is the stop level change. Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/216-0
+00:20:24.611 --> 00:20:28.971
+<v Manuela Ramirez (Iris Software)>No, I don't. No, I don't have it.
+I don't have it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/217-1
+00:20:28.737 --> 00:20:34.223
+<v Janardhana Soundararajan (Cognizant)>So it should be inside this one where the
+user will be able to change the pickup</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/217-2
+00:20:34.223 --> 00:20:37.609
+<v Janardhana Soundararajan (Cognizant)>stop, right? Stop one.
+Stop one is a pickup stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/217-3
+00:20:37.609 --> 00:20:42.011
+<v Janardhana Soundararajan (Cognizant)>So I should be able to change from 14th
+January to 19th January.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/218-0
+00:20:44.171 --> 00:20:45.611
+<v Janardhana Soundararajan (Cognizant)>Right, I should be able to.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/219-0
+00:20:44.571 --> 00:20:49.371
+<v Manuela Ramirez (Iris Software)>And then the system will recalculate the
+other file.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/221-0
+00:20:48.411 --> 00:20:51.512
+<v Janardhana Soundararajan (Cognizant)>Right,
+and what happens is when it changes,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/221-1
+00:20:51.512 --> 00:20:55.599
+<v Janardhana Soundararajan (Cognizant)>if you go to the planning table, right?
+Say, for example,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/221-2
+00:20:55.599 --> 00:20:59.263
+<v Janardhana Soundararajan (Cognizant)>if you go to the view planning table,
+right? Right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/221-3
+00:20:59.263 --> 00:21:02.011
+<v Janardhana Soundararajan (Cognizant)>you have what is the order on stop one?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/223-0
+00:21:03.611 --> 00:21:07.426
+<v Janardhana Soundararajan (Cognizant)>If you go to stop one,
+what is the order on stop one? Right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/223-1
+00:21:07.426 --> 00:21:10.615
+<v Janardhana Soundararajan (Cognizant)>you have two orders, right? 4, 7,
+37 and 39. Okay,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/222-0
+00:21:08.131 --> 00:21:08.971
+<v Manuela Ramirez (Iris Software)>Thirty-seven.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/223-2
+00:21:10.615 --> 00:21:12.491
+<v Janardhana Soundararajan (Cognizant)>go back to the planning table.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/227-0
+00:21:14.651 --> 00:21:19.695
+<v Janardhana Soundararajan (Cognizant)>37 and 39. Okay, just focus on 37, right?
+It says what date, 14th January?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/227-1
+00:21:19.695 --> 00:21:24.874
+<v Janardhana Soundararajan (Cognizant)>14th January is the pickup, right?
+If you change to 19th January on the stop</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/224-0
+00:21:23.771 --> 00:21:24.131
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/227-2
+00:21:24.874 --> 00:21:29.246
+<v Janardhana Soundararajan (Cognizant)>level, on the stop information,
+you have a pickup date, correct?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/225-0
+00:21:27.691 --> 00:21:27.931
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/227-3
+00:21:29.246 --> 00:21:34.155
+<v Janardhana Soundararajan (Cognizant)>If you change it to 19th January,
+the earliest is 14th and the latest is</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/226-0
+00:21:30.211 --> 00:21:30.371
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/227-4
+00:21:34.155 --> 00:21:34.491
+<v Janardhana Soundararajan (Cognizant)>15th.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/229-0
+00:21:34.651 --> 00:21:38.152
+<v Janardhana Soundararajan (Cognizant)>14th.
+So this should be highlighted saying that,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/229-1
+00:21:38.152 --> 00:21:41.510
+<v Janardhana Soundararajan (Cognizant)>okay,
+now you've changed this top level pickup</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/229-2
+00:21:41.510 --> 00:21:47.225
+<v Janardhana Soundararajan (Cognizant)>date to 19th and now you're not meeting
+the constraints passed on on the order.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/229-3
+00:21:47.225 --> 00:21:48.011
+<v Janardhana Soundararajan (Cognizant)>Make sense?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/228-0
+00:21:49.051 --> 00:21:49.371
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/232-0
+00:21:51.171 --> 00:21:55.577
+<v Janardhana Soundararajan (Cognizant)>Does it make sense, Manuela? Right,
+because you would want to pick up the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/230-0
+00:21:51.251 --> 00:21:54.851
+<v Manuela Ramirez (Iris Software)>OK, yeah, yeah, yeah, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/232-1
+00:21:55.577 --> 00:21:59.864
+<v Janardhana Soundararajan (Cognizant)>order between these two dates.
+The earliest you can pick up is 14th and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/232-2
+00:21:59.864 --> 00:22:04.508
+<v Janardhana Soundararajan (Cognizant)>the latest you can pick up is 14th.
+Here in this case, it's 8 A.m. and 1 P.m.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/232-3
+00:22:04.508 --> 00:22:08.199
+<v Janardhana Soundararajan (Cognizant)>Between 8 and 1 P.m. you can pick up,
+right? Say for example,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/231-0
+00:22:07.851 --> 00:22:08.251
+<v Manuela Ramirez (Iris Software)>Pizza.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/232-4
+00:22:08.199 --> 00:22:11.771
+<v Janardhana Soundararajan (Cognizant)>I'm not meeting that.
+I'm going to change on the stop level</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/236-0
+00:22:11.931 --> 00:22:15.746
+<v Janardhana Soundararajan (Cognizant)>to pick up on 19th,
+then it is going to throw or make a color</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/236-1
+00:22:15.746 --> 00:22:20.422
+<v Janardhana Soundararajan (Cognizant)>on this particular order planning dates,
+earliest pickup and latest pickup,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/236-2
+00:22:20.422 --> 00:22:24.852
+<v Janardhana Soundararajan (Cognizant)>saying that I have not met the planning
+dates as expected on the order.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/236-3
+00:22:24.852 --> 00:22:29.098
+<v Janardhana Soundararajan (Cognizant)>So I'm not picking up on 14th,
+I'm picking up on 19th on a different</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/233-0
+00:22:27.531 --> 00:22:28.011
+<v Manuela Ramirez (Iris Software)>Under.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/236-4
+00:22:29.098 --> 00:22:32.051
+<v Janardhana Soundararajan (Cognizant)>date.
+So those two are going to be highlighted.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/234-0
+00:22:30.411 --> 00:22:30.731
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/237-0
+00:22:32.411 --> 00:22:37.403
+<v Janardhana Soundararajan (Cognizant)>Similarly, it is applicable for delivery.
+If you have delivery dates and those</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/235-0
+00:22:34.571 --> 00:22:34.811
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/237-1
+00:22:37.403 --> 00:22:42.206
+<v Janardhana Soundararajan (Cognizant)>delivery dates are not being met,
+but the user will be able to change those</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/237-2
+00:22:42.206 --> 00:22:46.945
+<v Janardhana Soundararajan (Cognizant)>on the multi-stop or consolidations,
+then those will be highlighted to the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/237-3
+00:22:46.945 --> 00:22:48.651
+<v Janardhana Soundararajan (Cognizant)>user saying that your plan.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/238-0
+00:22:47.611 --> 00:22:50.602
+<v Manuela Ramirez (Iris Software)>So,
+highlighted means means you need to edit</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/238-1
+00:22:50.602 --> 00:22:51.931
+<v Manuela Ramirez (Iris Software)>them as well, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/240-0
+00:22:52.331 --> 00:22:54.669
+<v Janardhana Soundararajan (Cognizant)>No,
+you should be able to edit only on this</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/240-1
+00:22:54.669 --> 00:22:57.539
+<v Janardhana Soundararajan (Cognizant)>top level.
+This is highlighted on the planning dates.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/240-2
+00:22:57.539 --> 00:22:59.451
+<v Janardhana Soundararajan (Cognizant)>Planning dates comes from the order.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/239-0
+00:22:58.731 --> 00:22:59.291
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/242-0
+00:23:00.411 --> 00:23:02.251
+<v Janardhana Soundararajan (Cognizant)>Right, order should not be touched.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/241-0
+00:23:00.891 --> 00:23:01.611
+<v Manuela Ramirez (Iris Software)>30 yard.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/243-0
+00:23:02.811 --> 00:23:03.211
+<v Manuela Ramirez (Iris Software)>Dunk.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/244-0
+00:23:03.691 --> 00:23:06.340
+<v Janardhana Soundararajan (Cognizant)>This is the reference.
+This is what the customer sent us,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/244-1
+00:23:06.340 --> 00:23:09.538
+<v Janardhana Soundararajan (Cognizant)>but we are not able to meet it,
+but we are planning it in a different</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/244-2
+00:23:09.538 --> 00:23:11.684
+<v Janardhana Soundararajan (Cognizant)>date,
+but the planner should know that you are</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/244-3
+00:23:11.684 --> 00:23:14.470
+<v Janardhana Soundararajan (Cognizant)>planning it on a different date.
+I am aware about it, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/244-4
+00:23:14.470 --> 00:23:16.571
+<v Janardhana Soundararajan (Cognizant)>That's why the system is trying to tell
+them.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/245-0
+00:23:19.011 --> 00:23:19.291
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/249-0
+00:23:19.931 --> 00:23:23.565
+<v Janardhana Soundararajan (Cognizant)>Right, if you close this one,
+what the user will do is,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/249-1
+00:23:23.565 --> 00:23:28.367
+<v Janardhana Soundararajan (Cognizant)>if you come down to the stop one,
+stop one, you see the date pickup date,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/249-2
+00:23:28.367 --> 00:23:31.093
+<v Janardhana Soundararajan (Cognizant)>right?
+That is the date that they will be</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/246-0
+00:23:30.811 --> 00:23:31.091
+<v Manuela Ramirez (Iris Software)>Play.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/249-3
+00:23:31.093 --> 00:23:34.727
+<v Janardhana Soundararajan (Cognizant)>editing, right?
+They can change it from 14th to 19th or</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/247-0
+00:23:32.331 --> 00:23:32.451
+<v Manuela Ramirez (Iris Software)>Right.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/249-4
+00:23:34.727 --> 00:23:35.051
+<v Janardhana Soundararajan (Cognizant)>20th.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/252-0
+00:23:36.011 --> 00:23:41.749
+<v Janardhana Soundararajan (Cognizant)>Right, you need to have an edit of date,
+time, date, time, what is that, month,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/248-0
+00:23:36.051 --> 00:23:36.411
+<v Manuela Ramirez (Iris Software)>Are you?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/250-0
+00:23:39.451 --> 00:23:39.931
+<v Manuela Ramirez (Iris Software)>Typically.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/252-1
+00:23:41.749 --> 00:23:46.411
+<v Janardhana Soundararajan (Cognizant)>date, day, and time, right?
+All those fields should be editable.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/251-0
+00:23:47.211 --> 00:23:47.611
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/253-0
+00:23:47.931 --> 00:23:50.702
+<v Janardhana Soundararajan (Cognizant)>You don't need delivery date, right?
+I don't know distance.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/253-1
+00:23:50.702 --> 00:23:52.411
+<v Janardhana Soundararajan (Cognizant)>Distance should be moved to the left.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/255-0
+00:23:54.171 --> 00:23:57.638
+<v Janardhana Soundararajan (Cognizant)>Right, between P1 and P2U2,
+you should have the distance, or you can,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/255-1
+00:23:57.638 --> 00:24:00.411
+<v Janardhana Soundararajan (Cognizant)>if you want to populate there,
+that's also fine, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/254-0
+00:24:00.091 --> 00:24:00.331
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/256-0
+00:24:02.971 --> 00:24:05.051
+<v Manuela Ramirez (Iris Software)>Yeah, we don't have,
+we don't need this here.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/257-0
+00:24:05.931 --> 00:24:09.762
+<v Janardhana Soundararajan (Cognizant)>Yeah, if you want to put it to the side,
+that looks even better, right? Yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/257-1
+00:24:09.762 --> 00:24:12.464
+<v Janardhana Soundararajan (Cognizant)>For pickup, you should have pickup date.
+For delivery,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/257-2
+00:24:12.464 --> 00:24:16.049
+<v Janardhana Soundararajan (Cognizant)>you should have delivery date.
+You don't need delivery date here on this</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/257-3
+00:24:16.049 --> 00:24:19.438
+<v Janardhana Soundararajan (Cognizant)>one, right? Right in the stop one.
+You don't need the delivery date.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/257-4
+00:24:19.438 --> 00:24:21.451
+<v Janardhana Soundararajan (Cognizant)>You just need the pickup date. For every.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/258-0
+00:24:20.971 --> 00:24:25.183
+<v Manuela Ramirez (Iris Software)>And they cannot be the same, right?
+Because this is the second pickup.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/258-1
+00:24:25.183 --> 00:24:26.251
+<v Manuela Ramirez (Iris Software)>This is different.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/259-0
+00:24:25.291 --> 00:24:29.415
+<v Janardhana Soundararajan (Cognizant)>Yeah, they can be the same.
+They can be the same, right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/259-1
+00:24:29.415 --> 00:24:34.697
+<v Janardhana Soundararajan (Cognizant)>provided the user looks at it and
+evaluates it, right? Say, for example,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/259-2
+00:24:34.697 --> 00:24:39.834
+<v Janardhana Soundararajan (Cognizant)>ideally, if I go to pick up in Miami,
+I cannot pick up the same day in</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/259-3
+00:24:39.834 --> 00:24:43.451
+<v Janardhana Soundararajan (Cognizant)>Minneapolis.
+Those are really far off places. But</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/262-0
+00:24:43.611 --> 00:24:47.259
+<v Janardhana Soundararajan (Cognizant)>If I live in Miami, Florida,
+in this particular zip code,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/262-1
+00:24:47.259 --> 00:24:51.662
+<v Janardhana Soundararajan (Cognizant)>and my stop 2 is in Miami, Florida,
+it's an adjacent zip code, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/260-0
+00:24:48.091 --> 00:24:48.451
+<v Manuela Ramirez (Iris Software)>Ohh yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/262-2
+00:24:51.662 --> 00:24:54.932
+<v Janardhana Soundararajan (Cognizant)>I would be able to pick up on the same
+date, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/262-3
+00:24:54.932 --> 00:24:59.398
+<v Janardhana Soundararajan (Cognizant)>These are the ones that the planner will
+have to go and adjust, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/261-0
+00:24:59.371 --> 00:25:01.571
+<v Manuela Ramirez (Iris Software)>What am I?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/262-4
+00:24:59.398 --> 00:25:03.611
+<v Janardhana Soundararajan (Cognizant)>They will look at it and say, okay,
+the distance between P2 and P3</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/263-0
+00:25:04.011 --> 00:25:08.824
+<v Janardhana Soundararajan (Cognizant)>Right, P1 and P2 is a hot 1000 miles.
+I cannot do the delivery date pickup date</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/263-1
+00:25:08.824 --> 00:25:11.771
+<v Janardhana Soundararajan (Cognizant)>on 14th,
+so it should be ideally something else.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/264-0
+00:25:15.131 --> 00:25:15.691
+<v Janardhana Soundararajan (Cognizant)>Make sense?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/265-0
+00:25:16.331 --> 00:25:17.171
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/267-0
+00:25:17.211 --> 00:25:20.426
+<v Janardhana Soundararajan (Cognizant)>Okay, okay.
+So we don't need delivery date on a</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/266-0
+00:25:17.931 --> 00:25:18.571
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/267-1
+00:25:20.426 --> 00:25:25.247
+<v Janardhana Soundararajan (Cognizant)>pickup stop. We need only a pickup date.
+Similarly, on a delivery stop,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/267-2
+00:25:25.247 --> 00:25:29.131
+<v Janardhana Soundararajan (Cognizant)>we don't need a pickup date.
+So that needs to be changed.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/269-0
+00:25:34.091 --> 00:25:39.874
+<v Janardhana Soundararajan (Cognizant)>Okay, so the other ones looks good.
+You need to add the prior plan onto the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/268-0
+00:25:37.771 --> 00:25:38.011
+<v Manuela Ramirez (Iris Software)>Go.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/269-1
+00:25:39.874 --> 00:25:45.961
+<v Janardhana Soundararajan (Cognizant)>left, that one. Okay, if you can add,
+if you can remove an order from stop two,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/269-2
+00:25:45.961 --> 00:25:48.091
+<v Janardhana Soundararajan (Cognizant)>right, let it go to pending.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/270-0
+00:25:50.491 --> 00:25:52.971
+<v Janardhana Soundararajan (Cognizant)>OK, now let's add a new order.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/273-0
+00:25:57.131 --> 00:26:01.312
+<v Janardhana Soundararajan (Cognizant)>Okay, new order,
+the user will be only vouchers, correct?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/271-0
+00:25:57.291 --> 00:25:57.531
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/273-1
+00:26:01.312 --> 00:26:05.131
+<v Janardhana Soundararajan (Cognizant)>You should be able to filter only by
+vouchers and...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/272-0
+00:26:04.251 --> 00:26:05.291
+<v Manuela Ramirez (Iris Software)>You think about this?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/274-0
+00:26:06.251 --> 00:26:08.731
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+and is there a filtering option here?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/275-0
+00:26:09.771 --> 00:26:10.331
+<v Manuela Ramirez (Iris Software)>Sharon.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/277-0
+00:26:11.771 --> 00:26:17.174
+<v Janardhana Soundararajan (Cognizant)>Okay, you have filtering option. Okay,
+so order number, by shipment, shipment ID,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/277-1
+00:26:17.174 --> 00:26:21.324
+<v Janardhana Soundararajan (Cognizant)>destination, fantastic.
+And do you have by shipment status you</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/277-2
+00:26:21.324 --> 00:26:26.924
+<v Janardhana Soundararajan (Cognizant)>have? Okay, 10 to 7. Very good, that's it.
+You filter by any of these and you should</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/276-0
+00:26:22.411 --> 00:26:24.251
+<v Manuela Ramirez (Iris Software)>I wanna fix that one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/277-3
+00:26:26.924 --> 00:26:29.691
+<v Janardhana Soundararajan (Cognizant)>be able to select an order and add, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/278-0
+00:26:29.731 --> 00:26:34.876
+<v Janardhana Soundararajan (Cognizant)>The only thing is, it should not,
+it shouldn't prevent the user from,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/278-1
+00:26:34.876 --> 00:26:35.611
+<v Janardhana Soundararajan (Cognizant)>I believe.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/279-0
+00:26:36.491 --> 00:26:39.357
+<v Janardhana Soundararajan (Cognizant)>Before you should be able to simulate and
+add it,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/279-1
+00:26:39.357 --> 00:26:42.051
+<v Janardhana Soundararajan (Cognizant)>any order you should be able to add it,
+right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/279-2
+00:26:42.051 --> 00:26:46.465
+<v Janardhana Soundararajan (Cognizant)>I could not remember what rule I wrote.
+You should be able to add any order,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/279-3
+00:26:46.465 --> 00:26:49.445
+<v Janardhana Soundararajan (Cognizant)>but while confirming,
+if it is already tender sent,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/279-4
+00:26:49.445 --> 00:26:52.024
+<v Janardhana Soundararajan (Cognizant)>it should not allow the user to finalize
+it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/279-5
+00:26:52.024 --> 00:26:55.291
+<v Janardhana Soundararajan (Cognizant)>It should tell them a message saying that
+the current...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/282-0
+00:26:55.691 --> 00:26:59.394
+<v Janardhana Soundararajan (Cognizant)>order is tender sent,
+you need to cancel the tender before you</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/282-1
+00:26:59.394 --> 00:27:03.684
+<v Janardhana Soundararajan (Cognizant)>can add the order to this one, right?
+That's the only requirement. Yeah,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/280-0
+00:27:01.051 --> 00:27:01.531
+<v Manuela Ramirez (Iris Software)>It should work.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/282-2
+00:27:03.684 --> 00:27:08.091
+<v Janardhana Soundararajan (Cognizant)>if you can add anything apart from tender
+sent, right? Just add something.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/281-0
+00:27:07.891 --> 00:27:08.211
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/283-0
+00:27:10.451 --> 00:27:10.571
+<v Manuela Ramirez (Iris Software)>Play.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/284-0
+00:27:13.131 --> 00:27:15.691
+<v Janardhana Soundararajan (Cognizant)>Add an order that is from Florida, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/285-0
+00:27:23.051 --> 00:27:23.771
+<v Manuela Ramirez (Iris Software)>Maybe this one?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/286-0
+00:27:24.731 --> 00:27:26.811
+<v Janardhana Soundararajan (Cognizant)>Yeah, San Diego, yeah, okay, added.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/287-0
+00:27:31.291 --> 00:27:35.209
+<v Janardhana Soundararajan (Cognizant)>Okay,
+to this order came in and now you add</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/287-1
+00:27:35.209 --> 00:27:36.811
+<v Janardhana Soundararajan (Cognizant)>this order, VAL10.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/288-0
+00:27:37.931 --> 00:27:38.891
+<v Janardhana Soundararajan (Cognizant)>Yeah, just click on.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/289-0
+00:27:41.891 --> 00:27:45.558
+<v Janardhana Soundararajan (Cognizant)>The system would decide, but we,
+at this point, I don't know how it works,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/289-1
+00:27:45.558 --> 00:27:45.851
+<v Janardhana Soundararajan (Cognizant)>right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/292-0
+00:27:48.971 --> 00:27:53.043
+<v Janardhana Soundararajan (Cognizant)>When you click on add, yeah,
+when you click on add and that particular</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/290-0
+00:27:49.211 --> 00:27:50.011
+<v Manuela Ramirez (Iris Software)>Since then, so.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/292-1
+00:27:53.043 --> 00:27:57.287
+<v Janardhana Soundararajan (Cognizant)>location is not part of the existing
+location, it will add us a new stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/292-2
+00:27:57.287 --> 00:28:01.416
+<v Janardhana Soundararajan (Cognizant)>And that new stop will be P question mark.
+But I don't see that, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/291-0
+00:27:57.851 --> 00:27:58.731
+<v Manuela Ramirez (Iris Software)>Here it says.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/292-3
+00:28:01.416 --> 00:28:04.971
+<v Janardhana Soundararajan (Cognizant)>When you add that,
+you should change it into P question mark.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/293-0
+00:28:07.051 --> 00:28:10.379
+<v Manuela Ramirez (Iris Software)>Okay, so yeah,
+that needs like you're creating a new</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/293-1
+00:28:10.379 --> 00:28:12.011
+<v Manuela Ramirez (Iris Software)>stock or something for it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/294-0
+00:28:12.411 --> 00:28:16.157
+<v Janardhana Soundararajan (Cognizant)>Yeah, a new stop is created,
+but it is not finalizing that stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/294-1
+00:28:16.157 --> 00:28:19.154
+<v Janardhana Soundararajan (Cognizant)>It is putting it as question mark,
+P question mark,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/294-2
+00:28:19.154 --> 00:28:23.476
+<v Janardhana Soundararajan (Cognizant)>because it has a new pickup. Say,
+for example, that is a San Diego pickup,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/294-3
+00:28:23.476 --> 00:28:27.568
+<v Janardhana Soundararajan (Cognizant)>right? So San Diego is not here.
+So it should add a pickup stop as a P</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/294-4
+00:28:27.568 --> 00:28:32.352
+<v Janardhana Soundararajan (Cognizant)>question mark, because it's a pickup stop,
+but you don't know what number the user</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/294-5
+00:28:32.352 --> 00:28:33.331
+<v Janardhana Soundararajan (Cognizant)>is going to pick.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/295-0
+00:28:33.451 --> 00:28:36.505
+<v Janardhana Soundararajan (Cognizant)>fix it at, right?
+So it will put it as P question mark and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/295-1
+00:28:36.505 --> 00:28:39.197
+<v Janardhana Soundararajan (Cognizant)>wait for the user to select and move it.
+Similarly,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/295-2
+00:28:39.197 --> 00:28:42.251
+<v Janardhana Soundararajan (Cognizant)>if the delivery is also not part of the
+existing delivery,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/295-3
+00:28:42.251 --> 00:28:45.771
+<v Janardhana Soundararajan (Cognizant)>it will put a D question mark and wait
+for the user to finalize it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-0
+00:28:50.011 --> 00:28:53.318
+<v Janardhana Soundararajan (Cognizant)>Right, that thing needs to be added.
+In this particular case,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-1
+00:28:53.318 --> 00:28:56.251
+<v Janardhana Soundararajan (Cognizant)>if you directly add it,
+it is going to go into a stop.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-2
+00:28:56.251 --> 00:28:58.918
+<v Janardhana Soundararajan (Cognizant)>It should not go, say,
+if it is an existing stop,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-3
+00:28:58.918 --> 00:29:02.331
+<v Janardhana Soundararajan (Cognizant)>it should attach to a stop.
+But if it is completely a new stop,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-4
+00:29:02.331 --> 00:29:05.211
+<v Janardhana Soundararajan (Cognizant)>it should allow the user,
+it would create a new stop,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-5
+00:29:05.211 --> 00:29:08.678
+<v Janardhana Soundararajan (Cognizant)>mark it as P question mark,
+and then wait for the user to do it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/296-6
+00:29:08.678 --> 00:29:09.211
+<v Janardhana Soundararajan (Cognizant)>Similarly.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/297-0
+00:29:09.371 --> 00:29:14.016
+<v Janardhana Soundararajan (Cognizant)>the case when an order has undergone,
+existing order has undergone a location</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/297-1
+00:29:14.016 --> 00:29:18.542
+<v Janardhana Soundararajan (Cognizant)>change. If it underwent a location change,
+it should not create a location.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/297-2
+00:29:18.542 --> 00:29:22.533
+<v Janardhana Soundararajan (Cognizant)>It should create a location,
+but put it as a question mark for the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/297-3
+00:29:22.533 --> 00:29:25.272
+<v Janardhana Soundararajan (Cognizant)>user to move the order into a right
+location.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/297-4
+00:29:25.272 --> 00:29:28.011
+<v Janardhana Soundararajan (Cognizant)>The same concept works while adding an
+order.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/298-0
+00:29:28.291 --> 00:29:33.084
+<v Janardhana Soundararajan (Cognizant)>while also order undergoing a change
+location change and entering into the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/298-1
+00:29:33.084 --> 00:29:33.531
+<v Janardhana Soundararajan (Cognizant)>screen.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/299-0
+00:29:34.731 --> 00:29:35.371
+<v Janardhana Soundararajan (Cognizant)>Makes sense.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/300-0
+00:29:35.931 --> 00:29:36.651
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/301-0
+00:29:37.131 --> 00:29:37.891
+<v Janardhana Soundararajan (Cognizant)>Right, okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/302-0
+00:29:38.451 --> 00:29:38.651
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/304-0
+00:29:39.451 --> 00:29:44.307
+<v Janardhana Soundararajan (Cognizant)>So yeah, that is the part that is missing.
+Once that question mark is created, right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/304-1
+00:29:44.307 --> 00:29:48.315
+<v Janardhana Soundararajan (Cognizant)>then the user will move it into a
+particular stop and then it'll get a</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/304-2
+00:29:48.315 --> 00:29:53.001
+<v Janardhana Soundararajan (Cognizant)>location, automatically get a spot for it,
+right? It'll be either P2 or P3, right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/304-3
+00:29:53.001 --> 00:29:57.122
+<v Janardhana Soundararajan (Cognizant)>or P1. Wherever they are moving,
+it's going to get a location number for</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/304-4
+00:29:57.122 --> 00:29:57.291
+<v Janardhana Soundararajan (Cognizant)>it.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/303-0
+00:29:57.451 --> 00:29:57.931
+<v Manuela Ramirez (Iris Software)>Open, Sinha.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/305-0
+00:29:59.691 --> 00:30:00.251
+<v Manuela Ramirez (Iris Software)>I don't.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/306-0
+00:30:04.011 --> 00:30:05.051
+<v Manuela Ramirez (Iris Software)>And I'm open.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/307-0
+00:30:06.971 --> 00:30:09.211
+<v Manuela Ramirez (Iris Software)>So, when this will happen?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/308-0
+00:30:11.211 --> 00:30:12.651
+<v Janardhana Soundararajan (Cognizant)>What do you mean when this will happen?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/309-0
+00:30:13.611 --> 00:30:16.091
+<v Manuela Ramirez (Iris Software)>Approve changes, because I did some.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/310-0
+00:30:15.291 --> 00:30:19.229
+<v Janardhana Soundararajan (Cognizant)>Approve changes will happen once
+everything is finalized, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/310-1
+00:30:19.229 --> 00:30:22.621
+<v Janardhana Soundararajan (Cognizant)>There is no question mark,
+there is no P question mark,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/310-2
+00:30:22.621 --> 00:30:25.346
+<v Janardhana Soundararajan (Cognizant)>everything looks okay,
+then approve changes.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/310-3
+00:30:25.346 --> 00:30:28.920
+<v Janardhana Soundararajan (Cognizant)>That's when the user,
+you have to call the routing, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/310-4
+00:30:28.920 --> 00:30:32.978
+<v Janardhana Soundararajan (Cognizant)>There is another option there.
+The user should be able to call the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/310-5
+00:30:32.978 --> 00:30:34.371
+<v Janardhana Soundararajan (Cognizant)>routing once they have.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/311-0
+00:30:34.451 --> 00:30:36.491
+<v Janardhana Soundararajan (Cognizant)>made all these changes. Where is that one?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/312-0
+00:30:38.171 --> 00:30:42.811
+<v Manuela Ramirez (Iris Software)>No, I don't know. Laura did this,
+so I'm trying to...</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/313-0
+00:30:44.491 --> 00:30:45.291
+<v Manuela Ramirez (Iris Software)>Oh my gosh.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/314-0
+00:30:46.331 --> 00:30:49.691
+<v Janardhana Soundararajan (Cognizant)>Yeah, those changes are there.
+So they have to run the routing list</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/314-1
+00:30:49.691 --> 00:30:51.371
+<v Janardhana Soundararajan (Cognizant)>again, right, and see the routing.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/315-0
+00:30:54.971 --> 00:30:55.771
+<v Janardhana Soundararajan (Cognizant)>Right, what?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/316-0
+00:30:54.971 --> 00:30:55.811
+<v Manuela Ramirez (Iris Software)>Ohh, we don't have that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/318-0
+00:30:58.011 --> 00:31:01.651
+<v Janardhana Soundararajan (Cognizant)>Yeah, let me see.
+Do you have my design that I sent you</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/318-1
+00:31:01.651 --> 00:31:02.171
+<v Janardhana Soundararajan (Cognizant)>earlier?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/319-0
+00:31:04.131 --> 00:31:08.971
+<v Manuela Ramirez (Iris Software)>Probably, I need to double-check, Janice.
+I don't.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/321-0
+00:31:13.931 --> 00:31:16.578
+<v Janardhana Soundararajan (Cognizant)>Okay, you make these changes, right?
+Again,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/321-1
+00:31:16.578 --> 00:31:20.968
+<v Janardhana Soundararajan (Cognizant)>we will connect tomorrow and maybe I will
+send you the latest one. Yeah,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/320-0
+00:31:18.251 --> 00:31:20.331
+<v Manuela Ramirez (Iris Software)>Okay, and we can follow up on that.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/321-2
+00:31:20.968 --> 00:31:24.636
+<v Janardhana Soundararajan (Cognizant)>we'll follow up on that because once you
+make those changes,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/321-3
+00:31:24.636 --> 00:31:29.508
+<v Janardhana Soundararajan (Cognizant)>what should happen is the user should be
+able to call the routing and be able to</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/321-4
+00:31:29.508 --> 00:31:31.131
+<v Janardhana Soundararajan (Cognizant)>see the list, routing list.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/322-0
+00:31:31.291 --> 00:31:34.171
+<v Janardhana Soundararajan (Cognizant)>If you go up,
+you should probably have some list there.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/323-0
+00:31:31.851 --> 00:31:34.251
+<v Manuela Ramirez (Iris Software)>Yeah, sorry.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/324-0
+00:31:36.451 --> 00:31:39.371
+<v Janardhana Soundararajan (Cognizant)>Right, if you go up, please,
+on that one that you are sharing.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/325-0
+00:31:41.571 --> 00:31:45.819
+<v Janardhana Soundararajan (Cognizant)>Right, view planning dates, view routing.
+See, once they finalize it,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/325-1
+00:31:45.819 --> 00:31:49.703
+<v Janardhana Soundararajan (Cognizant)>I think once they save,
+they should be able to see the routing,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/325-2
+00:31:49.703 --> 00:31:50.491
+<v Janardhana Soundararajan (Cognizant)>view routing.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/328-0
+00:31:52.491 --> 00:31:55.647
+<v Janardhana Soundararajan (Cognizant)>Once you, once you save the plan,
+once you close this,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/326-0
+00:31:52.571 --> 00:31:53.371
+<v Manuela Ramirez (Iris Software)>Good morning.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/328-1
+00:31:55.647 --> 00:31:58.171
+<v Janardhana Soundararajan (Cognizant)>not the planning dates,
+you close this one.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/327-0
+00:31:57.291 --> 00:31:58.091
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/329-0
+00:31:59.291 --> 00:31:59.811
+<v Manuela Ramirez (Iris Software)>There you go.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/330-0
+00:32:01.771 --> 00:32:06.331
+<v Janardhana Soundararajan (Cognizant)>Yeah, save, make the approved changes,
+make the approved change.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/332-0
+00:32:05.731 --> 00:32:08.971
+<v Manuela Ramirez (Iris Software)>Like, I cannot, it's blocked.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/331-0
+00:32:07.851 --> 00:32:08.651
+<v Janardhana Soundararajan (Cognizant)>I don't know why.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/334-0
+00:32:09.851 --> 00:32:13.585
+<v Janardhana Soundararajan (Cognizant)>Okay, so once you approve changes,
+then you should be able to see the</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/333-0
+00:32:09.931 --> 00:32:11.051
+<v Manuela Ramirez (Iris Software)>I have to check.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/334-1
+00:32:13.585 --> 00:32:15.291
+<v Janardhana Soundararajan (Cognizant)>routing list, view routing list.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/335-0
+00:32:15.931 --> 00:32:18.891
+<v Manuela Ramirez (Iris Software)>OK, you're outing this, OK.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/336-0
+00:32:20.531 --> 00:32:21.851
+<v Janardhana Soundararajan (Cognizant)>So that is complete or no?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/337-0
+00:32:22.411 --> 00:32:23.611
+<v Manuela Ramirez (Iris Software)>And again, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/338-0
+00:32:24.891 --> 00:32:27.732
+<v Manuela Ramirez (Iris Software)>I don't know.
+I think to me it looks complete well.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/338-1
+00:32:27.732 --> 00:32:29.371
+<v Manuela Ramirez (Iris Software)>I still need to fix this part.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/339-0
+00:32:30.171 --> 00:32:33.972
+<v Janardhana Soundararajan (Cognizant)>Yeah, you need to fix that one.
+We need to finalize the plan.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/339-1
+00:32:33.972 --> 00:32:38.079
+<v Janardhana Soundararajan (Cognizant)>Once you finalize the plan,
+system should call the routing and get</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/339-2
+00:32:38.079 --> 00:32:39.611
+<v Janardhana Soundararajan (Cognizant)>the fetch the route list.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/340-0
+00:32:40.891 --> 00:32:44.851
+<v Manuela Ramirez (Iris Software)>Yeah, now it's fixed,
+but this now happens.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/341-0
+00:32:49.331 --> 00:32:50.331
+<v Manuela Ramirez (Iris Software)>No, possibly.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/343-0
+00:32:51.451 --> 00:32:55.378
+<v Janardhana Soundararajan (Cognizant)>Yeah, now it is generating. You see that?
+It's the new list and the old list.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/342-0
+00:32:53.611 --> 00:32:54.251
+<v Manuela Ramirez (Iris Software)>Thank you.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/343-1
+00:32:55.378 --> 00:32:58.549
+<v Janardhana Soundararajan (Cognizant)>So the user will be able to see the new
+list and the old list.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/343-2
+00:32:58.549 --> 00:33:01.217
+<v Janardhana Soundararajan (Cognizant)>And once they see the new list,
+view routing, right,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/343-3
+00:33:01.217 --> 00:33:04.640
+<v Janardhana Soundararajan (Cognizant)>it should take them to the planning
+screen, right? If you remember,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/343-4
+00:33:04.640 --> 00:33:06.251
+<v Janardhana Soundararajan (Cognizant)>we had a planning screen, right?</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/344-0
+00:33:07.851 --> 00:33:10.171
+<v Manuela Ramirez (Iris Software)>OK, no,
+I don't have a planning screen here.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/345-0
+00:33:10.691 --> 00:33:13.440
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+it should go to the planning screen and</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/345-1
+00:33:13.440 --> 00:33:16.188
+<v Janardhana Soundararajan (Cognizant)>then it should take them to the
+finalization,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/345-2
+00:33:16.188 --> 00:33:20.968
+<v Janardhana Soundararajan (Cognizant)>just like how we have for direct, right?
+You want to use, you want to send the,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/345-3
+00:33:20.968 --> 00:33:23.956
+<v Janardhana Soundararajan (Cognizant)>what is that?
+You want to bypass tender or accept</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/345-4
+00:33:23.956 --> 00:33:26.644
+<v Janardhana Soundararajan (Cognizant)>tender, right?
+So those options should come.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/345-5
+00:33:26.644 --> 00:33:29.691
+<v Janardhana Soundararajan (Cognizant)>So those are the other ones that are
+missing here.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/346-0
+00:33:32.571 --> 00:33:33.051
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/347-0
+00:33:33.371 --> 00:33:37.083
+<v Janardhana Soundararajan (Cognizant)>I'll send you the latest one that I sent
+to Laura or whoever I have sent it to,</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/347-1
+00:33:37.083 --> 00:33:39.264
+<v Janardhana Soundararajan (Cognizant)>right?
+Just take a look at it and then we will</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/347-2
+00:33:39.264 --> 00:33:40.331
+<v Janardhana Soundararajan (Cognizant)>connect again tomorrow.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/349-0
+00:33:41.331 --> 00:33:45.503
+<v Manuela Ramirez (Iris Software)>Okay,
+I don't know if I can have all of those</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/349-1
+00:33:45.503 --> 00:33:50.491
+<v Manuela Ramirez (Iris Software)>changes tomorrow.
+I still need to work on other stuff.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/348-0
+00:33:49.451 --> 00:33:52.011
+<v Janardhana Soundararajan (Cognizant)>Sure, yeah, yeah, okay, okay, yeah.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/350-0
+00:33:52.451 --> 00:33:54.491
+<v Manuela Ramirez (Iris Software)>Maybe some of them that we can connect.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/351-0
+00:33:53.851 --> 00:33:56.491
+<v Janardhana Soundararajan (Cognizant)>Okay, yeah, yeah, sure. Thank you. Bye.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/353-0
+00:33:57.211 --> 00:33:58.811
+<v Manuela Ramirez (Iris Software)>See you later. Thank you. Bye bye.</v>
+
+09e1228d-6771-4f0d-9ed1-b537875933ba/354-0
+00:33:58.331 --> 00:33:59.611
+<v Janardhana Soundararajan (Cognizant)>Yeah, talk to you later, bye.</v>

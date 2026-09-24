@@ -1189,10 +1189,60 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision:** `ManualTenderConfirm` (title, message, Confirm/Cancel verbatim from BR-11) opens before the normal Tender/Re-Tender path; Confirm runs that path unchanged (status `Sent`, notify + audit stamps), Cancel changes nothing. The Decline/Cancel auto-tender cascade is deliberately **not** gated — BR-11 scopes the dialog to *"When a user manually initiates tendering from the UI"*. The story's Jira id was not supplied with the paste; BR-11 is recorded by its own number.
 - **Source:** BR-11, user 2026-09-22.
 
+## Order Change (Consolidated) — Jana walkthrough, DEC-191 … DEC-199
+
+Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are input; each presentation choice is the user's ruling the same day. Canon: [[../order-change]] §10b.
+
+### DEC-191: Affected Orders only on pickup stops
+- **Previous:** the Stops-tab review listed Affected Orders on every stop, pickup and delivery.
+- **Decision:** pickup stops only; delivery stops leave the column empty.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:04:40`; user 2026-09-24 ("that is redundant").
+
+### DEC-192: Every value in the consolidated order change is consistent and read from the DB
+- **Previous:** the header's New Consolidated Cost was the seed's `newConsolidated` (base × random 0.95–1.10); View Routing showed the Direct tender list's costs. Nothing tied them.
+- **Decision:** one source per number, served by the API — the header cost equals the routing list's selected (accepted) carrier cost; distances, weights and counts derive from the same stops/orders the page renders.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:06:43`; user 2026-09-24 ("all values in this feature need to match, make sense and wired to our DB").
+
+### DEC-193: Placement is the system's — the *Add to* stop picker is removed
+- **Previous (S144, user ruling 2026-09-09, OC-open-14):** *Add to* listed every stop; the picked stop took the order's leg, including stops at another location.
+- **Decision:** adding an order back (or adding a new one) places each leg automatically: a stop of the **same type** at the same location, otherwise a new `P?`/`D?` for the planner to sequence. Pickup and delivery legs never cross. The planner controls stop order and which orders stay. OC-open-21 (*Move to* between stops) closes as won't-build.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:12:29–00:18:05`; user 2026-09-24.
+
+### DEC-194: *Move To Pending* gets a new, shorter label and no icon
+- **Previous:** "Move To Pending" button with an icon.
+- **Decision:** a shorter non-destructive verb (Jana's "Remove" rejected — reads as delete); text-only button.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:14:30`; user 2026-09-24.
+
+### DEC-195: A stop shows only its own date
+- **Previous:** both Pickup and Delivery date on every stop, the inapplicable one `--`.
+- **Decision:** pickup stops show the pickup date/time, delivery stops the delivery date/time.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:23:47`; user 2026-09-24.
+
+### DEC-196: Per-order compare = the Direct field set, line-level fields per order line
+- **Previous:** 7 tender rows, no line-level fields (OC-open-12).
+- **Decision:** the Direct review's full field set with Changed / Unchanged bands; line-level fields render once per order line, grouped *Line 1, Line 2…*, each with its own changed marker.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:00:48`, `@00:02:18`; user 2026-09-24.
+
+### DEC-197: Prior plan side by side with the new plan, not collapsible
+- **Previous:** a New/Prior toggle swapping one timeline.
+- **Decision:** Prior and New render side by side, both always visible; width comes from the Pending column and the stop content. Jana's sliding/collapsible pane is not taken.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:09:34`; user 2026-09-24 ("no collapsable anything").
+
+### DEC-198: Distance per leg, recomputed on reorder
+- **Previous:** per-stop distance hard-coded `--`; header total not recomputed after edits.
+- **Decision:** each consecutive-stop leg shows its distance; reordering or placing a stop recomputes legs and the header total.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:18:33`; user 2026-09-24.
+
+### DEC-199: Stop date/time editable; out-of-window orders flagged, never blocked
+- **Previous:** stop dates read-only (OC-open-13).
+- **Decision:** each stop's own date and time are editable. An order whose earliest/latest planning window the stop date misses is flagged on the order inside the stop and in Planning Dates; the order's planning dates stay read-only.
+- **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:19:53–00:23:28`; LINX-15669 §3–5; user 2026-09-24.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 24, 2026 | **DEC-191 through DEC-199** — Jana's walkthrough of the consolidated order change + user rulings: Affected Orders pickup-only; one DB-backed source per value; **system placement replaces the S144 stop picker**; new label for Move To Pending; own-date-only stops; Direct field set + per-line blocks in the compare; prior/new side by side; per-leg distance; editable stop dates with out-of-window flags. **Previous state:** S142–S144 build |
 | Sep 24, 2026 | **DEC-190** — **TE-3, tender acceptance confirmation email**: added on a user ruling (2026-09-24, requested by Adam Shingle), **not** in LINX-15795/15796/15800 — no story AC covers it. Fires only on a recorded Accept (never Decline), reuses TE-1's layout/blocks and recipient formula verbatim, subject mirrors Dave's TE-1 rule with "Tender Acceptance Confirmation" swapped in (flagged as placeholder wording pending Adam/Dave sign-off, same as TE-1's own open subject question); the review page's Accepted banner grows one line naming the carrier's synthesized ops mailbox, gated to the Email method only (Email & EDI never shows response buttons, so this line is skipped there too). **Previous state:** no acceptance email; on-page confirmation only (15796 AC-03) |
 | Sep 22, 2026 | **DEC-177 through DEC-189** (S157) — **tender communication** (LINX-15795/15796/15800 + BR-11): the Tender Review page normalises the VD's spotbid copy, shows *Tendered* not *Offer expires* (no tender expiry exists), references the Odyssey Shipment ID and omits rows the VM lacks; Dave's subject line verbatim with his customer-short-name guess; the VD's five decline reasons pending Dave; synthesized `To:`; no carrier-side cascade; no Accept dialog; `Email Links Update` with a null `responseUser`; once-only enforced by `expectStatus` → 409; deterministic seeded tokens with ids verified unmoved (reseed owed); the `Manual` confirm dialog |
 | Sep 18, 2026 | **DEC-176** — the Routing History surface, three user rulings: each section shows **only its own data** (SCAC-only anchor, response columns out of Routing Options; 64 → 49 columns; amends DEC-170), the **newest version opens on arrival**, and the section cards are **outlined with 16px titles** under a full-bleed header rule. Found underneath: **nested SubAccordions had never collapsed** (descendant selectors in `components.css`, now `>`-scoped) — the Angular twin likely carries the same bug |

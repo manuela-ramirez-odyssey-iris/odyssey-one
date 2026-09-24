@@ -136,9 +136,12 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
           {isPickup && <ReviewField label="PickUp no." value={stop.pickupNo} />}
         </div>
       </div>
+      {/* DEC-191 (Jana 2026-09-24): pickup stops only — everything picked up
+          is delivered, so delivery repeats it. The empty aside keeps the
+          stop cards the same width. */}
       <div className="stops-item__affected">
-        <HeaderStrip title="Affected Orders" />
-        {affected.length > 0 ? (
+        {isPickup && <HeaderStrip title="Affected Orders" />}
+        {!isPickup ? null : affected.length > 0 ? (
           <div className="stops-item__order-list">
             {affected.map((id) => (
               <div className="stops-item__affected-row" key={id}>

@@ -189,33 +189,23 @@ describe('gate, totals, prior diff, dto', () => {
   })
 })
 
-describe('addToStop with a chosen stop (VD 2076-8110, LINX-15871)', () => {
-  it('puts the order on the chosen pickup stop and match-or-creates its delivery leg', () => {
+describe('addToStop — system placement (DEC-193)', () => {
+  it('an order whose locations still have stops rejoins them — no picker, no new stop', () => {
     let s = initSandbox({ stops, consolidation: noChange, orders })
-    s = moveToPending(s, 'C')                                  // C leaves P2 (removed) and D1
-    expect(labelsOf(s)).toEqual(['P1', 'D1'])
-    s = addToStop(s, 'C', orders, 's1')                        // chosen: Stop 1 = P1 (X, City) — not C's own origin
-    expect(s.stops[0].orderIds).toEqual(['A', 'B', 'C'])       // sits on the chosen stop, no new P?
-    expect(labelsOf(s)).toEqual(['P1', 'D1'])                  // delivery matched Z, Ville
-    expect(s.stops[1].orderIds).toContain('C')
+    s = addToStop(moveToPending(s, 'A'), 'A', orders)          // P1 (X, City) survives via B
+    expect(labelsOf(s)).toEqual(['P1', 'P2', 'D1'])
+    expect(s.stops[0].orderIds).toContain('A')
+    expect(s.stops[2].orderIds).toContain('A')
     expect(s.pending).toEqual([])
-    expect(s.dirty).toBe(true); expect(s.routed).toBe(false)
   })
-  it('chosen delivery stop: order joins it; pickup leg creates P? when unmatched', () => {
+  it('a new-location pickup creates P? and never lands on a delivery stop', () => {
     let s = initSandbox({ stops, consolidation: noChange, orders })
-    s = moveToPending(s, 'C')
     const ext = [...orders, { orderNumber: 'E', shipFrom: { location: 'W, Far' }, shipTo: { location: 'Z, Ville' }, grossWeight: '1 LB', totalVolume: '1 cuft', earliestPickup: '2026-06-01', earliestDelivery: '2026-06-03' }]
-    s = addPending(s, ['E'])
-    s = addToStop(s, 'E', ext, 's3')                            // Stop key of D1
-    expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1'])
-    expect(s.stops[1]).toMatchObject({ type: 'pickup', unsequenced: true, orderIds: ['E'], location: 'W, Far' })
-    expect(s.stops[2].orderIds).toContain('E')
-  })
-  it('unknown stopKey falls back to automatic placement (DEC-138)', () => {
-    let s = initSandbox({ stops, consolidation: noChange, orders })
-    s = moveToPending(s, 'C')
-    const auto = addToStop(s, 'C', orders)
-    expect(addToStop(s, 'C', orders, 'nope').stops).toEqual(auto.stops)
+    s = addToStop(addPending(s, ['E']), 'E', ext)
+    const withE = s.stops.filter((st) => st.orderIds.includes('E'))
+    expect(withE.map((st) => st.type).sort()).toEqual(['delivery', 'pickup'])
+    expect(withE.find((st) => st.type === 'pickup')).toMatchObject({ unsequenced: true, location: 'W, Far' })
+    expect(labelsOf(s)).toContain('P?')
   })
 })
 

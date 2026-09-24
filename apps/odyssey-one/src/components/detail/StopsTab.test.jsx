@@ -113,6 +113,12 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     expect(screen.getByRole('dialog', { name: 'Order Changes' })).toBeTruthy()
     expect(screen.getByText('Order Number: B')).toBeTruthy()
   })
+  it('shows Affected Orders on pickup stops only (DEC-191)', () => {
+    renderReview()
+    const rows = [...document.querySelectorAll('.odyssey-timeline__row')]
+    const delivery = rows.find((r) => r.textContent.includes('Delivery'))
+    expect(within(delivery).queryByText('Affected Orders')).toBeNull()
+  })
   it('wraps New Consolidated Cost with a tooltip explaining the N/A when a location changed', () => {
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true, costs: { ...consolidation.costs, newConsolidated: null } } } })
     const label = screen.getByText('New Consolidated Cost')

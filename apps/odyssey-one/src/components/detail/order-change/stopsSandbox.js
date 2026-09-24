@@ -147,19 +147,16 @@ export function moveToPending(sb, id) {
   return { ...sb, stops, pending: [...sb.pending, id], dirty: true, routed: false }
 }
 
-// LINX-15871 + VD 2076-8110: put a pending order back. With `stopKey` the
-// planner chose the stop (Add to → Stop N): the order joins THAT stop as its
-// type's leg and only the other leg is matched-or-created. Without it (or an
-// unknown key) both legs place automatically (DEC-138 fallback).
-export function addToStop(sb, id, orders, stopKey) {
+// LINX-15871 + DEC-193 (Jana 2026-09-24, reverses the S144 stop picker):
+// placement is the system's. Each leg joins a stop of the SAME type at the
+// same location, else a new P?/D? the planner sequences. Legs never cross.
+export function addToStop(sb, id, orders) {
   const order = orders.find((o) => o.orderNumber === id)
   if (!order) return sb
   const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   let seq = sb.seq
-  const chosen = stopKey ? stops.find((s) => s.key === stopKey) : null
-  if (chosen && !chosen.orderIds.includes(id)) chosen.orderIds.push(id)
-  if (chosen?.type !== 'pickup') placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`, orders)
-  if (chosen?.type !== 'delivery') placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`, orders)
+  placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`, orders)
+  placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`, orders)
   const pending = sb.pending.filter((p) => p !== id)
   return { ...sb, stops, pending, seq, dirty: true, routed: false }
 }

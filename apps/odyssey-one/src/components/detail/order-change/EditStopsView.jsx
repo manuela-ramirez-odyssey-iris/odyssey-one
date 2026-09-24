@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ArrowUp, ArrowDown, ClipboardList, Plus, TriangleAlert } from 'lucide-react'
-import { Alert, Badge, Button, HeaderStrip, SubAccordion, TitleSubtitle, ButtonToggle, Timeline, ActionMenu, StepperButtonsFooter } from '@odyssey/ui'
+import { ArrowUp, ArrowDown, TriangleAlert } from 'lucide-react'
+import { Alert, Badge, Button, HeaderStrip, SubAccordion, TitleSubtitle, ButtonToggle, Timeline, StepperButtonsFooter } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -64,9 +64,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     setErrorMsg(null)
     setSb((s) => moveToPending(s, id))
   }
-  const handleAddTo = (id, stopKey) => {
+  const handleAddTo = (id) => {
     setErrorMsg(null)
-    setSb((s) => addToStop(s, id, allOrders, stopKey))
+    setSb((s) => addToStop(s, id, allOrders))
   }
   const handleViewChange = (next) => {
     setErrorMsg(null)
@@ -176,8 +176,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           <div className="edit-stops__fields">
             <TitleSubtitle subtitle="Location" title={s.location || '--'} />
             <TitleSubtitle subtitle="Distance" title="--" />
-            <TitleSubtitle subtitle="Pickup Date" title={isPickup ? (s.date || '--') : '--'} />
-            <TitleSubtitle subtitle="Delivery Date" title={!isPickup ? (s.date || '--') : '--'} />
+            {/* DEC-195: a stop shows only its own date. */}
+            <TitleSubtitle subtitle={isPickup ? 'Pickup Date' : 'Delivery Date'} title={s.date || '--'} />
           </div>
           <div className="edit-stops__orders">
             {s.orderIds.map((id) => {
@@ -198,16 +198,16 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                   </div>
                   {singleOrderLeft ? (
                     <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
-                      <Button variant="secondary" icon={<ClipboardList {...ICON_MD} />} disabled>Move To Pending</Button>
+                      <Button variant="secondary" disabled>Set Aside</Button>
                     </TooltipTrigger>
                   ) : (
                     <Button
                       variant="secondary"
-                      icon={<ClipboardList {...ICON_MD} />}
                       disabled={isPrior}
                       onClick={() => handleMoveToPending(id)}
                     >
-                      Move To Pending
+                      {/* DEC-194: "Move To Pending" → "Set Aside", text only. */}
+                      Set Aside
                     </Button>
                   )}
                 </div>
@@ -273,19 +273,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>
                   <Button variant="link" onClick={() => {}}>{id}</Button>
                 </TooltipTrigger>
-                {isPrior
-                  ? <Button variant="secondary" icon={<Plus {...ICON_MD} />} disabled>Add to</Button>
-                  : (
-                    <ActionMenu
-                      label="Add to"
-                      ariaLabel={`Add to stop — order ${id}`}
-                      align="right"
-                      // D3 — the planner chooses; type + location make the choice readable.
-                      // VD 2076-8110 / DEC-140: the pending column is a buffer pool, not
-                      // an auto-matcher — Add to opens a menu of stops instead of guessing one.
-                      options={sb.stops.map((s, i) => ({ id: s.key, label: `Stop ${i + 1} · ${s.type === 'pickup' ? 'Pickup' : 'Delivery'} · ${s.location || '--'}`, onSelect: () => handleAddTo(id, s.key) }))}
-                    />
-                  )}
+                {/* DEC-193: no stop picker — the system places each leg
+                    (same type + location, else a new P?/D?). */}
+                <Button variant="secondary" disabled={isPrior} aria-label={`Add order ${id}`} onClick={() => handleAddTo(id)}>Add</Button>
               </div>
             ))}
           </div>

@@ -102,24 +102,29 @@ it('arrows reorder and renumber; an illegal move shows the 15669 message in an e
   expect(screen.getByText('An order must be picked up before it can be delivered.')).toBeTruthy()
 })
 
-it('Move To Pending moves the order to the pending column; the last remaining order is disabled with the tooltip copy', () => {
+it('Set Aside moves the order to the pending column; the last remaining order is disabled with the tooltip copy', () => {
   setup()
-  const moveToPendingButtons = screen.getAllByRole('button', { name: 'Move To Pending' })
+  const moveToPendingButtons = screen.getAllByRole('button', { name: 'Set Aside' })
   fireEvent.click(moveToPendingButtons[0]) // pends A
-  expect(screen.getByRole('button', { name: 'Add to stop — order A' })).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Add order A' })).toBeTruthy()
   const pendingLink = screen.getAllByRole('button').find((b) => b.textContent === 'A')
   expect(pendingLink).toBeTruthy()
 })
 
-it('Add to opens a Stop N menu; picking a stop puts the order there (VD 2076-8110)', () => {
+it('Add places the order automatically — no stop menu; a new location becomes P? (DEC-193)', () => {
   setup()
-  fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[2])   // C off P2/D1
-  fireEvent.click(screen.getByRole('button', { name: 'Add to stop — order C' }))
-  const items = screen.getAllByRole('menuitem')
-  expect(items.map((i) => i.textContent)).toEqual(['Stop 1 · Pickup · X, City', 'Stop 2 · Delivery · Z, Ville'])   // P1, D1 after P2 emptied
-  fireEvent.click(items[0])
-  expect(screen.queryByRole('button', { name: 'Add to stop — order C' })).toBeNull()
-  expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('C')
+  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])   // C off P2/D1 — P2 empties
+  fireEvent.click(screen.getByRole('button', { name: 'Add order C' }))
+  expect(screen.queryByRole('menuitem')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Add order C' })).toBeNull()
+  expect(screen.getByText('P?')).toBeTruthy()                                 // Y, Town has no pickup stop left
+})
+
+it('a stop shows only its own date (DEC-195)', () => {
+  setup()
+  const p1 = screen.getByText('Stop 1').closest('.edit-stops__card')
+  expect(p1.textContent).toContain('Pickup Date')
+  expect(p1.textContent).not.toContain('Delivery Date')
 })
 
 it('Approve Changes asks for confirmation, then calls onApprove (VD 2066-77150)', () => {
@@ -160,7 +165,7 @@ it('View Routing disabled while a P? exists; enabled otherwise; clicking marks r
   fireEvent.click(routingBtn)
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(false)
   // any further edit clears routed -> disables approve again
-  fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[0])
+  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0])
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
@@ -175,7 +180,7 @@ it('Prior toggle disabled until dirty; in Prior view the title, alert copy, mute
   const priorBtn = screen.getByRole('button', { name: 'Prior' })
   expect(priorBtn.disabled).toBe(true)
   // Stop 2 (P2) holds only order C — pending it empties and removes the stop.
-  fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[2])
+  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])
   expect(screen.getByRole('button', { name: 'Prior' }).disabled).toBe(false)
   fireEvent.click(screen.getByRole('button', { name: 'Prior' }))
   expect(screen.getByText('All Stops - Prior to changes')).toBeTruthy()
@@ -201,22 +206,21 @@ it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when 
 
   cleanup()
   const dirty = setup()
-  fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[0])
+  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0])
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   expect(screen.getByText('Discard changes?')).toBeTruthy()
   expect(dirty.onCancel).not.toHaveBeenCalled()
 })
 
-it('Add New Order opens the modal; added orders land in pending with Add to; a placed external order rides Approve as externalOrders', async () => {
+it('Add New Order opens the modal; added orders land in pending with Add; a placed external order rides Approve as externalOrders', async () => {
   const { onApprove } = setup({ sellShipment: '9', customerId: 'ERCO', customerName: 'Erco' })
   // Pend C first (as the other Add-to test does) so P1 (A, B) is the only
   // pickup stop left — isolates the "17 LB" total to A(5)+B(5)+E(7) below.
-  fireEvent.click(screen.getAllByRole('button', { name: 'Move To Pending' })[2])
+  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])
   fireEvent.click(screen.getByRole('button', { name: 'Add New Order' }))
   fireEvent.click(screen.getByText('mock-add'))
   expect(await screen.findByRole('button', { name: 'E' })).toBeTruthy()          // pending row link
-  fireEvent.click(screen.getByRole('button', { name: 'Add to stop — order E' }))
-  fireEvent.click(screen.getAllByRole('menuitem')[0])                            // Stop 1 (P1, X, City)
+  fireEvent.click(screen.getByRole('button', { name: 'Add order E' }))            // auto: P1 (X, City)
   expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('E')
   expect(screen.getByText('17 LB')).toBeTruthy()                                  // 5+5+7 — external order counts in totals
   fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
