@@ -105,6 +105,18 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   padding-bottom: var(--spacing-4);
+  /* Stays in view while the stop list scrolls (S158, user 2026-09-24). */
+  position: sticky;
+  top: var(--spacing-4);
+  align-self: flex-start;
+}
+
+/* Bleeds to <main>'s edges like the other page footers; width: auto lets the
+   negative margins widen the (sticky) bar instead of shifting it. */
+.edit-stops__footer {
+  margin-inline: calc(-1 * var(--spacing-8));
+  width: auto;
+  margin-top: var(--spacing-6);
 }
 
 .edit-stops__pending--muted {
@@ -164,3 +176,7 @@
    dimmer than the darker unblocked rows (contrast ratio ~5.6:1 between the
    two), so the value carries over unchanged. */
 .add-orders__blocked { opacity: 0.45; }
+
+/* The sticky footer sits flush on <main>'s bottom edge — drop the page's own
+   bottom padding (same as .consolidation-review). */
+.order-change--edit-stops { padding-bottom: 0; }

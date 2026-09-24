@@ -111,7 +111,7 @@ export default function OrderChangeEditStopsRoute() {
         onClose: exit,
       }}
     >
-      <div className="order-change">
+      <div className="order-change order-change--edit-stops">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Shipment" onClick={() => closeSheet('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
           <Breadcrumb label="Review Order Change" onClick={exit} />

@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowUp, ArrowDown, ClipboardList, Plus, TriangleAlert } from 'lucide-react'
-import {
-  Alert, Badge, Button, HeaderStrip, ModalFooter, SubAccordion, TitleSubtitle, ButtonToggle, Timeline, ActionMenu,
-} from '@odyssey/ui'
+import { Alert, Badge, Button, HeaderStrip, SubAccordion, TitleSubtitle, ButtonToggle, Timeline, ActionMenu, StepperButtonsFooter } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -294,13 +292,16 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         </div>
       </SubAccordion>
 
-      <ModalFooter
-        type="confirm"
+      {/* Page footer (S158, user 2026-09-24): the normalized sticky
+          StepperButtonsFooter replaces the in-flow ModalFooter, so Cancel /
+          Approve Changes stay reachable while the stop list scrolls. */}
+      <StepperButtonsFooter
+        className="edit-stops__footer"
         cancelLabel="Cancel"
-        saveLabel="Approve Changes"
-        saveDisabled={!sb.routed || isPrior || saving}
+        primaryLabel="Approve Changes"
+        primaryDisabled={!sb.routed || isPrior || saving}
         onCancel={handleCancel}
-        onSave={() => setModal('confirm')}
+        onPrimary={() => setModal('confirm')}
       />
 
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} onClose={() => setModal(null)} />}

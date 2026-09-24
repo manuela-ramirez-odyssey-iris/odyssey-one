@@ -2432,7 +2432,9 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   grid-template-rows: 1fr;
 }
 .sub-accordion__reveal-inner {
-  overflow: hidden;
+  /* clip, not hidden (S158): same visual clip for the collapse animation, but
+     not a scroll container — so position: sticky inside the content still works. */
+  overflow: clip;
   min-height: 0;
 }
 /* The 24px (spacing/6) header↔content gap lives here so the collapsed card
