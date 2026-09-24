@@ -3,7 +3,7 @@ import { Container } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Tab, ButtonToggle, PillTab, Widget, WidgetMini } from '@odyssey/ui'
 import { PANEL_CONFIG } from '../../data/panelConfig'
-import { PGIPGR_WIDGETS, widgetTotal } from '../../data/pgipgrWidgets'
+import { PGIPGR_WIDGETS, widgetTotal, effectivePgipgrTab } from '../../data/pgipgrWidgets'
 
 // Shipments panel header — replaces the retired MonitorPanels + ShipmentTabs.
 // Two rows, per Efrain's 2026-07-04 Shipments redesign (Figma usage frames
@@ -49,7 +49,6 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
 
   const categories = PANEL_CONFIG[activePanel]?.categories ?? []
   const total = panelTotal(activePanel)
-  const allTotal = PGIPGR_WIDGETS.reduce((sum, w) => sum + (counts[w.badgeKey] || widgetTotal(w)), 0)
   const rows = [
     { key: 'all', label: 'All', count: total },
     ...categories.map(c => ({ key: c.key, label: c.label, count: counts[c.badgeKey] ?? 0 })),
@@ -57,7 +56,10 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
 
   return (
     <div>
-      <div className="flex items-center justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
+      {/* PGI/PGR gets more room under the tab underline before "Executed
+          Shipment Overview" (~40px in Figma — --spacing-9/36px is the
+          nearest token; every other panel keeps the original 16px). */}
+      <div className="flex items-center justify-between" style={{ marginBottom: activePanel === 'pgipgr' ? 'var(--spacing-9)' : 'var(--spacing-4)' }}>
         <div className="flex items-center" style={{ gap: 'var(--spacing-6)' }}>
           {panelEntries.map(([key, panel]) => (
             <Tab
@@ -80,49 +82,34 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
           />
         )}
       </div>
+      {/* Section header above the 4 category cards — screenshot-confirmed on
+          every PGI/PGR variant (Figma node 2554:58830 et al). */}
+      {activePanel === 'pgipgr' && (
+        <h2 className="text-heading-lg-semibold" style={{ marginBottom: 'var(--spacing-6)' }}>
+          Executed Shipment Overview
+        </h2>
+      )}
       {effectiveMode === 'widgets' && activePanel === 'pgipgr' ? (
-        // PGI/PGR's three subtabs each carry a breakdown the other panels have
-        // no equivalent for, so in widget mode they render as full 3xChart
-        // widgets (donut + legend) rather than the WidgetMini strip (user,
-        // 2026-09-18). Counts are hardcoded — nothing in the corpus is on this
-        // panel; see pgipgrWidgets.js.
+        // PGI/PGR's four categories each carry a breakdown the other panels
+        // have no equivalent for, so in widget mode they render as full
+        // 3xChart widgets (donut + legend) rather than the WidgetMini strip
+        // (user, 2026-09-18). No roll-up "All" card — the 2026-09-24 Figma
+        // pass shows exactly four selectable cards, one per category (S159).
+        // Counts are hardcoded — nothing in the corpus is on this panel; see
+        // pgipgrWidgets.js.
         //
-        // The WHOLE card selects its subtab, and none of the four carries a
+        // The WHOLE card selects its category, and none of the four carries a
         // footer Go-to link or a row handler (user, 2026-09-18: "turn off
         // button link on all four widget instances we dont need them"). That
         // is also what lets Widget give the card `role="button"` — with no
         // interactive children there is no button nested inside a button — so
         // these are keyboard-operable and announce their pressed state.
-        <div className="flex" style={{ gap: 'var(--spacing-3)', alignItems: 'stretch' }}>
-          {/* "All" keeps its place at the head of the category row. Its donut
-              is the three CATEGORIES against each other — one colour each —
-              where the cards beside it break each category down internally.
-              Its rows are read-only: the three cards next to it already are
-              the way into each subtab. */}
-          <Widget
-            variant="3xChart"
-            selected={activeTab === 'all'}
-            onSelect={() => onTabSelect('all')}
-            style={{ flex: 1, minWidth: 0 }}
-            title="All"
-            domainIcon={<Container {...ICON_LG} />}
-            value={allTotal}
-            label="PGI/PGR shipments"
-            rows={PGIPGR_WIDGETS.map(w => ({
-              label: w.title,
-              value: counts[w.badgeKey] || widgetTotal(w),
-              indicatorColor: w.rollupColor,
-            }))}
-            chartSegments={PGIPGR_WIDGETS.map(w => ({
-              value: counts[w.badgeKey] || widgetTotal(w),
-              color: w.rollupColor,
-            }))}
-          />
+        <div className="flex" style={{ gap: 'var(--spacing-3)', alignItems: 'stretch', marginBottom: 'var(--spacing-4)' }}>
           {PGIPGR_WIDGETS.map((w, i) => (
             <Widget
               key={w.key}
               variant="3xChart"
-              selected={activeTab === w.key}
+              selected={effectivePgipgrTab(activeTab) === w.key}
               onSelect={() => onTabSelect(w.key)}
               style={{ flex: 1, minWidth: 0 }}
               title={w.title}
@@ -131,6 +118,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
               label={w.metricLabel}
               rows={w.slices.map(s => ({ label: s.label, value: s.value, indicatorColor: s.color }))}
               chartSegments={w.slices.map(s => ({ value: s.value, color: s.color }))}
+              chartTotal={w.chartTotal}
               chartDelayMs={i * 90}
             />
           ))}

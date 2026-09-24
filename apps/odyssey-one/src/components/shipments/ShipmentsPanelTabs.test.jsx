@@ -6,13 +6,15 @@ import { PGIPGR_WIDGETS, widgetTotal } from '../../data/pgipgrWidgets'
 
 afterEach(cleanup)
 
-const metrics = { pgipgrErrors: 348, ratingFailure: 126, manualPgipgr: 194 }
+// Matches PGIPGR_WIDGETS' own widgetTotal() per card (130 / 354 / 61 / 61) —
+// see the "the donut has one segment per slice…" test below.
+const metrics = { postErrors: 130, allSellShipments: 354, ratingErrors: 61, notResponsible: 61 }
 const setup = (props = {}) =>
   render(
     <ShipmentsPanelTabs
       activePanel="pgipgr"
       onPanelSelect={() => {}}
-      activeTab="all"
+      activeTab="post-errors"
       onTabSelect={() => {}}
       metrics={metrics}
       viewMode="widgets"
@@ -20,67 +22,55 @@ const setup = (props = {}) =>
     />,
   )
 
-// S153 — PGI/PGR's three subtabs each carry a breakdown the other panels have no
-// equivalent for, so widget mode renders them as 3xChart widgets, not the
-// WidgetMini strip.
+// S159 — PGI/PGR's four categories each carry a breakdown the other panels
+// have no equivalent for, so widget mode renders them as 3xChart widgets, not
+// the WidgetMini strip. No roll-up "All" card (retired with the 3-category
+// shape) — exactly four selectable cards, one per category.
 describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
-  it('leads with an All widget charting the three categories against each other', () => {
+  it('renders one 3xChart widget per category, with its centre metric', () => {
     const { container } = setup()
-    const all = container.querySelectorAll('.widget--3xChart')[0]
-    expect(all.textContent).toContain('All')
-    expect(all.parentElement.firstElementChild).toBe(all)  // leads the row
-    // Three slices — one per CATEGORY — plus the --chart-rest backing circle,
-    // where the cards beside it break each category down internally.
-    expect(all.querySelectorAll('svg circle')).toHaveLength(PGIPGR_WIDGETS.length + 1)
-    for (const w of PGIPGR_WIDGETS) expect(within(all).getByText(w.title)).toBeTruthy()
-    // Centre metric is the panel total. Asserted on the label + the segment
-    // sum, not the number itself: Widget count-ups animate from 0, so the text
-    // is mid-flight at this point (Widget owns that behaviour and tests it).
-    expect(within(all).getByText('PGI/PGR shipments')).toBeTruthy()
-    expect(PGIPGR_WIDGETS.reduce((sum, w) => sum + widgetTotal(w), 0))
-      .toBe(Object.values(metrics).reduce((a, b) => a + b, 0))
-  })
-
-  it('All rows are read-only — the three cards beside it are the way in', () => {
-    const onTabSelect = vi.fn()
-    const { container } = setup({ onTabSelect })
-    const all = container.querySelectorAll('.widget--3xChart')[0]
-    fireEvent.click(within(all).getByText('Manual PGI/PGR'))
-    // Clicking a row selects the CARD it is in (All), never a sibling subtab.
-    expect(onTabSelect).not.toHaveBeenCalledWith('manual-pgipgr')
-  })
-
-  it('renders one 3xChart widget per subtab, with its centre metric', () => {
-    const { container } = setup()
-    const widgets = [...container.querySelectorAll('.widget--3xChart')].slice(1)  // [0] is All
-    expect(widgets).toHaveLength(3)
+    const widgets = [...container.querySelectorAll('.widget--3xChart')]
+    expect(widgets).toHaveLength(PGIPGR_WIDGETS.length)
     for (const w of PGIPGR_WIDGETS) {
-      const card = [...widgets].find((el) => el.textContent.includes(w.title))
+      const card = widgets.find((el) => el.textContent.includes(w.title))
       expect(card, w.title).toBeTruthy()
       expect(card.textContent).toContain(w.metricLabel)
-      // Every slice appears as a legend row.
-      for (const s of w.slices) expect(within(card).getByText(s.label)).toBeTruthy()
+      // Every slice appears as a legend row. Single-slice cards repeat the
+      // card title verbatim as their one slice's label (per the mock), so
+      // that text is expected TWICE in the card (title + legend row).
+      for (const s of w.slices) expect(within(card).getAllByText(s.label).length).toBeGreaterThan(0)
     }
   })
 
   it('the donut has one segment per slice and the legend totals the centre metric', () => {
     const { container } = setup()
     const card = [...container.querySelectorAll('.widget--3xChart')]
-      .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'PGI/PGR Errors')
-    // 10 slices + the --chart-rest backing circle.
+      .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'Post PGI/PGR Errors')
+    // 2 slices (SCAC Error, Shipment ID Not Found) + the --chart-rest backing circle.
     expect(card.querySelectorAll('svg circle')).toHaveLength(PGIPGR_WIDGETS[0].slices.length + 1)
-    expect(widgetTotal(PGIPGR_WIDGETS[0])).toBe(metrics.pgipgrErrors)
+    expect(widgetTotal(PGIPGR_WIDGETS[0])).toBe(metrics.postErrors)
   })
 
-  // The whole card is the hit area (user, 2026-09-18) — not just the footer link.
-  it('a click on the card BODY commits that subtab', () => {
+  // Single-slice cards (all but Post PGI/PGR Errors) render a PARTIAL ring —
+  // chartTotal > the slice value, so a grey --chart-rest remainder shows,
+  // matching the mock (user fix). The pie's grow-in animation is timer/RAF
+  // driven (Widget's own concern, already covered elsewhere) — this checks
+  // the DATA invariant that actually produces the partial fill, and that
+  // ShipmentsPanelTabs wires `chartTotal` through to the Widget at all.
+  it('single-slice cards carry a chartTotal greater than their slice value', () => {
+    for (const w of PGIPGR_WIDGETS.filter((w) => w.slices.length === 1)) {
+      expect(w.chartTotal).toBeGreaterThan(w.slices[0].value)
+    }
+  })
+
+  it('a click on the card BODY selects that category', () => {
     const onTabSelect = vi.fn()
     const { container } = setup({ onTabSelect })
     const card = [...container.querySelectorAll('.widget--3xChart')]
-      .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'Manual PGI/PGR')
+      .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'Not Responsible')
     expect(card.className).toContain('widget--selectable')
     fireEvent.click(card.querySelector('.widget__title'))
-    expect(onTabSelect).toHaveBeenCalledWith('manual-pgipgr')
+    expect(onTabSelect).toHaveBeenCalledWith('not-responsible')
   })
 
   // No footer Go-to link on any of the four (user, 2026-09-18) — which is also
@@ -98,26 +88,30 @@ describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
 
   it('each card is a keyboard-operable button announcing its pressed state', () => {
     const onTabSelect = vi.fn()
-    const { container } = setup({ onTabSelect, activeTab: 'rating-failure' })
+    const { container } = setup({ onTabSelect, activeTab: 'rating-errors' })
     const card = [...container.querySelectorAll('.widget--3xChart')]
-      .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'Rating Failure')
+      .find((el) => el.querySelector('.widget__title')?.textContent.trim() === 'Rating Errors')
     expect(card.getAttribute('role')).toBe('button')
     expect(card.getAttribute('tabindex')).toBe('0')
     expect(card.getAttribute('aria-pressed')).toBe('true')
     fireEvent.keyDown(card, { key: 'Enter' })
-    expect(onTabSelect).toHaveBeenCalledWith('rating-failure')
+    expect(onTabSelect).toHaveBeenCalledWith('rating-errors')
   })
 
-  it('marks the active subtab, and only it — All included', () => {
-    const { container } = setup({ activeTab: 'manual-pgipgr' })
-    let current = container.querySelectorAll('.widget--selected')
+  it('marks the active category, and only it', () => {
+    const { container } = setup({ activeTab: 'not-responsible' })
+    const current = container.querySelectorAll('.widget--selected')
     expect(current).toHaveLength(1)
-    expect(current[0].textContent).toContain('Manual PGI/PGR')
-    cleanup()
-    const onAll = setup({ activeTab: 'all' }).container
-    current = onAll.querySelectorAll('.widget--selected')
+    expect(current[0].textContent).toContain('Not Responsible')
+  })
+
+  // A stray legacy 'all' (route default state, consolidate-mode restore) falls
+  // back to the first card rather than selecting nothing.
+  it('falls back to the first card when activeTab is the legacy "all" key', () => {
+    const { container } = setup({ activeTab: 'all' })
+    const current = container.querySelectorAll('.widget--selected')
     expect(current).toHaveLength(1)
-    expect(current[0].textContent).toContain('All')
+    expect(current[0].textContent).toContain(PGIPGR_WIDGETS[0].title)
   })
 
   // The other two panels keep the WidgetMini strip — this is a PGI/PGR-only
@@ -133,7 +127,6 @@ describe('ShipmentsPanelTabs — PGI/PGR widget mode', () => {
   it('is always widget mode, with no toggle, regardless of viewMode', () => {
     const { container } = setup({ viewMode: 'pills' })
     expect(container.querySelectorAll('.widget--3xChart').length).toBeGreaterThan(0)
-    expect(screen.getByText('PGI/PGR shipments')).toBeTruthy()
     expect(screen.queryByText('Pill tabs mode')).toBeNull()
     expect(screen.queryByText('Widget mode')).toBeNull()
   })

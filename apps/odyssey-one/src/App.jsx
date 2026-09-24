@@ -15,6 +15,7 @@ import Tracking from './routes/Tracking.jsx'
 import Users from './routes/Users.jsx'
 import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
+import ExecutedShipmentDetailsRoute from './routes/shipments/ExecutedShipmentDetailsRoute.jsx'
 import OrderChangeReviewRoute from './routes/shipments/OrderChangeReviewRoute.jsx'
 import OrderChangeEditStopsRoute from './routes/shipments/OrderChangeEditStopsRoute.jsx'
 import ConsolidationReviewRoute from './routes/shipments/ConsolidationReviewRoute.jsx'
@@ -74,6 +75,7 @@ function AppRoutes({ location, showHome, showLogin, phase, onLogin }) {
       {/* Listed above the /shipments/* wildcard for readability only — react-router
           v6 ranks routes by specificity, not declaration order, so a dynamic
           segment here already outranks the splat below regardless of position. */}
+      <Route path="/shipments/executed/:id" element={<ExecutedShipmentDetailsRoute />} />
       <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
       <Route path="/shipments/order-change/:sellShipment/stops" element={<OrderChangeEditStopsRoute />} />
       <Route path="/shipments/consolidate/review" element={<ConsolidationReviewRoute />} />

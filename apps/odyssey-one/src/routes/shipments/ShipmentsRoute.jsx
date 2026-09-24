@@ -9,8 +9,9 @@ import BottomBar, { DEFAULT_TAB_ORDER, mergeTabOrder } from '../../components/de
 import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS, mergeLateAddedColumns } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
-import { FileText, Boxes, Combine } from 'lucide-react'
+import { Boxes, Combine } from 'lucide-react'
 import { PageHeader, Badge, Button } from '@odyssey/ui'
+import PgipgrPanel from '../../components/pgipgr/PgipgrPanel'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
 import { attrChip } from '../../components/global-search/savedFilters'
 import { getAllShipments } from '../../data'
@@ -402,9 +403,10 @@ function ShipmentsRoute() {
       // widgets' own totals so the tab, the pill and the widget all say the
       // same number — and the moment PGI/PGR is really modelled, the live
       // count is non-zero and wins without anyone editing this.
-      pgipgrErrors: c(pgipgrCounts, 'pgipgr-errors') || PGIPGR_DEMO_COUNTS.pgipgrErrors,
-      ratingFailure: c(pgipgrCounts, 'rating-failure') || PGIPGR_DEMO_COUNTS.ratingFailure,
-      manualPgipgr: c(pgipgrCounts, 'manual-pgipgr') || PGIPGR_DEMO_COUNTS.manualPgipgr,
+      postErrors: c(pgipgrCounts, 'post-errors') || PGIPGR_DEMO_COUNTS.postErrors,
+      allSellShipments: c(pgipgrCounts, 'all-sell-shipments') || PGIPGR_DEMO_COUNTS.allSellShipments,
+      ratingErrors: c(pgipgrCounts, 'rating-errors') || PGIPGR_DEMO_COUNTS.ratingErrors,
+      notResponsible: c(pgipgrCounts, 'not-responsible') || PGIPGR_DEMO_COUNTS.notResponsible,
     }
   }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
@@ -843,6 +845,10 @@ function ShipmentsRoute() {
         hideZeroCategories={searchActive}
         hideViewToggle={inMode}
       />
+      {/* PGI/PGR has its own single action row per card (PgipgrPanel →
+          PgipgrTable, matching Figma nodes 2554:58830 / 2561:62292 exactly:
+          "N Records Found" + Export, no second toolbar above it). */}
+      {activePanel !== 'pgipgr' && (
       <TableControls
         itemCount={totalCount}
         hideExport={inMode}
@@ -872,15 +878,9 @@ function ShipmentsRoute() {
           URL.revokeObjectURL(url)
         }}
       />
+      )}
       {activePanel === 'pgipgr' ? (
-        <div
-          className="flex flex-col items-center justify-center gap-3"
-          style={{ padding: '48px 0', color: 'var(--text-placeholder)' }}
-        >
-          <FileText size={32} />
-          <div className="text-sm font-medium">Coming soon</div>
-          <div className="text-xs">PGI/PGR monitoring will be available in a future release.</div>
-        </div>
+        <PgipgrPanel activeTab={activeTab} />
       ) : (
         <ShipmentTable
           shipments={tableRows}

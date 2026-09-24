@@ -25,10 +25,14 @@ export const PANEL_CONFIG = {
   },
   pgipgr: {
     title: 'PGI/PGR',
+    // 4 categories per the 2026-09-24 Figma pass (x38TOJGsNryYl3LsKhCtSc), replacing
+    // the earlier 3 (PGI/PGR Errors / Rating Failure / Manual PGI/PGR — Manual
+    // PGI/PGR is retired). See data/pgipgrWidgets.js for the widget breakdowns.
     categories: [
-      { key: 'pgipgr-errors', label: 'PGI/PGR Errors', badgeKey: 'pgipgrErrors' },
-      { key: 'rating-failure', label: 'Rating Failure', badgeKey: 'ratingFailure' },
-      { key: 'manual-pgipgr', label: 'Manual PGI/PGR', badgeKey: 'manualPgipgr' },
+      { key: 'post-errors', label: 'Post PGI/PGR Errors', badgeKey: 'postErrors' },
+      { key: 'all-sell-shipments', label: 'All Sell Shipments', badgeKey: 'allSellShipments' },
+      { key: 'rating-errors', label: 'Rating Errors', badgeKey: 'ratingErrors' },
+      { key: 'not-responsible', label: 'Not Responsible', badgeKey: 'notResponsible' },
     ],
   },
 }

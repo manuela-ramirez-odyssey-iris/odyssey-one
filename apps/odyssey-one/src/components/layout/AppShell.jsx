@@ -1,6 +1,7 @@
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import CustomersModal from '../CustomersModal'
+import ToastHost from './ToastHost'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useSidebar } from '../../contexts/SidebarContext.jsx'
@@ -66,6 +67,7 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
         {filterPanel}
       </div>
       {modalOpen && <CustomersModal />}
+      <ToastHost />
     </div>
   )
 }

@@ -8012,3 +8012,10 @@ button.breadcrumb__label:focus-visible {
   /* S155 §1.4: more air between this row and the panel tabs below. */
   margin-bottom: var(--spacing-8);
 }
+
+/* Executed Shipment Details footer bleeds to <main>'s edges (full width, only
+   the sidebar respected) — same as .consolidation-review__footer / .edit-stops__footer. */
+.executed-shipment__footer {
+  margin-inline: calc(-1 * var(--spacing-8));
+  width: auto;
+}

@@ -206,9 +206,9 @@ describe('consolidate mode — PGI/PGR is hidden (S154)', () => {
   test('entering the mode from the PGI/PGR panel lands the planner on Shipment Exceptions with the table visible', async () => {
     renderRoute({ panel: 'pgipgr' })
     await screen.findByRole('heading', { name: 'Shipments' })
-    expect(screen.getByText('Coming soon')).toBeTruthy()
+    expect(screen.getByText('Executed Shipment Overview')).toBeTruthy()
     await enterMode()
-    expect(screen.queryByText('Coming soon')).toBeNull()
+    expect(screen.queryByText('Executed Shipment Overview')).toBeNull()
     await waitFor(() => expect(rowBoxes().length).toBeGreaterThan(0))
   })
 
@@ -218,8 +218,19 @@ describe('consolidate mode — PGI/PGR is hidden (S154)', () => {
     await enterMode()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     await screen.findByRole('heading', { name: 'Shipments' })
-    expect(await screen.findByText('Coming soon')).toBeTruthy()
+    expect(await screen.findByText('Executed Shipment Overview')).toBeTruthy()
     expect(screen.queryAllByRole('checkbox').filter((c) => c.getAttribute('aria-label')?.startsWith('Select '))).toHaveLength(0)
+  })
+
+  // S159 fix — the route-level TableControls toolbar (count + Export) used to
+  // render above PgipgrPanel's own action row regardless of panel, giving
+  // PGI/PGR two "Export" buttons and two record counters. Figma (2554:58830 /
+  // 2561:62292) shows exactly one action row per card.
+  test('PGI/PGR shows exactly one action row: one Export button, one record count', async () => {
+    renderRoute({ panel: 'pgipgr' })
+    await screen.findByText('Executed Shipment Overview')
+    expect(screen.getAllByRole('button', { name: 'Export' })).toHaveLength(1)
+    expect(screen.getByText(/Records Found$/)).toBeTruthy()
   })
 })
 
@@ -484,7 +495,7 @@ describe('PGI/PGR has no ShipmentsBar (Part 6, S158)', () => {
     await screen.findByRole('heading', { name: 'Shipments' })
     expect(document.querySelector('.shipments-bar__strip')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /^PGI\/PGR/ }))
-    await waitFor(() => expect(screen.getByText('Coming soon')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Executed Shipment Overview')).toBeTruthy())
     expect(document.querySelector('.shipments-bar__strip')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /^Shipment Exceptions/ }))
     await waitFor(() => expect(document.querySelector('.shipments-bar__strip')).toBeTruthy())
