@@ -1,5 +1,7 @@
 import { createPortal } from 'react-dom'
-import { Button, GroupTable, ModalMedium } from '@odyssey/ui'
+import { Badge, Button, GroupTable, ModalMedium } from '@odyssey/ui'
+import { TriangleAlert } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
 // LINX-15435 "Planning information shall be displayed for all orders in the
@@ -18,7 +20,12 @@ const COLUMNS = [
   { key: 'latestDelivery', label: 'Latest Delivery' },
 ]
 
-export default function PlanningDatesModal({ orders = [], onClose }) {
+// DEC-199: the bound a stop date misses is badged (never edited — the
+// order's window is the customer's reference).
+const MISSED = { 'pickup:early': 'earliestShip', 'pickup:late': 'latestShip', 'delivery:early': 'earliestDelivery', 'delivery:late': 'latestDelivery' }
+
+export default function PlanningDatesModal({ orders = [], violations = [], onClose }) {
+  const missed = new Set(violations.map((v) => `${v.orderId}:${MISSED[`${v.type}:${v.side}`]}`))
   const rows = orders.map((o) => ({
     order: o.orderNumber,
     planningType: o.planningType,
@@ -36,7 +43,9 @@ export default function PlanningDatesModal({ orders = [], onClose }) {
       onClose={onClose}
       footer={<Button variant="secondary" onClick={onClose}>Go Back</Button>}
     >
-      <GroupTable flat columns={COLUMNS} groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => val(r[c.key]))} />
+      <GroupTable flat columns={COLUMNS} groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => (missed.has(`${r.order}:${c.key}`)
+        ? <Badge variant="amber" leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />}>{val(r[c.key])}</Badge>
+        : val(r[c.key])))} />
     </ModalMedium>,
     document.body,
   )

@@ -68,6 +68,14 @@
   padding: var(--spacing-4);
 }
 
+.edit-stops__date {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--spacing-3);
+  align-items: end;
+}
+
 .edit-stops__orders {
   display: flex;
   flex-direction: column;
@@ -94,12 +102,23 @@
   gap: var(--spacing-3);
 }
 
-/* Right column — Orders Pending To Assign. 391px per the VD. */
+/* DEC-197: Prior | New side by side, equal share of what the pending
+   column leaves; Prior is read-only. */
+.edit-stops__plan {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+/* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
+   300px to make room for the Prior plan (DEC-197, user 2026-09-24). */
 .edit-stops__pending {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
-  width: 391px;
+  width: 300px;
   flex-shrink: 0;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -117,12 +136,6 @@
   margin-inline: calc(-1 * var(--spacing-8));
   width: auto;
   margin-top: var(--spacing-6);
-}
-
-.edit-stops__pending--muted {
-  /* ponytail: no --opacity-disabled token exists yet; flat 0.6 matches the
-     dim treatment used elsewhere for read-only sections. */
-  opacity: 0.6;
 }
 
 .edit-stops__add-new {
@@ -171,7 +184,7 @@
    table only, not packages/ui. */
 .add-orders .odyssey-group-table__row td { color: var(--text-primary); }
 /* ponytail: no --opacity-disabled token exists yet; flat 0.45 matches the
-   dim treatment on .edit-stops__pending--muted above. Re-checked against the
+   dim treatment read-only sections used elsewhere. Re-checked against the
    darker --text-primary above: 0.45 of --text-primary still reads visibly
    dimmer than the darker unblocked rows (contrast ratio ~5.6:1 between the
    two), so the value carries over unchanged. */

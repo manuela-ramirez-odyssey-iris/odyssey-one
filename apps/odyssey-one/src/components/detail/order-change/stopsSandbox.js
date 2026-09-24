@@ -228,3 +228,57 @@ export function toDto(sb) {
     }
   })
 }
+
+// ── Stop date/time (DEC-199, LINX-15669 §3–5) ────────────────────────────
+// Two string shapes reach this model: stop dates ("March 4, 2026 10:00 EST")
+// and order window bounds ("03/04/2026 05:30 CST"). Both parse to wall-clock
+// minutes; the zone rides along as a label.
+// ponytail: zones are compared as wall clock (a stop and its order's window
+// share a locale). Upgrade path = real IANA zones on both, when the VM has them.
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+export function parseStamp(str) {
+  if (!str || str === '--') return null
+  let m = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?:\s+([A-Z]{2,4}))?/.exec(str)
+  if (m) return { y: +m[3], mo: +m[1] - 1, d: +m[2], h: +m[4], mi: +m[5], tz: m[6] ?? '' }
+  m = /^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})\s+(\d{1,2}):(\d{2})(?:\s+([A-Z]{2,4}))?/.exec(str)
+  if (m && MONTHS.includes(m[1])) return { y: +m[3], mo: MONTHS.indexOf(m[1]), d: +m[2], h: +m[4], mi: +m[5], tz: m[6] ?? '' }
+  return null
+}
+
+const stampValue = (p) => (p ? Date.UTC(p.y, p.mo, p.d, p.h, p.mi) : null)
+
+// Same long shape the stop cards and save-stops already carry.
+export function formatStopDate({ y, mo, d, h, mi, tz }) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${MONTHS[mo]} ${d}, ${y} ${pad(h)}:${pad(mi)}${tz ? ` ${tz}` : ''}`
+}
+
+export function setStopDate(sb, key, date) {
+  const stops = sb.stops.map((s) => (s.key === key ? { ...s, date } : s))
+  return { ...sb, stops, dirty: true, routed: false }
+}
+
+// Orders whose planning window the stop's date misses — flagged, never
+// blocked (Jana 2026-09-24: "I am aware about it"). The order's window is
+// the customer's reference and is never edited here.
+export function windowViolations(stops, orders) {
+  const byId = new Map(orders.map((o) => [o.orderNumber, o]))
+  const out = []
+  for (const s of stops) {
+    const at = stampValue(parseStamp(s.date))
+    if (at == null) continue
+    const pickup = s.type === 'pickup'
+    for (const id of s.orderIds) {
+      const o = byId.get(id)
+      if (!o) continue
+      const from = pickup ? o.earliestPickup : o.earliestDelivery
+      const to = pickup ? o.latestPickup : o.latestDelivery
+      const lo = stampValue(parseStamp(from))
+      const hi = stampValue(parseStamp(to))
+      const side = lo != null && at < lo ? 'early' : hi != null && at > hi ? 'late' : null
+      if (side) out.push({ orderId: id, stopKey: s.key, type: s.type, side, from, to })
+    }
+  }
+  return out
+}

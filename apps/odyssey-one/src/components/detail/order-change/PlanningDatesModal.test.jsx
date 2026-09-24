@@ -34,3 +34,9 @@ it('renders an empty table without crashing when there are no orders', () => {
   render(<PlanningDatesModal orders={[]} onClose={() => {}} />)
   expect(screen.getByText('Planning Type')).toBeTruthy()
 })
+
+it('badges only the bound a stop date missed (DEC-199)', () => {
+  render(<PlanningDatesModal orders={orders} violations={[{ orderId: '000000004852', type: 'pickup', side: 'late' }]} onClose={() => {}} />)
+  expect(screen.getByText('06/02/2026').closest('.text-badge, [class*="badge"]')).toBeTruthy()
+  expect(screen.getByText('06/01/2026').closest('.text-badge, [class*="badge"]')).toBeNull()
+})

@@ -60,13 +60,17 @@ const setup = (over = {}) => {
   return { onApprove, onCancel }
 }
 
+// Prior and New render the same stops side by side (DEC-197) — scope stop
+// queries to the editable New plan.
+const nw = () => within(screen.getByRole('region', { name: 'New plan' }))
+
 it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, and the pending column', () => {
   setup()
   expect(screen.getByText('All Stops')).toBeTruthy()
   expect(screen.getByText(/arrow buttons on each stop/)).toBeTruthy()
-  expect(screen.getByText('Stop 1')).toBeTruthy()
-  expect(screen.getByText('Stop 2')).toBeTruthy()
-  expect(screen.getByText('Stop 3')).toBeTruthy()
+  expect(nw().getByText('Stop 1')).toBeTruthy()
+  expect(nw().getByText('Stop 2')).toBeTruthy()
+  expect(nw().getByText('Stop 3')).toBeTruthy()
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
   // User ruling 2026-09-09: this editor already carries purple/gray change
@@ -77,16 +81,16 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
 
 it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reordering after a move', () => {
   setup()
-  expect(screen.getByLabelText('P1 — changed')).toBeTruthy()
-  expect(screen.getByLabelText('P2 — changed')).toBeTruthy()
-  expect(screen.getByLabelText('D1 — changed')).toBeTruthy()
+  expect(nw().getByLabelText('P1 — changed')).toBeTruthy()
+  expect(nw().getByLabelText('P2 — changed')).toBeTruthy()
+  expect(nw().getByLabelText('D1 — changed')).toBeTruthy()
   // Move stop 1 (P1) down over stop 2 (P2, also a pickup) — legal, and the
   // rail's badge order should follow (P1 now labels the second card).
   fireEvent.click(screen.getAllByRole('button', { name: 'Move stop down' })[0])
-  const badges = screen.getAllByLabelText(/^P\d — changed$/)
+  const badges = nw().getAllByLabelText(/^P\d — changed$/)
   expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual(['P1 — changed', 'P2 — changed'])
   // P2 (Y, Town) is now first, so "Stop 1" (the rail's position label) carries it.
-  expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('Y, Town')
+  expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('Y, Town')
 })
 
 it('arrows reorder and renumber; an illegal move shows the 15669 message in an error alert', () => {
@@ -94,7 +98,7 @@ it('arrows reorder and renumber; an illegal move shows the 15669 message in an e
   // Stop 2 (P2) up over Stop 1 (P1) is legal — both pickups, no sequence issue.
   const up = screen.getAllByRole('button', { name: 'Move stop up' })
   fireEvent.click(up[1]) // second card's up-arrow
-  expect(screen.getByText('Y, Town')).toBeTruthy() // still rendered, now first
+  expect(nw().getByText('Y, Town')).toBeTruthy() // still rendered, now first
   // Now [P2(C), P1(A,B), D1(A,B,C)] — moving the middle stop down over the
   // delivery would put A/B's delivery ahead of their own pickup (LINX-15669).
   const down = screen.getAllByRole('button', { name: 'Move stop down' })
@@ -122,7 +126,7 @@ it('Add places the order automatically — no stop menu; a new location becomes 
 
 it('a stop shows only its own date (DEC-195)', () => {
   setup()
-  const p1 = screen.getByText('Stop 1').closest('.edit-stops__card')
+  const p1 = nw().getByText('Stop 1').closest('.edit-stops__card')
   expect(p1.textContent).toContain('Pickup Date')
   expect(p1.textContent).not.toContain('Delivery Date')
 })
@@ -175,20 +179,16 @@ it('Approve Changes stays disabled while saving even once routed', () => {
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
-it('Prior toggle disabled until dirty; in Prior view the title, alert copy, muted pending column, disabled controls and gray badges for removed/moved appear', () => {
+it('Prior and New render side by side; Prior is read-only and badges the planner\'s edits gray (DEC-197)', () => {
   setup()
-  const priorBtn = screen.getByRole('button', { name: 'Prior' })
-  expect(priorBtn.disabled).toBe(true)
-  // Stop 2 (P2) holds only order C — pending it empties and removes the stop.
-  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])
-  expect(screen.getByRole('button', { name: 'Prior' }).disabled).toBe(false)
-  fireEvent.click(screen.getByRole('button', { name: 'Prior' }))
-  expect(screen.getByText('All Stops - Prior to changes')).toBeTruthy()
-  const banner = screen.getByText('Stops and orders prior to changes')
-  expect(banner.closest('.alert').className).toContain('alert--info')
-  // User ruling 2026-09-09: Prior banner reads calm (info/blue, not warning/amber)
-  // and the planner-edit badges (Removed/Moved) go gray, not amber.
-  expect(screen.getByText('Removed').style.background).toContain('badge-gray-bg')
+  const prior = screen.getByRole('region', { name: 'Prior plan' })
+  expect(screen.getByRole('region', { name: 'New plan' })).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Prior' })).toBeNull()             // no toggle
+  expect(within(prior).queryByRole('button', { name: 'Set Aside' })).toBeNull()
+  expect(within(prior).queryByRole('button', { name: 'Move stop up' })).toBeNull()
+  // Stop 2 (P2) holds only order C — setting it aside empties and removes the stop.
+  fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Set Aside' })[2])
+  expect(within(prior).getByText('Removed').style.background).toContain('badge-gray-bg')
 })
 
 it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when clean and opens Discard when dirty', () => {
@@ -221,7 +221,7 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   fireEvent.click(screen.getByText('mock-add'))
   expect(await screen.findByRole('button', { name: 'E' })).toBeTruthy()          // pending row link
   fireEvent.click(screen.getByRole('button', { name: 'Add order E' }))            // auto: P1 (X, City)
-  expect(screen.getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('E')
+  expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('E')
   expect(screen.getByText('17 LB')).toBeTruthy()                                  // 5+5+7 — external order counts in totals
   fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
   fireEvent.click(screen.getByRole('button', { name: 'Go Back' }))
@@ -244,4 +244,16 @@ it('hovering an order link shows the order Tooltip with the stop leg date (VD 21
   fireEvent.mouseEnter(screen.getAllByRole('button', { name: 'C' })[0].parentElement)  // C's only pickup row (P2)
   expect(screen.getByRole('tooltip').textContent).toContain('Order Number: C')
   expect(screen.getByRole('tooltip').textContent).toContain('Pickup Date Time06/04/2026')
+})
+
+it('the New plan edits a stop date; a date outside an order window flags that order, never blocks (DEC-199)', () => {
+  setup({ orders: orders.map((o) => ({ ...o, earliestPickup: '06/04/2026 06:00 CDT', latestPickup: '06/04/2026 10:00 CDT' })) })
+  const newPlan = nw()
+  expect(newPlan.queryByText('Outside planning window')).toBeNull()
+  expect(within(screen.getByRole('region', { name: 'Prior plan' })).queryByLabelText('Pickup Date')).toBeNull() // Prior read-only
+  const input = document.getElementById('stop-s1-time')
+  fireEvent.change(input, { target: { value: '11:30' } })
+  fireEvent.blur(input)
+  expect(nw().getAllByText('Outside planning window').length).toBe(2)               // A and B on stop 1
+  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true) // edit un-routes, as any edit does
 })

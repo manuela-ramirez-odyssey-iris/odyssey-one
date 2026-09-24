@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, markRouted, totals, priorDiff, toDto } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, markRouted, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -215,5 +215,38 @@ describe('addPending', () => {
     const r = addPending(s, ['E', 'E', 'A'])
     expect(r.pending).toEqual(['E'])
     expect(r.dirty).toBe(false)
+  })
+})
+
+describe('stop dates + planning windows (DEC-199)', () => {
+  const win = (over) => ({ orderNumber: 'A', earliestPickup: '06/04/2026 06:00 CDT', latestPickup: '06/04/2026 10:00 CDT', earliestDelivery: '06/06/2026 06:00 CDT', latestDelivery: '06/06/2026 12:00 CDT', ...over })
+  const stopAt = (date, type = 'pickup') => ({ key: 's1', type, orderIds: ['A'], date })
+
+  it('parses both stamp shapes and round-trips the long one', () => {
+    expect(parseStamp('June 4, 2026 08:00 CDT')).toEqual({ y: 2026, mo: 5, d: 4, h: 8, mi: 0, tz: 'CDT' })
+    expect(parseStamp('06/04/2026 08:00 CDT')).toEqual({ y: 2026, mo: 5, d: 4, h: 8, mi: 0, tz: 'CDT' })
+    expect(formatStopDate(parseStamp('June 4, 2026 08:00 CDT'))).toBe('June 4, 2026 08:00 CDT')
+    expect(parseStamp('--')).toBeNull()
+  })
+  it('inside the window → no flag', () => {
+    expect(windowViolations([stopAt('June 4, 2026 08:00 CDT')], [win()])).toEqual([])
+  })
+  it('before earliest / after latest → early / late', () => {
+    expect(windowViolations([stopAt('June 3, 2026 08:00 CDT')], [win()])[0]).toMatchObject({ orderId: 'A', side: 'early' })
+    expect(windowViolations([stopAt('June 9, 2026 08:00 CDT')], [win()])[0]).toMatchObject({ side: 'late', from: '06/04/2026 06:00 CDT' })
+  })
+  it('delivery stops check the delivery window', () => {
+    expect(windowViolations([stopAt('June 6, 2026 11:00 CDT', 'delivery')], [win()])).toEqual([])
+    expect(windowViolations([stopAt('June 7, 2026 11:00 CDT', 'delivery')], [win()])[0]).toMatchObject({ side: 'late', type: 'delivery' })
+  })
+  it('a missing bound checks only the other one', () => {
+    expect(windowViolations([stopAt('June 9, 2026 08:00 CDT')], [win({ latestPickup: '--' })])).toEqual([])
+  })
+  it('setStopDate edits one stop, marks dirty, clears routed', () => {
+    let s = markRouted(initSandbox({ stops, consolidation: noChange, orders }))
+    s = setStopDate(s, 's1', 'June 5, 2026 09:00 CDT')
+    expect(s.stops[0].date).toBe('June 5, 2026 09:00 CDT')
+    expect(s.dirty).toBe(true); expect(s.routed).toBe(false)
+    expect(toDto(s)[0].scheduledDateTime).toBe('June 5, 2026 09:00 CDT')
   })
 })
