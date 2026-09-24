@@ -71,7 +71,9 @@
 .edit-stops__date {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  /* Wraps to two rows when the New column is narrow — the pickers carry a
+     clear button + chevron and must not overlap the zone select. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--spacing-3);
   align-items: end;
 }
@@ -96,8 +98,11 @@
   gap: var(--spacing-3);
 }
 
+.edit-stops__order-label { white-space: nowrap; }
+
 .edit-stops__order-lead {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-3);
 }

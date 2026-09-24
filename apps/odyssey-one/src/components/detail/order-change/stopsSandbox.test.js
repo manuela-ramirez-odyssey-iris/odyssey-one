@@ -239,6 +239,10 @@ describe('stop dates + planning windows (DEC-199)', () => {
     expect(windowViolations([stopAt('June 6, 2026 11:00 CDT', 'delivery')], [win()])).toEqual([])
     expect(windowViolations([stopAt('June 7, 2026 11:00 CDT', 'delivery')], [win()])[0]).toMatchObject({ side: 'late', type: 'delivery' })
   })
+  it('compares across zones: 14:00 EST is after an 11:30 CST latest; 12:00 EST is not', () => {
+    expect(windowViolations([stopAt('June 4, 2026 14:00 EDT')], [win()])[0]).toMatchObject({ side: 'late' }) // 13:00 CDT > 10:00 CDT
+    expect(windowViolations([stopAt('June 4, 2026 11:00 EDT')], [win()])).toEqual([])                     // 10:00 CDT
+  })
   it('a missing bound checks only the other one', () => {
     expect(windowViolations([stopAt('June 9, 2026 08:00 CDT')], [win({ latestPickup: '--' })])).toEqual([])
   })

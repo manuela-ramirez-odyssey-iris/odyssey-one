@@ -232,9 +232,9 @@ export function toDto(sb) {
 // ── Stop date/time (DEC-199, LINX-15669 §3–5) ────────────────────────────
 // Two string shapes reach this model: stop dates ("March 4, 2026 10:00 EST")
 // and order window bounds ("03/04/2026 05:30 CST"). Both parse to wall-clock
-// minutes; the zone rides along as a label.
-// ponytail: zones are compared as wall clock (a stop and its order's window
-// share a locale). Upgrade path = real IANA zones on both, when the VM has them.
+// minutes and compare in UTC via the zone abbreviation — stops carry their
+// local zone (EST/PST…) while order windows are CST, so wall clock would lie.
+// ponytail: US abbreviations only; an unknown zone compares as UTC.
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 export function parseStamp(str) {
@@ -246,7 +246,8 @@ export function parseStamp(str) {
   return null
 }
 
-const stampValue = (p) => (p ? Date.UTC(p.y, p.mo, p.d, p.h, p.mi) : null)
+const TZ_OFFSET_H = { EST: -5, EDT: -4, CST: -6, CDT: -5, MST: -7, MDT: -6, PST: -8, PDT: -7, AKST: -9, AKDT: -8, HST: -10 }
+const stampValue = (p) => (p ? Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - (TZ_OFFSET_H[p.tz] ?? 0) * 3600000 : null)
 
 // Same long shape the stop cards and save-stops already carry.
 export function formatStopDate({ y, mo, d, h, mi, tz }) {
