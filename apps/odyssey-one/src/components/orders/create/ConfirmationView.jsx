@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Alert, Breadcrumb } from '@odyssey/ui'
 import OrderSummaryView from '../summary/OrderSummaryView'
 import mapFormVmToOrderPane from '../summary/mapFormVmToOrderPane'
 import { pushNotification } from '../../../utils/notifications'
+import useSheet from '../../../routes/useSheet'
 
 // LINX-9002 Scenario 2: the async number assignment, simulated. Real backend
 // pushes it; the mock create response already carries the generated number,
@@ -39,13 +39,13 @@ const formatOrderDate = (iso, tz) => {
  * the initial async state for QA.
  */
 export default function ConfirmationView({ data, values, variant, successMessage }) {
-  const navigate = useNavigate()
+  const { openSheet, closeSheet } = useSheet()
   // Every way back to the list from here follows a successful write, so it
   // names the row the grid should land on and highlight (spec §4.3). The
   // Alert's "Click here" keeps its own target (the order's summary page,
   // user ruling 2026-07-28).
   const backToList = () =>
-    navigate('/orders', { state: { createdOrder: data?.orderNumber } })
+    closeSheet('/orders', { state: { createdOrder: data?.orderNumber } })
   const [alertOpen, setAlertOpen] = useState(true)
   const startedAsync =
     variant === 'async' || !values?.general?.orderNumber?.trim() || !data?.orderNumber
@@ -91,7 +91,10 @@ export default function ConfirmationView({ data, values, variant, successMessage
       <Alert
         variant="success"
         showLink
-        onLinkClick={() => navigate(`/orders/${data?.orderNumber || values?.general?.orderNumber || ''}`)}
+        // Resolved (user, 2026-09-23): View order REPLACES this create sheet
+        // (S158 plan §1 "Resolved") — closing View then lands on the Orders
+        // list, not back on this confirmation.
+        onLinkClick={() => openSheet(`/orders/${data?.orderNumber || values?.general?.orderNumber || ''}`, { replace: true })}
         onClose={() => setAlertOpen(false)}
       >
         {successMessage ?? 'Your order was created successfully.'}

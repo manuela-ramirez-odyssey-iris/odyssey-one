@@ -7,9 +7,8 @@ import EditStopsView from '../../components/detail/order-change/EditStopsView.js
 import ReviewKpiStrip from '../../components/detail/order-change/ReviewKpiStrip.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
-import useSlideRoute from './useSlideRoute'
+import useSheet from '../useSheet'
 import '../../components/shipments/order-change/order-change.css'
-import '../../styles/slide-route.css'
 
 // Edit Shipment Stops — /shipments/order-change/:sellShipment/stops,
 // LINX-15667…15671/15869/15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
@@ -31,7 +30,7 @@ import '../../styles/slide-route.css'
 export default function OrderChangeEditStopsRoute() {
   const { sellShipment } = useParams()
   const location = useLocation()
-  const { className: slideClassName, leaveTo } = useSlideRoute()
+  const { openSheet, closeSheet } = useSheet()
   const buyShipment = location.state?.buyShipment
   const odysseyShipmentIdentifier = location.state?.odysseyShipmentIdentifier
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
@@ -49,7 +48,7 @@ export default function OrderChangeEditStopsRoute() {
   // Exit back to this shipment's Stops tab (LINX-15667 — "cancel returns to
   // the review screen") — ShipmentsRoute.jsx:41-46 reads exactly these four
   // state keys to open the detail bar on the right shipment/tab.
-  const exit = () => leaveTo('/shipments', {
+  const exit = () => closeSheet('/shipments', {
     state: {
       selectedShipmentId: sellShipment,
       requestedTab: { key: 'stops' },
@@ -87,11 +86,15 @@ export default function OrderChangeEditStopsRoute() {
             // Direct review screen so the planner can resolve it with the
             // new stops plan. No `from` key — the Direct route only reads
             // 'from-tender' semantics via from === 'tender', which this exit isn't.
-            leaveTo(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, odysseyShipmentIdentifier } })
+            // openSheet + replace (not closeSheet): the Direct review is a
+            // SIBLING sheet at the same depth, not the base underneath this
+            // one — replace swaps this layer for it so closing IT still lands
+            // on /shipments, not back on this stops editor (S158 plan §3).
+            openSheet(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, odysseyShipmentIdentifier }, replace: true })
           } else {
             // Scenario B — no active tender yet: send the planner to Tender
             // to start one on the finalized plan, still parked on the Order Change tab.
-            leaveTo('/shipments', {
+            closeSheet('/shipments', {
               state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
             })
           }
@@ -108,9 +111,9 @@ export default function OrderChangeEditStopsRoute() {
         onClose: exit,
       }}
     >
-      <div className={`order-change ${slideClassName}`}>
+      <div className="order-change">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Shipment" onClick={() => leaveTo('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
+          <Breadcrumb label="Shipment" onClick={() => closeSheet('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
           <Breadcrumb label="Review Order Change" onClick={exit} />
           <Breadcrumb label="Edit Shipment Stops" current />
         </nav>

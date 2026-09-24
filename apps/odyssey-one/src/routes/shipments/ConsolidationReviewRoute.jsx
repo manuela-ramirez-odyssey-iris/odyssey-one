@@ -11,10 +11,9 @@ import { getSellShipmentDetail } from '../../api/services/shipmentService'
 import { shipmentDetailQueryKey } from '../../api/queries/useShipmentDetail'
 import { useApplyConsolidation } from '../../api/queries/useApplyConsolidation'
 import { buildProposal } from '../../consolidation/proposal'
-import useSlideRoute from './useSlideRoute'
+import useSheet from '../useSheet'
 import '../../components/shipments/order-change/order-change.css'
 import './consolidation-review.css'
-import '../../styles/slide-route.css'
 
 // Review & Apply Manual Consolidation — /shipments/consolidate/review
 // (LINX-15787; VD x38TOJGsNryYl3LsKhCtSc node 2249:46444). Input is the
@@ -102,7 +101,7 @@ function SelectedShipmentsTable({ rows, checkedIds, onToggle, onToggleAll, readO
 
 export default function ConsolidationReviewRoute() {
   const location = useLocation()
-  const { className: slideClassName, leaveTo } = useSlideRoute()
+  const { closeSheet } = useSheet()
   const rows = location.state?.rows ?? []
   const [pending, setPending] = useState(null) // 'apply' | 'cancel' | null
   // The rows a refused toggle tried to uncheck (S155 §2.4) — null when the
@@ -156,15 +155,19 @@ export default function ConsolidationReviewRoute() {
 
   // Zero-arg on purpose — these are click handlers, and a default parameter
   // would swallow the event object as its argument.
-  const backInModeWith = (rowsBack) => leaveTo('/shipments', { state: { consolidate: { rows: rowsBack } } })
+  const backInModeWith = (rowsBack) => closeSheet('/shipments', { state: { consolidate: { rows: rowsBack } } })
   const backInMode = () => backInModeWith(checkedRows)
-  const leave = () => leaveTo('/shipments')
-  const viewCreated = () => leaveTo('/shipments', { state: { createdShipment: applied.row } })
+  // `consolidateExit: true` (S158 plan §4) — ShipmentsRoute stays MOUNTED
+  // under this sheet, so leaving here must explicitly tell it to exit
+  // consolidate mode (restoring its prior panel/filters); a full remount used
+  // to do that silently by resetting everything to defaults.
+  const leave = () => closeSheet('/shipments', { state: { consolidateExit: true } })
+  const viewCreated = () => closeSheet('/shipments', { state: { consolidateExit: true, createdShipment: applied.row } })
 
   if (!rows.length) {
     return (
       <AppShell titleMode={{ title: 'Manual Consolidation', onClose: leave }} sidebarHidden>
-        <div className={`order-change ${slideClassName}`}>
+        <div className="order-change">
           <EmptyState icon={<Inbox size={32} />} message="No consolidation to review." />
           <div><Button variant="secondary" onClick={leave}>Back to Shipments</Button></div>
         </div>
@@ -200,7 +203,7 @@ export default function ConsolidationReviewRoute() {
     // continues consolidate mode from /shipments, which already hid it —
     // it should stay hidden for the rest of the flow.
     <AppShell titleMode={{ title: 'Manual Consolidation', onClose: applied ? leave : backInMode }} sidebarHidden>
-      <div className={`order-change consolidation-review ${slideClassName}`}>
+      <div className="order-change consolidation-review">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Shipments Consolidation" onClick={applied ? leave : backInMode} />
           <Breadcrumb label={applied ? `Review ${applied.row.odysseyShipmentIdentifier}` : 'Review & Apply'} current />

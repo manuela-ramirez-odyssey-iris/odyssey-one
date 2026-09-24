@@ -88,7 +88,10 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Shipment Stops' }))
     const probe = screen.getByTestId('nav-probe')
     expect(probe.textContent).toContain(`/shipments/order-change/${shipment.sellShipment}/stops`)
-    expect(probe.textContent).toContain(JSON.stringify({ buyShipment: shipment.buyShipment, from: 'stops' }))
+    // openSheet (S158) adds its own `sheetStack` key alongside the state this
+    // opener has always sent — assert on that payload with `toContain`
+    // rather than exact equality.
+    expect(probe.textContent).toContain(JSON.stringify({ buyShipment: shipment.buyShipment, from: 'stops' }).slice(0, -1))
   })
   it('badges changed stop fields and changed orders; unchanged stay plain', () => {
     renderReview()

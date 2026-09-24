@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import useSheet from '../useSheet'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button, EmptyState, ModalMedium, PageHeader, Tab } from '@odyssey/ui'
@@ -65,6 +66,7 @@ const SORT_FIELD_BY_COLUMN = {
 
 export default function OrdersRoute() {
   const navigate = useNavigate()
+  const { openSheet } = useSheet()
   // Tab deep-link (S91 Home widgets): navigate('/orders', { state: { tab } }).
   const location = useLocation()
   // Navbar customer scope — same first-order filter the Shipments grid applies
@@ -140,12 +142,46 @@ export default function OrdersRoute() {
 
   // The highlight is a one-shot: the moment the planner changes tab, sort,
   // page or search, they have moved on and the flash must not replay on the
-  // refetch. Skips its own first run (the arriving render).
+  // refetch. Skips its own first run (the arriving render). Also skipped
+  // right after a return-intent re-apply (below) sets a FRESH highlight of
+  // its own — that tab switch changes `request` too, and without the guard
+  // this effect would immediately null out the highlight it just set.
   const firstRequestRef = useRef(true)
+  const suppressHighlightClearRef = useRef(false)
   useEffect(() => {
     if (firstRequestRef.current) { firstRequestRef.current = false; return }
+    if (suppressHighlightClearRef.current) { suppressHighlightClearRef.current = false; return }
     setHighlightRowId(null)
   }, [request])
+
+  // Return-intent re-application (S158 plan §4) — OrdersRoute now stays
+  // MOUNTED under every Orders sheet (View, Audit Trail, Create/Edit/Resolve)
+  // instead of unmounting. The lazy initialisers above still cover the FIRST
+  // mount; this re-reads the same two fields off a fresh location.state
+  // whenever the planner closes a sheet back onto an already-mounted page.
+  const applyIntent = useCallback((state) => {
+    if (!state) return
+    const nextTab = state.createdOrder ? 'created' : state.tab ? (LEGACY_TAB_MAP[state.tab] ?? state.tab) : null
+    if (nextTab && nextTab !== activeTab) {
+      setActiveTab(nextTab)
+      setPagination((p) => ({ ...p, pageIndex: 0 }))
+      setSorting(DEFAULT_SORT[nextTab] ?? DEFAULT_SORT.created)
+    }
+    if (state.createdOrder) {
+      suppressHighlightClearRef.current = true
+      setHighlightRowId(state.createdOrder)
+    }
+  }, [activeTab])
+  // Skip the first run — the lazy initialisers already applied this exact
+  // location.state at mount.
+  const intentAppliedOnceRef = useRef(false)
+  useEffect(() => {
+    if (!intentAppliedOnceRef.current) { intentAppliedOnceRef.current = true; return }
+    applyIntent(location.state)
+    // Fires only on an actual navigation back to this page (location.key
+    // changing), not on every render applyIntent's own identity changes on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -220,19 +256,21 @@ export default function OrdersRoute() {
     // getOrderView for non-session rows). Audit Trail opens the per-order
     // trail page (ORD-27). Submit/Cancel confirm first (below);
     // Resolve/Copy/Restore stay no-ops until their features land.
-    if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
-    else if (action === 'Audit Trail') navigate(`/orders/${encodeURIComponent(row.id)}/audit-trail`)
+    if (action === 'View') openSheet(`/orders/${encodeURIComponent(row.id)}`)
+    else if (action === 'Audit Trail') openSheet(`/orders/${encodeURIComponent(row.id)}/audit-trail`)
     // The Shipments page seeds its search bar with an Order # chip for this
     // order and commits it (ShipmentsRoute → ShipmentsGlobalSearch `seedChips`).
+    // Not a sheet target (Shipments is a different app area, not one of the
+    // listed sheets) — a plain navigate, as before.
     else if (action === 'See in Shipments') navigate('/shipments', { state: { orderNumber: row.id } })
-    else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
+    else if (action === 'Edit') openSheet(`/orders/create?draft=${encodeURIComponent(row.id)}`)
     else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
     else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })
     // Resolve reopens the order in resolution mode (LINX-11137); the
     // row's errorCount/customer/source ride in history state so the
     // seeded errors match what the Validation Errors tab claims.
     else if (action === 'Resolve')
-      navigate(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
+      openSheet(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
         state: {
           // Step 2 seeds from the MASTER-DATA count only — `errorCount` on the
           // VM is now the displayed structural + master-data total (Ramesh,
@@ -244,7 +282,7 @@ export default function OrdersRoute() {
           orderSource: row.orderSource,
         },
       })
-  }, [navigate])
+  }, [navigate, openSheet])
 
   /**
    * A search-preview row click (S131) opens the order the same way the grid
@@ -344,7 +382,7 @@ export default function OrdersRoute() {
       <div className="orders-page">
         {/* marginBottom 25 = the Shipments header→tabs gap (ShipmentsRoute) */}
         <PageHeader title="Orders" style={{ marginBottom: 25 }}>
-          <Button variant="primary" icon={<Plus {...ICON_MD} />} onClick={() => navigate('/orders/create')}>
+          <Button variant="primary" icon={<Plus {...ICON_MD} />} onClick={() => openSheet('/orders/create')}>
             Create Order
           </Button>
         </PageHeader>

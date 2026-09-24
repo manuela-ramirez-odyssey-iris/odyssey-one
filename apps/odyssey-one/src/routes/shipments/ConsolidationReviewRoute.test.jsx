@@ -160,7 +160,11 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.queryByText(/Are you sure you want to cancel/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
-    expect(JSON.parse((await screen.findByTestId('shipments-probe')).textContent)).toBeNull()
+    // `consolidateExit: true` (S158 plan §4) — ShipmentsRoute stays mounted
+    // under this sheet now, so leaving must say so explicitly rather than
+    // relying on a remount to reset consolidate mode to nothing.
+    const state = JSON.parse((await screen.findByTestId('shipments-probe')).textContent)
+    expect(state).toEqual({ consolidateExit: true })
   })
 
   test('Apply confirms with the identifier chips, then applies the CHECKED sell shipments', async () => {

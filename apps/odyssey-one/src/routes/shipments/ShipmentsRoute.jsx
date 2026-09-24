@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import useSheet from '../useSheet'
 import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
@@ -45,7 +46,7 @@ function ShipmentsRoute() {
   // below because they now read from it (a lazy initialiser referencing
   // `location` before this line would hit the TDZ).
   const location = useLocation()
-  const navigate = useNavigate()
+  const { openSheet } = useSheet()
   // Consolidate mode (S154, spec §3). `null` = normal Shipments. In mode,
   // `rows` is the selection: Map<sellShipment, row VM> — the row snapshot
   // rides with the id so the review renders without a refetch and a row paged
@@ -633,6 +634,48 @@ function ShipmentsRoute() {
     if (consolidate && 'priorCriteria' in consolidate) setSearchCriteria(consolidate.priorCriteria ?? null)
     setConsolidate(null)
   }, [consolidate])
+
+  // Return-intent re-application (S158 plan §4). This page now stays MOUNTED
+  // under every Shipments sheet (consolidation review, the two order-change
+  // routes) instead of unmounting — the lazy useState initialisers above
+  // still cover the FIRST mount (location.state read once), but a planner
+  // closing a sheet back onto an already-mounted ShipmentsRoute needs the
+  // SAME fields re-read from the fresh location.state, which only an effect
+  // can do. `consolidateExit` only ever arrives on a return (a fresh mount
+  // never carries it), so it lives here rather than in the initialisers too.
+  const applyIntent = useCallback((state) => {
+    if (!state) return
+    if (state.consolidateExit) exitConsolidate()
+    else if (state.consolidate) {
+      setConsolidate({ rows: new Map((state.consolidate.rows ?? []).map((r) => [r.id, r])) })
+    }
+    if (state.createdShipment) setCreated(state.createdShipment)
+    if (state.selectedShipmentId !== undefined) setSelectedShipmentId(state.selectedShipmentId)
+    if (state.requestedTab !== undefined) setRequestedTab(state.requestedTab)
+    // Unlike the mount-time defaults ('exceptions' / 'all'), a return with no
+    // panel/tab key must leave whatever's already showing alone — e.g.
+    // "Modify Selection" carries only `rows`, and stomping the current panel
+    // here would fight exitConsolidate's own prior-panel restore above.
+    if (state.panel) setActivePanel(state.panel)
+    if (state.tab) setActiveTab(state.tab)
+  }, [exitConsolidate])
+  // Skip the first run — the lazy initialisers already applied this exact
+  // location.state at mount; re-running it here too would be a harmless but
+  // pointless double-apply for a fresh mount, and an actively wrong one the
+  // one time it wouldn't be (a deep link seeded with `consolidateExit: true`,
+  // which should never fire exitConsolidate against a mode that was never
+  // entered).
+  const intentAppliedOnceRef = useRef(false)
+  useEffect(() => {
+    if (!intentAppliedOnceRef.current) { intentAppliedOnceRef.current = true; return }
+    applyIntent(location.state)
+    // Fires only when the planner actually navigates back to this page
+    // (location.key changes) — not on every re-render applyIntent's own
+    // identity changes on, which would re-run the intent against a location
+    // that hasn't moved.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key])
+
   const handleSelectionChange = useCallback((rows, checked) => {
     if (!consolidate) return
     // One customer per consolidation (CNS-10). The anchor normally enforces it
@@ -681,8 +724,8 @@ function ShipmentsRoute() {
   }, [])
   const eligibility = useCallback((row) => consolidationEligibility(row, anchorCustomerId), [anchorCustomerId])
   const proceedToReview = useCallback(() => {
-    navigate('/shipments/consolidate/review', { state: { rows: [...selection.values()] } })
-  }, [navigate, selection])
+    openSheet('/shipments/consolidate/review', { state: { rows: [...selection.values()] } })
+  }, [openSheet, selection])
 
   return (
     <AppShell

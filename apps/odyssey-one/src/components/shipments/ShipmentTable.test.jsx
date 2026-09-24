@@ -141,8 +141,11 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
     )
     fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Review Order Change' }))
-    expect(screen.getByTestId('nav-probe').textContent).toBe(
-      JSON.stringify({ buyShipment: orderChangeRow.buyShipment }),
+    // openSheet (S158) adds its own `sheetStack` key alongside the state this
+    // opener has always sent — assert on that payload with `toContain`
+    // rather than exact equality.
+    expect(screen.getByTestId('nav-probe').textContent).toContain(
+      JSON.stringify({ buyShipment: orderChangeRow.buyShipment }).slice(0, -1),
     )
   })
 

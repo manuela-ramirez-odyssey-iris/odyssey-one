@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Button, ComboBox, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubtitle } from '@odyssey/ui'
+import useSheet from '../../routes/useSheet'
 import { isDirty, startEdit } from './sectionDraft.js'
 import { QuoteModal, QuoteModalFooter } from './QuoteModal.jsx'
 import DiscardChangesModal from './DiscardChangesModal.jsx'
@@ -208,7 +208,7 @@ const UDF_COLUMNS = [
 // stacking context and z-index (same reasoning as TableControls' export modal).
 export default function ShipmentDetailsModal({ shipment, shipmentDetails, error, onClose, onViewTab }) {
   const [tab, setTab] = useState('details')
-  const navigate = useNavigate()
+  const { openSheet } = useSheet()
 
   // Field editing (2026-08-10). `overrides` is the ONLY persistence local to
   // THIS modal — there is no shipment update endpoint of its own — but every
@@ -273,11 +273,14 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   // prompts instead of silently dropping the edit.
   const handleViewTab = (key) => requestExit(() => { onClose?.(); onViewTab?.(key) })
 
-  // Stop → the order view in the Orders domain (/orders/:orderId). The modal
-  // closes first: leaving it mounted over a different route strands the user.
+  // Stop → the order view in the Orders domain (/orders/:orderId), opened as
+  // a SHEET over Shipments (S158 plan Part 1) — this modal is left exactly as
+  // it is underneath (no onClose first, unlike the old plain-navigate exit,
+  // back when leaving it mounted over a different route would strand the
+  // user); the sheet just covers it, and closing the sheet reveals it again
+  // with nothing to re-open.
   const openOrder = (orderId) => {
-    onClose?.()
-    navigate(`/orders/${orderId}`)
+    openSheet(`/orders/${orderId}`)
   }
 
   const orders = shipmentDetails?.orderDetails || []

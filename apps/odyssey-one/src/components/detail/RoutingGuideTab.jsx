@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
+import useSheet from '../../routes/useSheet'
 import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, TriangleAlert, Link as LinkIcon } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
@@ -1637,7 +1637,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // point into the review. One instance only; size bumped sm → md → lg per
   // the designer's successive instructions for its new, more prominent home
   // (it is now the ONLY thing the planner can act on in this whole card).
-  const navigate = useNavigate()
+  const { openSheet } = useSheet()
   const pendingOrderChange = shipmentDetails?.orderChange && !shipmentDetails.orderChange.resolution
   const reviewOrderChangeButton = (
     <Button
@@ -1660,7 +1660,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
       // Change exception").
       onClick={() => shipmentDetails?.shipmentType === 'Consolidation'
         ? onRequestTab?.('stops')
-        : navigate(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, odysseyShipmentIdentifier: shipment?.odysseyShipmentIdentifier, from: 'tender' } })}
+        : openSheet(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, odysseyShipmentIdentifier: shipment?.odysseyShipmentIdentifier, from: 'tender' } })}
     >
       {/* S144 (user, 2026-09-09): consolidated shipments review on the Stops
           tab (LINX-15435), a different surface than the Direct route — the

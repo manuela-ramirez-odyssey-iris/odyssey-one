@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { Alert, Breadcrumb, Button, PageHeader, ResolveTimeline, Spinner } from '@odyssey/ui'
 import CreateOrderForm from '../create/CreateOrderForm.jsx'
 import ConfirmationView from '../create/ConfirmationView.jsx'
 import Step1Panel from './Step1Panel.jsx'
 import { deriveInterfaceErrors } from './interfaceErrors.js'
 import { getOrderList, getOrderView, saveInterfaceFixes } from '../../../api/services/orderService'
+import useSheet from '../../../routes/useSheet'
 
 /**
  * ResolveShell — the OIF resolution page. Jira split the work in two
@@ -49,7 +50,7 @@ import { getOrderList, getOrderView, saveInterfaceFixes } from '../../../api/ser
  * errors and therefore opens straight at Step 2. Expected, not a bug.
  */
 export default function ResolveShell({ orderNumber, reprocessDelayMs = 800 }) {
-  const navigate = useNavigate()
+  const { closeSheet } = useSheet()
   const location = useLocation()
   const meta = location.state ?? {}
   const [loaded, setLoaded] = useState(null) // { derived, draft, values }
@@ -246,10 +247,9 @@ export default function ResolveShell({ orderNumber, reprocessDelayMs = 800 }) {
             link-button is gone — Create Order / Order Summary / Audit Trail
             all navigate via a `Breadcrumb` trail, and the resolve flow now
             matches (`.co-breadcrumb`, same nav CreateOrderForm renders for its
-            own breadcrumb). "Orders" is a plain navigate for now — becomes
-            `closeSheet('/orders')` once Part 1 (sheet stack) lands. */}
+            own breadcrumb). "Orders" is `closeSheet` (Part 1, sheet stack). */}
         <nav className="co-breadcrumb" aria-label="Breadcrumb">
-          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+          <Breadcrumb label="Orders" onClick={() => closeSheet('/orders')} />
           <Breadcrumb label={`Resolve Order ${orderNumber}`} current />
         </nav>
         <PageHeader title="Order Validation Error Resolution" />
@@ -278,7 +278,7 @@ export default function ResolveShell({ orderNumber, reprocessDelayMs = 800 }) {
           deleteFlag={step1.deleteFlag}
           onProgress={setStep1OpenCount}
           onValidate={handleValidate}
-          onCancel={() => navigate('/orders')}
+          onCancel={() => closeSheet('/orders')}
         />
       )}
       {loaded && viewing === 2 && (
@@ -292,7 +292,7 @@ export default function ResolveShell({ orderNumber, reprocessDelayMs = 800 }) {
           onResolved={handleResolved}
           /* A FAILED purge is surfaced by the form itself (its page-level error
              Alert) — this only runs on success. */
-          onPurged={() => navigate('/orders')}
+          onPurged={() => closeSheet('/orders')}
         />
       )}
       {viewing === 3 && (
@@ -312,7 +312,7 @@ export default function ResolveShell({ orderNumber, reprocessDelayMs = 800 }) {
             successMessage="Order validation errors resolved. The order is now Ready for Planning."
           />
           <div className="resolve-shell__preview-footer">
-            <Button variant="primary" size="lg" onClick={() => navigate('/orders')}>Back to overview</Button>
+            <Button variant="primary" size="lg" onClick={() => closeSheet('/orders')}>Back to overview</Button>
           </div>
         </div>
       )}

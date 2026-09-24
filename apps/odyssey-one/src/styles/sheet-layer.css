@@ -1,0 +1,31 @@
+/* Sheets — full-page views layer over the live page they were opened from,
+   app-wide (S158, docs/superpowers/plans/2026-09-23-slide-over-routes.md
+   Part 1). Replaces slide-route.css: the page underneath a sheet now STAYS
+   MOUNTED instead of being unmounted/remounted, so the slide plays over a
+   live page instead of over its own empty <main>. Transform only — no fade
+   (user, 2026-09-20). */
+@keyframes sheet-slide-in  { from { transform: translateX(100%); } to   { transform: translateX(0); } }
+@keyframes sheet-slide-out { from { transform: translateX(0); }    to   { transform: translateX(100%); } }
+
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: transparent;
+}
+
+/* Only `<main>` slides — the layer's own navbar/sidebar (rendered by its
+   AppShell) appear instantly, same as any other route. Duration/easing must
+   match --transition-drawer (300ms cubic-bezier(0.16, 1, 0.3, 1)) — App.jsx's
+   exit-retention hold is hardcoded to the same 300ms. */
+.sheet-layer main { animation: sheet-slide-in var(--transition-drawer); will-change: transform; }
+
+/* A layer that just left the stack (App.jsx keeps it mounted ~300ms to play
+   this out) sits ON TOP of the live page it's sliding off of — pointer-events:
+   none so it never intercepts input meant for that page while it animates away. */
+.sheet-layer--leaving { pointer-events: none; }
+.sheet-layer--leaving main { animation: sheet-slide-out var(--transition-drawer) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-layer main, .sheet-layer--leaving main { animation: none; }
+}

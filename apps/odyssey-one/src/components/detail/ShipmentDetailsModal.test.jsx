@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
 import * as shipmentService from '../../api/services/shipmentService'
 
@@ -138,9 +138,19 @@ describe('ShipmentDetailsModal', () => {
     expect(screen.queryByRole('heading', { name: 'Cost' })).toBeNull()
   })
 
-  it('summarizes stops with an address and a link to the order view', () => {
+  it('summarizes stops with an address and a link to the order view', async () => {
     const onClose = vi.fn()
-    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={onClose} /></MemoryRouter>)
+    // S158 (sheets, Part 1) — the order link now OPENS the order view as a
+    // sheet over Shipments instead of a plain navigate, so a route + probe
+    // stand in for the real app shell here.
+    render(
+      <MemoryRouter initialEntries={['/shipments']}>
+        <Routes>
+          <Route path="/shipments" element={<ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={onClose} />} />
+          <Route path="/orders/:orderId" element={<div>order view</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
     expect(screen.getByRole('heading', { name: 'Stops' })).toBeTruthy()
     expect(screen.getByText('Stop 1')).toBeTruthy()
     expect(screen.getByText('244 E Jackson Street, Baytown, TX')).toBeTruthy()
@@ -150,10 +160,12 @@ describe('ShipmentDetailsModal', () => {
     expect(screen.getAllByRole('button', { name: 'L14372086' }).length).toBe(1)
     expect(screen.getAllByRole('button', { name: 'L14372084' }).length).toBe(2) // both stops
 
-    // Links go into the Orders domain; the modal closes first so the user
-    // isn't left with a dialog over a different route.
+    // The order view opens as a sheet OVER this modal (S158) — the modal is
+    // left exactly as it is (not closed first), so closing the sheet reveals
+    // it again with nothing to re-open.
     fireEvent.click(screen.getAllByRole('button', { name: 'L14372086' })[0])
-    expect(onClose).toHaveBeenCalled()
+    expect(await screen.findByText('order view')).toBeTruthy()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('falls back to rank 1 when no option is accepted', () => {

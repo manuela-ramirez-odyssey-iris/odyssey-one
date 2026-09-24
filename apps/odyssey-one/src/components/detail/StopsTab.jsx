@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import useSheet from '../../routes/useSheet'
 import { TriangleAlert, ArrowRight } from 'lucide-react'
 import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
@@ -157,7 +157,7 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
 // ── Main export ────────────────────────────────────────────────────────────
 const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [], shipment }) {
   const [modal, setModal] = useState(null) // 'planning' | 'routing' | { order: id }
-  const navigate = useNavigate()
+  const { openSheet } = useSheet()
   if (!data) return <PaneEmpty message="No stops data available." col="medium" />
 
   const { summary, stops } = data
@@ -212,7 +212,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                 <Button
                   variant="secondary"
                   disabled={!shipment}
-                  onClick={() => navigate(`/shipments/order-change/${shipment.sellShipment}/stops`, {
+                  onClick={() => openSheet(`/shipments/order-change/${shipment.sellShipment}/stops`, {
                     state: { buyShipment: shipment.buyShipment, odysseyShipmentIdentifier: shipment.odysseyShipmentIdentifier, from: 'stops' },
                   })}
                 >

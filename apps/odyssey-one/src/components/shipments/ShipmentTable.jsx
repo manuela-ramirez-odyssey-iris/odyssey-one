@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { consolidationEditReason } from '../../consolidation/eligibility'
-import { useNavigate } from 'react-router-dom'
+import useSheet from '../../routes/useSheet'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -254,7 +254,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   highlightId = null }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
-  const navigate = useNavigate()
+  const { openSheet } = useSheet()
 
   // Stable master column set — select + every possible data column (ALL_COLUMNS) +
   // the sticky-right action column. The SET never changes; the ColumnPanel only
@@ -327,7 +327,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                     label: row.original.shipmentType === 'Consolidation' ? 'Review Consolidated Change' : 'Review Order Change',
                     onSelect: () => row.original.shipmentType === 'Consolidation'
                       ? onRowSelect(row.original.id, 'stops', false)
-                      : navigate(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment, odysseyShipmentIdentifier: row.original.odysseyShipmentIdentifier } }),
+                      : openSheet(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment, odysseyShipmentIdentifier: row.original.odysseyShipmentIdentifier } }),
                   },
                   ...shipmentActions(row.original, onEditConsolidation),
                 ]
@@ -396,7 +396,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     })
 
     return [selectColumn, ...dataCols, actionColumn]
-  }, [onToggleColumnPanel, navigate, selection, onSelectionChange, eligibility, onEditConsolidation])
+  }, [onToggleColumnPanel, openSheet, selection, onSelectionChange, eligibility, onEditConsolidation])
 
   // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their
   // ORDER via TanStack column state — the column SET above stays stable.

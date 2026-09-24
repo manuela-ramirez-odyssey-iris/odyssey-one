@@ -1,10 +1,11 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Alert, Breadcrumb, Button, EmptyState } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrderSummaryView from '../../components/orders/summary/OrderSummaryView'
 import mapFormVmToOrderPane from '../../components/orders/summary/mapFormVmToOrderPane'
 import { useOrderView } from '../../api/queries/useOrderView'
+import useSheet from '../useSheet'
 import '../../components/orders/orders.css'
 import '../../components/orders/summary/order-summary.css'
 
@@ -20,7 +21,7 @@ import '../../components/orders/summary/order-summary.css'
 
 export default function OrderSummaryRoute() {
   const { orderId } = useParams()
-  const navigate = useNavigate()
+  const { closeSheet } = useSheet()
   const { data: values, isPending, isError, refetch } = useOrderView(orderId)
   const isPendingOrder = orderId?.startsWith('pending-')
 
@@ -36,7 +37,7 @@ export default function OrderSummaryRoute() {
     <AppShell>
       <div className="order-summary-page">
         <nav className="order-summary__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+          <Breadcrumb label="Orders" onClick={() => closeSheet('/orders')} />
           {/* A pending order has no number yet — drop the trailing token rather
               than rendering "View order -", which reads as a missing value. */}
           <Breadcrumb label={isPendingOrder ? 'View order' : `View order ${orderId}`} current />

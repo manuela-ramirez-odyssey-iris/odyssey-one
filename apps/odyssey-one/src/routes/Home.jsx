@@ -11,6 +11,7 @@ import {
   Workflow,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import useSheet from './useSheet'
 import { ICON_LG } from '@odyssey/tokens'
 import {
   AddSectionButton,
@@ -1213,6 +1214,7 @@ function SectionRenameInput({ initialValue, onSave, onCancel }) {
 export default function Home() {
   const { isEditMode, enterEditMode } = useEditMode()
   const navigate = useNavigate()
+  const { openSheet } = useSheet()
 
   // Edit mode always opens at the top; on exit, restore the scroll the user
   // was at before entering edit. AppShell's <main> owns the scroll.
@@ -1304,7 +1306,7 @@ export default function Home() {
         label: 'Go to B2B/EDI Dashboard',
         onClick: () => window.open(B2B_EDI_DASHBOARD_URL, '_blank', 'noopener,noreferrer'),
       },
-      { icon: <Plus size={20} />, label: 'Create a New Order', onClick: () => navigate('/orders/create') },
+      { icon: <Plus size={20} />, label: 'Create a New Order', onClick: () => openSheet('/orders/create') },
       { icon: <Route size={20} />, label: 'Track a Shipment', onClick: () => navigate('/tracking') },
       { icon: <UserCog size={20} />, label: 'Management Users', onClick: () => navigate('/users') },
     ],

@@ -1,6 +1,6 @@
 // apps/odyssey-one/src/routes/orders/OrderAuditTrailRoute.jsx
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Breadcrumb, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
@@ -8,6 +8,7 @@ import AuditTrailTable from '../../components/orders/audit-trail/AuditTrailTable
 import { formatAuditTimestamp } from '../../components/orders/audit-trail/auditTrailColumns.jsx'
 import { useAuditTrail } from '../../api/queries/useAuditTrail'
 import { getErrorDetail } from '../../components/common/errorDetail.js'
+import useSheet from '../useSheet'
 import '../../components/orders/audit-trail/audit-trail.css'
 
 /**
@@ -26,7 +27,7 @@ import '../../components/orders/audit-trail/audit-trail.css'
  */
 export default function OrderAuditTrailRoute() {
   const { orderId } = useParams()
-  const navigate = useNavigate()
+  const { closeSheet } = useSheet()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 })
   const [sorting, setSorting] = useState([{ id: 'timestamp', desc: true }])
 
@@ -47,7 +48,7 @@ export default function OrderAuditTrailRoute() {
     <AppShell>
       <div className="audit-trail">
         <nav className="audit-trail__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+          <Breadcrumb label="Orders" onClick={() => closeSheet('/orders')} />
           <Breadcrumb label={`${orderId} Audit Trail`} current />
         </nav>
 

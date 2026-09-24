@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import useSheet from '../../../routes/useSheet'
 import { useQueryClient } from '@tanstack/react-query'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -56,7 +56,7 @@ const NO_PICKS = []
  *                 instead of navigating away. Omitted → today's /orders exit.
  */
 export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted, hideHeader = false, pickedPaths = NO_PICKS, onResolved, onPurged, onProgress }) {
-  const navigate = useNavigate()
+  const { closeSheet } = useSheet()
   const queryClient = useQueryClient()
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
   const methods = useForm({
@@ -401,10 +401,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     }
     queryClient.invalidateQueries({ queryKey: ['order-list'] })
     queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
-    if (thenNavigate) { navigate('/orders'); return }
+    if (thenNavigate) { closeSheet('/orders'); return }
     setSavingEdit(false)
     setSaveNotice(`Changes saved to order ${draftKey}.`)
-  }, [passesSaveGate, draftKey, getValues, queryClient, navigate])
+  }, [passesSaveGate, draftKey, getValues, queryClient, closeSheet])
 
   const handleSave = useCallback(() => {
     if (editMode) { saveEditInPlace(false); return }
@@ -432,7 +432,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     saveDraftMutation.mutate(
       { values: getValues(), draftId },
       {
-        onSuccess: () => navigate('/orders'),
+        onSuccess: () => closeSheet('/orders'),
         onError: (err) => {
           // If called from the modal, surface the error inside it (keep modal open).
           // If called from the navbar, surface the error in the form alert area.
@@ -445,11 +445,11 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         },
       },
     )
-  }, [passesSaveGate, saveDraftMutation, getValues, draftId, navigate])
+  }, [passesSaveGate, saveDraftMutation, getValues, draftId, closeSheet])
 
   const handleDiscard = useCallback(() => {
-    navigate('/orders') // explicit confirm happened in the modal; nothing kept
-  }, [navigate])
+    closeSheet('/orders') // explicit confirm happened in the modal; nothing kept
+  }, [closeSheet])
 
   // Resolution exits (LINX-11137 §D). They are NO LONGER the same write (Task 8
   // ruling): Save-with-all-resolved → resolveOrder ('Ready for Planning');
@@ -477,9 +477,9 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
     // The shell (Step 3) takes over when it supplied a callback; standalone
     // ?resolve= keeps today's exit to the grid.
-    if (kind === 'purge') { onPurged ? onPurged() : navigate('/orders'); return }
-    onResolved ? onResolved(getValues()) : navigate('/orders')
-  }, [resolveKey, queryClient, navigate, onResolved, onPurged, getValues])
+    if (kind === 'purge') { onPurged ? onPurged() : closeSheet('/orders'); return }
+    onResolved ? onResolved(getValues()) : closeSheet('/orders')
+  }, [resolveKey, queryClient, closeSheet, onResolved, onPurged, getValues])
 
   // ── Edit Order save (LINX-10248) ──
   // The footer's primary opens a confirmation: Confirm & Save Changes writes the
@@ -498,8 +498,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     }
     queryClient.invalidateQueries({ queryKey: ['order-list'] })
     queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
-    navigate('/orders')
-  }, [draftKey, getValues, queryClient, navigate])
+    closeSheet('/orders')
+  }, [draftKey, getValues, queryClient, closeSheet])
 
   const handleDiscardChanges = useCallback(() => {
     if (hydratedRef.current) reset(hydratedRef.current)
@@ -564,7 +564,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
             trail here would stack two breadcrumbs. */}
         {!hideHeader && (
           <nav className="co-breadcrumb" aria-label="Breadcrumb">
-            <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+            <Breadcrumb label="Orders" onClick={() => closeSheet('/orders')} />
             <Breadcrumb
               label={editMode
                 // pending orders have no number yet — omit it rather than
@@ -588,7 +588,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
                 variant="link"
                 className="btn--link-black"
                 icon={<ArrowLeft size={16} />}
-                onClick={() => navigate('/orders')}
+                onClick={() => closeSheet('/orders')}
               >
                 Back to overview page
               </Button>
@@ -723,7 +723,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
              so. ResolveShell's `onResolved` (handleResolved) shows the
              "Reprocessing…" transit before Step 3. */
           primaryLabel="Save & Reprocess"
-          onCancel={() => navigate('/orders')}
+          onCancel={() => closeSheet('/orders')}
           onSave={() => setPurgeOpen(true)}
           onCreate={() => finishResolve('save')}
           createDisabled={!allResolved}
