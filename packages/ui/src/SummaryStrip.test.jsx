@@ -363,3 +363,16 @@ describe('SummaryStrip size / sticky (D22)', () => {
     vi.useRealTimers()
   })
 })
+
+describe('SummaryStrip sticky offset (S159 — strip hid in the detail bottom bar)', () => {
+  const inScroller = (padding) => render(
+    <div style={{ overflowY: 'auto', paddingTop: padding }}>
+      <SummaryStrip sticky items={[{ label: 'A', value: '1' }]} />
+    </div>,
+  ).container.querySelector('dl')
+  it('pins flush by the scroller\'s own top padding, not a fixed 32px', () => {
+    expect(inScroller('0px').style.top).toBe('0px')
+    cleanup()
+    expect(inScroller('32px').style.top).toBe('-32px')
+  })
+})

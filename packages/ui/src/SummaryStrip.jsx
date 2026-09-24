@@ -124,11 +124,16 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
   const stripRef = useRef(null)
   const [stuck, setStuck] = useState(false)
   const [bleed, setBleed] = useState(null) // { marginLeft, marginRight } while stuck
+  // Sticky pins at the scroller's PADDING edge; pull it flush by that padding.
+  // Measured, not hard-coded: <main> has 32px, the detail bottom bar has 0 —
+  // a fixed -32px hid the pinned strip above the bottom bar's edge (S159).
+  const [stickyTop, setStickyTop] = useState(0)
   useLayoutEffect(() => {
     if (!sticky) return
     let el = sentinelRef.current.parentElement
     while (el && el !== document.body && !/(auto|scroll)/.test(getComputedStyle(el).overflowY)) el = el.parentElement
     const scroller = el && el !== document.body ? el : window
+    setStickyTop(scroller === window ? 0 : -(parseFloat(getComputedStyle(scroller).paddingTop) || 0))
     let raf = 0
     const check = () => {
       raf = 0
@@ -204,7 +209,7 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
       ref={stripRef}
       role="region"
       className={`summary-strip${background ? '' : ' summary-strip--plain'}${mini ? ' summary-strip--mini' : ''}${sticky ? ' summary-strip--sticky' : ''}${className ? ` ${className}` : ''}`}
-      style={bleed ? { ...style, ...bleed } : style}
+      style={sticky ? { top: stickyTop, ...style, ...bleed } : style}
       {...rest}
     >
       {items.map((item, index) => {

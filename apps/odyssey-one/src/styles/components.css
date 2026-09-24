@@ -6699,9 +6699,9 @@ button.breadcrumb__label:focus-visible {
    clamped to the window — cells stay centered in it. */
 .summary-strip--sticky {
   position: sticky;
-  /* Sticky stops at the scroller's PADDING edge — <main> has --spacing-8 on
-     top, so top:0 left a 32px gap under the navbar. Pull it flush (user 2026-09-24). */
-  top: calc(-1 * var(--spacing-8));
+  /* `top` is set inline by SummaryStrip = −(scroller padding-top), so it sits
+     flush in <main> (32px) AND the detail bottom bar (0) — S159. */
+  top: 0;
   z-index: 2;
   transition: margin 150ms ease;
 }
