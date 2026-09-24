@@ -132,7 +132,9 @@ export function tenderAcceptedEmail(ctx) {
         [['Shipper', ctx.customerName], ['Carrier', `${ctx.scac} - ${ctx.carrierName}`]],
         [['Shipment ID', ctx.odysseyShipmentIdentifier], ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat]],
       ]),
-      // No rate, no CTA (user, 2026-09-24): a receipt, nothing left to do.
+      // First → last stop band, distance under it (user, 2026-09-24). No rate,
+      // no CTA: a receipt, nothing left to do.
+      blocks.route(ctx.from, ctx.to),
       blocks.factGrid([['Distance', ctx.distance]]),
     ],
   })

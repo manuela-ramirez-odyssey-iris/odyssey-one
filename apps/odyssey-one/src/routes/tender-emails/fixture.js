@@ -7,6 +7,9 @@ import { tenderEmail, tenderAcceptedEmail } from '../../tender/email/tenderEmail
 
 const STOPS = [
   { type: 'pickup', location: 'Acme Chemical Plant 1, Charlotte, NC 28217 US', address: '12345 N. Tryon', date: '09/20/2026 08:00 EDT' },
+  // Two intermediate stops (user, 2026-09-24) so the gallery shows the stop list.
+  { type: 'pickup', location: 'Acme Warehouse 3, Atlanta, GA 30336 US', address: '410 Fulton Industrial Blvd', date: '09/21/2026 10:00 EDT' },
+  { type: 'delivery', location: 'Delta Coatings, Birmingham, AL 35207 US', address: '88 Vanderbilt Rd', date: '09/23/2026 13:00 CDT' },
   { type: 'delivery', location: 'Acme Client Plant2, New Orleans, LA 70114 US', address: '123 Main St', date: '09/25/2026 09:00 CDT' },
 ]
 

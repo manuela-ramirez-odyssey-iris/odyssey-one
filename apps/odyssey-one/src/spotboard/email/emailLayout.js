@@ -162,15 +162,15 @@ export const blocks = {
       `</table>`,
       'padding:0 0 16px 0;'))
   },
-  // Big round check — the TE-3 hero (S158, user 2026-09-24: "something more
-  // visual, a big check"). A ✓ glyph in a rounded cell, not an image: images are
-  // blocked by default in most mail clients, a glyph always renders.
+  // Quiet round check — the TE-3 hero (S158; user 2026-09-24: "more sober").
+  // Thin neutral ring, green glyph, no fill. A glyph, not an image: images are
+  // blocked by default in most mail clients.
   check: (label) => row(centerCell(
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>` +
-    `<td style="padding:0;"><div style="width:72px;height:72px;border-radius:50%;background:${C.successBg};border:2px solid ${C.successText};color:${C.successText};font-size:40px;line-height:72px;text-align:center;font-weight:700;">&#10003;</div></td>` +
+    `<td style="padding:0;"><div style="width:40px;height:40px;border-radius:50%;border:1px solid ${C.border};color:${C.successText};font-size:20px;line-height:40px;text-align:center;">&#10003;</div></td>` +
     `</tr></table>` +
-    (label ? `<div style="padding-top:12px;font-size:20px;line-height:28px;font-weight:600;color:${C.successText};">${esc(label)}</div>` : ''),
-    'padding:8px 0 16px 0;')),
+    (label ? `<div style="padding-top:8px;font-size:13px;line-height:18px;font-weight:bold;letter-spacing:0.4px;text-transform:uppercase;color:${C.textTertiary};">${esc(label)}</div>` : ''),
+    'padding:8px 0 8px 0;')),
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
 
