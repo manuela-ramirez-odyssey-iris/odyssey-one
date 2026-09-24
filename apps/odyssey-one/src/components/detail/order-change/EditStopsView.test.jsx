@@ -136,7 +136,7 @@ it('a stop shows only its own date (DEC-195)', () => {
 it('Approve Changes asks for confirmation, then calls onApprove (VD 2066-77150)', () => {
   const { onApprove } = setup()
   fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Go Back' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /close/i }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
   expect(onApprove).not.toHaveBeenCalled()
   expect(screen.getByText('Approve Shipment Change')).toBeTruthy()
@@ -149,7 +149,7 @@ it('Approve Changes asks for confirmation, then calls onApprove (VD 2066-77150)'
 it('Approve Shipment Change confirm — Cancel closes it without calling onApprove', () => {
   const { onApprove } = setup()
   fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Go Back' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /close/i }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
   const dialog = screen.getByRole('dialog', { name: 'Approve Shipment Change' })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
@@ -226,7 +226,7 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('E')
   expect(screen.getByText('17 LB')).toBeTruthy()                                  // 5+5+7 — external order counts in totals
   fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Go Back' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /close/i }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   expect(onApprove.mock.calls[0][1]).toEqual([{ orderNumber: 'E', sourceSellShipment: '77' }])

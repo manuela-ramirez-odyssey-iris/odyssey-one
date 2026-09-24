@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Badge, Button, GroupTable, ModalMedium } from '@odyssey/ui'
+import { Badge, GroupTable, ModalMedium } from '@odyssey/ui'
 import { DiffValue, rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
 // LINX-15438 View Routing — VD 2108-14708. New above Prior (canon §7, same
@@ -65,7 +65,7 @@ export default function ViewRoutingModal({ orderChange: oc, onClose }) {
       onClose={onClose}
       scrollableContent
       className="view-routing-modal"
-      footer={<Button variant="secondary" onClick={onClose}>Go Back</Button>}
+      // User 2026-09-24: no footer — the header's close is the only exit.
     >
       <TenderTable title="New" rows={newList} otherCostByScac={costByScac(priorList)} />
       <TenderTable title="Prior" rows={priorList} otherCostByScac={costByScac(newList)} />

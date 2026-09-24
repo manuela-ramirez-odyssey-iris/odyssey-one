@@ -69,9 +69,10 @@ it('shows an empty Dropped Carriers table when nothing was dropped', () => {
   expect(screen.getByText('Dropped Carriers')).toBeTruthy()
 })
 
-it('Go Back calls onClose', () => {
+it('has no footer; the header close calls onClose (user 2026-09-24)', () => {
   const onClose = vi.fn()
   render(<ViewRoutingModal orderChange={oc} onClose={onClose} />)
-  fireEvent.click(screen.getByText('Go Back'))
+  expect(screen.queryByText('Go Back')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /close/i }))
   expect(onClose).toHaveBeenCalled()
 })

@@ -10,7 +10,7 @@ const orders = [
   { orderNumber: '000000004852', planningType: 'RDD', earliestPickup: '06/01/2026', latestPickup: '06/02/2026', earliestDelivery: '06/03/2026', latestDelivery: '06/04/2026' },
 ]
 
-it('lists one row per order with the AC columns and closes on Go Back (LINX-15435)', () => {
+it('lists one row per order with the AC columns and closes from the header (LINX-15435)', () => {
   const onClose = vi.fn()
   render(<PlanningDatesModal orders={orders} onClose={onClose} />)
   expect(screen.getByRole('dialog', { name: 'Planning Dates' })).toBeTruthy()
@@ -26,7 +26,8 @@ it('lists one row per order with the AC columns and closes on Go Back (LINX-1543
   expect(cells.getByText('06/03/2026')).toBeTruthy()
   expect(cells.getByText('06/04/2026')).toBeTruthy()
 
-  fireEvent.click(screen.getByText('Go Back'))
+  expect(screen.queryByText('Go Back')).toBeNull()                    // no footer (user 2026-09-24)
+  fireEvent.click(screen.getByRole('button', { name: /close/i }))
   expect(onClose).toHaveBeenCalled()
 })
 

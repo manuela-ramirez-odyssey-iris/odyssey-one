@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Badge, Button, GroupTable, ModalMedium } from '@odyssey/ui'
+import { Badge, GroupTable, ModalMedium } from '@odyssey/ui'
 import { TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
@@ -41,7 +41,7 @@ export default function PlanningDatesModal({ orders = [], violations = [], onClo
       title="Planning Dates"
       ariaLabel="Planning Dates"
       onClose={onClose}
-      footer={<Button variant="secondary" onClick={onClose}>Go Back</Button>}
+      // User 2026-09-24: no footer — the header's close is the only exit.
     >
       <GroupTable flat columns={COLUMNS} groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => (missed.has(`${r.order}:${c.key}`)
         ? <Badge variant="amber" leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />}>{val(r[c.key])}</Badge>
