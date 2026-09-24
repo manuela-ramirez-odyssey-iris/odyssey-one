@@ -130,9 +130,12 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   padding-bottom: var(--spacing-4);
-  /* Stays in view while the stop list scrolls (S158, user 2026-09-24). */
+  /* Stays in view while the stop list scrolls (S158), floating a little below
+     the anchored KPI strip (user 2026-09-24). The strip docks at
+     -spacing-8 (flush under the navbar); its live height comes from
+     EditStopsView (--edit-stops-strip-h, 0 when there is no strip). */
   position: sticky;
-  top: var(--spacing-4);
+  top: calc(-1 * var(--spacing-8) + var(--edit-stops-strip-h, var(--spacing-8)) + var(--spacing-4));
   align-self: flex-start;
 }
 

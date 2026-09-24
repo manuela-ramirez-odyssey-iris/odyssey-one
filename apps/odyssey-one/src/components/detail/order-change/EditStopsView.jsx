@@ -93,6 +93,17 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // landed (the table's odyssey-row-highlight), scrolled into view.
   // Reduced motion: no slide, no pulse (CSS + the guard below).
   const newPlanRef = useRef(null)
+  // The pending column docks just below the page's anchored KPI strip
+  // (user 2026-09-24) — the strip shrinks to Mini when stuck, so its height
+  // is measured, not guessed, and fed to CSS as --edit-stops-strip-h.
+  const rootRef = useRef(null)
+  useEffect(() => {
+    const strip = rootRef.current?.closest('.order-change')?.querySelector('.summary-strip--sticky')
+    if (!strip || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => rootRef.current?.style.setProperty('--edit-stops-strip-h', `${strip.offsetHeight}px`))
+    ro.observe(strip)
+    return () => ro.disconnect()
+  }, [])
   const prevTops = useRef(null)
   const [flash, setFlash] = useState([])
   const flashTimer = useRef(null)
@@ -316,7 +327,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   }
 
   return (
-    <div className="edit-stops">
+    <div className="edit-stops" ref={rootRef}>
       <SubAccordion
         title="All Stops"
         collapsible={false}
