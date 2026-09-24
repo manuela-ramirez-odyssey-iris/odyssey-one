@@ -330,6 +330,8 @@
   --icon-stroke-lg: 2px;     /* Lucide default */
 
   /* --- Shadows --- */
+  /* Disabled controls: enabled look at this opacity (Figma Opacity/disabled = 40%, S158). */
+  --opacity-disabled: 0.4;
   --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-base: 0px 1px 2px 0px rgba(0, 0, 0, 0.06), 0px 1px 3px 0px rgba(0, 0, 0, 0.10);
   --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.12);

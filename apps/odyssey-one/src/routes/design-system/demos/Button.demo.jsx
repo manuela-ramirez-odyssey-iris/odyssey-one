@@ -9,6 +9,7 @@ export const meta = {
   createdVersion: '0.1.0',
   figmaNode: '1307:333',
   codeConnect: 'packages/ui/src/Button.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
@@ -22,16 +23,16 @@ export const props = [
 ]
 
 export const tokens = [
-  { token: '--deep-sea-neutral-900', resolves: 'DSN/900', usage: 'primary bg (idle/pressed/disabled)' },
-  { token: '--deep-sea-neutral-600', resolves: 'DSN/600', usage: 'primary hover bg; primary disabled text + border' },
+  { token: '--deep-sea-neutral-900', resolves: 'DSN/900', usage: 'primary bg (idle/pressed)' },
+  { token: '--deep-sea-neutral-600', resolves: 'DSN/600', usage: 'primary hover bg' },
   { token: '--deep-sea-neutral-700', resolves: 'DSN/700', usage: 'secondary label' },
-  { token: '--deep-sea-neutral-400', resolves: 'DSN/400', usage: 'outline + ghost disabled text/border' },
-  { token: '--deep-sea-neutral-300', resolves: 'DSN/300', usage: 'secondary/icon/error disabled border + label' },
-  { token: '--bg-error', resolves: 'Bittersweet/100', usage: 'error idle + disabled bg' },
+  { token: '--deep-sea-neutral-400', resolves: 'DSN/400', usage: 'outline + ghost pressed border' },
+  { token: '--deep-sea-neutral-300', resolves: 'DSN/300', usage: 'secondary/icon/error border' },
+  { token: '--bg-error', resolves: 'Bittersweet/100', usage: 'error idle bg' },
   { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error label' },
-  { token: '--bittersweet-300', resolves: 'Bittersweet/300', usage: 'error disabled label' },
   { token: '--text-link', resolves: 'Carolina Blue/500', usage: 'link label' },
-  { token: '--shadow-sm', resolves: 'shadow/sm', usage: 'raised variants + all disabled' },
+  { token: '--shadow-sm', resolves: 'shadow/sm', usage: 'raised variants (idle)' },
+  { token: '--opacity-disabled', resolves: 'Opacity/disabled (40%)', usage: 'every variant disabled = its idle look at this opacity, no shadow (S158)' },
 ]
 
 const VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'error', 'link']

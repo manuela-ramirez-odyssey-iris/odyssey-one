@@ -9,6 +9,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2978:330',
   codeConnect: 'packages/ui/src/ButtonToggle.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
