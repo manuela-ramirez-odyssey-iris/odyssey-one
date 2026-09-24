@@ -21,10 +21,16 @@ function defaultsFor(order, type) {
     : { date: orDash(order.earliestDelivery), address: orDash(order.shipTo?.address) }
 }
 
-// ponytail: location match is plain string equality on the display location.
-// The AC calls for a Location-ID + full-address match; upgrade when that data is on the VM.
-function placeOrder(list, orderId, type, location, makeKey, orders) {
-  const idx = list.findIndex((s) => s.type === type && s.location === location)
+// Where a leg goes: `at` = { siteKey, location, site } (an order's shipFrom/
+// shipTo, or a bare { location } for a seeded location change). Matches a
+// stop of the SAME type on site id + postal (DEC-193); a bare location falls
+// back to display equality.
+// ponytail: site id + postal, not the AC's Location-ID + full address — the
+// seed's order and stop address1 disagree for the same site (plan Wave B).
+const sameSite = (s, at) => (at.siteKey && s.siteKey ? s.siteKey === at.siteKey : s.location === at.location)
+
+function placeOrder(list, orderId, type, at, makeKey, orders) {
+  const idx = list.findIndex((s) => s.type === type && sameSite(s, at))
   if (idx !== -1) {
     if (!list[idx].orderIds.includes(orderId)) list[idx].orderIds.push(orderId)
     return
@@ -37,7 +43,9 @@ function placeOrder(list, orderId, type, location, makeKey, orders) {
     key: makeKey(),
     type,
     orderIds: [orderId],
-    location,
+    siteKey: at.siteKey ?? '',
+    site: at.site,
+    location: at.stopLocation ?? at.location,
     address,
     date,
     weight: '',
@@ -73,6 +81,7 @@ export function initSandbox({ stops, consolidation, orders }) {
     key: `s${s.stopNumber}`,
     type: s.type,
     orderIds: [...s.orderIds],
+    siteKey: s.siteKey ?? '',
     location: s.location,
     address: s.address,
     date: s.date,
@@ -93,7 +102,7 @@ export function initSandbox({ stops, consolidation, orders }) {
     const type = src.type
     for (const orderId of change.changedOrderIds ?? []) {
       if (!src.orderIds.includes(orderId)) continue
-      placeOrder(sbStops, orderId, type, locField.new, () => `new:${type}:${++seq}`, orders)
+      placeOrder(sbStops, orderId, type, { location: locField.new }, () => `new:${type}:${++seq}`, orders)
       src.orderIds = src.orderIds.filter((id) => id !== orderId)
     }
   }
@@ -155,8 +164,8 @@ export function addToStop(sb, id, orders) {
   if (!order) return sb
   const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   let seq = sb.seq
-  placeOrder(stops, id, 'pickup', order.shipFrom.location, () => `new:pickup:${++seq}`, orders)
-  placeOrder(stops, id, 'delivery', order.shipTo.location, () => `new:delivery:${++seq}`, orders)
+  placeOrder(stops, id, 'pickup', order.shipFrom, () => `new:pickup:${++seq}`, orders)
+  placeOrder(stops, id, 'delivery', order.shipTo, () => `new:delivery:${++seq}`, orders)
   const pending = sb.pending.filter((p) => p !== id)
   return { ...sb, stops, pending, seq, dirty: true, routed: false }
 }
@@ -207,9 +216,12 @@ export function priorDiff(sb) {
 
 export function toDto(sb) {
   return sb.stops.map((s, i) => {
+    // A created stop carries its order's structured site; otherwise the
+    // display string is split (the server takes an existing stop's own
+    // fields off sourceStopSequence anyway).
     const idx = s.location.indexOf(', ')
-    const facilityName = idx === -1 ? s.location : s.location.slice(0, idx)
-    const city = idx === -1 ? '' : s.location.slice(idx + 2)
+    const facilityName = s.site?.facilityName ?? (idx === -1 ? s.location : s.location.slice(0, idx))
+    const city = s.site?.city ?? (idx === -1 ? '' : s.location.slice(idx + 2))
     // Pre-existing stop keys are `s<originalStopSequence>`; created stops key
     // as `new:<type>:<n>`. The server (mergeStops) needs the ORIGINAL sequence
     // to pull region/postal/timezone etc. off detail.shipmentStopList — this
@@ -224,6 +236,9 @@ export function toDto(sb) {
       city,
       address1: s.address,
       scheduledDateTime: s.date,
+      region: s.site?.region,
+      postal: s.site?.postal,
+      country: s.site?.country,
       sourceStopSequence,
     }
   })

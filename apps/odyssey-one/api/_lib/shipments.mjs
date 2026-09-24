@@ -358,10 +358,14 @@ export function mergeStops(detail, rows) {
       orderIds,
       facilityName: base.facilityName ?? row.facilityName,
       city: base.city ?? row.city,
+      region: base.region ?? row.region,
+      postal: base.postal ?? row.postal,
       address1: base.address1 ?? row.address1,
-      scheduledDateTime: base.scheduledDateTime ?? row.scheduledDateTime,
+      // DEC-199: the planner's edited date wins — it used to be dropped for
+      // every existing stop (base first).
+      scheduledDateTime: row.scheduledDateTime ?? base.scheduledDateTime,
       appointmentTime: base.appointmentTime ?? null,
-      country: base.country ?? 'US',
+      country: base.country ?? row.country ?? 'US',
       grossWeightValue, grossWeightUomCode: base.grossWeightUomCode ?? 'LB',
       volumeValue, volumeUomCode: base.volumeUomCode ?? 'cuft',
       packageCount,

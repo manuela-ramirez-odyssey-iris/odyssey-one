@@ -53,6 +53,24 @@ function fmtLocation(a?: SellShipmentAddress): string {
   return parts.length ? parts.join(', ') : DASH
 }
 
+// DEC-193: stops and orders must agree on WHERE — one key (site id +
+// postal) and one display shape, so the order-change sandbox can match an
+// order's leg to an existing stop. The two display strings (fmtLocation vs
+// the stop's) never matched, so every placement created a P?/D?.
+export function siteKeyOf(site?: string, postal?: string): string {
+  return site ? `${site}|${postal ?? ''}` : ''
+}
+export function stopLocationOf(p: { facilityName?: string; city?: string; region?: string; postal?: string; country?: string }): string {
+  const regionPostalCountry = [p.region, p.postal, p.country].filter(Boolean).join(' ')
+  const parts = [p.facilityName, p.city, regionPostalCountry || undefined].filter(Boolean)
+  return parts.length ? parts.join(', ') : DASH
+}
+function stopSiteOf(a?: SellShipmentAddress) {
+  const facilityName = a?.externalIdentifier || a?.partnerId || undefined
+  const site = { facilityName, city: a?.city, region: a?.region, postal: a?.postal, country: a?.country }
+  return { siteKey: siteKeyOf(facilityName, a?.postal), stopLocation: stopLocationOf(site), site }
+}
+
 function fmtAddress(a?: SellShipmentAddress): string {
   if (!a) return DASH
   // address2 now populated by generator (~30%); join with address1 when present
@@ -105,6 +123,7 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
       address: fmtAddress(order.origin),
       address1: order.origin?.address1 || DASH,
       address2: order.origin?.address2 || DASH,
+      ...stopSiteOf(order.origin),
     },
     shipTo: {
       siteId: order.destination?.externalIdentifier || order.destination?.partnerId || DASH,
@@ -113,6 +132,7 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
       address: fmtAddress(order.destination),
       address1: order.destination?.address1 || DASH,
       address2: order.destination?.address2 || DASH,
+      ...stopSiteOf(order.destination),
     },
     earliestPickup: order.scheduledShipDate ?? order.requestedShipDate ?? DASH,
     latestPickup: order.requestedShipDate ?? order.scheduledShipDate ?? DASH,
@@ -155,10 +175,9 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
 function mapStop(s: SellShipmentStop): StopVM {
   // Build "region postal country" as a single space-joined token, then prefix
   // with "facilityName, city" — matches expected format: "Name, City, TX 77001 US"
-  const regionPostalCountry = [s.region, s.postal, s.country].filter(Boolean).join(' ')
-  const locParts = [s.facilityName, s.city, regionPostalCountry || undefined].filter(Boolean)
-  const loc = locParts.length ? locParts.join(', ') : DASH
+  const loc = stopLocationOf(s)
   return {
+    siteKey: siteKeyOf(s.facilityName, s.postal),
     type: s.stopType,
     stopNumber: s.stopSequence,
     order: (s.orderIds ?? []).join(', ') || DASH,

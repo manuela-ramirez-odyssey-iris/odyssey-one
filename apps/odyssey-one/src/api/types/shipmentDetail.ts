@@ -12,6 +12,11 @@ export interface AddressVM {
      `address` stays the joined form for existing consumers */
   address1: string
   address2: string
+  /* DEC-193 — the same key + display shape a stop carries, so an order's
+     leg can be matched to an existing stop (site id + postal). */
+  siteKey: string
+  stopLocation: string
+  site: { facilityName?: string; city?: string; region?: string; postal?: string; country?: string }
 }
 
 export interface SpecialServiceVM {
@@ -81,6 +86,8 @@ export interface StopVM {
   /* Split form — a stop can serve several orders and the details modal renders
      one link per order (same joined/split pattern as AddressVM). */
   orderIds: string[]
+  /* site id + postal — see AddressVM.siteKey */
+  siteKey: string
   location: string
   address: string
   date: string

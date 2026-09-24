@@ -254,3 +254,32 @@ describe('stop dates + planning windows (DEC-199)', () => {
     expect(toDto(s)[0].scheduledDateTime).toBe('June 5, 2026 09:00 CDT')
   })
 })
+
+describe('placement matches on site id + postal, not display strings (DEC-193 bug, live 25412375)', () => {
+  // The live shapes: a stop reads "ACME FREIGHT SERVICES, Miami, FL 33101 US",
+  // its order's fmtLocation reads "33101, Miami, FL, US" — never equal.
+  const site = { facilityName: 'ACME FREIGHT SERVICES', city: 'Miami', region: 'FL', postal: '33101', country: 'US' }
+  const liveStops = [
+    { type: 'pickup', stopNumber: 1, orderIds: ['A', 'B'], siteKey: 'ACME FREIGHT SERVICES|33101', location: 'ACME FREIGHT SERVICES, Miami, FL 33101 US', date: 'June 4, 2026 08:00 CDT' },
+    { type: 'delivery', stopNumber: 2, orderIds: ['A', 'B'], siteKey: 'SEMPRA|92101', location: 'SEMPRA, San Diego, CA 92101 US', date: 'June 6, 2026 08:00 CDT' },
+  ]
+  const at = (s, loc) => ({ siteKey: `${s.facilityName}|${s.postal}`, location: loc, stopLocation: 'X', site: s })
+  const liveOrders = ['A', 'B'].map((n) => ({
+    orderNumber: n,
+    shipFrom: at(site, '33101, Miami, FL, US'),
+    shipTo: at({ facilityName: 'SEMPRA', city: 'San Diego', region: 'CA', postal: '92101', country: 'US' }, '92101, San Diego, CA, US'),
+  }))
+  it('an order set aside and added back rejoins its own stops — no P?', () => {
+    let s = initSandbox({ stops: liveStops, consolidation: noChange, orders: liveOrders })
+    s = addToStop(moveToPending(s, 'B'), 'B', liveOrders)
+    expect(labelsOf(s)).toEqual(['P1', 'D1'])
+    expect(s.stops[0].orderIds).toEqual(['A', 'B'])
+  })
+  it('a created stop carries the structured site through toDto', () => {
+    let s = initSandbox({ stops: liveStops, consolidation: noChange, orders: liveOrders })
+    const e = { orderNumber: 'E', shipFrom: at({ ...site, facilityName: 'NEW PLANT', postal: '33102' }, 'x'), shipTo: liveOrders[0].shipTo }
+    s = addToStop(addPending(s, ['E']), 'E', [...liveOrders, e])
+    const created = toDto(s).find((d) => d.sourceStopSequence == null)
+    expect(created).toMatchObject({ facilityName: 'NEW PLANT', city: 'Miami', region: 'FL', postal: '33102' })
+  })
+})
