@@ -170,7 +170,7 @@ export const blocks = {
     `<td style="padding:0;"><div style="width:72px;height:72px;border-radius:50%;background:${bg};border:2px solid ${fg};text-align:center;">` +
     `<img src="${esc(iconSrc)}" width="36" height="36" alt="${alt}" style="display:inline-block;margin-top:18px;border:0;color:${fg};font-size:28px;line-height:36px;"></div></td>` +
     `</tr></table>` +
-    (label ? `<div style="padding-top:12px;font-size:20px;line-height:28px;font-weight:600;color:${fg};">${esc(label)}</div>` : ''),
+    (label ? `<div style="padding-top:12px;font-size:12px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:${fg};">${esc(label)}</div>` : ''),
     'padding:8px 0 16px 0;')) },
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
