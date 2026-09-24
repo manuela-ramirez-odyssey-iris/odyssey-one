@@ -345,7 +345,7 @@
   "Button": {
     "selector": "odyssey-button",
     "version": "0.3.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "variant",
@@ -387,7 +387,7 @@
   "ButtonToggle": {
     "selector": "odyssey-button-toggle",
     "version": "0.2.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "[slot=first-icon]",
@@ -908,7 +908,7 @@
   "DropdownButton": {
     "selector": "odyssey-dropdown-button",
     "version": "1.3.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "value",
@@ -3321,7 +3321,7 @@
   "StepperButtonsFooter": {
     "selector": "odyssey-stepper-buttons-footer",
     "version": "0.5.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "cancelLabel",
@@ -3405,7 +3405,7 @@
   "SubAccordion": {
     "selector": "odyssey-sub-accordion",
     "version": "1.8.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "title",
