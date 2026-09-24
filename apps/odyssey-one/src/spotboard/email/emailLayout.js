@@ -162,6 +162,15 @@ export const blocks = {
       `</table>`,
       'padding:0 0 16px 0;'))
   },
+  // Big round check — the TE-3 hero (S158, user 2026-09-24: "something more
+  // visual, a big check"). A ✓ glyph in a rounded cell, not an image: images are
+  // blocked by default in most mail clients, a glyph always renders.
+  check: (label) => row(centerCell(
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>` +
+    `<td style="padding:0;"><div style="width:72px;height:72px;border-radius:50%;background:${C.successBg};border:2px solid ${C.successText};color:${C.successText};font-size:40px;line-height:72px;text-align:center;font-weight:700;">&#10003;</div></td>` +
+    `</tr></table>` +
+    (label ? `<div style="padding-top:12px;font-size:20px;line-height:28px;font-weight:600;color:${C.successText};">${esc(label)}</div>` : ''),
+    'padding:8px 0 16px 0;')),
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
 

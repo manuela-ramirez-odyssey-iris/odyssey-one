@@ -63,8 +63,6 @@ export function tenderEmail(ctx) {
     ctx.deliverLine ? `Deliver: ${ctx.deliverLine}` : null,
     ...(stopsText.length ? ['', ...stopsText] : []),
     '',
-    `Offered Rate: ${ctx.offeredRate}`,
-    '',
     `${ctaLabel} (this link is for your company only):`,
     link,
     responseNote ? '' : null,
@@ -89,7 +87,8 @@ export function tenderEmail(ctx) {
       ctx.stops?.length
         ? blocks.factGrid(ctx.stops.map((s) => [s.label, s.date]), { columns: 1, topRule: true, bottomRule: true })
         : null,
-      blocks.factGrid([['Distance', ctx.distance], ['Offered Rate', ctx.offeredRate]]),
+      // No rate in tender emails (user, 2026-09-24, from Adam/Dave).
+      blocks.factGrid([['Distance', ctx.distance]]),
       blocks.button(ctaLabel, link),
       responseNote ? blocks.paragraph(responseNote) : null,
     ].filter(Boolean),
@@ -102,12 +101,10 @@ export function tenderEmail(ctx) {
 // carrier's Accept is recorded on the review page. User ruling 2026-09-24
 // (Adam Shingle's ask), NOT in LINX-15795/15796/15800 — no story AC covers
 // this email, so subject/body wording below is a placeholder pending
-// Adam/Dave. Reuses TE-1's summary block + Offered Rate row verbatim; the
-// only new fact is the accepted-at timestamp, and the CTA states no
-// accept/decline action (the response is already recorded).
+// Adam/Dave. Reuses TE-1's summary block; hero = a big check (user, 2026-09-24),
+// no rate and no link — a receipt with nothing left to act on.
 export function tenderAcceptedEmail(ctx) {
   const kind = 'TE-3'
-  const link = `${ctx.appOrigin}/tender-review/${ctx.token}`
   const subject = acceptanceSubjectFor(ctx)
   const noticeLine = `Accepted ${ctx.acceptedAt}`
 
@@ -122,26 +119,21 @@ export function tenderAcceptedEmail(ctx) {
     `Weight: ${ctx.weight}`,
     `Hazmat: ${ctx.hazmat}`,
     ctx.distance ? `Distance: ${ctx.distance}` : null,
-    '',
-    `Accepted Rate: ${ctx.offeredRate}`,
-    '',
-    'View Tender (this link is for your company only):',
-    link,
   ].filter((l) => l !== null))
 
   const html = renderHtml({
     title: subject,
     preheader: `${ctx.odysseyShipmentIdentifier} · ${ctx.equipment} · ${noticeLine}`,
     blocks: [
-      blocks.eyebrow('Tender Accepted'),
+      blocks.check('Tender Accepted'),
       blocks.headline(`${ctx.scac} — Shipment ${ctx.odysseyShipmentIdentifier}`),
-      blocks.notice(noticeLine, 'success'),
+      blocks.paragraph(noticeLine),
       blocks.columnStack([
         [['Shipper', ctx.customerName], ['Carrier', `${ctx.scac} - ${ctx.carrierName}`]],
         [['Shipment ID', ctx.odysseyShipmentIdentifier], ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat]],
       ]),
-      blocks.factGrid([['Distance', ctx.distance], ['Accepted Rate', ctx.offeredRate]]),
-      blocks.button('View Tender', link),
+      // No rate, no CTA (user, 2026-09-24): a receipt, nothing left to do.
+      blocks.factGrid([['Distance', ctx.distance]]),
     ],
   })
 

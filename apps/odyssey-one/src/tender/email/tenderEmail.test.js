@@ -55,7 +55,9 @@ describe('tenderEmail — TE-1 (Email)', () => {
     expect(m.text).toContain('Shipper: *USALCO_SYS_01')
     expect(m.text).toContain('Carrier: CCNI - Cardinal Freight')
     expect(m.text).toContain('Shipment ID: 50001096')
-    expect(m.text).toContain('Offered Rate: 2,925.05 CAD')
+    // No rate in tender emails (user, 2026-09-24).
+    expect(m.text).not.toContain('Rate')
+    expect(m.html).not.toContain('Offered Rate')
   })
   it('envelope: from the planning group, to the synthesized carrier ops address', () => {
     expect(m.from).toMatch(/@odysseylogistics\.com$/)
