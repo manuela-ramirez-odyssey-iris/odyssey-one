@@ -1,9 +1,10 @@
 // /tender-emails — a REFERENCE GALLERY of the tender notification email
-// (TE-1 Email, TE-2 Email & EDI), sibling of /spot-emails (S156).
+// (TE-1 Email, TE-2 Email & EDI, TE-3 acceptance confirmation), sibling of
+// /spot-emails (S156).
 import EmailGallery from '../spot-emails/EmailGallery.jsx'
 import { SCENARIOS, emailsForScenario, defaultEmailIdFor } from './fixture.js'
 
-const KIND_TONE = { 'TE-1': 'info', 'TE-2': 'amber' }
+const KIND_TONE = { 'TE-1': 'info', 'TE-2': 'amber', 'TE-3': 'green' }
 
 export default function TenderEmailsRoute() {
   return (

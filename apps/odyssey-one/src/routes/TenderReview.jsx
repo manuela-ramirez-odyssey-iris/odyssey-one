@@ -7,6 +7,7 @@ import { saveTenderOption } from '../api/services/shipmentService'
 import { routingOptionVmToDto } from '../api/mappers/mapSellShipmentOutToDetail'
 import { formatDateTimeMDYHM } from '../lib/dates.js'
 import { isEmailNotify } from '../tender/email/tenderEmail.js'
+import { toEmailFor } from '../tender/email/tenderEmailContext.js'
 import { PLANNING_GROUP_MAILBOX } from '../spotboard/email/emailContext.js'
 import { HeroBackground, carrierInitials } from './externalPageChrome.jsx'
 import { HERO_IMAGES_LAND } from '../heroImages'
@@ -223,9 +224,14 @@ export default function TenderReview() {
       </Alert>
     )
   } else if (effectiveOption.status === 'Accepted') {
+    // TE-3 (user ruling 2026-09-24, Adam's ask) — Accept only, Email method
+    // only; Email & EDI copies never reach this branch via a button (no
+    // buttons render for that method), but a status loaded as Accepted
+    // could still be Email & EDI-sourced, so the method is checked here too.
     responseContent = (
       <Alert variant="success" showClose={false}>
         {`Tender accepted – Recorded on ${effectiveOption.responseDateTime}. Reference ${shipment.odysseyShipmentIdentifier}.`}
+        {!isEmailEdi && <><br />{`A confirmation has been emailed to ${toEmailFor(effectiveOption.scac)}.`}</>}
       </Alert>
     )
   } else if (effectiveOption.status === 'Declined') {

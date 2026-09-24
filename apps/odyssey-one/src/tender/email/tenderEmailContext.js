@@ -77,7 +77,15 @@ export function buildTenderEmailContext({ shipment, option }) {
     // ponytail: BR-3's mf$get.load_tender_communication has no counterpart
     // here (no carrier contact model) — one synthesized address stands in,
     // same convention as spotboard/carrierList.js's buildRow.
-    toEmail: `ops@${scac.toLowerCase()}.example.com`,
+    toEmail: toEmailFor(scac),
     appOrigin: APP_ORIGIN,
+    // TE-3 only — Accept records responseDateTime; TE-1/TE-2 ignore it.
+    acceptedAt: option?.responseDateTime ?? '',
   }
+}
+
+// Shared with TenderReview.jsx's "A confirmation has been emailed to…" line
+// (TE-3, user ruling 2026-09-24) so both stay in sync with the same guess.
+export function toEmailFor(scac) {
+  return `ops@${String(scac ?? '').toLowerCase()}.example.com`
 }

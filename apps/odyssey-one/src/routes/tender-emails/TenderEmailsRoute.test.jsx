@@ -33,4 +33,12 @@ describe('TenderEmailsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: /Consolidation tender/ }))
     expect(screen.getAllByText(/multiple deliveries/).length).toBeGreaterThan(0)
   })
+  it('the accepted scenario previews TE-3 — acceptance subject and a View Tender CTA', () => {
+    render(<TenderEmailsRoute />)
+    fireEvent.click(screen.getByRole('button', { name: /Tender accepted \(confirmation\)/ }))
+    expect(screen.getByText('TE-3')).toBeTruthy()
+    const frame = screen.getByTitle('Email preview')
+    expect(frame.getAttribute('srcdoc')).toContain('Tender Acceptance Confirmation to')
+    expect(frame.getAttribute('srcdoc')).toContain('View Tender')
+  })
 })

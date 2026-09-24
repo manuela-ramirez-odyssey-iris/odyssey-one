@@ -21,6 +21,15 @@ function subjectFor(ctx) {
     : `Tender Notification to ${ctx.scac} of Shipment ID:${ctx.odysseyShipmentIdentifier}, for ${ctx.customerForSubject} delivery:${ctx.orderNumber}`
 }
 
+// TE-3 subject — user ruling 2026-09-24 (Adam's ask), NOT in 15795/15796/15800.
+// Wording mirrors Dave's TE-1 subject rule 1:1 (same customer/consolidation
+// logic) but is otherwise a placeholder pending Adam/Dave sign-off.
+function acceptanceSubjectFor(ctx) {
+  return ctx.consolidation
+    ? `Tender Acceptance Confirmation to ${ctx.scac} of Shipment ID:${ctx.odysseyShipmentIdentifier}, for ${ctx.customerForSubject}, multiple deliveries`
+    : `Tender Acceptance Confirmation to ${ctx.scac} of Shipment ID:${ctx.odysseyShipmentIdentifier}, for ${ctx.customerForSubject} delivery:${ctx.orderNumber}`
+}
+
 export function tenderEmail(ctx) {
   const kind = ctx.api === 'Email & EDI' ? 'TE-2' : 'TE-1'
   const link = `${ctx.appOrigin}/tender-review/${ctx.token}`
@@ -84,6 +93,56 @@ export function tenderEmail(ctx) {
       blocks.button(ctaLabel, link),
       responseNote ? blocks.paragraph(responseNote) : null,
     ].filter(Boolean),
+  })
+
+  return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }
+}
+
+// TE-3 — Tender acceptance confirmation, sent to the carrier the moment the
+// carrier's Accept is recorded on the review page. User ruling 2026-09-24
+// (Adam Shingle's ask), NOT in LINX-15795/15796/15800 — no story AC covers
+// this email, so subject/body wording below is a placeholder pending
+// Adam/Dave. Reuses TE-1's summary block + Offered Rate row verbatim; the
+// only new fact is the accepted-at timestamp, and the CTA states no
+// accept/decline action (the response is already recorded).
+export function tenderAcceptedEmail(ctx) {
+  const kind = 'TE-3'
+  const link = `${ctx.appOrigin}/tender-review/${ctx.token}`
+  const subject = acceptanceSubjectFor(ctx)
+  const noticeLine = `Accepted ${ctx.acceptedAt}`
+
+  const text = renderText([
+    'Tender Accepted',
+    noticeLine,
+    '',
+    `Shipper: ${ctx.customerName}`,
+    `Carrier: ${ctx.scac} - ${ctx.carrierName}`,
+    `Shipment ID: ${ctx.odysseyShipmentIdentifier}`,
+    `Equipment: ${ctx.equipment}`,
+    `Weight: ${ctx.weight}`,
+    `Hazmat: ${ctx.hazmat}`,
+    ctx.distance ? `Distance: ${ctx.distance}` : null,
+    '',
+    `Accepted Rate: ${ctx.offeredRate}`,
+    '',
+    'View Tender (this link is for your company only):',
+    link,
+  ].filter((l) => l !== null))
+
+  const html = renderHtml({
+    title: subject,
+    preheader: `${ctx.odysseyShipmentIdentifier} · ${ctx.equipment} · ${noticeLine}`,
+    blocks: [
+      blocks.eyebrow('Tender Accepted'),
+      blocks.headline(`${ctx.scac} — Shipment ${ctx.odysseyShipmentIdentifier}`),
+      blocks.notice(noticeLine, 'success'),
+      blocks.columnStack([
+        [['Shipper', ctx.customerName], ['Carrier', `${ctx.scac} - ${ctx.carrierName}`]],
+        [['Shipment ID', ctx.odysseyShipmentIdentifier], ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat]],
+      ]),
+      blocks.factGrid([['Distance', ctx.distance], ['Accepted Rate', ctx.offeredRate]]),
+      blocks.button('View Tender', link),
+    ],
   })
 
   return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }

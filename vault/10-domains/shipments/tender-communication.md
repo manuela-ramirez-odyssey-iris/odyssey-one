@@ -159,8 +159,20 @@ carrier's AP rate — *"we send them a tender with that $1000 for them to accept
 [[domain-analysis]] §4) — never AR/markup.
 
 Kinds: **TE-1** (`Email`), **TE-2** (`Email & EDI` copy — EDI notice instead of the Tendered
-notice, CTA *Review Tender*, no accept/decline wording anywhere; 15800 AC-4). Gallery at
-`/tender-emails`.
+notice, CTA *Review Tender*, no accept/decline wording anywhere; 15800 AC-4), **TE-3** (tender
+acceptance confirmation — source: **user ruling 2026-09-24 (Adam's ask)**, not in LINX-15795/
+15796/15800). Gallery at `/tender-emails`.
+
+**TE-3, tender acceptance confirmation (DEC-190).** Fires the moment the carrier's Accept is
+recorded on the Tender Review page (§4.4) — Declines never send it. Reuses TE-1's layout/blocks
+and recipient formula (`ops@<scac>`) exactly; subject is Dave's TE-1 rule with "Tender
+Acceptance Confirmation" swapped for "Tender Notification" (same customer/consolidation logic) —
+**wording is a placeholder pending Adam/Dave**, same open status as TE-1's own subject line. Body:
+accepted-at timestamp, TE-1's shipment summary block, the accepted rate, and a **View Tender** CTA
+back to the same review link (now showing the recorded Accepted banner) — no accept/decline
+wording, since the response is already final. The review page's Accepted banner grows one line —
+*"A confirmation has been emailed to ops@\<scac\>."* — gated to `Email` (never `Email & EDI`, which
+has no response buttons to begin with).
 
 ### 3.4 Delivery outcome (recorded, not built)
 

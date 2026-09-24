@@ -158,6 +158,9 @@ describe('TenderReview — Sent + Email', () => {
     expect(screen.getByText(/Reference ODY-25690001\./)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Accept Tender' })).toBe(null)
     expect(screen.queryByRole('button', { name: 'Decline Tender' })).toBe(null)
+    // TE-3 (user ruling 2026-09-24) — the accepted banner names the carrier's
+    // synthesized ops mailbox, same formula as tenderEmailContext.js's toEmail.
+    expect(screen.getByText(new RegExp(`A confirmation has been emailed to ops@${SCAC.toLowerCase()}\\.example\\.com`))).toBeTruthy()
   })
 
   it('Decline is disabled until a reason is chosen, and writes the reason + comments', async () => {
@@ -180,6 +183,8 @@ describe('TenderReview — Sent + Email', () => {
       expect(screen.getByText(/tender declined/i)).toBeTruthy()
     })
     expect(screen.getByText(/Reason: Rate too low\./)).toBeTruthy()
+    // Decline never sends TE-3.
+    expect(screen.queryByText(/A confirmation has been emailed/)).toBe(null)
   })
 
   it('Cancel on the decline form returns to the two buttons without writing', async () => {
