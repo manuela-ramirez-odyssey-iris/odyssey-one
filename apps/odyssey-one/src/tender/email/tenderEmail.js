@@ -141,3 +141,45 @@ export function tenderAcceptedEmail(ctx) {
 
   return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }
 }
+
+// TE-4 — Tender canceled, sent to the carrier when the planner cancels a
+// tendered shipment (user, 2026-09-24). Not in the three stories — wording is
+// a placeholder pending Adam/Dave. Same receipt shape as TE-3, error notice,
+// no link: the review page is no longer actionable.
+export function tenderCanceledEmail(ctx) {
+  const kind = 'TE-4'
+  const tail = ctx.consolidation ? ', multiple deliveries' : ` delivery:${ctx.orderNumber}`
+  const subject = `Tender Cancellation to ${ctx.scac} of Shipment ID:${ctx.odysseyShipmentIdentifier}, for ${ctx.customerForSubject}${tail}`
+  const noticeLine = `Canceled by the shipper ${ctx.canceledAt}. No action is needed — please do not dispatch.`
+
+  const text = renderText([
+    'Tender Canceled',
+    noticeLine,
+    '',
+    `Shipper: ${ctx.customerName}`,
+    `Carrier: ${ctx.scac} - ${ctx.carrierName}`,
+    `Shipment ID: ${ctx.odysseyShipmentIdentifier}`,
+    `Equipment: ${ctx.equipment}`,
+    `Weight: ${ctx.weight}`,
+    `Hazmat: ${ctx.hazmat}`,
+    ctx.distance ? `Distance: ${ctx.distance}` : null,
+  ].filter((l) => l !== null))
+
+  const html = renderHtml({
+    title: subject,
+    preheader: `${ctx.odysseyShipmentIdentifier} · ${ctx.equipment} · Tender canceled`,
+    blocks: [
+      blocks.check('Tender Canceled', `${ctx.appOrigin}/email/x-error.png`, 'error'),
+      blocks.headline(`${ctx.scac} — Shipment ${ctx.odysseyShipmentIdentifier}`),
+      blocks.paragraph(noticeLine),
+      blocks.columnStack([
+        [['Shipper', ctx.customerName], ['Carrier', `${ctx.scac} - ${ctx.carrierName}`]],
+        [['Shipment ID', ctx.odysseyShipmentIdentifier], ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat]],
+      ]),
+      blocks.route(ctx.from, ctx.to),
+      blocks.factGrid([['Distance', ctx.distance]]),
+    ],
+  })
+
+  return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }
+}

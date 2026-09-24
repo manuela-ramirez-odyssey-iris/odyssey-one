@@ -165,13 +165,13 @@ export const blocks = {
   // Round success badge — the TE-3 hero (S158, user 2026-09-24). Circle as
   // first drawn; the mark is Lucide's `check` as a hosted 2x PNG (the text ✓
   // glyph read childish). `alt` keeps a ✓ when a client blocks images.
-  check: (label, iconSrc) => row(centerCell(
+  check: (label, iconSrc, tone = 'success') => { const bg = tone === 'error' ? C.errorBg : C.successBg; const fg = tone === 'error' ? C.errorText : C.successText; const alt = tone === 'error' ? '&#10007;' : '&#10003;'; return row(centerCell(
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>` +
-    `<td style="padding:0;"><div style="width:72px;height:72px;border-radius:50%;background:${C.successBg};border:2px solid ${C.successText};text-align:center;">` +
-    `<img src="${esc(iconSrc)}" width="36" height="36" alt="&#10003;" style="display:inline-block;margin-top:18px;border:0;color:${C.successText};font-size:28px;line-height:36px;"></div></td>` +
+    `<td style="padding:0;"><div style="width:72px;height:72px;border-radius:50%;background:${bg};border:2px solid ${fg};text-align:center;">` +
+    `<img src="${esc(iconSrc)}" width="36" height="36" alt="${alt}" style="display:inline-block;margin-top:18px;border:0;color:${fg};font-size:28px;line-height:36px;"></div></td>` +
     `</tr></table>` +
-    (label ? `<div style="padding-top:12px;font-size:20px;line-height:28px;font-weight:600;color:${C.successText};">${esc(label)}</div>` : ''),
-    'padding:8px 0 16px 0;')),
+    (label ? `<div style="padding-top:12px;font-size:20px;line-height:28px;font-weight:600;color:${fg};">${esc(label)}</div>` : ''),
+    'padding:8px 0 16px 0;')) },
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
 

@@ -43,4 +43,13 @@ describe('TenderEmailsRoute', () => {
     expect(frame.getAttribute('srcdoc')).not.toContain('View Tender')
     expect(frame.getAttribute('srcdoc')).not.toContain('Rate')
   })
+  it('the canceled scenario previews TE-4 — cancellation subject, no review link', () => {
+    render(<TenderEmailsRoute />)
+    fireEvent.click(screen.getByRole('button', { name: /Tender canceled \(by planner\)/ }))
+    expect(screen.getByText('TE-4')).toBeTruthy()
+    const doc = screen.getByTitle('Email preview').getAttribute('srcdoc')
+    expect(doc).toContain('Tender Cancellation to')
+    expect(doc).toContain('x-error.png')
+    expect(doc).not.toContain('/tender-review/')
+  })
 })

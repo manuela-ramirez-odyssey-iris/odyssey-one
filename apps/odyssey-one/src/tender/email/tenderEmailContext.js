@@ -81,6 +81,8 @@ export function buildTenderEmailContext({ shipment, option }) {
     appOrigin: APP_ORIGIN,
     // TE-3 only — Accept records responseDateTime; TE-1/TE-2 ignore it.
     acceptedAt: option?.responseDateTime ?? '',
+    // TE-4 only — planner cancels the tender; stamped like Accept's responseDateTime.
+    canceledAt: option?.cancelDateTime ?? '',
   }
 }
 
