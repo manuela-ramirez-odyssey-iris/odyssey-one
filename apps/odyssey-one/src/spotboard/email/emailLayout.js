@@ -171,7 +171,7 @@ export const blocks = {
     `<img src="${esc(iconSrc)}" width="36" height="36" alt="${alt}" style="display:inline-block;margin-top:18px;border:0;color:${fg};font-size:28px;line-height:36px;"></div></td>` +
     `</tr></table>` +
     (label ? `<div style="padding-top:12px;font-size:12px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:${fg};">${esc(label)}</div>` : ''),
-    'padding:8px 0 16px 0;')) },
+    'padding:8px 0 8px 0;')) },
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
 
