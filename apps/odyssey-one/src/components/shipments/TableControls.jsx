@@ -69,8 +69,11 @@ const TableControls = React.memo(function TableControls({
               >
                 All Columns
               </Button>
+              {/* Part 4 (S158, user 2026-09-23): ModalMedium convention is
+                  secondary left, primary right — Visible Columns is the
+                  common case (exporting what's on screen), so it gets primary. */}
               <Button
-                variant="secondary"
+                variant="primary"
                 size="lg"
                 onClick={() => {
                   if (onExport) onExport('filtered')
