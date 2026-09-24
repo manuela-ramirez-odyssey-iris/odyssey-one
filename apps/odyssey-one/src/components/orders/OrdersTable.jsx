@@ -33,6 +33,9 @@ export default function OrdersTable({
   loading = false,
   // Background refetch (keepPreviousData) → per-cell "Loading…" text.
   loadingRows = false,
+  // Failed load (Part 5) — passed straight through to DataTable's own error
+  // shell state ({ message, detail, onRetry }). undefined when the query is ok.
+  error,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
 
@@ -108,6 +111,7 @@ export default function OrdersTable({
       loadingRows={loadingRows}
       ariaLabel="Orders"
       highlightRowId={highlightRowId}
+      error={error}
       sortable
       footer={<Paginator table={table} />}
     />

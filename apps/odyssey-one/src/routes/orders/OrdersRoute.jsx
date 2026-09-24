@@ -17,6 +17,7 @@ import { useCancelOrder } from '../../api/queries/useCancelOrder'
 import { getOrderList } from '../../api/services/orderService'
 import { mapOrderListRow } from '../../api/mappers/mapOrderListRow'
 import { useCustomers } from '../../contexts/CustomersContext'
+import { getErrorDetail } from '../../components/common/errorDetail'
 import '../../components/orders/orders.css'
 
 /**
@@ -164,7 +165,7 @@ export default function OrdersRoute() {
     ...(searchChips.length ? { searchChips } : {}),
   }), [panelFilters, searchText, searchChips])
 
-  const { data, isPending, isFetching, isError, refetch } = useOrderList(request, selectedDataIds)
+  const { data, isPending, isFetching, isError, error, refetch } = useOrderList(request, selectedDataIds)
   const { data: tabCounts } = useOrderTabCounts(selectedDataIds, countFilters)
 
   // Consume the landing flag: if the active population came back empty under
@@ -368,19 +369,16 @@ export default function OrdersRoute() {
           onExportClick={() => setExportOpen(true)}
         />
 
-        {isError ? (
-          <div className="orders-page__status">
-            <span className="text-label-sm-regular">Something went wrong loading orders.</span>
-            <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
-          </div>
-        ) : !isPending && (data?.rows.length ?? 0) === 0 ? (
+        {!isError && !isPending && (data?.rows.length ?? 0) === 0 ? (
           <EmptyState icon={<Inbox size={32} />} message="No orders found" />
         ) : (
           /* Row clicking removed (user, 2026-07-29) — the kebab's View action
              is the single way into the Order Summary page; full-row targets
              fought the per-row action buttons. isPending (first mount, no data
              yet) → the shell's whole-table Spinner; isFetching (background
-             refetch/tab-change) → per-cell "Loading…" text. */
+             refetch/tab-change) → per-cell "Loading…" text. A failed load
+             (S116/Part 5) is the shell's own third body state — see
+             OrdersTable's `error` passthrough to DataTable. */
           <OrdersTable
             tab={activeTab}
             loading={isPending}
@@ -393,6 +391,11 @@ export default function OrdersRoute() {
             totalCount={data?.totalCount ?? 0}
             onRowAction={handleRowAction}
             highlightRowId={highlightRowId}
+            error={isError ? {
+              message: "Couldn't load orders.",
+              detail: getErrorDetail(error),
+              onRetry: () => refetch(),
+            } : undefined}
           />
         )}
 

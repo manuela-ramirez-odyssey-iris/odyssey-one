@@ -245,3 +245,27 @@ describe('OrdersRoute — created-order highlight', () => {
     expect(document.querySelectorAll('tr[data-highlight]')).toHaveLength(0)
   })
 })
+
+// Part 5 (S158 plan) — a failed load renders INSIDE the DataTable shell
+// (header/toolbar/tabs stay), matching ShipmentTable's error prop, not the
+// old bare-text `.orders-page__status` block.
+describe('OrdersRoute — failed load (Part 5)', () => {
+  test('shows the shell error state with Retry, not the old status block', async () => {
+    const spy = vi.spyOn(orderService, 'getOrderList').mockRejectedValue(new Error('boom'))
+    renderOrders()
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+
+    expect((await screen.findByRole('alert')).textContent).toContain("Couldn't load orders.")
+    expect(document.querySelector('.orders-page__status')).toBeNull()
+    // Chrome survives the failure — header + tabs still render.
+    expect(screen.getByRole('heading', { name: 'Orders' })).toBeTruthy()
+
+    spy.mockClear()
+    spy.mockResolvedValue({
+      orders: [{ orderNumber: 'S1', orderId: 'S1' }],
+      pagination: { totalCount: 1, pageNumber: 1, pageSize: 25 },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Reload/ }))
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+  })
+})
