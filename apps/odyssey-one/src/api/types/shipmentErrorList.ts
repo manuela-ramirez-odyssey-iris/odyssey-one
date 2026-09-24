@@ -102,7 +102,13 @@ export interface ShipmentErrorListParams {
   // customers' dataIds). Omit = unscoped (legacy callers/tests); [] = an honest
   // empty result (the user's selection has no data-backed customers).
   customerIds?: string[]
-  filter?: Record<string, string>        // exact-equality (FilterPanel dropdown selections)
+  filter?: Record<string, string> & {
+    // Consolidate mode (Part 3, S158): sellShipment ids to exclude from the
+    // server list — the selection is floated to the top of page 1 client-side
+    // (ShipmentsRoute), so the list must not also return them on their normal
+    // page (dupe row, shifted offsets).
+    excludeIds?: string[]
+  }        // exact-equality (FilterPanel dropdown selections)
   searchFilters?: Record<string, string> // substring match per field (saved-query conditions)
   searchCriteria?: SearchCriteria       // committed GlobalSearch chips+text (the S79c path)
   // Legacy free-text path (pre-S79c). Still supported by the service (and tested),

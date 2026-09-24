@@ -153,10 +153,18 @@ export async function getShipmentErrorList(
     rows = rows.filter(r => matchesCriteria(r, params.searchCriteria, criteriaNeedles))
   }
 
+  // Consolidate mode (Part 3, S158): the selected rows are floated to the top
+  // of page 1 client-side (ShipmentsRoute) — exclude them here so the server
+  // list never returns them a second time on their normal sorted page.
+  if (params.filter?.excludeIds?.length) {
+    const excluded = new Set(params.filter.excludeIds)
+    rows = rows.filter(r => !excluded.has(r.sellShipment))
+  }
+
   // exact-equality filters (FilterPanel dropdown selections)
   if (params.filter) {
     for (const [key, value] of Object.entries(params.filter)) {
-      if (!value) continue
+      if (key === 'excludeIds' || !value) continue
       rows = rows.filter(r => String((r as unknown as Record<string, unknown>)[key] ?? '') === value)
     }
   }

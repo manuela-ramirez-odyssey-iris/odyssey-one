@@ -134,6 +134,15 @@ export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sor
   if (filter.category && filter.category !== 'all') add('category = ?', filter.category)
   scope(where, values, filter.customerIds)
 
+  // Consolidate mode (Part 3, S158, user 2026-09-23): selected rows float to the
+  // top of page 1 as client-held snapshots (ShipmentsRoute), so the SERVER list
+  // must exclude them — otherwise a selected row would also come back on its
+  // normal sorted page, duplicating it and shifting every offset after it.
+  if (filter.excludeIds?.length) {
+    values.push(filter.excludeIds)
+    where.push(`sell_shipment <> ALL($${values.length})`)
+  }
+
   // Exact-equality + substring filters. The live payload (gridService.ts) SPREADS
   // these flat into `filter`; the test/legacy shape nests them under filter.filter /
   // filter.searchFilters. Read the nested objects when present, else the flat keys.

@@ -101,6 +101,11 @@ function ShipmentsRoute() {
   // highlighted. Cleared the moment the planner moves the query on (effect
   // below) — the pin is a one-time "here it is", not a sticky row.
   const [created, setCreated] = useState(location.state?.createdShipment ?? null)
+  // Part 3 (S158, user 2026-09-23): the row most recently CHECKED in
+  // consolidate mode gets the same highlight pulse `created` uses below — "the
+  // eye can follow it" as it floats to the top. Unchecking never re-highlights
+  // anything; the row just returns to its sorted place without a flash.
+  const [lastCheckedId, setLastCheckedId] = useState(null)
   const [selectedShipmentId, setSelectedShipmentId] = useState(location.state?.selectedShipmentId ?? null)
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
@@ -294,7 +299,12 @@ function ShipmentsRoute() {
     searchCriteria: effectiveCriteria ?? undefined,
     sortBy: sorting[0]?.id,
     orderBy: sorting[0]?.desc ? 'desc' : 'asc',
-  }), [activePanel, activeTab, pageNumber, pageSize, effectiveCriteria, selectedDataIds, sorting])
+    // Part 3 (S158): the selection is floated to the top of page 1 client-side
+    // (tableRows below) from its own row snapshots — the server must EXCLUDE
+    // those ids or a selected row would come back a second time on its normal
+    // sorted page, duplicating it and shifting every offset after it.
+    ...(inMode && selection.size ? { filter: { excludeIds: [...selection.keys()] } } : {}),
+  }), [activePanel, activeTab, pageNumber, pageSize, effectiveCriteria, selectedDataIds, sorting, inMode, selection])
 
   const {
     data: listData,
@@ -308,12 +318,33 @@ function ShipmentsRoute() {
   const pageRows = listData?.rows ?? []
   const totalCount = listData?.totalCount ?? 0
 
-  // The pin (S155 §4.2). Page 1 only — pinning it onto every page would be a
-  // row that follows the planner around. `filter` first so a row that IS on
-  // this page isn't rendered twice.
-  const tableRows = useMemo(() => (
-    created && pageNumber === 0 ? [created, ...pageRows.filter((r) => r.id !== created.id)] : pageRows
-  ), [created, pageNumber, pageRows])
+  // Part 3 (S158): the selection's own row snapshots, ordered by the ACTIVE
+  // sort — the same numeric-aware compare gridService's mock path applies
+  // server-side (localeCompare + numeric:true) — so the floated block on top
+  // and the server-sorted page beneath it read as one continuous order, not
+  // two differently-ordered lists stitched together. listParams.filter.excludeIds
+  // above asks the SERVER to exclude these ids too, but the query for a listParams
+  // change is async (isPlaceholderData holds the PRIOR page while it resolves) —
+  // tableRows below still filters pageRows against the selection so a just-checked
+  // row can never render twice (duplicate React key) during that gap.
+  const selectedRows = useMemo(() => {
+    if (!inMode || selection.size === 0) return []
+    const { id: sortId, desc } = sorting[0] ?? DEFAULT_SORTING[0]
+    const dir = desc ? -1 : 1
+    return [...selection.values()].sort((a, b) =>
+      String(a[sortId] ?? '').localeCompare(String(b[sortId] ?? ''), undefined, { numeric: true }) * dir)
+  }, [inMode, selection, sorting])
+
+  // The pin (S155 §4.2) and the consolidate-mode float (Part 3) both only ever
+  // apply to page 1 — pinning either onto every page would be a row that
+  // follows the planner around. Mutually exclusive in practice (the pin is a
+  // "just created elsewhere" arrival outside the mode), so inMode picks
+  // between them rather than trying to interleave both pins into one order.
+  const tableRows = useMemo(() => {
+    if (pageNumber !== 0) return pageRows
+    if (inMode) return [...selectedRows, ...pageRows.filter((r) => !selection.has(r.id))]
+    return created ? [created, ...pageRows.filter((r) => r.id !== created.id)] : pageRows
+  }, [created, pageNumber, pageRows, inMode, selectedRows, selection])
 
   // The planner moved on (sort, page, search, tab, customer scope) — the pin
   // has done its job and must not outlive the query it was pinned into. Skips
@@ -614,6 +645,10 @@ function ShipmentsRoute() {
     const picked = checked ? rows.filter((r) => r.customerId === scopeId) : rows
     const next = new Map(consolidate.rows)
     for (const r of picked) checked ? next.set(r.id, r) : next.delete(r.id)
+    // Part 3 (S158): highlight the last row THIS click checked (batch checks —
+    // the header box — just pick the last; a pulse per row would be noise).
+    // Unchecking sets nothing: the row returns to its sorted place unflashed.
+    if (checked && picked.length) setLastCheckedId(picked[picked.length - 1].id)
     const wasEmpty = consolidate.rows.size === 0
     const nowEmpty = next.size === 0
     setConsolidate({
@@ -806,7 +841,10 @@ function ShipmentsRoute() {
       ) : (
         <ShipmentTable
           shipments={tableRows}
-          highlightId={created?.id ?? null}
+          // Part 3 (S158): in consolidate mode the pulse follows the row just
+          // checked (floating to the top), not the created-shipment pin —
+          // the two never apply at once (see tableRows above).
+          highlightId={inMode ? lastCheckedId : (created?.id ?? null)}
           selectedId={inMode ? null : selectedShipmentId}
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
@@ -834,7 +872,11 @@ function ShipmentsRoute() {
           its own onToggleColumnPanel prop since the Routing Guide tab (its only
           consumer) removed the gear that used to call it; ShipmentTable above
           still gets handleToggleColumnPanel for the shipments-list column panel. */}
-      {!inMode && (
+      {/* Part 6 (S158, user 2026-09-23): PGI/PGR is widget-only — no rows to
+          open a detail bar against — so BottomBar (which hosts ShipmentsBar)
+          never mounts there. Switching to PGI/PGR with a shipment open closes
+          it, same as any other unmount. */}
+      {!inMode && activePanel !== 'pgipgr' && (
         <BottomBar
           selectedShipmentId={selectedShipmentId}
           requestedTab={requestedTab}

@@ -423,6 +423,84 @@ describe('consolidate mode — the customer lock is a committed filter chip (S15
   })
 })
 
+// Part 3 (S158, user 2026-09-23): selected shipments float to the top of page 1
+// as they're checked, ordered by the active sort, so the selection is always
+// in view. The moved row gets the same highlight pulse `created` uses.
+describe('consolidate mode — selection floats to the top (Part 3, S158)', () => {
+  // Checkboxes occupy the FIRST cell in select mode — the identifier lives in
+  // the title cell (S148: same class ShipmentTable puts on that column).
+  const rowIds = () => [...document.querySelectorAll('tbody tr')]
+    .map((tr) => tr.querySelector('.odyssey-table__cell--title')?.textContent?.trim())
+
+  test('checking a row floats it to the top with a highlight; unchecking returns it to its sorted place', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(2))
+    const before = rowIds()
+    // Check a row that ISN'T already first — it should float above everything,
+    // including rows the default sort would otherwise keep ahead of it.
+    const box = enabledRowBoxes()[2]
+    const label = box.getAttribute('aria-label')
+    const id = box.closest('tr').querySelector('.odyssey-table__cell--title').textContent.trim()
+    fireEvent.click(box)
+    await waitFor(() => expect(rowIds()[0]).toBe(id))
+    expect(document.querySelectorAll('tbody tr')[0].getAttribute('data-highlight')).toBe('true')
+    // Unchecking releases the float — the row returns to its normal sorted
+    // place (the page reverts to what it was before the float).
+    fireEvent.click(screen.getByRole('checkbox', { name: label }))
+    await waitFor(() => expect(rowIds()).toEqual(before))
+  })
+
+  test('two selections stack at the top in the active (default) sort order, never duplicated below', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(3))
+    const first = enabledRowBoxes()[3]
+    const firstId = first.closest('tr').querySelector('.odyssey-table__cell--title').textContent.trim()
+    fireEvent.click(first)
+    await screen.findByText('Selected Customer:')
+    await waitFor(() => expect(enabledRowBoxes().filter((c) => !c.checked).length).toBeGreaterThan(0))
+    const second = enabledRowBoxes().filter((c) => !c.checked)[0]
+    const secondId = second.closest('tr').querySelector('.odyssey-table__cell--title').textContent.trim()
+    fireEvent.click(second)
+    await waitFor(() => {
+      const top = rowIds().slice(0, 2)
+      expect(top).toEqual([...top].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })))
+      expect(top).toContain(firstId)
+      expect(top).toContain(secondId)
+    })
+    // Never duplicated further down the page (the server-exclusion path).
+    expect(rowIds().filter((id) => id === firstId)).toHaveLength(1)
+    expect(rowIds().filter((id) => id === secondId)).toHaveLength(1)
+  })
+})
+
+// Part 6 (S158, user 2026-09-23): PGI/PGR is widget-only, no rows to open a
+// detail bar against — BottomBar (which hosts ShipmentsBar) must not mount
+// there at all, not even collapsed.
+describe('PGI/PGR has no ShipmentsBar (Part 6, S158)', () => {
+  test('the bar is absent on the PGI/PGR panel and reappears on the others', async () => {
+    renderRoute({ panel: 'exceptions' })
+    await screen.findByRole('heading', { name: 'Shipments' })
+    expect(document.querySelector('.shipments-bar__strip')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /^PGI\/PGR/ }))
+    await waitFor(() => expect(screen.getByText('Coming soon')).toBeTruthy())
+    expect(document.querySelector('.shipments-bar__strip')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /^Shipment Exceptions/ }))
+    await waitFor(() => expect(document.querySelector('.shipments-bar__strip')).toBeTruthy())
+  })
+
+  test('switching to PGI/PGR with a shipment open closes the bar', async () => {
+    renderRoute({ panel: 'exceptions' })
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await waitFor(() => expect(document.querySelectorAll('tbody tr').length).toBeGreaterThan(0))
+    fireEvent.click(document.querySelectorAll('tbody tr')[0].querySelector('td'))
+    await waitFor(() => expect(document.querySelector('.shipments-bar__strip')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /^PGI\/PGR/ }))
+    await waitFor(() => expect(document.querySelector('.shipments-bar__strip')).toBeNull())
+  })
+})
+
 // S155 (user, 2026-09-20: "C shipments can appear only in non consol mode") —
 // consolidate mode LISTS only Direct shipments. Structural to the mode like
 // hiding PGI/PGR, and deliberately not a visible chip (contrast the CNS-10

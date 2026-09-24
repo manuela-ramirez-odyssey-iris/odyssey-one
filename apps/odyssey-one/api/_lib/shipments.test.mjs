@@ -107,6 +107,21 @@ test('list: empty customerIds → FALSE (honest empty on the list path)', () => 
   assert.match(q.text, /FALSE/)
 })
 
+// Part 3 (S158, user 2026-09-23): consolidate mode floats the selection to the
+// top of page 1 client-side, so the server list must exclude those ids or
+// they'd come back a second time on their own sorted page.
+test('list: excludeIds parameterizes a NOT-IN and never leaks unfiltered', () => {
+  const q = buildListQuery({
+    pageNumber: 0, pageSize: 25,
+    filter: { panel: 'exceptions', excludeIds: ['25004876', '25004877'] },
+  })
+  assert.match(q.text, /sell_shipment <> ALL\(\$\d+\)/)
+  assert.ok(q.values.some((v) => Array.isArray(v) && v.includes('25004876') && v.includes('25004877')))
+
+  const empty = buildListQuery({ pageNumber: 0, pageSize: 25, filter: { panel: 'exceptions', excludeIds: [] } })
+  assert.doesNotMatch(empty.text, /sell_shipment <>/)
+})
+
 test('detail: parameterized single-row lookup', () => {
   const q = buildDetailQuery('25004876')
   assert.match(q.text, /WHERE sell_shipment = \$1/)
