@@ -2436,6 +2436,11 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
      not a scroll container — so position: sticky inside the content still works. */
   overflow: clip;
   min-height: 0;
+  /* …but `clip` also drops the scroll-container rule that made a grid item's
+     automatic min-width 0, so the item grew to its content's min-content
+     width and wide content (SpotBid carrier table, Save Draft / Quote Setup)
+     spilled past the card (D22). Restore it explicitly. */
+  min-width: 0;
 }
 /* The 24px (spacing/6) header↔content gap lives here so the collapsed card
    keeps its own 16/20 vertical padding. */
@@ -6688,6 +6693,43 @@ button.breadcrumb__label:focus-visible {
    lead-ellipsizes via the rtl/ltr flip so the TAIL of the string (e.g. a
    Tracking Link URL) stays visible. The <bdi> keeps punctuation from
    reordering under rtl. */
+/* size="mini" (Figma `Size=Mini`, 4254:904, D22) — cells hug content, label BESIDE value
+   (8px gap; briefly stacked, reverted — user, D22), 8/12 padding, value label/sm. Cells hug content (no
+   grow, no 160px ceiling); it's the whole BAND that sticky widens by 20%,
+   clamped to the window — cells stay centered in it. */
+.summary-strip--sticky {
+  position: sticky;
+  /* Sticky stops at the scroller's PADDING edge — <main> has --spacing-8 on
+     top, so top:0 left a 32px gap under the navbar. Pull it flush (user 2026-09-24). */
+  top: calc(-1 * var(--spacing-8));
+  z-index: 2;
+  transition: margin 150ms ease;
+}
+.summary-strip--mini .summary-strip__cell {
+  flex: 0 1 auto;                  /* hug content, never stretch (user, D22) */
+  max-width: none;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+}
+.summary-strip--mini .summary-strip__value {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .summary-strip--sticky { transition: none; }
+}
+/* Content scrolls UNDER a pinned strip and the band's gradient is transparent
+   at the top — blur what's behind so it reads as a frosted band, not overlap
+   (lifted from SpotBid's .spot-sticky-strip so every sticky strip gets it). */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .summary-strip--sticky {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
 .summary-strip__cell--truncate {
   flex-basis: 280px;                /* desired width override (base cell is 152px) */
   max-width: 280px;                 /* cap — still flex-shrink:1 + min-width:0 from the base rule under pressure */

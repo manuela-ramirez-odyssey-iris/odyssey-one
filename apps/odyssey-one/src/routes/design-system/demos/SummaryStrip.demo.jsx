@@ -5,18 +5,18 @@ import { DemoControls, DemoToggle, DemoSelect, DemoField } from '../demoControls
 export const meta = {
   name: 'SummaryStrip',
   tier: 'molecule',
-  version: '1.5.0',
+  version: '1.6.0',
   createdVersion: '0.7.0',
   normalizing: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [
   { name: 'items', type: "[{ label, value, tone?, truncate?, emphasis? }]", desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via `title` (code extension); `emphasis: 'display'` swaps the value to display/4xl semibold (code extension, SPB-43 bid countdown digits)." },
   { name: 'truncationTooltip', type: 'boolean', default: 'false', desc: "Opt-in, strip-level. On hover, scans the cell's `<dt>` and `<dd>` for real overflow and raises the normalized Tooltip showing the WHOLE cell — the label as the group's `subtitle` over the value as its `content` (2026-09-16), not just the run that clipped: a bare value leaves the reader guessing which field it is, and a clipped label over a complete value is an equally unreadable cell. A label-less or value-less cell raises the half it has. Mirrors DataTable's `truncationTooltip` mechanism, but gates on hidden CHARACTERS (`hiddenCharCount`, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. The gate is applied per element, so a label clipped by one glyph no longer suppresses the tooltip for a badly-clipped value below it. Suppresses the native `title` while on so the browser tooltip doesn't double up; default off is byte-identical to every existing caller." },
+  { name: 'size', type: "'default' | 'mini'", default: "'default'", desc: "Figma `Size` axis (4254:904). Mini = label beside value on one row (8px gap), 8/12 padding, value label/sm — a ~36px band instead of 76px; cells hug content." },
+  { name: 'sticky', type: 'boolean', default: 'false', desc: 'Sticks the strip to the top of its scroll container and flips it to Mini while stuck (content scrolled under it), back at rest. While stuck the band widens to 120% of its resting width, centered and clamped to the window. Renders a zero-height sentinel sibling before the strip.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
   { name: '...rest', type: 'aria-* etc.', desc: 'Forwarded to the root — pass `aria-label` to name the region (root is a <dl> with role="region").' },
 ]
@@ -94,6 +94,8 @@ function Playground() {
   ])
   const [truncationTooltip, setTruncationTooltip] = useState(false)
   const [sel, setSel] = useState(0)
+  const [size, setSize] = useState('default')
+  const [sticky, setSticky] = useState(false)
 
   const patch = (idx, part) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...part } : it)))
@@ -113,6 +115,8 @@ function Playground() {
     <div>
       <DemoControls>
         <DemoToggle label="truncationTooltip" value={truncationTooltip} onChange={setTruncationTooltip} />
+        <DemoSelect label="size" value={size} onChange={setSize} options={['default', 'mini']} />
+        <DemoToggle label="sticky (scroll the box)" value={sticky} onChange={setSticky} />
       </DemoControls>
       <DemoControls>
         <DemoSelect
@@ -138,8 +142,13 @@ function Playground() {
         <button type="button" onClick={addCell} style={{ ...inputStyle, cursor: 'pointer' }}>+ cell</button>
         <button type="button" onClick={removeCell} disabled={items.length <= 1} style={{ ...inputStyle, cursor: items.length <= 1 ? 'default' : 'pointer', opacity: items.length <= 1 ? 0.4 : 1 }}>− cell</button>
       </DemoControls>
-      <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6) 0' }}>
-        <SummaryStrip items={items} truncationTooltip={truncationTooltip} aria-label="Playground summary" />
+      {/* sticky: a scroll box with a narrower column, so the 120% stuck bleed
+          has room inside the box instead of being clipped by its overflow. */}
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6) 0', ...(sticky && { height: 320, overflow: 'auto', paddingTop: 0 }) }}>
+        <div style={sticky ? { width: '75%', margin: '0 auto' } : undefined}>
+          <SummaryStrip items={items} size={size} sticky={sticky} truncationTooltip={truncationTooltip} aria-label="Playground summary" />
+          {sticky && <div style={{ height: 900, padding: 'var(--spacing-4)', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}>Scroll — the strip pins and goes Mini.</div>}
+        </div>
       </div>
     </div>
   )

@@ -23,5 +23,5 @@ export default function SpotSummaryStrip({ items, className = '', ...rest }) {
       )
       : value,
   }))
-  return <SummaryStrip className={`spot-sticky-strip ${className}`.trim()} items={cells} {...rest} />
+  return <SummaryStrip sticky className={`spot-sticky-strip ${className}`.trim()} items={cells} {...rest} />
 }

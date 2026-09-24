@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Tooltip from './Tooltip.jsx'
 
@@ -77,6 +77,16 @@ import Tooltip from './Tooltip.jsx'
  *   make the strip background toggleable, no need to do it in figma") for a
  *   consumer that wants the strip's layout without reading as a card. The
  *   next Figma sync should not "correct" this away.
+ *
+ * - `size` ('default' | 'mini', Figma `Size` axis on 4254:904, D22): Mini
+ *   puts label beside value on one row (8px gap), cells hug content, 8/12
+ *   padding, value label/sm — a ~36px band instead of 76px. Cells hug content (no 152px basis).
+ * - `sticky` (default off): sticks the strip to the top of its scroll
+ *   container and flips it to Mini while stuck (i.e. once content scrolls
+ *   under it), back to `size` at rest. While stuck-mini the band is widened
+ *   to 120% of its resting width, centered on it, and clamped to the window
+ *   (user, D22: "20% wider than the large one … never overflow the window")
+ *   — the extra room keeps one-row cells from ellipsizing.
  */
 /**
  * Estimated count of characters hidden behind a cell's ellipsis. Same
@@ -98,7 +108,66 @@ export function hiddenCharCount(text, clientWidth, scrollWidth) {
 // rather than a magic number inline in onCellEnter.
 export const TOOLTIP_MIN_HIDDEN_CHARS = 3
 
-export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, background = true, ...rest }) {
+// Sticky un-stick hysteresis (px) — must exceed the Default→Mini height delta
+// (76 − 36 = 40). See the stuck-detection effect.
+export const STICKY_HYSTERESIS = 48
+
+export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, background = true, size = 'default', sticky = false, style, ...rest }) {
+  // Stuck detection: a zero-height sentinel just above the strip, measured
+  // against its nearest scrolling ancestor. HYSTERESIS: stick as soon as the
+  // sentinel passes the container top, un-stick only once it's back
+  // STICKY_HYSTERESIS px below it. Without it, the 76→36px shrink on stick
+  // makes the browser's scroll anchoring shift scrollTop by the same 40px,
+  // which un-sticks, which grows, which re-sticks — a flicker loop on slow
+  // scrolls (user, D22). The gap must exceed that height delta.
+  const sentinelRef = useRef(null)
+  const stripRef = useRef(null)
+  const [stuck, setStuck] = useState(false)
+  const [bleed, setBleed] = useState(null) // { marginLeft, marginRight } while stuck
+  useLayoutEffect(() => {
+    if (!sticky) return
+    let el = sentinelRef.current.parentElement
+    while (el && el !== document.body && !/(auto|scroll)/.test(getComputedStyle(el).overflowY)) el = el.parentElement
+    const scroller = el && el !== document.body ? el : window
+    let raf = 0
+    const check = () => {
+      raf = 0
+      const top = scroller === window ? 0 : scroller.getBoundingClientRect().top
+      const d = sentinelRef.current.getBoundingClientRect().top - top
+      // A strip resting at the very top of its scroller never gets
+      // STICKY_HYSTERESIS px of room, so "scrolled back to the top" always
+      // un-sticks too (Stops/Cost Allocation — user, D22).
+      const atTop = (scroller === window ? window.scrollY : scroller.scrollTop) <= 0
+      setStuck((was) => (was ? d < STICKY_HYSTERESIS && !atTop : d < 0))
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(check) }
+    check()
+    scroller.addEventListener('scroll', onScroll, { passive: true })
+    return () => { scroller.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf) }
+  }, [sticky])
+  useLayoutEffect(() => {
+    if (!stuck) { setBleed(null); return }
+    // Measure the RESTING width off the parent (the strip itself is widened),
+    // then clamp the 120% band inside the viewport (clientWidth excludes the
+    // scrollbar).
+    const measure = () => {
+      const r = stripRef.current?.parentElement?.getBoundingClientRect()
+      if (!r) return
+      const vw = document.documentElement.clientWidth
+      const width = Math.min(r.width * 1.2, vw)
+      const left = Math.min(Math.max(r.left - (width - r.width) / 2, 0), vw - width)
+      // Bleed via NEGATIVE MARGINS, never an explicit width: a set width
+      // counts toward the ancestors' intrinsic size and widened the whole
+      // SpotBid column (tables/footers overflowed — user, D22). Negative
+      // margins grow the box without growing its container.
+      const ml = left - r.left
+      setBleed({ marginLeft: ml, marginRight: -(width - r.width) - ml })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [stuck])
+  const mini = size === 'mini' || (sticky && stuck)
   // Overflow tooltip state — see docblock. Detected at hover time, never at mount
   // (a stale mount-time check is a bug this codebase already shed once — see the
   // TruncatedText deletion in playground/normalization-tracker.md).
@@ -130,8 +199,14 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
   }
   const onCellLeave = () => setTip(null)
 
-  return (
-    <dl role="region" className={`summary-strip${background ? '' : ' summary-strip--plain'}${className ? ` ${className}` : ''}`} {...rest}>
+  const strip = (
+    <dl
+      ref={stripRef}
+      role="region"
+      className={`summary-strip${background ? '' : ' summary-strip--plain'}${mini ? ' summary-strip--mini' : ''}${sticky ? ' summary-strip--sticky' : ''}${className ? ` ${className}` : ''}`}
+      style={bleed ? { ...style, ...bleed } : style}
+      {...rest}
+    >
       {items.map((item, index) => {
         const { label, tone, truncate, emphasis } = item
         const hasValue = 'value' in item
@@ -184,5 +259,12 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
         document.body
       )}
     </dl>
+  )
+  if (!sticky) return strip
+  return (
+    <>
+      <div ref={sentinelRef} aria-hidden="true" style={{ height: 0 }} />
+      {strip}
+    </>
   )
 }

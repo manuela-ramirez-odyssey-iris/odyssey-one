@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
-import SummaryStrip, { hiddenCharCount, TOOLTIP_MIN_HIDDEN_CHARS } from './SummaryStrip.jsx'
+import { render, screen, cleanup, fireEvent, within, act } from '@testing-library/react'
+import SummaryStrip, { hiddenCharCount, TOOLTIP_MIN_HIDDEN_CHARS, STICKY_HYSTERESIS } from './SummaryStrip.jsx'
 
 afterEach(cleanup)
 
@@ -309,5 +309,57 @@ describe('SummaryStrip node value', () => {
   it("still shows the '--' placeholder for an empty STRING value", () => {
     render(<SummaryStrip items={[{ label: 'Customer', value: '' }]} />)
     expect(screen.getByText('--')).toBeTruthy()
+  })
+})
+
+describe('SummaryStrip size / sticky (D22)', () => {
+  it('size="mini" adds the mini modifier; default does not', () => {
+    const { container, rerender } = render(<SummaryStrip items={[{ label: 'A', value: '1' }]} />)
+    expect(container.querySelector('dl').className).not.toContain('summary-strip--mini')
+    rerender(<SummaryStrip size="mini" items={[{ label: 'A', value: '1' }]} />)
+    expect(container.querySelector('dl').className).toContain('summary-strip--mini')
+  })
+  it('sticky flips to mini with hysteresis on un-stick', () => {
+    const { container } = render(
+      <div style={{ overflowY: 'auto' }}><SummaryStrip sticky items={[{ label: 'A', value: '1' }]} /></div>
+    )
+    const scroller = container.firstChild
+    const sentinel = scroller.firstChild
+    const dl = container.querySelector('dl')
+    let top = 10
+    scroller.scrollTop = 100 // not at the top — the atTop un-stick has its own test
+    sentinel.getBoundingClientRect = () => ({ top })
+    scroller.getBoundingClientRect = () => ({ top: 0 })
+    const scrollTo = (t) => { top = t; act(() => { scroller.dispatchEvent(new Event('scroll')); vi.runAllTimers() }) }
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] })
+    scrollTo(10)
+    expect(dl.className).toContain('summary-strip--sticky')
+    expect(dl.className).not.toContain('summary-strip--mini')
+    scrollTo(-1)
+    expect(dl.className).toContain('summary-strip--mini')
+    scrollTo(STICKY_HYSTERESIS - 1) // inside the band — stays mini
+    expect(dl.className).toContain('summary-strip--mini')
+    scrollTo(STICKY_HYSTERESIS)
+    expect(dl.className).not.toContain('summary-strip--mini')
+    scrollTo(1) // below the stick line but not past it — stays default
+    expect(dl.className).not.toContain('summary-strip--mini')
+    vi.useRealTimers()
+  })
+  it('sticky un-sticks at scrollTop 0 even inside the hysteresis band (strip at the top of its scroller)', () => {
+    const { container } = render(
+      <div style={{ overflowY: 'auto' }}><SummaryStrip sticky items={[{ label: 'A', value: '1' }]} /></div>
+    )
+    const scroller = container.firstChild
+    const dl = container.querySelector('dl')
+    let top = 0
+    scroller.firstChild.getBoundingClientRect = () => ({ top })
+    scroller.getBoundingClientRect = () => ({ top: 0 })
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] })
+    const scrollTo = (t, st) => { top = t; scroller.scrollTop = st; act(() => { scroller.dispatchEvent(new Event('scroll')); vi.runAllTimers() }) }
+    scrollTo(-100, 100)
+    expect(dl.className).toContain('summary-strip--mini')
+    scrollTo(0, 0) // back at the top: d = 0 < STICKY_HYSTERESIS, but atTop wins
+    expect(dl.className).not.toContain('summary-strip--mini')
+    vi.useRealTimers()
   })
 })

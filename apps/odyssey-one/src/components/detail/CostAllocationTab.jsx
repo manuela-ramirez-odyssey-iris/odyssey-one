@@ -193,6 +193,7 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
           {/* Row 2: full-width KPI band (SummaryStrip staging, S79e — Figma `Overview` 4178:8365) */}
           {planned?.summary && (
             <SummaryStrip
+              sticky
               aria-label="Cost summary"
               items={[
                 { label: 'Base',         value: planned.summary.base },

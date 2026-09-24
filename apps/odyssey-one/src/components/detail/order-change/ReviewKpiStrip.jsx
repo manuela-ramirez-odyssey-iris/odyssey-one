@@ -30,5 +30,5 @@ export default function ReviewKpiStrip({ summary, changes }) {
     { label: 'Seed Equipment', value: summary.seedEquipment },
     { label: 'Utilization', value: summary.utilization },
   ]
-  return <SummaryStrip items={items} aria-label="Shipment KPIs" />
+  return <SummaryStrip sticky items={items} aria-label="Shipment KPIs" />
 }
