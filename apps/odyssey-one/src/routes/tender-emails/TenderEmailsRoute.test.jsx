@@ -39,7 +39,7 @@ describe('TenderEmailsRoute', () => {
     expect(screen.getByText('TE-3')).toBeTruthy()
     const frame = screen.getByTitle('Email preview')
     expect(frame.getAttribute('srcdoc')).toContain('Tender Acceptance Confirmation to')
-    expect(frame.getAttribute('srcdoc')).toContain('&#10003;')
+    expect(frame.getAttribute('srcdoc')).toContain('check-success.png')
     expect(frame.getAttribute('srcdoc')).not.toContain('View Tender')
     expect(frame.getAttribute('srcdoc')).not.toContain('Rate')
   })

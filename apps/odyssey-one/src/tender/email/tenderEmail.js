@@ -125,7 +125,7 @@ export function tenderAcceptedEmail(ctx) {
     title: subject,
     preheader: `${ctx.odysseyShipmentIdentifier} · ${ctx.equipment} · ${noticeLine}`,
     blocks: [
-      blocks.check('Tender Accepted'),
+      blocks.check('Tender Accepted', `${ctx.appOrigin}/email/check-success.png`),
       blocks.headline(`${ctx.scac} — Shipment ${ctx.odysseyShipmentIdentifier}`),
       blocks.paragraph(noticeLine),
       blocks.columnStack([
