@@ -86,32 +86,25 @@ describe('Step1Panel', () => {
     expect(container.querySelector('.alert__close')).toBeNull()
   })
 
-  test('structural: a typed-but-WRONG gross weight does not resolve the error', () => {
-    const { derived, draft } = setup('structural', 2)
+  // Pick-only model (user ruling, 2026-09-23): quantity-mismatch is a DECISION
+  // between two sides ("Use line value" / "Use schedule value"), never a typed
+  // value — either chip resolves the fault the instant it's clicked.
+  test('structural: picking a quantity-mismatch chip resolves that fault, independently of the other', () => {
+    const { derived } = setup('structural', 2)
     const qty = derived.structural.find((s) => s.kind === 'quantity-mismatch')
     const line = qty.line
-    // The fix control lives in StructuralFixModal now — open it from the
-    // grid's Action column before reaching for the field.
-    fireEvent.click(screen.getByRole('button', { name: `Fix line ${line}` }))
-    const input = screen.getByLabelText(`Gross weight, line ${line}`)
-    fireEvent.change(input, { target: { value: '1' } })
-    // S147: the modal stages — Done commits the (still-wrong) value to the
-    // grid/badge behind it.
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Use schedule value ·/ }))
+    // BADGE is what pins the rule (review, 2026-09-10): both structural errors
+    // must still count as open until BOTH are decided — one pick resolving
+    // its own fault does not resolve the sibling.
+    expect(screen.getByText('1 Error')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(true)
-    // The footer would be disabled anyway (the sibling extra-schedule error is
-    // still open), so the footer alone proves nothing. The BADGE is what pins
-    // the rule: both structural errors must still count as open, i.e. a wrong
-    // value did NOT resolve this one. Without this line a naive
-    // "a fix exists" check passes the whole suite (review, 2026-09-10).
+
+    // Reset clears the decision straight back to open.
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     expect(screen.getByText('2 Errors')).toBeTruthy()
-    // The value the schedule actually carries — the ONE definition of "fixed".
-    const right = draft.products[line - 1].scheduleQuantity.grossWeight
-    fireEvent.click(screen.getByRole('button', { name: `Fix line ${line}` }))
-    fireEvent.change(screen.getByLabelText(`Gross weight, line ${line}`), { target: { value: right } })
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-    // The other structural error (extra schedule) is still open, so the footer
-    // stays disabled — but this row's own badge count must have dropped.
+
+    fireEvent.click(screen.getByRole('button', { name: /^Use line value ·/ }))
     expect(screen.getByText('1 Error')).toBeTruthy()
   })
 

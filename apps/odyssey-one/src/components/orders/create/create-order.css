@@ -905,33 +905,45 @@
 .conflict-picker .pill-tab:disabled { cursor: default; opacity: 0.6; }
 
 /* ── Step 1 — StructuralGrid (LINX-16049 rules 1/2/4) ── */
-/* One row per line (GroupTable flat) with a Faults stack + a pinned Fix/View
-   action opening StructuralFixModal — the controls themselves render there.
-   `.odyssey-group-table` already scrolls itself (overflow-x: auto), but every
-   flex/grid ancestor above it (.accordion__reveal, .accordion__reveal-inner,
-   .accordion__content below, and this wrapper) defaults to min-width: auto,
-   which lets the table's natural width push the accordion wider instead of
-   being clipped — the sticky Action column then has nothing to stay pinned
-   against. S147. */
+/* One row per line (GroupTable flat); every fault's decision renders INLINE in
+   the Faults cell (S158, user ruling 2026-09-23 — StructuralFixModal's
+   Done/Cancel transaction is gone, same visual family as .conflict-picker's
+   PillTab chips). `.odyssey-group-table` already scrolls itself
+   (overflow-x: auto), but every flex/grid ancestor above it
+   (.accordion__reveal, .accordion__reveal-inner, .accordion__content below,
+   and this wrapper) defaults to min-width: auto, which lets the table's
+   natural width push the accordion wider instead of being clipped. S147. */
 .structural-grid { min-width: 0; }
 .structural-grid__product-cell { display: flex; flex-direction: column; gap: 2px; line-height: 1.35; }
-.structural-grid__faults { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2); }
+.structural-grid__faults { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.structural-grid__fault + .structural-grid__fault { padding-top: var(--spacing-4); border-top: 1px solid var(--border-subtle); }
 .structural-grid__message { color: var(--text-error); }
-.structural-grid__message--fixed { color: var(--text-tertiary); }
 .structural-grid__field--fixed { display: flex; align-items: center; gap: var(--spacing-1); color: var(--caribbean-green-600); }
-.structural-grid__validated { color: var(--caribbean-green-600); margin: var(--spacing-1) 0 0; }
-.structural-grid__modal-body { display: flex; flex-direction: column; gap: var(--spacing-4); }
-.structural-grid__modal-fault + .structural-grid__modal-fault { padding-top: var(--spacing-4); border-top: 1px solid var(--border-subtle); }
-.structural-grid__schedule-picker { display: flex; flex-direction: column; gap: var(--spacing-2); align-items: flex-start; }
-.structural-grid__schedules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2); width: 100%; }
-.structural-grid__schedules li { display: flex; align-items: center; gap: var(--spacing-2); }
-.structural-grid__pair { display: flex; flex-direction: column; gap: var(--spacing-1); max-width: 220px; }
-.structural-grid__hint { color: var(--text-tertiary); }
-.structural-grid__schedule-detail { color: var(--text-tertiary); }
-/* Implicit-label wrapper around the timezone Dropdown — see StructuralFixModal
-   for why this exists instead of an aria-label prop. `display: contents` keeps
-   the label out of layout; the sr-only span stays in the accessibility tree
-   while visually clipped, the standard technique. */
+.structural-grid__decision { display: flex; flex-direction: column; gap: var(--spacing-2); align-items: flex-start; }
+.structural-grid__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+/* PillTab ships no disabled appearance — the Step 2 look-back needs one,
+   same rule as .conflict-picker .pill-tab:disabled. */
+.structural-grid__chips .pill-tab:disabled { cursor: default; opacity: 0.6; }
+/* Read-only strip — the OTHER faulty lines' schedule dates, for consistency
+   while picking which schedule to keep (minutes, 2026-09-16). */
+.structural-grid__other-schedules { list-style: none; margin: 0; padding: 0; color: var(--text-tertiary); display: flex; flex-direction: column; gap: 2px; }
+/* Plain text button, not @odyssey/ui Button — a per-fault "Reset" is a small
+   secondary affordance, not a page-level action. */
+.structural-grid__reset {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.structural-grid__reset:disabled { cursor: default; opacity: 0.6; }
+/* Implicit-label wrapper around the inline timezone Dropdown — Dropdown has
+   no aria-label passthrough to its trigger button (the molecule spreads
+   `...rest` onto its OUTER span, not DropdownButton). `display: contents`
+   keeps the label out of layout; the sr-only span stays in the accessibility
+   tree while visually clipped, the standard technique. */
 .structural-grid__tz-label { display: contents; }
 .structural-grid__sr-only {
   position: absolute;
@@ -1013,8 +1025,15 @@
 .resolve-shell__transit {
   min-height: 420px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-3);
+}
+/* Part 8: the Step 2 → 3 transit only (progress === 3, ResolveShell) — the
+   plain Step 1 → 2 spinner has no label. */
+.resolve-shell__transit-label {
+  color: var(--text-tertiary);
 }
 /* Step 3 reuses the Order Summary layout, which pulls itself UP by the
    AppShell's 32px padding to bleed its grey band full-width. Under the shell

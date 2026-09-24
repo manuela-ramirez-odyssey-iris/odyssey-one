@@ -276,9 +276,16 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
         const tz = pd.latePickup?.timezone ?? ''
         const earliest = pd.earlyDelivery?.date ?? ''
         const latest = pd.lateDelivery?.date ?? ''
+        // Weight is a LINE property, not a schedule one — every schedule on
+        // the line carries the same value. Stamped onto each schedule anyway
+        // so the "Keep one schedule" chip (StructuralGrid) is self-contained
+        // (user ruling 2026-09-23: ship date · delivery date · package count
+        // · weight, one chip per schedule).
+        const weight = p.grossWeight?.value ?? ''
+        const weightUom = p.grossWeight?.uom ?? ''
         p[key] = [
-          { id: `${p.id}-sch-1`, requestedShipDate: shipDate, packageCount, requestedShipTimeZoneCode: tz, earliestDeliveryDate: earliest, latestDeliveryDate: latest },
-          { id: `${p.id}-sch-2`, requestedShipDate: shiftDate(shipDate, 1) || shipDate, packageCount, requestedShipTimeZoneCode: tz, earliestDeliveryDate: shiftDate(earliest, 1) || earliest, latestDeliveryDate: shiftDate(latest, 1) || latest },
+          { id: `${p.id}-sch-1`, requestedShipDate: shipDate, packageCount, requestedShipTimeZoneCode: tz, earliestDeliveryDate: earliest, latestDeliveryDate: latest, grossWeight: weight, grossWeightUom: weightUom },
+          { id: `${p.id}-sch-2`, requestedShipDate: shiftDate(shipDate, 1) || shipDate, packageCount, requestedShipTimeZoneCode: tz, earliestDeliveryDate: shiftDate(earliest, 1) || earliest, latestDeliveryDate: shiftDate(latest, 1) || latest, grossWeight: weight, grossWeightUom: weightUom },
         ]
       }
       if (s.kind === 'quantity-mismatch') p[key] = { grossWeight: String(Number(p.grossWeight?.value || 0) + 50), grossWeightUom: p.grossWeight?.uom, volume: p.volume?.value ?? '' }
@@ -300,12 +307,20 @@ export function deriveInterfaceErrors(orderNumber, interfaceErrorCount, interfac
       if (!p || !fix) continue
       const key = STRUCTURAL_DRAFT_KEYS[s.kind]
       if (s.kind === 'extra-schedule') {
-        const remove = new Set(fix.removeSchedules ?? [])
-        p[key] = (p[key] ?? []).filter((sch) => !remove.has(sch.id))
+        // Pick-only (user ruling, 2026-09-23): the planner keeps ONE schedule
+        // by id, the rest are dropped on reprocess. No free date entry, no
+        // delete-selection transaction.
+        p[key] = (p[key] ?? []).filter((sch) => sch.id === fix.keepSchedule)
       }
       if (s.kind === 'quantity-mismatch') {
-        if (fix.grossWeight) {
-          p.grossWeight = { ...p.grossWeight, value: fix.grossWeight, ...(fix.grossWeightUom ? { uom: fix.grossWeightUom } : {}) }
+        // A DECISION between two sides, not a typed value (OIF review,
+        // 2026-09-16: "a decision rather than forcing one value to overwrite
+        // the other"). 'line' keeps the line's own gross weight untouched;
+        // 'schedule' overwrites it with the schedule's value. Package count
+        // and volume never diverge in the seed (ponytail note above), so
+        // only weight moves either way.
+        if (fix.use === 'schedule' && p[key]?.grossWeight != null) {
+          p.grossWeight = { ...p.grossWeight, value: p[key].grossWeight, ...(p[key].grossWeightUom ? { uom: p[key].grossWeightUom } : {}) }
         }
         delete p[key]
       }

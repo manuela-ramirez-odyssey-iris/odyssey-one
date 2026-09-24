@@ -552,7 +552,8 @@ function pickCustomer() {
 }
 // errorCount weighted LOW (DB ledger row 7 — user flagged too many 12s):
 // most orders 1–4 errors, thin tail to 8, rare 9–12. Cap 12 stays under the
-// OIF RESOLVE_POOL size (15) so the resolve view can always seed them.
+// OIF RESOLVE_POOL size (13 — the phone paths were retired, S158) so the
+// resolve view can always seed them.
 // Factored out of genErrorCount so the ORD-24 independent-RNG post-pass
 // (buildDataset) can weight-pick a count WITHOUT touching the shared faker.
 const ERROR_COUNT_WEIGHTS = [

@@ -59,23 +59,39 @@ function renderResolve(orderNumber = ORDER, state = { errorCount: 5, customer: '
 beforeEach(() => __resetOrderWriteState())
 afterEach(cleanup)
 
-// S145: ResolveShell paints the title/sub-heading/back link (CreateOrderForm
+// S145: ResolveShell paints the title/sub-heading/breadcrumb (CreateOrderForm
 // renders Step 2 with hideHeader), so these assertions moved owner without
 // moving text. The heading appears BEFORE the order loads — tests that need
 // the form on screen wait for the footer, not the title.
 describe('resolve mode — chrome', () => {
-  test('renders the resolution title, order-number sub-heading, and back link', async () => {
+  // Part 7 (S158, user ruling 2026-09-23): the `← Back to overview page`
+  // link-button is gone — replaced by a `Breadcrumb` trail ("Orders › Resolve
+  // Order <id>"), matching Create Order / Order Summary / Audit Trail.
+  // It is the ONLY trail: embedded as Step 2 (`hideHeader`), CreateOrderForm
+  // drops its own nav so two breadcrumbs never stack.
+  const shellBreadcrumb = () => document.querySelector('.resolve-shell__head .co-breadcrumb')
+
+  test('renders the resolution title, order-number sub-heading, and the Orders breadcrumb', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
     expect(screen.getByText(`Order Number ${ORDER}`)).toBeTruthy()
-    expect(screen.getByText('Back to overview page')).toBeTruthy()
+    expect(screen.queryByText('Back to overview page')).toBeNull()
+    expect(within(shellBreadcrumb()).getByRole('button', { name: 'Orders' })).toBeTruthy()
+    expect(within(shellBreadcrumb()).getByText(`Resolve Order ${ORDER}`)).toBeTruthy()
   })
 
-  test('footer shows Cancel / Purge / Save (no Create Order button)', async () => {
+  test('the Orders breadcrumb segment navigates to /orders', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
+    fireEvent.click(within(shellBreadcrumb()).getByRole('button', { name: 'Orders' }))
+    await waitFor(() => expect(screen.getByText('orders list')).toBeTruthy())
+  })
+
+  test('footer shows Cancel / Purge / Save & Reprocess (no Create Order button)', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
     expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Create Order' })).toBeNull()
   })
 })
@@ -201,10 +217,10 @@ describe('resolve mode — save/purge transition', () => {
     expect(await statusOf(ORDER)).toBe(null)
   })
 
-  test('Save is disabled until all errors are resolved', async () => {
+  test('Save & Reprocess is disabled until all errors are resolved', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
-    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toHaveProperty('disabled', true)
   })
 })
 
@@ -253,14 +269,15 @@ function renderEmbedded(props = {}) {
 describe('resolve mode — embedded in ResolveShell (S145)', () => {
   const PICKED = 'general.shipDirection'
 
-  test('hideHeader suppresses the title + sub-heading, keeps the breadcrumb', async () => {
+  test('hideHeader suppresses the title, sub-heading AND the form breadcrumb (the shell owns it, S158)', async () => {
     renderEmbedded({ hideHeader: true })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Purge' })).toBeTruthy())
     expect(screen.queryByRole('heading', { name: 'Order Validation Error Resolution' })).toBeNull()
     expect(screen.queryByText(`Order Number ${ORDER}`)).toBeNull()
     expect(screen.queryByText('Back to overview page')).toBeNull()
-    // breadcrumb survives — it is the app chrome, not the step's header
-    expect(screen.getByText('Order Validation Error Resolution')).toBeTruthy()
+    // ResolveShell paints the one "Orders › Resolve Order <id>" trail for every
+    // step (S158); the embedded form must not stack a second one.
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull()
   })
 
   test('a picked path is excluded from the Level 2 seeding and renders locked + Validated', async () => {
@@ -408,7 +425,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
 
   test('no Level 1 errors → opens at Step 2, dot 1 passed, look-back shows the empty Step 1', async () => {
     renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
     expect(within(timeline()).getByText('no errors')).toBeTruthy()
     fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
     expect(screen.getByText('No message errors were found for this order.')).toBeTruthy()
@@ -428,7 +445,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     pickEveryConflict()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
     await clickAndAwaitArrival('Validate and continue')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
     expect(within(timeline()).getByText(/passed/)).toBeTruthy()
 
     // Step 1 SAVES immediately (Ramesh 2026-09-10 #2) — the row's Level 1 count is cleared.
@@ -463,7 +480,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
       // Mid-travel: the line is animating but hasn't landed — neither step's
       // body is on screen, a spinner fills the gap, and dot 2 has not gone red.
       await act(async () => { await vi.advanceTimersByTimeAsync(450) })
-      expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Save & Reprocess' })).toBeNull()
       expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
       expect(document.querySelector('.resolve-shell__transit .spinner')).toBeTruthy()
       expect(stepEl('Data errors').querySelector('.step-indicator').className).not.toContain('step-indicator--error')
@@ -472,7 +489,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
       // Arrival: the line has now landed — Step 2's body and real dot status
       // appear, and the spinner is gone.
       await act(async () => { await vi.advanceTimersByTimeAsync(450) })
-      expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy()
       expect(screen.queryByRole('button', { name: 'Validate and continue' })).toBeNull()
       expect(document.querySelector('.resolve-shell__transit')).toBeNull()
     } finally {
@@ -488,7 +505,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     pickEveryConflict()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
     await clickAndAwaitArrival('Validate and continue')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
 
     fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
     expect(document.querySelector('.resolve-shell__transit')).toBeNull()
@@ -504,7 +521,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
       pickEveryConflict()
       await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
       fireEvent.click(screen.getByRole('button', { name: 'Validate and continue' }))
-      await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
     } finally {
       window.matchMedia = original
     }
@@ -514,58 +531,44 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
   // deleteFlag too, not just picks. Step1Panel seeds those from LOCAL state at
   // mount and the shell unmounts it on a step change, so a picks-only look-back
   // paints the Structural accordion RED on a step the timeline calls "passed".
+  //
+  // S158 / user ruling 2026-09-23: StructuralFixModal's Done/Cancel transaction
+  // is gone — every fault's decision is an INLINE PillTab chip, committed the
+  // instant it's clicked (no modal, no staging).
   test('look-back keeps the structural fix as well as the picks', async () => {
     renderResolve(L1_MIXED.orderNumber, stateFor(L1_MIXED))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' })).toBeTruthy())
     pickEveryConflict()
-    // The structural fault: a timezone Dropdown, an extra schedule, or a
-    // weight — the control now lives in StructuralFixModal (S147), portalled
-    // to document.body, so it must be opened via the grid's Fix button first.
-    const fixButton = screen.queryByRole('button', { name: /^Fix line \d+$/ })
-    if (fixButton) {
-      fireEvent.click(fixButton)
-      const modal = document.querySelector('.structural-grid__modal')
-      // Before the fix: the fault message is not yet marked fixed.
-      expect(modal.querySelector('.structural-grid__message').className).not.toContain('structural-grid__message--fixed')
-      const tzTrigger = within(modal).queryByRole('button', { name: /^Time zone, line \d+$/ })
-      const trash = modal.querySelector('.co-rep__trash')
+    // The structural fault: a timezone Dropdown, an extra-schedule chip, or a
+    // quantity-mismatch chip — all inline now, no modal to open first.
+    const fault = document.querySelector('.structural-grid__fault')
+    if (fault) {
+      // Before the fix: the fault message is on screen, not yet marked fixed.
+      expect(fault.querySelector('.structural-grid__message')).toBeTruthy()
+      const tzTrigger = within(fault).queryByRole('button', { name: /^Time zone, line \d+$/ })
+      const chips = within(fault).queryAllByRole('button', { name: /Schedule \d+ ·|Use (line|schedule) value ·/ })
       if (tzTrigger) {
         fireEvent.click(tzTrigger)
         const rows = screen.getByRole('menu').querySelectorAll('.menu-row')
         fireEvent.click(rows[1]) // skip the "Pick a time zone" placeholder row
-      } else if (trash) {
-        fireEvent.click(trash)
-      } else {
-        // quantity-mismatch: the fix is making the LINE's gross weight equal the
-        // SCHEDULE's, which isStructuralFixed compares as strings — so the test
-        // has to type that exact value, and the modal states it in the hint
-        // ("schedule says 10520 LB"). This branch was previously looking for
-        // `getByText(/^\d/)`, which can never match a hint that starts with a
-        // word; it went unnoticed because L1_MIXED's structural fault had always
-        // landed on timezone-missing or extra-schedule until the S151 regenerate
-        // moved it here (S151 T6).
-        const weight = modal.querySelector('input[type="text"], input:not([type])')
-        if (weight) {
-          const hint = modal.querySelector('.structural-grid__hint').textContent
-          const scheduleQty = hint.replace(/^\s*schedule says\s+/, '').trim().split(/\s+/)[0]
-          fireEvent.change(weight, { target: { value: scheduleQty } })
-        }
+      } else if (chips.length > 0) {
+        // extra-schedule → keep the first schedule; quantity-mismatch → "Use
+        // schedule value" is guaranteed to resolve it (line value may already
+        // equal the schedule's by seed coincidence, but schedule never fails).
+        const useSchedule = chips.find((c) => /^Use schedule value/.test(c.textContent))
+        fireEvent.click(useSchedule ?? chips[0])
       }
     }
-    // The corrected fault's message goes gray in the modal (S147) — it's no
-    // longer an active problem, just context for what was wrong.
-    if (fixButton) {
-      const modal = document.querySelector('.structural-grid__modal')
-      const message = modal.querySelector('.structural-grid__message')
-      expect(message.className).toContain('structural-grid__message--fixed')
-      // S147: the fix is staged inside the modal — it only reaches the grid
-      // behind (and `derived.isResolved`) once Done commits it.
-      fireEvent.click(within(modal).getByRole('button', { name: 'Done' }))
+    // The corrected fault's message disappears and the field name goes green —
+    // committed straight through, no Done to press.
+    if (fault) {
+      expect(fault.querySelector('.structural-grid__message')).toBeNull()
+      expect(fault.querySelector('.structural-grid__field--fixed')).toBeTruthy()
     }
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(false))
     await clickAndAwaitArrival('Validate and continue')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
 
     fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
     // NO red badge on a passed step: every accordion reports completed, not "N Errors".
@@ -580,7 +583,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     expect(screen.getByText('Not answered yet')).toBeTruthy()
     fireEvent.click(screen.getByRole('radio', { name: /this message creates an order/ }))
     await clickAndAwaitArrival('Validate and continue')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
 
     fireEvent.click(within(timeline()).getByRole('button', { name: /Message errors/ }))
     expect(screen.queryByText('Not answered yet')).toBeNull()
@@ -589,7 +592,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
 
   test('Step 2 Save with everything resolved → Step 3 preview, all three dots on', async () => {
     renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: /Pickup and Delivery/ }))
     const manual = screen.queryAllByRole('button', { name: 'Add Location Manually' })[0]
     if (manual) fireEvent.click(manual)
@@ -597,8 +600,8 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     expect(input).toBeTruthy()
     fireEvent.change(input, { target: { value: '123 Main St' } })
     fireEvent.blur(input)
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(false))
-    await clickAndAwaitArrival('Save')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' }).hasAttribute('disabled')).toBe(false))
+    await clickAndAwaitArrival('Save & Reprocess')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Back to overview' })).toBeTruthy())
     expect(within(timeline()).getByText('ready for planning')).toBeTruthy()
     expect(timeline().querySelectorAll('.step-indicator--on').length).toBe(3)
@@ -610,7 +613,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
   // once its Level 2 errors are all resolved, WHILE STILL ON STEP 2 (before Save).
   test('Step 2 dot goes green once its last Level 2 error is resolved, still on Step 2', async () => {
     renderResolve(NO_L1.orderNumber, stateFor(NO_L1))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy())
     const dot = () => stepEl('Data errors').querySelector('.step-indicator')
     expect(dot().className).toContain('step-indicator--error')
     fireEvent.click(screen.getByRole('button', { name: /Pickup and Delivery/ }))
@@ -622,7 +625,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
     await waitFor(() => expect(dot().className).toContain('step-indicator--on'))
     expect(dot().className).not.toContain('step-indicator--error')
     // still Step 2 — Save hasn't been pressed.
-    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Save & Reprocess' })).toBeTruthy()
   })
 })
 

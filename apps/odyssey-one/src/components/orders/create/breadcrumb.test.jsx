@@ -44,9 +44,10 @@ function renderCreate(search = '', state) {
 beforeEach(() => __resetOrderWriteState())
 afterEach(cleanup)
 
-// The action word ("Edit order" / "Order Validation Error Resolution") is
-// also echoed in the PageHeader title, so every assertion is scoped to the
-// breadcrumb <nav> to avoid ambiguous getByText matches.
+// The action word ("Edit order") is also echoed in the PageHeader title, so
+// every assertion is scoped to the breadcrumb <nav> to avoid ambiguous
+// getByText matches. Resolve mode's trail belongs to ResolveShell (S158) —
+// covered in resolve.test.jsx, not here.
 function crumbs() {
   return within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
 }
@@ -68,10 +69,5 @@ describe('create-flow breadcrumb', () => {
     renderCreate()
     await waitFor(() => expect(crumbs().getByText('Create new order')).toBeTruthy())
     expect(crumbs().queryByText(/Create new order .+/)).toBeNull()
-  })
-
-  test('Resolve mode (regression guard): stays "Order Validation Error Resolution"', async () => {
-    renderCreate(`?resolve=${NUMBERED_ORDER}`, { errorCount: 1, customer: 'ACME', orderSource: 'Integrated' })
-    await waitFor(() => expect(crumbs().getByText('Order Validation Error Resolution')).toBeTruthy())
   })
 })

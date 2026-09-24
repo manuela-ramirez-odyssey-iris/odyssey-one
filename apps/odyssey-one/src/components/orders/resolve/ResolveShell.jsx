@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
-import { Alert, Button, PageHeader, ResolveTimeline, Spinner } from '@odyssey/ui'
+import { Alert, Breadcrumb, Button, PageHeader, ResolveTimeline, Spinner } from '@odyssey/ui'
 import CreateOrderForm from '../create/CreateOrderForm.jsx'
 import ConfirmationView from '../create/ConfirmationView.jsx'
 import Step1Panel from './Step1Panel.jsx'
@@ -49,7 +48,7 @@ import { getOrderList, getOrderView, saveInterfaceFixes } from '../../../api/ser
  * Neon has no column for them (Q-OIF-4). In LIVE every order reports 0 Level 1
  * errors and therefore opens straight at Step 2. Expected, not a bug.
  */
-export default function ResolveShell({ orderNumber }) {
+export default function ResolveShell({ orderNumber, reprocessDelayMs = 800 }) {
   const navigate = useNavigate()
   const location = useLocation()
   const meta = location.state ?? {}
@@ -171,6 +170,25 @@ export default function ResolveShell({ orderNumber }) {
     scheduleReveal(2)
   }, [loaded, orderNumber, scheduleReveal])
 
+  // Part 8 (S158, user ruling 2026-09-23, OIF & Audit Trail review minutes
+  // 2026-09-16: "reprocess is automatic"): Step 2's Save IS the reprocess —
+  // there's no separate confirm step — so the transit spinner between Step 2
+  // and Step 3 carries a "Reprocessing…" label and runs on its OWN short
+  // timer (`reprocessDelayMs`, not `scheduleReveal`'s 1250ms line-arrival
+  // wait, which times a Message/Data-errors dot animation that doesn't apply
+  // here). `reprocessDelayMs` is a prop, not a module constant, so a test can
+  // shorten it instead of only reaching for fake timers.
+  const reprocessTimer = useRef(null)
+  useEffect(() => () => clearTimeout(reprocessTimer.current), [])
+  const handleResolved = useCallback((values) => {
+    setFinalValues(values)
+    setProgress(3)
+    setViewing(null)
+    clearTimeout(revealTimer.current)
+    clearTimeout(reprocessTimer.current)
+    reprocessTimer.current = setTimeout(() => reveal(3), reprocessDelayMs)
+  }, [reveal, reprocessDelayMs])
+
   // Every number the timeline shows comes from the DERIVED error list, never
   // from the seeded `interfaceErrorCount`: the seed is clamped per class, so
   // the two can legitimately disagree and the derive is what is on screen.
@@ -224,11 +242,17 @@ export default function ResolveShell({ orderNumber }) {
   return (
     <div className="resolve-shell">
       <div className="co-content resolve-shell__head">
-        <PageHeader title="Order Validation Error Resolution">
-          <Button variant="link" className="btn--link-black" icon={<ArrowLeft size={16} />} onClick={() => navigate('/orders')}>
-            Back to overview page
-          </Button>
-        </PageHeader>
+        {/* Part 7 (S158, user ruling 2026-09-23): the `← Back to overview page`
+            link-button is gone — Create Order / Order Summary / Audit Trail
+            all navigate via a `Breadcrumb` trail, and the resolve flow now
+            matches (`.co-breadcrumb`, same nav CreateOrderForm renders for its
+            own breadcrumb). "Orders" is a plain navigate for now — becomes
+            `closeSheet('/orders')` once Part 1 (sheet stack) lands. */}
+        <nav className="co-breadcrumb" aria-label="Breadcrumb">
+          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+          <Breadcrumb label={`Resolve Order ${orderNumber}`} current />
+        </nav>
+        <PageHeader title="Order Validation Error Resolution" />
         <p className="text-label-sm-regular co-resolve-subheading">Order Number {orderNumber}</p>
         <ResolveTimeline
           className="resolve-shell__timeline"
@@ -265,7 +289,7 @@ export default function ResolveShell({ orderNumber }) {
           hideHeader
           pickedPaths={Object.keys(step1.picks)}
           onProgress={setStep2OpenCount}
-          onResolved={(values) => { setFinalValues(values); setProgress(3); setViewing(null); scheduleReveal(3) }}
+          onResolved={handleResolved}
           /* A FAILED purge is surfaced by the form itself (its page-level error
              Alert) — this only runs on success. */
           onPurged={() => navigate('/orders')}
@@ -294,10 +318,15 @@ export default function ResolveShell({ orderNumber }) {
       )}
       {/* S147: viewing is null only mid-transit on a forward advance (never on
           a look-back) — neither step's body renders, a centred Spinner fills
-          the gap instead of the previous step's now-stale content. */}
+          the gap instead of the previous step's now-stale content. `step`
+          still reads the PRE-advance value here (it lags `progress` until
+          reveal), so `progress === 3` is what marks this specific transit as
+          the Step 2 → 3 one — Part 8's "Reprocessing…" label, not Step 1 → 2's
+          bare spinner. */}
       {loaded && viewing == null && (
         <div className="resolve-shell__transit">
           <Spinner size={32} />
+          {progress === 3 && <p className="text-label-sm-regular resolve-shell__transit-label">Reprocessing…</p>}
         </div>
       )}
       </div>

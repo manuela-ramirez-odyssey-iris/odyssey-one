@@ -52,7 +52,7 @@ describe('deriveValidationErrors', () => {
     expect([...poolIdx].sort((x, y) => x - y)).toEqual(poolIdx)
     for (const e of errors) {
       expect(e.field).toMatch(/\*$/)
-      expect(['Missing Mandatory', 'Invalid Data', 'Invalid Data Type']).toContain(e.reason)
+      expect(['Missing Mandatory', 'Invalid Data']).toContain(e.reason)
       expect(['general', 'pickupDelivery']).toContain(e.section)
     }
   })
@@ -82,11 +82,15 @@ describe('deriveValidationErrors', () => {
       expect(isResolved(e, get(draft, e.path))).toBe(false)
       if (e.reason === 'Missing Mandatory') expect(isResolved(e, 'fixed')).toBe(true)
       if (e.reason === 'Invalid Data') expect(isResolved(e, 'DIFFERENT-VALUE')).toBe(true)
-      if (e.reason === 'Invalid Data Type') {
-        expect(isResolved(e, 'still-letters')).toBe(false)
-        expect(isResolved(e, '+1 555 0100')).toBe(true)
-      }
     }
+  })
+
+  // S158, user ruling 2026-09-23: the phone paths carry no validation error at
+  // all now — the input only ever accepts digits as typed, so the pool no
+  // longer has an 'Invalid Data Type' reason (or a phone path) to seed.
+  test('no phone path and no Invalid Data Type reason remain in the pool', () => {
+    expect(RESOLVE_POOL.some((p) => p.path.endsWith('.contactPhone'))).toBe(false)
+    expect(RESOLVE_POOL.some((p) => p.reason === 'Invalid Data Type')).toBe(false)
   })
 
   // Step 1 (LINX-16049) picks are decided BEFORE Level 2 seeding runs, so the
@@ -94,7 +98,7 @@ describe('deriveValidationErrors', () => {
   test('excludePaths removes those pool entries (Step 1 picks must not be re-broken by Level 2 seeding)', () => {
     const excluded = ['general.freightTerm', 'pickupDelivery.consignor.city']
     const { errors } = deriveValidationErrors('0000000091002', 15, {}, { excludePaths: excluded })
-    expect(errors.length).toBe(13)
+    expect(errors.length).toBe(RESOLVE_POOL.length - excluded.length)
     expect(errors.some((e) => excluded.includes(e.path))).toBe(false)
   })
 
@@ -102,7 +106,7 @@ describe('deriveValidationErrors', () => {
   // remains indexes past the end. Fewer errors than the row's badge claims is
   // the CORRECT outcome: a path settled in Step 1 is no longer outstanding.
   test('excludePaths shrinks the clamp — count never exceeds what remains', () => {
-    const excluded = RESOLVE_POOL.slice(0, 13).map((p) => p.path)
+    const excluded = RESOLVE_POOL.slice(0, RESOLVE_POOL.length - 2).map((p) => p.path)
     const { errors } = deriveValidationErrors('X', 15, sampleValues(), { excludePaths: excluded })
     expect(errors).toHaveLength(2)
     expect(errors.every((e) => !excluded.includes(e.path))).toBe(true)

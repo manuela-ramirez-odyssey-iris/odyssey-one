@@ -160,25 +160,47 @@ describe('deriveInterfaceErrors', () => {
       if (s.kind === 'quantity-mismatch') expect(p.scheduleQuantity).toBeDefined()
       if (s.kind === 'timezone-missing') expect(p.scheduleTimezone).toBe('')
     }
+    // Pick-only model (user ruling, 2026-09-23): extra-schedule keeps ONE
+    // schedule by id; quantity-mismatch is a SIDE ('line'|'schedule'), never a
+    // typed value.
     const fixes = Object.fromEntries(r.structural.map(s => {
       if (s.kind === 'extra-schedule') {
         const p = draft.products[s.line - 1]
-        return [s.id, { removeSchedules: [p.schedules[1].id] }]
+        return [s.id, { keepSchedule: p.schedules[1].id }]
       }
-      return [s.id, { timezone: 'CDT', grossWeight: '999' }]
+      if (s.kind === 'quantity-mismatch') return [s.id, { use: 'schedule' }]
+      return [s.id, { timezone: 'CDT' }]
     }))
     const fixed = r.applyFixes(draft, { 'general.freightTerm': 'PICKED' }, fixes)
     expect(fixed.general.freightTerm).toBe('PICKED')
     expect(fixed.lineValues).toBeUndefined()
     for (const s of r.structural) {
       const line = fixed.products[s.line - 1]
-      if (s.kind === 'extra-schedule') expect(line.schedules.length).toBe(1)
+      const preFix = draft.products[s.line - 1]
+      if (s.kind === 'extra-schedule') {
+        expect(line.schedules.length).toBe(1)
+        expect(line.schedules[0].id).toBe(preFix.schedules[1].id)
+      }
       if (s.kind === 'quantity-mismatch') {
         expect(line.scheduleQuantity).toBeUndefined()
-        expect(line.grossWeight.value).toBe('999')
+        expect(line.grossWeight.value).toBe(preFix.scheduleQuantity.grossWeight)
       }
       if (s.kind === 'timezone-missing') expect(line.scheduleTimezone).toBe('CDT')
     }
+  })
+
+  // 'Use line value' must leave the line's own gross weight untouched — the
+  // decision is a pick between two sides, not a one-way overwrite (OIF
+  // review, 2026-09-16).
+  test('applyFixes: quantity-mismatch "use line" keeps the line\'s own gross weight', () => {
+    const src = values()
+    const r = deriveInterfaceErrors('0000000091003', 3, 'structural', src)
+    const draft = r.applyErrors(src)
+    const qty = r.structural.find(s => s.kind === 'quantity-mismatch')
+    const original = draft.products[qty.line - 1].grossWeight.value
+    const fixed = r.applyFixes(draft, {}, { [qty.id]: { use: 'line' } })
+    expect(fixed.products[qty.line - 1].grossWeight.value).toBe(original)
+    expect(fixed.products[qty.line - 1].scheduleQuantity).toBeUndefined()
   })
 
   // A zero-error order must still hand back a usable draft (and its own

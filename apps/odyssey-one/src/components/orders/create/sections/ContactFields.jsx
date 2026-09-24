@@ -7,7 +7,20 @@ import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeCont
  * (E.164 after normalization — schema-validated only when filled), Email.
  *
  * `id` props follow the co-pickupDelivery-<path> pattern (Batch 3 parity).
+ *
+ * Phone (S158, user ruling 2026-09-23 — OIF & Audit Trail review minutes,
+ * 2026-09-16): digits only AS TYPED, not FormField's shared `format="phone"`
+ * policy (packages/ui — out of scope for this change; it still allows
+ * `()-. ` for other consumers). A leading `+` is kept — schema.ts's
+ * `E164_RE` requires it — but stripped from anywhere else in the string.
+ * This is what makes the old "letters in a phone" Level-2 seeded error
+ * (validationErrors.js) unreachable: the value can never contain a letter.
  */
+export const stripPhoneDigits = (raw) => {
+  const leadingPlus = raw.startsWith('+') ? '+' : ''
+  return leadingPlus + raw.replace(/[^0-9]/g, '')
+}
+
 export default function ContactFields({ basePath }) {
   const { control } = useFormContext()
   const resolve = useResolveMode()
@@ -28,10 +41,11 @@ export default function ContactFields({ basePath }) {
           label={label}
           placeholder={placeholder}
           type={type}
-          format={format}
+          format={format === 'phone' ? 'text' : format}
+          inputMode={format === 'phone' ? 'tel' : undefined}
           value={f.value}
           disabled={locked}
-          onChange={(e) => f.onChange(e.target.value)}
+          onChange={(e) => f.onChange(format === 'phone' ? stripPhoneDigits(e.target.value) : e.target.value)}
           error={fieldState.error?.message}
           {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
         />

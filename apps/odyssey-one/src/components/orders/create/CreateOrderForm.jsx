@@ -559,19 +559,22 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     <FormProvider {...methods}>
      <ResolveModeProvider value={resolveCtx}>
       <div className="co-content">
-        <nav className="co-breadcrumb" aria-label="Breadcrumb">
-          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
-          <Breadcrumb
-            label={resolveMode
-              ? 'Order Validation Error Resolution'
-              : editMode
+        {/* Embedded as resolve Step 2 (hideHeader), ResolveShell paints the one
+            "Orders › Resolve Order <id>" trail for every step (S158) — a second
+            trail here would stack two breadcrumbs. */}
+        {!hideHeader && (
+          <nav className="co-breadcrumb" aria-label="Breadcrumb">
+            <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+            <Breadcrumb
+              label={editMode
                 // pending orders have no number yet — omit it rather than
                 // rendering "Edit order -" (matches OrderSummaryRoute)
                 ? (draftKey?.startsWith('pending-') ? 'Edit order' : `Edit order ${draftKey}`)
                 : 'Create new order'}
-            current
-          />
-        </nav>
+              current
+            />
+          </nav>
+        )}
 
         {resolveMode ? (
           /* hideHeader: embedded as Step 2, the shell owns the title, the
@@ -715,7 +718,11 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       {resolveMode ? (
         <StickyFooter
           saveLabel="Purge"
-          primaryLabel="Save"
+          /* Part 8 (S158, user ruling 2026-09-23): reprocess is automatic —
+             there is no separate confirm step after Save, so the primary says
+             so. ResolveShell's `onResolved` (handleResolved) shows the
+             "Reprocessing…" transit before Step 3. */
+          primaryLabel="Save & Reprocess"
           onCancel={() => navigate('/orders')}
           onSave={() => setPurgeOpen(true)}
           onCreate={() => finishResolve('save')}

@@ -6,12 +6,15 @@
  *
  * `applyErrors(values)` returns a NEW hydrated draft — the source is untouched.
  *
- * Three AC categories:
+ * Two AC categories (S158, user ruling 2026-09-23 — OIF & Audit Trail review
+ * minutes, 2026-09-16: the phone field carries NO validation error at all now
+ * that the input only ever accepts digits as typed, so "Invalid Data Type —
+ * letters in a phone" — the one case that reason existed for — is retired;
+ * the phone paths are dropped from the pool entirely rather than left with an
+ * unreachable reason):
  * - Missing Mandatory  → field blanked in the hydrated draft (data agrees)
  * - Invalid Data       → value present but wrong (TMS-master mismatch stand-in);
  *                        resolved when the user CHANGES it
- * - Invalid Data Type  → corrupted value (letters in a phone); resolved when
- *                        the value parses again
  */
 
 // Pool order = DOM order (top of the form → bottom), so "Error 1/N" reads
@@ -25,17 +28,14 @@ export const RESOLVE_POOL = [
   { path: 'pickupDelivery.consignor.city',         field: 'Shipper City *',        reason: 'Missing Mandatory' },
   { path: 'pickupDelivery.consignor.state',        field: 'Shipper State *',       reason: 'Missing Mandatory' },
   { path: 'pickupDelivery.consignor.postal',       field: 'Shipper Postal Code *', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.contactPhone', field: 'Shipper Phone Number *', reason: 'Invalid Data Type' },
   { path: 'pickupDelivery.consignee.idOrgName',    field: 'Destination ID/Org Name *', reason: 'Missing Mandatory' },
   { path: 'pickupDelivery.consignee.address1',     field: 'Destination Address 1 *',   reason: 'Missing Mandatory' },
   { path: 'pickupDelivery.consignee.city',         field: 'Destination City *',        reason: 'Missing Mandatory' },
   { path: 'pickupDelivery.consignee.state',        field: 'Destination State *',       reason: 'Missing Mandatory' },
   { path: 'pickupDelivery.consignee.postal',       field: 'Destination Postal Code *', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignee.contactPhone', field: 'Destination Phone Number *', reason: 'Invalid Data Type' },
 ]
 
 const INVALID_EQUIPMENT_FALLBACK = 'SUTU3456789' // mock 5711:16403's bad value
-const CORRUPT_PHONE = 'not-a-number'
 
 // Tiny deterministic PRNG (xmur3 hash → mulberry32). No app-wide util exists;
 // keep it local — the generator uses faker seeding, not reusable here.
@@ -97,10 +97,7 @@ export function deriveValidationErrors(orderNumber, errorCount, values, { exclud
     const p = pool[i]
     const original = getPath(values, p.path)
     // Invalid Data keeps a visible-but-wrong value; remember what "wrong" is.
-    const badValue =
-      p.reason === 'Invalid Data' ? (original || INVALID_EQUIPMENT_FALLBACK)
-      : p.reason === 'Invalid Data Type' ? CORRUPT_PHONE
-      : ''
+    const badValue = p.reason === 'Invalid Data' ? (original || INVALID_EQUIPMENT_FALLBACK) : ''
     return { ...p, section: p.path.split('.')[0], badValue }
   })
 
@@ -114,7 +111,6 @@ export function deriveValidationErrors(orderNumber, errorCount, values, { exclud
     const v = (currentValue ?? '').trim()
     if (!v) return false
     if (error.reason === 'Invalid Data') return v !== error.badValue
-    if (error.reason === 'Invalid Data Type') return !/[a-z]/i.test(v)
     return true // Missing Mandatory: any non-blank value
   }
 

@@ -180,7 +180,18 @@ export default function Step1Panel({
               products={products}
               structural={derived.structural}
               fixes={structuralFixes}
-              onFix={(id, fix) => setStructuralFixes((f) => ({ ...f, [id]: { ...f[id], ...fix } }))}
+              /* S158, user ruling 2026-09-23: `fix === null` is the Reset path —
+                 the fault's whole entry is dropped, not merged. Every other
+                 call writes straight through (no staging, reversible until
+                 reprocess). */
+              onFix={(id, fix) => setStructuralFixes((f) => {
+                if (fix == null) {
+                  const next = { ...f }
+                  delete next[id]
+                  return next
+                }
+                return { ...f, [id]: { ...f[id], ...fix } }
+              })}
               disabled={readOnly}
             />
           </div>
