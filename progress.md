@@ -2,6 +2,21 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 159 — September 24, 2026
+
+**JANA WALKED THE CONSOLIDATED ORDER CHANGE — AND PLACEMENT HAD NEVER WORKED.** Opened on the 2026-09-24 call where Jana reviewed the S142–S144 consolidated order-change build. His layout ideas were input; every presentation call was the user's. Filed via `/analyze`, then a UI wave built, browser-checked on live 25412375, and deployed. Plan: `docs/superpowers/plans/2026-09-24-order-change-consol-walkthrough.md`.
+
+- **Canon.** `order-change.md` §10b (Jana's domain points with timestamps + build-delta W1–W12), **DEC-191…199**, OC-open-24…26; transcript archived to `vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`. `Consoloidation Questions 2.vtt` left in the inbox (separate topic).
+- **Rulings built:** Affected Orders on pickup stops only (DEC-191). **The system places orders** — the S144 *Add to* stop picker is gone; a leg joins a same-type stop at the same site, else `P?`/`D?`; pickup and delivery never swap (DEC-193, reverses S144). *Move To Pending* → **Set Aside**, no icon (DEC-194). A stop shows only its own date (DEC-195). **Prior | New | Pending side by side**, no toggle (DEC-197; Prior markers green, badges gray). **Editable stop date/time/zone** in New; orders whose window the date misses get an amber *Outside planning window* badge, Planning Dates badges the missed bound — flag, never block; zone-aware (DEC-199). Per-order compare gains **one block per order line** (item, hazmat, flash point…) from the order's own lines (DEC-196). **Motion:** moved stops slide (FLIP), whatever an action touched pulses once, scrolled to centre. Pending column docks below the anchored KPI strip. Planning Dates + View Routing lose their Go Back footer.
+- **Two bugs the browser found.** Order vs stop location strings never matched ("33101, Miami, FL, US" vs "ACME FREIGHT SERVICES, Miami, FL 33101 US") so **every** Add / location change created a `P?` — now one `siteKey` (site id + postal) + `stopLocationOf` on both VMs. `mergeStops` kept the stop's old date over the planner's edit — row now wins.
+- **Not taken:** accepted-carrier scroll (left as is), View Routing in a new window (OC-open-24, revise later). **Halted:** tender-sent add timing (OC-open-25), post-approval routing → planning → finalize (OC-open-26, awaiting Jana's mock).
+- **Deployed** (`vercel --prod`, bundle-grepped: *Set Aside*, *Outside planning window*, `edit-stops-strip-h`, *Prior plan*, `siteKey`). The `mergeStops` date fix rides the same deploy, not probed live.
+- **Parallel session, same tag (logged only by subject):** `c058a9a` TE-4 tender canceled email, `23c30f0` PGI/PGR redesign. `59ea53b` **D22** (SummaryStrip Mini + sticky) is on the branch but **not in `progress-deliverables.md`** — that log is behind.
+
+**Still open — Wave B (needs a Neon reseed, user's go not yet given).** Header cost ≠ View Routing (random seed factor); no stop coordinates, so per-leg distance reads `--`; stops seeded **outside their own orders' windows** (CST windows vs local-zone stops) so flags show before any edit; header gross weight ≠ KPI New; a location change lives only in `stopChanges`, not on the order, so set-aside + add undoes it; order vs stop `address1` differ for one site; compare rows still 7 + line blocks with no seeded line change.
+
+**What's next (user):** review what order change has achieved and what is still missing — Wave A vs Wave B vs halted items (OC-open-24/25/26) — then decide the reseed.
+
 ## Session 158 — September 23–24, 2026
 
 **THE PAGES STOPPED BLANKING, AND A LOST RESEED THAT NEVER HAPPENED.** Opened on "why do I have so few orders — a reseed?" and closed on a nine-part plan built in two waves, shipped to prod, then a string of small asks. Plan: `docs/superpowers/plans/2026-09-23-slide-over-routes.md`. Design-system half (footer, disabled opacity, SubAccordion) is in **D21**.
@@ -43,15 +58,7 @@
 
 ## Session 156 — September 21–22, 2026
 
-**THE DOUG CALL, A NEON QUOTA, AND A PAUSE.** Short session: production went down on a database quota, the Doug transcript was taken into canon, and consolidation is **paused** pending the 2026-09-23 meeting with Jana. Vault + logs only; no product code.
-
-- **Prod 500s were Neon, not the deploy.** Every DB-backed endpoint returned *"Your account or project has exceeded the quota"* — the Marketplace Neon resource (`neon-coffee-flame`, under the team's Storage tab, not the project's) had hit the Free tier; the database is **386 MB** against a 0.5 GB cap. User upgraded to **Launch** (storage ≈ $0.15/mo; compute is the variable). Cap advice given: max compute = min = 0.25 CU in the Neon console, scale-to-zero on. Recovered without a redeploy.
-- **Doug (TMS engineer) answered the Q-CNS list from TMS, and said so** — *"are you changing the business model?"* Taken into `vault/10-domains/consolidation/consolidation.md` §10 + **CNS-13…17**: nothing is ever deleted (a consolidation is one foreign key on the load; the load is locked while keyed and restored when unkeyed); same C number through every edit, cancelled and never reused when emptied, no one-load C; nothing blocks but stop sequence/dates, equipment is a derived **seed** plus comparison list; a C is **routed at creation** and may auto-tender per OCM; a tendered standalone cannot join; planners hold this model; Alexey's two suggestion tools are not MVP. Build delta in canon: the S155 **removal of the source shipments is the big contradiction** (Dave said soft-delete, LINX marks deleted, Doug keeps-and-locks) — **recorded as a tension, not resolved**; user stance is to preserve the planners' mental model (keep + lock + link). Questions for the 23rd rewritten in TMS language.
-- **Inbox finally clean, five sessions late.** Nineteen files from four earlier intakes (deck + Ramesh walkthrough, Dave 09-17 call, LINX-15895 + references, the consolidation stories) moved to `vault-sources/` and the three `vault/00-inbox/…` source citations repointed. The Doug VTT archived with them.
-
-**Still open.** Three new drops appeared in the inbox during the archive (LINX-15795, 15796, 15800) — **not read, not part of this intake**; next session's `/analyze` step 0. The keep-and-lock change to Apply (CNS-13/16) needs a spec once the 23rd settles it. Angular twins for DataTable/SummaryStrip still owed (D19).
-
-**What's next (user, 2026-09-22):** consolidation paused until the 2026-09-23 meeting; `/analyze` the three new stories when the user says which topic they are.
+**THE DOUG CALL, A NEON QUOTA, AND A PAUSE.** Prod 500s were the Neon Free-tier quota (386 MB vs 0.5 GB), fixed by the user's upgrade to Launch. Doug's TMS answers taken into `consolidation.md` §10 + CNS-13…17 (nothing is deleted; same C number through every edit). Nineteen stale inbox files archived. Consolidation paused for the 2026-09-23 Jana meeting. Vault + logs only.
 
 ## Session 155 — September 20–21, 2026
 
