@@ -243,7 +243,7 @@ export default function GeneralInformationSection({ lockIdentity = false }) {
               {/* System-driven (LINX-12102 tightened): reflects the product
                   lines, never hand-toggled — a Badge, not a disabled checkbox
                   that read as clickable (user, S159). */}
-              <Badge variant={field.value ? 'red' : 'gray'}>{field.value ? 'Hazardous' : 'Non-Hazardous'}</Badge>
+              <Badge variant={field.value ? 'red' : 'gray'}>{field.value ? 'Hazardous Order' : 'Non-Hazardous Order'}</Badge>
             </div>
           )}
         />
