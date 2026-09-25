@@ -78,6 +78,9 @@ import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.
 // LINX-15895 — shared with src/data/routingHistory.js so the seeded comment and
 // the one a derived historical version shows come from ONE table.
 import { responseCommentFor } from '../src/data/responseComments.js'
+// Plan B2 (DEC-198) — single distance function shared with the Edit Stops
+// sandbox (stopsSandbox.js), so the seed and the live UI can't disagree.
+import { totalMiles } from '../src/utils/legMiles.js'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -910,6 +913,10 @@ function generateShipment(index, chainOverride) {
       region: stopLoc.state,
       postal: stopLoc.zip,
       country: 'US',
+      // B2 (DEC-198) — the LOCATIONS pool's own static lat/lng (zero RNG),
+      // read by legMiles for the per-leg/total distance below.
+      lat: stopLoc.lat,
+      lng: stopLoc.lng,
       // IANA id, mirroring the real Tracking contract's stop `timeZone` (TR-04)
       timeZone: stopTz,
       // Stops are sequenced in time, and the SHIPMENT's pickup date is the
@@ -917,6 +924,12 @@ function generateShipment(index, chainOverride) {
       // so stop 0 sits exactly on baseDate and later pickups run 3h apart.
       scheduledDateTime: `${formatDate(stopAt)} ${String(stopAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(stopTz, stopAt)}`,
       appointmentTime: `${String(stopAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(stopTz, stopAt)}`,
+      // B3b(a) — the raw instant behind scheduledDateTime, read back by
+      // orderHeaders below to build the order's OWN window around this
+      // exact stop, in this stop's OWN zone (not a hardcoded default zone).
+      // Internal-only: mapStop's whitelist (mapSellShipmentOutToDetail.ts)
+      // never carries this to the client VM.
+      instantMs: stopAt.getTime(),
       // I5 — stop weight/volume/packages = Σ of the orders picked up here
       grossWeightValue: stopOrders.reduce((t, o) => t + o.orderGross, 0),
       grossWeightUomCode: 'LB',
@@ -957,12 +970,16 @@ function generateShipment(index, chainOverride) {
       region: dLoc.state,
       postal: dLoc.zip,
       country: 'US',
+      lat: dLoc.lat,
+      lng: dLoc.lng,
       timeZone: dTz,
       // The SHIPMENT's delivery date is the LAST delivery (Jana, Feb 17 — "if
       // there are two deliveries, we will take the last one"), so the final
       // stop sits exactly on deliveryDate and earlier drops run 3h before it.
       scheduledDateTime: `${formatDate(dAt)} ${String(dAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(dTz, dAt)}`,
       appointmentTime: `${String(dAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(dTz, dAt)}`,
+      // B3b(a) — see the pickup stop's own instantMs comment above.
+      instantMs: dAt.getTime(),
       // Σ of the orders dropped here (mirrors invariant I5 on the pickup side)
       grossWeightValue: dOrders.reduce((t, o) => t + o.orderGross, 0),
       grossWeightUomCode: 'LB',
@@ -976,7 +993,15 @@ function generateShipment(index, chainOverride) {
     });
   }
 
-  const distance = faker.number.float({ min: 50, max: 2000, fractionDigits: 2 });
+  // B2 (DEC-198) — distance is now the real Σ of legMiles over the seeded
+  // stop sequence (stops carry lat/lng above), not an independent draw, so
+  // the header, each routing option and the consolidation summary all agree
+  // (plan Wave B hard constraint). The draw below is RETAINED and discarded
+  // (S151's accessorials trick / this file's own "sequence-preserving
+  // discard" convention, e.g. ~line 2081) — dropping it would re-number
+  // every id allocated after it.
+  void faker.number.float({ min: 50, max: 2000, fractionDigits: 2 });
+  const distance = totalMiles(stops);
 
   // Routing options (3-6) — sequential tendering logic
   const routingCount = faker.number.int({ min: 3, max: 6 });
@@ -1115,7 +1140,11 @@ function generateShipment(index, chainOverride) {
       deliveryOrgHours: `${String(delivHour - 6).padStart(2, '0')}:00 - ${String(delivHour).padStart(2, '0')}:59`,
       deliveryTZ: destTz,
       transitDays: faker.number.int({ min: 1, max: 5 }),
-      distanceMiles: faker.number.float({ min: 100, max: 1500, fractionDigits: 2 }),
+      // B2 (DEC-198) — every routing option quotes the SAME physical route
+      // (this shipment's own stop sequence), so `distance` (computed once,
+      // above, via legMiles) replaces the old independent per-option draw.
+      // Draw retained/discarded, same convention as the shipment-level one.
+      distanceMiles: (void faker.number.float({ min: 100, max: 1500, fractionDigits: 2 }), distance),
       serviceLevel: `${faker.number.int({ min: 85, max: 99 })}%`,
       linehaul: pick(['Completed', 'In Progress', 'Pending']),
       routeGroup: pick(ROUTE_GROUPS),
@@ -1388,19 +1417,14 @@ function generateShipment(index, chainOverride) {
     });
     // LINX-15435…15438 Stops-tab review — only meaningful for a consolidated
     // (>1 order) shipment; a Direct order-change shipment has nothing for
-    // "which stop/order changed" to distinguish.
-    if (orders.length > 1) {
-      orderChangePayload.consolidation = buildConsolidationChange(sellShipment, orders, stops, {
-        tenderStatus, priorApCost: orderChangePayload.prior.apCost, newApCost: orderChangePayload.newOption.apCost,
-        grossWeight, totalVolume,
-        // Must match mapStops' currentTenderOption (mapSellShipmentOutToDetail.ts)
-        // — the plain Stops tab reads Distance off the option carrying the
-        // live tenderStatus, not the shipment header's distance. Same rule
-        // buildOrderChange's own `prior` uses (~L2390).
-        distanceMiles: (routingOptions.find(o => o.status === tenderStatus) ?? routingOptions[0])?.distanceMiles ?? distance,
-        baseDate, originTz, freightTerms,
-      });
-    }
+    // "which stop/order changed" to distinguish. The actual
+    // buildConsolidationChange call is deferred to just after `orderList` is
+    // assembled (below) — plan B1/B3 need each order's OWN record (origin/
+    // destination, equipment, appointments…) and its real direct-lane cost,
+    // neither of which exists yet at this point in the shipment build.
+    // buildConsolidationChange draws only from its own id-keyed `rnd`, never
+    // faker/pick, so moving the CALL changes nothing about the shared id
+    // stream.
   }
 
   // Use accepted carrier's rateDetails as base for cost allocation when available
@@ -2067,6 +2091,13 @@ function generateShipment(index, chainOverride) {
     const shipFromLoc = stopLocs[ord.pickupStopIdx];
     const shipToLoc = deliveryLocs[ord.deliveryStopIdx];
     const shipFromCustomer = customer;
+    // B3b(a) — the actual stop this order picks up/delivers at, so the
+    // window below can be built around THAT stop's own instant/zone instead
+    // of the shipment's baseDate labeled with a default zone. stops[0..
+    // pickupStopCount-1] are the pickup stops in stopLocs order; delivery
+    // stops follow at pickupStopCount+s (see the two stop-building loops).
+    const pickupStopForOrder = stops[ord.pickupStopIdx];
+    const deliveryStopForOrder = stops[pickupStopCount + ord.deliveryStopIdx];
 
     // I4 — the shipment instant is the window's LATE EDGE, not its middle:
     // earliestPickup ≤ shipment pickup === latestPickup, and likewise for
@@ -2086,6 +2117,30 @@ function generateShipment(index, chainOverride) {
     // tests, vault docs and Neon rows). Keeping the draw costs one discarded
     // number and keeps the ids byte-identical; the id diff below the change is
     // what proves it.
+    //
+    // B3b(a) (live 25412375) — I4 (just above) pins EVERY order's late edge
+    // to the shipment's own baseDate/deliveryDate, by string equality, so
+    // the anchor here stays the shipment instant, not the specific stop's
+    // (an order on a second pickup/delivery stop keeps I4's existing,
+    // pre-this-plan approximation — see the residual note below). What WAS
+    // wrong is the ZONE this got formatted with: always the DEFAULT
+    // ('America/Chicago'), while the stop it is compared against
+    // (windowViolations, stopsSandbox.js) carries its OWN true zone. Two
+    // "11:30" instants three zones apart are NOT the same instant once
+    // TZ-aware code compares them — e.g. a 14:00 EST pickup landing after an
+    // 11:30-CST-LABELED latest that both actually meant the same clock hour.
+    // Formatting with the pickup/delivery STOP's own zone (mainRow.pickupDate/
+    // deliveryDate now do the same, below) removes that whole bug class for
+    // every order on the FIRST pickup / LAST delivery stop — the common case
+    // (pickup/delivery stop count is capped at 2; most shipments have 1).
+    //
+    // Residual, not fully closed by this change: an order on a SECOND pickup
+    // or delivery stop (the ~3h-later-staggered one) can still read outside
+    // its own window, because I4 pins its late edge to the FIRST stop's
+    // instant regardless. Closing that fully means either loosening I4 (a
+    // separate, hardcoded invariant with its own test) or removing the
+    // stagger between same-side stops — both out of this plan's scope;
+    // flagged in the session report rather than silently left as "fixed".
     const orderPickupBase = new Date(baseDate);
     orderPickupBase.setHours(baseDate.getHours() - faker.number.int({ min: 1, max: 5 }), pick([0, 15, 30, 45]), 0, 0);
     void faker.number.int({ min: 2, max: 8 }); void pick([0, 30]); // sequence-preserving discards
@@ -2142,7 +2197,11 @@ function generateShipment(index, chainOverride) {
       origin: {
         externalIdentifier: shipFromLoc.facility,
         fullName: shipFromCustomer.name,
-        address1: faker.location.streetAddress(),
+        // B3b(d) — one address1 per site: reuse the pickup STOP's own
+        // address1 (already drawn when stops were built) instead of a
+        // second, independent draw for the same facility. The draw below is
+        // retained/discarded, same convention as the rest of this block.
+        address1: (void faker.location.streetAddress(), pickupStopForOrder.address1),
         address2: faker.number.float({ min: 0, max: 1 }) < 0.30 ? faker.location.secondaryAddress() : undefined,
         city: shipFromLoc.city,
         region: shipFromLoc.state,
@@ -2155,7 +2214,8 @@ function generateShipment(index, chainOverride) {
       destination: {
         externalIdentifier: shipToLoc.facility,
         fullName: shipToLoc.facility,
-        address1: faker.location.streetAddress(),
+        // B3b(d) — same rule as origin.address1 above.
+        address1: (void faker.location.streetAddress(), deliveryStopForOrder.address1),
         address2: faker.number.float({ min: 0, max: 1 }) < 0.30 ? faker.location.secondaryAddress() : undefined,
         city: shipToLoc.city,
         region: shipToLoc.state,
@@ -2165,12 +2225,20 @@ function generateShipment(index, chainOverride) {
         phone: faker.phone.number({ style: 'international' }),
         email: faker.internet.email(),
       },
-      scheduledShipDate: formatDateTime(orderPickupBase),
-      requestedShipDate: formatDateTime(orderPickupLate),
-      scheduledDeliveryDate: formatDateTime(orderDeliveryEarly),
-      requestedDeliveryDate: formatDateTime(orderDeliveryLate),
-      pickupAppointment: faker.datatype.boolean(0.3) ? `${String(orderPickupBase.getHours()).padStart(2, '0')}:00 CST` : null,
-      deliveryAppointment: faker.datatype.boolean(0.2) ? `${String(orderDeliveryEarly.getHours()).padStart(2, '0')}:00 CST` : null,
+      // B3b(a) — zoned off the actual pickup/delivery stop, not a default,
+      // so the window's own printed zone matches the instant it was built
+      // from (see the comment above orderPickupBase).
+      // Zoned off the shipment's own origin/destination — matches mainRow's
+      // pickupDate/deliveryDate (below) at the same real instant AND the
+      // same printed zone, so I4's string equality holds for the common,
+      // single-pickup/single-delivery-stop case instead of only by luck of
+      // both landing on 'America/Chicago'.
+      scheduledShipDate: formatDateTime(orderPickupBase, originTz),
+      requestedShipDate: formatDateTime(orderPickupLate, originTz),
+      scheduledDeliveryDate: formatDateTime(orderDeliveryEarly, destTz),
+      requestedDeliveryDate: formatDateTime(orderDeliveryLate, destTz),
+      pickupAppointment: faker.datatype.boolean(0.3) ? `${String(orderPickupBase.getHours()).padStart(2, '0')}:00 ${tzAbbrev(originTz, orderPickupBase)}` : null,
+      deliveryAppointment: faker.datatype.boolean(0.2) ? `${String(orderDeliveryEarly.getHours()).padStart(2, '0')}:00 ${tzAbbrev(destTz, orderDeliveryEarly)}` : null,
       grossWeightValue: orderGrossWeight,
       grossWeightUomCode: 'LB',
       tareWeightValue: orderTareWeight,
@@ -2187,6 +2255,25 @@ function generateShipment(index, chainOverride) {
     instructionList: instrOrders[oi].instructionList,
     cost: costOrders[oi].cost,
   }));
+
+  // LINX-15435…15438 Stops-tab review, deferred from the order-change block
+  // above (see its own comment) — everything B1/B3 need (orderHeaders,
+  // orderList, costOrders) now exists. Only meaningful for a consolidated
+  // (>1 order) shipment.
+  if (orderChangePayload && orders.length > 1) {
+    orderChangePayload.consolidation = buildConsolidationChange(sellShipment, orders, stops, {
+      tenderStatus, grossWeight, totalVolume, customer, freightTerms,
+      // Must match mapStops' currentTenderOption (mapSellShipmentOutToDetail.ts)
+      // — the plain Stops tab reads Distance off the option carrying the
+      // live tenderStatus, not the shipment header's distance. Same rule
+      // buildOrderChange's own `prior` uses.
+      distanceMiles: (routingOptions.find(o => o.status === tenderStatus) ?? routingOptions[0])?.distanceMiles ?? distance,
+      baseDate, originTz,
+      // B1 — the SAME two tender lists View Routing shows.
+      newTenderList: orderChangePayload.newTenderList, priorTenderList: orderChangePayload.priorTenderList,
+      orderHeaders, orderList, costOrders,
+    });
+  }
 
   // Main table row
   const mainRow = {
@@ -2219,8 +2306,14 @@ function generateShipment(index, chainOverride) {
     consignee: destLoc.facility,
     origin: `${originLoc.city} ${originLoc.state} US ${originLoc.zip}`,
     destination: `${destLoc.city} ${destLoc.state} US ${destLoc.zip}`,
-    pickupDate: formatDateTime(baseDate),
-    deliveryDate: formatDateTime(deliveryDate),
+    // B3b(a) — zoned off the shipment's own origin/destination (not the
+    // default zone) so this matches orderHeaders' requestedShipDate/
+    // requestedDeliveryDate (I4) at the same real instant AND the same
+    // printed zone — the mismatch (both were "correct" in value but printed
+    // different zone labels) is exactly what produced the live bug this
+    // section fixes.
+    pickupDate: formatDateTime(baseDate, originTz),
+    deliveryDate: formatDateTime(deliveryDate, destTz),
     mode,
     equipmentCode,
     equipment: String(faker.number.int({ min: 1000, max: 9999 })),
@@ -2891,7 +2984,10 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
 // ORDER only has to stay stable within this function (it doesn't feed id
 // allocation), so reordering draws below is safe.
 function buildConsolidationChange(sellShipment, orders, stops, ctx) {
-  const { tenderStatus, priorApCost, newApCost, grossWeight, totalVolume, distanceMiles, baseDate, originTz, freightTerms } = ctx;
+  const {
+    tenderStatus, grossWeight, totalVolume, distanceMiles, baseDate, originTz, freightTerms, customer,
+    newTenderList, priorTenderList, orderHeaders, orderList, costOrders,
+  } = ctx;
   const rnd = mulberry32(seedFrom(sellShipment + ':occ'));
 
   // A location change suppresses the "stay Consolidated" cost (project rule)
@@ -2931,6 +3027,11 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   // A changed ORDER is always referenced by the stop(s) that carry it: walk
   // every real stop and pull in only the changed orders it already lists
   // (st.orderIds), never invent a stop/order pairing that doesn't exist.
+  // stopSequence → the LOCATIONS pool entry a location-changed pickup picked,
+  // kept OUTSIDE `fields` (which round-trips to the client as-is) so the
+  // object itself — needed below for its lat/lng (B2) and to write the new
+  // site onto the order record (B3b/c) — never leaks into the DTO.
+  const newLocByStopSeq = new Map();
   const changedStops = [];
   for (const st of stops) {
     const ids = st.orderIds.filter(id => changedOrderIds.includes(id));
@@ -2945,6 +3046,7 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     if (locationChange && st.stopType === 'pickup') {
       const loc = rndPick(rnd, LOCATIONS.filter(l => l.city !== st.city));
       fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
+      newLocByStopSeq.set(st.stopSequence, loc);
     }
     changedStops.push({ st, ids, fields });
   }
@@ -2974,65 +3076,156 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   }
 
   const pickupOf = (o) => stops.find(s => s.stopType === 'pickup' && s.orderIds.includes(o.orderId));
+  const deliveryOf = (o) => stops.find(s => s.stopType === 'delivery' && s.orderIds.includes(o.orderId));
+  const orderHeaderById = new Map(orders.map((o, i) => [o.orderId, orderHeaders?.[i]]));
+  const addrOf = (site) => (site ? `${site.address1}, ${site.city}, ${site.region}, ${site.postal}, ${site.country}` : '--');
+  const shipDirLabel = (code) => SHIP_DIRECTIONS.find(d => d.value === code)?.label ?? code ?? '--';
+
+  // B3 (DEC-196) — grows the 6-row seed to the Direct field set (LINX-14512),
+  // sourced from the order's OWN record (orderHeaders, built above) so this
+  // screen can't contradict the Order tab of the same shipment. Only the
+  // numeric/date rows below are genuinely "changed" (the delta this function
+  // exists to model); the rest mirror buildOrderChange's own shipment-level
+  // rows and stay prior===new, which is truthful — no order-record edit
+  // exists in the seed for them yet (closes OC-open-12).
   const orderComparisons = Object.fromEntries(changedOrders.map(o => {
     const d = delta[o.orderId];
+    const h = orderHeaderById.get(o.orderId);
     const pickupStop = pickupOf(o);
+    const deliveryStop = deliveryOf(o);
     const pickupChange = stopChanges[pickupStop?.stopSequence];
+    const deliveryChange = stopChanges[deliveryStop?.stopSequence];
     const rows = [
       { field: 'Gross Weight', source: 'Order', prior: `${fmtInt(o.orderGross)} LB`, new: `${fmtInt(o.orderGross + d.weight)} LB`, changed: true },
       { field: 'Volume', source: 'Order', prior: `${fmtInt(o.orderVolume)} cuft`, new: `${fmtInt(o.orderVolume + d.volume)} cuft`, changed: true },
       { field: 'Package Count', source: 'Order', prior: String(o.orderPackages), new: String(o.orderPackages + d.packages), changed: true },
-      // Read back from the STOP this order actually picks up at (LINX-15435
-      // fix) — the exact same strings the stop card shows, so the two
-      // surfaces can't disagree about when this order now moves.
+      // Read back from the STOP this order actually picks up/delivers at
+      // (LINX-15435 fix) — the exact same strings the stop card shows, so
+      // the two surfaces can't disagree about when this order now moves.
       {
         field: 'Pickup Date/Time', source: 'Routing',
         prior: pickupStop ? pickupStop.scheduledDateTime : formatDateTime(baseDate, originTz),
-        new: pickupChange ? pickupChange.fields.date.new : formatDateTime(baseDate, originTz),
-        changed: true,
+        new: pickupChange ? pickupChange.fields.date.new : (pickupStop ? pickupStop.scheduledDateTime : formatDateTime(baseDate, originTz)),
+        changed: !!pickupChange?.fields.date,
+      },
+      {
+        field: 'Delivery Date', source: 'Routing',
+        prior: deliveryStop ? deliveryStop.scheduledDateTime : '--',
+        new: deliveryChange ? deliveryChange.fields.date.new : (deliveryStop ? deliveryStop.scheduledDateTime : '--'),
+        changed: !!deliveryChange?.fields.date,
       },
       { field: 'Incoterm', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
+      { field: 'Ship Direction', source: 'Order', prior: shipDirLabel(h?.shipDirectionCode), new: shipDirLabel(h?.shipDirectionCode), changed: false },
+      { field: 'Seed Equipment', source: 'Order', prior: h?.equipmentCode ?? '--', new: h?.equipmentCode ?? '--', changed: false },
+      { field: 'Distance', source: 'Routing', prior: `${distanceMiles} MI`, new: `${distanceMiles} MI`, changed: false },
+      { field: 'Distance Source', source: 'Routing', prior: 'PCMILER PRACTICAL', new: 'PCMILER PRACTICAL', changed: false },
+      // One draw, one prior/new pair — same unchanged-trio convention as
+      // buildOrderChange's own 'Network Leverage' row.
+      { field: 'Network Leverage', source: 'Routing', prior: rnd() < 0.5 ? 'Y' : 'N', new: undefined, changed: false },
       { field: 'Order Requested Date', source: 'Order', prior: o.planningDateType, new: o.planningDateType, changed: false },
+      { field: 'Bill To', source: 'Order', prior: customer ? `${customer.name} (${customer.id})` : '--', new: customer ? `${customer.name} (${customer.id})` : '--', changed: false },
+      { field: 'Freight Terms', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
+      { field: 'Pickup Appointment', source: 'Order or entered in Shipment', prior: h?.pickupAppointment ?? '--', new: h?.pickupAppointment ?? '--', changed: false },
+      { field: 'Delivery Appointment', source: 'Order or entered in Shipment', prior: h?.deliveryAppointment ?? '--', new: h?.deliveryAppointment ?? '--', changed: false },
+      { field: 'Ship From', source: 'Order', prior: addrOf(h?.origin), new: addrOf(h?.origin), changed: false },
+      { field: 'Ship To', source: 'Order', prior: addrOf(h?.destination), new: addrOf(h?.destination), changed: false },
     ];
+    const networkLeverageRow = rows.find((r) => r.field === 'Network Leverage');
+    networkLeverageRow.new = networkLeverageRow.prior;
     const loc = pickupChange?.fields.location;
-    if (loc) rows.unshift({ field: 'Ship From', source: 'Order', prior: loc.prior, new: loc.new, changed: true });
+    if (loc) rows.unshift({ field: 'Ship From (Stop)', source: 'Routing', prior: loc.prior, new: loc.new, changed: true });
     return [o.orderId, rows];
   }));
 
-  // Summary deltas = Σ of PICKUP-stop deltas only (project rule — delivery
-  // stops mirror pickups, counting both would double the change).
+  // B3 (DEC-196) — per-order-line hazmat pairs from the order's own
+  // orderLines (id-keyed `rnd` only, zero faker draws). A line on a CHANGED
+  // order gets a real flip on one hazmat field about half the time, so
+  // OrderCompareModal's purple "Changed" line badge is reachable; every
+  // other line (unchanged orders, or the other half of a changed order's
+  // lines) stays prior===new, which is truthful — no line edit exists there.
+  const orderLinePairs = Object.fromEntries(orders.map((o) => {
+    const eligible = changedOrderIds.includes(o.orderId);
+    const pairs = o.lines.map((l) => {
+      const base = {
+        lineNumber: l.lineNumber, shipItem: l.itemCode, description: l.itemDescription,
+        hazmatUnNumber: l.hazmatUnNumber, hazmatClass: l.hazmatClass, hazmatGroup: l.hazmatGroup,
+        hazmatDescription: l.hazmatDescription, flashPoint: l.flashPoint, boilingPoint: l.boilingPoint,
+        marinePollutant: l.marinePollutant, shippingClass: l.shippingClass, tunnelCode: l.tunnelCode, wgkClass: l.wgkClass,
+      };
+      if (!eligible || !l.hazmatCode || rnd() < 0.5) return { prior: base, new: { ...base } };
+      const flip = rndPick(rnd, ['marinePollutant', 'tunnelCode', 'wgkClass']);
+      const changed = { ...base };
+      if (flip === 'marinePollutant') changed.marinePollutant = base.marinePollutant === 'Yes' ? 'No' : 'Yes';
+      else if (flip === 'tunnelCode') changed.tunnelCode = rndPick(rnd, TUNNEL_CODES.filter((c) => c !== base.tunnelCode));
+      else changed.wgkClass = rndPick(rnd, ['1', '2', '3'].filter((c) => c !== base.wgkClass));
+      return { prior: base, new: changed };
+    });
+    return [o.orderId, pairs];
+  }));
+
+  // B3b(c) (live 25412375) — a location change was previously seeded ONLY
+  // into stopChanges; the order's own origin still held the old site, so
+  // setting the order aside and re-adding it (system placement, DEC-193)
+  // put it right back at the OLD site. Write the new site onto the order's
+  // own record too, for every order actually carried on a changed stop.
+  if (locationChange && orderList) {
+    for (const [seq, loc] of newLocByStopSeq) {
+      const sc = stopChanges[seq];
+      for (const id of sc.changedOrderIds) {
+        const rec = orderList.find((o) => o.orderId === id);
+        if (rec?.origin) {
+          rec.origin = { ...rec.origin, externalIdentifier: loc.facility, city: loc.city, region: loc.state, postal: loc.zip };
+        }
+      }
+    }
+  }
+
+  // B3b(b) (live 25412375) — "new" is the order's own CURRENT record (what
+  // the Edit Stops header sums via stopsSandbox.js `totals()`, off the
+  // unmodified per-order VM weight/volume fields); "prior" is what it was
+  // before this order change (current minus the seeded delta). This used to
+  // run the other way (current=prior, current+delta=new) — coherent inside
+  // this function, but the editor header (always sums the real, unmodified
+  // order records) and the KPI strip (reads summaryChanges) then showed two
+  // different Gross Weight numbers for the same shipment, because nothing
+  // ever writes the delta back onto an order's own weight. One source now:
+  // summaryChanges.new IS Σ of the orders' own records, by construction.
   const pickupDelta = (k) => stops.filter(s => s.stopType === 'pickup' && stopChanges[s.stopSequence])
     .reduce((t, s) => t + (stopChanges[s.stopSequence].fields[k].new - stopChanges[s.stopSequence].fields[k].prior), 0);
   const summaryChanges = {
-    grossWeight: { prior: grossWeight, new: grossWeight + pickupDelta('weight') },
-    volume: { prior: totalVolume, new: totalVolume + pickupDelta('volume') },
+    grossWeight: { prior: grossWeight - pickupDelta('weight'), new: grossWeight },
+    volume: { prior: totalVolume - pickupDelta('volume'), new: totalVolume },
   };
-  if (locationChange) summaryChanges.distance = { prior: distanceMiles, new: Math.round(distanceMiles * (1.1 + rnd() * 0.5) * 100) / 100 };
+  // B2 (DEC-198) — recompute the hypothetical post-location-change total
+  // with the SAME legMiles function the header/routing use, over the stop
+  // sequence with the changed pickup's coordinates swapped in.
+  if (locationChange) {
+    const hypotheticalStops = stops.map((s) => {
+      const loc = newLocByStopSeq.get(s.stopSequence);
+      return loc ? { ...s, lat: loc.lat, lng: loc.lng } : s;
+    });
+    summaryChanges.distance = { prior: distanceMiles, new: totalMiles(hypotheticalStops) };
+  }
 
-  // LINX-15435's "blank when exhausted / preferred-carrier AP before
-  // tendering (No active tender; Sent, to be tendered or Accepted)" Prior
-  // Cost branch used to be unreachable in this seed — the order-change
-  // population was diverted from Sent/Accepted only (the monitoring
-  // diversion gate ~L1160). Since S144's second, exceptions-sourced
-  // diversion (~L1174), `tenderStatus` can genuinely be a real terminal,
-  // non-active status (Declined/Cancelled) — reachable now.
-  //
-  // `priorApCost`/`newApCost` (ctx) are still always real numbers (they're
-  // the routing option's own rateDetails.baseRate — a carrier's rated cost
-  // doesn't stop existing just because no tender is active on it), so the
-  // re-quote base below is unaffected either way. What LINX-15435 actually
-  // asks to blank is the DISPLAYED "Prior Cost" figure — "staying on the
-  // current live tender" has no meaning when there's no active tender to
-  // stay on — so that alone is nulled here, independent of `base`.
+  // B1 (DEC-192) — every cost here reads from the SAME two tender lists View
+  // Routing shows (newTenderList/priorTenderList, built by buildOrderChange
+  // just above this function's own call site), or from the orders' own
+  // seeded direct-lane cost. No independent re-quote random factor.
   const ACTIVE_TENDER_STATUSES = ['To Be Tendered', 'Sent', 'Accepted'];
   const hasActiveTender = ACTIVE_TENDER_STATUSES.includes(tenderStatus);
-  const base = newApCost ?? priorApCost;
-  const newDirect = Math.round(base * (1.15 + rnd() * 0.5) * 100) / 100;
-  const newConsolidated = locationChange ? null : Math.round(base * (0.95 + rnd() * 0.15) * 100) / 100;
-  const priorCost = hasActiveTender ? priorApCost : null;
+  // "Selected carrier" = rank 1 of the new list — same convention
+  // ShipmentDetailsModal.jsx already uses for "the" carrier of a tender list.
+  const selectedNew = (newTenderList ?? []).find((o) => o.rank === 1);
+  const priorRow = (priorTenderList ?? []).find((o) => o.status === tenderStatus) ?? priorTenderList?.[0];
+  const newDirect = Math.round(orders.reduce((s, o) => {
+    const co = (costOrders ?? []).find((c) => c.orderId === o.orderId);
+    return s + (co?.cost.directCostAmount ?? 0);
+  }, 0) * 100) / 100;
+  const newConsolidated = locationChange ? null : (selectedNew ? selectedNew.totalCostAmount : null);
+  const priorCost = hasActiveTender ? (priorRow ? priorRow.totalCostAmount : null) : null;
 
   return {
-    locationChange, changedOrderIds, stopChanges, orderComparisons, summaryChanges,
+    locationChange, changedOrderIds, stopChanges, orderComparisons, orderLinePairs, summaryChanges,
     costs: { prior: priorCost, newDirect, newConsolidated },
   };
 }

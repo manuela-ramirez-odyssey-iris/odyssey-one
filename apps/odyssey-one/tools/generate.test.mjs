@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
+import { totalMiles } from '../src/utils/legMiles.js'
+import { windowViolations } from '../src/components/detail/order-change/stopsSandbox.js'
 
 test('buildDataset returns a coherent scaled dataset', () => {
   const ds = buildDataset({ totalShipments: 50 })
@@ -1430,6 +1432,175 @@ test('consolidation payload is deterministic across builds and ids match the pre
   const s = a.shipments.find(x => x.category === 'order-change' && a.details.get(x.sellShipment).orderList.length > 1)
   assert.ok(s)
   assert.deepEqual(a.details.get(s.sellShipment).orderChange.consolidation, b.details.get(s.sellShipment).orderChange.consolidation)
+})
+
+// Plan B1 (DEC-192) — the header cost must equal the SAME rows View Routing
+// shows: the new tender list's rank-1 (selected) carrier, and the prior
+// tender list's tenderStatus-matching carrier. No independent re-quote.
+test('B1: consolidation header costs equal the tender lists View Routing shows', () => {
+  const ds = buildDataset()
+  let checked = 0, mismatches = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c) continue
+    checked++
+    const selectedNew = d.orderChange.newTenderList.find(o => o.rank === 1)
+    if (c.costs.newConsolidated !== null && (!selectedNew || c.costs.newConsolidated !== selectedNew.totalCostAmount)) mismatches++
+    const priorRow = d.orderChange.priorTenderList.find(o => o.status === s.tenderStatus) ?? d.orderChange.priorTenderList[0]
+    if (c.costs.prior !== null && c.costs.prior !== priorRow.totalCostAmount) mismatches++
+  }
+  assert.ok(checked > 0, 'expected at least one consolidated order-change row')
+  assert.equal(mismatches, 0, `${mismatches} of ${checked} consolidation rows had a cost that disagreed with the tender lists`)
+})
+
+// Plan B2 (DEC-198) — header/routing/leg agreement: the shipment's own
+// distanceMiles, every routing option's distanceMiles, and the sum of
+// per-leg legMiles over the real stop sequence must all be the SAME number.
+test('B2: header distance, every routing option, and Σ legMiles all agree', () => {
+  const ds = buildDataset()
+  let checked = 0, mismatches = 0
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    checked++
+    const legTotal = totalMiles(d.shipmentStopList)
+    if (d.distanceMiles !== legTotal) mismatches++
+    for (const o of d.shippingOptionList ?? []) {
+      if (o.distanceMiles !== legTotal) mismatches++
+    }
+  }
+  assert.ok(checked > 0)
+  assert.equal(mismatches, 0, `${mismatches} distance mismatches across ${checked} shipments`)
+})
+
+// Plan B3 (DEC-196) — orderComparisons grows to the Direct field set, and
+// orderLinePairs carries a real per-line change for at least one changed
+// order (closes OC-open-12: the seed owes a reachable "Changed" line).
+test('B3: orderComparisons carries the Direct field set; at least one line pair is genuinely changed', () => {
+  const ds = buildDataset()
+  const DIRECT_FIELDS = [
+    'Gross Weight', 'Volume', 'Package Count', 'Pickup Date/Time', 'Delivery Date', 'Incoterm',
+    'Ship Direction', 'Seed Equipment', 'Distance', 'Distance Source', 'Network Leverage',
+    'Order Requested Date', 'Bill To', 'Freight Terms', 'Pickup Appointment', 'Delivery Appointment',
+    'Ship From', 'Ship To',
+  ]
+  let checkedOrders = 0, lineChanges = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c) continue
+    for (const id of c.changedOrderIds) {
+      checkedOrders++
+      const fields = new Set(c.orderComparisons[id].map(r => r.field))
+      for (const f of DIRECT_FIELDS) assert.ok(fields.has(f), `${s.sellShipment} order ${id} missing Direct field "${f}"`)
+      const pairs = c.orderLinePairs[id]
+      assert.ok(Array.isArray(pairs) && pairs.length === d.orderList.find(o => o.orderId === id).orderLines.length)
+      if (pairs.some(p => JSON.stringify(p.prior) !== JSON.stringify(p.new))) lineChanges++
+    }
+  }
+  assert.ok(checkedOrders > 0)
+  assert.ok(lineChanges > 0, 'expected at least one changed order to carry a genuinely changed line pair')
+})
+
+// Plan B3b(b) — summaryChanges is Σ of the orders' own (unmodified) records,
+// the same numbers the Edit Stops header sums (stopsSandbox.js `totals()`).
+test("B3b(b): summaryChanges.new equals the shipment's real, unmodified order-weight/volume total", () => {
+  const ds = buildDataset()
+  let checked = 0, mismatches = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c) continue
+    checked++
+    const grossSum = d.orderList.reduce((t, o) => t + o.grossWeightValue, 0)
+    const volSum = d.orderList.reduce((t, o) => t + o.volumeValue, 0)
+    if (c.summaryChanges.grossWeight.new !== grossSum) mismatches++
+    if (c.summaryChanges.volume.new !== volSum) mismatches++
+  }
+  assert.ok(checked > 0)
+  assert.equal(mismatches, 0, `${mismatches} gross/volume mismatches across ${checked} consolidated rows`)
+})
+
+// Plan B3b(c) — a location change is written onto the order's OWN origin,
+// not only into stopChanges (LINX-15872: setting the order aside and back on
+// must not silently revert it to the old site).
+test('B3b(c): a pickup location change is written onto every affected order\'s own origin', () => {
+  const ds = buildDataset()
+  let checkedLocationChanges = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c?.locationChange) continue
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      if (!sc.fields.location) continue
+      const newFacility = sc.fields.location.new.split(', ')[0]
+      for (const id of sc.changedOrderIds) {
+        checkedLocationChanges++
+        const rec = d.orderList.find(o => o.orderId === id)
+        assert.equal(rec.origin.externalIdentifier, newFacility, `${s.sellShipment} order ${id} origin wasn't updated to the new site (stop ${seq})`)
+      }
+    }
+  }
+  assert.ok(checkedLocationChanges > 0, 'expected at least one order affected by a location change')
+})
+
+// Plan B3b(d) — one address1 per site: an order's own origin/destination
+// address1 must match the pickup/delivery stop it actually sits on.
+test('B3b(d): order origin/destination address1 matches its own pickup/delivery stop', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  let checked = 0
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    for (const o of d.orderList ?? []) {
+      const pickupStop = d.shipmentStopList.find(st => st.stopType === 'pickup' && st.orderIds.includes(o.orderId))
+      const deliveryStop = d.shipmentStopList.find(st => st.stopType === 'delivery' && st.orderIds.includes(o.orderId))
+      if (pickupStop) { assert.equal(o.origin.address1, pickupStop.address1, `${s.sellShipment} order ${o.orderId} origin address1 ≠ its pickup stop`); checked++ }
+      if (deliveryStop) { assert.equal(o.destination.address1, deliveryStop.address1, `${s.sellShipment} order ${o.orderId} destination address1 ≠ its delivery stop`); checked++ }
+    }
+  }
+  assert.ok(checked > 0)
+})
+
+// Plan B3b(a) — every FRESHLY SEEDED stop must fall inside the window of
+// every order on it, for the common (single pickup + single delivery stop)
+// shape I4 (above) pins exactly. A shipment with a SECOND pickup/delivery
+// stop keeps a known, documented residual (see generate.mjs's own comment
+// above orderPickupBase): I4 requires every order's late window edge to
+// equal the FIRST stop's instant regardless of which stop it actually sits
+// on, so a second stop ~3h later can still read "late". That residual is
+// asserted here too, as a bound, so a regression that makes it WORSE (not
+// just "still present") gets caught.
+test('B3b(a): no window violation on a single-pickup/single-delivery shipment; multi-stop residual stays bounded', () => {
+  const ds = buildDataset()
+  let singleStopChecked = 0, singleStopViolations = 0
+  let multiStopShipments = 0, multiStopViolations = 0
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    if (!d.shipmentStopList?.length || !d.orderList?.length) continue
+    const pickupStops = d.shipmentStopList.filter(st => st.stopType === 'pickup')
+    const deliveryStops = d.shipmentStopList.filter(st => st.stopType === 'delivery')
+    const stops = d.shipmentStopList.map(st => ({ key: `s${st.stopSequence}`, type: st.stopType, orderIds: st.orderIds, date: st.scheduledDateTime }))
+    const orders = d.orderList.map(o => ({
+      orderNumber: o.orderId,
+      earliestPickup: o.scheduledShipDate, latestPickup: o.requestedShipDate,
+      earliestDelivery: o.scheduledDeliveryDate, latestDelivery: o.requestedDeliveryDate,
+    }))
+    const v = windowViolations(stops, orders)
+    if (pickupStops.length === 1 && deliveryStops.length === 1) {
+      singleStopChecked++
+      singleStopViolations += v.length
+    } else {
+      multiStopShipments++
+      multiStopViolations += v.length
+    }
+  }
+  assert.ok(singleStopChecked > 0)
+  assert.equal(singleStopViolations, 0, `${singleStopViolations} window violations on single-pickup/single-delivery shipments (must be 0)`)
+  // Documented residual — not zero, but bounded. A regression that pushes
+  // this materially higher (more than ~2 violations per multi-stop
+  // shipment) means something else broke, not just "the known gap".
+  assert.ok(multiStopViolations <= multiStopShipments * 2.5,
+    `multi-stop residual grew unexpectedly: ${multiStopViolations} violations over ${multiStopShipments} multi-stop shipments`)
 })
 
 test('lifecycle bands: pre-tender and spot exist, and the mix is what was decided (S151)', () => {
