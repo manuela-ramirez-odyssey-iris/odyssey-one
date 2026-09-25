@@ -350,7 +350,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
             <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
             <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
-            <TitleSubtitle subtitle="Distance" title={<DiffValue value={`${distance.toFixed(2)} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
+            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance == null ? '--' : `${distance.toFixed(2)} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
           </div>

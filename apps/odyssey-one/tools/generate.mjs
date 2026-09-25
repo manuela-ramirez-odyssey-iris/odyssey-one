@@ -2217,6 +2217,14 @@ function generateShipment(index, chainOverride) {
         region: shipFromLoc.state,
         postal: shipFromLoc.zip,
         country: 'US',
+        // Bug fix (S160 follow-up) — LOCATIONS already carries real lat/lng
+        // (B2, DEC-198); an order's own origin never threaded it through, so
+        // a sandbox-created P?/D? stop (Edit Shipment Stops) had no
+        // coordinate source even for a real, known site. Zero new draws:
+        // shipFromLoc/pickupStopForOrder.timeZone are already computed above.
+        lat: shipFromLoc.lat,
+        lng: shipFromLoc.lng,
+        timeZone: pickupStopForOrder.timeZone,
         contactName: faker.person.fullName(),
         phone: faker.phone.number({ style: 'international' }),
         email: faker.internet.email(),
@@ -2231,6 +2239,9 @@ function generateShipment(index, chainOverride) {
         region: shipToLoc.state,
         postal: shipToLoc.zip,
         country: 'US',
+        lat: shipToLoc.lat,
+        lng: shipToLoc.lng,
+        timeZone: deliveryStopForOrder.timeZone,
         contactName: faker.person.fullName(),
         phone: faker.phone.number({ style: 'international' }),
         email: faker.internet.email(),
@@ -2424,7 +2435,18 @@ function generateShipment(index, chainOverride) {
   orders.forEach((ord, oi) => {
     const h = orderHeaders[oi];
     const w = ord.window;
-    const from = LOCATIONS[ord.shipFromLocIdx];
+    // Bug fix (S160 follow-up, live 25390278) — a consolidated location
+    // change (buildConsolidationChange, B3b(c)) rewrites orderList[oi].origin
+    // to the new site; this row used to always re-derive `from` off the
+    // shipment-build-time index (ord.shipFromLocIdx), so orders.json's
+    // consignor silently kept showing the OLD site for a relocated order.
+    // Same faker draw count either way (see `address` below) — no id shift.
+    const originRec = orderList[oi]?.origin;
+    const relocated = originRec && originRec.externalIdentifier !== LOCATIONS[ord.shipFromLocIdx].facility;
+    const from = relocated
+      ? (LOCATIONS.find((l) => l.facility === originRec.externalIdentifier) ?? LOCATIONS[ord.shipFromLocIdx])
+      : LOCATIONS[ord.shipFromLocIdx];
+    const fromIdx = LOCATIONS.indexOf(from);
     const to = LOCATIONS[ord.shipToLocIdx];
     // R2-3: the created instant, drawn ONCE — createdAt and createdTimeZoneCode
     // below both reuse it (see orderRow.createdTimeZoneCode comment).
@@ -2440,9 +2462,15 @@ function generateShipment(index, chainOverride) {
       poNumber: h.poNumber, // LINX-12039
       planningDateType: h.planningDateType, // LINX-12898
       consignor: {
-        locationId: locationIdFor(from, ord.shipFromLocIdx),
+        locationId: locationIdFor(from, fromIdx),
         name: from.facility,
-        address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
+        // Retained unconditionally, at the SAME evaluation position the
+        // original inline draw held (shared-faker-stream parity, B3b(d)'s
+        // void-draw convention) — only its RESULT is discarded when relocated.
+        address: (() => {
+          const drawn = `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`;
+          return relocated ? originRec.address1 : drawn;
+        })(),
         city: from.city, state: from.state, country: 'US',
         earliestPickupDateTime: toIsoLocal(w.earliestPickup),
         latestPickupDateTime: toIsoLocal(w.latestPickup),
@@ -3056,7 +3084,20 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     if (locationChange && st.stopType === 'pickup') {
       const loc = rndPick(rnd, LOCATIONS.filter(l => l.city !== st.city));
       fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
-      newLocByStopSeq.set(st.stopSequence, loc);
+      // Bug fix (S160 follow-up, live 25390278) — the LOCATIONS pool entry
+      // already carries real lat/lng; a location-changed site needs the
+      // REST of a full site (address1, country, timeZone) too, so the order
+      // record this writes onto below (and everything downstream that reads
+      // it — the sandbox-created stop, Order tab, orders.json, compare
+      // modal) can build a complete site instead of a bare facility+city
+      // string. address1 draws from this function's own id-keyed `rnd`
+      // (never the shared faker stream), so no id renumbers.
+      newLocByStopSeq.set(st.stopSequence, {
+        ...loc,
+        address1: `${100 + Math.floor(rnd() * 9900)} Industrial Pkwy`,
+        country: 'US',
+        timeZone: deriveTimezone(loc.city) || 'America/Chicago',
+      });
     }
     changedStops.push({ st, ids, fields });
   }
@@ -3085,9 +3126,45 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     stopChanges[st.stopSequence] = { changedOrderIds: ids, fields };
   }
 
+  // B3b(c) (live 25412375) — a location change was previously seeded ONLY
+  // into stopChanges; the order's own origin still held the old site, so
+  // setting the order aside and re-adding it (system placement, DEC-193)
+  // put it right back at the OLD site. Write the new site onto the order's
+  // own record too, for every order actually carried on a changed stop.
+  // Moved BEFORE orderComparisons/orderHeaderById below (was after — bug
+  // fix, S160 follow-up) so the "Ship From" row and every other reader of
+  // this order's origin see the SAME post-change site, not a stale one.
+  if (locationChange && orderList) {
+    for (const [seq, loc] of newLocByStopSeq) {
+      const sc = stopChanges[seq];
+      for (const id of sc.changedOrderIds) {
+        const rec = orderList.find((o) => o.orderId === id);
+        if (rec?.origin) {
+          rec.origin = {
+            ...rec.origin,
+            externalIdentifier: loc.facility,
+            address1: loc.address1,
+            address2: undefined,
+            city: loc.city,
+            region: loc.state,
+            postal: loc.zip,
+            country: loc.country,
+            lat: loc.lat,
+            lng: loc.lng,
+            timeZone: loc.timeZone,
+          };
+        }
+      }
+    }
+  }
+
   const pickupOf = (o) => stops.find(s => s.stopType === 'pickup' && s.orderIds.includes(o.orderId));
   const deliveryOf = (o) => stops.find(s => s.stopType === 'delivery' && s.orderIds.includes(o.orderId));
-  const orderHeaderById = new Map(orders.map((o, i) => [o.orderId, orderHeaders?.[i]]));
+  // Bug fix (S160 follow-up) — was orderHeaders (never mutated by the B3b(c)
+  // rewrite above); orderList IS the same records B3b(c) writes the
+  // relocated site onto, so this must read from orderList or "Ship From"
+  // shows the pre-change address for a location-changed order.
+  const orderHeaderById = new Map(orders.map((o, i) => [o.orderId, orderList?.[i] ?? orderHeaders?.[i]]));
   const addrOf = (site) => (site ? `${site.address1}, ${site.city}, ${site.region}, ${site.postal}, ${site.country}` : '--');
   const shipDirLabel = (code) => SHIP_DIRECTIONS.find(d => d.value === code)?.label ?? code ?? '--';
 
@@ -3172,23 +3249,6 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     });
     return [o.orderId, pairs];
   }));
-
-  // B3b(c) (live 25412375) — a location change was previously seeded ONLY
-  // into stopChanges; the order's own origin still held the old site, so
-  // setting the order aside and re-adding it (system placement, DEC-193)
-  // put it right back at the OLD site. Write the new site onto the order's
-  // own record too, for every order actually carried on a changed stop.
-  if (locationChange && orderList) {
-    for (const [seq, loc] of newLocByStopSeq) {
-      const sc = stopChanges[seq];
-      for (const id of sc.changedOrderIds) {
-        const rec = orderList.find((o) => o.orderId === id);
-        if (rec?.origin) {
-          rec.origin = { ...rec.origin, externalIdentifier: loc.facility, city: loc.city, region: loc.state, postal: loc.zip };
-        }
-      }
-    }
-  }
 
   // B3b(b) (live 25412375) — "new" is the order's own CURRENT record (what
   // the Edit Stops header sums via stopsSandbox.js `totals()`, off the

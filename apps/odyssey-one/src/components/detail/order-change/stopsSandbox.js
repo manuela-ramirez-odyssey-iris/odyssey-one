@@ -8,6 +8,29 @@
 // so a live reorder in this editor can never disagree with the seeded header.
 import { legMiles, totalMiles } from '../../../utils/legMiles.js'
 
+// Bug fix (S160 follow-up, live 25390278) — a created stop's default date
+// must read in ITS OWN site's zone, not the order's window zone (which stays
+// anchored to the order's ORIGINAL stop, B3b(a)). Formats a UTC instant into
+// an IANA zone's wall clock via Intl (browser-safe; no node/server deps).
+function formatInZone(utcMs, ianaZone) {
+  if (utcMs == null || !ianaZone) return null
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: ianaZone, year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
+    }).formatToParts(new Date(utcMs))
+    const get = (t) => parts.find((p) => p.type === t)?.value
+    let hour = Number(get('hour'))
+    if (hour === 24) hour = 0
+    return formatStopDate({
+      y: Number(get('year')), mo: Number(get('month')) - 1, d: Number(get('day')),
+      h: hour, mi: Number(get('minute')), tz: get('timeZoneName'),
+    })
+  } catch {
+    return null
+  }
+}
+
 const parseNum = (s) => Number(String(s).replace(/[^0-9.]/g, '')) || 0
 
 const orDash = (v) => (v === '--' ? '' : (v ?? ''))
@@ -18,11 +41,19 @@ const orDash = (v) => (v === '--' ? '' : (v ?? ''))
 // date gate permanently unreachable for every location-change shipment.
 // ponytail: order-window date only, upgrade path = a real per-stop Planned
 // Date/Time/TZ control (OC-open-13).
-function defaultsFor(order, type) {
+function defaultsFor(order, type, site) {
   if (!order) return { date: '', address: '' }
-  return type === 'pickup'
+  const raw = type === 'pickup'
     ? { date: orDash(order.earliestPickup), address: orDash(order.shipFrom?.address) }
     : { date: orDash(order.earliestDelivery), address: orDash(order.shipTo?.address) }
+  // Bug fix (S160 follow-up) — reformat into the CREATED stop's own site
+  // zone/shape (matches every other stop's scheduledDateTime), not the
+  // order-window's short "MM/DD/YYYY" form in the order's ORIGINAL zone.
+  if (site?.timeZone) {
+    const zoned = formatInZone(stampValue(parseStamp(raw.date)), site.timeZone)
+    if (zoned) return { ...raw, date: zoned }
+  }
+  return raw
 }
 
 // Where a leg goes: `at` = { siteKey, location, site } (an order's shipFrom/
@@ -42,7 +73,7 @@ function placeOrder(list, orderId, type, at, makeKey, orders) {
   let lastIdx = -1
   for (let i = 0; i < list.length; i++) if (list[i].type === type) lastIdx = i
   const order = orders?.find((o) => o.orderNumber === orderId)
-  const { date, address } = defaultsFor(order, type)
+  const { date, address } = defaultsFor(order, type, at.site)
   const newStop = {
     key: makeKey(),
     type,
@@ -57,6 +88,12 @@ function placeOrder(list, orderId, type, at, makeKey, orders) {
     packageCount: '',
     pickupNo: '',
     unsequenced: true,
+    // Bug fix (S160 follow-up) — a created stop's own coordinates, when its
+    // site carries them (B2's legMiles reads lat/lng off every stop it's
+    // given; previously always undefined here, so a location-change or
+    // manual add's created stop always dropped out of every leg it touched).
+    lat: at.site?.lat,
+    lng: at.site?.lng,
   }
   if (lastIdx === -1) {
     if (type === 'pickup') list.unshift(newStop)
@@ -112,7 +149,16 @@ export function initSandbox({ stops, consolidation, orders }) {
     const type = src.type
     for (const orderId of change.changedOrderIds ?? []) {
       if (!src.orderIds.includes(orderId)) continue
-      placeOrder(sbStops, orderId, type, { location: locField.new }, () => `new:${type}:${++seq}`, orders)
+      // Bug fix (S160 follow-up, live 25390278) — was a bare `{ location }`
+      // string (no siteKey/site/coords), so the created P? stop always
+      // dropped its distance leg and showed a truncated location. The
+      // order's OWN shipFrom/shipTo already carries the relocated site
+      // (buildConsolidationChange B3b(c) writes it onto the order record),
+      // same full site addToStop already uses for a manual placement — one
+      // code path for both.
+      const order = orders?.find((o) => o.orderNumber === orderId)
+      const at = (type === 'pickup' ? order?.shipFrom : order?.shipTo) ?? { location: locField.new }
+      placeOrder(sbStops, orderId, type, at, () => `new:${type}:${++seq}`, orders)
       src.orderIds = src.orderIds.filter((id) => id !== orderId)
     }
   }

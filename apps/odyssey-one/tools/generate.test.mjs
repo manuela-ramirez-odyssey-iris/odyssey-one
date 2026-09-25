@@ -1592,7 +1592,14 @@ test('B3b(d): order origin/destination address1 matches its own pickup/delivery 
   let checked = 0
   for (const s of ds.shipments) {
     const d = ds.details.get(s.sellShipment)
+    // B3b/c (S160 follow-up) — a location-changed order's origin now points
+    // at the NEW (not-yet-seeded-as-a-real-stop) site on purpose; its origin
+    // address1 legitimately diverges from shipmentStopList's stale pickup
+    // stop for it. Same exclusion the B3b(c) test above already relies on.
+    const relocatedIds = new Set(Object.values(d.orderChange?.consolidation?.stopChanges ?? {})
+      .flatMap((sc) => (sc.fields.location ? sc.changedOrderIds : [])))
     for (const o of d.orderList ?? []) {
+      if (relocatedIds.has(o.orderId)) continue
       const pickupStop = d.shipmentStopList.find(st => st.stopType === 'pickup' && st.orderIds.includes(o.orderId))
       const deliveryStop = d.shipmentStopList.find(st => st.stopType === 'delivery' && st.orderIds.includes(o.orderId))
       if (pickupStop) { assert.equal(o.origin.address1, pickupStop.address1, `${s.sellShipment} order ${o.orderId} origin address1 ≠ its pickup stop`); checked++ }
@@ -1600,6 +1607,33 @@ test('B3b(d): order origin/destination address1 matches its own pickup/delivery 
     }
   }
   assert.ok(checked > 0)
+})
+
+// Bug fix (S160 follow-up, live 25390278) — a location-changed pickup's new
+// site used to carry only facility+city (no address1/lat/lng/country/
+// timeZone), so the Edit Shipment Stops sandbox's created P? stop had no
+// coordinate source and every leg touching it read "0.00 mi" instead of
+// "--". The seeded site must be a COMPLETE site.
+test('B3b(c) bug fix: every location-changed site is a complete site (address1, lat/lng, country, timeZone)', () => {
+  const ds = buildDataset()
+  let checked = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange?.consolidation
+    if (!c?.locationChange) continue
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      if (!sc.fields.location) continue
+      for (const id of sc.changedOrderIds) {
+        checked++
+        const rec = d.orderList.find(o => o.orderId === id)
+        const o = rec.origin
+        for (const field of ['externalIdentifier', 'address1', 'city', 'region', 'postal', 'country', 'lat', 'lng', 'timeZone']) {
+          assert.ok(o[field] != null && o[field] !== '', `${s.sellShipment} order ${id} (stop ${seq}) relocated origin.${field} is missing`)
+        }
+      }
+    }
+  }
+  assert.ok(checked > 0, 'expected at least one location-changed order')
 })
 
 // Plan B3b(a) (closed 2026-09-25, user ruling) — every FRESHLY SEEDED stop

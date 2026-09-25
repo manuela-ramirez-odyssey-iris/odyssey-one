@@ -158,8 +158,12 @@ it('Approve Shipment Change confirm — Cancel closes it without calling onAppro
 })
 
 it('View Routing disabled while a P? exists; enabled otherwise; clicking marks routed and enables Approve Changes; a further edit disables Approve again', () => {
+  // Bug fix (S160 follow-up) — a location-changed order's OWN shipFrom must
+  // already carry the relocated site (buildConsolidationChange's B3b(c)
+  // rewrite, real data) for initSandbox to create the P? this test needs.
+  const relocatedOrders = orders.map((o) => (o.orderNumber === 'C' ? { ...o, shipFrom: { ...o.shipFrom, location: 'Q, Burg' } } : o))
   const { rerender } = render(
-    <EditStopsView stops={baseStops} consolidation={locChange} orders={orders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
+    <EditStopsView stops={baseStops} consolidation={locChange} orders={relocatedOrders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
   )
   expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(true)
   cleanup()

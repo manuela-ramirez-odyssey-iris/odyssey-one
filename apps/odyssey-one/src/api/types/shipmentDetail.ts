@@ -16,7 +16,9 @@ export interface AddressVM {
      leg can be matched to an existing stop (site id + postal). */
   siteKey: string
   stopLocation: string
-  site: { facilityName?: string; city?: string; region?: string; postal?: string; country?: string }
+  /** lat/lng/timeZone: bug fix (S160 follow-up) — read by the Edit Shipment
+   * Stops sandbox when it creates a P?/D? stop off this site. */
+  site: { facilityName?: string; city?: string; region?: string; postal?: string; country?: string; lat?: number; lng?: number; timeZone?: string }
 }
 
 export interface SpecialServiceVM {

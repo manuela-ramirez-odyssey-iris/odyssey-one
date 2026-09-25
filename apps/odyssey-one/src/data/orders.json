@@ -1544,11 +1544,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "CBP-TX-008",
-   "name": "COVESTRO BAYTOWN PL",
-   "address": "2468 Graciela Terrace",
-   "city": "Baytown",
-   "state": "TX",
+   "locationId": "ES-AZ-018",
+   "name": "ERCO SOUTHWEST",
+   "address": "3884 Industrial Pkwy",
+   "city": "Phoenix",
+   "state": "AZ",
    "country": "US",
    "earliestPickupDateTime": "2026-06-01T03:30:00",
    "latestPickupDateTime": "2026-06-01T06:00:00"
@@ -1576,7 +1576,7 @@
   "hazardous": false,
   "createdAt": "2026-05-23T22:30:00",
   "createdBy": "zoe.admin",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "MST"
  },
  {
   "orderNumber": "CEL-91035",
@@ -4117,11 +4117,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "ECR-TN-016",
-   "name": "EASTMAN CHEMICAL RECV",
-   "address": "9413 Hope Crest",
-   "city": "Kingsport",
-   "state": "TN",
+   "locationId": "CBP-TX-008",
+   "name": "COVESTRO BAYTOWN PL",
+   "address": "7311 Industrial Pkwy",
+   "city": "Baytown",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-04-22T13:30:00",
    "latestPickupDateTime": "2026-04-22T15:30:00"
@@ -4149,7 +4149,7 @@
   "hazardous": false,
   "createdAt": "2026-04-19T04:30:00",
   "createdBy": "cara.planner",
-  "createdTimeZoneCode": "EDT"
+  "createdTimeZoneCode": "CDT"
  },
  {
   "orderNumber": "MON-91092",
@@ -4162,11 +4162,11 @@
   "poNumber": "31-681086808",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "ECR-TN-016",
-   "name": "EASTMAN CHEMICAL RECV",
-   "address": "9049 Champlin Lodge",
-   "city": "Kingsport",
-   "state": "TN",
+   "locationId": "CBP-TX-008",
+   "name": "COVESTRO BAYTOWN PL",
+   "address": "7311 Industrial Pkwy",
+   "city": "Baytown",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-04-22T13:00:00",
    "latestPickupDateTime": "2026-04-22T15:30:00"
@@ -4194,7 +4194,7 @@
   "hazardous": false,
   "createdAt": "2026-04-16T22:00:00",
   "createdBy": "eve.planner",
-  "createdTimeZoneCode": "EDT"
+  "createdTimeZoneCode": "CDT"
  },
  {
   "orderNumber": "0000000091093",
@@ -50453,11 +50453,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "EW-TX-001",
-   "name": "ERCO WORLDWIDE",
-   "address": "8753 Hammes Green",
-   "city": "Houston",
-   "state": "TX",
+   "locationId": "UP-OR-021",
+   "name": "USALCO PACIFIC",
+   "address": "4479 Industrial Pkwy",
+   "city": "Portland",
+   "state": "OR",
    "country": "US",
    "earliestPickupDateTime": "2026-03-23T05:00:00",
    "latestPickupDateTime": "2026-03-23T10:00:00"
@@ -50485,7 +50485,7 @@
   "hazardous": false,
   "createdAt": "2026-03-14T13:00:00",
   "createdBy": "david.johns",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "PDT"
  },
  {
   "orderNumber": "INE-92116",
@@ -59980,11 +59980,11 @@
   "poNumber": "2375195596",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "SEO-CA-027",
-   "name": "SEMPRA ENERGY OTAY",
-   "address": "480 Hulda Mall",
-   "city": "San Diego",
-   "state": "CA",
+   "locationId": "UC-LA-003",
+   "name": "USALCO CHEMICALS",
+   "address": "1172 Industrial Pkwy",
+   "city": "Geismar",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-02-28T10:45:00",
    "latestPickupDateTime": "2026-02-28T13:00:00"
@@ -60012,7 +60012,7 @@
   "hazardous": true,
   "createdAt": "2026-02-23T03:45:00",
   "createdBy": "janardhana.k",
-  "createdTimeZoneCode": "PST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000092327",
@@ -60025,11 +60025,11 @@
   "poNumber": "38-720983070",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "SEO-CA-027",
-   "name": "SEMPRA ENERGY OTAY",
-   "address": "3686 The Ridgeway",
-   "city": "San Diego",
-   "state": "CA",
+   "locationId": "UC-LA-003",
+   "name": "USALCO CHEMICALS",
+   "address": "1172 Industrial Pkwy",
+   "city": "Geismar",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-02-28T12:15:00",
    "latestPickupDateTime": "2026-02-28T13:00:00"
@@ -60057,7 +60057,7 @@
   "hazardous": false,
   "createdAt": "2026-02-20T03:15:00",
   "createdBy": "mia.manager",
-  "createdTimeZoneCode": "PST",
+  "createdTimeZoneCode": "CST",
   "draftOrderStatus": "Error",
   "errorCount": 2,
   "interfaceErrorClass": "structural",
@@ -61698,11 +61698,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "CBP-TX-008",
-   "name": "COVESTRO BAYTOWN PL",
-   "address": "2092 Ana Grove",
-   "city": "Baytown",
-   "state": "TX",
+   "locationId": "WCP-LA-005",
+   "name": "WESTLAKE CHEMICAL PL",
+   "address": "1448 Industrial Pkwy",
+   "city": "Lake Charles",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-03-07T03:45:00",
    "latestPickupDateTime": "2026-03-07T06:30:00"
@@ -61743,11 +61743,11 @@
   "poNumber": "1682005323",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "CBP-TX-008",
-   "name": "COVESTRO BAYTOWN PL",
-   "address": "6985 Parisian Vista",
-   "city": "Baytown",
-   "state": "TX",
+   "locationId": "WCP-LA-005",
+   "name": "WESTLAKE CHEMICAL PL",
+   "address": "1448 Industrial Pkwy",
+   "city": "Lake Charles",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-03-07T04:15:00",
    "latestPickupDateTime": "2026-03-07T06:30:00"
@@ -91779,11 +91779,11 @@
   "poNumber": "9TEZNCKAV",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "GTS-LA-002",
-   "name": "G2O TECH SOLUTIONS",
-   "address": "4405 Sammie Ridge",
-   "city": "Bastrop",
-   "state": "LA",
+   "locationId": "APN-WA-020",
+   "name": "ACME PACIFIC NW",
+   "address": "2994 Industrial Pkwy",
+   "city": "Seattle",
+   "state": "WA",
    "country": "US",
    "earliestPickupDateTime": "2026-06-18T11:30:00",
    "latestPickupDateTime": "2026-06-18T12:00:00"
@@ -91811,7 +91811,7 @@
   "hazardous": true,
   "createdAt": "2026-06-11T09:30:00",
   "createdBy": "dan.planner",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "PDT"
  },
  {
   "orderNumber": "SHE-93030",
@@ -94127,11 +94127,11 @@
   "poNumber": "83-369376853",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "SN-WI-028",
-   "name": "SHIPTUSLA NEENAH",
-   "address": "7416 Rafael Glens",
-   "city": "Neenah",
-   "state": "WI",
+   "locationId": "SCP-WY-030",
+   "name": "SOLVAY CHEMICALS PL",
+   "address": "5827 Industrial Pkwy",
+   "city": "Green River",
+   "state": "WY",
    "country": "US",
    "earliestPickupDateTime": "2026-04-24T09:15:00",
    "latestPickupDateTime": "2026-04-24T10:30:00"
@@ -94159,7 +94159,7 @@
   "hazardous": false,
   "createdAt": "2026-04-22T12:15:00",
   "createdBy": "zoe.admin",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "MDT"
  },
  {
   "orderNumber": "0000000093082",
@@ -94221,11 +94221,11 @@
   "poNumber": "TSSUFC9IB",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "DCF-TX-007",
-   "name": "DOW CHEMICAL FREEPORT",
-   "address": "3298 Grove Lane",
-   "city": "Freeport",
-   "state": "TX",
+   "locationId": "ISP-GA-012",
+   "name": "INEOS STYROLUTION PL",
+   "address": "5801 Industrial Pkwy",
+   "city": "Columbus",
+   "state": "GA",
    "country": "US",
    "earliestPickupDateTime": "2026-04-24T10:30:00",
    "latestPickupDateTime": "2026-04-24T13:30:00"
@@ -94253,7 +94253,7 @@
   "hazardous": false,
   "createdAt": "2026-04-19T14:30:00",
   "createdBy": "david.johns",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "EDT"
  },
  {
   "orderNumber": "INE-93084",
@@ -94536,11 +94536,11 @@
   "poNumber": "HI5DEL5DV",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "WW-UT-025",
-   "name": "WEYERHAEUSER WEST",
-   "address": "2402 Sarina Mountains",
-   "city": "Salt Lake City",
-   "state": "UT",
+   "locationId": "APN-WA-020",
+   "name": "ACME PACIFIC NW",
+   "address": "488 Industrial Pkwy",
+   "city": "Seattle",
+   "state": "WA",
    "country": "US",
    "earliestPickupDateTime": "2026-03-17T07:00:00",
    "latestPickupDateTime": "2026-03-17T11:00:00"
@@ -94568,7 +94568,7 @@
   "hazardous": false,
   "createdAt": "2026-03-12T19:00:00",
   "createdBy": "ben.planner",
-  "createdTimeZoneCode": "MDT"
+  "createdTimeZoneCode": "PDT"
  },
  {
   "orderNumber": "0000000093091",
@@ -94626,11 +94626,11 @@
   "poNumber": "2858529996",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "WW-UT-025",
-   "name": "WEYERHAEUSER WEST",
-   "address": "8651 Railway Street",
-   "city": "Salt Lake City",
-   "state": "UT",
+   "locationId": "APN-WA-020",
+   "name": "ACME PACIFIC NW",
+   "address": "488 Industrial Pkwy",
+   "city": "Seattle",
+   "state": "WA",
    "country": "US",
    "earliestPickupDateTime": "2026-03-17T08:30:00",
    "latestPickupDateTime": "2026-03-17T11:00:00"
@@ -94658,7 +94658,7 @@
   "hazardous": false,
   "createdAt": "2026-03-15T13:30:00",
   "createdBy": "eve.planner",
-  "createdTimeZoneCode": "MDT"
+  "createdTimeZoneCode": "PDT"
  },
  {
   "orderNumber": "0000000093093",
@@ -105155,11 +105155,11 @@
   "poNumber": "58-563665104",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "EGL-GA-011",
-   "name": "ERCO GLOBAL LOGISTICS",
-   "address": "4022 Maggio Freeway",
-   "city": "Atlanta",
-   "state": "GA",
+   "locationId": "LC-TX-009",
+   "name": "LYONDELLBASELL CHANN",
+   "address": "6924 Industrial Pkwy",
+   "city": "Channelview",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-06-19T05:45:00",
    "latestPickupDateTime": "2026-06-19T06:30:00"
@@ -105187,7 +105187,7 @@
   "hazardous": false,
   "createdAt": "2026-06-14T17:45:00",
   "createdBy": "zoe.admin",
-  "createdTimeZoneCode": "EDT"
+  "createdTimeZoneCode": "CDT"
  },
  {
   "orderNumber": "0000000093326",
@@ -105200,11 +105200,11 @@
   "poNumber": "78A8R8EKY",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "UP-OR-021",
-   "name": "USALCO PACIFIC",
-   "address": "286 Jedidiah Way",
-   "city": "Portland",
-   "state": "OR",
+   "locationId": "ES-AZ-018",
+   "name": "ERCO SOUTHWEST",
+   "address": "8650 Industrial Pkwy",
+   "city": "Phoenix",
+   "state": "AZ",
    "country": "US",
    "earliestPickupDateTime": "2026-06-19T04:15:00",
    "latestPickupDateTime": "2026-06-19T09:30:00"
@@ -105232,7 +105232,7 @@
   "hazardous": false,
   "createdAt": "2026-06-15T09:15:00",
   "createdBy": "ava.planner",
-  "createdTimeZoneCode": "PDT"
+  "createdTimeZoneCode": "MST"
  },
  {
   "orderNumber": "0000000093327",
@@ -107274,11 +107274,11 @@
   "poNumber": "2461790410",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "WCP-LA-005",
-   "name": "WESTLAKE CHEMICAL PL",
-   "address": "1802 N Church Street",
-   "city": "Lake Charles",
-   "state": "LA",
+   "locationId": "ES-AZ-018",
+   "name": "ERCO SOUTHWEST",
+   "address": "1170 Industrial Pkwy",
+   "city": "Phoenix",
+   "state": "AZ",
    "country": "US",
    "earliestPickupDateTime": "2026-06-23T06:30:00",
    "latestPickupDateTime": "2026-06-23T09:00:00"
@@ -107306,7 +107306,7 @@
   "hazardous": false,
   "createdAt": "2026-06-17T04:30:00",
   "createdBy": "ava.planner",
-  "createdTimeZoneCode": "CDT",
+  "createdTimeZoneCode": "MST",
   "draftOrderStatus": "Error",
   "errorCount": 3,
   "interfaceErrorClass": "conflict",
@@ -107413,11 +107413,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "WCP-LA-005",
-   "name": "WESTLAKE CHEMICAL PL",
-   "address": "2020 W Front Street",
-   "city": "Lake Charles",
-   "state": "LA",
+   "locationId": "ES-AZ-018",
+   "name": "ERCO SOUTHWEST",
+   "address": "1170 Industrial Pkwy",
+   "city": "Phoenix",
+   "state": "AZ",
    "country": "US",
    "earliestPickupDateTime": "2026-06-23T06:30:00",
    "latestPickupDateTime": "2026-06-23T09:00:00"
@@ -107445,7 +107445,7 @@
   "hazardous": false,
   "createdAt": "2026-06-17T01:30:00",
   "createdBy": "amy.cook",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "MST"
  },
  {
   "orderNumber": "EAS-93376",
@@ -109589,11 +109589,11 @@
   "poNumber": "NILDE8ML5",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "EW-TX-001",
-   "name": "ERCO WORLDWIDE",
-   "address": "916 Cordell Harbors",
-   "city": "Houston",
-   "state": "TX",
+   "locationId": "BCW-MI-017",
+   "name": "BASF CORP WYANDOTTE",
+   "address": "5694 Industrial Pkwy",
+   "city": "Wyandotte",
+   "state": "MI",
    "country": "US",
    "earliestPickupDateTime": "2026-04-01T10:00:00",
    "latestPickupDateTime": "2026-04-01T12:00:00"
@@ -109621,7 +109621,7 @@
   "hazardous": false,
   "createdAt": "2026-03-25T03:00:00",
   "createdBy": "janardhana.k",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "EDT"
  },
  {
   "orderNumber": "ACM-93424",
@@ -109634,11 +109634,11 @@
   "poNumber": "1292743470",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "UMD-CO-019",
-   "name": "USALCO MOUNTAIN DIV",
-   "address": "8582 Eino Corners",
-   "city": "Denver",
-   "state": "CO",
+   "locationId": "SCP-WY-030",
+   "name": "SOLVAY CHEMICALS PL",
+   "address": "4709 Industrial Pkwy",
+   "city": "Green River",
+   "state": "WY",
    "country": "US",
    "earliestPickupDateTime": "2026-04-01T14:15:00",
    "latestPickupDateTime": "2026-04-01T15:00:00"
@@ -137894,11 +137894,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "CBP-TX-008",
-   "name": "COVESTRO BAYTOWN PL",
-   "address": "2563 Schuppe Burgs",
-   "city": "Baytown",
-   "state": "TX",
+   "locationId": "APN-WA-020",
+   "name": "ACME PACIFIC NW",
+   "address": "3602 Industrial Pkwy",
+   "city": "Seattle",
+   "state": "WA",
    "country": "US",
    "earliestPickupDateTime": "2026-04-16T06:45:00",
    "latestPickupDateTime": "2026-04-16T11:30:00"
@@ -137926,7 +137926,7 @@
   "hazardous": false,
   "createdAt": "2026-04-11T00:45:00",
   "createdBy": "dan.planner",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "PDT"
  },
  {
   "orderNumber": "0000000094049",
@@ -137984,11 +137984,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "CBP-TX-008",
-   "name": "COVESTRO BAYTOWN PL",
-   "address": "717 Toy Mission",
-   "city": "Baytown",
-   "state": "TX",
+   "locationId": "APN-WA-020",
+   "name": "ACME PACIFIC NW",
+   "address": "3602 Industrial Pkwy",
+   "city": "Seattle",
+   "state": "WA",
    "country": "US",
    "earliestPickupDateTime": "2026-04-16T06:15:00",
    "latestPickupDateTime": "2026-04-16T11:30:00"
@@ -138016,7 +138016,7 @@
   "hazardous": false,
   "createdAt": "2026-04-11T14:15:00",
   "createdBy": "manuela.ramirez",
-  "createdTimeZoneCode": "CDT"
+  "createdTimeZoneCode": "PDT"
  },
  {
   "orderNumber": "0000000094051",
@@ -158104,10 +158104,10 @@
   "poNumber": "1518878594",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "BCP-LA-006",
-   "name": "BAYOU CHEMICAL PLANT",
-   "address": "3961 Watsica Land",
-   "city": "Baton Rouge",
+   "locationId": "WCP-LA-005",
+   "name": "WESTLAKE CHEMICAL PL",
+   "address": "3259 Industrial Pkwy",
+   "city": "Lake Charles",
    "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-04-12T08:00:00",
@@ -166514,11 +166514,11 @@
   "poNumber": "1782484801",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "ES-AZ-018",
-   "name": "ERCO SOUTHWEST",
-   "address": "6392 S Bridge Street",
-   "city": "Phoenix",
-   "state": "AZ",
+   "locationId": "CBP-TX-008",
+   "name": "COVESTRO BAYTOWN PL",
+   "address": "9737 Industrial Pkwy",
+   "city": "Baytown",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-02-18T06:00:00",
    "latestPickupDateTime": "2026-02-18T08:00:00"
@@ -166546,7 +166546,7 @@
   "hazardous": false,
   "createdAt": "2026-02-16T08:00:00",
   "createdBy": "noah.manager",
-  "createdTimeZoneCode": "MST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "LYO-94681",
@@ -166559,11 +166559,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "ES-AZ-018",
-   "name": "ERCO SOUTHWEST",
-   "address": "4774 Charles Street",
-   "city": "Phoenix",
-   "state": "AZ",
+   "locationId": "CBP-TX-008",
+   "name": "COVESTRO BAYTOWN PL",
+   "address": "9737 Industrial Pkwy",
+   "city": "Baytown",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-02-18T05:30:00",
    "latestPickupDateTime": "2026-02-18T08:00:00"
@@ -166591,7 +166591,7 @@
   "hazardous": false,
   "createdAt": "2026-02-09T21:30:00",
   "createdBy": "david.johns",
-  "createdTimeZoneCode": "MST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000094682",
@@ -171758,11 +171758,11 @@
   "poNumber": "AXVDTFY9S",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "AFS-FL-014",
-   "name": "ACME FREIGHT SERVICES",
-   "address": "6598 Victoria Place",
-   "city": "Miami",
-   "state": "FL",
+   "locationId": "EW-TX-001",
+   "name": "ERCO WORLDWIDE",
+   "address": "6456 Industrial Pkwy",
+   "city": "Houston",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-01-14T08:00:00",
    "latestPickupDateTime": "2026-01-14T13:00:00"
@@ -171790,7 +171790,7 @@
   "hazardous": false,
   "createdAt": "2026-01-10T00:00:00",
   "createdBy": "amy.cook",
-  "createdTimeZoneCode": "EST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000094797",
@@ -173521,11 +173521,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "ADC-TX-004",
-   "name": "ACME DISTRIBUTION CTR",
-   "address": "5586 E 2nd Street",
-   "city": "Dallas",
-   "state": "TX",
+   "locationId": "CID-LA-024",
+   "name": "CF INDUSTRIES DONALDSV",
+   "address": "1071 Industrial Pkwy",
+   "city": "New Orleans",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-02-25T06:30:00",
    "latestPickupDateTime": "2026-02-25T11:00:00"
@@ -173615,11 +173615,11 @@
   "poNumber": "8927015417",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "SN-WI-028",
-   "name": "SHIPTUSLA NEENAH",
-   "address": "8242 Lyric Village",
-   "city": "Neenah",
-   "state": "WI",
+   "locationId": "NCP-MO-026",
+   "name": "NOURYON COLUMBUS PL",
+   "address": "6400 Industrial Pkwy",
+   "city": "Kansas City",
+   "state": "MO",
    "country": "US",
    "earliestPickupDateTime": "2026-02-25T09:15:00",
    "latestPickupDateTime": "2026-02-25T14:00:00"
@@ -182740,11 +182740,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "UC-LA-003",
-   "name": "USALCO CHEMICALS",
-   "address": "983 Glover Creek",
-   "city": "Geismar",
-   "state": "LA",
+   "locationId": "NNC-MN-022",
+   "name": "NOURYON NORTH CENTRAL",
+   "address": "5751 Industrial Pkwy",
+   "city": "Minneapolis",
+   "state": "MN",
    "country": "US",
    "earliestPickupDateTime": "2026-02-15T06:30:00",
    "latestPickupDateTime": "2026-02-15T10:00:00"
@@ -187350,11 +187350,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "OCM-AL-029",
-   "name": "OLIN CORP MCINTOSH",
-   "address": "8871 Wisoky Pines",
-   "city": "McIntosh",
-   "state": "AL",
+   "locationId": "ISP-GA-012",
+   "name": "INEOS STYROLUTION PL",
+   "address": "513 Industrial Pkwy",
+   "city": "Columbus",
+   "state": "GA",
    "country": "US",
    "earliestPickupDateTime": "2026-02-08T07:15:00",
    "latestPickupDateTime": "2026-02-08T12:30:00"
@@ -187382,7 +187382,7 @@
   "hazardous": true,
   "createdAt": "2026-01-29T17:15:00",
   "createdBy": "ben.planner",
-  "createdTimeZoneCode": "CST"
+  "createdTimeZoneCode": "EST"
  },
  {
   "orderNumber": "IMC-95141",
@@ -188299,11 +188299,11 @@
   "poNumber": "28-932366266",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "SCP-WY-030",
-   "name": "SOLVAY CHEMICALS PL",
-   "address": "666 Izabella Throughway",
-   "city": "Green River",
-   "state": "WY",
+   "locationId": "GCR-TX-015",
+   "name": "GULF COAST RECEIVING",
+   "address": "2000 Industrial Pkwy",
+   "city": "San Antonio",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-03-04T08:45:00",
    "latestPickupDateTime": "2026-03-04T10:30:00"
@@ -188331,7 +188331,7 @@
   "hazardous": true,
   "createdAt": "2026-02-23T21:45:00",
   "createdBy": "janardhana.k",
-  "createdTimeZoneCode": "MST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000095162",
@@ -188344,11 +188344,11 @@
   "poNumber": "8JQMDW271",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "SCP-WY-030",
-   "name": "SOLVAY CHEMICALS PL",
-   "address": "3249 Bartholome Glen",
-   "city": "Green River",
-   "state": "WY",
+   "locationId": "GCR-TX-015",
+   "name": "GULF COAST RECEIVING",
+   "address": "2000 Industrial Pkwy",
+   "city": "San Antonio",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-03-04T08:15:00",
    "latestPickupDateTime": "2026-03-04T10:30:00"
@@ -188376,7 +188376,7 @@
   "hazardous": false,
   "createdAt": "2026-02-27T20:15:00",
   "createdBy": "ben.planner",
-  "createdTimeZoneCode": "MST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000095163",
@@ -188839,10 +188839,10 @@
   "poNumber": "9604253586",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "WCP-LA-005",
-   "name": "WESTLAKE CHEMICAL PL",
-   "address": "4228 Keagan Lane",
-   "city": "Lake Charles",
+   "locationId": "UC-LA-003",
+   "name": "USALCO CHEMICALS",
+   "address": "6357 Industrial Pkwy",
+   "city": "Geismar",
    "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-01-22T12:00:00",
@@ -196300,11 +196300,11 @@
   "poNumber": "6233939624",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "EGL-GA-011",
-   "name": "ERCO GLOBAL LOGISTICS",
-   "address": "2335 Goldner Brook",
-   "city": "Atlanta",
-   "state": "GA",
+   "locationId": "SN-WI-028",
+   "name": "SHIPTUSLA NEENAH",
+   "address": "4311 Industrial Pkwy",
+   "city": "Neenah",
+   "state": "WI",
    "country": "US",
    "earliestPickupDateTime": "2026-02-18T05:30:00",
    "latestPickupDateTime": "2026-02-18T08:30:00"
@@ -196332,7 +196332,7 @@
   "hazardous": true,
   "createdAt": "2026-02-11T21:30:00",
   "createdBy": "eve.planner",
-  "createdTimeZoneCode": "EST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000095339",
@@ -197617,11 +197617,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "OCM-AL-029",
-   "name": "OLIN CORP MCINTOSH",
-   "address": "6276 Hawthorn Avenue",
-   "city": "McIntosh",
-   "state": "AL",
+   "locationId": "ES-AZ-018",
+   "name": "ERCO SOUTHWEST",
+   "address": "9067 Industrial Pkwy",
+   "city": "Phoenix",
+   "state": "AZ",
    "country": "US",
    "earliestPickupDateTime": "2026-01-06T11:15:00",
    "latestPickupDateTime": "2026-01-06T14:30:00"
@@ -197649,7 +197649,7 @@
   "hazardous": false,
   "createdAt": "2025-12-31T14:15:00",
   "createdBy": "ava.planner",
-  "createdTimeZoneCode": "CST"
+  "createdTimeZoneCode": "MST"
  },
  {
   "orderNumber": "ACM-95368",
@@ -203204,11 +203204,11 @@
   "poNumber": "6650925982",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "ES-AZ-018",
-   "name": "ERCO SOUTHWEST",
-   "address": "9314 Ismael Curve",
-   "city": "Phoenix",
-   "state": "AZ",
+   "locationId": "ECR-TN-016",
+   "name": "EASTMAN CHEMICAL RECV",
+   "address": "8761 Industrial Pkwy",
+   "city": "Kingsport",
+   "state": "TN",
    "country": "US",
    "earliestPickupDateTime": "2026-04-11T02:15:00",
    "latestPickupDateTime": "2026-04-11T06:30:00"
@@ -203236,7 +203236,7 @@
   "hazardous": false,
   "createdAt": "2026-04-05T20:15:00",
   "createdBy": "eve.planner",
-  "createdTimeZoneCode": "MST"
+  "createdTimeZoneCode": "EDT"
  },
  {
   "orderNumber": "0000000095491",
@@ -203294,11 +203294,11 @@
   "poNumber": "8174621920",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "ES-AZ-018",
-   "name": "ERCO SOUTHWEST",
-   "address": "1125 Station Road",
-   "city": "Phoenix",
-   "state": "AZ",
+   "locationId": "ECR-TN-016",
+   "name": "EASTMAN CHEMICAL RECV",
+   "address": "8761 Industrial Pkwy",
+   "city": "Kingsport",
+   "state": "TN",
    "country": "US",
    "earliestPickupDateTime": "2026-04-11T03:30:00",
    "latestPickupDateTime": "2026-04-11T06:30:00"
@@ -203326,7 +203326,7 @@
   "hazardous": true,
   "createdAt": "2026-04-09T12:30:00",
   "createdBy": "dan.planner",
-  "createdTimeZoneCode": "MST"
+  "createdTimeZoneCode": "EDT"
  },
  {
   "orderNumber": "0000000095493",
@@ -203793,11 +203793,11 @@
   "poNumber": "1275907148",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "NNC-MN-022",
-   "name": "NOURYON NORTH CENTRAL",
-   "address": "4108 Cassin Springs",
-   "city": "Minneapolis",
-   "state": "MN",
+   "locationId": "ES-AZ-018",
+   "name": "ERCO SOUTHWEST",
+   "address": "4005 Industrial Pkwy",
+   "city": "Phoenix",
+   "state": "AZ",
    "country": "US",
    "earliestPickupDateTime": "2026-02-03T11:30:00",
    "latestPickupDateTime": "2026-02-03T13:30:00"
@@ -203825,7 +203825,7 @@
   "hazardous": false,
   "createdAt": "2026-01-25T00:30:00",
   "createdBy": "noah.manager",
-  "createdTimeZoneCode": "CST"
+  "createdTimeZoneCode": "MST"
  },
  {
   "orderNumber": "0000000095504",

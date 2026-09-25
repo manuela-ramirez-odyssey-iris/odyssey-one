@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, markRouted, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, markRouted, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -14,6 +14,11 @@ const orders = [
 ]
 const noChange = { locationChange: false, changedOrderIds: [], stopChanges: {}, orderComparisons: {}, summaryChanges: {}, costs: {} }
 const locChange = { ...noChange, locationChange: true, changedOrderIds: ['C'], stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'Q, Burg' } } } } }
+// Bug fix (S160 follow-up, live 25390278) — initSandbox now places a
+// location-changed order off its OWN order.shipFrom/shipTo (already
+// relocated by buildConsolidationChange's B3b(c) in real data), not the
+// bare stopChanges display string. These fixtures mirror that invariant.
+const relocate = (list, id, side, loc) => list.map((o) => (o.orderNumber === id ? { ...o, [side]: { ...o[side], location: loc, stopLocation: loc } } : o))
 
 describe('initSandbox', () => {
   it('copies stops, labels P1 P2 D1, not dirty, not routed, empty pending', () => {
@@ -23,7 +28,7 @@ describe('initSandbox', () => {
     expect(s.stops[0].orderIds).toEqual(['A', 'B'])
   })
   it('applies a location change: order leaves its pickup, lands on a new P? at the end of the pickup group; emptied stop removed (LINX-15668)', () => {
-    const s = initSandbox({ stops, consolidation: locChange, orders })
+    const s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
     expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1'])
     expect(s.stops[1]).toMatchObject({ type: 'pickup', unsequenced: true, orderIds: ['C'], location: 'Q, Burg' })
     expect(isRoutable(s)).toBe(false)
@@ -31,7 +36,7 @@ describe('initSandbox', () => {
   })
   it('a location change matching an existing stop reuses it instead of creating P?', () => {
     const c = { ...locChange, stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'X, City' } } } } }
-    const s = initSandbox({ stops, consolidation: c, orders })
+    const s = initSandbox({ stops, consolidation: c, orders: relocate(orders, 'C', 'shipFrom', 'X, City') })
     expect(labelsOf(s)).toEqual(['P1', 'D1'])
     expect(s.stops[0].orderIds).toEqual(['A', 'B', 'C'])
   })
@@ -46,12 +51,13 @@ describe('initSandbox', () => {
       '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'Q, Burg' } } },
       '3': { changedOrderIds: ['A'], fields: { location: { prior: 'Z, Ville', new: 'R, Newtown' } } },
     } }
-    const s = initSandbox({ stops, consolidation: c, orders })
+    const relocatedOrders = relocate(relocate(orders, 'C', 'shipFrom', 'Q, Burg'), 'A', 'shipTo', 'R, Newtown')
+    const s = initSandbox({ stops, consolidation: c, orders: relocatedOrders })
     expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1', 'D?'])
   })
   it('a delivery-side location change creates D? at the end of the delivery group', () => {
     const c = { ...noChange, stopChanges: { '3': { changedOrderIds: ['A'], fields: { location: { prior: 'Z, Ville', new: 'R, Newtown' } } } } }
-    const s = initSandbox({ stops, consolidation: c, orders })
+    const s = initSandbox({ stops, consolidation: c, orders: relocate(orders, 'A', 'shipTo', 'R, Newtown') })
     expect(labelsOf(s)).toEqual(['P1', 'P2', 'D1', 'D?'])
     expect(s.stops[3]).toMatchObject({ type: 'delivery', unsequenced: true, orderIds: ['A'], location: 'R, Newtown' })
     expect(s.stops[2].orderIds).toEqual(['B', 'C'])
@@ -62,7 +68,7 @@ describe('created-stop defaults (S143 — order window date/address)', () => {
     ...o,
     earliestPickup: 'June 5, 2026 09:00 CDT',
     earliestDelivery: 'June 7, 2026 09:00 CDT',
-    shipFrom: { ...o.shipFrom, address: '123 Main St' },
+    shipFrom: { ...o.shipFrom, address: '123 Main St', location: 'Q, Burg', stopLocation: 'Q, Burg' },
     shipTo: { ...o.shipTo, address: '456 Oak St' },
   }))
   it("a location-change created P? takes the order's earliest pickup date/address; sandbox is routable once placed", () => {
@@ -88,7 +94,7 @@ describe('created-stop defaults (S143 — order window date/address)', () => {
     expect(created).toMatchObject({ date: 'June 8, 2026 10:00 CDT', address: '99 New Ave', unsequenced: true })
   })
   it('an order with no earliest-pickup window ("--") yields an empty date, not "--" — the routing gate stays closed', () => {
-    const ordersNoWindow = orders.map((o) => (o.orderNumber === 'C' ? { ...o, earliestPickup: '--' } : o))
+    const ordersNoWindow = relocate(orders, 'C', 'shipFrom', 'Q, Burg').map((o) => (o.orderNumber === 'C' ? { ...o, earliestPickup: '--' } : o))
     const s = initSandbox({ stops, consolidation: locChange, orders: ordersNoWindow })
     expect(s.stops[1].date).toBe('')
     expect(isRoutable(s)).toBe(false)
@@ -96,7 +102,7 @@ describe('created-stop defaults (S143 — order window date/address)', () => {
 })
 describe('moveStop', () => {
   it('moves up/down, renumbers, and sequences a P? once placed', () => {
-    let s = initSandbox({ stops, consolidation: locChange, orders })
+    let s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
     s = moveStop(s, 1, 'up')
     expect(labelsOf(s)).toEqual(['P1', 'P2', 'D1'])
     expect(s.stops[0].orderIds).toEqual(['C']); expect(s.dirty).toBe(true); expect(isRoutable(s)).toBe(false) // P? placed but its date is blank
@@ -111,7 +117,7 @@ describe('moveStop', () => {
     expect(canMoveStop(s, 0, 'up').ok).toBe(false); expect(canMoveStop(s, 2, 'down').ok).toBe(false)
   })
   it('does not let an unsequenced P? consume a stop number', () => {
-    let s = initSandbox({ stops, consolidation: locChange, orders })
+    let s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
     expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1'])
     s = moveStop(s, 0, 'down')
     expect(labelsOf(s)).toEqual(['P?', 'P1', 'D1'])
@@ -281,5 +287,46 @@ describe('placement matches on site id + postal, not display strings (DEC-193 bu
     s = addToStop(addPending(s, ['E']), 'E', [...liveOrders, e])
     const created = toDto(s).find((d) => d.sourceStopSequence == null)
     expect(created).toMatchObject({ facilityName: 'NEW PLANT', city: 'Miami', region: 'FL', postal: '33102' })
+  })
+})
+
+// Bug fix (S160 follow-up, live 25390278): a location-changed order's
+// created P? had no lat/lng (every leg touching it read '--', and the
+// All Stops total silently read "0.00 mi" instead of unknown), a
+// truncated location string, and an order-window date in the wrong
+// format/zone. Coverage below matches those three symptoms directly.
+describe('location-change created stop carries coordinates + zone (S160 follow-up)', () => {
+  const coordStops = [
+    { type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'ACME, Dallas', date: 'June 4, 2026 08:00 CDT', lat: 32.78, lng: -96.80 },
+    { type: 'pickup', stopNumber: 2, orderIds: ['C'], location: 'Y, Town', date: 'June 4, 2026 08:00 CDT', lat: 30.45, lng: -91.15 },
+    { type: 'delivery', stopNumber: 3, orderIds: ['A', 'C'], location: 'Z, Ville', date: 'June 6, 2026 08:00 CDT', lat: 29.42, lng: -98.49 },
+  ]
+  const phoenixSite = { facilityName: 'ERCO SOUTHWEST', city: 'Phoenix', region: 'AZ', postal: '85001', country: 'US', lat: 33.45, lng: -112.07, timeZone: 'America/Phoenix' }
+  const relocatedC = { orderNumber: 'C', shipFrom: { siteKey: 'ERCO SOUTHWEST|85001', location: 'ERCO SOUTHWEST, Phoenix, AZ 85001 US', stopLocation: 'ERCO SOUTHWEST, Phoenix, AZ 85001 US', site: phoenixSite }, earliestPickup: '06/01/2026 03:30 CDT' }
+  const coordOrders = [{ orderNumber: 'A' }, relocatedC]
+  const coordLocChange = { ...noChange, locationChange: true, changedOrderIds: ['C'], stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'ERCO SOUTHWEST, Phoenix' } } } } }
+
+  it('the created P? carries the site lat/lng and its full location string', () => {
+    const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: coordOrders })
+    expect(s.stops[1]).toMatchObject({ type: 'pickup', unsequenced: true, lat: 33.45, lng: -112.07, location: 'ERCO SOUTHWEST, Phoenix, AZ 85001 US' })
+  })
+  it("the created P?'s default date is in the SITE's own zone, long-format like every other stop", () => {
+    const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: coordOrders })
+    // 06/01/2026 03:30 CDT == 08:30 UTC == 01:30 MST the same morning in Phoenix (no DST).
+    expect(s.stops[1].date).toBe('June 1, 2026 01:30 MST')
+  })
+  it('legDistances totals a real number once every stop (incl. the created one) has coordinates', () => {
+    const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: coordOrders })
+    const { legs, total } = legDistances(s.stops)
+    expect(legs.every((l, i) => i === 0 || typeof l === 'number')).toBe(true)
+    expect(total).not.toBeNull()
+    expect(total).toBeGreaterThan(0)
+  })
+  it('a leg with no coordinate source reads null (UI shows "--"), and the total is null, not an invented 0.00', () => {
+    const bareOrders = [{ orderNumber: 'A' }, { orderNumber: 'C', shipFrom: { location: 'ERCO SOUTHWEST, Phoenix' } }]
+    const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: bareOrders })
+    const { legs, total } = legDistances(s.stops)
+    expect(legs[1]).toBeNull() // leg INTO the coordinate-less created stop
+    expect(total).toBeNull()
   })
 })

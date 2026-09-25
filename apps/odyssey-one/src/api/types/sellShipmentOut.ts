@@ -15,6 +15,12 @@ export interface SellShipmentAddress {
   contactName?: string
   phone?: string
   email?: string
+  /** Bug fix (S160 follow-up) — LOCATIONS' own static lat/lng + IANA zone,
+   * threaded onto an order's origin/destination so a sandbox-created stop
+   * (Edit Shipment Stops) has a real coordinate/zone source. */
+  lat?: number
+  lng?: number
+  timeZone?: string
 }
 
 // Extended line — adds product-tab fields (Plan 2b)

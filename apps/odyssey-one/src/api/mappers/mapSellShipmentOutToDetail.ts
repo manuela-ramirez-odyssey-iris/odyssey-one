@@ -68,7 +68,10 @@ export function stopLocationOf(p: { facilityName?: string; city?: string; region
 function stopSiteOf(a?: SellShipmentAddress) {
   const facilityName = a?.externalIdentifier || a?.partnerId || undefined
   const site = { facilityName, city: a?.city, region: a?.region, postal: a?.postal, country: a?.country }
-  return { siteKey: siteKeyOf(facilityName, a?.postal), stopLocation: stopLocationOf(site), site }
+  // Bug fix (S160 follow-up) — carried separately from `site` above (which
+  // feeds stopLocationOf's display string) so lat/lng/timeZone never leak
+  // into that formatted string; the sandbox reads them straight off site.
+  return { siteKey: siteKeyOf(facilityName, a?.postal), stopLocation: stopLocationOf(site), site: { ...site, lat: a?.lat, lng: a?.lng, timeZone: a?.timeZone } }
 }
 
 function fmtAddress(a?: SellShipmentAddress): string {

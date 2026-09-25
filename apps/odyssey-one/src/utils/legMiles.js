@@ -32,15 +32,19 @@ export function legMiles(a, b) {
 
 /**
  * Sum of consecutive-stop legs over an ordered stop sequence (each stop
- * needs `{ lat, lng }`). A leg that can't be computed (missing coordinates)
- * is skipped rather than zeroed, so a partial-coordinate list still returns
- * a best-effort total instead of silently undercounting.
+ * needs `{ lat, lng }`). Returns `null`, not a truncated sum, the moment any
+ * leg can't be computed (missing coordinates) — a partial total silently
+ * read as "0.00 mi" for a whole-shipment total is a wrong number, not a
+ * best-effort one; the caller shows '--' for null (bug fix, S160 follow-up,
+ * live 25390278: a fresh P?/D? stop with no coords made the All Stops total
+ * read 0.00 instead of unknown).
  */
 export function totalMiles(stops) {
   let total = 0
   for (let i = 1; i < stops.length; i++) {
     const m = legMiles(stops[i - 1], stops[i])
-    if (m != null) total += m
+    if (m == null) return null
+    total += m
   }
   return Math.round(total * 100) / 100
 }
