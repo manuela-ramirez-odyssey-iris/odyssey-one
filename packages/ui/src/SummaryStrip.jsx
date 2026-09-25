@@ -108,20 +108,28 @@ export function hiddenCharCount(text, clientWidth, scrollWidth) {
 // rather than a magic number inline in onCellEnter.
 export const TOOLTIP_MIN_HIDDEN_CHARS = 3
 
-// Sticky un-stick hysteresis (px) — must exceed the Default→Mini height delta
-// (76 − 36 = 40). See the stuck-detection effect.
-export const STICKY_HYSTERESIS = 48
+// Sticky un-stick margin (px), ADDED ON TOP of the measured Default→Mini
+// height delta below — not a fixed hysteresis by itself. A fixed constant
+// sized for a short strip (the original 48, "must exceed 76 − 36 = 40") broke
+// on a tall resting strip (Edit Stops: wrapped Prior/New pairs, ~130px
+// resting → ~90px shrink on stick): the shrink exceeds the fixed gap, so
+// scroll anchoring's compensating scrollTop pull un-sticks it immediately,
+// it regrows, re-sticks — an oscillation that fights the user's scroll
+// (D22, 2026-09-25 bug report). See the stuck-detection effect.
+export const STICKY_UNSTICK_MARGIN = 8
 
 export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, background = true, size = 'default', sticky = false, style, ...rest }) {
   // Stuck detection: a zero-height sentinel just above the strip, measured
   // against its nearest scrolling ancestor. HYSTERESIS: stick as soon as the
-  // sentinel passes the container top, un-stick only once it's back
-  // STICKY_HYSTERESIS px below it. Without it, the 76→36px shrink on stick
-  // makes the browser's scroll anchoring shift scrollTop by the same 40px,
-  // which un-sticks, which grows, which re-sticks — a flicker loop on slow
-  // scrolls (user, D22). The gap must exceed that height delta.
+  // sentinel passes the container top, un-stick only once it's back below
+  // (resting height − mini height) + STICKY_UNSTICK_MARGIN. The heights are
+  // MEASURED off the strip itself (restingHeightRef/miniHeightRef below), not
+  // assumed — every strip instance has its own shrink amount depending on how
+  // many lines its cells wrap to.
   const sentinelRef = useRef(null)
   const stripRef = useRef(null)
+  const restingHeightRef = useRef(0) // strip height while unstuck (this instance)
+  const miniHeightRef = useRef(0) // strip height while stuck-mini (this instance)
   const [stuck, setStuck] = useState(false)
   const [bleed, setBleed] = useState(null) // { marginLeft, marginRight } while stuck
   // Sticky pins at the scroller's PADDING edge; pull it flush by that padding.
@@ -139,11 +147,21 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
       raf = 0
       const top = scroller === window ? 0 : scroller.getBoundingClientRect().top
       const d = sentinelRef.current.getBoundingClientRect().top - top
-      // A strip resting at the very top of its scroller never gets
-      // STICKY_HYSTERESIS px of room, so "scrolled back to the top" always
-      // un-sticks too (Stops/Cost Allocation — user, D22).
+      // A strip resting at the very top of its scroller never gets any
+      // un-stick room, so "scrolled back to the top" always un-sticks too
+      // (Stops/Cost Allocation — user, D22).
       const atTop = (scroller === window ? window.scrollY : scroller.scrollTop) <= 0
-      setStuck((was) => (was ? d < STICKY_HYSTERESIS && !atTop : d < 0))
+      // Record THIS render's height on whichever side is live before flipping
+      // `was` — resting while unstuck, mini while stuck — so the delta below
+      // always reflects the strip's actual measured shrink.
+      const h = stripRef.current?.getBoundingClientRect().height || 0
+      setStuck((was) => {
+        if (was) miniHeightRef.current = h
+        else restingHeightRef.current = h
+        const delta = Math.max(0, restingHeightRef.current - miniHeightRef.current)
+        const margin = delta + STICKY_UNSTICK_MARGIN
+        return was ? d < margin && !atTop : d < 0
+      })
     }
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(check) }
     check()

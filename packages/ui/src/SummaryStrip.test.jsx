@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, within, act } from '@testing-library/react'
-import SummaryStrip, { hiddenCharCount, TOOLTIP_MIN_HIDDEN_CHARS, STICKY_HYSTERESIS } from './SummaryStrip.jsx'
+import SummaryStrip, { hiddenCharCount, TOOLTIP_MIN_HIDDEN_CHARS, STICKY_UNSTICK_MARGIN } from './SummaryStrip.jsx'
 
 afterEach(cleanup)
 
@@ -319,13 +319,18 @@ describe('SummaryStrip size / sticky (D22)', () => {
     rerender(<SummaryStrip size="mini" items={[{ label: 'A', value: '1' }]} />)
     expect(container.querySelector('dl').className).toContain('summary-strip--mini')
   })
-  it('sticky flips to mini with hysteresis on un-stick', () => {
+  it('sticky flips to mini with hysteresis on un-stick, sized to the MEASURED height delta', () => {
     const { container } = render(
       <div style={{ overflowY: 'auto' }}><SummaryStrip sticky items={[{ label: 'A', value: '1' }]} /></div>
     )
     const scroller = container.firstChild
     const sentinel = scroller.firstChild
     const dl = container.querySelector('dl')
+    // Resting 76 / mini 36 — the docblock's own reference numbers. Delta
+    // (40) + STICKY_UNSTICK_MARGIN (8) == 48, the old fixed constant, so a
+    // short strip's threshold is unchanged by the fix.
+    dl.getBoundingClientRect = () => ({ height: dl.className.includes('summary-strip--mini') ? 36 : 76 })
+    const margin = 40 + STICKY_UNSTICK_MARGIN
     let top = 10
     scroller.scrollTop = 100 // not at the top — the atTop un-stick has its own test
     sentinel.getBoundingClientRect = () => ({ top })
@@ -337,11 +342,42 @@ describe('SummaryStrip size / sticky (D22)', () => {
     expect(dl.className).not.toContain('summary-strip--mini')
     scrollTo(-1)
     expect(dl.className).toContain('summary-strip--mini')
-    scrollTo(STICKY_HYSTERESIS - 1) // inside the band — stays mini
+    scrollTo(margin - 1) // inside the band — stays mini
     expect(dl.className).toContain('summary-strip--mini')
-    scrollTo(STICKY_HYSTERESIS)
+    scrollTo(margin)
     expect(dl.className).not.toContain('summary-strip--mini')
     scrollTo(1) // below the stick line but not past it — stays default
+    expect(dl.className).not.toContain('summary-strip--mini')
+    vi.useRealTimers()
+  })
+
+  it('a TALL resting strip (Edit Stops) gets a wider un-stick band than a short one — no oscillation', () => {
+    const { container } = render(
+      <div style={{ overflowY: 'auto' }}><SummaryStrip sticky items={[{ label: 'A', value: '1' }]} /></div>
+    )
+    const scroller = container.firstChild
+    const sentinel = scroller.firstChild
+    const dl = container.querySelector('dl')
+    // Tall resting strip (~130px, wrapped Prior/New pairs) shrinking to the
+    // same 36px mini — ~94px delta, matching the bug report's ~90px shrink.
+    dl.getBoundingClientRect = () => ({ height: dl.className.includes('summary-strip--mini') ? 36 : 130 })
+    const margin = 94 + STICKY_UNSTICK_MARGIN // 102
+    let top = 10
+    scroller.scrollTop = 100
+    sentinel.getBoundingClientRect = () => ({ top })
+    scroller.getBoundingClientRect = () => ({ top: 0 })
+    const scrollTo = (t) => { top = t; act(() => { scroller.dispatchEvent(new Event('scroll')); vi.runAllTimers() }) }
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] })
+    scrollTo(10)
+    scrollTo(-1) // sticks, shrinks — scroll anchoring would pull d back by ~94px
+    expect(dl.className).toContain('summary-strip--mini')
+    // The old fixed 48px hysteresis would have un-stuck here (94 > 48) —
+    // exactly the reported bounce. The measured margin (102) must not.
+    scrollTo(80)
+    expect(dl.className).toContain('summary-strip--mini')
+    scrollTo(margin - 1)
+    expect(dl.className).toContain('summary-strip--mini')
+    scrollTo(margin)
     expect(dl.className).not.toContain('summary-strip--mini')
     vi.useRealTimers()
   })
@@ -358,7 +394,7 @@ describe('SummaryStrip size / sticky (D22)', () => {
     const scrollTo = (t, st) => { top = t; scroller.scrollTop = st; act(() => { scroller.dispatchEvent(new Event('scroll')); vi.runAllTimers() }) }
     scrollTo(-100, 100)
     expect(dl.className).toContain('summary-strip--mini')
-    scrollTo(0, 0) // back at the top: d = 0 < STICKY_HYSTERESIS, but atTop wins
+    scrollTo(0, 0) // back at the top: d = 0 is inside the margin, but atTop wins
     expect(dl.className).not.toContain('summary-strip--mini')
     vi.useRealTimers()
   })
