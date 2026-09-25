@@ -821,22 +821,28 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     assert.ok(!calls.some((q) => /shipmentStopList/.test(q.text ?? '')))
   })
 
-  // ── OC-open-23 server backstop: a single-order source is pre-blocked
-  // client-side, but a MULTI-pick can still empty a multi-order source by
-  // taking every one of its orders in the same Save. ──────────────────────
-  it('refuses a multi-pick that covers every order of a source — same shape, nothing written', async () => {
-    const src = { orderList: [{ orderNumber: 'E' }, { orderNumber: 'F' }], shipmentStopList: [] }
+  // OC-open-23 (reversed 2026-09-25 per Jana, transcript @00:06:06 — "it's
+  // definitely going to turn into consolidation"): moving every order of a
+  // source in one pick, emptying it, is ALLOWED — no server backstop.
+  it('allows a multi-pick that covers every order of a source, emptying it', async () => {
+    const src = {
+      orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'F', grossWeightValue: 3 }],
+      shipmentStopList: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['E', 'F'], grossWeightValue: 10 }],
+    }
     const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
     const emptyingBody = {
       action: 'save-stops', priorTenderStatus: 'Sent',
       stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'E', 'F'], sourceStopSequence: null }],
       externalOrders: [{ orderNumber: 'E', sourceSellShipment: '77' }, { orderNumber: 'F', sourceSellShipment: '77' }],
     }
-    await assert.rejects(
-      () => resolveOrderChange({ params: ['9'], body: emptyingBody, db }),
-      (e) => e.status === 400 && /cannot be moved/.test(e.message) && /Order impacted: E, F/.test(e.message),
-    )
-    assert.ok(!calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
+    await resolveOrderChange({ params: ['9'], body: emptyingBody, db })
+    const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
+    assert.ok(texts.includes('BEGIN'))
+    assert.equal(texts[texts.length - 1], 'COMMIT')
+    // The emptied source is left as-is (empty orderList, no stops) — OC-open-23
+    // remains open on what, if anything, happens to that empty shell.
+    const sourceSave = calls.find((q) => /shipmentStopList/.test(q.text ?? '') && q.values[4] === '77')
+    assert.deepEqual(JSON.parse(sourceSave.values[1]), [])
   })
 
   it('a partial pick that leaves at least one order on a multi-order source is not blocked', async () => {

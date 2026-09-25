@@ -222,4 +222,29 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(await screen.findByText('Network error')).toBeTruthy()
     expect(screen.queryByText(/landed at/)).toBeNull()
   })
+
+  // LINX-15872 "Save Failure" (user ruling 2026-09-25, reverses OC-open-11's
+  // grey-at-add): a 400 from the server's Save-time revalidation (an
+  // external order's source shipment turned out to be blocked) surfaces its
+  // message and leaves the planner on THIS screen with pending changes
+  // still available — no reset, no navigation.
+  test('a Save-time 400 (external order refused) shows the message and keeps the screen/state intact', async () => {
+    const err = new Error('The selected order cannot be moved because its current shipment is approved, completed, or involved in an active tender or bid process. Edit the source shipment or cancel the applicable tender or bid action before moving the order. Order impacted: E')
+    err.status = 400
+    resolveOrderChange.mockRejectedValue(err)
+    getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'View Routing' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
+
+    expect(await screen.findByText(/Order impacted: E/)).toBeTruthy()
+    // Still on the Edit Shipment Stops screen — no navigation happened —
+    // and the editor's own controls (the planner's pending work) are intact.
+    expect(screen.queryByText(/landed at/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Approve Changes' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy()
+  })
 })

@@ -4,20 +4,14 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import AddOrdersModal from './AddOrdersModal'
 import { useCandidateOrders } from '../../../api/queries/useCandidateOrders'
 
+// OC-open-11's 2026-09-09 grey-at-add ruling was REVERSED 2026-09-25 per
+// LINX-15870/15872 + Jana — rows carry no blocked/blockReason and are all
+// normal, selectable candidates; the block happens only at Save.
 const rows = ['100', '200', '300', '400', '500', '600', '700'].map((b, i) => ({
   orderNumber: `O${i + 1}`, sourceSellShipment: `S${i + 1}`, customer: 'Erco', origin: i === 2 ? 'Boston, MA US' : 'Atlanta, GA US',
   destination: 'Minneapolis, MN US', weight: '500 lbs', volume: '40 cbf', buyShipment: b, shipmentStatus: 'Review',
   tenderStatus: i === 6 ? 'Accepted' : 'Cancelled', shipmentType: 'Direct', ordersInShipment: [`O${i + 1}`], shipDate: '2026-06-04', deliveryDate: '2026-06-06',
-  blocked: i === 6, blockReason: i === 6 ? 'status' : null,
 }))
-// OC-open-23 — a second row, blocked because it's the only order on its
-// shipment, distinct from the status block above.
-const lastOrderRow = {
-  orderNumber: 'O8', sourceSellShipment: 'S8', customer: 'Erco', origin: 'Atlanta, GA US', destination: 'Minneapolis, MN US',
-  weight: '500 lbs', volume: '40 cbf', buyShipment: '800', shipmentStatus: 'Review', tenderStatus: 'Cancelled',
-  shipmentType: 'Direct', ordersInShipment: ['O8'], shipDate: '2026-06-04', deliveryDate: '2026-06-06',
-  blocked: true, blockReason: 'last-order',
-}
 vi.mock('../../../api/queries/useCandidateOrders', () => ({ useCandidateOrders: vi.fn() }))
 
 afterEach(cleanup)
@@ -62,18 +56,16 @@ it('caps selection at five with an inline message; Add Order(s) returns the pick
   expect(onAdd.mock.calls[0][0].map((r) => r.orderNumber)).toEqual(['O1', 'O2', 'O3', 'O4', 'O5'])
 })
 
-it('a blocked row is not selectable and explains why on hover', () => {
+// LINX-15870/15872 (reverses OC-open-11 2026-09-09): a row whose source
+// shipment would fail the Save check (status/tender-blocked) is still a
+// normal, selectable row here — no grey, no disabled checkbox, no tooltip.
+it('a row whose source would be refused at Save is still a normal, selectable row', () => {
   setup()
   const boxes = screen.getAllByRole('checkbox').slice(1)
-  expect(boxes[6].disabled).toBe(true)
-  const o7 = screen.getAllByText('O7').find((el) => el.closest('[data-tooltip-trigger]'))
-  fireEvent.mouseEnter(o7.closest('[data-tooltip-trigger]'))
-  expect(screen.getByRole('tooltip').textContent).toContain('cannot be moved')
-  // jsdom ceiling: opacity is a computed-style effect jsdom won't assert on —
-  // this checks the class that carries it lands on the blocked row's cells
-  // (buyShipment '700', unique to the blocked row) and not on a sibling row's.
-  expect(screen.getByText('700').classList.contains('add-orders__blocked')).toBe(true)
-  expect(screen.getByText('600').classList.contains('add-orders__blocked')).toBe(false)
+  expect(boxes[6].disabled).toBe(false)   // O7 — tenderStatus 'Accepted'
+  fireEvent.click(boxes[6])
+  expect(boxes[6].checked).toBe(true)
+  expect(screen.queryByRole('tooltip')).toBeNull()
 })
 
 it('Filter opens the inner Filters modal (back arrow); Apply filters the grid; Clear resets', () => {
@@ -91,14 +83,17 @@ it('Filter opens the inner Filters modal (back arrow); Apply filters the grid; C
   expect(screen.getByText('Results (7)')).toBeTruthy()
 })
 
-// OC-open-23 — a row blocked for being its shipment's only order gets its
-// own tooltip text, distinct from the OC-open-11 status tooltip above.
-it('a last-order-blocked row is not selectable and explains why on hover, with the last-order tooltip', () => {
+// OC-open-23 (reversed 2026-09-25): a row that's its shipment's only order
+// is also a normal, selectable row now — moving it only fails at Save if
+// the client picks it there.
+it('a row that is its shipment\'s only order is a normal, selectable row', () => {
+  const lastOrderRow = {
+    orderNumber: 'O8', sourceSellShipment: 'S8', customer: 'Erco', origin: 'Atlanta, GA US', destination: 'Minneapolis, MN US',
+    weight: '500 lbs', volume: '40 cbf', buyShipment: '800', shipmentStatus: 'Review', tenderStatus: 'Cancelled',
+    shipmentType: 'Direct', ordersInShipment: ['O8'], shipDate: '2026-06-04', deliveryDate: '2026-06-06',
+  }
   useCandidateOrders.mockImplementation(() => ({ data: [...rows, lastOrderRow], isPending: false, isError: false }))
   setup()
   const boxes = screen.getAllByRole('checkbox').slice(1)
-  expect(boxes[7].disabled).toBe(true)   // O8, appended after the 7 base rows
-  const o8 = screen.getAllByText('O8').find((el) => el.closest('[data-tooltip-trigger]'))
-  fireEvent.mouseEnter(o8.closest('[data-tooltip-trigger]'))
-  expect(screen.getByRole('tooltip').textContent).toContain('only order on its shipment')
+  expect(boxes[7].disabled).toBe(false)   // O8, appended after the 7 base rows
 })

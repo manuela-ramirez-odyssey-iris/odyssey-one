@@ -437,20 +437,11 @@ async function pullExternalOrders(db, externalOrders) {
     }
     picks.push({ orderNumber, sourceSellShipment, rec })
   }
-  // OC-open-23 — a single-order source is pre-blocked client-side
-  // (candidateOrders.mjs blockReason 'last-order'), but a multi-pick can
-  // still empty a MULTI-order source by picking every one of its orders in
-  // the same Save. This is the backstop: same rejection shape, checked here
-  // before any write.
-  const bySource = new Map()
-  for (const p of picks) {
-    if (!bySource.has(p.sourceSellShipment)) bySource.set(p.sourceSellShipment, [])
-    bySource.get(p.sourceSellShipment).push(p)
-  }
-  for (const [sell, ps] of bySource) {
-    const total = bySell.get(sell)?.detail?.orderList?.length ?? 0
-    if (ps.length >= total) blocked.push(...ps.map((p) => p.orderNumber))
-  }
+  // OC-open-23 — moving a shipment's only order (or every order of a
+  // multi-order source in one pick) is ALLOWED: reversed 2026-09-25 per
+  // Jana (transcript @00:06:06, "it's definitely going to turn into
+  // consolidation"). An emptied source is left as-is — OC-open-23 remains
+  // open on what, if anything, should happen to that empty shell.
   if (blocked.length) {
     const e = new Error(`${MOVE_MESSAGE} Order impacted: ${blocked.join(', ')}`)
     e.status = 400

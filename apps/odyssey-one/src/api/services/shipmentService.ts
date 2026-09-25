@@ -122,7 +122,7 @@ export async function resolveOrderChange(
 export interface CandidateOrderRow {
   orderNumber: string; sourceSellShipment: string; customer: string; origin: string; destination: string
   weight: string; volume: string; buyShipment: string; shipmentStatus: string; tenderStatus: string
-  shipmentType: string; ordersInShipment: string[]; shipDate: string; deliveryDate: string; blocked: boolean
+  shipmentType: string; ordersInShipment: string[]; shipDate: string; deliveryDate: string
 }
 
 /**

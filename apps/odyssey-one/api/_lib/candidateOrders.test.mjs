@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCandidateRows, filterCandidates, EMPTY_FILTERS, LAST_ORDER_MOVE_TOOLTIP } from './candidateOrders.mjs'
+import { buildCandidateRows, filterCandidates, EMPTY_FILTERS } from './candidateOrders.mjs'
 
 const ship = (o) => ({ sellShipment: '1', buyShipment: '900', customerId: 'ERCO', customerName: 'Erco', orders: ['A'], shipmentStatus: 'Review', tenderStatus: 'Sent', shipmentType: 'Direct', ...o })
 const ord = (o) => ({ orderNumber: 'A', customer: 'ERCO', consignor: { locationId: 'ATL-1', city: 'Atlanta', state: 'GA', country: 'US', earliestPickupDateTime: '2026-06-04T08:00:00' }, consignee: { locationId: 'MSP-1', city: 'Minneapolis', state: 'MN', country: 'US', earliestDeliveryDateTime: '2026-06-06T10:00:00' }, grossWeight: { value: 500, uom: 'lbs' }, volume: { value: 40, uom: 'cbf' }, ...o })
@@ -13,6 +13,10 @@ const shipments = [
 ]
 const orders = [ord({ orderNumber: 'A' }), ord({ orderNumber: 'B' }), ord({ orderNumber: 'C', consignor: { ...ord().consignor, city: 'Boston', state: 'MA' } }), ord({ orderNumber: 'D', customer: 'OTHER' }), ord({ orderNumber: 'X' })]
 
+// OC-open-11's 2026-09-09 grey-at-add ruling was REVERSED 2026-09-25 per
+// LINX-15870/15872 + Jana — candidate rows carry no blocked/blockReason;
+// every row (including a status-blocked or single-order source) is a
+// normal, selectable candidate. The block happens only at Save.
 test('same customer, other shipments, excludes current + excluded ids, sorted by buy shipment asc', () => {
   const rows = buildCandidateRows({ shipments, orders, customerId: 'ERCO', sellShipment: '9', excludeOrderIds: ['B'] })
   assert.deepEqual(rows.map((r) => r.orderNumber), ['C', 'A'])                     // 300 < 900
@@ -21,44 +25,27 @@ test('same customer, other shipments, excludes current + excluded ids, sorted by
     origin: 'Atlanta, GA US', destination: 'Minneapolis, MN US',
     weight: '500 lbs', volume: '40 cbf', buyShipment: '900', shipmentStatus: 'Review', tenderStatus: 'Sent',
     shipmentType: 'Consolidation', ordersInShipment: ['A', 'B'], shipDate: '2026-06-04', deliveryDate: '2026-06-06',
-    blocked: true, blockReason: 'status',                                          // tender Sent → would fail the 15872 Save check
   })
-  // OC-open-23: C is C's shipment's ONLY order (orders: ['C']) — moving it
-  // would empty the shipment, so it's blocked even though Review + Cancelled
-  // clears the status check.
-  assert.equal(rows[0].blocked, true)
-  assert.equal(rows[0].blockReason, 'last-order')
+  assert.ok(!('blocked' in rows[0]))
+  assert.ok(!('blockReason' in rows[0]))
 })
 
-test('blocked follows the 15872 statuses (two-order source, so last-order never fires)', () => {
+test('a status that would fail the 15872 Save check is still returned as a normal row', () => {
   const mk = (shipmentStatus, tenderStatus) => buildCandidateRows({ shipments: [ship({ orders: ['A', 'Z'], shipmentStatus, tenderStatus })], orders: [ord()], customerId: 'ERCO', sellShipment: '9' })[0]
-  assert.equal(mk('Review', 'Cancelled').blocked, false)
-  assert.equal(mk('Done', 'Cancelled').blockReason, 'status')
-  assert.equal(mk('Review', 'Accepted').blockReason, 'status')
-  assert.equal(mk('Review', 'To Be Tendered').blockReason, 'status')
+  assert.equal(mk('Done', 'Cancelled').shipmentStatus, 'Done')
+  assert.equal(mk('Review', 'Accepted').tenderStatus, 'Accepted')
+  assert.equal(mk('Review', 'To Be Tendered').tenderStatus, 'To Be Tendered')
 })
 
-// OC-open-23 — a single-order source is blocked regardless of status/tender,
-// so search & add can't strand its last order mid-move.
-test('a single-order source is blocked with blockReason last-order', () => {
+// OC-open-23 — a single-order source is a normal, selectable row (reversed
+// 2026-09-25); moving it is only checked at Save.
+test('a single-order source is a normal row, not blocked', () => {
   const row = buildCandidateRows({
     shipments: [ship({ orders: ['A'], shipmentStatus: 'Review', tenderStatus: 'Cancelled' })],
     orders: [ord()], customerId: 'ERCO', sellShipment: '9',
   })[0]
-  assert.equal(row.blocked, true)
-  assert.equal(row.blockReason, 'last-order')
-})
-
-test('status wins when both a blocked status and a single-order source apply', () => {
-  const row = buildCandidateRows({
-    shipments: [ship({ orders: ['A'], shipmentStatus: 'Done', tenderStatus: 'Cancelled' })],
-    orders: [ord()], customerId: 'ERCO', sellShipment: '9',
-  })[0]
-  assert.equal(row.blockReason, 'status')
-})
-
-test('LAST_ORDER_MOVE_TOOLTIP is exported for the modal to render', () => {
-  assert.match(LAST_ORDER_MOVE_TOOLTIP, /only order/)
+  assert.ok(!('blocked' in row))
+  assert.deepEqual(row.ordersInShipment, ['A'])
 })
 
 test('filterCandidates: free text, exact-ish fields, date ranges, statuses', () => {

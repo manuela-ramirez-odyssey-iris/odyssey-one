@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Alert, Button, ComboBox, DatePicker, Dropdown, FormField, GroupTable, ModalMedium, Spinner } from '@odyssey/ui'
-import { EMPTY_FILTERS, SHIPMENT_STATUSES, TENDER_STATUSES, MOVE_BLOCKED_TOOLTIP, LAST_ORDER_MOVE_TOOLTIP, filterCandidates } from '../../../../api/_lib/candidateOrders.mjs'
-import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
+import { EMPTY_FILTERS, SHIPMENT_STATUSES, TENDER_STATUSES, filterCandidates } from '../../../../api/_lib/candidateOrders.mjs'
 import { rowsToFlatGroups } from '../../shipments/order-change/comparisonHelpers.jsx'
 import { useCandidateOrders } from '../../../api/queries/useCandidateOrders'
 import './edit-stops.css'
@@ -18,19 +17,10 @@ const COLUMNS = [
   { key: 'buyShipment', label: 'Buy Shipment' }, { key: 'shipmentStatus', label: 'Shipment Status' }, { key: 'tenderStatus', label: 'Tender Status' },
   { key: 'shipmentType', label: 'Shipment Type' }, { key: 'ordersInShipment', label: 'Orders in the Shipment' },
 ]
-// D6 — a blocked row reads greyed; its Order Number explains why on hover.
-// OC-open-23 adds a second reason (last-order) alongside the OC-open-11
-// status block — the tooltip text follows blockReason, status wins on read
-// (candidateOrders.mjs blockReasonFor) so this lookup never has to choose.
-const TOOLTIP_BY_REASON = { status: MOVE_BLOCKED_TOOLTIP, 'last-order': LAST_ORDER_MOVE_TOOLTIP }
-const cell = (r, c) => {
-  const text = c.key === 'ordersInShipment' ? r.ordersInShipment.join(' - ') : (r[c.key] || '--')
-  if (!r.blocked) return text
-  const span = <span className="add-orders__blocked">{text}</span>
-  return c.key === 'orderNumber'
-    ? <TooltipTrigger asSpan tooltipProps={{ groups: [{ content: TOOLTIP_BY_REASON[r.blockReason] ?? MOVE_BLOCKED_TOOLTIP }] }}>{span}</TooltipTrigger>
-    : span
-}
+// OC-open-11's 2026-09-09 grey-at-add ruling was REVERSED 2026-09-25
+// (LINX-15870/15872 + Jana): every candidate row is a normal, selectable
+// row — the block happens only at Save (shipments.mjs pullExternalOrders).
+const cell = (r, c) => (c.key === 'ordersInShipment' ? r.ordersInShipment.join(' - ') : (r[c.key] || '--'))
 const opts = (list) => [{ value: '', label: 'Any' }, ...list.map((v) => ({ value: v, label: v }))]
 
 // DatePicker range value is { start, end }: Date|null; filters store 'YYYY-MM-DD' strings.
@@ -55,11 +45,10 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
     if (selected.length >= MAX) { setCapped(true); return }
     setSelected((s) => [...s, id])
   }
-  // Header checkbox: every selectable row when it fits, else the first five (and say so).
+  // Header checkbox: every row when it fits, else the first five (and say so).
   const selectAll = (next) => {
     if (!next) { setSelected([]); setCapped(false); return }
-    const open = rows.filter((r) => !r.blocked)
-    setSelected(open.slice(0, MAX).map((r) => r.orderNumber)); setCapped(open.length > MAX)
+    setSelected(rows.slice(0, MAX).map((r) => r.orderNumber)); setCapped(rows.length > MAX)
   }
   const clearAll = () => { setQ(''); setFilters(EMPTY_FILTERS); setDraft(EMPTY_FILTERS); setSelected([]); setCapped(false) }
   const openFilters = () => { setDraft(filters); setFiltersOpen(true) }
@@ -87,7 +76,7 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
         {capped && <Alert variant="warning" onClose={() => setCapped(false)}>{CAP_MSG}</Alert>}
         {isPending ? <div className="add-orders__spinner"><Spinner size={24} /></div> : isError ? <Alert variant="error" showClose={false}>Could not load orders.</Alert> : (
           <GroupTable flat selectable header={{ title: `Results (${rows.length})` }} columns={COLUMNS}
-            groups={rowsToFlatGroups(rows, COLUMNS, cell).map((g, i) => ({ ...g, id: rows[i].orderNumber, selectDisabled: rows[i].blocked }))}
+            groups={rowsToFlatGroups(rows, COLUMNS, cell).map((g, i) => ({ ...g, id: rows[i].orderNumber }))}
             selectedIds={selected} onSelect={select} onSelectAll={selectAll} selectLabel={(g) => `Select order ${g.id}`} />
         )}
       </ModalMedium>
