@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
+import { Badge, Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
 import RepeatableRows, { newRowId } from '../RepeatableRows.jsx'
 import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeContext.jsx'
 import { getLookupOptions } from '../../../../api/services/lookupService'
@@ -241,13 +241,9 @@ export default function GeneralInformationSection({ lockIdentity = false }) {
           render={({ field }) => (
             <div className="co-link-row" style={{ alignSelf: 'end', paddingBottom: 6 }}>
               {/* System-driven (LINX-12102 tightened): reflects the product
-                  lines, never hand-toggled — hence always disabled. */}
-              <Checkbox
-                label="Hazardous"
-                disabled
-                checked={field.value}
-                onChange={() => {}}
-              />
+                  lines, never hand-toggled — a Badge, not a disabled checkbox
+                  that read as clickable (user, S159). */}
+              <Badge variant={field.value ? 'red' : 'gray'}>{field.value ? 'Hazardous' : 'Non-Hazardous'}</Badge>
             </div>
           )}
         />

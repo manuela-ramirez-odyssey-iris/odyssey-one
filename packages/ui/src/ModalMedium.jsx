@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import ModalHeader from './ModalHeader.jsx'
 import useEscapeStack from './useEscapeStack.js'
 
@@ -34,7 +35,10 @@ export default function ModalMedium({
 }) {
   useEscapeStack(onClose)
 
-  return (
+  // Portaled to <body>: a backdrop-filter/transform ancestor (sticky
+  // footers, frosted strips) turns position:fixed into "fixed to that box",
+  // so scrolled pages rendered the dialog off-screen (S159).
+  return createPortal(
     <div className="modal-medium-overlay" onClick={onClose}>
       <div
         className={`modal-medium ${className}`.trim()}
@@ -55,6 +59,7 @@ export default function ModalMedium({
         </div>
         {footer && <footer className="modal-medium__footer">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

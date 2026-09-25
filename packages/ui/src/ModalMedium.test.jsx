@@ -33,7 +33,7 @@ describe('ModalMedium composes ModalHeader', () => {
     const { container } = render(<ModalMedium title="Edit Quote" onBack={() => {}} onClose={() => {}} />)
     // ModalHeader owns this class; a hand-rolled header would never carry it. Kills a
     // regression back to a copy-pasted header even if back/close still behave right.
-    const header = container.querySelector('header.modal-header')
+    const header = document.body.querySelector('header.modal-header')
     expect(header).toBeTruthy()
     expect(header.querySelector('.modal-header__back')).toBeTruthy()
   })
@@ -44,7 +44,7 @@ describe('ModalMedium headerTrail', () => {
     const { container } = render(
       <ModalMedium title="Confirm Action" onClose={() => {}} headerTrail={<span data-testid="badge">02:14</span>} />
     )
-    const trail = container.querySelector('.modal-header__trail')
+    const trail = document.body.querySelector('.modal-header__trail')
     expect(trail).toBeTruthy()
     const kids = [...trail.children]
     expect(kids[0].getAttribute('data-testid')).toBe('badge')
@@ -53,7 +53,7 @@ describe('ModalMedium headerTrail', () => {
 
   it('without headerTrail the close X is still the only trail child', () => {
     const { container } = render(<ModalMedium title="Confirm Action" onClose={() => {}} />)
-    const trail = container.querySelector('.modal-header__trail')
+    const trail = document.body.querySelector('.modal-header__trail')
     expect(trail.children).toHaveLength(1)
     expect(screen.getByLabelText('Close')).toBeTruthy()
   })
