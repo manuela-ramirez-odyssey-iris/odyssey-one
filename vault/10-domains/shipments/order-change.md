@@ -3,7 +3,7 @@ title: Order Change
 domain: shipments
 type: canon
 tags: [order-change, tender, direct-shipment, consolidation, multi-stop, compare-screen, linx-14509, linx-14515, linx-15435, linx-15872, linx-8820, linx-8284]
-date: 2026-09-24
+date: 2026-09-25
 status: active
 ---
 
@@ -242,6 +242,40 @@ Jana walked the shipped Surface A + B with the designer (`vault-sources/10-domai
 | W11 | Stop reorder (up/down) | confirmed | **Confirmed** |
 | W12 | Add Orders filters | "fantastic" | **Confirmed** |
 
+## 10c. Jana's design review of the consolidated order change (2026-09-25)
+
+A 26-minute call (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-design-review-2026-09-25.vtt`). The Vercel build couldn't be shown, because Neon was mid-reseed, so the call went through the open OC items and Jana walked through 15671's Save flow on his own mock. **Lesson recorded (user, 2026-09-25):** most of the questions were already answered in the stories. A question for Jana must first be checked against the archived ACs. Jana: *"I think it is in the story, right?"* (`@00:06:35`).
+
+**Domain points (Jana)**
+- An order update from the source system is applied **directly** to the order and cascades to the shipment. Nobody approves it. If the shipment was already tendered, the system can't decide, so it marks the shipment **Order Change** for users to review (`@00:02:24–00:03:44`). This confirms §1–2.
+- Search & Add: the planner can add an order from another shipment (a consolidation or a Direct) and run the what-if. If the source is tendered, **the order can be added but not finalized**: *"it'll say that you need to cancel the tender and then move the order"*. The rule covers To Be Tendered / Sent / Accepted, *"in the story"* (`@00:05:10–00:06:44`). This is LINX-15870/15872.
+- *"If it's a direct shipment, I'm trying to move it, it's definitely going to turn into consolidation"* (`@00:05:37`). Read by the user as: a shipment's only order may be moved (DEC-202).
+- 15435/15436 "On Hold": ignore it. The team marked it because Soni's Optimizer integration depends on it; the scope doesn't change (`@00:09:22`). Closes OC-open-10.
+- **Save** (LINX-15671), walked on his mock (`@00:11:02–00:24:42`):
+  - View Routing calls the routing service, and distances update then.
+  - Save → **Scenario A** (prior tender Sent/Accepted): the Direct decision screen (Cancel / Re-tender / Bypass, prior vs new cost vs quote, prior carrier insertable into the new list).
+  - Save → **Scenario B** (no prior tender): changes applied, the user lands on the Tender screen with the new list (or dropped carriers only). Nothing is auto-tendered: *"same logic… the user is now left to decide"*.
+  - **Cancel** discards everything.
+- A consolidation's tender pickup date = **the first pickup stop's date**, and its delivery date = **the last delivery stop's**, as set by the planner. *"It has to forget the routing guides' pickup date and delivery date"* (`@00:16:29`).
+- The label is **Save** (Manuela proposed "Apply"; Jana: *"Not apply, save… save my changes"*, `@00:20–00:22`). Closes OC-open-16.
+- The routing engine picks carriers from the load's equipment, pickup/delivery dates and O/D (`@00:17:48`). It is called on View Routing and on Save.
+
+**Misread on the call:** "orders still in pending" (OC-open-19) was heard as an order *status*. LINX-15869 already answers it: a removed order *"follows existing LINX Phase 1 process; creates new shipment and moves the order to the new shipment. Also, subject the shipment to Optimization evaluation."*
+
+**Build-delta (shipped vs this review + stories + user rulings)**
+
+| # | Shipped | Ruling | Verdict |
+|---|---|---|---|
+| R1 | Tender-busy source orders greyed at add (OC-open-11) | Selectable; refused at Save (15870/15872, Jana) | **Reversed and built S160** (DEC-201) |
+| R2 | Footer "Approve Changes"; nothing after it | "Save" + Scenario A/B (15671) | **Build owed** (DEC-200) |
+| R3 | Approve Plan disabled (OC-open-8) | Pushes the new list to the Tender tab as V2 (15438) | **Build owed** |
+| R4 | Orders left pending just leave the shipment | A new shipment of their own (15869) | **Build owed** (DEC-205) |
+| R5 | Only order of a shipment greyed at add (built earlier on S160) | Movable; an emptied shipment is hidden | **Reversed and built S160** (DEC-202); hiding owed |
+| R6 | Tender dates from routing | First pickup / last delivery stop (Jana) | **Verify + fix owed** (DEC-206) |
+| R7 | Live per-leg distance while editing | Distances update after View Routing (routing service) | **Compatible:** live figures are a pre-routing estimate (DEC-198 stands) |
+
+Plan for all of the above: `docs/superpowers/plans/2026-09-25-order-change-remaining.md`.
+
 ## 11. Build-delta — shipped (S134–S137) vs sources
 
 | # | Shipped state | Ruling / source | Verdict |
@@ -267,29 +301,29 @@ Jana walked the shipped Surface A + B with the designer (`vault-sources/10-domai
 
 ## 12. Open / TBD
 
-- **OC-open-1** — Does *To Be Tendered* enter the review (LINX-14509) or only Sent/Accepted (Jana, LINX-8284)? Blocks nothing today; would change seed + lock gating.
-- **OC-open-2** — Unit/label mismatch on the cost radios vs the AP Cost column (S137). Ask Jana whether the radios should show totals.
-- **OC-open-3** — Editable pickup/delivery dates when routing returns none (row 10). AC-required, unbuilt.
-- **OC-open-4** — Tender Option Version history (row 11). AC-required, unbuilt.
+- **OC-open-1** — CLOSED 2026-09-25 by the story: LINX-14509 names To Be Tendered, Sent and Accepted; build owed (plan D1). Was: Does *To Be Tendered* enter the review (LINX-14509) or only Sent/Accepted (Jana, LINX-8284)? Blocks nothing today; would change seed + lock gating.
+- **OC-open-2** — CLOSED 2026-09-25 by the story: LINX-14515 — Prior/New cost = AP cost; build owed (plan D3). Was: Unit/label mismatch on the cost radios vs the AP Cost column (S137). Ask Jana whether the radios should show totals.
+- **OC-open-3** — Answered by LINX-14513 (AC-required); build owed (plan D4). Was: Editable pickup/delivery dates when routing returns none (row 10). AC-required, unbuilt.
+- **OC-open-4** — Answered by LINX-14510 (AC-required); build owed (plan D5, measure Routing History first). Was: Tender Option Version history (row 11). AC-required, unbuilt.
 - **OC-open-5** — CLOSED 2026-09-08: the 13 consolidation stories exist (§10). VDs for Surface A delivered; Surface B VDs still owed.
-- **OC-open-6** — Is the Tender tab supposed to stay *readable* while locked (row 4)?
+- **OC-open-6** — CLOSED 2026-09-25 by the story: LINX-14509 "shall be able to view Tender information while pending"; unblur, keep actions locked (plan D2). Was: Is the Tender tab supposed to stay *readable* while locked (row 4)?
 - **OC-open-7** — Figma 1703-156564 out of sync with shipped purple/segment presentation and with S137's lock overlay.
-- **OC-open-8** — What happens after **Approve Plan** on the Stops tab when a Sent/Accepted tender exists? 15671 Scenario A routes the sandbox's *Save* to the Current Tender Decision; nothing says whether Approve Plan does the same or approves silently. Waiting on Laura's post-approval VD; the button ships disabled.
+- **OC-open-8** — CLOSED 2026-09-25 by the story: LINX-15438 note — Approve Plan puts the new list on the Tender tab as V2, prior as V1; build owed (plan C2). Was: What happens after **Approve Plan** on the Stops tab when a Sent/Accepted tender exists? 15671 Scenario A routes the sandbox's *Save* to the Current Tender Decision; nothing says whether Approve Plan does the same or approves silently. Waiting on Laura's post-approval VD; the button ships disabled.
 - **OC-open-9** — Per-order compare modal title: VD 2107-12719 reads "Planning Dates" (copy leftover from the sibling modal); shipped as **"Order Changes"** pending Laura.
-- **OC-open-10** — 15435/15436 are On Hold `optmizer_pending`: the two foundation stories are gated on the Optimizer. Surface A is built on them regardless; confirm with Ramesh/Jana that the hold is scheduling, not scope.
+- **OC-open-10** — CLOSED 2026-09-25: Jana — ignore the hold; team-marked for Soni's Optimizer dependency (§10c `@00:09:22`). Was: 15435/15436 are On Hold `optmizer_pending`: the two foundation stories are gated on the Optimizer. Surface A is built on them regardless; confirm with Ramesh/Jana that the hold is scheduling, not scope.
 - **OC-open-11** — CLOSED 2026-09-09: blocked-source rows in the Search & Add Orders grid ship greyed and unselectable with an explanatory Tooltip (user ruling) instead of validating late at Save.
 - **OC-open-13** — DECIDED 2026-09-24 (DEC-199), build owed. Was: Per-stop Planned Date / Time / Time Zone editing (15669 §3–5): the Edit Shipment Stops VD shows dates read-only; the AC requires them editable and complete before routing. Needs a control from Laura (`ManualDatesModal` is a candidate).
 - **OC-open-14** — REOPENED + REVERSED 2026-09-24 (DEC-193): the stop picker goes; the system places. Was CLOSED 2026-09-09: VD `2076-8110` + user ruling confirm *Add to* is a stop picker; the other leg still auto-places per 15871.
 - **OC-open-15** — CLOSED 2026-09-09: `AddOrdersModal` shipped from VD `2137-59231` (search, inner Filters, 11-column grid, five-pick cap).
-- **OC-open-16** — Footer copy: VD "Approve Changes" vs AC "Save" (15671). Shipped with the VD's label.
-- **OC-open-17** — The Tender-tab *Review Order Change* button jumping to the Stops tab for a consolidated shipment is OUR inference (15435 describes opening the shipment, not a button; the Tender lock itself is a 14509 Direct rule). Confirm with Jana.
+- **OC-open-16** — CLOSED 2026-09-25: "Save" (LINX-15671 + Jana §10c `@00:20–00:22`); rename owed (plan C1). Was: Footer copy: VD "Approve Changes" vs AC "Save" (15671). Shipped with the VD's label.
+- **OC-open-17** — CLOSED 2026-09-25 by the story: LINX-15435 "The Stops tab shall be selected by default when accessed from an Order Change exception." Was: The Tender-tab *Review Order Change* button jumping to the Stops tab for a consolidated shipment is OUR inference (15435 describes opening the shipment, not a button; the Tender lock itself is a 14509 Direct rule). Confirm with Jana.
 - **OC-open-12** — DECIDED 2026-09-24 (DEC-196): Direct field set + per-line blocks; the seed owes per-order line pairs. Was: Per-order compare: the VD (`2107-12719`) lists hazmat rows (Boiling Point, Flash Point) per order; the seed's `orderComparisons` carries tender rows only, so those rows are unreachable until a per-order hazmat pair is seeded (seed gap, same class as build-delta row 14).
 - **OC-open-18** — VD `2066-77150`'s confirm primary reads "Remove Order" — a copy leftover from the sibling remove dialog. Figma text changed to "Approve" 2026-09-09; tell Laura.
-- **OC-open-19** — An order left pending at Save simply leaves the shipment (dropped from `orderList`, nothing else happens to it). 15869's Phase-1 "creates a new shipment for it" is unspecified and unbuilt.
-- **OC-open-20** — The AC lists eight eligible shipment statuses for Search & Add candidates; the seed only carries `''`/Review/Done. No status gate is applied to the search.
+- **OC-open-19** — CLOSED 2026-09-25 by the story: LINX-15869 — a new shipment per removed order + Optimization evaluation; lands per the seed lifecycle rule (DEC-205); build owed (plan C3). Was: An order left pending at Save simply leaves the shipment (dropped from `orderList`, nothing else happens to it). 15869's Phase-1 "creates a new shipment for it" is unspecified and unbuilt.
+- **OC-open-20** — DECIDED 2026-09-25 (DEC-204): shipment statuses derived from the lifecycle per Rovo / *Shipment Status Transition-WIP*; build owed (plan S). Was: The AC lists eight eligible shipment statuses for Search & Add candidates; the seed only carries `''`/Review/Done. No status gate is applied to the search.
 - **OC-open-21** — CLOSED 2026-09-24, won't build: Jana rules placement is the system's (DEC-193). Was: A per-order *Move to* between stops: Jana's deck asks for it ("move the order to any stop"), no VD exists, not built. The first pick from *Add to* plus automatic placement of the other leg is the only placement control shipped.
 - **OC-open-22** — The 15872 move updates `shipments.detail` (orderList, stops), `orders`, `order_count` AND the `orders` table's `shipment_sell_id` (S144 review fix, all in the same transaction). What still goes stale is the shipment row's own list aggregates — `gross_weight` and friends, the columns the Shipments grid reads — so a moved order changes the detail's totals but not the list row's. Seam to close when the move gets a real backend (or at the next reseed design).
-- **OC-open-23** — A source shipment whose every order was moved is left as an empty shell (no orders, no stops, order_count 0). Not specified by 15872; reject the move, or accept and re-file the shell? Ask Jana.
+- **OC-open-23** — CLOSED 2026-09-25 (DEC-202): the move is allowed; an emptied shipment is hidden from the list; hiding owed (plan C5). Was: A source shipment whose every order was moved is left as an empty shell (no orders, no stops, order_count 0). Not specified by 15872; reject the move, or accept and re-file the shell? Ask Jana.
 - **OC-open-24** — View Routing "open in a separate window" (Jana, `walk @00:08:36`). User: revise later.
-- **OC-open-25** — Tender-sent candidate orders: blocked at add (shipped, OC-open-11) vs addable and blocked at confirm with "cancel the tender first" (Jana `walk @00:26:46`, unsure of his own rule). Check LINX-15870/15872 AC before touching. Halted by user.
-- **OC-open-26** — Post-approval flow for consolidation: re-run routing, new/old route list, planning screen, finalize (tender/bypass) like Direct. Awaiting Jana's latest mock. Halted by user. (Supersedes the question in OC-open-8.)
+- **OC-open-25** — CLOSED 2026-09-25 by the story: LINX-15870/15872 + Jana `@00:06:06` — addable, refused at Save; built S160 (DEC-201). Was: Tender-sent candidate orders: blocked at add (shipped, OC-open-11) vs addable and blocked at confirm with "cancel the tender first" (Jana `walk @00:26:46`, unsure of his own rule). Check LINX-15870/15872 AC before touching. Halted by user.
+- **OC-open-26** — CLOSED 2026-09-25 by the story: LINX-15671 Scenario A/B (walked by Jana §10c); build owed (plan C1). Was: Post-approval flow for consolidation: re-run routing, new/old route list, planning screen, finalize (tender/bypass) like Direct. Awaiting Jana's latest mock. Halted by user. (Supersedes the question in OC-open-8.)

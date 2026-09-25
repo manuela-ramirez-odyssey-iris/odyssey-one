@@ -1,0 +1,1857 @@
+WEBVTT
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/5-0
+00:00:03.681 --> 00:00:07.238
+<v Janardhana Soundararajan (Cognizant)>Correct.
+Only one load and if the particular order</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/5-1
+00:00:07.238 --> 00:00:11.841
+<v Janardhana Soundararajan (Cognizant)>goes a change, undergoes a change,
+we have a way to handle those.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/8-0
+00:00:14.641 --> 00:00:19.767
+<v Manuela Ramirez (Iris Software)>But my question was,
+there is no way in I can I can I can do</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/8-1
+00:00:19.767 --> 00:00:24.641
+<v Manuela Ramirez (Iris Software)>this in order to change, right?
+We are just for changing.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/9-0
+00:00:23.201 --> 00:00:26.881
+<v Janardhana Soundararajan (Cognizant)>No, not in an order change in a PGI,
+you can do it.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/10-0
+00:00:28.001 --> 00:00:29.441
+<v Manuela Ramirez (Iris Software)>Okay, I see this.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/11-0
+00:00:30.961 --> 00:00:31.121
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/13-0
+00:00:33.921 --> 00:00:34.401
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/14-0
+00:00:36.481 --> 00:00:39.121
+<v Manuela Ramirez (Iris Software)>So, let me, let me bring back my question.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/16-0
+00:00:54.401 --> 00:00:54.601
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/17-0
+00:00:55.601 --> 00:00:57.881
+<v Manuela Ramirez (Iris Software)>And let's go to the to the personal.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/18-0
+00:00:59.001 --> 00:01:00.801
+<v Manuela Ramirez (Iris Software)>We got to order exchange here.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/19-0
+00:01:04.281 --> 00:01:05.521
+<v Manuela Ramirez (Iris Software)>Let's go with the console.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/20-0
+00:01:08.721 --> 00:01:09.681
+<v Manuela Ramirez (Iris Software)>He's still gone.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/21-0
+00:01:10.881 --> 00:01:11.081
+<v Manuela Ramirez (Iris Software)>Good.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/22-0
+00:01:14.801 --> 00:01:17.321
+<v Manuela Ramirez (Iris Software)>So it says here consolidated or changed.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/23-0
+00:01:19.281 --> 00:01:24.401
+<v Manuela Ramirez (Iris Software)>So it says when a planner saves with
+orders still in pending.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/24-0
+00:01:26.001 --> 00:01:28.161
+<v Manuela Ramirez (Iris Software)>Like, what happens to those orders?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/25-0
+00:01:30.681 --> 00:01:31.921
+<v Janardhana Soundararajan (Cognizant)>What do you mean by pending?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/26-0
+00:01:33.521 --> 00:01:37.477
+<v Manuela Ramirez (Iris Software)>And the status of the,
+I think it was the status of the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/26-1
+00:01:37.477 --> 00:01:38.961
+<v Manuela Ramirez (Iris Software)>shipments, the order.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/27-0
+00:01:40.681 --> 00:01:45.361
+<v Janardhana Soundararajan (Cognizant)>I don't know, is that a pending status?
+I'm not clear of that.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/29-0
+00:01:44.521 --> 00:01:50.237
+<v Manuela Ramirez (Iris Software)>There is, oh, okay, there is no, yeah,
+because only the created orders are,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/29-1
+00:01:50.237 --> 00:01:55.201
+<v Manuela Ramirez (Iris Software)>because I think it's here,
+the order status is referring to this.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/28-0
+00:01:54.201 --> 00:01:54.561
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/30-0
+00:01:56.241 --> 00:01:56.641
+<v Manuela Ramirez (Iris Software)>Right.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/31-0
+00:01:56.241 --> 00:01:58.001
+<v Janardhana Soundararajan (Cognizant)>Yeah, but there is I don't see pending.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/32-0
+00:01:59.201 --> 00:02:03.139
+<v Manuela Ramirez (Iris Software)>There is no pending, right?
+It's just ready for planning, hold,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/32-1
+00:02:03.139 --> 00:02:04.801
+<v Manuela Ramirez (Iris Software)>planning failed, and so on.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/33-0
+00:02:04.641 --> 00:02:05.681
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/34-0
+00:02:09.241 --> 00:02:09.441
+<v Manuela Ramirez (Iris Software)>Done.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/35-0
+00:02:18.721 --> 00:02:21.041
+<v Manuela Ramirez (Iris Software)>After approve changes, what's the flow?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/36-0
+00:02:22.081 --> 00:02:23.681
+<v Manuela Ramirez (Iris Software)>Oh, rerouting, reroute.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/37-0
+00:02:24.961 --> 00:02:25.361
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/38-0
+00:02:26.441 --> 00:02:29.889
+<v Janardhana Soundararajan (Cognizant)>The IDAD,
+once the order is created and there is an</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/38-1
+00:02:29.889 --> 00:02:33.934
+<v Janardhana Soundararajan (Cognizant)>update that comes in,
+immediately those updates are applied.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/38-2
+00:02:33.934 --> 00:02:36.321
+<v Janardhana Soundararajan (Cognizant)>There is no approval to that update.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/39-0
+00:02:38.641 --> 00:02:40.801
+<v Manuela Ramirez (Iris Software)>Okay, so they are applied.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/41-0
+00:02:41.481 --> 00:02:46.779
+<v Janardhana Soundararajan (Cognizant)>directly applied on the order and those
+changes are cascaded to the shipment,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/40-0
+00:02:41.961 --> 00:02:42.561
+<v Manuela Ramirez (Iris Software)>And then...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/41-1
+00:02:46.779 --> 00:02:52.485
+<v Janardhana Soundararajan (Cognizant)>right? That means it comes on to the load,
+load gets updated or the order is mapped</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/41-2
+00:02:52.485 --> 00:02:55.813
+<v Janardhana Soundararajan (Cognizant)>inside a shipment,
+the shipment is also updated.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/41-3
+00:02:55.813 --> 00:03:00.161
+<v Janardhana Soundararajan (Cognizant)>So when that shipment is updated and if
+it is already tendered,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/42-0
+00:03:00.321 --> 00:03:02.081
+<v Janardhana Soundararajan (Cognizant)>you know the scenario how it happens.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/43-0
+00:03:04.641 --> 00:03:08.721
+<v Manuela Ramirez (Iris Software)>Yeah, all of those.
+So everything happens again, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/44-0
+00:03:09.121 --> 00:03:12.089
+<v Janardhana Soundararajan (Cognizant)>Correct,
+everything now it is needs to be put to</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/44-1
+00:03:12.089 --> 00:03:15.906
+<v Janardhana Soundararajan (Cognizant)>the user for review,
+because the system cannot make a decision</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/44-2
+00:03:15.906 --> 00:03:19.541
+<v Janardhana Soundararajan (Cognizant)>because a tender has been sent for a
+certain configuration,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/44-3
+00:03:19.541 --> 00:03:23.600
+<v Janardhana Soundararajan (Cognizant)>and now that configuration has changed
+because of an order change,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/44-4
+00:03:23.600 --> 00:03:27.841
+<v Janardhana Soundararajan (Cognizant)>one of the order in a consolidation,
+one of the order in the console.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/45-0
+00:03:27.921 --> 00:03:32.743
+<v Janardhana Soundararajan (Cognizant)>had a change and because of that,
+there was a change and the system could</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/45-1
+00:03:32.743 --> 00:03:37.305
+<v Janardhana Soundararajan (Cognizant)>not decide. So in that case,
+what it is going to do is it is going to</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/45-2
+00:03:37.305 --> 00:03:41.281
+<v Janardhana Soundararajan (Cognizant)>mark that particular shipment as order
+change for that user.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/46-0
+00:03:44.161 --> 00:03:44.481
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/47-0
+00:03:44.561 --> 00:03:48.825
+<v Janardhana Soundararajan (Cognizant)>No, yeah, not that user,
+but generally for users to review and</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/47-1
+00:03:48.825 --> 00:03:49.841
+<v Janardhana Soundararajan (Cognizant)>take an action.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/48-0
+00:03:56.401 --> 00:03:56.801
+<v Manuela Ramirez (Iris Software)>Um...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/49-0
+00:04:01.681 --> 00:04:05.841
+<v Manuela Ramirez (Iris Software)>Of changes. OK, that that is close.
+Let's go to the third one.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/50-0
+00:04:08.001 --> 00:04:08.481
+<v Manuela Ramirez (Iris Software)>So...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/51-0
+00:04:13.601 --> 00:04:15.361
+<v Manuela Ramirez (Iris Software)>I'm gonna call a reprocess that, okay?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/52-0
+00:04:18.001 --> 00:04:18.641
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/53-0
+00:04:21.281 --> 00:04:24.914
+<v Manuela Ramirez (Iris Software)>Third one,
+can orders whose shipment already has a</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/53-1
+00:04:24.914 --> 00:04:26.481
+<v Manuela Ramirez (Iris Software)>tender since be added?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/54-0
+00:04:28.441 --> 00:04:34.161
+<v Janardhana Soundararajan (Cognizant)>An order whose shipment already has a
+tender sent be added. Added means.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/56-0
+00:04:38.721 --> 00:04:42.481
+<v Manuela Ramirez (Iris Software)>Yeah, I don't think this is because added,
+I think that it means this part.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/57-0
+00:04:45.721 --> 00:04:47.441
+<v Manuela Ramirez (Iris Software)>Let's go to a consolidated one.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/58-0
+00:04:54.401 --> 00:04:55.281
+<v Manuela Ramirez (Iris Software)>We are waiting.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/59-0
+00:04:56.361 --> 00:05:01.523
+<v Manuela Ramirez (Iris Software)>is receding, the database is receding.
+But do you remember the place where we</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/59-1
+00:05:01.523 --> 00:05:01.921
+<v Manuela Ramirez (Iris Software)>had...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/60-0
+00:05:05.961 --> 00:05:07.281
+<v Manuela Ramirez (Iris Software)>Where we used to have.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/61-0
+00:05:06.481 --> 00:05:09.121
+<v Janardhana Soundararajan (Cognizant)>We can search and add order.
+That's when you're saying.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/62-0
+00:05:08.961 --> 00:05:11.441
+<v Manuela Ramirez (Iris Software)>Exactly, exactly. Got it.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/63-0
+00:05:10.081 --> 00:05:13.905
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, you can. For order change,
+you can review, add a new order,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/63-1
+00:05:13.905 --> 00:05:16.721
+<v Janardhana Soundararajan (Cognizant)>do a simulation,
+check all those things as possible.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/64-0
+00:05:19.401 --> 00:05:24.396
+<v Manuela Ramirez (Iris Software)>So if when you are adding an order,
+then you are basically consolidating,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/64-1
+00:05:24.396 --> 00:05:24.801
+<v Manuela Ramirez (Iris Software)>right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/66-0
+00:05:26.161 --> 00:05:29.418
+<v Janardhana Soundararajan (Cognizant)>Yeah, I can also move.
+It could be a consolidated shipment.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/65-0
+00:05:26.241 --> 00:05:26.721
+<v Manuela Ramirez (Iris Software)>Smile.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/66-1
+00:05:29.418 --> 00:05:33.761
+<v Janardhana Soundararajan (Cognizant)>I could move an order from a different
+shipment, which is also a consolidation.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/67-0
+00:05:35.041 --> 00:05:35.521
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/68-0
+00:05:37.961 --> 00:05:42.003
+<v Janardhana Soundararajan (Cognizant)>Not necessary that I am trying to move an
+order and just wanted to make it into a</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/68-1
+00:05:42.003 --> 00:05:44.271
+<v Janardhana Soundararajan (Cognizant)>consolidation.
+Already it is a consolidation.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/68-2
+00:05:44.271 --> 00:05:46.736
+<v Janardhana Soundararajan (Cognizant)>If it's a direct shipment,
+I'm trying to move it,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/68-3
+00:05:46.736 --> 00:05:49.201
+<v Janardhana Soundararajan (Cognizant)>it's definitely going to turn into
+consolidation.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/69-0
+00:05:50.881 --> 00:05:53.753
+<v Manuela Ramirez (Iris Software)>Okay,
+because when I'm searching that order</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/69-1
+00:05:53.753 --> 00:05:57.409
+<v Manuela Ramirez (Iris Software)>that I want to add,
+that is the full list of all of the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/69-2
+00:05:57.409 --> 00:05:59.041
+<v Manuela Ramirez (Iris Software)>orders that exist, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/70-0
+00:06:01.281 --> 00:06:05.897
+<v Manuela Ramirez (Iris Software)>And what happens if that order is in a
+shipment that is being sent? All right,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/70-1
+00:06:05.897 --> 00:06:08.001
+<v Manuela Ramirez (Iris Software)>then they're sent. Is that possible?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/73-0
+00:06:06.081 --> 00:06:09.083
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+then it would say that it would say that</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/73-1
+00:06:09.083 --> 00:06:13.427
+<v Janardhana Soundararajan (Cognizant)>you cannot add the order into the,
+you can do the what of scenario,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/73-2
+00:06:13.427 --> 00:06:17.772
+<v Janardhana Soundararajan (Cognizant)>you cannot finalize it, right?
+It would it would tell when you were</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/71-0
+00:06:16.241 --> 00:06:16.561
+<v Manuela Ramirez (Iris Software)>Ohh.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/73-3
+00:06:17.772 --> 00:06:21.860
+<v Janardhana Soundararajan (Cognizant)>about to go and finalize,
+it'll say that you need to cancel the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/73-4
+00:06:21.860 --> 00:06:23.841
+<v Janardhana Soundararajan (Cognizant)>tender and then move the order.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/72-0
+00:06:24.721 --> 00:06:25.121
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/74-0
+00:06:26.801 --> 00:06:27.761
+<v Manuela Ramirez (Iris Software)>And then...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/75-0
+00:06:29.361 --> 00:06:34.682
+<v Manuela Ramirez (Iris Software)>But when that rules applies,
+when it's sent, when it's accepted,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/75-1
+00:06:34.682 --> 00:06:36.401
+<v Manuela Ramirez (Iris Software)>where else? A cancel?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/76-0
+00:06:35.361 --> 00:06:40.186
+<v Janardhana Soundararajan (Cognizant)>I think it is in the story, right?
+I could not remember all the rules.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/76-1
+00:06:40.186 --> 00:06:43.041
+<v Janardhana Soundararajan (Cognizant)>Tender sent, accepted, and to be tendered.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/77-0
+00:06:44.041 --> 00:06:44.521
+<v Manuela Ramirez (Iris Software)>Begin there.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/78-0
+00:06:52.561 --> 00:06:55.397
+<v Manuela Ramirez (Iris Software)>The tender, okay,
+when I consolidate shipment,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/78-1
+00:06:55.397 --> 00:06:59.681
+<v Manuela Ramirez (Iris Software)>the tender tab review already changed,
+button jumps to the stop stack.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/79-0
+00:07:00.761 --> 00:07:05.653
+<v Manuela Ramirez (Iris Software)>I cannot confirm this.
+Let's go with the next one.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/79-1
+00:07:05.653 --> 00:07:13.041
+<v Manuela Ramirez (Iris Software)>The 2 foundation stories are on hold
+waiting for the on the optimized issue.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/80-0
+00:07:15.241 --> 00:07:16.801
+<v Manuela Ramirez (Iris Software)>So, I just ignored his sense.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/81-0
+00:07:19.201 --> 00:07:23.001
+<v Manuela Ramirez (Iris Software)>Because they say that they are on hold
+waiting for the optimization.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/83-0
+00:07:31.881 --> 00:07:34.531
+<v Janardhana Soundararajan (Cognizant)>If you can check that story that I added,
+right,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/83-1
+00:07:34.531 --> 00:07:36.641
+<v Janardhana Soundararajan (Cognizant)>so it has solved that particular thing.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/84-0
+00:07:37.921 --> 00:07:43.261
+<v Janardhana Soundararajan (Cognizant)>Save processing, uh, subsequent shipment,
+adding validation stuff, analyzation,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/84-1
+00:07:43.261 --> 00:07:47.601
+<v Janardhana Soundararajan (Cognizant)>frequent sequencing, pickup gate,
+delivery date, existing stuff.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/85-0
+00:07:49.921 --> 00:07:52.641
+<v Janardhana Soundararajan (Cognizant)>Second, not that one, yeah,
+select order from.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/90-0
+00:08:21.921 --> 00:08:23.681
+<v Janardhana Soundararajan (Cognizant)>Ah, this story, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/91-0
+00:08:25.441 --> 00:08:26.961
+<v Manuela Ramirez (Iris Software)>I'll give you the lens.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/92-0
+00:08:29.521 --> 00:08:30.881
+<v Janardhana Soundararajan (Cognizant)>15870.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/93-0
+00:08:31.601 --> 00:08:31.841
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/94-0
+00:08:33.601 --> 00:08:35.681
+<v Manuela Ramirez (Iris Software)>Oh, it's actually...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/95-0
+00:08:37.601 --> 00:08:39.681
+<v Manuela Ramirez (Iris Software)>1543 5</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/96-0
+00:08:41.761 --> 00:08:43.601
+<v Manuela Ramirez (Iris Software)>In 1543, 6.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/97-0
+00:08:45.041 --> 00:08:50.256
+<v Janardhana Soundararajan (Cognizant)>1543 5 is 1543 5 and 6. Yeah,
+those are first stories of the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/97-1
+00:08:50.256 --> 00:08:53.761
+<v Janardhana Soundararajan (Cognizant)>consolidation, consolidated order change.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/98-0
+00:08:54.961 --> 00:08:58.401
+<v Manuela Ramirez (Iris Software)>It says on hold. I don't remember.
+Could you check?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/99-0
+00:08:59.561 --> 00:09:04.001
+<v Manuela Ramirez (Iris Software)>Because here it says it what they were at
+fault waiting for the optimizer.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/100-0
+00:09:05.841 --> 00:09:12.721
+<v Janardhana Soundararajan (Cognizant)>What do you mean? Two foundation stories,
+15 or on hold, waiting for optimizer.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/101-0
+00:09:14.001 --> 00:09:14.521
+<v Janardhana Soundararajan (Cognizant)>You mean?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/103-0
+00:09:16.401 --> 00:09:20.481
+<v Janardhana Soundararajan (Cognizant)>Or maybe the team marked it for hold,
+something like that.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/102-0
+00:09:16.721 --> 00:09:17.281
+<v Manuela Ramirez (Iris Software)>I mean...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/105-0
+00:09:21.521 --> 00:09:23.121
+<v Manuela Ramirez (Iris Software)>Okay, I will just ignore that.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/104-0
+00:09:22.241 --> 00:09:22.681
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/106-0
+00:09:23.841 --> 00:09:28.138
+<v Janardhana Soundararajan (Cognizant)>Yeah, you just ignore that.
+There is a status that the team marked it</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/106-1
+00:09:28.138 --> 00:09:31.147
+<v Janardhana Soundararajan (Cognizant)>to say that it is on hold,
+but I don't think so.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/106-2
+00:09:31.147 --> 00:09:35.076
+<v Janardhana Soundararajan (Cognizant)>Why did they move it?
+Sony Optimizer integration depends on it.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/106-3
+00:09:35.076 --> 00:09:39.681
+<v Janardhana Soundararajan (Cognizant)>It is on hold as discussed with Soni by
+Deepesh. So he did it like Mayank.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/108-0
+00:09:43.441 --> 00:09:45.281
+<v Manuela Ramirez (Iris Software)>I'll just ignore it for now.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/107-0
+00:09:45.681 --> 00:09:46.081
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/109-0
+00:09:52.161 --> 00:09:55.521
+<v Manuela Ramirez (Iris Software)>Yeah, OK. I think hopefully this is.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/110-0
+00:09:57.361 --> 00:09:59.681
+<v Manuela Ramirez (Iris Software)>Landing soon. Sorry, Jenna.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/111-0
+00:10:06.401 --> 00:10:12.541
+<v Manuela Ramirez (Iris Software)>It's because whenever I have to make sure
+the one of the fields need to match what</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/111-1
+00:10:12.541 --> 00:10:18.015
+<v Manuela Ramirez (Iris Software)>we have in the stops for in any tab,
+I need to reset the entire database.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/111-2
+00:10:18.015 --> 00:10:23.933
+<v Manuela Ramirez (Iris Software)>You know, that is why I'm not there.
+I mean, it takes a couple of minutes, but.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/111-3
+00:10:23.933 --> 00:10:24.081
+<v Manuela Ramirez (Iris Software)>..</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/112-0
+00:10:31.601 --> 00:10:32.201
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/115-0
+00:10:34.241 --> 00:10:38.248
+<v Manuela Ramirez (Iris Software)>Let's go then with your,
+with the next thing that you want to talk</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/115-1
+00:10:38.248 --> 00:10:40.641
+<v Manuela Ramirez (Iris Software)>about, with the things that are missing.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/116-0
+00:10:40.961 --> 00:10:41.961
+<v Janardhana Soundararajan (Cognizant)>Okay, yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/117-0
+00:10:42.961 --> 00:10:45.361
+<v Manuela Ramirez (Iris Software)>Then we can go to the person.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/122-0
+00:10:57.601 --> 00:11:00.721
+<v Janardhana Soundararajan (Cognizant)>Sorry, Manuela, instead of sharing,
+I clicked on leave.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/124-0
+00:11:02.441 --> 00:11:05.121
+<v Manuela Ramirez (Iris Software)>It happened to me multiple times as well.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/123-0
+00:11:02.761 --> 00:11:03.521
+<v Janardhana Soundararajan (Cognizant)>Just give me a second.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/125-0
+00:11:06.721 --> 00:11:08.041
+<v Janardhana Soundararajan (Cognizant)>OK, let me share my screen.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/127-0
+00:11:18.881 --> 00:11:23.173
+<v Janardhana Soundararajan (Cognizant)>Okay, we are clear about this one,
+so you might have to change to get the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/127-1
+00:11:23.173 --> 00:11:27.814
+<v Janardhana Soundararajan (Cognizant)>prior, and then we will have new. Okay,
+once the changes have been made, right,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/126-0
+00:11:25.761 --> 00:11:26.281
+<v Manuela Ramirez (Iris Software)>What machine?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/127-2
+00:11:27.814 --> 00:11:30.830
+<v Janardhana Soundararajan (Cognizant)>once the changes have been made from
+question mark,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/127-3
+00:11:30.830 --> 00:11:35.413
+<v Janardhana Soundararajan (Cognizant)>it has been rearranged and you have a
+sequence, right, top P1, P2, P3, and P4,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/127-4
+00:11:35.413 --> 00:11:35.761
+<v Janardhana Soundararajan (Cognizant)>right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/129-0
+00:11:37.361 --> 00:11:42.791
+<v Janardhana Soundararajan (Cognizant)>The user can click on the view routing
+and see the routing information, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/129-1
+00:11:42.791 --> 00:11:45.816
+<v Janardhana Soundararajan (Cognizant)>Save, OK,
+click on this and see the routing</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/129-2
+00:11:45.816 --> 00:11:46.641
+<v Janardhana Soundararajan (Cognizant)>information.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/130-0
+00:11:48.001 --> 00:11:52.481
+<v Janardhana Soundararajan (Cognizant)>Once again, once again, let me see.
+What is the first step? Is it like?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/131-0
+00:11:55.321 --> 00:11:58.241
+<v Janardhana Soundararajan (Cognizant)>No, okay, I think you need to do this one.
+Save first.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/132-0
+00:11:59.321 --> 00:12:03.482
+<v Janardhana Soundararajan (Cognizant)>Alright, so once you do this,
+you click on the save action.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/132-1
+00:12:03.482 --> 00:12:07.921
+<v Janardhana Soundararajan (Cognizant)>Once you click, click on the save action,
+there are two things.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/134-0
+00:12:11.281 --> 00:12:15.437
+<v Janardhana Soundararajan (Cognizant)>Ah, okay, let me do this one first.
+So once it is reorganized and the view</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/134-1
+00:12:15.437 --> 00:12:19.592
+<v Janardhana Soundararajan (Cognizant)>routing button is eliminated, right?
+So once it is finalized and all done,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/134-2
+00:12:19.592 --> 00:12:23.471
+<v Janardhana Soundararajan (Cognizant)>the view routing button is there.
+The user clicks on the view routing</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/133-0
+00:12:22.961 --> 00:12:23.281
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/134-3
+00:12:23.471 --> 00:12:25.909
+<v Janardhana Soundararajan (Cognizant)>button,
+they will be able to see the tender</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/134-4
+00:12:25.909 --> 00:12:28.403
+<v Janardhana Soundararajan (Cognizant)>information, right?
+So that is what it says.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/134-5
+00:12:28.403 --> 00:12:30.121
+<v Janardhana Soundararajan (Cognizant)>The distance are updated after.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/135-0
+00:12:30.281 --> 00:12:34.117
+<v Janardhana Soundararajan (Cognizant)>The user clicks on view routing,
+and also user will get to see the carrier</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/135-1
+00:12:34.117 --> 00:12:36.930
+<v Janardhana Soundararajan (Cognizant)>list, so they will be able to,
+once they did all this,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/135-2
+00:12:36.930 --> 00:12:40.306
+<v Janardhana Soundararajan (Cognizant)>they will say that, okay,
+they will click on view routing, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/135-3
+00:12:40.306 --> 00:12:44.551
+<v Janardhana Soundararajan (Cognizant)>So, once they click on the view routing,
+then the distance are all updated because</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/135-4
+00:12:44.551 --> 00:12:47.568
+<v Janardhana Soundararajan (Cognizant)>it's going to call the routing service,
+gets the distance,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/135-5
+00:12:47.568 --> 00:12:49.001
+<v Janardhana Soundararajan (Cognizant)>and all that it is going to.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/137-0
+00:12:49.081 --> 00:12:53.487
+<v Janardhana Soundararajan (Cognizant)>calculate and then it is going to
+populate the user with the route</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/137-1
+00:12:53.487 --> 00:12:57.302
+<v Janardhana Soundararajan (Cognizant)>information, right?
+The route rank and all those details.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/137-2
+00:12:57.302 --> 00:12:58.881
+<v Janardhana Soundararajan (Cognizant)>This makes sense so far.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/136-0
+00:13:00.041 --> 00:13:00.161
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/138-0
+00:13:02.801 --> 00:13:05.404
+<v Janardhana Soundararajan (Cognizant)>Okay,
+so if the user is satisfied with this</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/138-1
+00:13:05.404 --> 00:13:08.894
+<v Janardhana Soundararajan (Cognizant)>particular thing,
+what they will do is they will go and do</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/138-2
+00:13:08.894 --> 00:13:09.841
+<v Janardhana Soundararajan (Cognizant)>the save action.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/139-0
+00:13:11.041 --> 00:13:14.448
+<v Janardhana Soundararajan (Cognizant)>In the Save action,
+there are two possibilities that can</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/139-1
+00:13:14.448 --> 00:13:17.078
+<v Janardhana Soundararajan (Cognizant)>happen.
+User can click Save to finalize the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/139-2
+00:13:17.078 --> 00:13:19.708
+<v Janardhana Soundararajan (Cognizant)>change.
+Once the user finalizes the change,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/139-3
+00:13:19.708 --> 00:13:21.681
+<v Janardhana Soundararajan (Cognizant)>then two possibilities are there.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/140-0
+00:13:22.561 --> 00:13:28.096
+<v Janardhana Soundararajan (Cognizant)>There is an existing tender that was sent
+out even before this change had happened,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/140-1
+00:13:28.096 --> 00:13:31.127
+<v Janardhana Soundararajan (Cognizant)>right?
+There is a current existing tender and</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/140-2
+00:13:31.127 --> 00:13:36.399
+<v Janardhana Soundararajan (Cognizant)>something was sent or accepted by the
+carrier, right? You need to address that.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/140-3
+00:13:36.399 --> 00:13:39.826
+<v Janardhana Soundararajan (Cognizant)>That is 1 possibility.
+The second possibility for a</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/140-4
+00:13:39.826 --> 00:13:43.121
+<v Janardhana Soundararajan (Cognizant)>consolidation is the prior tender does
+not exist.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/141-0
+00:13:43.441 --> 00:13:47.311
+<v Janardhana Soundararajan (Cognizant)>This is a consolidation that was recently
+built by the user,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/141-1
+00:13:47.311 --> 00:13:52.069
+<v Janardhana Soundararajan (Cognizant)>but suddenly an order change came in,
+right? If that order change came in,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/141-2
+00:13:52.069 --> 00:13:57.208
+<v Janardhana Soundararajan (Cognizant)>still the user will have to address it,
+unlike the direct shipment order change,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/141-3
+00:13:57.208 --> 00:14:02.284
+<v Janardhana Soundararajan (Cognizant)>right? The user will have to address this,
+and it follows a different workflow.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/141-4
+00:14:02.284 --> 00:14:04.441
+<v Janardhana Soundararajan (Cognizant)>So there are two workflows that...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/142-0
+00:14:04.641 --> 00:14:06.641
+<v Janardhana Soundararajan (Cognizant)>happens on clicking on save.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/143-0
+00:14:08.441 --> 00:14:09.041
+<v Janardhana Soundararajan (Cognizant)>Makes sense.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/146-0
+00:14:11.841 --> 00:14:14.601
+<v Manuela Ramirez (Iris Software)>Yes, that is 1. Well, it's still updated.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/144-0
+00:14:12.001 --> 00:14:12.481
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/145-0
+00:14:13.761 --> 00:14:14.241
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/147-0
+00:14:15.601 --> 00:14:18.325
+<v Janardhana Soundararajan (Cognizant)>Okay,
+I'll go through each of those workflow,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/147-1
+00:14:18.325 --> 00:14:22.767
+<v Janardhana Soundararajan (Cognizant)>right? But I'm just telling you,
+save can lead to two options based on the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/147-2
+00:14:22.767 --> 00:14:25.728
+<v Janardhana Soundararajan (Cognizant)>condition,
+the current condition of the shipment.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/147-3
+00:14:25.728 --> 00:14:29.460
+<v Janardhana Soundararajan (Cognizant)>If the shipment is already tendered to a
+carrier and accepted,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/147-4
+00:14:29.460 --> 00:14:33.961
+<v Janardhana Soundararajan (Cognizant)>then it will follow the route A process.
+The prior tender was accepted to a</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/147-5
+00:14:33.961 --> 00:14:37.041
+<v Janardhana Soundararajan (Cognizant)>carrier or sent to a carrier,
+it will follow prior.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/148-0
+00:14:37.281 --> 00:14:40.321
+<v Janardhana Soundararajan (Cognizant)>Step A process.
+If there was no prior tender,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/148-1
+00:14:40.321 --> 00:14:44.154
+<v Janardhana Soundararajan (Cognizant)>but the order change came in for a
+consolidated shipment,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/148-2
+00:14:44.154 --> 00:14:46.401
+<v Janardhana Soundararajan (Cognizant)>it will follow the step B process.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/151-0
+00:14:48.081 --> 00:14:51.786
+<v Janardhana Soundararajan (Cognizant)>Okay, and the third option is cancel.
+The user can cancel,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/149-0
+00:14:49.321 --> 00:14:49.521
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/151-1
+00:14:51.786 --> 00:14:56.748
+<v Janardhana Soundararajan (Cognizant)>forget about all the changes they made,
+they can exit and go back to this one,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/151-2
+00:14:56.748 --> 00:15:00.956
+<v Janardhana Soundararajan (Cognizant)>right, the prior, and leave it as it is.
+They can make a decision.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/151-3
+00:15:00.956 --> 00:15:02.401
+<v Janardhana Soundararajan (Cognizant)>That's one possibility.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/150-0
+00:15:03.281 --> 00:15:03.841
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/152-0
+00:15:03.601 --> 00:15:07.171
+<v Janardhana Soundararajan (Cognizant)>Right now,
+if the user goes with the first option,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/152-1
+00:15:07.171 --> 00:15:10.461
+<v Janardhana Soundararajan (Cognizant)>right,
+there was a there is a prior tender and</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/152-2
+00:15:10.461 --> 00:15:16.201
+<v Janardhana Soundararajan (Cognizant)>the prior tender is sent or accepted by a
+carrier and there is a new routing list</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/152-3
+00:15:16.201 --> 00:15:21.381
+<v Janardhana Soundararajan (Cognizant)>that is available with the new set of
+carriers, then how they will do it,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/152-4
+00:15:21.381 --> 00:15:22.641
+<v Janardhana Soundararajan (Cognizant)>and that is where.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/153-0
+00:15:22.721 --> 00:15:26.081
+<v Janardhana Soundararajan (Cognizant)>We get to the same old screen as we do it
+for.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/154-0
+00:15:28.201 --> 00:15:29.121
+<v Janardhana Soundararajan (Cognizant)>Direct shipment.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/155-0
+00:15:30.201 --> 00:15:32.974
+<v Janardhana Soundararajan (Cognizant)>Right,
+if there is a prior tender that is</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/155-1
+00:15:32.974 --> 00:15:36.540
+<v Janardhana Soundararajan (Cognizant)>already available for this particular
+console, right,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/155-2
+00:15:36.540 --> 00:15:41.096
+<v Janardhana Soundararajan (Cognizant)>it will list these options: cancel tender,
+re-tender, bypass tender,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/155-3
+00:15:41.096 --> 00:15:45.785
+<v Janardhana Soundararajan (Cognizant)>and the logic remains the same,
+whether the user will want to keep the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/155-4
+00:15:45.785 --> 00:15:49.681
+<v Janardhana Soundararajan (Cognizant)>prior cost, want to add a new cost,
+or a new quote, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/156-0
+00:15:49.921 --> 00:15:53.634
+<v Janardhana Soundararajan (Cognizant)>And what is the prior value?
+What is the new value? New shipment,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/156-1
+00:15:53.634 --> 00:15:57.122
+<v Janardhana Soundararajan (Cognizant)>right? Say for example,
+this new tender list is there and the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/156-2
+00:15:57.122 --> 00:15:58.641
+<v Janardhana Soundararajan (Cognizant)>prior tender list is there.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/157-0
+00:15:59.601 --> 00:16:06.245
+<v Janardhana Soundararajan (Cognizant)>In the prior, it is sent. In the new,
+the same carrier, ODFL. ODFL is not there,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/157-1
+00:16:06.245 --> 00:16:10.182
+<v Janardhana Soundararajan (Cognizant)>right?
+So if the user prefers to have that same</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/157-2
+00:16:10.182 --> 00:16:14.775
+<v Janardhana Soundararajan (Cognizant)>carrier added,
+they could choose the prior cost and add</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/157-3
+00:16:14.775 --> 00:16:19.041
+<v Janardhana Soundararajan (Cognizant)>this carrier as rank #3 inside the new
+tender list.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/158-0
+00:16:19.681 --> 00:16:22.292
+<v Janardhana Soundararajan (Cognizant)>Right,
+and they can either re-tender or bypass</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/158-1
+00:16:22.292 --> 00:16:22.681
+<v Janardhana Soundararajan (Cognizant)>tender.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/160-0
+00:16:26.081 --> 00:16:29.133
+<v Janardhana Soundararajan (Cognizant)>Because this carrier is not part of the
+list,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/159-0
+00:16:26.161 --> 00:16:26.721
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/160-1
+00:16:29.133 --> 00:16:31.921
+<v Janardhana Soundararajan (Cognizant)>there is no pickup date and delivery date.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/161-0
+00:16:35.361 --> 00:16:38.049
+<v Janardhana Soundararajan (Cognizant)>Make sense?
+The pickup date and delivery date comes</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/161-1
+00:16:38.049 --> 00:16:41.255
+<v Janardhana Soundararajan (Cognizant)>from, for the consolidated shipment,
+it comes from the stops.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/161-2
+00:16:41.255 --> 00:16:44.047
+<v Janardhana Soundararajan (Cognizant)>The pickup date is the first pickup date
+of the stop,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/161-3
+00:16:44.047 --> 00:16:47.201
+<v Janardhana Soundararajan (Cognizant)>and the delivery date is the last
+delivery date of the stop.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/162-0
+00:16:49.121 --> 00:16:49.761
+<v Janardhana Soundararajan (Cognizant)>Make sense?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/163-0
+00:16:51.441 --> 00:16:55.675
+<v Janardhana Soundararajan (Cognizant)>because it's a consolidation.
+Routing cannot decide on a consolidated</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/163-1
+00:16:55.675 --> 00:16:59.304
+<v Janardhana Soundararajan (Cognizant)>shipment when it will be its pickup date
+and delivery date.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/163-2
+00:16:59.304 --> 00:17:01.361
+<v Janardhana Soundararajan (Cognizant)>That date will come from this one.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/164-0
+00:17:02.241 --> 00:17:06.287
+<v Janardhana Soundararajan (Cognizant)>the pickup date here and the delivery
+date here. In A consolidation,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/164-1
+00:17:06.287 --> 00:17:09.512
+<v Janardhana Soundararajan (Cognizant)>that is the rule.
+It has to forget the routing guides,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/164-2
+00:17:09.512 --> 00:17:13.441
+<v Janardhana Soundararajan (Cognizant)>pickup date and delivery date.
+It has to go with the user selected</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/164-3
+00:17:13.441 --> 00:17:15.201
+<v Janardhana Soundararajan (Cognizant)>pickup date and delivery date.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/165-0
+00:17:16.961 --> 00:17:19.201
+<v Manuela Ramirez (Iris Software)>Yes, of course,
+because you are planning on that.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/166-0
+00:17:19.441 --> 00:17:21.841
+<v Janardhana Soundararajan (Cognizant)>Correct, exactly, because it...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/168-0
+00:17:21.361 --> 00:17:24.401
+<v Manuela Ramirez (Iris Software)>I have a question, Janardhana.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/167-0
+00:17:23.521 --> 00:17:23.841
+<v Janardhana Soundararajan (Cognizant)>Uh-huh.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/169-0
+00:17:25.681 --> 00:17:29.175
+<v Manuela Ramirez (Iris Software)>I am not,
+I don't have a clear understanding on how</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/169-1
+00:17:29.175 --> 00:17:34.081
+<v Manuela Ramirez (Iris Software)>the routing list appears, right?
+So whenever we are tendering something.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/170-0
+00:17:35.761 --> 00:17:37.441
+<v Manuela Ramirez (Iris Software)>There is a list of carriers, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/171-0
+00:17:38.281 --> 00:17:43.800
+<v Manuela Ramirez (Iris Software)>What is the logic, right? Like,
+it's about ranking, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/171-1
+00:17:43.800 --> 00:17:49.601
+<v Manuela Ramirez (Iris Software)>But how do I know how many carriers I can
+list? Some of them.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/173-0
+00:17:48.721 --> 00:17:53.617
+<v Janardhana Soundararajan (Cognizant)>You, you, yeah,
+there is an engine that is a there is a</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/173-1
+00:17:53.617 --> 00:17:59.999
+<v Janardhana Soundararajan (Cognizant)>routing engine which decides on the
+equipment asked on the order, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/172-0
+00:17:54.161 --> 00:17:54.561
+<v Manuela Ramirez (Iris Software)>Back.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/173-2
+00:17:59.999 --> 00:18:05.944
+<v Janardhana Soundararajan (Cognizant)>Order gets converted onto a load,
+so load has its orders equipment,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/173-3
+00:18:05.944 --> 00:18:07.081
+<v Janardhana Soundararajan (Cognizant)>it has the...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/174-0
+00:18:07.601 --> 00:18:10.682
+<v Janardhana Soundararajan (Cognizant)>pickup date, delivery date,
+and there is an equipment.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/174-1
+00:18:10.682 --> 00:18:15.052
+<v Janardhana Soundararajan (Cognizant)>The equipment is given and there are a
+few other information which is sent to</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/174-2
+00:18:15.052 --> 00:18:17.629
+<v Janardhana Soundararajan (Cognizant)>that engine.
+The engine looks into that those</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/174-3
+00:18:17.629 --> 00:18:21.999
+<v Janardhana Soundararajan (Cognizant)>parameters and then looks into who are
+the carriers operating for that pickup</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/174-4
+00:18:21.999 --> 00:18:25.976
+<v Janardhana Soundararajan (Cognizant)>and or pickup destination and the
+delivery destination and loads those</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/174-5
+00:18:25.976 --> 00:18:27.041
+<v Janardhana Soundararajan (Cognizant)>carriers in a list.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/175-0
+00:18:28.881 --> 00:18:33.921
+<v Manuela Ramirez (Iris Software)>Ohh, OK, so this this process,
+this engine process happens once I do an</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/175-1
+00:18:33.921 --> 00:18:37.841
+<v Manuela Ramirez (Iris Software)>order change, right?
+A consolidated order change, so...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/177-0
+00:18:37.761 --> 00:18:42.551
+<v Janardhana Soundararajan (Cognizant)>Yeah, whenever, whenever you save,
+whenever you click on save,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/176-0
+00:18:40.801 --> 00:18:41.681
+<v Manuela Ramirez (Iris Software)>Wherever I say.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/177-1
+00:18:42.551 --> 00:18:45.441
+<v Janardhana Soundararajan (Cognizant)>it goes and calls the routing service.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/178-0
+00:18:47.441 --> 00:18:47.921
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/180-0
+00:18:52.881 --> 00:18:56.640
+<v Janardhana Soundararajan (Cognizant)>OK, makes sense. This one,
+then it follows the same process as that</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/180-1
+00:18:56.640 --> 00:18:59.681
+<v Janardhana Soundararajan (Cognizant)>of the direct shipment, right? So,
+because it has a...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/179-0
+00:19:00.241 --> 00:19:00.561
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/181-0
+00:19:01.441 --> 00:19:06.044
+<v Janardhana Soundararajan (Cognizant)>Prior tender, since it has a prior tender,
+decision on the prior tender needs to be</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/181-1
+00:19:06.044 --> 00:19:09.113
+<v Janardhana Soundararajan (Cognizant)>taken, right?
+This is the decision screen for the prior</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/181-2
+00:19:09.113 --> 00:19:12.894
+<v Janardhana Soundararajan (Cognizant)>tender and the new tender.
+Whether you go on the new tender with the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/181-3
+00:19:12.894 --> 00:19:15.799
+<v Janardhana Soundararajan (Cognizant)>same carrier,
+even though that carrier is not there,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/181-4
+00:19:15.799 --> 00:19:19.635
+<v Janardhana Soundararajan (Cognizant)>but if that carrier is listed in this one
+but is in a different rank,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/181-5
+00:19:19.635 --> 00:19:20.841
+<v Janardhana Soundararajan (Cognizant)>do you want to use so?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/182-0
+00:19:21.121 --> 00:19:22.881
+<v Janardhana Soundararajan (Cognizant)>Old cost or the new cost?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/183-0
+00:19:24.001 --> 00:19:28.761
+<v Janardhana Soundararajan (Cognizant)>or you want to give a new quote.
+All those options do come up the same way</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/183-1
+00:19:28.761 --> 00:19:33.140
+<v Janardhana Soundararajan (Cognizant)>how we did it in direct shipment.
+Once the user takes this decision,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/183-2
+00:19:33.140 --> 00:19:36.631
+<v Janardhana Soundararajan (Cognizant)>the decision is applied onto the tender
+itself, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/183-3
+00:19:36.631 --> 00:19:40.884
+<v Janardhana Soundararajan (Cognizant)>So that the new tender will have this
+ODFL inserted into the list,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/183-4
+00:19:40.884 --> 00:19:44.121
+<v Janardhana Soundararajan (Cognizant)>and then it'll have this,
+it'll have its own rate.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/184-0
+00:19:44.401 --> 00:19:47.984
+<v Janardhana Soundararajan (Cognizant)>and rest of the information is filled and
+that will be available on the tender</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/184-1
+00:19:47.984 --> 00:19:49.481
+<v Janardhana Soundararajan (Cognizant)>screen with all the changes made.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/185-0
+00:19:50.881 --> 00:19:51.441
+<v Janardhana Soundararajan (Cognizant)>Makes sense.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/186-0
+00:19:53.081 --> 00:19:53.281
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/187-0
+00:19:54.641 --> 00:19:59.201
+<v Manuela Ramirez (Iris Software)>So, save is the last action, right?
+The last action.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/188-0
+00:19:58.161 --> 00:19:59.921
+<v Janardhana Soundararajan (Cognizant)>Save is the last action, correct?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/190-0
+00:20:02.641 --> 00:20:08.417
+<v Manuela Ramirez (Iris Software)>I think I put on a different name to that.
+I think I put it as a fly or something.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/189-0
+00:20:02.721 --> 00:20:03.201
+<v Janardhana Soundararajan (Cognizant)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/190-1
+00:20:08.417 --> 00:20:09.601
+<v Manuela Ramirez (Iris Software)>I will review it.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/191-0
+00:20:10.401 --> 00:20:10.881
+<v Janardhana Soundararajan (Cognizant)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/192-0
+00:20:10.561 --> 00:20:12.361
+<v Manuela Ramirez (Iris Software)>Okay, save, save, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/193-0
+00:20:14.481 --> 00:20:14.881
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/194-0
+00:20:14.721 --> 00:20:19.821
+<v Manuela Ramirez (Iris Software)>I mean,
+just apply means apply this order change,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/194-1
+00:20:19.821 --> 00:20:22.881
+<v Manuela Ramirez (Iris Software)>this, this planner, but say...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/195-0
+00:20:37.201 --> 00:20:37.361
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/196-0
+00:20:37.441 --> 00:20:40.965
+<v Janardhana Soundararajan (Cognizant)>changes associated with they removed an
+order, that they kept the order,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/196-1
+00:20:40.965 --> 00:20:44.054
+<v Janardhana Soundararajan (Cognizant)>whatever it is, and they rearranged it.
+Whatever they did here,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/196-2
+00:20:44.054 --> 00:20:45.841
+<v Janardhana Soundararajan (Cognizant)>they are finalizing it with the same.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/199-0
+00:20:47.521 --> 00:20:51.492
+<v Janardhana Soundararajan (Cognizant)>Right? Once they finalize,
+immediately ask the user what to do with</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/199-1
+00:20:51.492 --> 00:20:54.471
+<v Janardhana Soundararajan (Cognizant)>the existing tender,
+if it has an existing tender,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/198-0
+00:20:52.721 --> 00:20:52.881
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/199-2
+00:20:54.471 --> 00:20:58.326
+<v Janardhana Soundararajan (Cognizant)>because we are talking about a scenario
+where an existing tender,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/199-3
+00:20:58.326 --> 00:21:01.947
+<v Janardhana Soundararajan (Cognizant)>where prior tender exists or existing
+tender is there, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/199-4
+00:21:01.947 --> 00:21:06.152
+<v Janardhana Soundararajan (Cognizant)>How to handle that existing tender.
+So that is going to give a decision</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/199-5
+00:21:06.152 --> 00:21:06.561
+<v Janardhana Soundararajan (Cognizant)>screen.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/200-0
+00:21:06.801 --> 00:21:09.281
+<v Janardhana Soundararajan (Cognizant)>to the user to make a decision on the...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/201-0
+00:21:10.601 --> 00:21:14.478
+<v Janardhana Soundararajan (Cognizant)>prior tender, right?
+Suppose if there is no prior tender,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/201-1
+00:21:14.478 --> 00:21:17.420
+<v Janardhana Soundararajan (Cognizant)>there is no existing tender to any
+carrier.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/201-2
+00:21:17.420 --> 00:21:22.835
+<v Janardhana Soundararajan (Cognizant)>So it will automatically apply all these
+changes and take the user to the tender</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/201-3
+00:21:22.835 --> 00:21:25.041
+<v Janardhana Soundararajan (Cognizant)>screen with this new tender list.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/202-0
+00:21:26.401 --> 00:21:29.750
+<v Janardhana Soundararajan (Cognizant)>If there is no tender list and has only
+drop carriers,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/202-1
+00:21:29.750 --> 00:21:34.561
+<v Janardhana Soundararajan (Cognizant)>it will show only the drop carriers.
+And the user will decide what to do next.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/203-0
+00:21:39.041 --> 00:21:44.751
+<v Manuela Ramirez (Iris Software)>I was thinking about apply instead of
+save because save means sometimes what</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/203-1
+00:21:44.751 --> 00:21:50.312
+<v Manuela Ramirez (Iris Software)>happens if I did all of these changes in
+order to change and then I leave,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/203-2
+00:21:50.312 --> 00:21:55.281
+<v Manuela Ramirez (Iris Software)>I just exit the screen or I don't know,
+internet goes down, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/204-0
+00:21:57.841 --> 00:22:04.969
+<v Manuela Ramirez (Iris Software)>Maybe I say this setting that I've been
+doing right and apply means apply and go</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/204-1
+00:22:04.969 --> 00:22:07.521
+<v Manuela Ramirez (Iris Software)>to the routing and rendering.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/205-0
+00:22:09.281 --> 00:22:12.941
+<v Janardhana Soundararajan (Cognizant)>Just the terminology, whichever is okay,
+you can do it. Apply or save.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/205-1
+00:22:12.941 --> 00:22:13.921
+<v Janardhana Soundararajan (Cognizant)>I'm okay with both.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/206-0
+00:22:15.441 --> 00:22:18.947
+<v Manuela Ramirez (Iris Software)>But you don't have this in functionality,
+right? Where you have,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/206-1
+00:22:18.947 --> 00:22:23.317
+<v Manuela Ramirez (Iris Software)>where you are planning something and then
+you just close it, that will be reset,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/206-2
+00:22:23.317 --> 00:22:23.641
+<v Manuela Ramirez (Iris Software)>right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/207-0
+00:22:24.561 --> 00:22:26.801
+<v Janardhana Soundararajan (Cognizant)>No, no,
+I have a specific word called safe.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/208-0
+00:22:27.881 --> 00:22:28.321
+<v Manuela Ramirez (Iris Software)>Then.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/212-0
+00:22:31.361 --> 00:22:37.361
+<v Manuela Ramirez (Iris Software)>So your changes will be saved, right?
+Despite not applying. Applying means...</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/210-0
+00:22:34.441 --> 00:22:34.961
+<v Janardhana Soundararajan (Cognizant)>Correct.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/211-0
+00:22:36.321 --> 00:22:37.361
+<v Janardhana Soundararajan (Cognizant)>Not apply, save.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/213-0
+00:22:39.361 --> 00:22:40.201
+<v Manuela Ramirez (Iris Software)>OK, let's do it.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/214-0
+00:22:41.681 --> 00:22:44.401
+<v Janardhana Soundararajan (Cognizant)>It means save my changes, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/215-0
+00:22:45.201 --> 00:22:49.161
+<v Manuela Ramirez (Iris Software)>Yes, like, save, save your work changes,
+right? Your the Word documents.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/216-0
+00:22:48.081 --> 00:22:52.257
+<v Janardhana Soundararajan (Cognizant)>Yeah, but correct. Whatever I've done,
+save it and then immediately triggers the</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/216-1
+00:22:52.257 --> 00:22:56.433
+<v Janardhana Soundararajan (Cognizant)>next workflow because you are saving it
+and there is a decision that needs to be</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/216-2
+00:22:56.433 --> 00:22:57.361
+<v Janardhana Soundararajan (Cognizant)>taken by the user.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/218-0
+00:22:58.681 --> 00:23:01.903
+<v Janardhana Soundararajan (Cognizant)>because there is a prior tender.
+If there is no tender,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/217-0
+00:22:58.721 --> 00:22:59.081
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/218-1
+00:23:01.903 --> 00:23:06.162
+<v Janardhana Soundararajan (Cognizant)>then this is saved and it exits the
+screen and goes to the tender screen.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/218-2
+00:23:06.162 --> 00:23:07.601
+<v Janardhana Soundararajan (Cognizant)>It will go to the screen.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/220-0
+00:23:08.721 --> 00:23:10.881
+<v Manuela Ramirez (Iris Software)>Okay, yeah, okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/219-0
+00:23:09.921 --> 00:23:10.881
+<v Janardhana Soundararajan (Cognizant)>It will come to the screen.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/222-0
+00:23:12.721 --> 00:23:15.401
+<v Manuela Ramirez (Iris Software)>Directly, and then you can do whatever.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/221-0
+00:23:13.681 --> 00:23:14.081
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/223-0
+00:23:15.281 --> 00:23:19.681
+<v Janardhana Soundararajan (Cognizant)>then the user can tender to a particular
+carrier or do whatever action they want.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/224-0
+00:23:21.481 --> 00:23:23.841
+<v Manuela Ramirez (Iris Software)>But it won't be an auto tender, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/225-0
+00:23:24.641 --> 00:23:28.459
+<v Janardhana Soundararajan (Cognizant)>Yeah, from stop it will move to tender,
+right? They will be in stop.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/225-1
+00:23:28.459 --> 00:23:32.001
+<v Janardhana Soundararajan (Cognizant)>From stop it will jump. Once they save,
+it will jump to tender.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/227-0
+00:23:33.921 --> 00:23:36.845
+<v Manuela Ramirez (Iris Software)>For example,
+when you add a carrier right now,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/227-1
+00:23:36.845 --> 00:23:41.636
+<v Manuela Ramirez (Iris Software)>when you manually add a carrier, right,
+we are not tendering to that carrier</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/227-2
+00:23:41.636 --> 00:23:43.441
+<v Manuela Ramirez (Iris Software)>until you click on the track.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/226-0
+00:23:44.321 --> 00:23:44.961
+<v Janardhana Soundararajan (Cognizant)>Correct.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/228-0
+00:23:45.641 --> 00:23:50.481
+<v Manuela Ramirez (Iris Software)>Is that the same same logic? Ohh, no,
+it's different.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/229-0
+00:23:48.641 --> 00:23:52.081
+<v Janardhana Soundararajan (Cognizant)>Same logic. Yeah, otherwise, correct.
+Same logic.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/230-0
+00:23:54.641 --> 00:23:58.961
+<v Janardhana Soundararajan (Cognizant)>The same logic because the user is now
+left to decide what needs to be done.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/231-0
+00:24:02.201 --> 00:24:02.881
+<v Manuela Ramirez (Iris Software)>OK, fine.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/232-0
+00:24:07.921 --> 00:24:13.121
+<v Manuela Ramirez (Iris Software)>So is that it? I think that's it, right?
+That closes the loop. There is something.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/234-0
+00:24:12.081 --> 00:24:16.964
+<v Janardhana Soundararajan (Cognizant)>Correct, that closes the loop. That's it.
+This was the part that was missing, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/234-1
+00:24:16.964 --> 00:24:19.894
+<v Janardhana Soundararajan (Cognizant)>View routing will give them a view of the
+routing,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/233-0
+00:24:17.521 --> 00:24:18.001
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/234-2
+00:24:19.894 --> 00:24:23.456
+<v Janardhana Soundararajan (Cognizant)>calling the routing once it is like,
+you know, they have set,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/234-3
+00:24:23.456 --> 00:24:27.937
+<v Janardhana Soundararajan (Cognizant)>they can click on no question marks are
+there. See, that's what I've written.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/234-4
+00:24:27.937 --> 00:24:32.361
+<v Janardhana Soundararajan (Cognizant)>User has moved the stops P question mark
+to P2. Now the stop is named as P2.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/236-0
+00:24:32.441 --> 00:24:35.856
+<v Janardhana Soundararajan (Cognizant)>P2 is changed to P3, Atlanta,
+whatever the changes they made.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/236-1
+00:24:35.856 --> 00:24:38.830
+<v Janardhana Soundararajan (Cognizant)>Then once all this is set,
+they can click on routing.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/236-2
+00:24:38.830 --> 00:24:42.466
+<v Janardhana Soundararajan (Cognizant)>They can see the routing before they go
+ahead and save it, right?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/235-0
+00:24:42.081 --> 00:24:42.241
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/236-3
+00:24:42.466 --> 00:24:46.707
+<v Janardhana Soundararajan (Cognizant)>So that is why we have view routing.
+So once they are happy with the routing</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/236-4
+00:24:46.707 --> 00:24:50.673
+<v Janardhana Soundararajan (Cognizant)>list and everything they got,
+then they can go and hit on save and then</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/236-5
+00:24:50.673 --> 00:24:52.161
+<v Janardhana Soundararajan (Cognizant)>it pops them this question.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/237-0
+00:24:52.241 --> 00:24:55.340
+<v Janardhana Soundararajan (Cognizant)>Based on the condition one,
+if there are no questions,</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/237-1
+00:24:55.340 --> 00:24:58.721
+<v Janardhana Soundararajan (Cognizant)>it leads to two and directly put them in
+the tender screen.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/238-0
+00:25:03.441 --> 00:25:04.001
+<v Manuela Ramirez (Iris Software)>It's playing.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/240-0
+00:25:05.521 --> 00:25:08.879
+<v Janardhana Soundararajan (Cognizant)>Yeah, this one is a bit complex.
+It's not very straightforward.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/239-0
+00:25:06.081 --> 00:25:06.481
+<v Manuela Ramirez (Iris Software)>This.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/240-1
+00:25:08.879 --> 00:25:10.401
+<v Janardhana Soundararajan (Cognizant)>It has a lot of things to do.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/241-0
+00:25:12.721 --> 00:25:18.321
+<v Manuela Ramirez (Iris Software)>The other one was also very good,
+maybe it was new.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/243-0
+00:25:19.441 --> 00:25:22.354
+<v Janardhana Soundararajan (Cognizant)>Correct, correct.
+It's just by looking at it again and</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/243-1
+00:25:22.354 --> 00:25:25.162
+<v Janardhana Soundararajan (Cognizant)>again and again,
+your brain gets tuned and you start</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/243-2
+00:25:25.162 --> 00:25:27.281
+<v Janardhana Soundararajan (Cognizant)>understanding it even better. All right.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/242-0
+00:25:27.561 --> 00:25:27.921
+<v Manuela Ramirez (Iris Software)>Thanks.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/244-0
+00:25:28.961 --> 00:25:29.361
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/245-0
+00:25:31.361 --> 00:25:35.281
+<v Manuela Ramirez (Iris Software)>Right now,
+I don't think my seat has been done.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/246-0
+00:25:36.241 --> 00:25:41.121
+<v Manuela Ramirez (Iris Software)>Still, the background agent is working.
+Have you launched already?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/247-0
+00:25:42.401 --> 00:25:43.521
+<v Janardhana Soundararajan (Cognizant)>Yeah, I had my lunch, yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/248-0
+00:25:43.921 --> 00:25:46.161
+<v Manuela Ramirez (Iris Software)>Ohh no, okay then.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/250-0
+00:25:47.761 --> 00:25:51.121
+<v Janardhana Soundararajan (Cognizant)>I have other things to take care.
+We can talk later if you want.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/249-0
+00:25:48.321 --> 00:25:48.961
+<v Manuela Ramirez (Iris Software)>Are you got?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/251-0
+00:25:51.761 --> 00:25:55.345
+<v Manuela Ramirez (Iris Software)>Okay,
+can we wait a couple of maybe an hour and</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/251-1
+00:25:55.345 --> 00:25:56.241
+<v Manuela Ramirez (Iris Software)>we can talk?</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/252-0
+00:25:56.801 --> 00:25:57.681
+<v Janardhana Soundararajan (Cognizant)>Sure, sure, yeah.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/253-0
+00:25:59.441 --> 00:26:00.321
+<v Manuela Ramirez (Iris Software)>Thank you, Janardhana.</v>
+
+aefa3ba1-67fa-4df2-9299-f45c056379bc/255-0
+00:26:00.641 --> 00:26:03.041
+<v Janardhana Soundararajan (Cognizant)>Take care. Bye-bye. Talk to you later.
+Bye.</v>

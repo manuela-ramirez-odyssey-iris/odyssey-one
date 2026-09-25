@@ -1238,10 +1238,51 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** each stop's own date and time are editable. An order whose earliest/latest planning window the stop date misses is flagged on the order inside the stop and in Planning Dates; the order's planning dates stay read-only.
 - **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:19:53–00:23:28`; LINX-15669 §3–5; user 2026-09-24.
 
+## Order Change (Consolidated) — design review + S160 rulings, DEC-200 … DEC-206
+
+### DEC-200: Save runs LINX-15671's Scenario A/B; the label is "Save"
+- **Previous:** the footer read "Approve Changes" (VD label, OC-open-16) and nothing happened after it (OC-open-26).
+- **Decision:** the label is **Save**. After a successful save:
+  - **Scenario A** (active tender To Be Tendered/Sent/Accepted) opens the Direct Current Tender Decision screen as a sheet over Edit Stops, with the same rules.
+  - **Scenario B** goes to the Tender tab with the new list as V2 over V1, the shipment stays in Review, and nothing is auto-tendered.
+  - Cancel discards.
+- **Source:** LINX-15671; Jana design review 2026-09-25 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-design-review-2026-09-25.vtt`) `@00:11:02–00:24:42`; user 2026-09-25 (sheet reuse).
+
+### DEC-201: Tender- or status-busy source orders are selectable; Save refuses them
+- **Previous:** greyed and unselectable at add (user ruling 2026-09-09, OC-open-11).
+- **Decision:** such orders are ordinary rows in Add Orders. Save refuses them with 15872's message and "Order impacted", nothing is written, and the planner stays on the screen with the work intact. Built S160 (`0be3880`).
+- **Source:** LINX-15870 "Save Validation Note", LINX-15872; Jana `@00:06:06`; user 2026-09-25.
+
+### DEC-202: A shipment's only order may be moved; an emptied shipment is hidden
+- **Previous:** blocked at add with a "last-order" tooltip (built earlier the same day, `641c562`); before that, an emptied source was left unhandled (OC-open-23).
+- **Decision:** the move is allowed. A shipment left with no orders is hidden from the Shipments list and search. The move built S160 (`0be3880`); hiding owed.
+- **Source:** Jana `@00:05:37` ("If it's a direct shipment… it's definitely going to turn into consolidation"); user 2026-09-25 ("empty shipments gets hidden"). LINX-15872 is silent on an emptied source.
+
+### DEC-203: An order's planning window anchors to its own stop (I4 refined)
+- **Previous:** every order's late edge = the shipment's pickup/delivery instant (I4, user 2026-08-19), so orders on a second pickup or delivery stop read outside their own window before any edit (70 of 74 consolidated order-change shipments; 1,023 stops overall).
+- **Decision:** each order's late pickup/delivery = its own stop's instant, and earliest = that minus the already-drawn offset. For the first pickup / last delivery stop this equals the shipment date, so the 2026-08-19 "late edge" ruling holds. Violations on arrival: 0. Zero faker draws, ids verified identical. Built S160 (`50f53f4`).
+- **Source:** user 2026-09-25; Jana `@00:16:29` (a consolidation's dates are the stops').
+
+### DEC-204: Shipment status derived from the lifecycle (HOLD / CONSOLIDATION / REVIEW / APPROVED / DONE)
+- **Previous:** pre-tender, sent and SpotBid shipments kept a blank status, and the tab carried the meaning (S151 "silent resolve", 2026-09-18).
+- **Decision:** Hold → `Hold`, Consolidation → `Consolidation`, sent → `Approved` (user: the word LINX-15872 uses), accepted → `Done`, every exception including SpotBid/Bid Review → `Review`. 15872's move block reads the lifecycle, not the label. Ripples into the search vocabulary and the Cognizant progression sheets. Build owed, needs a reseed. Closes OC-open-20.
+- **Source:** Rovo summary of Confluence *Shipment Status Transition-WIP* + LINX-5923 (2026-09-25); **WIP spec, so provisional**; user 2026-09-25.
+
+### DEC-205: A removed order becomes its own shipment, placed by the seed's lifecycle rule
+- **Previous:** an order left pending at Save just left the shipment (OC-open-19).
+- **Decision:** per LINX-15869, each removed order becomes a new single-order Direct shipment. Optimization is a backend process and isn't simulated; the new shipment lands where an untendered shipment already lands (Consolidation if consolidatable, else Hold). Build owed.
+- **Source:** LINX-15869 ("creates new shipment and moves the order to the new shipment"); user 2026-09-25.
+
+### DEC-206: A consolidation's tender dates are the stops' dates
+- **Previous:** unverified; the tender rows may show routing's dates.
+- **Decision:** pickup = the first pickup stop's planner-set date, delivery = the last delivery stop's; routing's dates are ignored for a consolidation. Verify + fix owed.
+- **Source:** Jana `@00:16:29`.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 25, 2026 | **DEC-200 through DEC-206** — Jana's 2026-09-25 design review of the consolidated order change + S160 rulings: Save runs 15671 Scenario A/B; busy source orders selectable and refused at Save (**reverses OC-open-11**); a shipment's only order movable and emptied shipments hidden; order windows anchor to their own stop (**I4 refined**); shipment statuses derived from the lifecycle (**reverses the S151 blank-status ruling**); removed orders become their own shipment; consolidation tender dates = the stops'. Most OC-open questions closed **by their stories**. **Previous state:** S159 build |
 | Sep 24, 2026 | **DEC-191 through DEC-199** — Jana's walkthrough of the consolidated order change + user rulings: Affected Orders pickup-only; one DB-backed source per value; **system placement replaces the S144 stop picker**; new label for Move To Pending; own-date-only stops; Direct field set + per-line blocks in the compare; prior/new side by side; per-leg distance; editable stop dates with out-of-window flags. **Previous state:** S142–S144 build |
 | Sep 24, 2026 | **DEC-190** — **TE-3, tender acceptance confirmation email**: added on a user ruling (2026-09-24, requested by Adam Shingle), **not** in LINX-15795/15796/15800 — no story AC covers it. Fires only on a recorded Accept (never Decline), reuses TE-1's layout/blocks and recipient formula verbatim, subject mirrors Dave's TE-1 rule with "Tender Acceptance Confirmation" swapped in (flagged as placeholder wording pending Adam/Dave sign-off, same as TE-1's own open subject question); the review page's Accepted banner grows one line naming the carrier's synthesized ops mailbox, gated to the Email method only (Email & EDI never shows response buttons, so this line is skipped there too). **Previous state:** no acceptance email; on-page confirmation only (15796 AC-03) |
 | Sep 22, 2026 | **DEC-177 through DEC-189** (S157) — **tender communication** (LINX-15795/15796/15800 + BR-11): the Tender Review page normalises the VD's spotbid copy, shows *Tendered* not *Offer expires* (no tender expiry exists), references the Odyssey Shipment ID and omits rows the VM lacks; Dave's subject line verbatim with his customer-short-name guess; the VD's five decline reasons pending Dave; synthesized `To:`; no carrier-side cascade; no Accept dialog; `Email Links Update` with a null `responseUser`; once-only enforced by `expectStatus` → 409; deterministic seeded tokens with ids verified unmoved (reseed owed); the `Manual` confirm dialog |
