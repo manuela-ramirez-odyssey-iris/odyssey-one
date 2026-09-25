@@ -1,17 +1,27 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import AddOrdersModal from './AddOrdersModal'
+import { useCandidateOrders } from '../../../api/queries/useCandidateOrders'
 
 const rows = ['100', '200', '300', '400', '500', '600', '700'].map((b, i) => ({
   orderNumber: `O${i + 1}`, sourceSellShipment: `S${i + 1}`, customer: 'Erco', origin: i === 2 ? 'Boston, MA US' : 'Atlanta, GA US',
   destination: 'Minneapolis, MN US', weight: '500 lbs', volume: '40 cbf', buyShipment: b, shipmentStatus: 'Review',
   tenderStatus: i === 6 ? 'Accepted' : 'Cancelled', shipmentType: 'Direct', ordersInShipment: [`O${i + 1}`], shipDate: '2026-06-04', deliveryDate: '2026-06-06',
-  blocked: i === 6,
+  blocked: i === 6, blockReason: i === 6 ? 'status' : null,
 }))
-vi.mock('../../../api/queries/useCandidateOrders', () => ({ useCandidateOrders: () => ({ data: rows, isPending: false, isError: false }) }))
+// OC-open-23 — a second row, blocked because it's the only order on its
+// shipment, distinct from the status block above.
+const lastOrderRow = {
+  orderNumber: 'O8', sourceSellShipment: 'S8', customer: 'Erco', origin: 'Atlanta, GA US', destination: 'Minneapolis, MN US',
+  weight: '500 lbs', volume: '40 cbf', buyShipment: '800', shipmentStatus: 'Review', tenderStatus: 'Cancelled',
+  shipmentType: 'Direct', ordersInShipment: ['O8'], shipDate: '2026-06-04', deliveryDate: '2026-06-06',
+  blocked: true, blockReason: 'last-order',
+}
+vi.mock('../../../api/queries/useCandidateOrders', () => ({ useCandidateOrders: vi.fn() }))
 
 afterEach(cleanup)
+beforeEach(() => useCandidateOrders.mockImplementation(() => ({ data: rows, isPending: false, isError: false })))
 const setup = () => {
   const onAdd = vi.fn(); const onClose = vi.fn()
   render(<AddOrdersModal sellShipment="9" customerId="ERCO" customerName="Erco" excludeOrderIds={[]} onAdd={onAdd} onClose={onClose} />)
@@ -79,4 +89,16 @@ it('Filter opens the inner Filters modal (back arrow); Apply filters the grid; C
   fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
   fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
   expect(screen.getByText('Results (7)')).toBeTruthy()
+})
+
+// OC-open-23 — a row blocked for being its shipment's only order gets its
+// own tooltip text, distinct from the OC-open-11 status tooltip above.
+it('a last-order-blocked row is not selectable and explains why on hover, with the last-order tooltip', () => {
+  useCandidateOrders.mockImplementation(() => ({ data: [...rows, lastOrderRow], isPending: false, isError: false }))
+  setup()
+  const boxes = screen.getAllByRole('checkbox').slice(1)
+  expect(boxes[7].disabled).toBe(true)   // O8, appended after the 7 base rows
+  const o8 = screen.getAllByText('O8').find((el) => el.closest('[data-tooltip-trigger]'))
+  fireEvent.mouseEnter(o8.closest('[data-tooltip-trigger]'))
+  expect(screen.getByRole('tooltip').textContent).toContain('only order on its shipment')
 })

@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -641,13 +641,55 @@ describe('resolveOrderChange', () => {
     const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }])
     assert.match(q.text, /'\{orderChange,consolidation,stopChanges\}', '\{\}'::jsonb/)
     assert.match(q.text, /'\{orderChange,consolidation,locationChange\}', 'false'::jsonb/)
-    assert.deepEqual(q.values, [JSON.stringify([{ stopSequence: 1 }]), JSON.stringify([{ orderNumber: 'A' }]), ['A'], '1', 'S1'])
+    assert.deepEqual(q.values, [
+      JSON.stringify([{ stopSequence: 1 }]), JSON.stringify([{ orderNumber: 'A' }]), ['A'], '1', 'S1',
+      '0', '0', [], [], 'Direct',
+    ])
   })
 
   it('save-stops with resetChanges:false skips the consolidation-badge reset (source shipment in the 15872 move)', () => {
     const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }], { resetChanges: false })
     assert.ok(!/stopChanges/.test(q.text))
     assert.ok(!/locationChange/.test(q.text))
+  })
+
+  // ── OC-open-22: list columns follow the roster in the same write ────────
+  describe('computeListAggregates', () => {
+    it('sums weight/lines, dedupes po/pickup numbers, and picks Direct/Consolidation, matching generate.mjs', () => {
+      const orderList = [
+        { orderNumber: 'A', grossWeightValue: 500, orderLines: [{}, {}], poNumber: 'PO-1', pickupNumber: 'PU-1' },
+        { orderNumber: 'B', grossWeightValue: 250, orderLines: [{}], poNumber: 'PO-1', pickupNumber: 'PU-2' },
+        { orderNumber: 'C', grossWeightValue: 100, orderLines: [{}, {}, {}], poNumber: null, pickupNumber: null },
+      ]
+      assert.deepEqual(computeListAggregates(orderList), {
+        grossWeight: '850', loadCount: '6', poNumbers: ['PO-1'], pickupNumbers: ['PU-1', 'PU-2'], shipmentType: 'Consolidation',
+      })
+    })
+
+    it('a single order is Direct, not Consolidation', () => {
+      const agg = computeListAggregates([{ orderNumber: 'A', grossWeightValue: 500, orderLines: [{}], poNumber: 'PO-1', pickupNumber: 'PU-1' }])
+      assert.equal(agg.shipmentType, 'Direct')
+    })
+
+    it('an empty orderList sums to zero, not NaN or a blocked shipmentType', () => {
+      assert.deepEqual(computeListAggregates([]), { grossWeight: '0', loadCount: '0', poNumbers: [], pickupNumbers: [], shipmentType: 'Direct' })
+    })
+  })
+
+  it('buildSaveStopsQuery carries the recomputed list columns for a target that gained an order', () => {
+    const orderList = [
+      { orderNumber: 'A', grossWeightValue: 500, orderLines: [{}], poNumber: 'PO-1', pickupNumber: 'PU-1' },
+      { orderNumber: 'E', grossWeightValue: 700, orderLines: [{}, {}], poNumber: 'PO-9', pickupNumber: 'PU-9' },   // copied in from a source
+    ]
+    const q = buildSaveStopsQuery('9', [{ stopSequence: 1 }], orderList)
+    assert.match(q.text, /gross_weight = \$6, load_count = \$7, po_numbers = \$8, pickup_numbers = \$9, shipment_type = \$10/)
+    assert.deepEqual(q.values.slice(5), ['1200', '3', ['PO-1', 'PO-9'], ['PU-1', 'PU-9'], 'Consolidation'])
+  })
+
+  it('buildSaveStopsQuery carries the recomputed list columns for a source that lost an order down to Direct', () => {
+    const orderList = [{ orderNumber: 'F', grossWeightValue: 300, orderLines: [{}], poNumber: 'PO-2', pickupNumber: 'PU-2' }]
+    const q = buildSaveStopsQuery('77', [{ stopSequence: 1 }], orderList, { resetChanges: false })
+    assert.deepEqual(q.values.slice(5), ['300', '1', ['PO-2'], ['PU-2'], 'Direct'])
   })
 
   it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution', async () => {
@@ -758,7 +800,10 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
   })
 
   it('a failing write rolls back and writes nothing further', async () => {
-    const src = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }], shipmentStopList: [] }
+    // Two orders on the source (only E moves) — OC-open-23's backstop would
+    // otherwise block this pick before BEGIN, and this test is about the
+    // ROLLBACK path, not that check.
+    const src = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'G', grossWeightValue: 3 }], shipmentStopList: [] }
     const { db, calls, state } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src }, { failWrite: true })
     await assert.rejects(() => resolveOrderChange({ params: ['9'], body, db }))
     const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
@@ -774,6 +819,34 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     )
     assert.ok(!calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
     assert.ok(!calls.some((q) => /shipmentStopList/.test(q.text ?? '')))
+  })
+
+  // ── OC-open-23 server backstop: a single-order source is pre-blocked
+  // client-side, but a MULTI-pick can still empty a multi-order source by
+  // taking every one of its orders in the same Save. ──────────────────────
+  it('refuses a multi-pick that covers every order of a source — same shape, nothing written', async () => {
+    const src = { orderList: [{ orderNumber: 'E' }, { orderNumber: 'F' }], shipmentStopList: [] }
+    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    const emptyingBody = {
+      action: 'save-stops', priorTenderStatus: 'Sent',
+      stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'E', 'F'], sourceStopSequence: null }],
+      externalOrders: [{ orderNumber: 'E', sourceSellShipment: '77' }, { orderNumber: 'F', sourceSellShipment: '77' }],
+    }
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['9'], body: emptyingBody, db }),
+      (e) => e.status === 400 && /cannot be moved/.test(e.message) && /Order impacted: E, F/.test(e.message),
+    )
+    assert.ok(!calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
+  })
+
+  it('a partial pick that leaves at least one order on a multi-order source is not blocked', async () => {
+    const src = {
+      orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'F', grossWeightValue: 1 }],
+      shipmentStopList: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['F'] }],
+    }
+    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    await resolveOrderChange({ params: ['9'], body, db })   // body only moves E, leaves F
+    assert.ok(calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
   })
 })
 

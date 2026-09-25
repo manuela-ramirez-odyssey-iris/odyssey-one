@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Alert, Button, ComboBox, DatePicker, Dropdown, FormField, GroupTable, ModalMedium, Spinner } from '@odyssey/ui'
-import { EMPTY_FILTERS, SHIPMENT_STATUSES, TENDER_STATUSES, MOVE_BLOCKED_TOOLTIP, filterCandidates } from '../../../../api/_lib/candidateOrders.mjs'
+import { EMPTY_FILTERS, SHIPMENT_STATUSES, TENDER_STATUSES, MOVE_BLOCKED_TOOLTIP, LAST_ORDER_MOVE_TOOLTIP, filterCandidates } from '../../../../api/_lib/candidateOrders.mjs'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import { rowsToFlatGroups } from '../../shipments/order-change/comparisonHelpers.jsx'
 import { useCandidateOrders } from '../../../api/queries/useCandidateOrders'
@@ -19,12 +19,16 @@ const COLUMNS = [
   { key: 'shipmentType', label: 'Shipment Type' }, { key: 'ordersInShipment', label: 'Orders in the Shipment' },
 ]
 // D6 — a blocked row reads greyed; its Order Number explains why on hover.
+// OC-open-23 adds a second reason (last-order) alongside the OC-open-11
+// status block — the tooltip text follows blockReason, status wins on read
+// (candidateOrders.mjs blockReasonFor) so this lookup never has to choose.
+const TOOLTIP_BY_REASON = { status: MOVE_BLOCKED_TOOLTIP, 'last-order': LAST_ORDER_MOVE_TOOLTIP }
 const cell = (r, c) => {
   const text = c.key === 'ordersInShipment' ? r.ordersInShipment.join(' - ') : (r[c.key] || '--')
   if (!r.blocked) return text
   const span = <span className="add-orders__blocked">{text}</span>
   return c.key === 'orderNumber'
-    ? <TooltipTrigger asSpan tooltipProps={{ groups: [{ content: MOVE_BLOCKED_TOOLTIP }] }}>{span}</TooltipTrigger>
+    ? <TooltipTrigger asSpan tooltipProps={{ groups: [{ content: TOOLTIP_BY_REASON[r.blockReason] ?? MOVE_BLOCKED_TOOLTIP }] }}>{span}</TooltipTrigger>
     : span
 }
 const opts = (list) => [{ value: '', label: 'Any' }, ...list.map((v) => ({ value: v, label: v }))]

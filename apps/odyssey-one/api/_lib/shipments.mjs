@@ -385,6 +385,28 @@ export function mergeStops(detail, rows) {
 // and Save).
 const MOVE_MESSAGE = 'The selected order cannot be moved because its current shipment is approved, completed, or involved in an active tender or bid process. Edit the source shipment or cancel the applicable tender or bid action before moving the order.'
 
+// OC-open-22 — the grid's list columns are derived from the order roster,
+// recomputed the SAME way tools/generate.mjs derives them for the row
+// (~L850-858 pickup/po numbers, L2201 shipmentType, L2234-2236 grossWeight/
+// loadCount) so a save-stops move can't leave the grid disagreeing with the
+// detail it just wrote. One pure function, called for the target and every
+// source in buildSaveStopsQuery below.
+export function computeListAggregates(orderList) {
+  const grossWeight = orderList.reduce((s, o) => s + (o.grossWeightValue ?? 0), 0)
+  const loadCount = orderList.reduce((s, o) => s + (o.orderLines?.length ?? 0), 0)
+  // Dedupe + order exactly as the generator's `[...new Set(orders.map(...))]`.
+  const poNumbers = [...new Set(orderList.map((o) => o.poNumber).filter(Boolean))]
+  const pickupNumbers = [...new Set(orderList.map((o) => o.pickupNumber).filter(Boolean))]
+  return {
+    grossWeight: String(grossWeight),
+    loadCount: String(loadCount),
+    poNumbers,
+    pickupNumbers,
+    // generate.mjs L2201 — Direct (1 mapped order) vs Consolidation (>1).
+    shipmentType: orderList.length > 1 ? 'Consolidation' : 'Direct',
+  }
+}
+
 export function buildSourceShipmentsQuery(sellShipments) {
   return {
     text: `SELECT sell_shipment AS "sellShipment", shipment_status AS "shipmentStatus",
@@ -405,7 +427,7 @@ async function pullExternalOrders(db, externalOrders) {
   const { rows } = await db.query(buildSourceShipmentsQuery([...new Set(deduped.map((e) => e.sourceSellShipment))]))
   const bySell = new Map(rows.map((r) => [r.sellShipment, r]))
   const blocked = []
-  const records = []
+  const picks = []   // survivors of the status check, still keyed to their source
   for (const { orderNumber, sourceSellShipment } of deduped) {
     const src = bySell.get(sourceSellShipment)
     const rec = src?.detail?.orderList?.find((o) => idOf(o) === orderNumber)
@@ -413,14 +435,28 @@ async function pullExternalOrders(db, externalOrders) {
       blocked.push(orderNumber)
       continue
     }
-    records.push(rec)
+    picks.push({ orderNumber, sourceSellShipment, rec })
+  }
+  // OC-open-23 — a single-order source is pre-blocked client-side
+  // (candidateOrders.mjs blockReason 'last-order'), but a multi-pick can
+  // still empty a MULTI-order source by picking every one of its orders in
+  // the same Save. This is the backstop: same rejection shape, checked here
+  // before any write.
+  const bySource = new Map()
+  for (const p of picks) {
+    if (!bySource.has(p.sourceSellShipment)) bySource.set(p.sourceSellShipment, [])
+    bySource.get(p.sourceSellShipment).push(p)
+  }
+  for (const [sell, ps] of bySource) {
+    const total = bySell.get(sell)?.detail?.orderList?.length ?? 0
+    if (ps.length >= total) blocked.push(...ps.map((p) => p.orderNumber))
   }
   if (blocked.length) {
     const e = new Error(`${MOVE_MESSAGE} Order impacted: ${blocked.join(', ')}`)
     e.status = 400
     throw e
   }
-  return { records, sources: rows }
+  return { records: picks.map((p) => p.rec), sources: rows }
 }
 
 // LINX-15872 "Source Shipment Update": the moved orders leave the source's
@@ -479,10 +515,18 @@ export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChang
   const detailSql = resetChanges
     ? `jsonb_set(jsonb_set(${base}, '{orderChange,consolidation,stopChanges}', '{}'::jsonb), '{orderChange,consolidation,locationChange}', 'false'::jsonb)`
     : base
+  // OC-open-22 — gross_weight/load_count/po_numbers/pickup_numbers/shipment_type
+  // land in the SAME write as orders/order_count, recomputed from this call's
+  // orderList (computeListAggregates above).
+  const agg = computeListAggregates(orderList)
   return {
-    text: `UPDATE shipments SET detail = ${detailSql}, orders = $3, order_count = $4
+    text: `UPDATE shipments SET detail = ${detailSql}, orders = $3, order_count = $4,
+             gross_weight = $6, load_count = $7, po_numbers = $8, pickup_numbers = $9, shipment_type = $10
            WHERE sell_shipment = $5 RETURNING sell_shipment`,
-    values: [JSON.stringify(stops), JSON.stringify(orderList), ids, String(ids.length), sellShipment],
+    values: [
+      JSON.stringify(stops), JSON.stringify(orderList), ids, String(ids.length), sellShipment,
+      agg.grossWeight, agg.loadCount, agg.poNumbers, agg.pickupNumbers, agg.shipmentType,
+    ],
   }
 }
 
