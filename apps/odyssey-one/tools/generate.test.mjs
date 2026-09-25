@@ -4,7 +4,7 @@ import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 import { totalMiles } from '../src/utils/legMiles.js'
-import { windowViolations, parseStamp } from '../src/components/detail/order-change/stopsSandbox.js'
+import { windowViolations, parseStamp, initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
 
 // generate.mjs never does real per-zone Date math: every Date (baseDate,
 // stopAt, orderPickupLate, …) is built via setHours/getHours in the TEST
@@ -1837,4 +1837,67 @@ test('a tender response is internally coherent (LINX-15895)', () => {
   assert.ok(unanswered > 1000, `only ${unanswered} unanswered options`)
   assert.ok(manual > 100, `only ${manual} manually-recorded responses — responseUser is unreachable`)
   assert.ok(cancelled > 100, `only ${cancelled} cancelled options`)
+})
+
+// Bug fix (S160 follow-up, live 25390278) — a consolidated order-change with
+// a pickup LOCATION change used to seed summaryChanges.distance.new by
+// swapping the changed pickup stop's coordinates in place, which drops the
+// original site entirely. The Edit Shipment Stops editor (stopsSandbox.js
+// initSandbox) instead creates a NEW stop at the relocated site and keeps
+// the original stop (other orders stay on it), so the header disagreed with
+// the "All Stops" total the editor actually opens with (Jana 2026-09-24,
+// DEC-192: every number in this feature must agree). This test independently
+// rebuilds initSandbox's VM-shaped input straight off the raw seeded DTO
+// (shipmentStopList/orderList/consolidation.stopChanges) — same fields
+// mapSellShipmentOutToDetail.ts hands the real editor — and asserts the
+// seeded "new" distance equals totalMiles over what initSandbox actually
+// opens with, for every location-change consolidation in the dataset.
+test('S160: consolidation.summaryChanges.distance.new agrees with the Edit Stops editor\'s own opening "All Stops" total (location-change rows)', () => {
+  const siteKeyOf = (site, postal) => (site ? `${site}|${postal ?? ''}` : '')
+  const stopLocationOf = (p) => {
+    const regionPostalCountry = [p.region, p.postal, p.country].filter(Boolean).join(' ')
+    const parts = [p.facilityName, p.city, regionPostalCountry || undefined].filter(Boolean)
+    return parts.length ? parts.join(', ') : '--'
+  }
+  const siteVmOf = (a) => {
+    if (!a) return undefined
+    const facilityName = a.externalIdentifier
+    return {
+      siteKey: siteKeyOf(facilityName, a.postal),
+      location: stopLocationOf({ facilityName, city: a.city, region: a.region, postal: a.postal, country: a.country }),
+      site: { facilityName, city: a.city, region: a.region, postal: a.postal, country: a.country, lat: a.lat, lng: a.lng, timeZone: a.timeZone },
+    }
+  }
+
+  const ds = buildDataset()
+  let checked = 0
+  for (const s of ds.shipments) {
+    if (s.category !== 'order-change') continue
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange?.consolidation
+    if (!c || !c.locationChange) continue
+    checked++
+
+    const sbStops = d.shipmentStopList.map((st) => ({
+      stopNumber: st.stopSequence,
+      type: st.stopType,
+      orderIds: st.orderIds,
+      siteKey: siteKeyOf(st.facilityName, st.postal),
+      location: stopLocationOf(st),
+      lat: st.lat,
+      lng: st.lng,
+    }))
+    const sbOrders = d.orderList.map((o) => ({
+      orderNumber: o.orderNumber,
+      shipFrom: siteVmOf(o.origin),
+      shipTo: siteVmOf(o.destination),
+      earliestPickup: o.scheduledShipDate ?? o.requestedShipDate,
+      earliestDelivery: o.scheduledDeliveryDate ?? o.requestedDeliveryDate,
+    }))
+    const sb = initSandbox({ stops: sbStops, consolidation: { stopChanges: c.stopChanges }, orders: sbOrders })
+    const expected = totalMiles(sb.stops)
+    assert.equal(c.summaryChanges.distance.new, expected,
+      `${s.sellShipment}: summaryChanges.distance.new (${c.summaryChanges.distance.new}) != editor's All Stops total (${expected})`)
+  }
+  assert.ok(checked > 0, 'no location-change consolidation rows found — test is vacuous')
 })

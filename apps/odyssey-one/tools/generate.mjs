@@ -88,6 +88,14 @@ import { responseCommentFor } from '../src/data/responseComments.js'
 // Plan B2 (DEC-198) — single distance function shared with the Edit Stops
 // sandbox (stopsSandbox.js), so the seed and the live UI can't disagree.
 import { totalMiles } from '../src/utils/legMiles.js'
+// Bug fix (S160 follow-up, live 25390278) — summaryChanges.distance.new must
+// be computed over the EXACT stop structure the editor opens with (a
+// relocated order gets a NEW stop at the new site; its original stop stays,
+// other orders stay put), not a hand-rolled "swap coordinates in place"
+// stand-in. initSandbox IS that placement logic (LINX-15668) — importing it
+// here (same accepted pattern as legMiles.js above) means one copy of the
+// rule, never two that can drift.
+import { initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -3021,6 +3029,30 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
 // can't renumber shipment ids just because this feature exists. rnd draw
 // ORDER only has to stay stable within this function (it doesn't feed id
 // allocation), so reordering draws below is safe.
+// DEC-193 — same key/display convention mapSellShipmentOutToDetail.ts uses
+// (siteKeyOf/stopLocationOf there) so a stop and an order's shipFrom/shipTo
+// agree on WHERE. Re-declared here rather than imported: that mapper is a
+// .ts file this .mjs generator can't import without a loader; these two are
+// plain string formatting, not the placement RULE itself (that's initSandbox,
+// imported above).
+function siteKeyOf(site, postal) { return site ? `${site}|${postal ?? ''}` : ''; }
+function stopLocationOf(p) {
+  const regionPostalCountry = [p.region, p.postal, p.country].filter(Boolean).join(' ');
+  const parts = [p.facilityName, p.city, regionPostalCountry || undefined].filter(Boolean);
+  return parts.length ? parts.join(', ') : '--';
+}
+// Mirrors mapOrder's shipFrom/shipTo shape (siteKey/location/site) for
+// whichever fields initSandbox's placeOrder actually reads.
+function siteVmOf(a) {
+  if (!a) return undefined;
+  const facilityName = a.externalIdentifier;
+  return {
+    siteKey: siteKeyOf(facilityName, a.postal),
+    location: stopLocationOf({ facilityName, city: a.city, region: a.region, postal: a.postal, country: a.country }),
+    site: { facilityName, city: a.city, region: a.region, postal: a.postal, country: a.country, lat: a.lat, lng: a.lng, timeZone: a.timeZone },
+  };
+}
+
 function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   const {
     tenderStatus, grossWeight, totalVolume, distanceMiles, baseDate, originTz, freightTerms, customer,
@@ -3266,15 +3298,31 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     grossWeight: { prior: grossWeight - pickupDelta('weight'), new: grossWeight },
     volume: { prior: totalVolume - pickupDelta('volume'), new: totalVolume },
   };
-  // B2 (DEC-198) — recompute the hypothetical post-location-change total
-  // with the SAME legMiles function the header/routing use, over the stop
-  // sequence with the changed pickup's coordinates swapped in.
+  // B2/S160 follow-up (DEC-198, live 25390278) — recompute the post-change
+  // total by running initSandbox itself (same VM shape mapSellShipmentOutToDetail
+  // hands it: stopNumber/type/siteKey/location + lat/lng on stops,
+  // shipFrom/shipTo.site on orders), then summing legMiles over ITS resulting
+  // stop list — never a hand-built "swap this stop's coordinates" stand-in,
+  // which drops the original site and invents legs the editor never shows.
   if (locationChange) {
-    const hypotheticalStops = stops.map((s) => {
-      const loc = newLocByStopSeq.get(s.stopSequence);
-      return loc ? { ...s, lat: loc.lat, lng: loc.lng } : s;
-    });
-    summaryChanges.distance = { prior: distanceMiles, new: totalMiles(hypotheticalStops) };
+    const sbStops = stops.map((s) => ({
+      stopNumber: s.stopSequence,
+      type: s.stopType,
+      orderIds: s.orderIds,
+      siteKey: siteKeyOf(s.facilityName, s.postal),
+      location: stopLocationOf(s),
+      lat: s.lat,
+      lng: s.lng,
+    }));
+    const sbOrders = orderList.map((o) => ({
+      orderNumber: o.orderNumber,
+      shipFrom: siteVmOf(o.origin),
+      shipTo: siteVmOf(o.destination),
+      earliestPickup: o.scheduledShipDate ?? o.requestedShipDate,
+      earliestDelivery: o.scheduledDeliveryDate ?? o.requestedDeliveryDate,
+    }));
+    const sb = initSandbox({ stops: sbStops, consolidation: { stopChanges }, orders: sbOrders });
+    summaryChanges.distance = { prior: distanceMiles, new: totalMiles(sb.stops) };
   }
 
   // B1 (DEC-192) — every cost here reads from the SAME two tender lists View
