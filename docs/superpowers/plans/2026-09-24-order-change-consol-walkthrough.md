@@ -79,10 +79,38 @@ In `buildConsolidationChange`:
 - A location change lives only in `orderChange.consolidation.stopChanges`; the order's own `origin`/`destination` still hold the old site. Setting such an order aside and adding it back puts it at the OLD site. The seed must write the new site onto the order record too.
 - Order `origin.address1` differs from its stop's `address1` for the same site: one address per site.
 
+### B5. List aggregates follow a move (OC-open-22, user 2026-09-25). No reseed needed
+`api/_lib/shipments.mjs` `buildSaveStopsQuery` already writes `detail`, `orders` and `order_count`. The same UPDATE (target AND every source, same transaction) must also rewrite the list columns derived from the order roster, recomputed from the resulting `orderList` and stops exactly as `tools/generate.mjs` derives them for the row (~L2195–2260):
+- `gross_weight` = Σ order gross weight, in the generator's `String(n)` format.
+- `load_count` = Σ order line counts.
+- `po_numbers`, `pickup_numbers` = the orders' own values, same order and dedupe as the generator.
+- `shipment_type` = `'Consolidation'` when more than one order, else `'Direct'` (generator L2201).
+- Leave origin/destination/dates alone (the stops' first/last are the planner's, and the row's date columns are already out of scope for this story).
+Tests: extend `shipments.test.mjs`. The query carries the recomputed values for a target that gained an order AND a source that lost one.
+
+### B6. Block a move that would empty its source (OC-open-23, user 2026-09-25). No reseed needed
+LINX-15872 never says what happens when a source loses every order. User ruling: **block it at add**, same pattern as OC-open-11's blocked rows.
+- `api/_lib/candidateOrders.mjs` `buildCandidateRows`: a row is also `blocked` when its source shipment carries one order (`ordersInShipment.length === 1`). Add `blockReason: 'status' | 'last-order'` so the tooltip can say which. New constant `LAST_ORDER_MOVE_TOOLTIP = 'This order cannot be moved: it is the only order on its shipment.'`. `AddOrdersModal` picks the tooltip by `blockReason`.
+- Multi-pick can still empty a multi-order source (all its orders picked together). The server is the backstop: `pullExternalOrders` rejects when the picks cover **every** order of a source, 400 with `Order impacted: …`, nothing written (the same shape as the status block).
+- Measured consequence: 971 of 4,536 mock orders (21%) sit on single-order shipments and will read greyed.
+Tests: candidateOrders (single-order source blocked, reason set), shipments (all-orders-of-a-source pick → 400, no BEGIN), AddOrdersModal (tooltip by reason).
+
 ### B4. Reseed + verification
 - Regenerate. Diff shipment/order **ids** before vs after (must be identical). Reseed Neon. **Explicit user go needed for the reseed.**
 - Probe 3 consolidated shipments live: the header cost equals View Routing's selected row, the header distance equals the sum of legs, and each compare modal has line blocks.
 
-## Order of work
+### Wave B hard constraints (every generator task)
+- **Zero new faker draws, zero removed ones.** Values that must change but come from a faker draw (stop `address1`, B3b) keep the draw and discard the value (S151's accessorials trick). New randomness uses only the function's own id-keyed `rnd` (`':occ'`).
+- **Id stability is verified, not argued:** regenerate, then diff every `sellShipment`/`buyShipment`/order number against the pre-change dataset. The diff must be empty.
+- `data-pools.mjs` is a data migration (its header says so). Adding `lat`/`lng` is additive, and `seed.mjs` `locations` inserts stay unchanged unless a column exists.
+- The UI reads the seeded numbers. The only live recomputation is the sandbox's (A6 legs/total, A7 flags), and it imports the same `legMiles` the seed uses.
+- Out of scope: OC-open-20 (awaiting the user), 19/24/25/26 (halted).
+
+## Order of work (updated 2026-09-25, S160)
+Wave A shipped in S159. Remaining work, as two parallel tracks over disjoint files:
+- **Track 1 (API/UI, no reseed):** B5 + B6. Files: `api/_lib/shipments.mjs`, `api/_lib/candidateOrders.mjs`, `AddOrdersModal.jsx` + their tests.
+- **Track 2 (generator + reseed):** B1 → B2 (incl. A6 wiring in `stopsSandbox.js`/`EditStopsView.jsx`) → B3 → B3b, then B4. Files: `tools/generate.mjs`, `tools/data-pools.mjs`, new `src/utils/legMiles.js`, the order-change UI that reads the new fields.
+
+## Order of work (original, S159)
 A1–A5 (small, independent) → A7 → A8 → A6 UI → **[user go: reseed]** → B1–B3 → B4.
 Every step: `npx vitest run` for touched files; the app is run once at the end of each wave.
