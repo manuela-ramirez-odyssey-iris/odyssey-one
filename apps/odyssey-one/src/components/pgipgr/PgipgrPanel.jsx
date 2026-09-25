@@ -51,7 +51,14 @@ export default function PgipgrPanel({ activeTab }) {
   }
 
   if (tab === 'all-sell-shipments') {
-    return <PgipgrTable rows={ALL_SELL_SHIPMENTS_ROWS} columns={ALL_SELL_SHIPMENTS_COLUMNS} exportFilename="all-sell-shipments" />
+    return (
+      <PgipgrTable
+        rows={ALL_SELL_SHIPMENTS_ROWS}
+        columns={ALL_SELL_SHIPMENTS_COLUMNS}
+        exportFilename="all-sell-shipments"
+        editAction
+      />
+    )
   }
 
   if (tab === 'rating-errors') {

@@ -79,6 +79,15 @@ async function openViewShipment() {
   await screen.findByRole('heading', { name: 'Shipment Details' })
 }
 
+// Opens SELL-EDIT mode via the All Sell Shipments row's Edit action.
+async function openSellEditShipment() {
+  await screen.findByText('Executed Shipment Overview')
+  fireEvent.click(screen.getByText('All Sell Shipments', { selector: '.widget__title' }))
+  const editButton = await screen.findByRole('button', { name: 'Edit shipment 879087901' })
+  fireEvent.click(editButton)
+  await screen.findByRole('heading', { name: 'Executed Shipment: 1811' })
+}
+
 // Each test mounts the REAL ShipmentsRoute (heavy tree) as the sheet base —
 // slower than average under a full-suite parallel run; a generous per-test
 // timeout avoids flaking on CPU contention rather than a real regression.
@@ -195,5 +204,48 @@ describe('ExecutedShipmentDetailsRoute — sheet policy (S159)', { timeout: 1500
     fireEvent.click(screen.getByRole('button', { name: 'Shipments' }))
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Shipment Details' })).toBeNull())
     expect(screen.getByText('Executed Shipment Overview')).toBeTruthy()
+  })
+
+  // Jira story — All Sell Shipments table.
+  test('All Sell Shipments table has a "Message Type" column', async () => {
+    renderApp()
+    await screen.findByText('Executed Shipment Overview')
+    fireEvent.click(screen.getByText('All Sell Shipments', { selector: '.widget__title' }))
+    expect(await screen.findByText('Message Type')).toBeTruthy()
+  })
+
+  test('SELL-EDIT: row Edit action opens sell-edit mode with exactly 3 editable controls', async () => {
+    renderApp()
+    await openSellEditShipment()
+    // Every other field is read-only — no footer/error copy from EDIT mode.
+    expect(screen.queryByText('1 Error: Validation Required')).toBeNull()
+    expect(screen.queryByLabelText('MBoL #')).toBeNull()
+    // The 3-field whitelist: Equipment (Header), Shipment Weight ×2 (Header +
+    // Line > Product Details) — same label used twice by design.
+    expect(screen.getAllByLabelText('Equipment')).toHaveLength(1)
+    expect(screen.getAllByLabelText('Shipment Weight')).toHaveLength(2)
+    // Save/Cancel footer, not Mark as shipped.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Mark as shipped' })).toBeNull()
+  })
+
+  test('SELL-EDIT: Save closes the sheet and toasts "Shipment updated."', async () => {
+    renderApp()
+    await openSellEditShipment()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Executed Shipment: 1811' })).toBeNull())
+    expect(screen.getByText('Executed Shipment Overview')).toBeTruthy()
+    expect(await screen.findByText('Shipment updated.')).toBeTruthy()
+  })
+
+  test('SELL-EDIT: clicking the Shipment ID link still opens read-only view', async () => {
+    renderApp()
+    await screen.findByText('Executed Shipment Overview')
+    fireEvent.click(screen.getByText('All Sell Shipments', { selector: '.widget__title' }))
+    const link = await screen.findByRole('button', { name: '879087901' })
+    fireEvent.click(link)
+    await screen.findByRole('heading', { name: 'Shipment Details' })
+    expect(screen.queryByLabelText('Equipment')).toBeNull()
   })
 })

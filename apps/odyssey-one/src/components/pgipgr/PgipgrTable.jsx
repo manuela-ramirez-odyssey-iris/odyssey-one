@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useReactTable, getCoreRowModel, getSortedRowModel, createColumnHelper } from '@tanstack/react-table'
-import { Bell, Upload } from 'lucide-react'
+import { Bell, Pencil, Upload } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { DataTable, Checkbox, Button } from '@odyssey/ui'
 import useSheet from '../../routes/useSheet'
@@ -16,10 +16,13 @@ function escapeCSV(val) {
 
 // PgipgrTable — one sortable DataTable per PGI/PGR category card (S159). All
 // four cards share the same shell (checkbox select, a linked Shipment ID
-// column, a trailing Alert bell column, an "N Records Found" + Export
-// actions row); `columns` (FULL_COLUMNS / ALL_SELL_SHIPMENTS_COLUMNS in
-// pgipgrTableData.js) supplies the per-card data columns in between.
-export default function PgipgrTable({ rows, columns, toolbarActions, exportFilename, linkMode = 'view' }) {
+// column, an "N Records Found" + Export actions row); `columns`
+// (FULL_COLUMNS / ALL_SELL_SHIPMENTS_COLUMNS in pgipgrTableData.js) supplies
+// the per-card data columns in between. The trailing sticky-right column is
+// the Alert bell on 3 of the 4 cards, or a per-row Edit action (Jira story:
+// All Sell Shipments only, `editAction`) — DataTable only supports one
+// sticky-right offset (packages/ui off-limits), so it's one slot, not two.
+export default function PgipgrTable({ rows, columns, toolbarActions, exportFilename, linkMode = 'view', editAction = false }) {
   const { openSheet } = useSheet()
   const linkColumn = columns.find((c) => c.link)
   const [sorting, setSorting] = useState([{ id: linkColumn.key, desc: false }])
@@ -71,11 +74,21 @@ export default function PgipgrTable({ rows, columns, toolbarActions, exportFilen
     columnHelper.display({
       id: 'alert',
       enableSorting: false,
-      header: 'Alert',
-      cell: () => <Bell {...ICON_MD} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />,
+      header: editAction ? 'Edit' : 'Alert',
+      cell: editAction
+        ? ({ row }) => (
+          <Button
+            variant="icon"
+            size="sm"
+            icon={<Pencil {...ICON_MD} />}
+            aria-label={`Edit shipment ${row.original[linkColumn.key]}`}
+            onClick={() => openSheet(`/shipments/executed/${row.original[linkColumn.key]}?mode=sell-edit`)}
+          />
+        )
+        : () => <Bell {...ICON_MD} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />,
       meta: { sticky: 'right', fixedWidth: true },
     }),
-  ], [columns, linkColumn.key, openSheet, linkMode])
+  ], [columns, linkColumn.key, openSheet, linkMode, editAction])
 
   const table = useReactTable({
     data: rows,

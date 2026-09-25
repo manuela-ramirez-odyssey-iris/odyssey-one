@@ -3,31 +3,45 @@ import { useSearchParams } from 'react-router-dom'
 import { Breadcrumb, PageHeader, Alert, Button, StepperButtonsFooter } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import ExecutedShipmentAccordions, { SECTION_KEYS } from '../../components/pgipgr/ExecutedShipmentAccordions'
-import { initialFieldValues, SELL_SHIPMENT_NUMBER } from '../../components/pgipgr/executedShipmentData'
+import { initialFieldValues, SELL_SHIPMENT_NUMBER, SELL_EDIT_FIELD_IDS } from '../../components/pgipgr/executedShipmentData'
 import { showToast } from '../../utils/toast'
 import useSheet from '../useSheet'
 
-// /shipments/executed/:id — Executed Shipment Details, two modes off the
-// SAME data module + accordion renderer (2026-09-24 Figma pass,
+// /shipments/executed/:id — Executed Shipment Details, three modes off the
+// SAME data module + accordion renderer (2026-09-24/25 Figma + Jira passes,
 // x38TOJGsNryYl3LsKhCtSc):
 //   EDIT       (?mode=edit, node 2577:77880) — from Post PGI/PGR Errors rows.
-//              Editable inputs, red error fields, sticky footer.
-//   READ-ONLY  (?mode=view, node 2701:9930, default) — from All Sell
-//              Shipments / Rating Errors / Not Responsible rows. Label/value
-//              text only, no footer.
+//              Editable inputs, red error fields, sticky footer (Cancel /
+//              Mark as shipped).
+//   SELL-EDIT  (?mode=sell-edit) — from the All Sell Shipments table's
+//              per-row Edit action (Jira story). Renders VIEW-shaped
+//              (TitleSubtitle, no error states) except a 3-field editable
+//              whitelist (SELL_EDIT_FIELD_IDS): Equipment + Shipment Weight
+//              (Header), Shipment Weight (Line > Product Details). Sticky
+//              footer labeled Cancel / Save.
+//   READ-ONLY  (?mode=view or absent, node 2701:9930, default) — from All
+//              Sell Shipments (Shipment ID link) / Rating Errors / Not
+//              Responsible rows. Label/value text only, no footer.
 // `?mode` travels in the sheet URL itself (PgipgrTable's openSheet call) so
 // it survives the sheet stack the same way the path does.
 //
-// UI-only: EDIT fields are editable in LOCAL state, nothing persists.
-// Reached from a Shipment ID link in any of the 4 PGI/PGR category tables,
-// opened as a SHEET (docs/superpowers/plans/2026-09-23-slide-over-routes.md)
-// — same convention as OrderChangeEditStopsRoute / OrderSummaryRoute /
-// OrderAuditTrailRoute: PgipgrTable's link calls openSheet, every exit here
-// calls closeSheet('/shipments') so the live PGI/PGR panel underneath (never
-// unmounted) is exactly where the planner left it, slide-out included.
+// UI-only: EDIT/SELL-EDIT fields are editable in LOCAL state, nothing persists.
+// Reached from a Shipment ID link (or, sell-edit, the row Edit action) in any
+// of the 4 PGI/PGR category tables, opened as a SHEET (docs/superpowers/plans/
+// 2026-09-23-slide-over-routes.md) — same convention as OrderChangeEditStopsRoute
+// / OrderSummaryRoute / OrderAuditTrailRoute: PgipgrTable's link calls
+// openSheet, every exit here calls closeSheet('/shipments') so the live
+// PGI/PGR panel underneath (never unmounted) is exactly where the planner
+// left it, slide-out included.
 export default function ExecutedShipmentDetailsRoute() {
   const [searchParams] = useSearchParams()
-  const readOnly = searchParams.get('mode') !== 'edit'
+  const rawMode = searchParams.get('mode')
+  const mode = rawMode === 'edit' || rawMode === 'sell-edit' ? rawMode : 'view'
+  // Accordions render VIEW-shaped (TitleSubtitle, no errors, "Packaging"
+  // title) for both 'view' and 'sell-edit' — sell-edit's editable whitelist
+  // is layered on top via editableIds, not a third readOnly branch.
+  const readOnly = mode !== 'edit'
+  const editableIds = mode === 'sell-edit' ? SELL_EDIT_FIELD_IDS : undefined
   const { closeSheet } = useSheet()
 
   const [values, setValues] = useState(initialFieldValues)
@@ -54,7 +68,7 @@ export default function ExecutedShipmentDetailsRoute() {
       </div>
 
       <PageHeader
-        title={readOnly ? 'Shipment Details' : `Executed Shipment: ${SELL_SHIPMENT_NUMBER}`}
+        title={mode === 'view' ? 'Shipment Details' : `Executed Shipment: ${SELL_SHIPMENT_NUMBER}`}
         style={{ marginBottom: 'var(--spacing-4)' }}
       >
         <Button variant="secondary" size="sm" onClick={toggleAll}>
@@ -85,10 +99,11 @@ export default function ExecutedShipmentDetailsRoute() {
           values={values}
           onChange={onChange}
           readOnly={readOnly}
+          editableIds={editableIds}
         />
       </div>
 
-      {!readOnly && (
+      {mode === 'edit' && (
         <StepperButtonsFooter
           className="executed-shipment__footer"
           cancelLabel="Cancel"
@@ -98,6 +113,20 @@ export default function ExecutedShipmentDetailsRoute() {
           onPrimary={() => {
             goToList()
             showToast('Shipment marked as shipped.')
+          }}
+        />
+      )}
+
+      {mode === 'sell-edit' && (
+        <StepperButtonsFooter
+          className="executed-shipment__footer"
+          cancelLabel="Cancel"
+          primaryLabel="Save"
+          showSave={false}
+          onCancel={goToList}
+          onPrimary={() => {
+            goToList()
+            showToast('Shipment updated.')
           }}
         />
       )}

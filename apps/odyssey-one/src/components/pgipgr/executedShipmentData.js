@@ -108,6 +108,17 @@ export const READONLY_SHIPPER = addressGroup('shipperView', {
 // Title source for both modes — EDIT: "Executed Shipment: <sell shipment #>".
 export const SELL_SHIPMENT_NUMBER = SHIPMENT_INFO_ROWS[0][1].value
 
+// SELL-EDIT mode (?mode=sell-edit, All Sell Shipments row Edit action) — the
+// ONLY 3 fields editable; every other field renders read-only same as VIEW
+// mode (Jira story: Equipment + Shipment Weight in Header, Shipment Weight in
+// Line > Product Details). FieldRow/ExecutedShipmentAccordions consult this
+// set instead of a third accordion copy.
+export const SELL_EDIT_FIELD_IDS = new Set([
+  'header.equipment',
+  'header.shipmentWeight',
+  'line.product.shipmentWeight',
+])
+
 // Reference — "Order #" here, not the mock's "Orde #" (obvious typo, S159 —
 // Efrain's mock copy isn't canonical).
 export const REFERENCE_ROW = [

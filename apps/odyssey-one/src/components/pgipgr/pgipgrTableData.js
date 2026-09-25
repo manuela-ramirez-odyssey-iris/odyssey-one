@@ -45,6 +45,7 @@ export const FULL_COLUMNS = [
 // All Sell Shipments — a narrower column set with abbreviated headers (mock's
 // own inconsistency vs. the other three tables — read verbatim, not "fixed",
 // since it's a genuinely different column set rather than a copy typo).
+// Jira story adds "Message Type" as the trailing (sortable) data column.
 export const ALL_SELL_SHIPMENTS_COLUMNS = [
   { key: 'odysseyShipmentIdentifier', label: 'Odyssey Shipment Identifier', link: true },
   { key: 'sellShipmentNumber', label: 'Sell Shipment #' },
@@ -55,6 +56,7 @@ export const ALL_SELL_SHIPMENTS_COLUMNS = [
   { key: 'scac', label: 'SCAC' },
   { key: 'shipDirection', label: 'Ship Direction' },
   { key: 'shipDateTime', label: 'Ship Date and Time' },
+  { key: 'messageType', label: 'Message Type' },
 ]
 
 // Pill filter set — Post PGI/PGR Errors table only (spec #2 / Figma node
@@ -72,6 +74,11 @@ export const POST_ERRORS_PILLS = [
 const ERROR_TYPES = ['Shipment ID Not Found', 'Packaging Type', 'Ship Item', 'Time Zone']
 
 export const POST_ERRORS_ROWS = BASE_ROWS.map((r, i) => ({ ...r, errorType: ERROR_TYPES[i % ERROR_TYPES.length] }))
-export const ALL_SELL_SHIPMENTS_ROWS = BASE_ROWS
+
+// All Sell Shipments' own "Message Type" column (Jira story) — the two real
+// SAP IDoc values, varied per row (not a 50/50 split) so column sorting has
+// something to group.
+const MESSAGE_TYPES = ['PGI', 'PGI', 'PGR', 'PGI', 'PGR', 'PGR', 'PGI', 'PGR', 'PGI', 'PGR', 'PGI', 'PGR']
+export const ALL_SELL_SHIPMENTS_ROWS = BASE_ROWS.map((r, i) => ({ ...r, messageType: MESSAGE_TYPES[i % MESSAGE_TYPES.length] }))
 export const RATING_ERRORS_ROWS = BASE_ROWS
 export const NOT_RESPONSIBLE_ROWS = BASE_ROWS.slice(0, 9)

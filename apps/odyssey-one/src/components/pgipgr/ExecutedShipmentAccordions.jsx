@@ -23,7 +23,7 @@ function errorCountOf(rows) {
 // and Address 2 side by side, per the task's own instruction). Contact block
 // also differs: EDIT has a "Contact Information" divider label, READ-ONLY
 // has none (Figma) and swaps in READONLY_CONTACT_LABELS.
-function AddressColumn({ title, group, values, onChange, readOnly }) {
+function AddressColumn({ title, group, values, onChange, readOnly, editableIds }) {
   const [idOrg, longName, addr1, addr2, city, state, postal, country] = group.address
   const addressRows = readOnly
     ? [[idOrg, longName], [addr1, addr2], [city, state], [postal, country]]
@@ -37,7 +37,7 @@ function AddressColumn({ title, group, values, onChange, readOnly }) {
       <div className="text-label-sm-semibold" style={{ marginBottom: 'var(--spacing-3)' }}>{title}</div>
       <div className="flex flex-col" style={{ gap: 'var(--spacing-4)' }}>
         {addressRows.map((row) => (
-          <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} />
+          <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
         ))}
         {!readOnly && (
           <div
@@ -47,7 +47,7 @@ function AddressColumn({ title, group, values, onChange, readOnly }) {
             Contact Information
           </div>
         )}
-        <FieldRow fields={contactFields} values={values} onChange={onChange} readOnly={readOnly} />
+        <FieldRow fields={contactFields} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
       </div>
     </div>
   )
@@ -65,7 +65,7 @@ function AddressColumn({ title, group, values, onChange, readOnly }) {
 // "Shipper details" / "Consignee details" with READONLY_SHIPPER's own sample
 // values, and the Line accordion is titled "Packaging" instead of "Line
 // section" (same sub-accordions inside either way).
-export default function ExecutedShipmentAccordions({ expandedMap, onToggleSection, values, onChange, readOnly = false }) {
+export default function ExecutedShipmentAccordions({ expandedMap, onToggleSection, values, onChange, readOnly = false, editableIds }) {
   const propsFor = (key, position) => ({
     position,
     expanded: expandedMap[key],
@@ -82,7 +82,7 @@ export default function ExecutedShipmentAccordions({ expandedMap, onToggleSectio
       >
         <div className="flex flex-col" style={{ gap: 'var(--spacing-4)' }}>
           {SHIPMENT_INFO_ROWS.map((row) => (
-            <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} />
+            <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
           ))}
         </div>
       </Accordion>
@@ -95,7 +95,7 @@ export default function ExecutedShipmentAccordions({ expandedMap, onToggleSectio
       >
         <div className="flex flex-col" style={{ gap: 'var(--spacing-4)' }}>
           {HEADER_ROWS.map((row) => (
-            <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} />
+            <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
           ))}
         </div>
       </Accordion>
@@ -108,6 +108,7 @@ export default function ExecutedShipmentAccordions({ expandedMap, onToggleSectio
             values={values}
             onChange={onChange}
             readOnly={readOnly}
+            editableIds={editableIds}
           />
           <AddressColumn
             title={readOnly ? 'Consignee details' : 'Destination'}
@@ -115,12 +116,13 @@ export default function ExecutedShipmentAccordions({ expandedMap, onToggleSectio
             values={values}
             onChange={onChange}
             readOnly={readOnly}
+            editableIds={editableIds}
           />
         </div>
       </Accordion>
 
       <Accordion {...propsFor('reference', 'mid')} title="Reference">
-        <FieldRow fields={REFERENCE_ROW} values={values} onChange={onChange} readOnly={readOnly} />
+        <FieldRow fields={REFERENCE_ROW} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
       </Accordion>
 
       <Accordion
@@ -133,21 +135,21 @@ export default function ExecutedShipmentAccordions({ expandedMap, onToggleSectio
           <SubAccordion title="General" defaultExpanded>
             <div className="flex flex-col" style={{ gap: 'var(--spacing-4)' }}>
               {LINE_GENERAL_ROWS.map((row) => (
-                <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} />
+                <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
               ))}
             </div>
           </SubAccordion>
           <SubAccordion title="Packaging">
             <div className="flex flex-col" style={{ gap: 'var(--spacing-4)' }}>
               {LINE_PACKAGING_ROWS.map((row) => (
-                <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} />
+                <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
               ))}
             </div>
           </SubAccordion>
           <SubAccordion title="Product Details">
             <div className="flex flex-col" style={{ gap: 'var(--spacing-4)' }}>
               {LINE_PRODUCT_ROWS.map((row) => (
-                <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} />
+                <FieldRow key={row[0].id} fields={row} values={values} onChange={onChange} readOnly={readOnly} editableIds={editableIds} />
               ))}
             </div>
           </SubAccordion>
