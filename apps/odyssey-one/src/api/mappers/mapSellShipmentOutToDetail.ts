@@ -196,6 +196,11 @@ function mapStop(s: SellShipmentStop): StopVM {
       : DASH,
     packageCount: s.packageCount != null ? String(s.packageCount) : DASH,
     pickupNo: orDash(s.pickupNumber),
+    // B2 (DEC-198) — passed through, not defaulted: absence must stay
+    // absence (legMiles.js already treats a missing lat/lng as "skip this
+    // leg", not zero), not silently become 0,0 off the coast of Africa.
+    lat: s.lat,
+    lng: s.lng,
   }
 }
 
@@ -600,6 +605,10 @@ function mapConsolidationChange(
     orderComparisons: Object.fromEntries(
       Object.entries(c.orderComparisons ?? {}).map(([id, rows]) => [id, rows.map(mapOrderChangeComparisonRow)]),
     ),
+    // B3 (DEC-196) — pass-through, same convention as orderComparisons/
+    // comparison above: the generator already writes the final display
+    // strings, so there is nothing left for this mapper to format.
+    orderLinePairs: c.orderLinePairs ?? {},
     summaryChanges: {
       distance: c.summaryChanges?.distance
         ? { prior: fmtDistance(c.summaryChanges.distance.prior), new: fmtDistance(c.summaryChanges.distance.new) }

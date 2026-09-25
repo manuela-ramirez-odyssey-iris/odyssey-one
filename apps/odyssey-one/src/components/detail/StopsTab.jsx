@@ -258,7 +258,17 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
 
       {modal === 'planning' && <PlanningDatesModal orders={orderDetails} onClose={() => setModal(null)} />}
       {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}
-      {modal?.order && <OrderCompareModal orderId={modal.order} rows={c?.orderComparisons?.[modal.order] ?? []} lines={productOrders.find((o) => o.orderId === modal.order)?.lines ?? []} onClose={() => setModal(null)} />}
+      {modal?.order && (
+        <OrderCompareModal
+          orderId={modal.order}
+          rows={c?.orderComparisons?.[modal.order] ?? []}
+          lines={productOrders.find((o) => o.orderId === modal.order)?.lines ?? []}
+          // B3 (DEC-196) — seeded per-line pairs when present; OrderCompareModal
+          // falls back to prior===new (identical lines) when absent.
+          linePairs={c?.orderLinePairs?.[modal.order]}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   )
 })

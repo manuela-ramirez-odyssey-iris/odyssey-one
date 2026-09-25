@@ -96,6 +96,9 @@ export interface StopVM {
   volume: string
   packageCount: string
   pickupNo: string
+  /** B2 (DEC-198) — read by the Edit Stops sandbox's live legMiles recompute. */
+  lat?: number
+  lng?: number
 }
 
 export interface StopsSummaryVM {
@@ -431,6 +434,8 @@ export interface ConsolidationChangeVM {
   changedOrderIds: string[]
   stopChanges: Record<string, { changedOrderIds: string[]; fields: Partial<Record<StopChangeField, { prior: string; new: string }>> }>
   orderComparisons: Record<string, OrderChangeComparisonRowVM[]>
+  /** B3 (DEC-196) — per-order-line hazmat pairs; OrderCompareModal's `linePairs` prop. */
+  orderLinePairs: Record<string, { prior: Record<string, unknown>; new: Record<string, unknown> }[]>
   summaryChanges: { distance?: { prior: string; new: string }; grossWeight?: { prior: string; new: string }; volume?: { prior: string; new: string } }
   costs: { prior: string; newDirect: string; newConsolidated: string }
 }

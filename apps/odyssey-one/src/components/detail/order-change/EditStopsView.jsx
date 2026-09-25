@@ -14,7 +14,7 @@ import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop, addPending,
   isRoutable, markRouted, totals, priorDiff, toDto,
-  parseStamp, formatStopDate, setStopDate, windowViolations,
+  parseStamp, formatStopDate, setStopDate, windowViolations, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
 
@@ -203,8 +203,15 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     .filter((r) => liveOrderIds.has(r.orderNumber))
     .map((r) => ({ orderNumber: r.orderNumber, sourceSellShipment: r.sourceSellShipment }))
 
-  const distance = consolidation?.summaryChanges?.distance?.new ?? summary?.distance
-  const distanceChanged = !!consolidation?.summaryChanges?.distance
+  // A6/B2 (DEC-198) — live legs recomputed from sb.stops' own coordinates on
+  // every move/place, via the SAME legMiles the seed used (so the initial
+  // render always agrees with the seeded header). Replaces the static
+  // consolidation.summaryChanges.distance read this used before B2 landed.
+  const newLegs = legDistances(sb.stops)
+  const priorLegs = legDistances(sb.prior)
+  const initialLegs = useMemo(() => legDistances(initial.stops), [initial])
+  const distance = newLegs.total
+  const distanceChanged = newLegs.total !== initialLegs.total
   const weightChanged = curTotals.grossWeight !== initialTotals.grossWeight
   const volumeChanged = curTotals.volume !== initialTotals.volume
 
@@ -271,7 +278,13 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             />
             <div className="edit-stops__fields">
               <TitleSubtitle subtitle="Location" title={s.location || '--'} />
-              <TitleSubtitle subtitle="Distance" title="--" />
+              {/* A6/B2 (DEC-198) — leg from the PREVIOUS stop in this same
+                  plan; the first stop has none. '--' when a leg's coordinate
+                  is missing (a brand-new P?/D? stop), not a wrong number. */}
+              <TitleSubtitle subtitle="Distance" title={(() => {
+                const leg = (isPrior ? priorLegs : newLegs).legs[i]
+                return leg == null ? '--' : `${leg.toFixed(2)} mi`
+              })()} />
               {/* DEC-195: a stop shows only its own date. DEC-199: editable
                   in the New plan; Prior stays the record of what was. */}
               {isPrior
@@ -337,7 +350,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
             <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
             <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
-            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
+            <TitleSubtitle subtitle="Distance" title={<DiffValue value={`${distance.toFixed(2)} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
           </div>

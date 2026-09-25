@@ -4,6 +4,10 @@
  * commits (toDto) on Approve.
  */
 
+// A6/B2 (DEC-198) — the SAME distance function the seed uses (generate.mjs),
+// so a live reorder in this editor can never disagree with the seeded header.
+import { legMiles, totalMiles } from '../../../utils/legMiles.js'
+
 const parseNum = (s) => Number(String(s).replace(/[^0-9.]/g, '')) || 0
 
 const orDash = (v) => (v === '--' ? '' : (v ?? ''))
@@ -89,6 +93,12 @@ export function initSandbox({ stops, consolidation, orders }) {
     volume: s.volume,
     packageCount: s.packageCount,
     pickupNo: s.pickupNo,
+    // B2/A6 (DEC-198) — read by legDistances below. Absent on a P?/D? stop
+    // created in THIS session (placeOrder has no coordinate source for a
+    // brand-new site) — legMiles skips a leg it can't compute rather than
+    // treating it as zero.
+    lat: s.lat,
+    lng: s.lng,
     unsequenced: false,
   }))
   let seq = 0
@@ -200,6 +210,19 @@ export function totals(sb, orders) {
     volume += parseNum(o.totalVolume)
   })
   return { grossWeight: `${weight.toLocaleString('en-US')} LB`, volume: `${volume.toLocaleString('en-US')} cuft` }
+}
+
+// A6/B2 (DEC-198) — per-leg + total distance over a stop sequence (either
+// sb.stops or sb.prior — both are plain stop arrays), recomputed on every
+// render (move/place/add all go through setSb, which is enough to trigger
+// this since it's pure and cheap over <=~10 stops). The first stop has no
+// leg. A leg with a missing coordinate (a freshly created P?/D? stop) reads
+// null so the UI can show '--' for that one leg instead of a wrong number,
+// while the total still sums whatever legs it CAN compute (legMiles.js's own
+// documented behavior).
+export function legDistances(stops) {
+  const legs = stops.map((s, i) => (i === 0 ? null : legMiles(stops[i - 1], s)))
+  return { legs, total: totalMiles(stops) }
 }
 
 // "Prior" view: what the planner changed relative to the structure at open.

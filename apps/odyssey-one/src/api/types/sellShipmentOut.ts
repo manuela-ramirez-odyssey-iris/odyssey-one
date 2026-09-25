@@ -141,6 +141,10 @@ export interface SellShipmentStop {
   volumeUomCode?: string
   packageCount?: number | null
   pickupNumber?: string | null
+  /** B2 (DEC-198) — LOCATIONS pool's static lat/lng, read by legMiles.js for
+   * the Edit Stops per-leg/total distance. */
+  lat?: number
+  lng?: number
 }
 
 export interface SellShipmentAdditionalCharge {
@@ -433,12 +437,35 @@ export interface SellShipmentConsolidationChange {
     }
   >
   orderComparisons: Record<string, SellShipmentOrderChangeComparisonRow[]>
+  /** B3 (DEC-196) — per-order-line hazmat pairs, keyed by orderId, one pair
+   * per orderLines entry. Field names match ProductLineVM's own (shipItem,
+   * hazmatUnNumber…) so OrderCompareModal's LineBlock can read either shape
+   * without translation. */
+  orderLinePairs?: Record<string, { prior: SellShipmentConsolidationLinePairVM; new: SellShipmentConsolidationLinePairVM }[]>
   summaryChanges: {
     distance?: { prior: number; new: number }
     grossWeight?: { prior: number; new: number }
     volume?: { prior: number; new: number }
   }
   costs: { prior: number | null; newDirect: number; newConsolidated: number | null }
+}
+
+/** B3 line-pair shape — same field names as generate.mjs's raw order line
+ * (lineNumber, shipItem/itemCode already renamed at the seed). */
+export interface SellShipmentConsolidationLinePairVM {
+  lineNumber: string
+  shipItem: string
+  description: string
+  hazmatUnNumber: string | null
+  hazmatClass: string | null
+  hazmatGroup: string | null
+  hazmatDescription: string | null
+  flashPoint: string | null
+  boilingPoint: string | null
+  marinePollutant: string | null
+  shippingClass: string
+  tunnelCode: string | null
+  wgkClass: string | null
 }
 
 export interface SellShipmentOut {
