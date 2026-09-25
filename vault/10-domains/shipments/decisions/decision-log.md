@@ -1278,10 +1278,22 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** pickup = the first pickup stop's planner-set date, delivery = the last delivery stop's; routing's dates are ignored for a consolidation. Verify + fix owed.
 - **Source:** Jana `@00:16:29`.
 
+### DEC-207: Evaluate → routing modal → Approve, on both review screens
+- **Previous:** a separate *View Routing* modal (Close only) silently unlocked a greyed footer *Approve Changes*. Users read it as broken (user, 2026-09-25: *"makes no sense ux wise"*). The Stops-tab review had the same separate *View Routing* + *Approve Plan* pair.
+- **Decision:**
+  - **Edit Shipment Stops:** the footer is Cancel plus **Evaluate**, which opens the routing modal with **Keep Editing** / **Approve Changes**, then the existing confirm dialog.
+  - **Stops-tab review:** **Evaluate** opens the same modal with **Keep Reviewing** / **Approve Plan**.
+  - The separate View Routing buttons go.
+  - Routing is always reviewed on the current stops because approving is only possible from the modal.
+  - Both approve paths then run 15671's Scenario A/B (for Approve Plan that is our inference).
+  - The label "Approve Changes" deviates from 15671's "Save" (DEC-200 amended).
+- **Source:** user 2026-09-25; LINX-15869/15872 ("View Routing before Save"); Jana design review `@00:24:19`.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 25, 2026 | **DEC-207** — Evaluate → routing modal → Approve on both review screens; View Routing no longer a separate button; "Approve Changes" kept over 15671's "Save" (amends DEC-200) |
 | Sep 25, 2026 | **DEC-200 through DEC-206** — Jana's 2026-09-25 design review of the consolidated order change + S160 rulings: Save runs 15671 Scenario A/B; busy source orders selectable and refused at Save (**reverses OC-open-11**); a shipment's only order movable and emptied shipments hidden; order windows anchor to their own stop (**I4 refined**); shipment statuses derived from the lifecycle (**reverses the S151 blank-status ruling**); removed orders become their own shipment; consolidation tender dates = the stops'. Most OC-open questions closed **by their stories**. **Previous state:** S159 build |
 | Sep 24, 2026 | **DEC-191 through DEC-199** — Jana's walkthrough of the consolidated order change + user rulings: Affected Orders pickup-only; one DB-backed source per value; **system placement replaces the S144 stop picker**; new label for Move To Pending; own-date-only stops; Direct field set + per-line blocks in the compare; prior/new side by side; per-leg distance; editable stop dates with out-of-window flags. **Previous state:** S142–S144 build |
 | Sep 24, 2026 | **DEC-190** — **TE-3, tender acceptance confirmation email**: added on a user ruling (2026-09-24, requested by Adam Shingle), **not** in LINX-15795/15796/15800 — no story AC covers it. Fires only on a recorded Accept (never Decline), reuses TE-1's layout/blocks and recipient formula verbatim, subject mirrors Dave's TE-1 rule with "Tender Acceptance Confirmation" swapped in (flagged as placeholder wording pending Adam/Dave sign-off, same as TE-1's own open subject question); the review page's Accepted banner grows one line naming the carrier's synthesized ops mailbox, gated to the Email method only (Email & EDI never shows response buttons, so this line is skipped there too). **Previous state:** no acceptance email; on-page confirmation only (15796 AC-03) |

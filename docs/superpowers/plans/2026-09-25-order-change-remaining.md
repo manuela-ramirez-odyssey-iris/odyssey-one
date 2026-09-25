@@ -21,8 +21,27 @@ Done before this plan (S160): Wave B B1–B6, the per-stop window anchor, blocke
 
 ## C. Consolidated order change
 
+
+### C0. Evaluate → routing modal → Approve (user, 2026-09-25, DEC-207). Governs C1 and C2
+The stories' "View Routing must run before Save" (15869/15872) becomes a visible step instead of a hidden `routed` flag.
+
+**Edit Shipment Stops**
+- The footer is **Cancel** plus a primary **Evaluate**. Evaluate is enabled when no stop is `P?`/`D?` and every stop has a date; when disabled, a tooltip names what's missing.
+- The separate *View Routing* button is removed.
+- Evaluate opens the routing modal (today's View Routing: New / Prior / Dropped Carriers) with **Keep Editing** and a primary **Approve Changes**.
+- Approve Changes opens the existing confirm dialog (*Approve Shipment Change*; it stays), then runs C1.
+- There is no `routed` state on the page: every Evaluate recomputes routing on the current stops.
+
+**Stops-tab review (Screen 1)**
+- **Edit Shipment Stops** plus **Evaluate**. The separate *View Routing* and *Approve Plan* buttons are removed.
+- Evaluate opens the same modal with **Keep Reviewing** and a primary **Approve Plan** (confirm dialog, then C2).
+
+**Both approve paths end in the same Scenario A/B handling** (C1). For Approve Plan this is OUR inference: 15438 only says the new list becomes V2.
+
+The label "Approve Changes" deviates from 15671's "Save" (user ruling; the stories defer layout to the VD). The C1 rename to "Save" below is superseded by this.
+
 ### C1. Save flow (LINX-15671, OC-open-16/26), the biggest piece
-- Footer primary "Approve Changes" → **Save**. The confirm dialog title and body follow (drop "Approve").
+- ~~Footer primary "Approve Changes" → **Save**~~. Superseded by C0: the approve action lives in the routing modal as **Approve Changes**, and the confirm dialog stays.
 - On a successful save, branch on the shipment's tender status:
   - **Scenario A** (active tender: To Be Tendered / Sent / Accepted): open the Direct Current Tender Decision screen (`OrderChangeReviewRoute`) as a sheet over Edit Stops (R5). Same rules: Cancel Tender / Re-tender / Bypass, Prior cost vs New cost vs Quote, prior carrier inserted into the new list. The new list is the routing result the planner saw in View Routing.
   - **Scenario B** (no active tender): close Edit Stops and go to the **Tender tab**, with the new list as V2 above V1 (or only dropped carriers if the list is empty). Shipment status stays **Review**. No tender action is automatic.
