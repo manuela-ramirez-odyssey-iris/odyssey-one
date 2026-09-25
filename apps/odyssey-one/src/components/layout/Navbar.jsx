@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { GlobalSearch, LeadNav, TrailNav, Navbar as NavbarShell } from '@odyssey/ui'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '../../data/sso-mock'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
 import { useCreateOrderMode } from '../../contexts/CreateOrderModeContext.jsx'
@@ -12,6 +12,8 @@ const Navbar = React.memo(function Navbar({ searchSlot, titleMode, onMenuClick, 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const profileDropdownRef = useRef(null)
   const navigate = useNavigate()
+  // Home hides the global search (user, S159).
+  const isHome = useLocation().pathname === '/'
   const currentUser = useCurrentUser()
   const { isEditMode, save, cancel } = useEditMode()
   const { isCreateOrderMode, createOrderTitle, saveForLater, close } = useCreateOrderMode()
@@ -95,7 +97,7 @@ const Navbar = React.memo(function Navbar({ searchSlot, titleMode, onMenuClick, 
     <NavbarShell
       lead={<LeadNav onMenuClick={onMenuClick} active={menuActive} />}
       search={
-        searchSlot ?? (
+        isHome ? null : searchSlot ?? (
           <GlobalSearch
             value={searchValue}
             onChange={setSearchValue}
