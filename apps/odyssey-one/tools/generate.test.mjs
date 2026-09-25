@@ -4,7 +4,20 @@ import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 import { totalMiles } from '../src/utils/legMiles.js'
-import { windowViolations } from '../src/components/detail/order-change/stopsSandbox.js'
+import { windowViolations, parseStamp } from '../src/components/detail/order-change/stopsSandbox.js'
+
+// generate.mjs never does real per-zone Date math: every Date (baseDate,
+// stopAt, orderPickupLate, …) is built via setHours/getHours in the TEST
+// PROCESS's own local zone, and formatDateTime/formatDate just print those
+// wall-clock components with a zone ABBREVIATION label tacked on (see
+// formatDateTime's own doc comment). So the only TZ-independent way to
+// recover "the exact instant a formatted string names" is to invert that
+// printing — parse the wall-clock components back with the LOCAL Date
+// constructor, ignoring the printed label — not Date.parse (which resolves
+// "CDT"/"MDT"/… to their REAL UTC offsets and so disagrees with these
+// Dates' fake, always-local construction whenever the test runner's own
+// zone isn't already UTC-5).
+const localStamp = (str) => { const p = parseStamp(str); return p ? new Date(p.y, p.mo, p.d, p.h, p.mi).getTime() : null }
 
 test('buildDataset returns a coherent scaled dataset', () => {
   const ds = buildDataset({ totalShipments: 50 })
@@ -1149,30 +1162,58 @@ test('LINX-13953: seeded dropped-carrier values keep their dependency chains', (
   assert.ok(some((r) => r.indirectPoint) && some((r) => !r.indirectPoint), 'indirectPoint is not exercised both ways')
 })
 
-// I4 (revised 2026-08-19, user): the shipment instant is the order window's
-// LATE EDGE, not its middle. The order guarantees exactly one late date via the
-// Planning Date Type anchor (LINX-7586/7587/7822; PRD 2365915159) while
-// EARLIEST is optional on both sides, so a plain shipment date must default off
-// LATEST — and SpotBoardTab seeds its carrier rows from exactly these fields
-// (`orderDetails[].latestPickup/latestDelivery`, which mapSellShipmentOutToDetail
-// resolves from requestedShipDate/requestedDeliveryDate).
-test('I4: shipment pickup/delivery === the order LATEST (requested) dates, and earliest never exceeds it', () => {
+// I4 (refined 2026-09-25, user ruling, B3b(a)): each order's window is
+// anchored to ITS OWN stop, not the shipment's. Every order's late edge
+// (requestedShipDate/requestedDeliveryDate) === the exact INSTANT of the
+// stop it picks up/delivers at — compared via localStamp (see the const
+// above) against the stop's raw `instantMs`, not the stop's own
+// `scheduledDateTime` STRING, which hardcodes ":00" minutes independently
+// of this change (pre-existing display convention). The shipment's own
+// pickup/delivery date === the FIRST pickup / LAST delivery stop's instant
+// (Jana, Feb 17), so orders on those two stops still equal the shipment
+// date — the pre-2026-09-25 rule's special case, not a separate rule.
+// SpotBoardTab seeds its carrier rows from exactly these fields
+// (`orderDetails[].latestPickup/latestDelivery`, which
+// mapSellShipmentOutToDetail resolves from requestedShipDate/
+// requestedDeliveryDate).
+test('I4: each order pickup/delivery LATEST (requested) date === its OWN stop, and earliest never exceeds it', () => {
   const ds = buildDataset({ totalShipments: 120 })
   let checked = 0
   for (const s of ds.shipments) {
     const detail = ds.details.get(s.sellShipment)
+    const stops = detail.shipmentStopList ?? []
+    const firstPickup = stops.filter(st => st.stopType === 'pickup').sort((a, b) => a.stopSequence - b.stopSequence)[0]
+    const lastDelivery = stops.filter(st => st.stopType === 'delivery').sort((a, b) => b.stopSequence - a.stopSequence)[0]
     for (const o of detail.orderList ?? []) {
       if (!o.requestedShipDate) continue
       checked++
-      // late edge, exactly
-      assert.equal(o.requestedShipDate, s.pickupDate,
-        `requestedShipDate must equal the shipment pickup for ${s.sellShipment}`)
-      assert.equal(o.requestedDeliveryDate, s.deliveryDate,
-        `requestedDeliveryDate must equal the shipment delivery for ${s.sellShipment}`)
+      const pickupStop = stops.find(st => st.stopType === 'pickup' && st.orderIds.includes(o.orderId))
+      const deliveryStop = stops.find(st => st.stopType === 'delivery' && st.orderIds.includes(o.orderId))
+      assert.ok(pickupStop && deliveryStop, `${s.sellShipment} order ${o.orderId} missing its own stop`)
+      // late edge === this order's OWN stop, exactly (same instant). Compared
+      // against the stop's raw `instantMs`, not its `scheduledDateTime`
+      // STRING — that field hardcodes ":00" minutes for every stop (a
+      // separate, pre-existing display convention, load-bearing for
+      // buildConsolidationChange's shiftStopDate regex — out of scope here),
+      // while instantMs carries the stop's real minute.
+      assert.equal(localStamp(o.requestedShipDate), pickupStop.instantMs,
+        `requestedShipDate must equal order ${o.orderId}'s own pickup stop for ${s.sellShipment}`)
+      assert.equal(localStamp(o.requestedDeliveryDate), deliveryStop.instantMs,
+        `requestedDeliveryDate must equal order ${o.orderId}'s own delivery stop for ${s.sellShipment}`)
+      // the shipment's plain date is only that stop's instant when the order
+      // sits on the FIRST pickup / LAST delivery stop
+      if (pickupStop.stopSequence === firstPickup.stopSequence) {
+        assert.equal(localStamp(o.requestedShipDate), localStamp(s.pickupDate),
+          `first-pickup-stop order ${o.orderId} must equal the shipment pickup for ${s.sellShipment}`)
+      }
+      if (deliveryStop.stopSequence === lastDelivery.stopSequence) {
+        assert.equal(localStamp(o.requestedDeliveryDate), localStamp(s.deliveryDate),
+          `last-delivery-stop order ${o.orderId} must equal the shipment delivery for ${s.sellShipment}`)
+      }
       // and the scheduled (earliest) edge never runs past it
-      assert.ok(Date.parse(o.scheduledShipDate) <= Date.parse(o.requestedShipDate),
+      assert.ok(localStamp(o.scheduledShipDate) <= localStamp(o.requestedShipDate),
         `scheduledShipDate must not exceed requestedShipDate for ${s.sellShipment}`)
-      assert.ok(Date.parse(o.scheduledDeliveryDate) <= Date.parse(o.requestedDeliveryDate),
+      assert.ok(localStamp(o.scheduledDeliveryDate) <= localStamp(o.requestedDeliveryDate),
         `scheduledDeliveryDate must not exceed requestedDeliveryDate for ${s.sellShipment}`)
     }
   }
@@ -1561,24 +1602,26 @@ test('B3b(d): order origin/destination address1 matches its own pickup/delivery 
   assert.ok(checked > 0)
 })
 
-// Plan B3b(a) — every FRESHLY SEEDED stop must fall inside the window of
-// every order on it, for the common (single pickup + single delivery stop)
-// shape I4 (above) pins exactly. A shipment with a SECOND pickup/delivery
-// stop keeps a known, documented residual (see generate.mjs's own comment
-// above orderPickupBase): I4 requires every order's late window edge to
-// equal the FIRST stop's instant regardless of which stop it actually sits
-// on, so a second stop ~3h later can still read "late". That residual is
-// asserted here too, as a bound, so a regression that makes it WORSE (not
-// just "still present") gets caught.
-test('B3b(a): no window violation on a single-pickup/single-delivery shipment; multi-stop residual stays bounded', () => {
+// Plan B3b(a) (closed 2026-09-25, user ruling) — every FRESHLY SEEDED stop
+// must fall inside the window of every order on it, on EVERY shipment, not
+// just the single-pickup/single-delivery common case. I4's refinement
+// anchors each order's window to its OWN stop instead of pinning every
+// order's late edge to the shipment's first-pickup/last-delivery stop, which
+// is exactly what used to produce a violation on a second pickup/delivery
+// stop (the previously-documented, bounded-not-zero residual — see git
+// history for the pre-2026-09-25 version of this test). Checked two ways:
+// (b) every shipment's base (freshly seeded, unedited) stops, and (a) the
+// same check restricted to the 74 consolidated order-change shipments —
+// the population EditStopsView opens on, per its own initSandbox (which
+// only touches LOCATION-changed stops, never dates, so the sandbox's
+// initial state is exactly these base/prior dates).
+test('B3b(a): zero window violations — (a) consolidated order-change shipments, (b) every shipment', () => {
   const ds = buildDataset()
-  let singleStopChecked = 0, singleStopViolations = 0
-  let multiStopShipments = 0, multiStopViolations = 0
+  let bChecked = 0, bViolations = 0
+  let aChecked = 0, aViolations = 0
   for (const s of ds.shipments) {
     const d = ds.details.get(s.sellShipment)
     if (!d.shipmentStopList?.length || !d.orderList?.length) continue
-    const pickupStops = d.shipmentStopList.filter(st => st.stopType === 'pickup')
-    const deliveryStops = d.shipmentStopList.filter(st => st.stopType === 'delivery')
     const stops = d.shipmentStopList.map(st => ({ key: `s${st.stopSequence}`, type: st.stopType, orderIds: st.orderIds, date: st.scheduledDateTime }))
     const orders = d.orderList.map(o => ({
       orderNumber: o.orderId,
@@ -1586,21 +1629,18 @@ test('B3b(a): no window violation on a single-pickup/single-delivery shipment; m
       earliestDelivery: o.scheduledDeliveryDate, latestDelivery: o.requestedDeliveryDate,
     }))
     const v = windowViolations(stops, orders)
-    if (pickupStops.length === 1 && deliveryStops.length === 1) {
-      singleStopChecked++
-      singleStopViolations += v.length
-    } else {
-      multiStopShipments++
-      multiStopViolations += v.length
+    bChecked++
+    bViolations += v.length
+    const isConsolidatedOrderChange = s.category === 'order-change' && d.orderList.length > 1 && !!d.orderChange?.consolidation
+    if (isConsolidatedOrderChange) {
+      aChecked++
+      aViolations += v.length
     }
   }
-  assert.ok(singleStopChecked > 0)
-  assert.equal(singleStopViolations, 0, `${singleStopViolations} window violations on single-pickup/single-delivery shipments (must be 0)`)
-  // Documented residual — not zero, but bounded. A regression that pushes
-  // this materially higher (more than ~2 violations per multi-stop
-  // shipment) means something else broke, not just "the known gap".
-  assert.ok(multiStopViolations <= multiStopShipments * 2.5,
-    `multi-stop residual grew unexpectedly: ${multiStopViolations} violations over ${multiStopShipments} multi-stop shipments`)
+  assert.ok(bChecked > 0)
+  assert.ok(aChecked > 0, 'expected at least one consolidated order-change shipment')
+  assert.equal(aViolations, 0, `(a) ${aViolations} window violations across ${aChecked} consolidated order-change shipments (must be 0)`)
+  assert.equal(bViolations, 0, `(b) ${bViolations} window violations across ${bChecked} shipments' base stops (must be 0)`)
 })
 
 test('lifecycle bands: pre-tender and spot exist, and the mix is what was decided (S151)', () => {

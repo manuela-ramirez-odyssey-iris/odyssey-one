@@ -23,13 +23,20 @@
 //                  order.consignee = its DELIVERY stop (same facility/city/
 //                  state/zip + shared locationIdFor id) — NOT the shipment's
 //                  destination, which differs once TL deliveries split.
-//  I4 Dates      — earliestPickup ≤ shipment pickup === latestPickup <
-//                  earliestDelivery ≤ shipment delivery === latestDelivery; the
-//                  detail's scheduled/requested dates render the SAME instants.
-//                  The shipment instant is the window's LATE EDGE (user,
-//                  2026-08-19): the order guarantees exactly one late date via
-//                  the Planning Date Type anchor, earliest is optional on both
-//                  sides, so the plain shipment date defaults off LATEST.
+//  I4 Dates      — earliestPickup ≤ EACH ORDER'S OWN pickup stop === latestPickup <
+//                  earliestDelivery ≤ ITS OWN delivery stop === latestDelivery; the
+//                  detail's scheduled/requested dates render the SAME instants,
+//                  in that stop's OWN zone. Refined 2026-09-25 (user ruling,
+//                  B3b(a)) from the 2026-08-19 version, which pinned every
+//                  order's late edge to the SHIPMENT's baseDate/deliveryDate
+//                  regardless of which stop the order was actually on: an
+//                  order guarantees exactly one late date via the Planning
+//                  Date Type anchor, earliest is optional on both sides, so
+//                  the order's own late edge defaults off its own stop's
+//                  LATEST instant. The shipment's plain pickup/delivery date
+//                  === the FIRST pickup / LAST delivery stop's instant (Jana,
+//                  Feb 17), which is why orders on those two stops render
+//                  identically to the old, unrefined rule.
 //  I5 Weights    — order gross/tare/net/volume ROLL UP from its lines; stop
 //                  weight = Σ of its orders; shipment grossWeight = Σ orders.
 //  I6 Status     — shipped orders derive status from the tender outcome
@@ -2099,17 +2106,26 @@ function generateShipment(index, chainOverride) {
     const pickupStopForOrder = stops[ord.pickupStopIdx];
     const deliveryStopForOrder = stops[pickupStopCount + ord.deliveryStopIdx];
 
-    // I4 — the shipment instant is the window's LATE EDGE, not its middle:
-    // earliestPickup ≤ shipment pickup === latestPickup, and likewise for
-    // delivery. Changed 2026-08-19 (user) — the order guarantees exactly ONE
-    // late date, selected by the Planning Date Type anchor (Ship Date → Late
-    // Pickup mandatory, Delivery Date → Late Delivery mandatory; LINX-7586/
-    // 7587/7822, PRD 2365915159 "one of Late Pickup or Late Delivery must be
-    // present"), while EARLIEST is optional on both sides. So the shipment's
-    // plain date defaults off LATEST, and the seed has to demonstrate that
-    // rather than straddle it — SpotBoardTab seeds its carrier rows from
-    // `orderDetails[0].latestPickup/latestDelivery` and the numbers must line
-    // up on screen.
+    // I4 — each order's late edge === its own stop's instant; the shipment
+    // date === the first pickup / last delivery stop's instant (that stop
+    // IS `baseDate`/`deliveryDate` — see the stop-building loops above — so
+    // an order on the first pickup / last delivery stop is unaffected).
+    // Refined 2026-09-25 (user ruling, B3b(a)) from the 2026-08-19 version,
+    // which pinned EVERY order's late edge to the shipment's own baseDate/
+    // deliveryDate regardless of which stop the order was actually on — an
+    // order on a SECOND pickup/delivery stop (the ~3h-later-staggered one)
+    // could then read outside its own window (flagged as a residual, not
+    // closed, by the 2026-08-19 pass). Anchoring to `pickupStopForOrder`/
+    // `deliveryStopForOrder`'s own `instantMs` instead closes that: the
+    // order guarantees exactly ONE late date (Planning Date Type anchor,
+    // LINX-7586/7587/7822, PRD 2365915159), EARLIEST stays optional/derived
+    // as an offset off that same late instant — same offset draws as
+    // before, just applied to the order's own stop instant. SpotBoardTab
+    // seeds its carrier rows from `orderDetails[0].latestPickup/
+    // latestDelivery`; order 0 sits on pickup stop 0 (always the shipment's
+    // first pickup) so its pickup side is unaffected, but its delivery stop
+    // is whichever delivery stop index 0 owns — see the session report for
+    // the measured effect on delivery-multi-stop shipments.
     //
     // The two "late" faker draws below are RETAINED and deliberately unused.
     // Deleting a draw shifts every subsequent value in the seeded sequence and
@@ -2118,38 +2134,32 @@ function generateShipment(index, chainOverride) {
     // number and keeps the ids byte-identical; the id diff below the change is
     // what proves it.
     //
-    // B3b(a) (live 25412375) — I4 (just above) pins EVERY order's late edge
-    // to the shipment's own baseDate/deliveryDate, by string equality, so
-    // the anchor here stays the shipment instant, not the specific stop's
-    // (an order on a second pickup/delivery stop keeps I4's existing,
-    // pre-this-plan approximation — see the residual note below). What WAS
-    // wrong is the ZONE this got formatted with: always the DEFAULT
-    // ('America/Chicago'), while the stop it is compared against
-    // (windowViolations, stopsSandbox.js) carries its OWN true zone. Two
-    // "11:30" instants three zones apart are NOT the same instant once
-    // TZ-aware code compares them — e.g. a 14:00 EST pickup landing after an
-    // 11:30-CST-LABELED latest that both actually meant the same clock hour.
-    // Formatting with the pickup/delivery STOP's own zone (mainRow.pickupDate/
-    // deliveryDate now do the same, below) removes that whole bug class for
-    // every order on the FIRST pickup / LAST delivery stop — the common case
-    // (pickup/delivery stop count is capped at 2; most shipments have 1).
+    // Zoned off the order's own pickup/delivery STOP (not a shipment-level
+    // default) — see the scheduledShipDate/requestedShipDate etc. formatting
+    // below, which now reads pickupStopForOrder.timeZone /
+    // deliveryStopForOrder.timeZone instead of originTz/destTz, so the
+    // window's printed zone always matches the instant it was built from and
+    // I4's instant equality (by epoch, via instantMs) holds against
+    // windowViolations (stopsSandbox.js), which only ever sees the printed
+    // wall-clock string — same convention `orderPickupBase` etc. always used.
     //
-    // Residual, not fully closed by this change: an order on a SECOND pickup
-    // or delivery stop (the ~3h-later-staggered one) can still read outside
-    // its own window, because I4 pins its late edge to the FIRST stop's
-    // instant regardless. Closing that fully means either loosening I4 (a
-    // separate, hardcoded invariant with its own test) or removing the
-    // stagger between same-side stops — both out of this plan's scope;
-    // flagged in the session report rather than silently left as "fixed".
-    const orderPickupBase = new Date(baseDate);
-    orderPickupBase.setHours(baseDate.getHours() - faker.number.int({ min: 1, max: 5 }), pick([0, 15, 30, 45]), 0, 0);
+    // NOT string-identical to `pickupStopForOrder.scheduledDateTime`: that
+    // field is a separate, pre-existing DISPLAY string (long-form date,
+    // hardcoded ":00" minutes) distinct from this DTO's own numeric
+    // "MM/DD/YYYY HH:MM tz" shape (matches mainRow.pickupDate/deliveryDate's
+    // own formatting) — two renderings of stop data that have never shared a
+    // string shape; unifying them is a separate, out-of-scope display fix.
+    const pickupStopInstant = new Date(pickupStopForOrder.instantMs);
+    const orderPickupBase = new Date(pickupStopInstant);
+    orderPickupBase.setHours(pickupStopInstant.getHours() - faker.number.int({ min: 1, max: 5 }), pick([0, 15, 30, 45]), 0, 0);
     void faker.number.int({ min: 2, max: 8 }); void pick([0, 30]); // sequence-preserving discards
-    const orderPickupLate = new Date(baseDate);
+    const orderPickupLate = new Date(pickupStopInstant);
 
-    const orderDeliveryEarly = new Date(deliveryDate);
-    orderDeliveryEarly.setHours(deliveryDate.getHours() - faker.number.int({ min: 1, max: 4 }), pick([0, 15, 30, 45]), 0, 0);
+    const deliveryStopInstant = new Date(deliveryStopForOrder.instantMs);
+    const orderDeliveryEarly = new Date(deliveryStopInstant);
+    orderDeliveryEarly.setHours(deliveryStopInstant.getHours() - faker.number.int({ min: 1, max: 4 }), pick([0, 15, 30, 45]), 0, 0);
     void faker.number.int({ min: 4, max: 24 }); // sequence-preserving discard
-    const orderDeliveryLate = new Date(deliveryDate.getTime());
+    const orderDeliveryLate = new Date(deliveryStopInstant.getTime());
     // Stash the window instants for the orders.json row emission (same facts)
     ord.window = {
       earliestPickup: orderPickupBase,
@@ -2233,12 +2243,12 @@ function generateShipment(index, chainOverride) {
       // same printed zone, so I4's string equality holds for the common,
       // single-pickup/single-delivery-stop case instead of only by luck of
       // both landing on 'America/Chicago'.
-      scheduledShipDate: formatDateTime(orderPickupBase, originTz),
-      requestedShipDate: formatDateTime(orderPickupLate, originTz),
-      scheduledDeliveryDate: formatDateTime(orderDeliveryEarly, destTz),
-      requestedDeliveryDate: formatDateTime(orderDeliveryLate, destTz),
-      pickupAppointment: faker.datatype.boolean(0.3) ? `${String(orderPickupBase.getHours()).padStart(2, '0')}:00 ${tzAbbrev(originTz, orderPickupBase)}` : null,
-      deliveryAppointment: faker.datatype.boolean(0.2) ? `${String(orderDeliveryEarly.getHours()).padStart(2, '0')}:00 ${tzAbbrev(destTz, orderDeliveryEarly)}` : null,
+      scheduledShipDate: formatDateTime(orderPickupBase, pickupStopForOrder.timeZone),
+      requestedShipDate: formatDateTime(orderPickupLate, pickupStopForOrder.timeZone),
+      scheduledDeliveryDate: formatDateTime(orderDeliveryEarly, deliveryStopForOrder.timeZone),
+      requestedDeliveryDate: formatDateTime(orderDeliveryLate, deliveryStopForOrder.timeZone),
+      pickupAppointment: faker.datatype.boolean(0.3) ? `${String(orderPickupBase.getHours()).padStart(2, '0')}:00 ${tzAbbrev(pickupStopForOrder.timeZone, orderPickupBase)}` : null,
+      deliveryAppointment: faker.datatype.boolean(0.2) ? `${String(orderDeliveryEarly.getHours()).padStart(2, '0')}:00 ${tzAbbrev(deliveryStopForOrder.timeZone, orderDeliveryEarly)}` : null,
       grossWeightValue: orderGrossWeight,
       grossWeightUomCode: 'LB',
       tareWeightValue: orderTareWeight,
