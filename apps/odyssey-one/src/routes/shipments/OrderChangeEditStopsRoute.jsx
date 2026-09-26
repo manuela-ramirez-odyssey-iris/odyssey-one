@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
-import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
+import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import EditStopsView from '../../components/detail/order-change/EditStopsView.jsx'
 import ReviewKpiStrip from '../../components/detail/order-change/ReviewKpiStrip.jsx'
@@ -73,8 +73,8 @@ export default function OrderChangeEditStopsRoute() {
 
   // S143 Task 3 — PATCH save-stops. The navigation branch below (Scenario
   // A/B) only fires on success; a failed save leaves the planner on this
-  // screen with the Alert below rather than navigating them away from an
-  // edit that never persisted.
+  // screen (saveError shown inside the routing modal, T2/DEC-207) rather
+  // than navigating them away from an edit that never persisted.
   function handleApprove(stopsDto, externalOrders = []) {
     setSaveError('')
     resolve.mutate(
@@ -131,14 +131,12 @@ export default function OrderChangeEditStopsRoute() {
           <div className="order-change__content">
             <PageHeader title={headerTitle} />
 
-            {saveError && (
-              <Alert variant="error" onClose={() => setSaveError('')}>
-                {saveError}
-              </Alert>
-            )}
-
             <ReviewKpiStrip summary={detail.stopsData.summary} changes={c.summaryChanges} />
 
+            {/* DEC-207/LINX-15872 (T2) — a failed Approve is shown INSIDE the
+                routing modal (EditStopsView passes it to ViewRoutingModal's
+                `error`), not as a page-level Alert: the modal is what stays
+                open, so that's where the planner sees why it failed. */}
             <EditStopsView
               key={sellShipment}
               stops={detail.stopsData.stops}
@@ -147,6 +145,7 @@ export default function OrderChangeEditStopsRoute() {
               orderChange={detail.orderChange}
               summary={detail.stopsData.summary}
               saving={resolve.isPending}
+              saveError={saveError}
               onApprove={handleApprove}
               onCancel={exit}
               sellShipment={sellShipment}

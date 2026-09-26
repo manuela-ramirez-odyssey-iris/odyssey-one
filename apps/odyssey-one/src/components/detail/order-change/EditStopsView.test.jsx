@@ -133,31 +133,48 @@ it('a stop shows only its own date (DEC-195)', () => {
   expect(p1.textContent).not.toContain('Delivery Date')
 })
 
-it('Approve Changes asks for confirmation, then calls onApprove (VD 2066-77150)', () => {
+it('Evaluate opens the routing modal; its Approve Changes asks for confirmation, then calls onApprove (VD 2066-77150, DEC-207)', () => {
   const { onApprove } = setup()
-  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /close/i }))
-  fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  const modal = screen.getByRole('dialog', { name: 'View Routing' })
+  fireEvent.click(within(modal).getByRole('button', { name: 'Approve Changes' }))
   expect(onApprove).not.toHaveBeenCalled()
   expect(screen.getByText('Approve Shipment Change')).toBeTruthy()
   expect(screen.getByText(/Any orders left pending for assignment will be removed/)).toBeTruthy()
+  // The confirm stacks ABOVE the routing modal — both still in the DOM.
+  expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   expect(onApprove).toHaveBeenCalledTimes(1)
   expect(onApprove.mock.calls[0][1]).toEqual([])                                     // externalOrders — nothing added
 })
 
-it('Approve Shipment Change confirm — Cancel closes it without calling onApprove', () => {
+it('Approve Shipment Change confirm — Cancel closes the confirm only, routing modal stays open', () => {
   const { onApprove } = setup()
-  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /close/i }))
-  fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Approve Changes' }))
   const dialog = screen.getByRole('dialog', { name: 'Approve Shipment Change' })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
   expect(screen.queryByText('Approve Shipment Change')).toBeNull()
+  expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   expect(onApprove).not.toHaveBeenCalled()
 })
 
-it('View Routing and Approve Changes are both gated on isRoutable directly — T1 (S160) removed the routed gate', () => {
+it('Keep Editing closes the routing modal with state intact', () => {
+  setup()
+  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0]) // dirty the sandbox
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Keep Editing' }))
+  expect(screen.queryByRole('dialog', { name: 'View Routing' })).toBeNull()
+  // "state intact" — the pended order is still off its stop (Add order A still offered).
+  expect(screen.getByRole('button', { name: 'Add order A' })).toBeTruthy()
+})
+
+it('there is no separate View Routing button', () => {
+  setup()
+  expect(screen.queryByRole('button', { name: 'View Routing' })).toBeNull()
+})
+
+it('Evaluate is gated on isRoutable, with a tooltip naming routeBlocker\'s reason; T1 (S160) removed the routed gate', () => {
   // Bug fix (S160 follow-up) — a location-changed order's OWN shipFrom must
   // already carry the relocated site (buildConsolidationChange's B3b(c)
   // rewrite, real data) for initSandbox to create the P? this test needs.
@@ -165,20 +182,58 @@ it('View Routing and Approve Changes are both gated on isRoutable directly — T
   const { rerender } = render(
     <EditStopsView stops={baseStops} consolidation={locChange} orders={relocatedOrders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
   )
-  expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(true)
-  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
+  const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
+  expect(evaluateBtn.disabled).toBe(true)
+  fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
+  expect(screen.getByRole('tooltip').textContent).toContain('Place every P? / D? stop first')
   cleanup()
   setup()
-  const routingBtn = screen.getByRole('button', { name: 'View Routing' })
-  expect(routingBtn.disabled).toBe(false)
-  // Approve Changes is enabled directly off isRoutable — no need to have
-  // opened View Routing first.
-  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(false)
+  // Routable — Evaluate opens the modal, no tooltip needed.
+  const enabled = screen.getByRole('button', { name: 'Evaluate' })
+  expect(enabled.disabled).toBe(false)
+  fireEvent.click(enabled)
+  expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
 })
 
-it('Approve Changes stays disabled while saving even once routable', () => {
+it('an undated (sequenced) stop disables Evaluate with the "Set a date" tooltip', () => {
+  const relocatedOrders = orders.map((o) => (o.orderNumber === 'C' ? { ...o, shipFrom: { ...o.shipFrom, location: 'Q, Burg' } } : o))
+  render(
+    <EditStopsView stops={baseStops} consolidation={locChange} orders={relocatedOrders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
+  )
+  // Sequence the P? via "Keep here" — still undated, so Evaluate stays disabled with the OTHER reason.
+  fireEvent.click(nw().getByRole('button', { name: 'Keep here' }))
+  const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
+  expect(evaluateBtn.disabled).toBe(true)
+  fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
+  expect(screen.getByRole('tooltip').textContent).toContain('Set a date on every stop')
+})
+
+it('Evaluate stays disabled while saving even once routable, with no tooltip', () => {
   setup({ saving: true })
-  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
+  const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
+  expect(evaluateBtn.disabled).toBe(true)
+  expect(evaluateBtn.closest('[data-tooltip-trigger]')).toBeNull()
+})
+
+it('"Keep here" appears only on an unsequenced (P?/D?) stop in the New timeline, sequences it without moving, and is gone once sequenced', () => {
+  const relocatedOrders = orders.map((o) => (o.orderNumber === 'C' ? { ...o, shipFrom: { ...o.shipFrom, location: 'Q, Burg' } } : o))
+  setup({ consolidation: locChange, orders: relocatedOrders })
+  expect(within(screen.getByRole('region', { name: 'Prior plan' })).queryByRole('button', { name: 'Keep here' })).toBeNull()
+  const keepHere = nw().getByRole('button', { name: 'Keep here' })
+  const before = nw().getAllByText(/^Y, Town$|^Q, Burg$/).map((el) => el.textContent)
+  fireEvent.click(keepHere)
+  expect(nw().queryByRole('button', { name: 'Keep here' })).toBeNull()
+  // Still on its own P? location — sequenced in place, not moved elsewhere.
+  expect(nw().getAllByText(/^Y, Town$|^Q, Burg$/).map((el) => el.textContent)).toEqual(before)
+})
+
+it('the Prior column shows the relocated order at its ORIGINAL stop, never the P? the New column creates (T1.1/T2)', () => {
+  const relocatedOrders = orders.map((o) => (o.orderNumber === 'C' ? { ...o, shipFrom: { ...o.shipFrom, location: 'Q, Burg' } } : o))
+  setup({ consolidation: locChange, orders: relocatedOrders })
+  const prior = screen.getByRole('region', { name: 'Prior plan' })
+  expect(within(prior).getByText('Y, Town')).toBeTruthy()       // C's original pickup, untouched
+  expect(within(prior).queryByText('Q, Burg')).toBeNull()       // never the relocated site
+  expect(nw().getByText('P?')).toBeTruthy()                     // New shows the relocation as an unsequenced P?
 })
 
 it('Prior and New render side by side; Prior is read-only and badges the planner\'s edits gray (DEC-197)', () => {
@@ -195,8 +250,8 @@ it('Prior and New render side by side; Prior is read-only and badges the planner
 
 it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when clean and opens Discard when dirty', () => {
   const { onApprove, onCancel } = setup()
-  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Approve Changes' }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   expect(onApprove).toHaveBeenCalledTimes(1)
   expect(onApprove.mock.calls[0][0][0]).toHaveProperty('stopSequence', 1)
@@ -214,6 +269,25 @@ it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when 
   expect(dirty.onCancel).not.toHaveBeenCalled()
 })
 
+it('a saveError shows inside the open routing modal; while saving the modal footer shows Approving… (LINX-15872)', () => {
+  const { rerender } = render(
+    <EditStopsView stops={baseStops} consolidation={noChange} orders={orders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+  // A save started (and failed) while the modal was open — planner never left this screen.
+  rerender(
+    <EditStopsView stops={baseStops} consolidation={noChange} orders={orders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} saveError="Could not save. Try again." />,
+  )
+  expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+  expect(screen.getByText('Could not save. Try again.')).toBeTruthy()
+  rerender(
+    <EditStopsView stops={baseStops} consolidation={noChange} orders={orders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} saving />,
+  )
+  const primary = screen.getByRole('button', { name: 'Approving…' })
+  expect(primary.disabled).toBe(true)
+})
+
 it('Add New Order opens the modal; added orders land in pending with Add; a placed external order rides Approve as externalOrders', async () => {
   const { onApprove } = setup({ sellShipment: '9', customerId: 'ERCO', customerName: 'Erco' })
   // Pend C first (as the other Add-to test does) so P1 (A, B) is the only
@@ -225,9 +299,8 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   fireEvent.click(screen.getByRole('button', { name: 'Add order E' }))            // auto: P1 (X, City)
   expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('E')
   expect(screen.getByText('17 LB')).toBeTruthy()                                  // 5+5+7 — external order counts in totals
-  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /close/i }))
-  fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Approve Changes' }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
   expect(onApprove.mock.calls[0][1]).toEqual([{ orderNumber: 'E', sourceSellShipment: '77' }])
 })
@@ -258,8 +331,8 @@ it('the New plan edits a stop date; a date outside an order window flags that or
   fireEvent.blur(input)
   expect(nw().getAllByText('Outside planning window').length).toBe(2)               // A and B on stop 1
   // T1 (S160): the `routed` gate is gone — a window violation is flagged, never
-  // blocked, and every stop still carries a date, so Approve Changes stays enabled.
-  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(false)
+  // blocked, and every stop still carries a date, so Evaluate stays enabled.
+  expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
 })
 
 it('marks what an action touched so it pulses where it landed (user 2026-09-24)', () => {

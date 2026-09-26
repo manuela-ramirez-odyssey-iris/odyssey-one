@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown, TriangleAlert } from 'lucide-react'
-import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
+import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -13,14 +13,18 @@ import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.j
 import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop, addPending,
-  isRoutable, totals, priorDiff, toDto,
+  isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto,
   parseStamp, formatStopDate, setStopDate, windowViolations, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
 
 const HINT = 'Use the (↑ ↓) arrow buttons on each stop to move the entire stop (including all its orders) to a different position.'
 const LAST_ORDER_TOOLTIP = 'The last remaining order cannot be removed from the shipment.'
-const ROUTING_TOOLTIP = 'Place every P? / D? stop first'
+// DEC-207 (T2) — Evaluate's disabled tooltip, keyed off routeBlocker's reason.
+const BLOCKER_TOOLTIP = {
+  unsequenced: 'Place every P? / D? stop first',
+  undated: 'Set a date on every stop',
+}
 const CONFIRM_TITLE = 'Approve Shipment Change'
 const CONFIRM_BODY = 'Any orders left pending for assignment will be removed from this shipment when you approve it.'
 
@@ -62,7 +66,7 @@ function StopDateField({ id, label, value, onChange }) {
   )
 }
 
-export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, onApprove, onCancel, sellShipment, customerId, customerName }) {
+export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, saveError, onApprove, onCancel, sellShipment, customerId, customerName }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
   // (OrderChangeEditStopsRoute.jsx) mounts this with `key={sellShipment}`,
@@ -77,7 +81,13 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const orderById = useMemo(() => new Map(allOrders.map((o) => [o.orderNumber, o])), [allOrders])
   const [sb, setSb] = useState(initial)
   const [errorMsg, setErrorMsg] = useState(null)
-  const [modal, setModal] = useState(null) // 'planning' | 'routing' | 'discard' | 'confirm' | 'add-orders'
+  const [modal, setModal] = useState(null) // 'planning' | 'routing' | 'discard' | 'add-orders'
+  // DEC-207 (T2) — the "Approve Shipment Change" confirm stacks ABOVE the
+  // routing modal (both portal to body), so it's its own boolean rather than
+  // a `modal` value — closing it must NOT also close the routing modal
+  // underneath (Approve fails → planner lands back on the routing modal,
+  // which is still showing the error, not back on the bare editor).
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const initialTotals = useMemo(() => totals(initial, orders), [initial, orders])
   const curTotals = totals(sb, allOrders)
@@ -160,13 +170,18 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     setSb((s) => addToStop(s, id, allOrders))
   }
 
-  const routable = isRoutable(sb)
-  const routingDisabled = !routable
-  // T1 (S160): the `routed` gate is gone — Approve Changes is enabled
-  // directly off isRoutable. T2 replaces this button + the footer/modal
-  // wiring with the Evaluate flow (DEC-207); View Routing stays as-is until then.
-  const handleViewRouting = () => {
-    setModal('routing')
+  // DEC-207 (T2) — the footer's Evaluate opens the routing modal directly;
+  // there is no separate View Routing button any more.
+  const blocker = routeBlocker(sb)
+  const evaluateDisabled = !isRoutable(sb) || saving
+
+  // T1.2 — "Keep here" (a P?/D? stop's own row action): sequences it in
+  // place, no move — so it pulses (flashOn) like every other action here,
+  // but never slides (no snapshotTops call before the state update).
+  const handleKeepHere = (key) => {
+    setErrorMsg(null)
+    flashOn([`stop:${key}`])
+    setSb((s) => confirmStop(s, key))
   }
 
   const liveOrderIds = new Set()
@@ -273,6 +288,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               )}
               trail={isPrior ? null : (
                 <>
+                  {/* T1.2/T2 — "Keep here": a P?/D? stop only, beside the
+                      arrows. Sequences without moving. */}
+                  {s.unsequenced && (
+                    <Button variant="secondary" size="sm" onClick={() => handleKeepHere(s.key)}>Keep here</Button>
+                  )}
                   <Button variant="icon" icon={<ArrowUp {...ICON_MD} />} aria-label="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
                   <Button variant="icon" icon={<ArrowDown {...ICON_MD} />} aria-label="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
                 </>
@@ -352,19 +372,15 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
             <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
             <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
-            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance == null ? '--' : `${distance.toFixed(2)} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
+            {/* T2 — thousands separator, same formatter as the header KPI (fmtDistance). */}
+            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance == null ? '--' : `${distance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
           </div>
           <div className="edit-stops__head-actions">
+            {/* DEC-207 (T2) — View Routing is gone; Evaluate (footer) is the
+                only door into the routing modal now. */}
             <Button variant="secondary" onClick={() => setModal('planning')}>View Planning Dates</Button>
-            {routingDisabled ? (
-              <TooltipTrigger tooltipProps={{ groups: [{ content: ROUTING_TOOLTIP }] }}>
-                <Button variant="secondary" disabled>View Routing</Button>
-              </TooltipTrigger>
-            ) : (
-              <Button variant="secondary" onClick={handleViewRouting}>View Routing</Button>
-            )}
           </div>
         </div>
 
@@ -399,20 +415,57 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         </div>
       </SubAccordion>
 
-      {/* Page footer (S158, user 2026-09-24): the normalized sticky
-          StepperButtonsFooter replaces the in-flow ModalFooter, so Cancel /
-          Approve Changes stay reachable while the stop list scrolls. */}
-      <StepperButtonsFooter
-        className="edit-stops__footer"
-        cancelLabel="Cancel"
-        primaryLabel="Approve Changes"
-        primaryDisabled={!isRoutable(sb) || saving}
-        onCancel={handleCancel}
-        onPrimary={() => setModal('confirm')}
-      />
+      {/* Page footer (S158, user 2026-09-24): sticky, so Cancel / Evaluate
+          stay reachable while the stop list scrolls.
+          DEC-207 (T2) — "Approve Changes" → "Evaluate": it opens the routing
+          modal (never approves directly any more). StepperButtonsFooter
+          (@odyssey/ui) has no tooltip slot for its own disabled primary
+          button, so — same TooltipTrigger-wraps-a-disabled-Button pattern
+          this file used for the old View Routing button — the bar is
+          hand-built here from the same `.stepper-footer`/`.stepper-footer__end`
+          classes the molecule itself uses, only so the disabled Evaluate can
+          carry a tooltip naming routeBlocker's reason. */}
+      <div className="edit-stops__footer stepper-footer">
+        <Button variant="secondary" size="lg" onClick={handleCancel}>Cancel</Button>
+        <div className="stepper-footer__end">
+          {evaluateDisabled && blocker ? (
+            <TooltipTrigger tooltipProps={{ groups: [{ content: BLOCKER_TOOLTIP[blocker] }] }}>
+              <Button variant="primary" size="lg" disabled>Evaluate</Button>
+            </TooltipTrigger>
+          ) : (
+            <Button variant="primary" size="lg" disabled={evaluateDisabled} onClick={() => setModal('routing')}>Evaluate</Button>
+          )}
+        </div>
+      </div>
 
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} violations={violations} onClose={() => setModal(null)} />}
-      {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}
+      {modal === 'routing' && (
+        <ViewRoutingModal
+          orderChange={orderChange}
+          onClose={() => setModal(null)}
+          secondaryLabel="Keep Editing"
+          onSecondary={() => setModal(null)}
+          primaryLabel="Approve Changes"
+          onPrimary={() => setConfirmOpen(true)}
+          primaryLoading={saving}
+          primaryDisabled={saving}
+          error={saveError}
+        />
+      )}
+      {confirmOpen && (
+        // VD 2066-77150 / DEC-141 / DEC-207: stacks ABOVE the routing modal
+        // (both portal to document.body) — Approve fires onApprove exactly
+        // as before; the routing modal stays open underneath so a save
+        // error (below) surfaces there, in place.
+        <ConfirmDialog
+          title={CONFIRM_TITLE}
+          message={CONFIRM_BODY}
+          confirmLabel="Approve"
+          cancelLabel="Cancel"
+          onConfirm={() => { setConfirmOpen(false); onApprove?.(toDto(sb), externalOrdersOnStops) }}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
       {modal === 'add-orders' && (
         <AddOrdersModal
           sellShipment={sellShipment}
@@ -430,19 +483,6 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           confirmLabel="Discard"
           cancelLabel="Keep editing"
           onConfirm={() => { setModal(null); onCancel?.() }}
-          onCancel={() => setModal(null)}
-        />
-      )}
-      {modal === 'confirm' && (
-        // VD 2066-77150 / DEC-141: Approve Changes confirms before committing —
-        // any orders still sitting in the pending buffer are dropped from the
-        // shipment on approval, so the planner gets one last chance to back out.
-        <ConfirmDialog
-          title={CONFIRM_TITLE}
-          message={CONFIRM_BODY}
-          confirmLabel="Approve"
-          cancelLabel="Cancel"
-          onConfirm={() => { setModal(null); onApprove?.(toDto(sb), externalOrdersOnStops) }}
           onCancel={() => setModal(null)}
         />
       )}

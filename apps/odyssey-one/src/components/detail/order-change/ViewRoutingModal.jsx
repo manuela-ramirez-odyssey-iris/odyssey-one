@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Badge, GroupTable, ModalMedium } from '@odyssey/ui'
+import { Alert, Badge, GroupTable, ModalFooter, ModalMedium } from '@odyssey/ui'
 import { DiffValue, rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
 // LINX-15438 View Routing — VD 2108-14708. New above Prior (canon §7, same
@@ -51,10 +51,21 @@ function TenderTable({ title, rows, otherCostByScac }) {
   return <GroupTable flat header={{ title }} columns={COLS} groups={rowsToFlatGroups(rows, COLS, cell)} />
 }
 
-export default function ViewRoutingModal({ orderChange: oc, onClose }) {
+// DEC-207 (T2) — the Stops-tab read-only use (StopsTab.jsx) passes none of
+// the footer props below and stays byte-identical (no footer — the header
+// close is its only exit, per the 2026-09-24 ruling this comment used to
+// live under). Edit Shipment Stops (EditStopsView.jsx) is the first caller
+// to pass them, for its Keep Editing / Approve Changes footer (T3 gives
+// StopsTab its own Keep Reviewing / Approve Plan pair the same way).
+export default function ViewRoutingModal({
+  orderChange: oc, onClose,
+  secondaryLabel, onSecondary, primaryLabel, onPrimary, primaryLoading = false, primaryDisabled = false,
+  error,
+}) {
   const priorList = oc?.priorTenderList ?? []
   const newList = oc?.newTenderList ?? []
   const dropped = oc?.droppedCarriers?.new ?? []
+  const hasFooter = !!(secondaryLabel || primaryLabel)
 
   // Portalled to document.body — the bottom bar's own box clips this modal
   // when the bar is partially open (user, 2026-09-09).
@@ -65,8 +76,23 @@ export default function ViewRoutingModal({ orderChange: oc, onClose }) {
       onClose={onClose}
       scrollableContent
       className="view-routing-modal"
-      // User 2026-09-24: no footer — the header's close is the only exit.
+      footer={hasFooter ? (
+        <ModalFooter
+          type="confirm"
+          cancelLabel={secondaryLabel}
+          // Loading implies busy — Keep Editing/Reviewing is a no-op rather
+          // than a visually-disabled button (ModalFooter's Cancel has no
+          // disabled prop to wire up; see LINX-15872 body).
+          onCancel={primaryLoading ? undefined : onSecondary}
+          saveLabel={primaryLoading ? 'Approving…' : primaryLabel}
+          saveDisabled={primaryDisabled || primaryLoading}
+          onSave={onPrimary}
+        />
+      ) : undefined}
     >
+      {/* LINX-15872 — a failed Approve keeps this modal open with the error
+          shown here, not on the (unmounted-on-success) route behind it. */}
+      {error && <Alert variant="error" showClose={false}>{error}</Alert>}
       <TenderTable title="New" rows={newList} otherCostByScac={costByScac(priorList)} />
       <TenderTable title="Prior" rows={priorList} otherCostByScac={costByScac(newList)} />
       <GroupTable

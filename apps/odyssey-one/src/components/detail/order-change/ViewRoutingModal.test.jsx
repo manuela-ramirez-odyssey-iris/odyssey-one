@@ -73,6 +73,68 @@ it('has no footer; the header close calls onClose (user 2026-09-24)', () => {
   const onClose = vi.fn()
   render(<ViewRoutingModal orderChange={oc} onClose={onClose} />)
   expect(screen.queryByText('Go Back')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Keep Editing' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: /close/i }))
   expect(onClose).toHaveBeenCalled()
+})
+
+// DEC-207 (T2) — EditStopsView's Keep Editing / Approve Changes footer.
+it('renders a footer when secondaryLabel/primaryLabel are passed; secondary and primary fire their handlers', () => {
+  const onSecondary = vi.fn()
+  const onPrimary = vi.fn()
+  render(
+    <ViewRoutingModal
+      orderChange={oc}
+      onClose={() => {}}
+      secondaryLabel="Keep Editing"
+      onSecondary={onSecondary}
+      primaryLabel="Approve Changes"
+      onPrimary={onPrimary}
+    />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }))
+  expect(onSecondary).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+  expect(onPrimary).toHaveBeenCalledTimes(1)
+})
+
+it('primaryLoading swaps the label to Approving… and disables it; Keep Editing becomes a no-op', () => {
+  const onSecondary = vi.fn()
+  const onPrimary = vi.fn()
+  render(
+    <ViewRoutingModal
+      orderChange={oc}
+      onClose={() => {}}
+      secondaryLabel="Keep Editing"
+      onSecondary={onSecondary}
+      primaryLabel="Approve Changes"
+      onPrimary={onPrimary}
+      primaryLoading
+    />,
+  )
+  expect(screen.queryByRole('button', { name: 'Approve Changes' })).toBeNull()
+  const primary = screen.getByRole('button', { name: 'Approving…' })
+  expect(primary.disabled).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }))
+  expect(onSecondary).not.toHaveBeenCalled()
+})
+
+it('primaryDisabled disables the primary button without changing its label', () => {
+  render(
+    <ViewRoutingModal
+      orderChange={oc}
+      onClose={() => {}}
+      secondaryLabel="Keep Editing"
+      primaryLabel="Approve Changes"
+      primaryDisabled
+    />,
+  )
+  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
+})
+
+it('renders an error Alert above the tables when `error` is set; nothing when not', () => {
+  const { rerender } = render(<ViewRoutingModal orderChange={oc} onClose={() => {}} error="Could not save. Try again." />)
+  expect(screen.getByText('Could not save. Try again.')).toBeTruthy()
+  rerender(<ViewRoutingModal orderChange={oc} onClose={() => {}} />)
+  expect(screen.queryByText('Could not save. Try again.')).toBeNull()
 })

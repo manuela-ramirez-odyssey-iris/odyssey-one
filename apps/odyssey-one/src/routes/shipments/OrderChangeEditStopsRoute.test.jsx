@@ -103,8 +103,8 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(screen.getByText('Shipment')).toBeTruthy()
     expect(screen.getByText('Review Order Change')).toBeTruthy()
     expect(screen.getAllByText('Edit Shipment Stops').length).toBeGreaterThan(0)
-    // The editor itself rendered (View Routing / Approve Changes are its own).
-    expect(screen.getByRole('button', { name: 'View Routing' })).toBeTruthy()
+    // The editor itself rendered (Evaluate is its own, DEC-207).
+    expect(screen.getByRole('button', { name: 'Evaluate' })).toBeTruthy()
   })
 
   // S148 — the actual bug this task fixes: location.state is gone on a hard
@@ -136,7 +136,7 @@ describe('OrderChangeEditStopsRoute', () => {
   test('Cancel navigates to /shipments with selectedShipmentId and requestedTab stops (LINX-15667)', async () => {
     getSellShipmentDetail.mockResolvedValue(makeDetail())
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-    await screen.findByRole('button', { name: 'View Routing' })
+    await screen.findByRole('button', { name: 'Evaluate' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
@@ -151,10 +151,10 @@ describe('OrderChangeEditStopsRoute', () => {
       resolveOrderChange.mockResolvedValue(undefined)
       getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus }))
       renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-      await screen.findByRole('button', { name: 'View Routing' })
+      await screen.findByRole('button', { name: 'Evaluate' })
 
-      fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
       fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
       const probe = await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
@@ -178,10 +178,10 @@ describe('OrderChangeEditStopsRoute', () => {
     resolveOrderChange.mockResolvedValue(undefined)
     getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: null }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-    await screen.findByRole('button', { name: 'View Routing' })
+    await screen.findByRole('button', { name: 'Evaluate' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
     const probe = await screen.findByText(/landed at \/shipments with state/)
@@ -193,33 +193,35 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(resolveOrderChange.mock.calls[0][1].action).toBe('save-stops')
   })
 
-  test('Approve Changes disables itself while the save is in flight (saving prop wired through)', async () => {
+  test('the routing modal footer shows loading and disables itself while the save is in flight (saving prop wired through)', async () => {
     let resolveSave
     resolveOrderChange.mockReturnValue(new Promise((res) => { resolveSave = res }))
     getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-    await screen.findByRole('button', { name: 'View Routing' })
+    await screen.findByRole('button', { name: 'Evaluate' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Approving…' }).disabled).toBe(true))
     resolveSave(undefined)
     await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
   })
 
-  test('Approve shows an error and does not navigate when the save fails', async () => {
+  test('Approve shows an error inside the routing modal and does not navigate when the save fails (LINX-15872)', async () => {
     resolveOrderChange.mockRejectedValue(new Error('Network error'))
     getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-    await screen.findByRole('button', { name: 'View Routing' })
+    await screen.findByRole('button', { name: 'Evaluate' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
     expect(await screen.findByText('Network error')).toBeTruthy()
+    // Still inside the routing modal — the planner never left this screen.
+    expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
     expect(screen.queryByText(/landed at/)).toBeNull()
   })
 
@@ -234,15 +236,16 @@ describe('OrderChangeEditStopsRoute', () => {
     resolveOrderChange.mockRejectedValue(err)
     getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
-    await screen.findByRole('button', { name: 'View Routing' })
+    await screen.findByRole('button', { name: 'Evaluate' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
 
     expect(await screen.findByText(/Order impacted: E/)).toBeTruthy()
-    // Still on the Edit Shipment Stops screen — no navigation happened —
-    // and the editor's own controls (the planner's pending work) are intact.
+    // Still on the Edit Shipment Stops screen, routing modal open — no
+    // navigation happened — and the editor's own controls (the planner's
+    // pending work) are intact.
     expect(screen.queryByText(/landed at/)).toBeNull()
     expect(screen.getByRole('button', { name: 'Approve Changes' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy()
