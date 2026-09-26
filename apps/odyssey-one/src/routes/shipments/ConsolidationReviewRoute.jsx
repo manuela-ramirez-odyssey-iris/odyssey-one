@@ -107,10 +107,8 @@ function TenderedCheckTable({ rows }) {
   return <DataTable table={table} ariaLabel="Shipments in this consolidation" truncationTooltip />
 }
 
-// Shared Timeline item builder for the Planned Stops list (draggable, in
-// review) and its read-only echo inside the Save Stop Changes modal (B2
-// follow-up) — same marker/label markup either way, drag wiring only when
-// `drag` is passed.
+// Timeline item builder for the Planned Stops list — drag wiring only when
+// `drag` is passed (read-only once applied).
 function stopTimelineItems(stops, drag) {
   return stops.map((s) => ({
     key: s.key,
@@ -249,7 +247,6 @@ export default function ConsolidationReviewRoute() {
   // Set/reset every time the modal (re-)enters Confirm — the >5s re-roll
   // (below) measures from here, not from when the modal first opened.
   const [confirmEnteredAt, setConfirmEnteredAt] = useState(null)
-  const [saveStopsPrompt, setSaveStopsPrompt] = useState(false)
   const tenderedRows = rows.filter((r) => ACTIVE_TENDER.has(r.tenderStatus))
   const [tenderCheckBusy, setTenderCheckBusy] = useState(false)
   const [tenderCheckError, setTenderCheckError] = useState(null)
@@ -309,21 +306,6 @@ export default function ConsolidationReviewRoute() {
     }
   }
 
-  // Apply is always enabled now (user ruling item 2) — unsaved stop changes
-  // are gated by a confirmation modal FIRST, not by disabling the button.
-  const handleApplyClick = () => {
-    if (stopsDirty) { setSaveStopsPrompt(true); return }
-    openApplyModal()
-  }
-
-  const handleSaveStopsAndContinue = () => {
-    const err = validateStopOrder(draftStops, byStopKey)
-    if (err) { setStopOrderError(err); return }
-    setCommittedStops({ sig: defaultSig, order: draftStops })
-    setStopOrderError(null)
-    setSaveStopsPrompt(false)
-    openApplyModal()
-  }
 
   // The Confirm-phase "Apply Consolidation" click: re-verifies no row has
   // gone tendered since the modal opened (user ruling item 3, "re-verifies"),
@@ -593,11 +575,11 @@ export default function ConsolidationReviewRoute() {
               showSave
               saveLabel="Edit Consolidation"
               primaryLabel="Apply Consolidation"
-              primaryDisabled={rows.length < 2 || checkingApply}
+              primaryDisabled={rows.length < 2 || stopsDirty || checkingApply}
               saving={apply.isPending}
               onCancel={() => setPending('cancel')}
               onSave={backInMode}
-              onPrimary={handleApplyClick}
+              onPrimary={openApplyModal}
             />
           )}
 
@@ -654,24 +636,6 @@ export default function ConsolidationReviewRoute() {
                 })}
               </div>
             )}
-          </ModalMedium>
-        )}
-
-        {/* B2 follow-up: unsaved stop changes no longer disable Apply — they
-            gate it behind this confirmation first (user ruling item 2). */}
-        {saveStopsPrompt && (
-          <ModalMedium
-            title="Save Stop Changes"
-            onClose={() => setSaveStopsPrompt(false)}
-            footer={(
-              <>
-                <Button variant="secondary" onClick={() => setSaveStopsPrompt(false)}>Cancel</Button>
-                <Button onClick={handleSaveStopsAndContinue}>Save and Continue</Button>
-              </>
-            )}
-          >
-            <Timeline items={stopTimelineItems(displayedStops)} aria-label="New planned stop sequence" />
-            {stopOrderError && <Alert variant="error" showClose={false}>{stopOrderError}</Alert>}
           </ModalMedium>
         )}
 

@@ -301,41 +301,19 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true) // back to original
   })
 
-  // B2 follow-up (user ruling item 2): unsaved stop changes no longer
-  // disable Apply — they gate it behind a "Save Stop Changes" confirmation.
-  describe('Save Stop Changes gate', () => {
-    test('Apply with unsaved stop changes opens "Save Stop Changes" first; Cancel leaves it unsaved and untouched', () => {
-      const { container } = renderReview({ rows })
-      dragReorder(container, 0, 1)
-      expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false) // dirty
-      fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
-      const dialog = screen.getByRole('dialog', { name: 'Save Stop Changes' })
-      expect(within(dialog).getByText('P1')).toBeTruthy() // read-only echo of the new sequence
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
-      expect(screen.queryByRole('dialog')).toBeNull()
-      expect(vi.mocked(applyConsolidation)).not.toHaveBeenCalled()
-      expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false) // still unsaved
-    })
-
-    test('Save and Continue saves the order exactly like Save Changes, then opens the Apply modal', async () => {
-      const { container } = renderReview({ rows })
-      dragReorder(container, 0, 1)
-      fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
-      const saveDialog = screen.getByRole('dialog', { name: 'Save Stop Changes' })
-      fireEvent.click(within(saveDialog).getByRole('button', { name: 'Save and Continue' }))
-      expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true) // committed
-      const applyDialog = await screen.findByRole('dialog', { name: 'Apply Consolidation' })
-      fireEvent.click(within(applyDialog).getByRole('button', { name: 'Apply Consolidation' }))
-      await screen.findByText(/Consolidation Successfully Applied!/)
-      expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
-    })
-
-    test('with no unsaved changes, Apply goes straight to the Apply modal', async () => {
-      renderReview({ rows })
-      fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
-      expect(screen.queryByRole('dialog', { name: 'Save Stop Changes' })).toBeNull()
-      expect(await screen.findByRole('dialog', { name: 'Apply Consolidation' })).toBeTruthy()
-    })
+  // Unsaved stop changes disable Apply until Save Changes (user, 2026-09-25:
+  // the Save Stop Changes modal was tried and dropped).
+  test('Apply is disabled while stop changes are unsaved; Save Changes re-enables it', async () => {
+    const { container } = renderReview({ rows })
+    dragReorder(container, 0, 1)
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+    const applyDialog = await screen.findByRole('dialog', { name: 'Apply Consolidation' })
+    fireEvent.click(within(applyDialog).getByRole('button', { name: 'Apply Consolidation' }))
+    await screen.findByText(/Consolidation Successfully Applied!/)
+    expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
   })
 
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,
