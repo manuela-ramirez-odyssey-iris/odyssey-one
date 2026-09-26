@@ -5,7 +5,7 @@ import { DemoControls, DemoToggle } from '../demoControls.jsx'
 export const meta = {
   name: 'StepperButtonsFooter',
   tier: 'molecule',
-  version: '0.5.0',
+  version: '0.5.1',
   createdVersion: '0.5.0',
   normalizing: true,
   figmaNode: '3164:2169',
@@ -115,7 +115,10 @@ export default function StepperButtonsFooterDemo() {
         left, the primary action group (<code>Save?</code> + primary) pushed right, over a top
         divider. Composes the <strong>Button</strong> atom. Distinct from{' '}
         <a href="#comp-ModalFooter" style={{ color: 'var(--text-link)', textDecoration: 'underline' }}>ModalFooter</a>{' '}
-        (right-aligned modal actions). Consumer: the order-create <code>StickyFooter</code>.
+        (right-aligned modal actions). Consumer: the order-create <code>StickyFooter</code>.{' '}
+        <code>z-index: 30</code> (0.5.1, S161) — clears every in-page sticky layer (table
+        heads/pinned columns up to 4, the resolve-alert bar at 5) while staying below dropdowns
+        (60), the product panel dock (100) and sheet layers (200).
       </p>
 
       <div className="ds-demo-section">
