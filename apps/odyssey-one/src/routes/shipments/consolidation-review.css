@@ -45,18 +45,17 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
-  /* Gentle reflow as the live drag preview re-orders the list. */
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 .consolidation-review__stop[draggable="true"] { cursor: grab; }
-/* Drop target (user, 2026-09-25): the dragged stop stays itself — content
-   visible, no fill, no greying — at its live-preview position, wrapped in a
-   solid purple outline marking where it will land. Overlay so the outline
-   adds no layout; it hugs the content, not the row's bottom gap. */
+/* Drop target (user, 2026-09-25): an EMPTY slot — the dragged stop's content
+   is hidden (it rides the pointer as the native drag image) and the room it
+   will land in is a solid purple outline, no fill. Overlay so it adds no
+   layout; it spans the content, not the row's bottom gap. */
+.consolidation-review__stop[data-drop-placeholder] .consolidation-review__stop-inner { visibility: hidden; }
 .consolidation-review__stop[data-drop-placeholder]::before {
   content: '';
   position: absolute;
-  inset: calc(var(--spacing-1) * -1) calc(var(--spacing-2) * -1) calc(var(--spacing-5) - var(--spacing-1)) calc(var(--spacing-2) * -1);
+  inset: 0 0 var(--spacing-5) 0;
   border: 1px solid var(--badge-purple-text);
   border-radius: var(--radius-md);
   pointer-events: none;

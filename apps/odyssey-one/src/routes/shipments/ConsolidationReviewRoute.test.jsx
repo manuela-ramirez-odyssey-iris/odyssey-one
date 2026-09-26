@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ConsolidationReviewRoute from './ConsolidationReviewRoute.jsx'
@@ -349,7 +349,7 @@ describe('ConsolidationReviewRoute', () => {
 
   // User ruling 2026-09-25, item 2 — no greyed lifted stop while dragging;
   // instead a purple drop placeholder occupies the live-preview slot.
-  test('a purple drop placeholder shows during dragOver and clears after drop/dragEnd', () => {
+  test('an empty purple-outlined drop slot shows during dragOver (a tick after dragStart) and clears after drop/dragEnd', async () => {
     const { container } = renderReview({ rows })
     const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
     const [first, second] = stops()
@@ -357,7 +357,8 @@ describe('ConsolidationReviewRoute', () => {
 
     fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
     fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
-    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy()
+    // Deferred a tick so the native drag image is snapshotted with content.
+    await waitFor(() => expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy())
     // No grayed/lifted look left behind on any stop.
     expect(container.querySelector('.consolidation-review__stop[data-dragging]')).toBeNull()
 
@@ -366,13 +367,14 @@ describe('ConsolidationReviewRoute', () => {
     expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
   })
 
-  test('a purple drop placeholder clears on dragEnd without a drop (cancel / Esc)', () => {
+  test('the drop slot clears on dragEnd without a drop (cancel / Esc)', async () => {
     const { container } = renderReview({ rows })
     const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
     const [first, second] = stops()
     fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
     fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
-    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy()
+    // Deferred a tick so the native drag image is snapshotted with content.
+    await waitFor(() => expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy())
     fireEvent.dragEnd(first) // no drop fired — cancelled
     expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
   })
@@ -392,14 +394,14 @@ describe('ConsolidationReviewRoute', () => {
       expect(screen.getByText('Tendered Shipment Detected')).toBeTruthy()
       expect(screen.getByText('1 Error(s): Shipment O00000001 has been tendered and cannot be consolidated.')).toBeTruthy()
       expect(screen.getByText('Remove tendered shipment(s) and proceed with the remaining 2.')).toBeTruthy()
-      expect(screen.getByText('Cancel tendered shipment(s) and continue consolidation.')).toBeTruthy()
+      expect(screen.getByText('Cancel tender on the accepted shipments and continue consolidation.')).toBeTruthy()
     })
 
     test('remaining < 2: offers Discard / Cancel instead', async () => {
       renderReview({ rows: rowsWithTender(1) })
       await clickApply()
       expect(screen.getByText('Discard and select different shipments. Consolidation requires at least 2 shipments.')).toBeTruthy()
-      expect(screen.getByText('Cancel tendered shipment and continue consolidation.')).toBeTruthy()
+      expect(screen.getByText('Cancel tender on the accepted shipment and continue consolidation.')).toBeTruthy()
     })
 
     test('Nevermind closes the modal and changes nothing', async () => {
@@ -437,7 +439,7 @@ describe('ConsolidationReviewRoute', () => {
       }))
       renderReview({ rows: rowsWithTender(2) })
       const dialog = await clickApply()
-      fireEvent.click(within(dialog).getByText('Cancel tendered shipment(s) and continue consolidation.'))
+      fireEvent.click(within(dialog).getByText('Cancel tender on the accepted shipments and continue consolidation.'))
       fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Solution' }))
       expect(await within(dialog).findByText('Tender cancelled on shipment O00000001.')).toBeTruthy()
       expect(within(dialog).queryByText('Tendered')).toBeNull() // badge cleared, row still present

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQueries, useQueryClient } from '@tanstack/react-query'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
@@ -131,6 +131,7 @@ function stopTimelineItems(stops, drag, changedKeys) {
           onDrop={drag ? drag.onDrop : undefined}
           onDragEnd={drag ? drag.onDragEnd : undefined}
           data-drop-placeholder={isPlaceholder ? '' : undefined}
+          ref={drag ? (el) => drag.registerEl(s.key, el) : undefined}
         >
           <div className="consolidation-review__stop-inner">
             <div className="consolidation-review__stop-head">
@@ -208,7 +209,9 @@ export default function ConsolidationReviewRoute() {
     draggedKeyRef.current = key
     preDragOrderRef.current = effectiveDraftOrder
     droppedRef.current = false
-    setDraggedKey(key)
+    // Next tick: the browser snapshots the drag image when dragstart returns —
+    // emptying the slot synchronously would make the image an empty box too.
+    setTimeout(() => { if (draggedKeyRef.current === key) setDraggedKey(key) }, 0)
     e.dataTransfer.setData('text/plain', key)
     e.dataTransfer.effectAllowed = 'move'
   }
@@ -434,8 +437,31 @@ export default function ConsolidationReviewRoute() {
   // the last saved one). Holds for unsaved and saved changes alike, and stays
   // after Apply since `displayedStops` still reads from the same order.
   const changedKeys = new Set(effectiveDraftOrder.filter((key, i) => defaultOrder[i] !== key))
+  // FLIP: when the order changes (live drag preview, drop, revert), each stop
+  // slides from where it was to where it now is, so the others visibly make
+  // room around the dragged one instead of jumping.
+  const stopEls = useRef(new Map())
+  const stopTops = useRef(new Map())
+  const orderSig = displayedStops.map((s) => s.key).join('|')
+  useLayoutEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    for (const [key, el] of stopEls.current) {
+      el.style.transition = 'none'
+      el.style.transform = ''
+      const top = el.getBoundingClientRect().top
+      const prev = stopTops.current.get(key)
+      stopTops.current.set(key, top)
+      if (reduce || prev == null || prev === top) continue
+      el.style.transform = `translateY(${prev - top}px)`
+      el.getBoundingClientRect() // commit the inverted position before animating back
+      el.style.transition = 'transform var(--transition-base)'
+      el.style.transform = ''
+    }
+  }, [orderSig])
+  const registerEl = (key, el) => { if (el) stopEls.current.set(key, el); else stopEls.current.delete(key) }
+
   const timelineItems = stopTimelineItems(displayedStops, applied ? null : {
-    draggedKey, onDragStart: handleStopDragStart, onDragOver: handleStopDragOver, onDrop: handleStopDrop, onDragEnd: handleStopDragEnd,
+    registerEl, draggedKey, onDragStart: handleStopDragStart, onDragOver: handleStopDragOver, onDrop: handleStopDrop, onDragEnd: handleStopDragEnd,
   }, changedKeys)
 
   const tableRows = applied ? [applied.row] : rows
@@ -444,11 +470,11 @@ export default function ConsolidationReviewRoute() {
   const radioOptions = applyModal?.phase === 'error' && (remaining >= 2
     ? [
         { value: 'remove', label: `Remove tendered shipment(s) and proceed with the remaining ${remaining}.`, Icon: Trash2 },
-        { value: 'cancelTender', label: 'Cancel tendered shipment(s) and continue consolidation.', Icon: Replace },
+        { value: 'cancelTender', label: 'Cancel tender on the accepted shipments and continue consolidation.', Icon: Replace },
       ]
     : [
         { value: 'discard', label: 'Discard and select different shipments. Consolidation requires at least 2 shipments.', Icon: Trash2 },
-        { value: 'cancelTender', label: 'Cancel tendered shipment and continue consolidation.', Icon: Replace },
+        { value: 'cancelTender', label: 'Cancel tender on the accepted shipment and continue consolidation.', Icon: Replace },
       ])
 
   return (
