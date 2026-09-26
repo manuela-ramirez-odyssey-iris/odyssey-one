@@ -64,11 +64,13 @@ function renderReview(state) {
 }
 
 // Apply's click handler runs the B3 simulation check (async) before opening
-// either the tendered-check modal or the plain confirm dialog — every click
-// on it needs a tick to flush.
+// the merged modal (Confirm or Error phase) — every click on the page-level
+// "Apply Consolidation" button needs a tick to flush. Returns the dialog so
+// callers can scope inside it — the modal's OWN "Apply Consolidation" /
+// "Cancel" buttons share a name with page-level chrome once it's open.
 async function clickApply() {
   fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
-  await screen.findByRole('dialog')
+  return screen.findByRole('dialog')
 }
 
 describe('ConsolidationReviewRoute', () => {
@@ -118,31 +120,34 @@ describe('ConsolidationReviewRoute', () => {
     expect(state).toEqual({ consolidateExit: true })
   })
 
-  test('Apply confirms with the identifier chips, then applies every sell shipment', async () => {
+  // The Apply confirmation now lives INSIDE the merged modal's Confirm phase
+  // (user ruling item 3) — no more standalone "Yes, Apply" dialog.
+  test('Apply opens the merged modal in Confirm state with the shipments table, then applies every sell shipment', async () => {
     renderReview({ rows })
-    await clickApply()
-    expect(screen.getByText('Are you sure you want to apply the proposed consolidation?')).toBeTruthy()
-    const dialog = document.querySelector('.confirm-dialog')
-    expect(within(dialog).getAllByText(/^O0000000\d$/).length).toBe(2)
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+    const dialog = await clickApply()
+    expect(dialog.getAttribute('aria-label')).toBe('Apply Consolidation') // title
+    expect(within(dialog).getByText('Are you sure you want to apply the proposed consolidation?')).toBeTruthy()
+    expect(within(dialog).getByText('O00000001')).toBeTruthy()
+    expect(within(dialog).getByText('O00000002')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
     await screen.findByText(/Consolidation Successfully Applied!/)
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].sellShipments).toEqual(['a', 'b'])
     // B2: the default (untouched) stop order rides along even when unedited.
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-a', 'pickup-b', 'delivery-a', 'delivery-b'])
   })
 
-  test('"No" closes the apply dialog without applying', async () => {
+  test('Cancel closes the apply modal without applying', async () => {
     renderReview({ rows })
-    await clickApply()
-    fireEvent.click(screen.getByRole('button', { name: 'No' }))
+    const dialog = await clickApply()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByText('Are you sure you want to apply the proposed consolidation?')).toBeNull()
     expect(vi.mocked(applyConsolidation)).not.toHaveBeenCalled()
   })
 
   async function applyAndWait() {
     const rendered = renderReview({ rows })
-    await clickApply()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+    const dialog = await clickApply()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
     await screen.findByText(/Consolidation Successfully Applied!/)
     return rendered
   }
@@ -206,8 +211,8 @@ describe('ConsolidationReviewRoute', () => {
   test('a failed Apply shows the error and leaves the page editable', async () => {
     vi.mocked(applyConsolidation).mockRejectedValueOnce(new Error('Unknown shipment(s): a'))
     renderReview({ rows })
-    await clickApply()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+    const dialog = await clickApply()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
     expect(await screen.findByText('Unknown shipment(s): a')).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Review & Apply Manual Consolidation' })).toBeTruthy()
   })
@@ -241,7 +246,7 @@ describe('ConsolidationReviewRoute', () => {
   })
 
   test('Planned Stops are read-only after Apply — no grips, no Revert/Save, no helper text', async () => {
-    const { container } = await (async () => { const r = renderReview({ rows }); await clickApply(); fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' })); await screen.findByText(/Consolidation Successfully Applied!/); return r })()
+    const { container } = await applyAndWait()
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(0)
     expect(screen.queryByRole('button', { name: 'Revert' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
@@ -256,6 +261,19 @@ describe('ConsolidationReviewRoute', () => {
   // jsdom has no native DataTransfer; a plain stub covers the .setData/
   // .dropEffect access the handlers make.
   const dataTransfer = () => ({ setData: () => {}, effectAllowed: null, dropEffect: null })
+
+  // Drags stop `from` (0-indexed, pre-drag order) onto stop `to` and drops —
+  // the shared setup for both the live-preview tests and the Save Stop
+  // Changes gate below.
+  function dragReorder(container, from, to) {
+    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const dragged = stops()[from]
+    const target = stops()[to]
+    fireEvent.dragStart(dragged, { dataTransfer: dataTransfer() })
+    fireEvent.dragOver(target, { dataTransfer: dataTransfer() })
+    fireEvent.drop(target, { dataTransfer: dataTransfer() })
+    fireEvent.dragEnd(dragged)
+  }
 
   test('live drag preview: dragover reorders the working copy and re-numbers labels, drop commits it', () => {
     const { container } = renderReview({ rows })
@@ -283,6 +301,43 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true) // back to original
   })
 
+  // B2 follow-up (user ruling item 2): unsaved stop changes no longer
+  // disable Apply — they gate it behind a "Save Stop Changes" confirmation.
+  describe('Save Stop Changes gate', () => {
+    test('Apply with unsaved stop changes opens "Save Stop Changes" first; Cancel leaves it unsaved and untouched', () => {
+      const { container } = renderReview({ rows })
+      dragReorder(container, 0, 1)
+      expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false) // dirty
+      fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+      const dialog = screen.getByRole('dialog', { name: 'Save Stop Changes' })
+      expect(within(dialog).getByText('P1')).toBeTruthy() // read-only echo of the new sequence
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(vi.mocked(applyConsolidation)).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false) // still unsaved
+    })
+
+    test('Save and Continue saves the order exactly like Save Changes, then opens the Apply modal', async () => {
+      const { container } = renderReview({ rows })
+      dragReorder(container, 0, 1)
+      fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+      const saveDialog = screen.getByRole('dialog', { name: 'Save Stop Changes' })
+      fireEvent.click(within(saveDialog).getByRole('button', { name: 'Save and Continue' }))
+      expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true) // committed
+      const applyDialog = await screen.findByRole('dialog', { name: 'Apply Consolidation' })
+      fireEvent.click(within(applyDialog).getByRole('button', { name: 'Apply Consolidation' }))
+      await screen.findByText(/Consolidation Successfully Applied!/)
+      expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
+    })
+
+    test('with no unsaved changes, Apply goes straight to the Apply modal', async () => {
+      renderReview({ rows })
+      fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
+      expect(screen.queryByRole('dialog', { name: 'Save Stop Changes' })).toBeNull()
+      expect(await screen.findByRole('dialog', { name: 'Apply Consolidation' })).toBeTruthy()
+    })
+  })
+
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,
   // so the concurrent-tender coin flip never fires here — only the SEEDED
   // tendered row trips the check).
@@ -296,7 +351,7 @@ describe('ConsolidationReviewRoute', () => {
       renderReview({ rows: rowsWithTender(2) })
       await clickApply()
       expect(screen.getByText('Tendered Shipment Detected')).toBeTruthy()
-      expect(screen.getByText('1 Error(s): Shipment O00000001 has already been tendered and cannot be consolidated.')).toBeTruthy()
+      expect(screen.getByText('1 Error(s): Shipment O00000001 has been tendered and cannot be consolidated.')).toBeTruthy()
       expect(screen.getByText('Remove tendered shipment(s) and proceed with the remaining 2.')).toBeTruthy()
       expect(screen.getByText('Cancel tendered shipment(s) and continue consolidation.')).toBeTruthy()
     })
@@ -316,12 +371,13 @@ describe('ConsolidationReviewRoute', () => {
       expect(vi.mocked(applyConsolidation)).not.toHaveBeenCalled()
     })
 
-    test('Remove (default) drops the tendered row and continues to the Apply confirmation', async () => {
+    test('Remove (default) drops the tendered row, shows a green success alert, then applies the remaining rows', async () => {
       renderReview({ rows: rowsWithTender(2) })
-      await clickApply()
-      fireEvent.click(screen.getByRole('button', { name: 'Apply Solution' }))
-      await screen.findByText('Are you sure you want to apply the proposed consolidation?')
-      fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+      const dialog = await clickApply()
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Solution' }))
+      expect(await within(dialog).findByText('Tendered shipment O00000001 removed from the consolidation.')).toBeTruthy()
+      expect(within(dialog).queryByText('Tendered')).toBeNull() // badge gone with the row
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
       await screen.findByText(/Consolidation Successfully Applied!/)
       expect(vi.mocked(applyConsolidation).mock.calls[0][0].sellShipments).toEqual(['b', 'c'])
     })
@@ -334,19 +390,20 @@ describe('ConsolidationReviewRoute', () => {
       expect(state.consolidate.rows.map((r) => r.id)).toEqual(['b'])
     })
 
-    test('Cancel tendered shipment(s) reuses the Tender-tab save path, then continues with ALL rows', async () => {
+    test('Cancel tendered shipment(s) reuses the Tender-tab save path, shows a green alert, then applies ALL rows', async () => {
       vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => ({
         stopsData: { summary: { volume: '1,000 cuft' } },
         orderDetails: [{ hazmat: 'No' }],
         routingData: { options: id === 'a' ? [{ rank: 1, status: 'Sent', api: 'EDI', scac: 'ABCD', carrierName: 'ABC Co' }] : [] },
       }))
       renderReview({ rows: rowsWithTender(2) })
-      await clickApply()
-      fireEvent.click(screen.getByText('Cancel tendered shipment(s) and continue consolidation.'))
-      fireEvent.click(screen.getByRole('button', { name: 'Apply Solution' }))
-      await screen.findByText('Are you sure you want to apply the proposed consolidation?')
+      const dialog = await clickApply()
+      fireEvent.click(within(dialog).getByText('Cancel tendered shipment(s) and continue consolidation.'))
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Solution' }))
+      expect(await within(dialog).findByText('Tender cancelled on shipment O00000001.')).toBeTruthy()
+      expect(within(dialog).queryByText('Tendered')).toBeNull() // badge cleared, row still present
       expect(vi.mocked(saveTenderOption)).toHaveBeenCalledWith('a', expect.objectContaining({ rank: 1, status: 'Cancelled' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' }))
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
       await screen.findByText(/Consolidation Successfully Applied!/)
       // ALL rows (including the cancelled-tender one) went into the apply — Cancel doesn't drop anyone.
       expect(vi.mocked(applyConsolidation).mock.calls[0][0].sellShipments).toEqual(['a', 'b', 'c'])
@@ -369,5 +426,48 @@ describe('ConsolidationReviewRoute', () => {
     await clickApply()
     expect(screen.getByText('Tendered Shipment Detected')).toBeTruthy()
     expect(vi.mocked(saveTenderOption)).toHaveBeenCalledWith(expect.stringMatching(/^[ab]$/), expect.objectContaining({ status: 'Accepted' }))
+  })
+
+  // Re-verify at final Apply (user ruling item 3, "Simulation") — the >5s
+  // re-roll only re-arms once the modal has SAT in Confirm past
+  // CONFIRM_REROLL_MS; under it, Apply Consolidation never re-checks.
+  describe('re-verify on the final Apply Consolidation click', () => {
+    const tenderableDetail = async () => ({
+      stopsData: { summary: { volume: '1,000 cuft' } },
+      orderDetails: [{ hazmat: 'No' }],
+      routingData: { options: [{ rank: 1, status: 'Sent', api: 'EDI', scac: 'ABCD', carrierName: 'ABC Co' }] },
+    })
+
+    test('under 5s in Confirm state, Apply Consolidation never re-rolls even when the coin would hit', async () => {
+      vi.mocked(getSellShipmentDetail).mockImplementation(tenderableDetail)
+      const now = vi.spyOn(Date, 'now')
+      now.mockReturnValue(1000)
+      renderReview({ rows })
+      await screen.findByText('2,000 cuft')
+      const dialog = await clickApply() // first-open roll misses (Math.random 0.9) → Confirm, confirmEnteredAt = 1000
+      now.mockReturnValue(1000 + 2000) // 2s later — under the 5s threshold
+      Math.random.mockReturnValue(0.1) // would hit if a re-roll were attempted
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
+      await screen.findByText(/Consolidation Successfully Applied!/)
+      expect(screen.queryByText('Tendered Shipment Detected')).toBeNull()
+      expect(vi.mocked(saveTenderOption)).not.toHaveBeenCalled()
+      now.mockRestore()
+    })
+
+    test('over 5s in Confirm state, Apply Consolidation re-rolls; a hit tenders a row and reopens the Error state', async () => {
+      vi.mocked(getSellShipmentDetail).mockImplementation(tenderableDetail)
+      const now = vi.spyOn(Date, 'now')
+      now.mockReturnValue(1000)
+      renderReview({ rows })
+      await screen.findByText('2,000 cuft')
+      const dialog = await clickApply() // Confirm, confirmEnteredAt = 1000
+      now.mockReturnValue(1000 + 5001) // >5s later
+      Math.random.mockReturnValue(0.1) // hits the re-roll, then picks the first candidate
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
+      await screen.findByText('Tendered Shipment Detected')
+      expect(vi.mocked(saveTenderOption)).toHaveBeenCalledWith(expect.stringMatching(/^[ab]$/), expect.objectContaining({ status: 'Accepted' }))
+      expect(vi.mocked(applyConsolidation)).not.toHaveBeenCalled()
+      now.mockRestore()
+    })
   })
 })

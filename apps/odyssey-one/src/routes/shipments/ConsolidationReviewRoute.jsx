@@ -47,6 +47,21 @@ const fmtLb = (n) => `${Math.round(n).toLocaleString('en-US')} LB`
 const fmtCuft = (n) => (n == null ? '--' : `${Math.round(n).toLocaleString('en-US')} cuft`)
 const fmtPct = (n) => (n == null ? '--' : `${n}%`)
 
+// Copy per user ruling 2026-09-25 (item 1) — "already" dropped, singular/plural forms.
+const tenderedErrorMessage = (tenderedRows) => (tenderedRows.length === 1
+  ? `Shipment ${tenderedRows[0].odysseyShipmentIdentifier} has been tendered and cannot be consolidated.`
+  : `Shipments ${tenderedRows.map((r) => r.odysseyShipmentIdentifier).join(', ')} have been tendered and cannot be consolidated.`)
+const removedAlertMessage = (ids) => (ids.length === 1
+  ? `Tendered shipment ${ids[0]} removed from the consolidation.`
+  : `Tendered shipments ${ids.join(', ')} removed from the consolidation.`)
+const cancelledAlertMessage = (ids) => (ids.length === 1
+  ? `Tender cancelled on shipment ${ids[0]}.`
+  : `Tender cancelled on shipments ${ids.join(', ')}.`)
+
+// >5s in the Confirm state re-arms the concurrent-tender roll on the next
+// Apply click (user ruling item 3, "Simulation"). ponytail: prototype-only.
+const CONFIRM_REROLL_MS = 5000
+
 // Read-only listing — the pre-Apply "Selected shipments to consolidate" rows
 // (REVIEW_COLUMNS) or, post-Apply, the ONE created C… row on the Shipments
 // list's own default column set. No select column either way since B1 — the
@@ -92,6 +107,38 @@ function TenderedCheckTable({ rows }) {
   return <DataTable table={table} ariaLabel="Shipments in this consolidation" truncationTooltip />
 }
 
+// Shared Timeline item builder for the Planned Stops list (draggable, in
+// review) and its read-only echo inside the Save Stop Changes modal (B2
+// follow-up) — same marker/label markup either way, drag wiring only when
+// `drag` is passed.
+function stopTimelineItems(stops, drag) {
+  return stops.map((s) => ({
+    key: s.key,
+    label: s.label,
+    status: 'completed',
+    showStatusBadge: false,
+    badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
+    content: (
+      <div
+        className="consolidation-review__stop"
+        draggable={!!drag}
+        onDragStart={drag ? (e) => drag.onDragStart(e, s.key) : undefined}
+        onDragOver={drag ? (e) => drag.onDragOver(e, s.key) : undefined}
+        onDrop={drag ? drag.onDrop : undefined}
+        onDragEnd={drag ? drag.onDragEnd : undefined}
+        data-dragging={drag && drag.draggedKey === s.key ? '' : undefined}
+      >
+        <div className="consolidation-review__stop-head">
+          <span className="text-label-sm-medium">{s.location}</span>
+          <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
+          {drag && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
+        </div>
+        <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
+      </div>
+    ),
+  }))
+}
+
 export default function ConsolidationReviewRoute() {
   const location = useLocation()
   const { closeSheet } = useSheet()
@@ -99,7 +146,7 @@ export default function ConsolidationReviewRoute() {
   // B1: rows ARE the consolidation, so this is state, not a derived const —
   // B3's Remove outcome drops rows straight out of it.
   const [rows, setRows] = useState(() => location.state?.rows ?? [])
-  const [pending, setPending] = useState(null) // 'apply' | 'cancel' | null
+  const [pending, setPending] = useState(null) // 'cancel' | null — Apply's own confirm now lives in applyModal
   const apply = useApplyConsolidation()
   const applied = apply.data ?? null
   const [alertDismissed, setAlertDismissed] = useState(false)
@@ -196,9 +243,14 @@ export default function ConsolidationReviewRoute() {
     setStopOrderError(null)
   }
 
-  // ── B3: tendered check at Apply ─────────────────────────────────────────
+  // ── B3/B4 follow-up: one Apply modal, Confirm ⇄ Tendered-error ──────────
+  // { phase: 'confirm'|'error', action?: 'remove'|'discard'|'cancelTender', alert?: string } | null
+  const [applyModal, setApplyModal] = useState(null)
+  // Set/reset every time the modal (re-)enters Confirm — the >5s re-roll
+  // (below) measures from here, not from when the modal first opened.
+  const [confirmEnteredAt, setConfirmEnteredAt] = useState(null)
+  const [saveStopsPrompt, setSaveStopsPrompt] = useState(false)
   const tenderedRows = rows.filter((r) => ACTIVE_TENDER.has(r.tenderStatus))
-  const [tenderCheck, setTenderCheck] = useState(null) // { action: 'remove'|'discard'|'cancelTender' } | null
   const [tenderCheckBusy, setTenderCheckBusy] = useState(false)
   const [tenderCheckError, setTenderCheckError] = useState(null)
   // ponytail: prototype-only simulation of a concurrent tender acceptance —
@@ -206,7 +258,9 @@ export default function ConsolidationReviewRoute() {
   // real trigger for this check ("a tender got accepted WHILE the planner was
   // mid-review") has no event to hang off in this prototype. A coin flip on
   // the FIRST Apply attempt stands in for it, once per review, so the B3 flow
-  // stays reachable without a live trigger.
+  // stays reachable without a live trigger. A second roll re-arms once the
+  // modal has sat in Confirm for >5s (CONFIRM_REROLL_MS) — see
+  // handleConfirmApplyClick.
   const [simulatedOnce, setSimulatedOnce] = useState(false)
   const [checkingApply, setCheckingApply] = useState(false)
 
@@ -224,7 +278,10 @@ export default function ConsolidationReviewRoute() {
     return { ...row, tenderStatus: 'Accepted' }
   }
 
-  const handleApplyClick = async () => {
+  // Opens the merged Apply modal — runs the FIRST-open 50% roll (once per
+  // review), then lands in the Error phase (a tendered row is in the set) or
+  // the Confirm phase (clean).
+  const openApplyModal = async () => {
     setCheckingApply(true)
     try {
       let currentRows = rows
@@ -242,23 +299,71 @@ export default function ConsolidationReviewRoute() {
       const tenderedNow = currentRows.filter((r) => ACTIVE_TENDER.has(r.tenderStatus))
       if (tenderedNow.length) {
         const remaining = currentRows.length - tenderedNow.length
-        setTenderCheck({ action: remaining >= 2 ? 'remove' : 'discard' })
+        setApplyModal({ phase: 'error', action: remaining >= 2 ? 'remove' : 'discard' })
         return
       }
-      setPending('apply')
+      setApplyModal({ phase: 'confirm' })
+      setConfirmEnteredAt(Date.now())
     } finally {
       setCheckingApply(false)
     }
   }
 
+  // Apply is always enabled now (user ruling item 2) — unsaved stop changes
+  // are gated by a confirmation modal FIRST, not by disabling the button.
+  const handleApplyClick = () => {
+    if (stopsDirty) { setSaveStopsPrompt(true); return }
+    openApplyModal()
+  }
+
+  const handleSaveStopsAndContinue = () => {
+    const err = validateStopOrder(draftStops, byStopKey)
+    if (err) { setStopOrderError(err); return }
+    setCommittedStops({ sig: defaultSig, order: draftStops })
+    setStopOrderError(null)
+    setSaveStopsPrompt(false)
+    openApplyModal()
+  }
+
+  // The Confirm-phase "Apply Consolidation" click: re-verifies no row has
+  // gone tendered since the modal opened (user ruling item 3, "re-verifies"),
+  // and — if the modal has sat in Confirm for >5s — rolls the same 50% coin
+  // flip a second time before applying (ponytail: prototype-only).
+  const handleConfirmApplyClick = async () => {
+    let currentRows = rows
+    const sittingLong = confirmEnteredAt != null && Date.now() - confirmEnteredAt > CONFIRM_REROLL_MS
+    if (sittingLong && Math.random() < 0.5) {
+      const untenderedIdx = rows.reduce((acc, r, i) => (ACTIVE_TENDER.has(r.tenderStatus) ? acc : [...acc, i]), [])
+      if (untenderedIdx.length) {
+        const idx = untenderedIdx[Math.floor(Math.random() * untenderedIdx.length)]
+        const tendered = await simulateConcurrentTender(rows[idx], details[idx])
+        if (tendered) {
+          currentRows = rows.map((r, i) => (i === idx ? tendered : r))
+          setRows(currentRows)
+        }
+      }
+    }
+    const tenderedNow = currentRows.filter((r) => ACTIVE_TENDER.has(r.tenderStatus))
+    if (tenderedNow.length) {
+      const remaining = currentRows.length - tenderedNow.length
+      setApplyModal({ phase: 'error', action: remaining >= 2 ? 'remove' : 'discard' })
+      return
+    }
+    setApplyModal(null)
+    apply.mutate({ sellShipments: currentRows.map((r) => r.sellShipment), stopOrder: committedStops.order })
+  }
+
   // "Cancel tendered shipment(s)" reuses the Tender tab's OWN Cancel path
   // (lib/tenderAction.js's applyTenderAction, shared with RoutingGuideTab.jsx)
   // — including its auto-tender cascade — rather than a hand-rolled variant
-  // (user ruling, 2026-09-25).
+  // (user ruling, 2026-09-25). Rows stay (not dropped) — only their
+  // tenderStatus clears, so the Tendered badge goes away and the next
+  // re-verify doesn't re-trip on them.
   const handleCancelTenders = async () => {
     setTenderCheckBusy(true)
     setTenderCheckError(null)
     try {
+      const ids = tenderedRows.map((r) => r.odysseyShipmentIdentifier)
       await Promise.all(tenderedRows.map(async (row) => {
         const idx = rows.indexOf(row)
         const options = details[idx]?.routingData?.options ?? []
@@ -272,8 +377,10 @@ export default function ConsolidationReviewRoute() {
           saveTenderOption(row.sellShipment, routingOptionVmToDto(updated.find((o) => o.rank === r)))))
         queryClient.invalidateQueries({ queryKey: shipmentDetailQueryKey(row.sellShipment) })
       }))
-      setTenderCheck(null)
-      setPending('apply')
+      const cancelledIds = new Set(tenderedRows.map((r) => r.id))
+      setRows((rs) => rs.map((r) => (cancelledIds.has(r.id) ? { ...r, tenderStatus: 'Cancelled' } : r)))
+      setApplyModal({ phase: 'confirm', alert: cancelledAlertMessage(ids) })
+      setConfirmEnteredAt(Date.now())
     } catch (e) {
       setTenderCheckError(e?.message || "Couldn't cancel the tender. Nothing was changed.")
     } finally {
@@ -292,21 +399,25 @@ export default function ConsolidationReviewRoute() {
   const leave = () => closeSheet('/shipments', { state: { consolidateExit: true } })
   const viewCreated = () => closeSheet('/shipments', { state: { consolidateExit: true, createdShipment: applied.row } })
 
-  const handleTenderModalApply = () => {
-    if (tenderCheck.action === 'remove') {
+  // The Error-phase "Apply Solution" click — does NOT close the modal
+  // (user ruling item 3): Remove/Cancel land back in the Confirm phase with a
+  // green success Alert; Discard is the only outcome that exits the page.
+  const handleApplySolution = async () => {
+    if (applyModal.action === 'remove') {
+      const ids = tenderedRows.map((r) => r.odysseyShipmentIdentifier)
       const dropped = new Set(tenderedRows.map((r) => r.id))
       setRows((rs) => rs.filter((r) => !dropped.has(r.id)))
-      setTenderCheck(null)
-      setPending('apply')
+      setApplyModal({ phase: 'confirm', alert: removedAlertMessage(ids) })
+      setConfirmEnteredAt(Date.now())
       return
     }
-    if (tenderCheck.action === 'discard') {
+    if (applyModal.action === 'discard') {
       const dropped = new Set(tenderedRows.map((r) => r.id))
-      setTenderCheck(null)
+      setApplyModal(null)
       backInModeWith(rows.filter((r) => !dropped.has(r.id)))
       return
     }
-    handleCancelTenders()
+    await handleCancelTenders()
   }
 
   if (!rows.length) {
@@ -320,42 +431,20 @@ export default function ConsolidationReviewRoute() {
     )
   }
 
-  const timelineItems = displayedStops.map((s, i) => ({
-    key: s.key,
-    label: s.label,
-    // S154: the VD's marker pills are SOLID with white text, not the
-    // outlined "pending" skin — `completed` is already exactly the delivery
-    // marker (Caribbean Green/600 + white); pickup reuses it as its base and
-    // gets re-tinted blue by a scoped CSS rule (Timeline forwards
-    // badgeClassName to StopBadge). No status circle — these are planned
-    // stops, not tracked progress.
-    status: 'completed',
-    showStatusBadge: false,
-    badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
-    content: (
-      <div
-        className="consolidation-review__stop"
-        draggable={!applied}
-        onDragStart={applied ? undefined : (e) => handleStopDragStart(e, s.key)}
-        onDragOver={applied ? undefined : (e) => handleStopDragOver(e, s.key)}
-        onDrop={applied ? undefined : handleStopDrop}
-        onDragEnd={applied ? undefined : handleStopDragEnd}
-        data-dragging={!applied && draggedKey === s.key ? '' : undefined}
-      >
-        <div className="consolidation-review__stop-head">
-          <span className="text-label-sm-medium">{s.location}</span>
-          <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
-          {!applied && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
-        </div>
-        <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
-      </div>
-    ),
-  }))
+  // S154: the VD's marker pills are SOLID with white text, not the outlined
+  // "pending" skin — `completed` is already exactly the delivery marker
+  // (Caribbean Green/600 + white); pickup reuses it as its base and gets
+  // re-tinted blue by a scoped CSS rule (Timeline forwards badgeClassName to
+  // StopBadge). No status circle — these are planned stops, not tracked
+  // progress.
+  const timelineItems = stopTimelineItems(displayedStops, applied ? null : {
+    draggedKey, onDragStart: handleStopDragStart, onDragOver: handleStopDragOver, onDrop: handleStopDrop, onDragEnd: handleStopDragEnd,
+  })
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS
   const remaining = rows.length - tenderedRows.length
-  const radioOptions = tenderCheck && (remaining >= 2
+  const radioOptions = applyModal?.phase === 'error' && (remaining >= 2
     ? [
         { value: 'remove', label: `Remove tendered shipment(s) and proceed with the remaining ${remaining}.`, Icon: Trash2 },
         { value: 'cancelTender', label: 'Cancel tendered shipment(s) and continue consolidation.', Icon: Replace },
@@ -504,7 +593,7 @@ export default function ConsolidationReviewRoute() {
               showSave
               saveLabel="Edit Consolidation"
               primaryLabel="Apply Consolidation"
-              primaryDisabled={rows.length < 2 || stopsDirty || checkingApply}
+              primaryDisabled={rows.length < 2 || checkingApply}
               saving={apply.isPending}
               onCancel={() => setPending('cancel')}
               onSave={backInMode}
@@ -512,45 +601,77 @@ export default function ConsolidationReviewRoute() {
             />
           )}
 
-        {tenderCheck && (
+        {/* B4 follow-up: ONE modal, Confirm ⇄ Tendered-error (user ruling
+            item 3) — replaces the separate Tendered-Shipment-Detected modal
+            and the plain Apply confirmation dialog. */}
+        {applyModal && (
           <ModalMedium
-            title="Tendered Shipment Detected"
-            onClose={() => setTenderCheck(null)}
-            footer={(
+            title={applyModal.phase === 'error' ? 'Tendered Shipment Detected' : 'Apply Consolidation'}
+            onClose={() => setApplyModal(null)}
+            footer={applyModal.phase === 'error' ? (
               <>
-                <Button variant="secondary" onClick={() => setTenderCheck(null)}>Nevermind</Button>
-                <Button onClick={handleTenderModalApply} disabled={tenderCheckBusy}>Apply Solution</Button>
+                <Button variant="secondary" onClick={() => setApplyModal(null)}>Nevermind</Button>
+                <Button onClick={handleApplySolution} disabled={tenderCheckBusy}>Apply Solution</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="secondary" onClick={() => setApplyModal(null)}>Cancel</Button>
+                <Button onClick={handleConfirmApplyClick}>Apply Consolidation</Button>
               </>
             )}
           >
-            <Alert variant="error" showClose={false}>
-              {tenderedRows.length} Error(s): {tenderedRows.length === 1
-                ? `Shipment ${tenderedRows[0].odysseyShipmentIdentifier} has already been tendered and cannot be consolidated.`
-                : `Shipments ${tenderedRows.map((r) => r.odysseyShipmentIdentifier).join(', ')} have already been tendered and cannot be consolidated.`}
-            </Alert>
+            {applyModal.phase === 'error' ? (
+              <Alert variant="error" showClose={false}>
+                {tenderedRows.length} Error(s): {tenderedErrorMessage(tenderedRows)}
+              </Alert>
+            ) : applyModal.alert ? (
+              <Alert variant="success" showClose={false}>{applyModal.alert}</Alert>
+            ) : (
+              <p className="text-label-sm-regular">Are you sure you want to apply the proposed consolidation?</p>
+            )}
             {tenderCheckError && <Alert variant="error" showClose={false}>{tenderCheckError}</Alert>}
             <TenderedCheckTable rows={rows} />
             {/* Local markup, not @odyssey/ui — Figma's radio cards (2808:53668 /
                 2808:58194) are detached frames, so this is a normalization
                 candidate once a real master exists, not a component yet. */}
-            <div className="consolidation-review__radio-cards">
-              {radioOptions.map((opt) => {
-                const OptionIcon = opt.Icon
-                return (
-                  <label key={opt.value} className="consolidation-review__radio-card" data-selected={tenderCheck.action === opt.value || undefined}>
-                    <Radio
-                      checked={tenderCheck.action === opt.value}
-                      onChange={() => setTenderCheck({ action: opt.value })}
-                      name="tender-check-action"
-                      value={opt.value}
-                      showLabel={false}
-                    />
-                    <OptionIcon size={20} aria-hidden="true" />
-                    <span className="text-label-sm-medium">{opt.label}</span>
-                  </label>
-                )
-              })}
-            </div>
+            {radioOptions && (
+              <div className="consolidation-review__radio-cards">
+                {radioOptions.map((opt) => {
+                  const OptionIcon = opt.Icon
+                  return (
+                    <label key={opt.value} className="consolidation-review__radio-card" data-selected={applyModal.action === opt.value || undefined}>
+                      <Radio
+                        checked={applyModal.action === opt.value}
+                        onChange={() => setApplyModal((m) => ({ ...m, action: opt.value }))}
+                        name="tender-check-action"
+                        value={opt.value}
+                        showLabel={false}
+                      />
+                      <OptionIcon size={20} aria-hidden="true" />
+                      <span className="text-label-sm-medium">{opt.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </ModalMedium>
+        )}
+
+        {/* B2 follow-up: unsaved stop changes no longer disable Apply — they
+            gate it behind this confirmation first (user ruling item 2). */}
+        {saveStopsPrompt && (
+          <ModalMedium
+            title="Save Stop Changes"
+            onClose={() => setSaveStopsPrompt(false)}
+            footer={(
+              <>
+                <Button variant="secondary" onClick={() => setSaveStopsPrompt(false)}>Cancel</Button>
+                <Button onClick={handleSaveStopsAndContinue}>Save and Continue</Button>
+              </>
+            )}
+          >
+            <Timeline items={stopTimelineItems(displayedStops)} aria-label="New planned stop sequence" />
+            {stopOrderError && <Alert variant="error" showClose={false}>{stopOrderError}</Alert>}
           </ModalMedium>
         )}
 
@@ -561,26 +682,6 @@ export default function ConsolidationReviewRoute() {
             confirmLabel="Yes, Cancel"
             cancelLabel="No"
             onConfirm={leave}
-            onCancel={() => setPending(null)}
-          />
-        )}
-        {pending === 'apply' && (
-          <ConfirmDialog
-            title="Apply Proposed Consolidation"
-            message={
-              <>
-                <p className="text-label-sm-regular">Are you sure you want to apply the proposed consolidation?</p>
-                <div className="consolidation-review__chips">
-                  {proposal.identifiers.map((id) => <Badge key={id} variant="purple">{id}</Badge>)}
-                </div>
-              </>
-            }
-            confirmLabel="Yes, Apply"
-            cancelLabel="No"
-            onConfirm={() => {
-              setPending(null)
-              apply.mutate({ sellShipments: rows.map((r) => r.sellShipment), stopOrder: committedStops.order })
-            }}
             onCancel={() => setPending(null)}
           />
         )}
