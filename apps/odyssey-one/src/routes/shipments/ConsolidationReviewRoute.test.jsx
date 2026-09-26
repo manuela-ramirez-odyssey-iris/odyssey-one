@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, createEvent, within, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ConsolidationReviewRoute from './ConsolidationReviewRoute.jsx'
@@ -365,6 +365,24 @@ describe('ConsolidationReviewRoute', () => {
     fireEvent.drop(second, { dataTransfer: dataTransfer() })
     fireEvent.dragEnd(first)
     expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
+  })
+
+  test('hysteresis: dragging down only swaps once the pointer passes the hovered stop\'s midpoint', () => {
+    const { container } = renderReview({ rows })
+    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const [first, second] = stops()
+    second.getBoundingClientRect = () => ({ top: 100, height: 40, bottom: 140, left: 0, right: 0, width: 0 })
+    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
+    // jsdom has no DragEvent, so clientY can't ride the init dict — pin it.
+    const overAt = (el, y) => {
+      const ev = createEvent.dragOver(el, { dataTransfer: dataTransfer() })
+      Object.defineProperty(ev, 'clientY', { value: y })
+      fireEvent(el, ev)
+    }
+    overAt(second, 110) // above mid (120)
+    expect(stops()[0]).toBe(first)
+    overAt(second, 130) // past mid
+    expect(stops()[0]).toBe(second)
   })
 
   test('the drop slot clears on dragEnd without a drop (cancel / Esc)', async () => {

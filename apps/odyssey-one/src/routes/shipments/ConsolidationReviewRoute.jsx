@@ -212,6 +212,18 @@ export default function ConsolidationReviewRoute() {
     // Next tick: the browser snapshots the drag image when dragstart returns —
     // emptying the slot synchronously would make the image an empty box too.
     setTimeout(() => { if (draggedKeyRef.current === key) setDraggedKey(key) }, 0)
+    // Drag image = the stop's CONTENT only (user, 2026-09-25): a transparent
+    // off-screen clone, so no row/card background rides along with the pointer.
+    const row = e.currentTarget
+    const inner = row.querySelector('.consolidation-review__stop-inner')
+    if (inner && e.dataTransfer.setDragImage) {
+      const ghost = inner.cloneNode(true)
+      Object.assign(ghost.style, { position: 'fixed', top: '-1000px', left: '-1000px', width: `${inner.offsetWidth}px`, background: 'transparent', pointerEvents: 'none' })
+      document.body.appendChild(ghost)
+      const r = inner.getBoundingClientRect()
+      e.dataTransfer.setDragImage(ghost, e.clientX - r.left, e.clientY - r.top)
+      setTimeout(() => ghost.remove(), 0)
+    }
     e.dataTransfer.setData('text/plain', key)
     e.dataTransfer.effectAllowed = 'move'
   }
@@ -220,10 +232,21 @@ export default function ConsolidationReviewRoute() {
     e.dataTransfer.dropEffect = 'move'
     const dragged = draggedKeyRef.current
     if (!dragged || dragged === overKey) return
+    // Hysteresis: only swap once the pointer crosses the hovered stop's
+    // midpoint in the direction of travel. Without it, the stop that just slid
+    // under the pointer re-triggered the swap back and the list flickered.
+    // Midpoint from the LAYOUT box — the FLIP slide's in-flight translate is
+    // subtracted so a moving stop doesn't shift its own threshold.
+    const el = e.currentTarget
+    const rect = el.getBoundingClientRect()
+    const t = window.getComputedStyle(el).transform
+    const ty = t && t !== 'none' ? new DOMMatrixReadOnly(t).m42 : 0
+    const mid = rect.top - ty + rect.height / 2
     setDraftStops((prev) => {
       const from = prev.indexOf(dragged)
       const to = prev.indexOf(overKey)
       if (from === -1 || to === -1 || from === to) return prev
+      if (rect.height && (from < to ? e.clientY < mid : e.clientY > mid)) return prev
       return reorderStops(prev, from, to)
     })
   }
