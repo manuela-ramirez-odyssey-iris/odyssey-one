@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQueries, useQueryClient } from '@tanstack/react-query'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
@@ -142,27 +142,51 @@ export default function ConsolidationReviewRoute() {
   const effectiveDraftOrder = stopsOutOfSync ? defaultOrder : draftStops
   const stopsDirty = effectiveDraftOrder.join('|') !== effectiveCommittedOrder.join('|')
   const displayedStops = labelStops(effectiveDraftOrder, byStopKey)
-  const [dragFromIndex, setDragFromIndex] = useState(null)
-  const [dragOverIndex, setDragOverIndex] = useState(null)
-  const handleStopDragStart = (e, index) => {
-    setDragFromIndex(index)
-    e.dataTransfer.setData('text/plain', String(index))
+  // Live preview (S161 follow-up): dragover itself reorders the working copy
+  // so the list reflows under the pointer before drop. `draggedKeyRef` +
+  // `preDragOrderRef` are refs, not state — dragover fires continuously and
+  // handleStopDragEnd needs the ORIGINAL order without waiting on a render.
+  const [draggedKey, setDraggedKey] = useState(null)
+  const draggedKeyRef = useRef(null)
+  const preDragOrderRef = useRef(null)
+  const droppedRef = useRef(false)
+  const handleStopDragStart = (e, key) => {
+    draggedKeyRef.current = key
+    preDragOrderRef.current = effectiveDraftOrder
+    droppedRef.current = false
+    setDraggedKey(key)
+    e.dataTransfer.setData('text/plain', key)
     e.dataTransfer.effectAllowed = 'move'
   }
-  const handleStopDragOver = (e, index) => {
+  const handleStopDragOver = (e, overKey) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDragOverIndex(index)
+    const dragged = draggedKeyRef.current
+    if (!dragged || dragged === overKey) return
+    setDraftStops((prev) => {
+      const from = prev.indexOf(dragged)
+      const to = prev.indexOf(overKey)
+      if (from === -1 || to === -1 || from === to) return prev
+      return reorderStops(prev, from, to)
+    })
   }
-  const handleStopDragLeave = () => setDragOverIndex(null)
-  const handleStopDrop = (e, index) => {
+  const handleStopDrop = (e) => {
     e.preventDefault()
-    setDragOverIndex(null)
-    const from = dragFromIndex ?? parseInt(e.dataTransfer.getData('text/plain'), 10)
-    setDragFromIndex(null)
-    if (Number.isNaN(from) || from === index) return
-    setDraftStops((prev) => reorderStops(prev, from, index))
+    droppedRef.current = true
+    draggedKeyRef.current = null
+    setDraggedKey(null)
     setStopOrderError(null)
+  }
+  // Covers both a drop-less dragend AND Esc — browsers cancel a native drag
+  // on Esc by firing dragend (no drop), so one handler covers both cases in
+  // the spec (Esc never reaches a React key handler mid-drag).
+  const handleStopDragEnd = () => {
+    if (!droppedRef.current && preDragOrderRef.current) {
+      setDraftStops(preDragOrderRef.current)
+    }
+    draggedKeyRef.current = null
+    preDragOrderRef.current = null
+    setDraggedKey(null)
   }
   const handleDiscardStops = () => { setDraftStops(committedStops.order); setStopOrderError(null) }
   const handleSaveStops = () => {
@@ -312,11 +336,11 @@ export default function ConsolidationReviewRoute() {
       <div
         className="consolidation-review__stop"
         draggable={!applied}
-        onDragStart={applied ? undefined : (e) => handleStopDragStart(e, i)}
-        onDragOver={applied ? undefined : (e) => handleStopDragOver(e, i)}
-        onDragLeave={applied ? undefined : handleStopDragLeave}
-        onDrop={applied ? undefined : (e) => handleStopDrop(e, i)}
-        data-drag-over={!applied && dragOverIndex === i ? '' : undefined}
+        onDragStart={applied ? undefined : (e) => handleStopDragStart(e, s.key)}
+        onDragOver={applied ? undefined : (e) => handleStopDragOver(e, s.key)}
+        onDrop={applied ? undefined : handleStopDrop}
+        onDragEnd={applied ? undefined : handleStopDragEnd}
+        data-dragging={!applied && draggedKey === s.key ? '' : undefined}
       >
         <div className="consolidation-review__stop-head">
           <span className="text-label-sm-medium">{s.location}</span>
@@ -387,11 +411,14 @@ export default function ConsolidationReviewRoute() {
               </div>
             </div>
             <h3 className="text-label-base-semibold consolidation-review__stops-heading">Planned Stops</h3>
+            {!applied && (
+              <span className="text-label-sm-regular consolidation-review__stops-helper">Drag stops to reorganize</span>
+            )}
             <Timeline items={timelineItems} animate aria-label="Planned stops" />
             {!applied && (
               <>
                 <div className="consolidation-review__stop-actions">
-                  <Button variant="secondary" disabled={!stopsDirty} onClick={handleDiscardStops}>Discard</Button>
+                  <Button variant="secondary" disabled={!stopsDirty} onClick={handleDiscardStops}>Revert</Button>
                   <Button variant="secondary" disabled={!stopsDirty} onClick={handleSaveStops}>Save Changes</Button>
                 </div>
                 {stopOrderError && <Alert variant="error" showClose={false}>{stopOrderError}</Alert>}

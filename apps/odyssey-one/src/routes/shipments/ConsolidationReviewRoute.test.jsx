@@ -233,18 +233,54 @@ describe('ConsolidationReviewRoute', () => {
   })
 
   // B2 — draggable Planned Stops
-  test('Discard/Save Changes render disabled until the stop order changes, and each stop carries a grip', () => {
+  test('Revert/Save Changes render disabled until the stop order changes, and each stop carries a grip', () => {
     const { container } = renderReview({ rows })
-    expect(screen.getByRole('button', { name: 'Discard' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Revert' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true)
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(4) // 2 pickups + 2 deliveries
   })
 
-  test('Planned Stops are read-only after Apply — no grips, no Discard/Save', async () => {
+  test('Planned Stops are read-only after Apply — no grips, no Revert/Save, no helper text', async () => {
     const { container } = await (async () => { const r = renderReview({ rows }); await clickApply(); fireEvent.click(screen.getByRole('button', { name: 'Yes, Apply' })); await screen.findByText(/Consolidation Successfully Applied!/); return r })()
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(0)
-    expect(screen.queryByRole('button', { name: 'Discard' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Revert' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
+    expect(screen.queryByText('Drag stops to reorganize')).toBeNull()
+  })
+
+  test('helper text "Drag stops to reorganize" shows only while editable', () => {
+    renderReview({ rows })
+    expect(screen.getByText('Drag stops to reorganize')).toBeTruthy()
+  })
+
+  // jsdom has no native DataTransfer; a plain stub covers the .setData/
+  // .dropEffect access the handlers make.
+  const dataTransfer = () => ({ setData: () => {}, effectAllowed: null, dropEffect: null })
+
+  test('live drag preview: dragover reorders the working copy and re-numbers labels, drop commits it', () => {
+    const { container } = renderReview({ rows })
+    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const [first, second] = stops()
+    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
+    // Dragging the first stop over the second previews it swapped, live —
+    // not just on drop.
+    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
+    expect(stops()[0]).toBe(second)
+    fireEvent.drop(second, { dataTransfer: dataTransfer() })
+    fireEvent.dragEnd(first)
+    // Committed via drop: Save Changes is now enabled (order actually changed).
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
+  })
+
+  test('live drag preview: dragend without drop (cancel / Esc) restores the pre-drag order', () => {
+    const { container } = renderReview({ rows })
+    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const [first, second] = stops()
+    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
+    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
+    expect(stops()[0]).toBe(second) // previewed
+    fireEvent.dragEnd(first) // no drop fired — cancelled
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true) // back to original
   })
 
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,

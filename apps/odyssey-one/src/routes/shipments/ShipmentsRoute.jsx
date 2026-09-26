@@ -824,23 +824,15 @@ function ShipmentsRoute() {
             : 'Consolidate'}
         </Button>
       </PageHeader>
-      {/* The row holds the same slot for the whole mode (S155 §1.4) — after an
-          anchor exists it carries the locked customer. S161 (spec A3): the
-          "Select to consolidate…" subtitle is gone (redundant with the
-          primary button's own "Select to Consolidate" label), but the slot
-          stays — an empty &nbsp; holds the same line height the subtitle
-          used to, so the tabs below still don't jump when the first row is
-          checked. */}
-      {inMode && (
+      {/* S155 §1.4 slot for the locked customer once an anchor exists. S161
+          (spec A3): the "Select to consolidate…" subtitle is gone (redundant
+          with the primary button's own "Select to Consolidate" label). The
+          row itself only renders once anchored — no anchor means nothing to
+          show, and an empty placeholder just left a blank gap (S161 review). */}
+      {inMode && anchor && (
         <div className="consolidate-customer text-label-sm-regular">
-          {anchor ? (
-            <>
-              <span>Selected Customer:</span>
-              <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
-            </>
-          ) : (
-            <span>&nbsp;</span>
-          )}
+          <span>Selected Customer:</span>
+          <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
         </div>
       )}
       <ShipmentsPanelTabs
