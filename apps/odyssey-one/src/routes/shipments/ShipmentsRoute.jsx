@@ -802,7 +802,7 @@ function ShipmentsRoute() {
         </>
       }
     >
-      <PageHeader title={inMode ? 'Shipments Consolidation' : 'Shipments'} style={{ marginBottom: inMode ? 8 : 25 }}>
+      <PageHeader title={inMode ? 'Shipments Consolidation' : 'Shipments'} style={{ marginBottom: inMode && anchor ? 8 : 25 }}>
         {inMode && (
           <span className="consolidate-cancel">
             <Button variant="secondary" onClick={exitConsolidate}>Cancel</Button>
