@@ -49,18 +49,17 @@
   transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 .consolidation-review__stop[draggable="true"] { cursor: grab; }
-/* Drop placeholder (user ruling 2026-09-25, item 2) — the slot where the
-   dragged stop would land, not a greyed/lifted copy of it. The real content
-   stays in the DOM (so the box matches its height exactly) but hidden, and
-   the purple box is an overlay the same size, minus the row's own bottom gap. */
-.consolidation-review__stop[data-drop-placeholder] .consolidation-review__stop-inner { visibility: hidden; }
+/* Drop target (user, 2026-09-25): the dragged stop stays itself — content
+   visible, no fill, no greying — at its live-preview position, wrapped in a
+   solid purple outline marking where it will land. Overlay so the outline
+   adds no layout; it hugs the content, not the row's bottom gap. */
 .consolidation-review__stop[data-drop-placeholder]::before {
   content: '';
   position: absolute;
-  inset: 0 0 var(--spacing-5) 0;
-  background: var(--badge-purple-bg);
-  border: 1px dashed var(--badge-purple-text);
+  inset: calc(var(--spacing-1) * -1) calc(var(--spacing-2) * -1) calc(var(--spacing-5) - var(--spacing-1)) calc(var(--spacing-2) * -1);
+  border: 1px solid var(--badge-purple-text);
   border-radius: var(--radius-md);
+  pointer-events: none;
 }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
