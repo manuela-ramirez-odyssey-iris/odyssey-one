@@ -241,6 +241,7 @@ These still use inline styles or local components. Do NOT purge their dependenci
 | History action badges | `apps/odyssey-one/src/components/detail/HistoryTab.jsx` | pill shape (border-radius: 9999px), font-size: 11px | Different shape — may need `pill` variant |
 | Cost order tabs | `apps/odyssey-one/src/components/detail/CostAllocationTab.jsx` | inline rgba BADGE_BG/TEXT maps | Interactive tabs, not pure badges |
 | Tab count pills | `apps/odyssey-one/src/components/shipments/ShipmentTabs.jsx` | font-weight: 700, border-radius: 10px | Count indicator, different pattern |
+| **Radio card** (radio + icon + text option card) | `apps/odyssey-one/src/routes/shipments/ConsolidationReviewRoute.jsx` (Tendered Shipment Detected modal) | local markup + css | **Pick up in a D session.** User 2026-09-25: "we will componentize them later". Efrain's frames are DETACHED (`Widget` frames with Radio + icon + Title, hidden grip/Close) in Figma `x38TOJGsNryYl3LsKhCtSc` nodes `2808:53668` / `2808:58194` — Figma-first: build the master, then `/normalize`. |
 
 ---
 
