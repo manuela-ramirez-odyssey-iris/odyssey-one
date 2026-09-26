@@ -59,9 +59,13 @@ const union = (lists) => [...new Set(lists.flat().filter(Boolean))]
  * @param {{ row: object, detail: object }[]} a.sources  grid rows + raw SellShipmentOut, in the planner's selection order
  * @param {number} a.seq   consolidation sequence (drives the C…/sell/buy ids)
  * @param {Date}   a.now   creation instant (history timestamps)
+ * @param {string[]} [a.stopOrder]  planner-reordered stop groups (B2), each
+ *   `pickup-<sellShipment>` / `delivery-<sellShipment>` — the same key shape
+ *   src/consolidation/proposal.js's stops carry. Absent → the default below
+ *   (every pickup in selection order, then every delivery).
  * @returns {{ row: object, detail: object, pickupTs: string|null, deliveryTs: string|null, removedSellShipments: string[] }}
  */
-export function buildConsolidatedShipment({ sources, seq, now = new Date() }) {
+export function buildConsolidatedShipment({ sources, seq, now = new Date(), stopOrder }) {
   if (!Array.isArray(sources) || sources.length < 2) {
     throw new Error('a consolidation needs at least two source shipments')
   }
@@ -138,11 +142,20 @@ export function buildConsolidatedShipment({ sources, seq, now = new Date() }) {
   // Stops: every source's pickups in selection order, then every source's
   // deliveries, re-sequenced 1..n. V1 proposes; the planner re-sequences later
   // (Dave 2026-09-17 00:33:20) — same rule src/consolidation/proposal.js draws.
+  // B2 (S161): the planner's SAVED drag order overrides that default when
+  // given — one GROUP per source shipment's pickup/delivery, swapped whole
+  // (a source's own stops keep their relative order within its group).
   const stopsOf = (d, type) => (d.shipmentStopList ?? []).filter((s) => s.stopType === type)
-  const shipmentStopList = [
-    ...details.flatMap((d) => stopsOf(d, 'pickup')),
-    ...details.flatMap((d) => stopsOf(d, 'delivery')),
-  ].map((s, i) => ({ ...s, stopSequence: i + 1 }))
+  const groupsByKey = new Map(rows.flatMap((r, i) => [
+    [`pickup-${r.sellShipment}`, stopsOf(details[i] ?? {}, 'pickup')],
+    [`delivery-${r.sellShipment}`, stopsOf(details[i] ?? {}, 'delivery')],
+  ]))
+  const groupOrder = stopOrder?.length
+    ? stopOrder
+    : [...rows.map((r) => `pickup-${r.sellShipment}`), ...rows.map((r) => `delivery-${r.sellShipment}`)]
+  const shipmentStopList = groupOrder
+    .flatMap((key) => groupsByKey.get(key) ?? [])
+    .map((s, i) => ({ ...s, stopSequence: i + 1 }))
 
   const t0 = new Date(now)
   const t1 = new Date(t0.getTime() + 30_000)

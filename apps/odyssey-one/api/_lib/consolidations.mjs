@@ -51,8 +51,12 @@ export async function applyConsolidation({ body, db }) {
     return { row, detail }
   })
 
+  // B2 (S161) — optional planner-saved stop order; absent falls back to the
+  // builder's own pickups-then-deliveries default.
+  const stopOrder = Array.isArray(body?.stopOrder) ? body.stopOrder.map(String) : undefined
+
   const { rows: seqRows } = await db.query(SEQ_QUERY)
-  const built = buildConsolidatedShipment({ sources, seq: (seqRows[0]?.n ?? 0) + 1 })
+  const built = buildConsolidatedShipment({ sources, seq: (seqRows[0]?.n ?? 0) + 1, stopOrder })
   const newId = built.row.sellShipment
   const gone = built.removedSellShipments.filter((id) => id !== newId)
 

@@ -17,8 +17,7 @@ import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDa
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { WRAP_HEADER_W, LOCKED_COLUMNS, NEVER_COLLAPSE_KEYS, COLLAPSIBLE_KEYS, TAB_COLUMNS, SUB_TABS } from './tenderColumns.js'
-import { mintToken } from '../../spotboard/token.js'
-import { isEmailNotify } from '../../tender/email/tenderEmail.js'
+import { applyTenderAction } from '../../lib/tenderAction.js'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -39,18 +38,10 @@ const TENDER_ACTIONS = {
   Cancelled: ['Re-Tender'],
 }
 
-const STATUS_AFTER_ACTION = {
-  Tender: 'Sent',
-  Accept: 'Accepted',
-  Decline: 'Declined',
-  Cancel: 'Cancelled',
-  'Re-Tender': 'Sent',
-  // LINX-15076 — deliberately NO entry: "calling routing doesn't change
-  // Shipment or tender status." `handleAction` short-circuits before the
-  // generic `STATUS_AFTER_ACTION[action] || opt.status` line for this action
-  // anyway (see the 'Call Routing' branch), so this is belt-and-braces, not
-  // load-bearing on its own.
-}
+// STATUS_AFTER_ACTION moved to lib/tenderAction.js (S161) with the rest of
+// the per-option transform it drove. LINX-15076 note it carried: "Call
+// Routing" deliberately has no entry there — it short-circuits before
+// `applyTenderAction` runs (see the 'Call Routing' branch below).
 
 // LINX-15076/15077 — `TENDER_ACTIONS` is a static status→actions map, but
 // "Call Routing" is available whenever the OPTION carries `routingFailed`,
@@ -1518,79 +1509,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     // row read as in-progress to anything that inspects it.)
     if (isResponseAction) setProcessRank(null)
 
-    let updated = options.map((opt) => {
-      if (opt.rank !== rank) return opt
-      // modifyUser/modifyDate are the audit trail — every action sets them,
-      // not just the response ones, so no action is invisible to it.
-      const next = { ...opt, status: STATUS_AFTER_ACTION[action] || opt.status, modifyUser: currentUser.name, modifyDate: now }
-      if (isResponseAction) {
-        next.responseDateTime = now
-        next.responseUser = currentUser.name
-        next.responseMethod = 'Manual Update' // RESPONSE_METHODS literal (generate.mjs) — a UI click genuinely is one, not fabricated.
-        // proNumber / carrierPickup are CARRIER-supplied identifiers that only
-        // arrive from the carrier's actual response — inventing them here
-        // would be the same "~40 hardcoded fields" problem already flagged as
-        // its own product conversation. Left untouched, deliberately.
-      }
-      if (isNotifyAction) {
-        next.notifyDateTime = now
-        // S157 (LINX-15796 AC-08) — mint the carrier-review token whenever
-        // this row's method is Email/Email & EDI. Re-Tender re-mints
-        // UNCONDITIONALLY (mintToken has no memory of the old one): that is
-        // exactly what expires the previous link — a stale link's token no
-        // longer string-matches the option's, so the review page falls to
-        // its "invalid or expired" state. A non-email row (EDI/Fax/Manual/
-        // API) gets no token; `next.tenderToken` is left as whatever `opt`
-        // already carried (undefined on a fresh row).
-        if (isEmailNotify(opt.api)) next.tenderToken = mintToken(shipment?.sellShipment, opt.scac)
-      }
-      if (action === 'Re-Tender') {
-        // Fix 7 (2026-08-10): a Re-Tender fires on a Declined/Cancelled row
-        // that still carries the PREVIOUS cycle's response — left in place,
-        // the row would read "Declined by Amy Cook at 08/10/2026 14:23"
-        // while status says Sent (awaiting a fresh response). Cleared to the
-        // shape mapRoutingOption itself produces for an empty value
-        // (mapSellShipmentOutToDetail.ts), so a save-then-reload round-trips
-        // identically: responseDateTime/responseMethod go through
-        // orDash(...) there -> '--'; responseUser goes through `?? null` ->
-        // null. proNumber/carrierPickup are NOT cleared — carrier-supplied
-        // identifiers from the prior cycle; whether a re-tender voids them is
-        // a product question, not ours to decide.
-        next.responseDateTime = DASH
-        next.responseMethod = DASH
-        next.responseUser = null
-      }
-      return next
+    // S161 — the per-option status change + Decline/Cancel cascade moved to
+    // lib/tenderAction.js's applyTenderAction, so Consolidation Review's
+    // "Cancel tendered shipment(s)" (B3) can fire the SAME Cancel path
+    // instead of a hand-rolled cascade-free variant. Behaviour unchanged —
+    // this is a straight extraction (see that file for the Fix 4/6/7 notes).
+    const { updated, touched } = applyTenderAction(options, rank, action, {
+      now, currentUserName: currentUser.name, sellShipment: shipment?.sellShipment,
     })
-    const touched = [rank]
-
-    /* CASCADE: on Decline or Cancel, auto-tender next null-status carrier by rank ascending */
-    if (action === 'Decline' || action === 'Cancel') {
-      const sortedByRank = [...updated].sort((a, b) => a.rank - b.rank)
-      const nextNull = sortedByRank.find((opt) => opt.status === null || opt.status === undefined)
-      if (nextNull) {
-        updated = updated.map((opt) =>
-          opt.rank === nextNull.rank
-            // Being auto-tendered is a NOTIFY, not a RESPONSE — only
-            // notifyDateTime moves here. responseDateTime/responseUser/
-            // responseMethod stay untouched until THIS carrier is itself
-            // clicked; getting that distinction right is the point of Fix 4.
-            // S157 — same token mint as the manual Tender/Re-Tender path
-            // above: this auto-tender is still a notify event, so an
-            // Email/Email & EDI row gets a live carrier-review link too.
-            ? {
-                ...opt,
-                status: 'Sent',
-                notifyDateTime: now,
-                modifyUser: currentUser.name,
-                modifyDate: now,
-                ...(isEmailNotify(opt.api) ? { tenderToken: mintToken(shipment?.sellShipment, opt.scac) } : {}),
-              }
-            : opt,
-        )
-        touched.push(nextNull.rank)
-      }
-    }
 
     setOptions(updated)
     // The cascade changes TWO rows — persist both, not just the clicked one.

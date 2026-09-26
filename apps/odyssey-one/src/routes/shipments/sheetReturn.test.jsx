@@ -80,20 +80,19 @@ async function enterModeAndSelectTwo() {
 }
 
 describe('ShipmentsRoute — return-intent re-application (S158 plan §4)', () => {
-  test('Modify Selection re-applies rows on the STILL-MOUNTED page (no remount)', async () => {
+  // S161 (B1) — the review's rows ARE the consolidation now (no more
+  // include/exclude checkboxes); the only way back to change the set is
+  // Edit Consolidation, which carries every row it had back into mode.
+  test('Edit Consolidation re-applies rows on the STILL-MOUNTED page (no remount)', async () => {
     renderApp()
     const heading = await screen.findByRole('heading', { name: 'Shipments' })
     await enterModeAndSelectTwo()
     fireEvent.click(screen.getByRole('button', { name: 'Consolidate 2 Shipments' }))
     await screen.findByRole('heading', { name: 'Review & Apply Manual Consolidation' })
 
-    // Uncheck one row past the minimum → the "Modify Selection" dialog offers
-    // to carry the planner's INTENT (the remaining row) back into mode.
-    const includeBoxes = screen.getAllByRole('checkbox').filter((c) => c.getAttribute('aria-label')?.startsWith('Include '))
-    fireEvent.click(includeBoxes[0])
-    fireEvent.click(screen.getByRole('button', { name: 'Modify Selection' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Consolidation' }))
 
-    // Lands back on Shipments Consolidation with exactly one row selected —
+    // Lands back on Shipments Consolidation with both rows still selected —
     // and the SAME "Shipments" heading node never unmounted in between.
     await screen.findByRole('heading', { name: 'Shipments Consolidation' })
     expect(screen.queryByRole('heading', { name: 'Shipments' })).toBeNull() // swapped by consolidate mode, not gone via remount

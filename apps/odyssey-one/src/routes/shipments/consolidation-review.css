@@ -38,8 +38,17 @@
    connecting segment stretches to it, so the air between consecutive stops has
    to come from inside the content. */
 .consolidation-review__stop { display: flex; flex-direction: column; gap: var(--spacing-1); padding-bottom: var(--spacing-5); }
+.consolidation-review__stop[draggable="true"] { cursor: grab; }
+/* B2 drag-over cue — same focus token TabArrangementPanel's row drag uses. */
+.consolidation-review__stop[data-drag-over] { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: var(--radius-md); }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
+/* Grip sits at the row's right edge (B2 VD) — margin-left: auto pushes it
+   across the head's flex row past the location label + Pickup/Delivery badge. */
+.consolidation-review__stop-grip { margin-left: auto; color: var(--text-tertiary); flex-shrink: 0; }
+
+.consolidation-review__stop-actions { display: flex; gap: var(--spacing-2); }
+.consolidation-review__stop-actions > * { flex: 1 1 0; }
 
 /* Marker pills (S154): both use StopBadge status="completed" as the SOLID
    white-label base (Caribbean Green/600 — already exactly the delivery
@@ -83,15 +92,23 @@
   flex: 1;
 }
 
-/* Unchecked rows (S154): still in the table (findable, re-checkable), just
-   grayed out. `data-selected` is TanStack rowSelection = INCLUDED, so an
-   excluded row is the one WITHOUT it. Checkbox itself stays fully legible. */
-.consolidation-review tbody tr:not([data-selected]) {
-  opacity: 0.5;
-  color: var(--text-tertiary);
+/* B3 — Tendered Shipment Detected modal's radio cards. Local markup (see the
+   component comment): Figma's cards (2808:53668 / 2808:58194) are detached
+   frames, so this isn't promoted to @odyssey/ui yet. Tokens only. */
+.consolidation-review__radio-cards { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.consolidation-review__radio-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  width: 100%;
 }
-.consolidation-review tbody tr:not([data-selected]) .control--checkbox {
-  opacity: 1;
+.consolidation-review__radio-card[data-selected] {
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
 }
 
 /* Customer Name / Selected Shipments strip (S155, user 2026-09-21): the two

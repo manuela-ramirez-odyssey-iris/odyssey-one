@@ -33,12 +33,12 @@ export function __resetConsolidationSeq(): void {
 }
 
 export async function applyConsolidation(
-  { sellShipments }: { sellShipments: string[] },
+  { sellShipments, stopOrder }: { sellShipments: string[]; stopOrder?: string[] },
 ): Promise<ApplyConsolidationResult> {
   if (getApiMode() === 'live') {
     // userId: same identity pattern as createOrder/preferenceService.
     const res = await apiPost<{ data: { row: ShipmentErrorRow; detail: SellShipmentOut } }>(
-      '/shipment-service/v1/consolidation', { sellShipments, userId: currentUser.id },
+      '/shipment-service/v1/consolidation', { sellShipments, stopOrder, userId: currentUser.id },
     )
     return { row: mapShipmentErrorRow(res.data.row), detail: res.data.detail }
   }
@@ -58,7 +58,7 @@ export async function applyConsolidation(
   consolidateSeq += 1
   // The builder is plain JS shared with the live handler; its JSDoc types are
   // deliberately loose (`object`), so the shapes are named here.
-  const built = buildConsolidatedShipment({ sources, seq: consolidateSeq, now: new Date() }) as {
+  const built = buildConsolidatedShipment({ sources, seq: consolidateSeq, now: new Date(), stopOrder }) as {
     row: ShipmentErrorRow
     detail: SellShipmentOut
     removedSellShipments: string[]

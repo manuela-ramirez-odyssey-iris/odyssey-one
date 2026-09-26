@@ -135,6 +135,27 @@ test('removedSellShipments names every source — including a reused C id', () =
   assert.deepEqual(removedSellShipments, ['27000003', '26000002'])
 })
 
+// B2 (S161) — the planner's saved drag order overrides the default, group by
+// group (each source's own pickup/delivery stops keep their relative order).
+test('stopOrder (B2) reorders the GROUPS, source order within a group unchanged', () => {
+  const { detail } = build([src(1), src(2)])
+  const swapped = buildConsolidatedShipment({
+    sources: [src(1), src(2)], seq: 1, now: new Date('2026-09-20T12:00:00Z'),
+    stopOrder: ['delivery-26000001', 'pickup-26000001', 'pickup-26000002', 'delivery-26000002'],
+  })
+  // default: P1, P2, D1, D2 (pickups then deliveries)
+  assert.deepEqual(detail.shipmentStopList.map((s) => s.facilityName), ['P1', 'P2', 'D1', 'D2'])
+  // stopOrder: D1 first, then P1, then P2, then D2
+  assert.deepEqual(swapped.detail.shipmentStopList.map((s) => s.facilityName), ['D1', 'P1', 'P2', 'D2'])
+  assert.deepEqual(swapped.detail.shipmentStopList.map((s) => s.stopSequence), [1, 2, 3, 4])
+})
+
+test('an empty/absent stopOrder is the SAME as omitting it (the default)', () => {
+  const a = build([src(1), src(2)])
+  const b = buildConsolidatedShipment({ sources: [src(1), src(2)], seq: 1, now: new Date('2026-09-20T12:00:00Z'), stopOrder: [] })
+  assert.deepEqual(b.detail.shipmentStopList, a.detail.shipmentStopList)
+})
+
 test('fewer than two sources is refused', () => {
   assert.throws(() => build([src(1)]), /at least two/)
 })
