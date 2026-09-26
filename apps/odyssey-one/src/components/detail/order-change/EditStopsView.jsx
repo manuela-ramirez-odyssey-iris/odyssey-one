@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown, TriangleAlert } from 'lucide-react'
-import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker } from '@odyssey/ui'
+import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -418,25 +418,19 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       {/* Page footer (S158, user 2026-09-24): sticky, so Cancel / Evaluate
           stay reachable while the stop list scrolls.
           DEC-207 (T2) — "Approve Changes" → "Evaluate": it opens the routing
-          modal (never approves directly any more). StepperButtonsFooter
-          (@odyssey/ui) has no tooltip slot for its own disabled primary
-          button, so — same TooltipTrigger-wraps-a-disabled-Button pattern
-          this file used for the old View Routing button — the bar is
-          hand-built here from the same `.stepper-footer`/`.stepper-footer__end`
-          classes the molecule itself uses, only so the disabled Evaluate can
-          carry a tooltip naming routeBlocker's reason. */}
-      <div className="edit-stops__footer stepper-footer">
-        <Button variant="secondary" size="lg" onClick={handleCancel}>Cancel</Button>
-        <div className="stepper-footer__end">
-          {evaluateDisabled && blocker ? (
-            <TooltipTrigger tooltipProps={{ groups: [{ content: BLOCKER_TOOLTIP[blocker] }] }}>
-              <Button variant="primary" size="lg" disabled>Evaluate</Button>
-            </TooltipTrigger>
-          ) : (
-            <Button variant="primary" size="lg" disabled={evaluateDisabled} onClick={() => setModal('routing')}>Evaluate</Button>
-          )}
-        </div>
-      </div>
+          modal (never approves directly any more). D22 — StepperButtonsFooter
+          now has `primaryTooltip` for exactly this case (a disabled primary
+          that needs to explain itself), so this no longer hand-rolls the bar
+          from `.stepper-footer` classes. */}
+      <StepperButtonsFooter
+        className="edit-stops__footer"
+        cancelLabel="Cancel"
+        primaryLabel="Evaluate"
+        primaryDisabled={evaluateDisabled}
+        primaryTooltip={blocker ? BLOCKER_TOOLTIP[blocker] : undefined}
+        onCancel={handleCancel}
+        onPrimary={() => setModal('routing')}
+      />
 
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} violations={violations} onClose={() => setModal(null)} />}
       {modal === 'routing' && (

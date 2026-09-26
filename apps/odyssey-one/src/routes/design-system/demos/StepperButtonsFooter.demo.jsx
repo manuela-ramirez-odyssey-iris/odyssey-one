@@ -5,7 +5,7 @@ import { DemoControls, DemoToggle } from '../demoControls.jsx'
 export const meta = {
   name: 'StepperButtonsFooter',
   tier: 'molecule',
-  version: '0.5.1',
+  version: '0.5.2',
   createdVersion: '0.5.0',
   normalizing: true,
   figmaNode: '3164:2169',
@@ -21,6 +21,7 @@ export const props = [
   { name: 'onSave', type: '() => void', desc: 'Save pressed.' },
   { name: 'onPrimary', type: '() => void', desc: 'Primary button pressed.' },
   { name: 'primaryDisabled', type: 'boolean', desc: 'Disables the primary button (e.g. until a form validates). Default false.' },
+  { name: 'primaryTooltip', type: 'string | node', desc: "0.5.2, D22 — shown on hover/focus while the primary is disabled, explaining why (e.g. Edit Stops' routeBlocker copy). No effect when the primary is enabled. Default off is byte-identical." },
   { name: 'saving', type: 'boolean', desc: 'Disables Save while a save is in flight. Default false.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the footer bar.' },
 ]
@@ -98,6 +99,7 @@ function Playground() {
         <StepperButtonsFooter
           showSave={showSave}
           primaryDisabled={primaryDisabled}
+          primaryTooltip={primaryDisabled ? 'Set a date on every stop' : undefined}
           onCancel={() => {}}
           onSave={() => {}}
           onPrimary={() => {}}
