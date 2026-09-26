@@ -13,7 +13,7 @@ import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.j
 import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop, addPending,
-  isRoutable, markRouted, totals, priorDiff, toDto,
+  isRoutable, totals, priorDiff, toDto,
   parseStamp, formatStopDate, setStopDate, windowViolations, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
@@ -162,8 +162,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
   const routable = isRoutable(sb)
   const routingDisabled = !routable
+  // T1 (S160): the `routed` gate is gone — Approve Changes is enabled
+  // directly off isRoutable. T2 replaces this button + the footer/modal
+  // wiring with the Evaluate flow (DEC-207); View Routing stays as-is until then.
   const handleViewRouting = () => {
-    setSb((s) => markRouted(s))
     setModal('routing')
   }
 
@@ -404,7 +406,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         className="edit-stops__footer"
         cancelLabel="Cancel"
         primaryLabel="Approve Changes"
-        primaryDisabled={!sb.routed || saving}
+        primaryDisabled={!isRoutable(sb) || saving}
         onCancel={handleCancel}
         onPrimary={() => setModal('confirm')}
       />

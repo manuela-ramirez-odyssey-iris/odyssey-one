@@ -64,10 +64,45 @@ function defaultsFor(order, type, site) {
 // seed's order and stop address1 disagree for the same site (plan Wave B).
 const sameSite = (s, at) => (at.siteKey && s.siteKey ? s.siteKey === at.siteKey : s.location === at.location)
 
+// T1.3 (spec item 3) — a created stop's default date must fit EVERY order
+// joined to it, not just the first: the latest of their earliest bounds,
+// kept only if it's <= the earliest of their latest bounds; else the stop
+// keeps whatever default it already had (today's first-order default — the
+// `dateEdited` flag then shows truthfully that no one has looked at it).
+// Same zone formatting as defaultsFor.
+function jointDefaultDate(orderIds, type, orders, site) {
+  const bounds = orderIds
+    .map((id) => orders?.find((o) => o.orderNumber === id))
+    .filter(Boolean)
+    .map((o) => {
+      const earliestRaw = type === 'pickup' ? o.earliestPickup : o.earliestDelivery
+      const latestRaw = type === 'pickup' ? o.latestPickup : o.latestDelivery
+      return { earliestRaw: orDash(earliestRaw), earliest: stampValue(parseStamp(earliestRaw)), latest: stampValue(parseStamp(latestRaw)) }
+    })
+    .filter((b) => b.earliest != null)
+  if (!bounds.length) return null
+  const latestOfEarliest = Math.max(...bounds.map((b) => b.earliest))
+  const knownLatests = bounds.map((b) => b.latest).filter((v) => v != null)
+  const earliestOfLatest = knownLatests.length ? Math.min(...knownLatests) : Infinity
+  if (latestOfEarliest > earliestOfLatest) return null // disjoint windows — keep the existing default
+  if (site?.timeZone) {
+    const zoned = formatInZone(latestOfEarliest, site.timeZone)
+    if (zoned) return zoned
+  }
+  return bounds.find((b) => b.earliest === latestOfEarliest).earliestRaw
+}
+
 function placeOrder(list, orderId, type, at, makeKey, orders) {
   const idx = list.findIndex((s) => s.type === type && sameSite(s, at))
   if (idx !== -1) {
-    if (!list[idx].orderIds.includes(orderId)) list[idx].orderIds.push(orderId)
+    const cur = list[idx]
+    if (!cur.orderIds.includes(orderId)) cur.orderIds.push(orderId)
+    // T1.3 — only a stop THIS session created is still up for a recomputed
+    // default; a pre-existing stop's date is the shipment's real record.
+    if (cur.key.startsWith('new:') && !cur.dateEdited) {
+      const joint = jointDefaultDate(cur.orderIds, type, orders, cur.site ?? at.site)
+      if (joint != null) cur.date = joint
+    }
     return
   }
   let lastIdx = -1
@@ -83,6 +118,7 @@ function placeOrder(list, orderId, type, at, makeKey, orders) {
     location: at.stopLocation ?? at.location,
     address,
     date,
+    dateEdited: false,
     weight: '',
     volume: '',
     packageCount: '',
@@ -137,7 +173,16 @@ export function initSandbox({ stops, consolidation, orders }) {
     lat: s.lat,
     lng: s.lng,
     unsequenced: false,
+    // T1.3 — a pre-existing stop's date is the shipment's real record, never
+    // recomputed by placeOrder's joint-default logic.
+    dateEdited: true,
   }))
+  // T1.1 (user default, 2026-09-25) — a Prior that is really prior: snapshot
+  // BEFORE the relocation loop below moves anything, empties dropped (same
+  // drop rule as `arrival`, for a fixture that somehow arrives pre-emptied).
+  // This is what the Prior column renders: the customer's relocation shows
+  // up here as the order's ORIGINAL stop, not the P?/D? the loop creates.
+  const prior = sbStops.filter((st) => st.orderIds.length > 0).map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   let seq = 0
   const stopChanges = consolidation?.stopChanges || {}
   for (const [stopNumStr, change] of Object.entries(stopChanges)) {
@@ -163,8 +208,11 @@ export function initSandbox({ stops, consolidation, orders }) {
     }
   }
   const finalStops = sbStops.filter((st) => st.orderIds.length > 0)
-  const prior = finalStops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
-  return { stops: finalStops, pending: [], prior, dirty: false, routed: false, seq }
+  // T1.1 — `arrival`: today's post-relocation snapshot (what `prior` used to
+  // BE before this fix). "Did the planner change anything" (priorDiff)
+  // compares against THIS, not against the true `prior` above.
+  const arrival = finalStops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
+  return { stops: finalStops, pending: [], prior, arrival, dirty: false, seq }
 }
 
 export function labelsOf(sb) {
@@ -198,7 +246,16 @@ export function moveStop(sb, i, dir) {
   const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
   ;[stops[i], stops[j]] = [stops[j], stops[i]]
   stops[j].unsequenced = false
-  return { ...sb, stops, dirty: true, routed: false }
+  return { ...sb, stops, dirty: true }
+}
+
+// T1.2 — "Keep here" (user default): clears `unsequenced` on a stop WITHOUT
+// moving it. No-op on an already-sequenced stop.
+export function confirmStop(sb, key) {
+  const target = sb.stops.find((s) => s.key === key)
+  if (!target || !target.unsequenced) return sb
+  const stops = sb.stops.map((s) => (s.key === key ? { ...s, unsequenced: false } : s))
+  return { ...sb, stops, dirty: true }
 }
 
 // LINX-15869: pull an order off every stop it's on, into the pending list.
@@ -209,7 +266,7 @@ export function moveToPending(sb, id) {
   const stops = sb.stops
     .map((s) => ({ ...s, orderIds: s.orderIds.filter((o) => o !== id) }))
     .filter((s) => s.orderIds.length > 0)
-  return { ...sb, stops, pending: [...sb.pending, id], dirty: true, routed: false }
+  return { ...sb, stops, pending: [...sb.pending, id], dirty: true }
 }
 
 // LINX-15871 + DEC-193 (Jana 2026-09-24, reverses the S144 stop picker):
@@ -223,11 +280,11 @@ export function addToStop(sb, id, orders) {
   placeOrder(stops, id, 'pickup', order.shipFrom, () => `new:pickup:${++seq}`, orders)
   placeOrder(stops, id, 'delivery', order.shipTo, () => `new:delivery:${++seq}`, orders)
   const pending = sb.pending.filter((p) => p !== id)
-  return { ...sb, stops, pending, seq, dirty: true, routed: false }
+  return { ...sb, stops, pending, seq, dirty: true }
 }
 
 // LINX-15870: orders picked in Search & Add land in the pending column with
-// their own Add action. Not a stop edit — dirty/routed untouched.
+// their own Add action. Not a stop edit — dirty untouched.
 export function addPending(sb, ids) {
   const onStops = new Set(sb.stops.flatMap((s) => s.orderIds))
   const add = ids.filter((id, i) => !onStops.has(id) && !sb.pending.includes(id) && ids.indexOf(id) === i)
@@ -239,8 +296,11 @@ export function isRoutable(sb) {
   return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && s.date)
 }
 
-export function markRouted(sb) {
-  return { ...sb, routed: true }
+// T1.5 — isRoutable's reason, for the Evaluate tooltip.
+export function routeBlocker(sb) {
+  if (sb.stops.some((s) => s.unsequenced)) return 'unsequenced'
+  if (sb.stops.some((s) => !s.date)) return 'undated'
+  return null
 }
 
 export function totals(sb, orders) {
@@ -271,9 +331,11 @@ export function legDistances(stops) {
   return { legs, total: totalMiles(stops) }
 }
 
-// "Prior" view: what the planner changed relative to the structure at open.
+// T1.1 — what the PLANNER changed, relative to the structure on arrival
+// (today's post-relocation snapshot) — never relative to `prior`, which is
+// now the pre-relocation record the Prior column renders, not a diff base.
 export function priorDiff(sb) {
-  const priorKeys = sb.prior.map((s) => s.key)
+  const priorKeys = sb.arrival.map((s) => s.key)
   const curKeys = sb.stops.map((s) => s.key)
   const removedStopKeys = priorKeys.filter((k) => !curKeys.includes(k))
   const addedStopKeys = curKeys.filter((k) => !priorKeys.includes(k))
@@ -339,9 +401,11 @@ export function formatStopDate({ y, mo, d, h, mi, tz }) {
   return `${MONTHS[mo]} ${d}, ${y} ${pad(h)}:${pad(mi)}${tz ? ` ${tz}` : ''}`
 }
 
+// T1.3 — hand-dating a stop sets `dateEdited`, so a later order joining it
+// never overwrites the planner's own choice.
 export function setStopDate(sb, key, date) {
-  const stops = sb.stops.map((s) => (s.key === key ? { ...s, date } : s))
-  return { ...sb, stops, dirty: true, routed: false }
+  const stops = sb.stops.map((s) => (s.key === key ? { ...s, date, dateEdited: true } : s))
+  return { ...sb, stops, dirty: true }
 }
 
 // Orders whose planning window the stop's date misses — flagged, never

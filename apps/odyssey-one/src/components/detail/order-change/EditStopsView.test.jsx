@@ -157,7 +157,7 @@ it('Approve Shipment Change confirm — Cancel closes it without calling onAppro
   expect(onApprove).not.toHaveBeenCalled()
 })
 
-it('View Routing disabled while a P? exists; enabled otherwise; clicking marks routed and enables Approve Changes; a further edit disables Approve again', () => {
+it('View Routing and Approve Changes are both gated on isRoutable directly — T1 (S160) removed the routed gate', () => {
   // Bug fix (S160 follow-up) — a location-changed order's OWN shipFrom must
   // already carry the relocated site (buildConsolidationChange's B3b(c)
   // rewrite, real data) for initSandbox to create the P? this test needs.
@@ -166,22 +166,18 @@ it('View Routing disabled while a P? exists; enabled otherwise; clicking marks r
     <EditStopsView stops={baseStops} consolidation={locChange} orders={relocatedOrders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
   )
   expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(true)
+  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
   cleanup()
   setup()
   const routingBtn = screen.getByRole('button', { name: 'View Routing' })
   expect(routingBtn.disabled).toBe(false)
-  const approveBtn = screen.getByRole('button', { name: 'Approve Changes' })
-  expect(approveBtn.disabled).toBe(true)
-  fireEvent.click(routingBtn)
+  // Approve Changes is enabled directly off isRoutable — no need to have
+  // opened View Routing first.
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(false)
-  // any further edit clears routed -> disables approve again
-  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0])
-  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
-it('Approve Changes stays disabled while saving even once routed', () => {
+it('Approve Changes stays disabled while saving even once routable', () => {
   setup({ saving: true })
-  fireEvent.click(screen.getByRole('button', { name: 'View Routing' }))
   expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true)
 })
 
@@ -261,7 +257,9 @@ it('the New plan edits a stop date; a date outside an order window flags that or
   fireEvent.change(input, { target: { value: '11:30' } })
   fireEvent.blur(input)
   expect(nw().getAllByText('Outside planning window').length).toBe(2)               // A and B on stop 1
-  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(true) // edit un-routes, as any edit does
+  // T1 (S160): the `routed` gate is gone — a window violation is flagged, never
+  // blocked, and every stop still carries a date, so Approve Changes stays enabled.
+  expect(screen.getByRole('button', { name: 'Approve Changes' }).disabled).toBe(false)
 })
 
 it('marks what an action touched so it pulses where it landed (user 2026-09-24)', () => {

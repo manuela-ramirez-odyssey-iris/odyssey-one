@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, markRouted, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -21,10 +21,10 @@ const locChange = { ...noChange, locationChange: true, changedOrderIds: ['C'], s
 const relocate = (list, id, side, loc) => list.map((o) => (o.orderNumber === id ? { ...o, [side]: { ...o[side], location: loc, stopLocation: loc } } : o))
 
 describe('initSandbox', () => {
-  it('copies stops, labels P1 P2 D1, not dirty, not routed, empty pending', () => {
+  it('copies stops, labels P1 P2 D1, not dirty, empty pending', () => {
     const s = initSandbox({ stops, consolidation: noChange, orders })
     expect(labelsOf(s)).toEqual(['P1', 'P2', 'D1'])
-    expect(s.dirty).toBe(false); expect(s.routed).toBe(false); expect(s.pending).toEqual([])
+    expect(s.dirty).toBe(false); expect(s.pending).toEqual([])
     expect(s.stops[0].orderIds).toEqual(['A', 'B'])
   })
   it('applies a location change: order leaves its pickup, lands on a new P? at the end of the pickup group; emptied stop removed (LINX-15668)', () => {
@@ -33,6 +33,12 @@ describe('initSandbox', () => {
     expect(s.stops[1]).toMatchObject({ type: 'pickup', unsequenced: true, orderIds: ['C'], location: 'Q, Burg' })
     expect(isRoutable(s)).toBe(false)
     expect(s.dirty).toBe(false)                                  // system-applied, not a planner edit
+  })
+  it('T1.1: prior is the pre-relocation snapshot (original stop); arrival is what priorDiff compares against, so the relocation itself shows no planner-change mark', () => {
+    const s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
+    expect(s.prior[1]).toMatchObject({ type: 'pickup', unsequenced: false, orderIds: ['C'], location: 'Y, Town' })
+    expect(s.stops[1]).toMatchObject({ unsequenced: true, orderIds: ['C'], location: 'Q, Burg' }) // New shows P?
+    expect(priorDiff(s)).toEqual({ removedOrderIds: [], movedStopKeys: [], addedStopKeys: [], removedStopKeys: [] })
   })
   it('a location change matching an existing stop reuses it instead of creating P?', () => {
     const c = { ...locChange, stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'X, City' } } } } }
@@ -100,6 +106,60 @@ describe('created-stop defaults (S143 — order window date/address)', () => {
     expect(isRoutable(s)).toBe(false)
   })
 })
+describe('created-stop joint default date (T1.3)', () => {
+  const orderD = { orderNumber: 'D', shipFrom: { location: 'W, Newplace' }, shipTo: { location: 'Z, Ville' }, grossWeight: '1 LB', totalVolume: '1 cuft', earliestPickup: 'June 4, 2026 08:00 CDT', latestPickup: 'June 4, 2026 20:00 CDT', earliestDelivery: 'June 8, 2026 10:00 CDT' }
+  const orderE = { orderNumber: 'E', shipFrom: { location: 'W, Newplace' }, shipTo: { location: 'Z, Ville' }, grossWeight: '1 LB', totalVolume: '1 cuft', earliestPickup: 'June 4, 2026 10:00 CDT', latestPickup: 'June 4, 2026 18:00 CDT', earliestDelivery: 'June 8, 2026 10:00 CDT' }
+
+  it("fits every order joined to it — recomputes to the latest earliest bound, still inside every order's window", () => {
+    const allOrders = [...orders, orderD, orderE]
+    let s = initSandbox({ stops, consolidation: noChange, orders: allOrders })
+    s = addToStop(s, 'D', allOrders)
+    const stopKey = s.stops.find((st) => st.orderIds.includes('D') && st.type === 'pickup').key
+    expect(s.stops.find((st) => st.key === stopKey).date).toBe('June 4, 2026 08:00 CDT') // D alone: its own default
+    s = addToStop(s, 'E', allOrders)
+    const joined = s.stops.find((st) => st.key === stopKey)
+    expect(joined.orderIds).toEqual(['D', 'E'])
+    expect(joined.date).toBe('June 4, 2026 10:00 CDT') // latest of the earliest bounds, <= earliest of the latest bounds
+  })
+  it('falls back to keeping the existing default when the joined orders\' windows are disjoint', () => {
+    const orderF = { orderNumber: 'F', shipFrom: { location: 'W, Newplace' }, shipTo: { location: 'Z, Ville' }, grossWeight: '1 LB', totalVolume: '1 cuft', earliestPickup: 'June 5, 2026 08:00 CDT', latestPickup: 'June 5, 2026 09:00 CDT', earliestDelivery: 'June 8, 2026 10:00 CDT' }
+    const allOrders = [...orders, orderD, orderF]
+    let s = initSandbox({ stops, consolidation: noChange, orders: allOrders })
+    s = addToStop(s, 'D', allOrders)
+    const stopKey = s.stops.find((st) => st.orderIds.includes('D') && st.type === 'pickup').key
+    s = addToStop(s, 'F', allOrders)
+    const joined = s.stops.find((st) => st.key === stopKey)
+    expect(joined.orderIds).toEqual(['D', 'F'])
+    expect(joined.date).toBe('June 4, 2026 08:00 CDT') // disjoint — keeps D's own default, untouched
+  })
+  it('never overwrites a stop the planner already hand-dated', () => {
+    const allOrders = [...orders, orderD, orderE]
+    let s = initSandbox({ stops, consolidation: noChange, orders: allOrders })
+    s = addToStop(s, 'D', allOrders)
+    const stopKey = s.stops.find((st) => st.orderIds.includes('D') && st.type === 'pickup').key
+    s = setStopDate(s, stopKey, 'June 4, 2026 07:00 CDT')
+    s = addToStop(s, 'E', allOrders)
+    expect(s.stops.find((st) => st.key === stopKey).date).toBe('June 4, 2026 07:00 CDT')
+  })
+})
+describe('confirmStop ("Keep here", T1.2)', () => {
+  it('clears unsequenced without moving the stop, and marks dirty', () => {
+    let s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
+    const key = s.stops[1].key
+    expect(s.stops[1].unsequenced).toBe(true)
+    s = confirmStop(s, key)
+    expect(s.stops[1]).toMatchObject({ key, unsequenced: false })
+    expect(s.dirty).toBe(true)
+  })
+  it('is a no-op on an already-sequenced stop', () => {
+    const s = initSandbox({ stops, consolidation: noChange, orders })
+    expect(confirmStop(s, s.stops[0].key)).toBe(s)
+  })
+  it('is a no-op for an unknown key', () => {
+    const s = initSandbox({ stops, consolidation: noChange, orders })
+    expect(confirmStop(s, 'nope')).toBe(s)
+  })
+})
 describe('moveStop', () => {
   it('moves up/down, renumbers, and sequences a P? once placed', () => {
     let s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
@@ -153,10 +213,14 @@ describe('moveToPending / addToStop', () => {
   })
 })
 describe('gate, totals, prior diff, dto', () => {
-  it('any edit clears routed', () => {
-    let s = initSandbox({ stops, consolidation: noChange, orders })
-    s = markRouted(s); expect(s.routed).toBe(true); expect(isRoutable(s)).toBe(true)
-    s = moveToPending(s, 'C'); expect(s.routed).toBe(false)
+  it('routeBlocker names the reason isRoutable is false for, else null', () => {
+    let s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
+    expect(routeBlocker(s)).toBe('unsequenced')                       // the created P? is unsequenced
+    s = moveStop(s, 1, 'up')                                          // sequences it, but it has no date yet
+    expect(routeBlocker(s)).toBe('undated')
+    s = setStopDate(s, s.stops[0].key, 'June 5, 2026 09:00 CDT')
+    expect(routeBlocker(s)).toBeNull()
+    expect(isRoutable(s)).toBe(true)
   })
   it('totals sum the orders on pickup stops with thousands separators', () => {
     const s = initSandbox({ stops, consolidation: noChange, orders })
@@ -252,11 +316,11 @@ describe('stop dates + planning windows (DEC-199)', () => {
   it('a missing bound checks only the other one', () => {
     expect(windowViolations([stopAt('June 9, 2026 08:00 CDT')], [win({ latestPickup: '--' })])).toEqual([])
   })
-  it('setStopDate edits one stop, marks dirty, clears routed', () => {
-    let s = markRouted(initSandbox({ stops, consolidation: noChange, orders }))
+  it('setStopDate edits one stop, marks dirty and dateEdited', () => {
+    let s = initSandbox({ stops, consolidation: noChange, orders })
     s = setStopDate(s, 's1', 'June 5, 2026 09:00 CDT')
     expect(s.stops[0].date).toBe('June 5, 2026 09:00 CDT')
-    expect(s.dirty).toBe(true); expect(s.routed).toBe(false)
+    expect(s.dirty).toBe(true); expect(s.stops[0].dateEdited).toBe(true)
     expect(toDto(s)[0].scheduledDateTime).toBe('June 5, 2026 09:00 CDT')
   })
 })
