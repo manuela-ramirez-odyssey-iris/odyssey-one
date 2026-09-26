@@ -103,11 +103,15 @@ function ShipmentsRoute() {
   // highlighted. Cleared the moment the planner moves the query on (effect
   // below) — the pin is a one-time "here it is", not a sticky row.
   const [created, setCreated] = useState(location.state?.createdShipment ?? null)
-  // Part 3 (S158, user 2026-09-23): the row most recently CHECKED in
-  // consolidate mode gets the same highlight pulse `created` uses below — "the
-  // eye can follow it" as it floats to the top. Unchecking never re-highlights
-  // anything; the row just returns to its sorted place without a flash.
-  const [lastCheckedId, setLastCheckedId] = useState(null)
+  // S161 (spec A1): consolidate mode no longer pulses the row just checked —
+  // Part 3 (S158)'s `lastCheckedId` highlight is retired along with it
+  // (nothing else read it). `highlightId` is simply null for the whole mode.
+  //
+  // "Show selected on top" (spec A2) — consolidate-mode-only toggle next to
+  // TableControls' item counter, unchecked by default: floating every
+  // selected row to the top fights pagination, so the planner opts in.
+  // Reset to false whenever the mode exits (exitConsolidate below).
+  const [showSelectedOnTop, setShowSelectedOnTop] = useState(false)
   const [selectedShipmentId, setSelectedShipmentId] = useState(location.state?.selectedShipmentId ?? null)
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
@@ -301,12 +305,15 @@ function ShipmentsRoute() {
     searchCriteria: effectiveCriteria ?? undefined,
     sortBy: sorting[0]?.id,
     orderBy: sorting[0]?.desc ? 'desc' : 'asc',
-    // Part 3 (S158): the selection is floated to the top of page 1 client-side
-    // (tableRows below) from its own row snapshots — the server must EXCLUDE
-    // those ids or a selected row would come back a second time on its normal
-    // sorted page, duplicating it and shifting every offset after it.
-    ...(inMode && selection.size ? { filter: { excludeIds: [...selection.keys()] } } : {}),
-  }), [activePanel, activeTab, pageNumber, pageSize, effectiveCriteria, selectedDataIds, sorting, inMode, selection])
+    // Part 3 (S158): when "Show selected on top" is ON, the selection is
+    // floated to the top of page 1 client-side (tableRows below) from its own
+    // row snapshots — the server must EXCLUDE those ids or a selected row
+    // would come back a second time on its normal sorted page, duplicating it
+    // and shifting every offset after it. OFF (S161, spec A2 default): rows
+    // stay in their normal page position, so nothing is excluded — the
+    // selected row IS its own page entry.
+    ...(inMode && showSelectedOnTop && selection.size ? { filter: { excludeIds: [...selection.keys()] } } : {}),
+  }), [activePanel, activeTab, pageNumber, pageSize, effectiveCriteria, selectedDataIds, sorting, inMode, showSelectedOnTop, selection])
 
   const {
     data: listData,
@@ -330,23 +337,26 @@ function ShipmentsRoute() {
   // tableRows below still filters pageRows against the selection so a just-checked
   // row can never render twice (duplicate React key) during that gap.
   const selectedRows = useMemo(() => {
-    if (!inMode || selection.size === 0) return []
+    if (!inMode || !showSelectedOnTop || selection.size === 0) return []
     const { id: sortId, desc } = sorting[0] ?? DEFAULT_SORTING[0]
     const dir = desc ? -1 : 1
     return [...selection.values()].sort((a, b) =>
       String(a[sortId] ?? '').localeCompare(String(b[sortId] ?? ''), undefined, { numeric: true }) * dir)
-  }, [inMode, selection, sorting])
+  }, [inMode, showSelectedOnTop, selection, sorting])
 
-  // The pin (S155 §4.2) and the consolidate-mode float (Part 3) both only ever
-  // apply to page 1 — pinning either onto every page would be a row that
-  // follows the planner around. Mutually exclusive in practice (the pin is a
-  // "just created elsewhere" arrival outside the mode), so inMode picks
-  // between them rather than trying to interleave both pins into one order.
+  // The pin (S155 §4.2) and the consolidate-mode float (Part 3, now gated by
+  // "Show selected on top" — S161 spec A2) both only ever apply to page 1 —
+  // pinning either onto every page would be a row that follows the planner
+  // around. Mutually exclusive in practice (the pin is a "just created
+  // elsewhere" arrival outside the mode), so inMode picks between them rather
+  // than trying to interleave both pins into one order. With the toggle off,
+  // `selectedRows` above is already empty and this is just `pageRows` — the
+  // selected rows stay in their normal sorted place.
   const tableRows = useMemo(() => {
     if (pageNumber !== 0) return pageRows
-    if (inMode) return [...selectedRows, ...pageRows.filter((r) => !selection.has(r.id))]
+    if (inMode) return showSelectedOnTop ? [...selectedRows, ...pageRows.filter((r) => !selection.has(r.id))] : pageRows
     return created ? [created, ...pageRows.filter((r) => r.id !== created.id)] : pageRows
-  }, [created, pageNumber, pageRows, inMode, selectedRows, selection])
+  }, [created, pageNumber, pageRows, inMode, showSelectedOnTop, selectedRows, selection])
 
   // The planner moved on (sort, page, search, tab, customer scope) — the pin
   // has done its job and must not outlive the query it was pinned into. Skips
@@ -635,6 +645,7 @@ function ShipmentsRoute() {
     // "Modify Selection" never took a snapshot, so this correctly no-ops.
     if (consolidate && 'priorCriteria' in consolidate) setSearchCriteria(consolidate.priorCriteria ?? null)
     setConsolidate(null)
+    setShowSelectedOnTop(false) // S161 spec A2: the toggle resets, it isn't a sticky preference
   }, [consolidate])
 
   // Return-intent re-application (S158 plan §4). This page now stays MOUNTED
@@ -690,10 +701,6 @@ function ShipmentsRoute() {
     const picked = checked ? rows.filter((r) => r.customerId === scopeId) : rows
     const next = new Map(consolidate.rows)
     for (const r of picked) checked ? next.set(r.id, r) : next.delete(r.id)
-    // Part 3 (S158): highlight the last row THIS click checked (batch checks —
-    // the header box — just pick the last; a pulse per row would be noise).
-    // Unchecking sets nothing: the row returns to its sorted place unflashed.
-    if (checked && picked.length) setLastCheckedId(picked[picked.length - 1].id)
     const wasEmpty = consolidate.rows.size === 0
     const nowEmpty = next.size === 0
     setConsolidate({
@@ -817,10 +824,13 @@ function ShipmentsRoute() {
             : 'Consolidate'}
         </Button>
       </PageHeader>
-      {/* The row holds the same slot for the whole mode (S155 §1.4) — before
-          an anchor exists it carries the instruction, after it the locked
-          customer. Rendering it only when anchored made the tabs jump the
-          moment the first row was checked. */}
+      {/* The row holds the same slot for the whole mode (S155 §1.4) — after an
+          anchor exists it carries the locked customer. S161 (spec A3): the
+          "Select to consolidate…" subtitle is gone (redundant with the
+          primary button's own "Select to Consolidate" label), but the slot
+          stays — an empty &nbsp; holds the same line height the subtitle
+          used to, so the tabs below still don't jump when the first row is
+          checked. */}
       {inMode && (
         <div className="consolidate-customer text-label-sm-regular">
           {anchor ? (
@@ -829,7 +839,7 @@ function ShipmentsRoute() {
               <Badge variant="blue">{anchor.customerName || anchor.customerId}</Badge>
             </>
           ) : (
-            <span>Select to consolidate. Only direct shipments are consolidatable</span>
+            <span>&nbsp;</span>
           )}
         </div>
       )}
@@ -852,6 +862,9 @@ function ShipmentsRoute() {
       <TableControls
         itemCount={totalCount}
         hideExport={inMode}
+        showSelectedOnTopToggle={inMode}
+        selectedOnTop={showSelectedOnTop}
+        onSelectedOnTopChange={setShowSelectedOnTop}
         onExport={async (mode) => {
           // Export all matching rows (not just the current page) — fetch them through
           // the grid service with the current filters and a large page size. In live
@@ -884,10 +897,10 @@ function ShipmentsRoute() {
       ) : (
         <ShipmentTable
           shipments={tableRows}
-          // Part 3 (S158): in consolidate mode the pulse follows the row just
-          // checked (floating to the top), not the created-shipment pin —
-          // the two never apply at once (see tableRows above).
-          highlightId={inMode ? lastCheckedId : (created?.id ?? null)}
+          // S161 (spec A1): consolidate mode never pulses a row — highlightId
+          // is only ever the created-shipment pin, and that pin doesn't apply
+          // in mode anyway (see tableRows above).
+          highlightId={inMode ? null : (created?.id ?? null)}
           selectedId={inMode ? null : selectedShipmentId}
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}

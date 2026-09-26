@@ -426,46 +426,66 @@ describe('consolidate mode — the customer lock is a committed filter chip (S15
     expect(selected).toBeLessThan(eligibleOnPage)
   })
 
-  test('with no selection, the mode explains what to select', async () => {
+  // S161 (spec A3): the subtitle is gone — the primary button's own
+  // "Select to Consolidate" label carries the instruction now.
+  test('with no selection, the mode shows no subtitle', async () => {
     renderRoute()
     await enterMode()
-    expect(screen.getByText('Select to consolidate. Only direct shipments are consolidatable')).toBeTruthy()
+    expect(screen.queryByText(/Select to consolidate\. Only direct shipments/)).toBeNull()
     expect(screen.queryByText('Selected Customer:')).toBeNull()
   })
 })
 
-// Part 3 (S158, user 2026-09-23): selected shipments float to the top of page 1
-// as they're checked, ordered by the active sort, so the selection is always
-// in view. The moved row gets the same highlight pulse `created` uses.
-describe('consolidate mode — selection floats to the top (Part 3, S158)', () => {
+// Part 3 (S158, user 2026-09-23) / S161 (spec A1, A2): selected shipments no
+// longer float or pulse by default — checking a row leaves it in place, and
+// the "Show selected on top" toggle (unchecked by default) opts back into the
+// old float-to-top-of-page-1 behaviour, ordered by the active sort. Neither
+// state pulses the row anymore (spec A1 retires the highlight entirely).
+describe('consolidate mode — "Show selected on top" (Part 3 S158, revised S161)', () => {
   // Checkboxes occupy the FIRST cell in select mode — the identifier lives in
   // the title cell (S148: same class ShipmentTable puts on that column).
   const rowIds = () => [...document.querySelectorAll('tbody tr')]
     .map((tr) => tr.querySelector('.odyssey-table__cell--title')?.textContent?.trim())
+  const toggle = () => screen.getByRole('checkbox', { name: 'Show selected on top' })
 
-  test('checking a row floats it to the top with a highlight; unchecking returns it to its sorted place', async () => {
+  test('the toggle is unchecked by default; checking a row never pulses it', async () => {
     renderRoute()
     await enterMode()
     await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(2))
-    const before = rowIds()
-    // Check a row that ISN'T already first — it should float above everything,
-    // including rows the default sort would otherwise keep ahead of it.
-    const box = enabledRowBoxes()[2]
-    const label = box.getAttribute('aria-label')
-    const id = box.closest('tr').querySelector('.odyssey-table__cell--title').textContent.trim()
-    fireEvent.click(box)
-    await waitFor(() => expect(rowIds()[0]).toBe(id))
-    expect(document.querySelectorAll('tbody tr')[0].getAttribute('data-highlight')).toBe('true')
-    // Unchecking releases the float — the row returns to its normal sorted
-    // place (the page reverts to what it was before the float).
-    fireEvent.click(screen.getByRole('checkbox', { name: label }))
-    await waitFor(() => expect(rowIds()).toEqual(before))
+    expect(toggle().checked).toBe(false)
+    fireEvent.click(enabledRowBoxes()[2])
+    await screen.findByText('Selected Customer:')
+    await waitFor(() => expect(rowIds().length).toBeGreaterThan(0))
+    expect([...document.querySelectorAll('tbody tr')].some((tr) => tr.getAttribute('data-highlight') === 'true')).toBe(false)
   })
 
-  test('two selections stack at the top in the active (default) sort order, never duplicated below', async () => {
+  test('checking the toggle floats the selection to the top with no highlight; unchecking returns rows to place', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(2))
+    const box = enabledRowBoxes()[2]
+    const id = box.closest('tr').querySelector('.odyssey-table__cell--title').textContent.trim()
+    fireEvent.click(box)
+    await screen.findByText('Selected Customer:')
+    // Baseline AFTER the check (the customer lock narrows the list on its
+    // own, independent of the toggle) but BEFORE the float toggle — that's
+    // what "unchecking the toggle" must return to. Wait past the narrowed
+    // query's own loading state first.
+    await waitFor(() => expect(rowIds().every((r) => r !== 'Loading…')).toBe(true))
+    const beforeFloat = rowIds()
+    fireEvent.click(toggle())
+    await waitFor(() => expect(rowIds()[0]).toBe(id))
+    expect([...document.querySelectorAll('tbody tr')].some((tr) => tr.getAttribute('data-highlight') === 'true')).toBe(false)
+    // Unchecking the toggle releases the float — back to the normal sorted page.
+    fireEvent.click(toggle())
+    await waitFor(() => expect(rowIds()).toEqual(beforeFloat))
+  })
+
+  test('with the toggle on, two selections stack at the top in the active sort order, never duplicated below', async () => {
     renderRoute()
     await enterMode()
     await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(3))
+    fireEvent.click(toggle())
     const first = enabledRowBoxes()[3]
     const firstId = first.closest('tr').querySelector('.odyssey-table__cell--title').textContent.trim()
     fireEvent.click(first)
@@ -483,6 +503,18 @@ describe('consolidate mode — selection floats to the top (Part 3, S158)', () =
     // Never duplicated further down the page (the server-exclusion path).
     expect(rowIds().filter((id) => id === firstId)).toHaveLength(1)
     expect(rowIds().filter((id) => id === secondId)).toHaveLength(1)
+  })
+
+  test('the toggle resets to unchecked when the mode exits and is re-entered', async () => {
+    renderRoute()
+    await enterMode()
+    await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(0))
+    fireEvent.click(toggle())
+    expect(toggle().checked).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await enterMode()
+    expect(toggle().checked).toBe(false)
   })
 })
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Upload } from 'lucide-react'
 import TooltipTrigger from '../ui/TooltipTrigger'
-import { Button, ModalMedium } from '@odyssey/ui'
+import { Button, Checkbox, ModalMedium } from '@odyssey/ui'
 
 // The SearchChipPanel chips row (pre-S79c per-attribute scoping) was removed —
 // search scoping now lives entirely in the navbar GlobalSearch, which commits
@@ -11,6 +11,12 @@ const TableControls = React.memo(function TableControls({
   itemCount,
   onExport,
   hideExport = false,
+  // S161 (spec A2): consolidate mode only — "Show selected on top" next to
+  // the item counter. Unchecked by default: floating every selected row
+  // fights pagination, so the planner opts in rather than it being forced.
+  showSelectedOnTopToggle = false,
+  selectedOnTop = false,
+  onSelectedOnTopChange,
 }) {
   const [exportModalOpen, setExportModalOpen] = useState(false)
 
@@ -32,9 +38,18 @@ const TableControls = React.memo(function TableControls({
     }}>
       {/* Row 1: Controls */}
       <div className="flex items-center justify-between">
-        {/* Left: item count */}
-        <span className="text-sm shrink-0" style={{ color: 'var(--text-tertiary)', transition: 'color 0.15s ease' }}>
-          {itemCount} items
+        {/* Left: item count (+ the consolidate-mode "Show selected on top" toggle) */}
+        <span className="flex items-center gap-4 shrink-0">
+          <span className="text-sm" style={{ color: 'var(--text-tertiary)', transition: 'color 0.15s ease' }}>
+            {itemCount} items
+          </span>
+          {showSelectedOnTopToggle && (
+            <Checkbox
+              checked={selectedOnTop}
+              onChange={(e) => onSelectedOnTopChange?.(e.target.checked)}
+              label="Show selected on top"
+            />
+          )}
         </span>
 
         {/* Action buttons */}
