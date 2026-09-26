@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, buildOrderChangeCostQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -477,58 +477,75 @@ describe('shipment overrides', () => {
 
 // ── LINX-14514: order-change resolution (retender / bypass / cancel) ──────
 describe('resolveOrderChange', () => {
-  it('retender moves the shipment to monitoring/sent and stamps the resolution', async () => {
-    let seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+  // Minimal db double for the non-save-stops actions (retender/bypass/cancel/
+  // approve-plan): T4 opens ONE transaction for these too, so — same as the
+  // save-stops fakes below — `query` is shared between the plain detail SELECT
+  // and every write on the checked-out client, and calls land in one ordered
+  // array. `detail` is the row `orderChange` lives under (defaults to `{}`,
+  // i.e. no seeded order-change payload — every T4 write still runs, just
+  // over an empty tender list).
+  function mkOc(detail = {}, { failOn } = {}) {
+    const calls = []
+    const state = { released: false }
+    const query = async (q) => {
+      calls.push(q)
+      const text = typeof q === 'string' ? q : q.text
+      if (failOn && failOn.test(text)) throw new Error('write failed')
+      if (/SELECT detail FROM shipments WHERE sell_shipment = \$1/.test(text)) return { rows: [{ detail }] }
+      return { rows: [], rowCount: 1 }
+    }
+    const db = { query, connect: async () => ({ query, release: () => { state.released = true } }) }
+    return { db, calls, state }
+  }
+  const textOf = (q) => (typeof q === 'string' ? q : q.text)
+  const valuesOf = (calls) => calls.flatMap((q) => (typeof q === 'string' ? [] : q.values ?? []))
+
+  it('retender moves the shipment to monitoring/sent and stamps the resolution, inside a transaction', async () => {
+    const { db, calls } = mkOc()
     const res = await resolveOrderChange({
       params: ['S260000010'],
       body: { action: 'retender', cost: { choice: 'prior', amount: 1901.56 } },
       db,
     })
     assert.deepEqual(res, { success: true })
-    const text = seen.map(q => q.text).join('\n')
-    assert.match(text, /tender_status/)
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
-    assert.ok(values.some(v => typeof v === 'string' && v.includes('"action":"retender"')))
+    assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"retender"')))
     assert.ok(values.includes(null), 'retender clears validation_message')
+    assert.ok(calls.some((q) => textOf(q) === 'BEGIN'))
+    assert.equal(textOf(calls[calls.length - 1]), 'COMMIT')
   })
 
   it('retender with priorTenderStatus Accepted still becomes Sent (re-soliciting acceptance)', async () => {
-    const db = { query: async () => ({ rowCount: 1, rows: [{}] }) }
-    const seen = []
-    db.query = async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } }
+    const { db, calls } = mkOc()
     await resolveOrderChange({ params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Accepted' }, db })
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Sent'))
     assert.ok(!values.includes('Accepted'))
   })
 
   it('bypass retains Accepted → monitoring/approved', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const { db, calls } = mkOc()
     await resolveOrderChange({ params: ['S1'], body: { action: 'bypass', priorTenderStatus: 'Accepted' }, db })
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Accepted') && values.includes('monitoring') && values.includes('approved'))
     assert.ok(!values.includes('sent'))
     assert.ok(values.includes(null), 'bypass clears validation_message')
   })
 
   it('bypass retains Sent → monitoring/sent', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const { db, calls } = mkOc()
     await resolveOrderChange({ params: ['S1'], body: { action: 'bypass', priorTenderStatus: 'Sent' }, db })
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(!values.includes('approved'))
     assert.ok(values.includes(null), 'bypass clears validation_message')
   })
 
   it('cancel stays in exceptions / tender-review with status Cancelled and the AC message', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const { db, calls } = mkOc()
     await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Cancelled') && values.includes('exceptions') && values.includes('tender-review'))
     // Verbatim LINX-14514 Cancel Tender AC text — cancel is the one action that
     // carries a real validation_message (the panel it lands on always has one).
@@ -539,22 +556,20 @@ describe('resolveOrderChange', () => {
   // gates Scenario A to no server call at all). No stops written; same
   // shape as bypass's non-active outcome. ──────────────────────────────
   it('approve-plan (non-active prior) behaves like bypass and writes the approve-plan resolution', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const { db, calls } = mkOc()
     const res = await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan', priorTenderStatus: 'Sent' }, db })
     assert.deepEqual(res, { success: true })
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
-    assert.ok(values.some(v => typeof v === 'string' && v.includes('"action":"approve-plan"')))
-    // Only ONE query — the resolution write. No stops query, no tender-cost query.
-    assert.equal(seen.length, 1)
+    assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"approve-plan"')))
+    // No stops write — approve-plan never touches shipmentStopList.
+    assert.ok(!calls.some((q) => /shipmentStopList/.test(textOf(q))))
   })
 
   it('approve-plan writes no stops even with a null priorTenderStatus (still non-active)', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const { db, calls } = mkOc()
     await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan' }, db })
-    const values = seen.flatMap(q => q.values)
+    const values = valuesOf(calls)
     assert.ok(values.includes('Sent') && values.includes('monitoring'))
   })
 
@@ -565,71 +580,156 @@ describe('resolveOrderChange', () => {
     )
   })
 
-  it('404s on unknown shipment', async () => {
+  it('404s on unknown shipment (detail read finds nothing, no transaction opened)', async () => {
+    let connected = false
+    const db = {
+      query: async () => ({ rows: [] }),
+      connect: async () => { connected = true; return { query: async () => ({}), release: () => {} } },
+    }
     await assert.rejects(
-      () => resolveOrderChange({ params: ['NOPE'], body: { action: 'cancel' }, db: { query: async () => ({ rowCount: 0 }) } }),
+      () => resolveOrderChange({ params: ['NOPE'], body: { action: 'cancel' }, db }),
       (e) => /No shipment/.test(e.message) && e.status === 404,
     )
+    assert.ok(!connected, 'no client checked out for a 404')
   })
 
-  // ── S137: cost selected on Review Order Change lands on the carrier's tender ──
-  it('retender with a cost + priorScac also updates that carrier\'s tender row', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
-    await resolveOrderChange({
-      params: ['S1'],
-      body: { action: 'retender', cost: { choice: 'new', amount: 2100.5 }, priorScac: 'ABCD' },
-      db,
+  // ── T4 (S160): the new tender list becomes current ──────────────────────
+  describe('adoptNewTenderList', () => {
+    // AAAA/BBBB are what routing returned this time (the new list); PRIOR is
+    // the carrier the review screen is actually about, dropped by this
+    // re-route (a 'not-returned' orderChange scenario, generate.mjs) — the
+    // exact case the seed's `newOption.rank` (here: 2) exists to answer.
+    const orderChange = {
+      prior: { scac: 'PRIOR', tenderStatus: 'Sent' },
+      newOption: { rank: 2 },
+      priorTenderList: [
+        { scac: 'PRIOR', carrierName: 'Prior Co', rank: 1, status: 'Sent', rateAmount: 900, equipmentCode: 'V' },
+        { scac: 'BBBB', carrierName: 'B Co', rank: 2, status: '', rateAmount: 800, equipmentCode: 'V' },
+      ],
+      newTenderList: [
+        { scac: 'AAAA', carrierName: 'A Co', rank: 1, status: '', rateAmount: 700, equipmentCode: 'V' },
+        { scac: 'BBBB', carrierName: 'B Co', rank: 2, status: '', rateAmount: 810, equipmentCode: 'V' },
+      ],
+    }
+
+    it('retender inserts the dropped prior carrier at its seeded rank, shifts later ranks, applies the chosen cost, and blanks everyone else', () => {
+      const outcome = { tenderStatus: 'Sent' }
+      const rows = adoptNewTenderList('retender', orderChange, { amount: 1234.56 }, outcome)
+      assert.deepEqual(rows.map((o) => [o.scac, o.rank, o.status, o.rateAmount]), [
+        ['AAAA', 1, '', 700],
+        ['PRIOR', 2, 'Sent', 1234.56],
+        ['BBBB', 3, '', 810],
+      ])
     })
-    assert.equal(seen.length, 2)
-    assert.match(seen[1].text, /UPDATE tenders SET rate_amount/)
-    assert.match(seen[1].text, /jsonb_set/)
-    assert.deepEqual(seen[1].values, [2100.5, '2100.5', 'S1', 'ABCD'])
+
+    it('bypass inserts the dropped prior using the OC_OUTCOMES bypass status (Accepted stays Accepted)', () => {
+      const outcome = { tenderStatus: 'Accepted' } // OC_OUTCOMES.bypass('Accepted')
+      const rows = adoptNewTenderList('bypass', orderChange, { amount: 950 }, outcome)
+      const prior = rows.find((o) => o.scac === 'PRIOR')
+      assert.equal(prior.status, 'Accepted')
+      assert.equal(prior.rateAmount, 950)
+      assert.equal(prior.rank, 2)
+      assert.deepEqual(rows.filter((o) => o.scac !== 'PRIOR').map((o) => o.status), ['', ''])
+    })
+
+    it('retender/bypass skip insertion and cost when the prior carrier is missing a cost pick', () => {
+      const rows = adoptNewTenderList('retender', orderChange, null, { tenderStatus: 'Sent' })
+      const prior = rows.find((o) => o.scac === 'PRIOR')
+      assert.equal(prior.status, 'Sent', 'still inserted and marked — only the COST application is gated on cost.amount')
+      assert.equal(prior.rateAmount, 900, 'no numeric cost.amount ⇒ the priorTenderList row\'s own rate stands')
+    })
+
+    it('cancel marks the prior Cancelled only when routing actually returned it — never inserts it', () => {
+      const returned = { ...orderChange, newTenderList: [{ ...orderChange.newTenderList[0] }, { scac: 'PRIOR', carrierName: 'Prior Co', rank: 2, status: '', rateAmount: 905, equipmentCode: 'V' }] }
+      const rows = adoptNewTenderList('cancel', returned, null, { tenderStatus: 'Cancelled' })
+      assert.equal(rows.length, 2)
+      assert.equal(rows.find((o) => o.scac === 'PRIOR').status, 'Cancelled')
+
+      const dropped = adoptNewTenderList('cancel', orderChange, null, { tenderStatus: 'Cancelled' })
+      assert.equal(dropped.length, 2, 'PRIOR not returned — nothing inserted for it')
+      assert.ok(!dropped.some((o) => o.scac === 'PRIOR'))
+      assert.deepEqual(dropped.map((o) => o.status), ['', ''])
+    })
+
+    it('approve-plan / save-stops Scenario B: the new list stands untendered — every status blank, no insertion, no cost', () => {
+      const rows = adoptNewTenderList('approve-plan', orderChange, { amount: 1234.56 }, { tenderStatus: 'Sent' })
+      assert.equal(rows.length, 2, 'PRIOR never inserted for this outcome')
+      assert.deepEqual(rows.map((o) => o.status), ['', ''])
+      assert.deepEqual(rows.map((o) => o.rateAmount), [700, 810], 'cost.amount is ignored — 15671: no automatic tender action')
+    })
   })
 
-  it('bypass with a cost + priorScac also updates that carrier\'s tender row', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+  it('retender/bypass/cancel replace the tenders table and detail.shippingOptionList in the SAME transaction', async () => {
+    const detail = {
+      orderChange: {
+        prior: { scac: 'PRIOR', tenderStatus: 'Sent' },
+        newOption: { rank: 2 },
+        priorTenderList: [{ scac: 'PRIOR', carrierName: 'Prior Co', rank: 1, status: 'Sent', rateAmount: 900 }],
+        newTenderList: [{ scac: 'AAAA', carrierName: 'A Co', rank: 1, status: '', rateAmount: 700 }],
+      },
+    }
+    const { db, calls } = mkOc(detail)
     await resolveOrderChange({
-      params: ['S1'],
-      body: { action: 'bypass', priorTenderStatus: 'Sent', cost: { choice: 'prior', amount: 900 }, priorScac: 'WXYZ' },
-      db,
+      params: ['S1'], body: { action: 'retender', cost: { choice: 'new', amount: 1234.56 } }, db,
     })
-    assert.equal(seen.length, 2)
-    assert.deepEqual(seen[1].values, [900, '900', 'S1', 'WXYZ'])
+    const texts = calls.map(textOf)
+    const beginIdx = texts.indexOf('BEGIN')
+    const commitIdx = texts.lastIndexOf('COMMIT')
+    assert.ok(beginIdx > -1 && commitIdx > beginIdx)
+    const deleteIdx = texts.findIndex((t) => /^DELETE FROM tenders/.test(t))
+    assert.ok(deleteIdx > beginIdx && deleteIdx < commitIdx)
+    const inserts = calls.filter((q, i) => i > deleteIdx && i < commitIdx && /^INSERT INTO tenders/.test(textOf(q)))
+    assert.equal(inserts.length, 2, 'AAAA (untouched) + the inserted PRIOR row')
+    assert.ok(inserts.some((q) => q.values[1] === 'PRIOR' && q.values[6] === 1234.56))
+    const optionListWrite = calls.find((q) => /shippingOptionList/.test(textOf(q)))
+    assert.ok(optionListWrite)
+    const written = JSON.parse(optionListWrite.values[0])
+    assert.deepEqual(written.map((o) => o.scac), ['AAAA', 'PRIOR'])
+    // OC-open-22, same spirit: the grid's scac/ap_freight_cost columns follow
+    // the carrier this resolution acted on — the prior carrier, re-costed.
+    const resolveWrite = calls.find((q) => /orderChange,resolution/.test(textOf(q)))
+    assert.ok(/scac = \$7, ap_freight_cost = \$8/.test(resolveWrite.text))
+    assert.deepEqual(resolveWrite.values.slice(6), ['PRIOR', '1,234.56'])
   })
 
-  it('cancel does not touch the tender row even with a cost + priorScac present', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
-    await resolveOrderChange({
-      params: ['S1'],
-      body: { action: 'cancel', cost: { choice: 'new', amount: 500 }, priorScac: 'ABCD' },
-      db,
-    })
-    assert.equal(seen.length, 1, 'cancel drops the tender — no carrier row left to cost')
+  it('cancel with a dropped prior falls the list-row scac/ap_freight_cost back to the new list\'s rank 1', async () => {
+    const detail = {
+      orderChange: {
+        prior: { scac: 'PRIOR', tenderStatus: 'Sent' },
+        newOption: { rank: 2 },
+        priorTenderList: [{ scac: 'PRIOR', carrierName: 'Prior Co', rank: 1, status: 'Sent', rateAmount: 900 }],
+        newTenderList: [{ scac: 'AAAA', carrierName: 'A Co', rank: 1, status: '', rateAmount: 700 }],
+      },
+    }
+    const { db, calls } = mkOc(detail)
+    await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
+    const resolveWrite = calls.find((q) => /orderChange,resolution/.test(textOf(q)))
+    assert.deepEqual(resolveWrite.values.slice(6), ['AAAA', '700.00'])
+    const optionListWrite = calls.find((q) => /shippingOptionList/.test(textOf(q)))
+    const written = JSON.parse(optionListWrite.values[0])
+    assert.equal(written.length, 1, 'PRIOR was dropped by routing — never inserted for cancel')
   })
 
-  it('retender with a cost but no priorScac skips the tender update', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
-    await resolveOrderChange({
-      params: ['S1'],
-      body: { action: 'retender', cost: { choice: 'new', amount: 500 } },
-      db,
-    })
-    assert.equal(seen.length, 1)
+  it('a failing tender write rolls back the whole resolution — nothing left half-written', async () => {
+    const { db, calls, state } = mkOc({ orderChange: { newTenderList: [] } }, { failOn: /^DELETE FROM tenders/ })
+    await assert.rejects(() => resolveOrderChange({ params: ['S1'], body: { action: 'retender' }, db }))
+    const texts = calls.map(textOf)
+    assert.equal(texts[texts.length - 1], 'ROLLBACK')
+    assert.ok(state.released, 'client released back to the pool even on the throwing path')
   })
 
-  it('retender with priorScac but no cost skips the tender update', async () => {
-    const seen = []
-    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
-    await resolveOrderChange({
-      params: ['S1'],
-      body: { action: 'retender', priorScac: 'ABCD' },
-      db,
+  describe('buildTenderDeleteQuery / buildShippingOptionListQuery', () => {
+    it('deletes every tender row for the shipment', () => {
+      const q = buildTenderDeleteQuery('S1')
+      assert.equal(q.text, 'DELETE FROM tenders WHERE shipment_sell_id = $1')
+      assert.deepEqual(q.values, ['S1'])
     })
-    assert.equal(seen.length, 1)
+
+    it('writes the adopted rows into detail.shippingOptionList as one jsonb array', () => {
+      const q = buildShippingOptionListQuery('S1', [{ scac: 'A' }])
+      assert.match(q.text, /jsonb_set\(detail, '\{shippingOptionList\}', \$1::jsonb\)/)
+      assert.deepEqual(q.values, [JSON.stringify([{ scac: 'A' }]), 'S1'])
+    })
   })
 
   // ── S143 Task 3: save-stops (Edit Shipment Stops → Approve Changes) ──────
@@ -715,10 +815,10 @@ describe('resolveOrderChange', () => {
     assert.deepEqual(q.values.slice(5), ['300', '1', ['PO-2'], ['PU-2'], 'Direct'])
   })
 
-  it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution', async () => {
+  it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution, and adopts an empty tender list (T4)', async () => {
     const seen = []
     let released = false
-    const detail = { orderList: [], shipmentStopList: [] }
+    const detail = { orderList: [], shipmentStopList: [] } // no seeded orderChange — T4 still runs, over an empty list
     const query = async (q) => { seen.push(q); return { rows: [{ detail }] } }
     const db = { query, connect: async () => ({ query, release: () => { released = true } }) }
     const stops = [{ stopSequence: 1, stopType: 'pickup', orderIds: [], sourceStopSequence: null }]
@@ -726,14 +826,37 @@ describe('resolveOrderChange', () => {
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Cancelled', stops }, db,
     })
     assert.deepEqual(res, { success: true })
-    assert.equal(seen.length, 5, 'detail read, BEGIN, stop write, resolve write, COMMIT')
+    assert.equal(seen.length, 7, 'detail read, BEGIN, stop write, resolve write, tender DELETE, shippingOptionList write, COMMIT')
     assert.equal(seen[1], 'BEGIN')
     assert.match(seen[3].text, /detail = jsonb_set\(detail, '\{orderChange,resolution\}'/)
     const values = seen[3].values
     assert.ok(values.includes('Cancelled') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"save-stops"')))
-    assert.equal(seen[4], 'COMMIT')
+    assert.match(seen[4].text, /^DELETE FROM tenders/)
+    assert.match(seen[5].text, /shippingOptionList/)
+    assert.deepEqual(JSON.parse(seen[5].values[0]), [])
+    assert.equal(seen[6], 'COMMIT')
     assert.ok(released, 'client released back to the pool')
+  })
+
+  it('save-stops Scenario B adopts the seeded newTenderList the same way approve-plan does — untendered, no insertion', async () => {
+    const seen = []
+    const orderChange = {
+      prior: { scac: 'PRIOR', tenderStatus: 'Sent' },
+      newOption: { rank: 2 },
+      priorTenderList: [{ scac: 'PRIOR', carrierName: 'Prior Co', rank: 1, status: 'Sent', rateAmount: 900 }],
+      newTenderList: [{ scac: 'AAAA', carrierName: 'A Co', rank: 1, status: '', rateAmount: 700 }],
+    }
+    const detail = { orderList: [], shipmentStopList: [], orderChange }
+    const query = async (q) => { seen.push(q); return { rows: [{ detail }] } }
+    const db = { query, connect: async () => ({ query, release: () => {} }) }
+    const stops = [{ stopSequence: 1, stopType: 'pickup', orderIds: [], sourceStopSequence: null }]
+    await resolveOrderChange({ params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Declined', stops }, db })
+    const optionListWrite = seen.find((q) => /shippingOptionList/.test(q.text ?? ''))
+    const written = JSON.parse(optionListWrite.values[0])
+    assert.deepEqual(written.map((o) => [o.scac, o.status]), [['AAAA', '']], 'PRIOR (dropped by routing) is never inserted for a save')
+    const inserts = seen.filter((q) => /^INSERT INTO tenders/.test(q.text ?? ''))
+    assert.equal(inserts.length, 1)
   })
 })
 
@@ -961,16 +1084,6 @@ describe('mergeStops', () => {
     ])
     assert.deepEqual(merged.orderIds, [])
     assert.equal(merged.grossWeightValue, 0)
-  })
-})
-
-describe('buildOrderChangeCostQuery', () => {
-  it('addresses the tender row by (shipment_sell_id, scac) and syncs rate_amount + the option blob', () => {
-    const q = buildOrderChangeCostQuery('S1', 'ABCD', 1234.56)
-    assert.match(q.text, /UPDATE tenders SET rate_amount = \$1/)
-    assert.match(q.text, /jsonb_set\(option, '\{rateAmount\}', \$2::jsonb\)/)
-    assert.match(q.text, /WHERE shipment_sell_id = \$3 AND scac = \$4/)
-    assert.deepEqual(q.values, [1234.56, '1234.56', 'S1', 'ABCD'])
   })
 })
 

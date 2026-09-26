@@ -470,16 +470,27 @@ export function removeOrdersFromSource(detail, movedIds) {
   return { orderList, stops: mergeStops({ ...detail, orderList }, rows) }
 }
 
-export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution) {
+// `listCarrier` (T4, S160) — optional {scac, apFreightCost}, the grid columns
+// derived from the tender row this resolution left active (see
+// listCarrierFor above). Omitted entirely for callers that don't adopt a
+// tender list (none left, after T4 — kept optional so a query-text/values
+// assertion written before T4 still passes unchanged).
+export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier) {
+  const carrierSet = listCarrier ? ', scac = $7, ap_freight_cost = $8' : ''
   return {
     text: `UPDATE shipments
              SET tender_status = $1, panel = $2, category = $3, validation_message = $4,
-                 detail = jsonb_set(detail, '{orderChange,resolution}', $5::jsonb)
+                 detail = jsonb_set(detail, '{orderChange,resolution}', $5::jsonb)${carrierSet}
            WHERE sell_shipment = $6 RETURNING sell_shipment`,
-    values: [
-      outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
-      JSON.stringify(resolution), sellShipment,
-    ],
+    values: listCarrier
+      ? [
+          outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
+          JSON.stringify(resolution), sellShipment, listCarrier.scac, listCarrier.apFreightCost,
+        ]
+      : [
+          outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
+          JSON.stringify(resolution), sellShipment,
+        ],
   }
 }
 
@@ -527,30 +538,114 @@ export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChang
   }
 }
 
-// S137/Jana ruling (2026-09-02): on Review Order Change, the planner's cost
-// pick ("the new cost selected will update the base cost") has to land on
-// the carrier's actual tender row, not just the resolution record below — or
-// the Tender tab keeps showing the pre-change rate after the review closes.
-// rate_amount is the column; option.rateAmount is the SAME figure inside the
-// JSONB blob sellShipmentDetail actually reads back into shippingOptionList
-// on the next fetch (buildTendersQuery above reads `tenders.option`, not the
-// column) — mapRoutingOption's `rate` field
-// (mapSellShipmentOutToDetail.ts ~line 344) is driven by option.rateAmount,
-// so jsonb_set keeps that one field in sync instead of rewriting the blob.
+// T4 (S160) — the new tender list actually becomes current on every
+// resolution. Before this, no resolution ever wrote `orderChange.newTenderList`
+// anywhere durable: the Tender tab kept reading the PRIOR list forever (via
+// `tenders`, seeded from the original routingOptions), and only the prior
+// carrier's rate_amount ever moved (the cost query this replaces). Pure/
+// testable: given the action, the seeded orderChange payload, the planner's
+// cost pick, and the already-computed OC_OUTCOMES outcome (so the bypass
+// "prior status stands" rule is read off ONE place, not re-derived here),
+// returns the final rank-ordered tender rows to write.
 //
-// Addressed by (shipment_sell_id, scac), not rank: rank is the carrier's
-// slot in THIS routing pass and is unstable across a re-route (buildTender
-// UpdateQuery's own comment above), but scac is who the whole review is
-// about. ponytail: a shipment could in principle carry more than one tender
-// row for the same scac (re-tender edge case) — no WHERE clause narrows
-// further than scac, so all of that carrier's rows get the new cost rather
-// than picking one arbitrarily.
-export function buildOrderChangeCostQuery(sellShipment, scac, amount) {
-  return {
-    text: `UPDATE tenders SET rate_amount = $1, option = jsonb_set(option, '{rateAmount}', $2::jsonb)
-           WHERE shipment_sell_id = $3 AND scac = $4`,
-    values: [amount, JSON.stringify(amount), sellShipment, scac],
+// retender/bypass: the prior carrier keeps its scac (LINX-14511's whole
+// point — the planner is acting on THAT carrier), inserted at its seeded
+// `newOption.rank` when the re-route dropped it, cost applied regardless of
+// whether it was already in the new list (parity with the cost query this
+// replaces, which matched by scac alone). cancel: the new list stands; the
+// prior carrier is marked Cancelled only if routing actually returned it —
+// never inserted, there's no carrier left to cancel. approve-plan / a
+// save-stops Scenario-B save: the new list stands untendered (LINX-15671 —
+// "No tender action shall be automatically initiated").
+export function adoptNewTenderList(action, orderChange, cost, outcome) {
+  const priorScac = orderChange?.prior?.scac ?? null
+  const priorTenderList = orderChange?.priorTenderList ?? []
+  let rows = (orderChange?.newTenderList ?? []).map((o) => ({ ...o }))
+
+  const hasPrior = priorScac != null && rows.some((o) => o.scac === priorScac)
+  if ((action === 'retender' || action === 'bypass') && priorScac && !hasPrior) {
+    const priorRow = priorTenderList.find((o) => o.scac === priorScac)
+    if (priorRow) {
+      // newOption.rank is the seeded insertion rank (generate.mjs's
+      // insertionRank — one past the last option sharing its equipment
+      // group); rows.length + 1 (append) is the only defensive fallback,
+      // unreachable against real seed data.
+      const insertAt = orderChange?.newOption?.rank ?? (rows.length + 1)
+      rows = rows.map((o) => (o.rank >= insertAt ? { ...o, rank: o.rank + 1 } : o))
+      rows.push({ ...priorRow, rank: insertAt })
+      rows.sort((a, b) => a.rank - b.rank)
+    }
   }
+
+  const applyCost = (action === 'retender' || action === 'bypass') && typeof cost?.amount === 'number'
+  const priorStatus = () => {
+    if (action === 'retender') return 'Sent'
+    // bypass — outcome.tenderStatus IS the OC_OUTCOMES bypass rule already
+    // evaluated against body.priorTenderStatus (Accepted stays Accepted,
+    // else prior ?? Sent). Reusing it keeps one rule in one place.
+    if (action === 'bypass') return outcome?.tenderStatus ?? 'Sent'
+    if (action === 'cancel') return 'Cancelled'
+    return '' // approve-plan / save-stops Scenario B
+  }
+
+  return rows.map((o) => {
+    if (o.scac !== priorScac) return { ...o, status: '' }
+    return { ...o, status: priorStatus(), rateAmount: applyCost ? cost.amount : o.rateAmount }
+  })
+}
+
+// ponytail: same 2-decimal locale format as tools/generate.mjs's `fmt` — the
+// shipments.ap_freight_cost column is a formatted string, not a number, and
+// the grid must keep printing what the seed would have printed.
+const fmtCost = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+// OC-open-22, same spirit for order-change resolutions: the grid's scac/
+// ap_freight_cost columns are generate.mjs's mainRow.scac/apFreightCost — the
+// carrier+cost routing arrived at, independent of whether a tender on it is
+// active. retender/bypass are acting ON the prior carrier, so that carrier's
+// (possibly re-costed) row stays the list's answer; cancel/approve-plan/
+// save-stops-B have no carrier being acted on, so the list falls back to the
+// new list's own rank-1 (the option routing now leads with).
+function listCarrierFor(action, rows, orderChange) {
+  const priorScac = orderChange?.prior?.scac ?? null
+  let row = (action === 'retender' || action === 'bypass') && priorScac
+    ? rows.find((o) => o.scac === priorScac)
+    : null
+  if (!row) row = rows.find((o) => o.rank === 1) ?? rows[0]
+  if (!row) return null
+  return {
+    scac: row.scac ?? null,
+    apFreightCost: typeof row.rateAmount === 'number' ? fmtCost(row.rateAmount) : null,
+  }
+}
+
+export function buildTenderDeleteQuery(sellShipment) {
+  return { text: 'DELETE FROM tenders WHERE shipment_sell_id = $1', values: [sellShipment] }
+}
+
+// detail.shippingOptionList mirrors the tenders table (sellShipmentDetail
+// reads tenders and overwrites shippingOptionList with it whenever any tender
+// rows exist) — writing it here too means a live read that, for whatever
+// reason, sees zero tender rows still agrees with the resolved list rather
+// than falling back to the stale pre-change blob.
+export function buildShippingOptionListQuery(sellShipment, rows) {
+  return {
+    text: `UPDATE shipments SET detail = jsonb_set(detail, '{shippingOptionList}', $1::jsonb)
+           WHERE sell_shipment = $2`,
+    values: [JSON.stringify(rows), sellShipment],
+  }
+}
+
+// T4 — replaces a shipment's tenders rows wholesale (delete then re-insert in
+// rank order) on the SAME checked-out transaction client every other write in
+// this function uses. ponytail: delete+insert, not a diff — the whole point
+// of adopting a list is "this is the list now"; the row count here (a
+// shipment's carrier count) is small enough that N+1 inserts cost nothing
+// worth a bulk-VALUES query.
+async function writeTenderAdoption(client, sellShipment, rows) {
+  await client.query(buildTenderDeleteQuery(sellShipment))
+  for (const row of rows) await client.query(buildTenderInsertQuery(sellShipment, row))
+  await client.query(buildShippingOptionListQuery(sellShipment, rows))
 }
 
 export async function resolveOrderChange({ params, body, db }) {
@@ -613,9 +708,15 @@ export async function resolveOrderChange({ params, body, db }) {
       // decision is still pending on the Direct Actions card (LINX-15671).
       // A refile query here would just re-set the same values it already has.
       if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
-        // Scenario B — same "final decision" stamp as retender/bypass/cancel.
+        // Scenario B — same "final decision" stamp as retender/bypass/cancel,
+        // AND (T4) the same tender-list adoption: the new plan is final, so
+        // its stops AND its tender list both become current in this one save.
         const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
-        await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
+        const orderChange = detail?.orderChange ?? {}
+        const tenderRows = adoptNewTenderList(action, orderChange, null, outcome)
+        const listCarrier = listCarrierFor(action, tenderRows, orderChange)
+        await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
+        await writeTenderAdoption(client, sellShipment, tenderRows)
       }
       await client.query('COMMIT')
     } catch (e) {
@@ -627,20 +728,29 @@ export async function resolveOrderChange({ params, body, db }) {
     return { success: true }
   }
 
-  const cost = body?.cost ?? null
-  const resolution = { action, cost, resolvedAt: new Date().toISOString() }
-  const { rowCount } = await db.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution))
-  if (rowCount === 0) {
+  // T4 — read BEFORE the transaction (same shape as save-stops above): a
+  // missing shipment 404s here with nothing written, no BEGIN ever issued.
+  const { rows: detailRows } = await db.query(buildDetailReadQuery(sellShipment))
+  if (detailRows.length === 0) {
     const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e
   }
-  // Cancel drops the tender — there's no carrier left to apply a cost to, so
-  // only retender/bypass (which keep a carrier) write the tender-row update.
-  // ponytail: two sequential queries, no transaction — the surrounding code
-  // has no transaction helper (db.query is used bare everywhere in this
-  // file) and a tender update matching zero rows is expected, not an error,
-  // so there's nothing here that needs atomicity with the resolution write.
-  if ((action === 'retender' || action === 'bypass') && typeof cost?.amount === 'number' && body?.priorScac) {
-    await db.query(buildOrderChangeCostQuery(params[0], body.priorScac, cost.amount))
+  const orderChange = detailRows[0].detail?.orderChange ?? {}
+  const cost = body?.cost ?? null
+  const resolution = { action, cost, resolvedAt: new Date().toISOString() }
+  const tenderRows = adoptNewTenderList(action, orderChange, cost, outcome)
+  const listCarrier = listCarrierFor(action, tenderRows, orderChange)
+
+  const client = await db.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
+    await writeTenderAdoption(client, sellShipment, tenderRows)
+    await client.query('COMMIT')
+  } catch (e) {
+    try { await client.query('ROLLBACK') } catch {}
+    throw e
+  } finally {
+    client.release()
   }
   return { success: true }
 }
