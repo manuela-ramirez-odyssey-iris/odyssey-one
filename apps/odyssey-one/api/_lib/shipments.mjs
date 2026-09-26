@@ -322,6 +322,12 @@ const OC_OUTCOMES = {
   'save-stops': (prior) => OC_ACTIVE_TENDER_STATUSES.includes(prior)
     ? { tenderStatus: prior, panel: 'exceptions', category: 'order-change', validationMessage: null }
     : OC_OUTCOMES.bypass(prior),
+  // T3 (S160) — StopsTab's Approve Plan. Only ever called for Scenario B (no
+  // active tender — the client-side useApproveOrderChange hook gates Scenario
+  // A to no server call at all), so it's always save-stops' non-active
+  // outcome: bypass's shape, nothing to re-solicit. No stops are written —
+  // the plan is already what stands.
+  'approve-plan': (prior) => OC_OUTCOMES.bypass(prior),
 }
 
 // S143 Task 3 — Edit Shipment Stops "Approve Changes" (LINX-15667…15671).

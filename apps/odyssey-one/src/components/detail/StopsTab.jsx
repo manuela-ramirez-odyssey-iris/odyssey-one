@@ -1,15 +1,20 @@
 import React, { useState } from 'react'
 import useSheet from '../../routes/useSheet'
+import { useApproveOrderChange } from '../../routes/shipments/useApproveOrderChange.js'
 import { TriangleAlert, ArrowRight } from 'lucide-react'
 import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
+import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import { DiffValue, val } from '../shipments/order-change/comparisonHelpers.jsx'
 import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
 import ViewRoutingModal from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
 import KpiStrip from './order-change/ReviewKpiStrip.jsx'
+
+const APPROVE_TITLE = 'Approve Plan'
+const APPROVE_BODY = 'The shipment will be approved with the order changes as shown.'
 
 // Stops pane — All Stops card per Figma 4273:15227 (S80 redesign, sourced
 // from Tracking's old-library screen): @odyssey/ui Timeline (StopBadge rail +
@@ -30,10 +35,6 @@ import KpiStrip from './order-change/ReviewKpiStrip.jsx'
 // of the Direct review's shared purple-badge helper (comparisonHelpers.jsx).
 const Changed = ({ children }) => (
   <DiffValue value={children} changed leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />
-)
-
-const ComingSoon = ({ children }) => (
-  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Coming soon' }] }}>{children}</TooltipTrigger>
 )
 
 // ── Field (label + value pair) — plain mode only, untouched ─────────────────
@@ -160,7 +161,18 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
 // ── Main export ────────────────────────────────────────────────────────────
 const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails = [], productOrders = [], shipment }) {
   const [modal, setModal] = useState(null) // 'planning' | 'routing' | { order: id }
+  // T3 (S160) — Approve Plan's confirm stacks ABOVE the routing modal (both
+  // portal to body), same DEC-207 reasoning as Edit Shipment Stops' Approve
+  // Changes: a failed approve leaves the planner on the routing modal
+  // (showing the error), not back on the bare Stops tab.
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const { openSheet } = useSheet()
+  const { approvePlan, resolve } = useApproveOrderChange({
+    sellShipment: shipment?.sellShipment,
+    buyShipment: shipment?.buyShipment,
+    odysseyShipmentIdentifier: shipment?.odysseyShipmentIdentifier,
+  })
   if (!data) return <PaneEmpty message="No stops data available." col="medium" />
 
   const { summary, stops } = data
@@ -169,6 +181,15 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
   // resolved (or there never was one) the tab is the plain read-only pane.
   const review = !!c && !orderChange?.resolution
   const routingBlocked = review && c.locationChange // LINX-15438
+  // Same source the Direct route / Edit Shipment Stops read for their own
+  // resolution payload (useApproveOrderChange's Scenario A/B gate).
+  const tenderStatus = orderChange?.prior?.tenderStatus ?? null
+
+  const handleApprovePlan = () => {
+    setSaveError('')
+    setConfirmOpen(false)
+    approvePlan(tenderStatus, { onError: (e) => setSaveError(e.message) })
+  }
 
   // Timeline items — P/D labels from sequential counters; stop status comes
   // from Tracking when wired ('completed' | 'issue' | 'pending'); the
@@ -211,7 +232,11 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                     editor route (OrderChangeEditStopsRoute), keyed on the
                     sell shipment; buyShipment threads through nav state the
                     same way the Direct route's row-menu entry does (Task 8).
-                    Approve Plan stays on hold pending a VD. */}
+                    T3 (S160/DEC-207) — Evaluate replaces the old View Routing
+                    button AND the Approve Plan stub: it opens the routing
+                    modal (Keep Reviewing / Approve Plan), gated the same way
+                    View Routing used to be (LINX-15438: a location change
+                    can't be approved without re-sequencing first). */}
                 <Button
                   variant="secondary"
                   disabled={!shipment}
@@ -221,7 +246,13 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                 >
                   Edit Shipment Stops
                 </Button>
-                <ComingSoon><Button variant="primary" disabled>Approve Plan</Button></ComingSoon>
+                {routingBlocked ? (
+                  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Finalize stop changes in Edit Shipment Stops first' }] }}>
+                    <Button variant="primary" disabled>Evaluate</Button>
+                  </TooltipTrigger>
+                ) : (
+                  <Button variant="primary" onClick={() => setModal('routing')}>Evaluate</Button>
+                )}
               </div>
             )}
           </div>
@@ -241,13 +272,6 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
               </div>
               <div className="stops-review__actions">
                 <Button variant="secondary" onClick={() => setModal('planning')}>View Planning Dates</Button>
-                {routingBlocked ? (
-                  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Finalize stop changes in Edit Shipment Stops first' }] }}>
-                    <Button variant="secondary" disabled>View Routing</Button>
-                  </TooltipTrigger>
-                ) : (
-                  <Button variant="secondary" onClick={() => setModal('routing')}>View Routing</Button>
-                )}
               </div>
             </div>
           )}
@@ -257,7 +281,29 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
       </div>
 
       {modal === 'planning' && <PlanningDatesModal orders={orderDetails} onClose={() => setModal(null)} />}
-      {modal === 'routing' && <ViewRoutingModal orderChange={orderChange} onClose={() => setModal(null)} />}
+      {modal === 'routing' && (
+        <ViewRoutingModal
+          orderChange={orderChange}
+          onClose={() => setModal(null)}
+          secondaryLabel="Keep Reviewing"
+          onSecondary={() => setModal(null)}
+          primaryLabel="Approve Plan"
+          onPrimary={() => setConfirmOpen(true)}
+          primaryLoading={resolve.isPending}
+          primaryDisabled={resolve.isPending}
+          error={saveError}
+        />
+      )}
+      {confirmOpen && (
+        <ConfirmDialog
+          title={APPROVE_TITLE}
+          message={APPROVE_BODY}
+          confirmLabel="Approve"
+          cancelLabel="Cancel"
+          onConfirm={handleApprovePlan}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
       {modal?.order && (
         <OrderCompareModal
           orderId={modal.order}

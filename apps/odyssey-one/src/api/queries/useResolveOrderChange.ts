@@ -5,7 +5,7 @@ import type { SellShipmentStop } from '../types/sellShipmentOut'
 
 export interface ResolveOrderChangeInput {
   sellShipment: string
-  action: 'retender' | 'bypass' | 'cancel' | 'save-stops'
+  action: 'retender' | 'bypass' | 'cancel' | 'save-stops' | 'approve-plan'
   priorTenderStatus: string | null
   cost: { choice: 'prior' | 'new' | 'quote'; amount: number } | null
   // S137 — the carrier whose tender row gets the selected cost written onto

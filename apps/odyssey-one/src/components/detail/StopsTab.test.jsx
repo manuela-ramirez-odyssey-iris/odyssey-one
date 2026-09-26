@@ -2,26 +2,49 @@
 // jest-dom is not installed in this repo (only @testing-library/react + dom)
 // — plain assertions (.disabled) instead of toBeDisabled(), matching
 // ManualDatesModal.test.jsx / DroppedCarrierSection.test.jsx.
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import StopsTab from './StopsTab'
-afterEach(cleanup)
 
-// StopsTab now navigates (Edit Shipment Stops, S143 Task 2b) — it needs a
-// Router ancestor same as ShipmentTable.test.jsx's row-menu tests.
+// T3 (S160) — StopsTab's Approve Plan now resolves through useApproveOrderChange
+// (useResolveOrderChange -> the service layer), same mocking convention as
+// OrderChangeEditStopsRoute.test.jsx: mock the SERVICE, not the query hook.
+vi.mock('../../api/services/shipmentService', () => ({
+  resolveOrderChange: vi.fn(),
+}))
+import { resolveOrderChange } from '../../api/services/shipmentService'
+
+afterEach(() => {
+  cleanup()
+  resolveOrderChange.mockReset()
+})
+
+// StopsTab now navigates (Edit Shipment Stops, S143 Task 2b; Approve Plan
+// Scenario A/B, T3) — it needs a Router ancestor same as ShipmentTable.test.jsx's
+// row-menu tests, plus a QueryClientProvider (useApproveOrderChange's mutate).
+//
+// The probe is a PERSISTENT sibling (not a route-specific element): Scenario
+// B's closeSheet lands back on the SAME '/shipments' path with only new
+// `state` (requestedTab etc.), which a route-swap probe can't observe —
+// this one shows pathname + state after every navigation, same-path or not.
 function LocationProbe() {
   const location = useLocation()
   return <div data-testid="nav-probe">{location.pathname} {JSON.stringify(location.state)}</div>
 }
 function renderWithRouter(ui) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter initialEntries={['/shipments']}>
-      <Routes>
-        <Route path="/shipments" element={ui} />
-        <Route path="/shipments/order-change/:sellShipment/stops" element={<LocationProbe />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={['/shipments']}>
+        <LocationProbe />
+        <Routes>
+          <Route path="/shipments" element={ui} />
+          <Route path="*" element={null} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -56,7 +79,7 @@ describe('StopsTab — plain mode', () => {
   })
   it('stays plain once the review is resolved', () => {
     renderReview({ orderChange: { ...oc, resolution: { action: 'approve-plan' } } })
-    expect(screen.queryByText('Approve Plan')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Evaluate' })).toBeNull()
   })
 })
 
@@ -70,19 +93,18 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     expect(within(strip).getByText('364.14 mi')).toBeTruthy()
     expect(within(strip).queryByText('Margin')).toBeNull()
   })
-  it('renders the four actions and three costs with AC wording', () => {
+  // T3 (S160/DEC-207): Evaluate replaces both the old View Routing button
+  // and the Approve Plan ComingSoon stub — there is exactly one of it.
+  it('renders Edit Shipment Stops, Evaluate and View Planning Dates; no separate View Routing or a disabled Approve Plan stub', () => {
     renderReview()
     expect(screen.getByRole('button', { name: 'Edit Shipment Stops' }).disabled).toBe(false)
-    expect(screen.getByRole('button', { name: 'Approve Plan' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'View Planning Dates' }).disabled).toBe(false)
-    expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(false)
+    expect(screen.queryByRole('button', { name: 'View Routing' })).toBeNull()
+    expect(screen.queryAllByRole('button', { name: 'Approve Plan' })).toHaveLength(0)
     expect(screen.getByText('New Consolidated Cost')).toBeTruthy()
     expect(screen.getByText('3,000.00 USD')).toBeTruthy()
   })
-  // S143 Task 2b (LINX-15667…15671) — replaces the old "is disabled" coverage:
-  // the button now navigates into the standalone editor route, carrying
-  // buyShipment through nav state the same way the Direct route's row-menu
-  // entry does.
   it('Edit Shipment Stops navigates to the stops editor route with buyShipment in state', () => {
     renderReview()
     fireEvent.click(screen.getByRole('button', { name: 'Edit Shipment Stops' }))
@@ -126,9 +148,11 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     fireEvent.mouseEnter(label.closest('[data-tooltip-trigger]'))
     expect(screen.getByText(/Not calculated — an order location changed/)).toBeTruthy()
   })
-  it('disables View Routing while a location change is unfinalized (LINX-15438)', () => {
+  it('disables Evaluate while a location change is unfinalized (LINX-15438)', () => {
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true } } })
-    expect(screen.getByRole('button', { name: 'View Routing' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(true)
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Evaluate' }).closest('[data-tooltip-trigger]'))
+    expect(screen.getByText('Finalize stop changes in Edit Shipment Stops first')).toBeTruthy()
   })
   it('flags a changed stop as changed (purple) on the rail; leaves an unchanged stop alone', () => {
     renderReview()
@@ -147,5 +171,76 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     renderReview()
     const stop1 = screen.getByText('Stop 1').closest('.odyssey-timeline__row')
     expect(within(stop1).getByText('Pickup').style.background).toContain('badge-purple-bg')
+  })
+})
+
+// T3 (S160/DEC-207) — Evaluate -> ViewRoutingModal (Keep Reviewing / Approve
+// Plan) -> ConfirmDialog -> useApproveOrderChange's Scenario A/B.
+describe('StopsTab — Evaluate -> Approve Plan (T3)', () => {
+  it('Evaluate opens the routing modal with Keep Reviewing / Approve Plan; Keep Reviewing closes it', () => {
+    renderReview()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Keep Reviewing' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep Reviewing' }))
+    expect(screen.queryByRole('dialog', { name: 'View Routing' })).toBeNull()
+  })
+
+  it("Approve Plan's confirm stacks ABOVE the routing modal; cancelling the confirm leaves the routing modal open", () => {
+    renderReview()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
+    expect(screen.getByRole('dialog', { name: 'Approve Plan' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog', { name: 'Approve Plan' })).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+  })
+
+  it('Approve Plan confirm dialog carries the AC copy', () => {
+    renderReview()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
+    expect(screen.getByText('The shipment will be approved with the order changes as shown.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeTruthy()
+  })
+
+  // Scenario A: oc.prior.tenderStatus is active — no server call, straight
+  // to the Direct decision screen.
+  it('Scenario A (active prior tender): confirming Approve navigates to the Direct review with NO resolveOrderChange call', async () => {
+    renderReview({ orderChange: { ...oc, prior: { tenderStatus: 'Sent' } } })
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    const probe = await screen.findByTestId('nav-probe')
+    expect(probe.textContent).toContain(`/shipments/order-change/${shipment.sellShipment}`)
+    expect(probe.textContent).not.toContain('/stops')
+    expect(resolveOrderChange).not.toHaveBeenCalled()
+  })
+
+  // Scenario B: no active prior tender — calls approve-plan, then lands on
+  // the Tender tab.
+  it('Scenario B (no active prior tender): confirming Approve calls resolveOrderChange with approve-plan, then navigates to the Tender tab', async () => {
+    resolveOrderChange.mockResolvedValue(undefined)
+    renderReview()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    await waitFor(() => expect(resolveOrderChange).toHaveBeenCalledWith(
+      shipment.sellShipment,
+      expect.objectContaining({ action: 'approve-plan', priorTenderStatus: null }),
+    ))
+    const probe = await screen.findByTestId('nav-probe')
+    expect(probe.textContent).toContain('/shipments ')
+    expect(probe.textContent).toContain('"key":"routing"')
+  })
+
+  it('a failed Approve keeps the routing modal open and shows the error inside it', async () => {
+    resolveOrderChange.mockRejectedValue(new Error('boom'))
+    renderReview()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    expect(await screen.findByText('boom')).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   })
 })

@@ -7,6 +7,7 @@ import EditStopsView from '../../components/detail/order-change/EditStopsView.js
 import ReviewKpiStrip from '../../components/detail/order-change/ReviewKpiStrip.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
+import { useApproveOrderChange } from './useApproveOrderChange.js'
 import useSheet from '../useSheet'
 import '../../components/shipments/order-change/order-change.css'
 
@@ -30,11 +31,12 @@ import '../../components/shipments/order-change/order-change.css'
 export default function OrderChangeEditStopsRoute() {
   const { sellShipment } = useParams()
   const location = useLocation()
-  const { openSheet, closeSheet } = useSheet()
+  const { closeSheet } = useSheet()
   const buyShipment = location.state?.buyShipment
   const odysseyShipmentIdentifier = location.state?.odysseyShipmentIdentifier
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
   const resolve = useResolveOrderChange()
+  const { afterApprove } = useApproveOrderChange({ sellShipment, buyShipment, odysseyShipmentIdentifier })
   const headerTitle = detail?.odysseyShipmentIdentifier
     ? `Shipment ${detail.odysseyShipmentIdentifier}`
     : odysseyShipmentIdentifier
@@ -68,37 +70,20 @@ export default function OrderChangeEditStopsRoute() {
   // own resolution payload (OrderChangeReviewRoute.jsx: priorTenderStatus =
   // oc?.prior?.tenderStatus) — NOT routingData.options, whose statuses never
   // include 'To Be Tendered'.
-  const ACTIVE = ['To Be Tendered', 'Sent', 'Accepted']
   const tender = detail?.orderChange?.prior?.tenderStatus ?? null
 
-  // S143 Task 3 — PATCH save-stops. The navigation branch below (Scenario
-  // A/B) only fires on success; a failed save leaves the planner on this
-  // screen (saveError shown inside the routing modal, T2/DEC-207) rather
-  // than navigating them away from an edit that never persisted.
+  // S143 Task 3 — PATCH save-stops. The navigation branch (Scenario A/B,
+  // T3 — extracted into useApproveOrderChange's afterApprove, shared with
+  // StopsTab's Approve Plan) only fires on success; a failed save leaves
+  // the planner on this screen (saveError shown inside the routing modal,
+  // T2/DEC-207) rather than navigating them away from an edit that never
+  // persisted.
   function handleApprove(stopsDto, externalOrders = []) {
     setSaveError('')
     resolve.mutate(
       { sellShipment, action: 'save-stops', stops: stopsDto, externalOrders, priorTenderStatus: tender, cost: null, priorScac: null },
       {
-        onSuccess: () => {
-          if (ACTIVE.includes(tender)) {
-            // Scenario A — a tender is already active: land back on the
-            // Direct review screen so the planner can resolve it with the
-            // new stops plan. No `from` key — the Direct route only reads
-            // 'from-tender' semantics via from === 'tender', which this exit isn't.
-            // openSheet + replace (not closeSheet): the Direct review is a
-            // SIBLING sheet at the same depth, not the base underneath this
-            // one — replace swaps this layer for it so closing IT still lands
-            // on /shipments, not back on this stops editor (S158 plan §3).
-            openSheet(`/shipments/order-change/${sellShipment}`, { state: { buyShipment, odysseyShipmentIdentifier }, replace: true })
-          } else {
-            // Scenario B — no active tender yet: send the planner to Tender
-            // to start one on the finalized plan, still parked on the Order Change tab.
-            closeSheet('/shipments', {
-              state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
-            })
-          }
-        },
+        onSuccess: () => afterApprove(tender),
         onError: (e) => setSaveError(e.message),
       },
     )

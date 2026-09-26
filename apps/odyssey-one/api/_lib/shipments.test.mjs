@@ -535,6 +535,29 @@ describe('resolveOrderChange', () => {
     assert.ok(values.includes('User to review the current tender options and take appropriate action.'))
   })
 
+  // ── T3 (S160): StopsTab's Approve Plan — Scenario B only (the client
+  // gates Scenario A to no server call at all). No stops written; same
+  // shape as bypass's non-active outcome. ──────────────────────────────
+  it('approve-plan (non-active prior) behaves like bypass and writes the approve-plan resolution', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    const res = await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan', priorTenderStatus: 'Sent' }, db })
+    assert.deepEqual(res, { success: true })
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
+    assert.ok(values.some(v => typeof v === 'string' && v.includes('"action":"approve-plan"')))
+    // Only ONE query — the resolution write. No stops query, no tender-cost query.
+    assert.equal(seen.length, 1)
+  })
+
+  it('approve-plan writes no stops even with a null priorTenderStatus (still non-active)', async () => {
+    const seen = []
+    const db = { query: async (q) => { seen.push(q); return { rowCount: 1, rows: [{}] } } }
+    await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan' }, db })
+    const values = seen.flatMap(q => q.values)
+    assert.ok(values.includes('Sent') && values.includes('monitoring'))
+  })
+
   it('rejects unknown action with 400', async () => {
     await assert.rejects(
       () => resolveOrderChange({ params: ['S1'], body: { action: 'nuke' }, db: { query: async () => ({ rowCount: 1 }) } }),
