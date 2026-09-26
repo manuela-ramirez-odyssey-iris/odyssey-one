@@ -316,6 +316,67 @@ describe('ConsolidationReviewRoute', () => {
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
   })
 
+  // User ruling 2026-09-25, item 1 — a stop out of its ORIGINAL proposed
+  // position marks purple, unsaved. Revert (while unsaved) clears it back to
+  // the default order, since Revert restores the last-saved draft — which,
+  // pre-Save, IS the original.
+  test('a reordered stop shows the purple changed marker while unsaved, cleared by Revert', () => {
+    const { container } = renderReview({ rows })
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
+
+    dragReorder(container, 0, 1) // swaps pickup-a/pickup-b — both change position
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
+    expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revert' }))
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
+  })
+
+  // Saving a reorder keeps the purple marking — it isn't a purely-in-progress
+  // signal, since the applied sequence (built from the SAVED order) can still
+  // differ from the original proposal (user ruling: "Hidden once applied? No").
+  test('a reordered stop stays marked changed once Saved, and after Apply', async () => {
+    const { container } = renderReview({ rows })
+    dragReorder(container, 0, 1)
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
+
+    const dialog = await clickApply()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
+    await screen.findByText(/Consolidation Successfully Applied!/)
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
+  })
+
+  // User ruling 2026-09-25, item 2 — no greyed lifted stop while dragging;
+  // instead a purple drop placeholder occupies the live-preview slot.
+  test('a purple drop placeholder shows during dragOver and clears after drop/dragEnd', () => {
+    const { container } = renderReview({ rows })
+    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const [first, second] = stops()
+    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
+
+    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
+    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
+    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy()
+    // No grayed/lifted look left behind on any stop.
+    expect(container.querySelector('.consolidation-review__stop[data-dragging]')).toBeNull()
+
+    fireEvent.drop(second, { dataTransfer: dataTransfer() })
+    fireEvent.dragEnd(first)
+    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
+  })
+
+  test('a purple drop placeholder clears on dragEnd without a drop (cancel / Esc)', () => {
+    const { container } = renderReview({ rows })
+    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const [first, second] = stops()
+    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
+    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
+    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy()
+    fireEvent.dragEnd(first) // no drop fired — cancelled
+    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
+  })
+
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,
   // so the concurrent-tender coin flip never fires here — only the SEEDED
   // tendered row trips the check).

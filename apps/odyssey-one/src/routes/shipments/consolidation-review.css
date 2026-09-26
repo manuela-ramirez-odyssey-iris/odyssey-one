@@ -38,25 +38,36 @@
    connecting segment stretches to it, so the air between consecutive stops has
    to come from inside the content. */
 .consolidation-review__stop {
+  position: relative;
+  padding-bottom: var(--spacing-5);
+}
+.consolidation-review__stop-inner {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
-  padding-bottom: var(--spacing-5);
   /* Gentle reflow as the live drag preview re-orders the list. */
-  transition: transform var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 .consolidation-review__stop[draggable="true"] { cursor: grab; }
-/* Lifted look for the row currently being dragged — its own origin slot,
-   while the working copy re-orders live around it. Reuses the disabled
-   opacity token (no dedicated "dragging" token exists yet). */
-.consolidation-review__stop[data-dragging] {
-  opacity: var(--opacity-disabled);
-  box-shadow: var(--shadow-md);
+/* Drop placeholder (user ruling 2026-09-25, item 2) — the slot where the
+   dragged stop would land, not a greyed/lifted copy of it. The real content
+   stays in the DOM (so the box matches its height exactly) but hidden, and
+   the purple box is an overlay the same size, minus the row's own bottom gap. */
+.consolidation-review__stop[data-drop-placeholder] .consolidation-review__stop-inner { visibility: hidden; }
+.consolidation-review__stop[data-drop-placeholder]::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 var(--spacing-5) 0;
+  background: var(--badge-purple-bg);
+  border: 1px dashed var(--badge-purple-text);
   border-radius: var(--radius-md);
-  cursor: grabbing;
 }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
+/* Changed stop's location text (user ruling 2026-09-25, item 1) — the
+   marker's own purple pill (StopBadge status="changed") covers the P#/D#
+   label; this covers the location line next to it. */
+.consolidation-review__stop-location--changed { color: var(--badge-purple-text); }
 .consolidation-review__stops-helper { display: block; color: var(--text-secondary); }
 /* Grip sits at the row's right edge (B2 VD) — margin-left: auto pushes it
    across the head's flex row past the location label + Pickup/Delivery badge. */

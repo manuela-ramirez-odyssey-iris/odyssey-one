@@ -108,33 +108,42 @@ function TenderedCheckTable({ rows }) {
 }
 
 // Timeline item builder for the Planned Stops list — drag wiring only when
-// `drag` is passed (read-only once applied).
-function stopTimelineItems(stops, drag) {
-  return stops.map((s) => ({
-    key: s.key,
-    label: s.label,
-    status: 'completed',
-    showStatusBadge: false,
-    badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
-    content: (
-      <div
-        className="consolidation-review__stop"
-        draggable={!!drag}
-        onDragStart={drag ? (e) => drag.onDragStart(e, s.key) : undefined}
-        onDragOver={drag ? (e) => drag.onDragOver(e, s.key) : undefined}
-        onDrop={drag ? drag.onDrop : undefined}
-        onDragEnd={drag ? drag.onDragEnd : undefined}
-        data-dragging={drag && drag.draggedKey === s.key ? '' : undefined}
-      >
-        <div className="consolidation-review__stop-head">
-          <span className="text-label-sm-medium">{s.location}</span>
-          <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
-          {drag && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
+// `drag` is passed (read-only once applied). `changedKeys` (user ruling
+// 2026-09-25, item 1) marks stops whose position differs from the ORIGINAL
+// proposed order — purple marker + purple label/location text, unsaved or
+// saved, kept after Apply too.
+function stopTimelineItems(stops, drag, changedKeys) {
+  return stops.map((s) => {
+    const changed = changedKeys?.has(s.key)
+    const isPlaceholder = !!drag && drag.draggedKey === s.key
+    return {
+      key: s.key,
+      label: s.label,
+      status: changed ? 'changed' : 'completed',
+      showStatusBadge: false,
+      badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
+      content: (
+        <div
+          className="consolidation-review__stop"
+          draggable={!!drag}
+          onDragStart={drag ? (e) => drag.onDragStart(e, s.key) : undefined}
+          onDragOver={drag ? (e) => drag.onDragOver(e, s.key) : undefined}
+          onDrop={drag ? drag.onDrop : undefined}
+          onDragEnd={drag ? drag.onDragEnd : undefined}
+          data-drop-placeholder={isPlaceholder ? '' : undefined}
+        >
+          <div className="consolidation-review__stop-inner">
+            <div className="consolidation-review__stop-head">
+              <span className={`text-label-sm-medium${changed ? ' consolidation-review__stop-location--changed' : ''}`}>{s.location}</span>
+              <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
+              {drag && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
+            </div>
+            <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
+          </div>
         </div>
-        <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
-      </div>
-    ),
-  }))
+      ),
+    }
+  })
 }
 
 export default function ConsolidationReviewRoute() {
@@ -419,9 +428,15 @@ export default function ConsolidationReviewRoute() {
   // re-tinted blue by a scoped CSS rule (Timeline forwards badgeClassName to
   // StopBadge). No status circle — these are planned stops, not tracked
   // progress.
+  // A stop is "changed" (user ruling 2026-09-25, item 1) when its position in
+  // the currently displayed order differs from the ORIGINAL proposed order
+  // (`defaultOrder` — the default sequence the review opened with, not just
+  // the last saved one). Holds for unsaved and saved changes alike, and stays
+  // after Apply since `displayedStops` still reads from the same order.
+  const changedKeys = new Set(effectiveDraftOrder.filter((key, i) => defaultOrder[i] !== key))
   const timelineItems = stopTimelineItems(displayedStops, applied ? null : {
     draggedKey, onDragStart: handleStopDragStart, onDragOver: handleStopDragOver, onDrop: handleStopDrop, onDragEnd: handleStopDragEnd,
-  })
+  }, changedKeys)
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS
