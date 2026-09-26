@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Alert, Badge, GroupTable, ModalFooter, ModalMedium } from '@odyssey/ui'
+import { Alert, Badge, Button, GroupTable, ModalMedium } from '@odyssey/ui'
 import { DiffValue, rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 
 // LINX-15438 View Routing — VD 2108-14708. New above Prior (canon §7, same
@@ -76,18 +76,24 @@ export default function ViewRoutingModal({
       onClose={onClose}
       scrollableContent
       className="view-routing-modal"
+      // Root cause of the S160 footer regression: ModalFooter renders its
+      // OWN `<footer>` (flex, space-between, full-width border-top). Passed
+      // as ModalMedium's `footer` slot, it became the sole child of
+      // `.modal-medium__footer` (also flex) — a flex item sizes to its
+      // CONTENT width by default, so the inner footer (and its border-top)
+      // shrank to the button cluster's width and rendered bottom-left.
+      // House convention (AwardModal, QuoteModalFooter, ModalMedium.demo):
+      // the `footer` slot is a bare Button fragment, direct children of
+      // `.modal-medium__footer` itself — that's what supplies the
+      // full-width row + divider. Also lets Cancel take a real `disabled`
+      // (Button supports it) instead of the onClick no-op ModalFooter forced.
       footer={hasFooter ? (
-        <ModalFooter
-          type="confirm"
-          cancelLabel={secondaryLabel}
-          // Loading implies busy — Keep Editing/Reviewing is a no-op rather
-          // than a visually-disabled button (ModalFooter's Cancel has no
-          // disabled prop to wire up; see LINX-15872 body).
-          onCancel={primaryLoading ? undefined : onSecondary}
-          saveLabel={primaryLoading ? 'Approving…' : primaryLabel}
-          saveDisabled={primaryDisabled || primaryLoading}
-          onSave={onPrimary}
-        />
+        <>
+          <Button variant="secondary" size="lg" disabled={primaryLoading} onClick={onSecondary}>{secondaryLabel}</Button>
+          <Button variant="primary" size="lg" disabled={primaryDisabled || primaryLoading} onClick={onPrimary}>
+            {primaryLoading ? 'Approving…' : primaryLabel}
+          </Button>
+        </>
       ) : undefined}
     >
       {/* LINX-15872 — a failed Approve keeps this modal open with the error

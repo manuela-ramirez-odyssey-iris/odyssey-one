@@ -98,7 +98,7 @@ it('renders a footer when secondaryLabel/primaryLabel are passed; secondary and 
   expect(onPrimary).toHaveBeenCalledTimes(1)
 })
 
-it('primaryLoading swaps the label to Approving… and disables it; Keep Editing becomes a no-op', () => {
+it('primaryLoading swaps the label to Approving… and disables both buttons (real disabled, not an onClick no-op)', () => {
   const onSecondary = vi.fn()
   const onPrimary = vi.fn()
   render(
@@ -115,6 +115,7 @@ it('primaryLoading swaps the label to Approving… and disables it; Keep Editing
   expect(screen.queryByRole('button', { name: 'Approve Changes' })).toBeNull()
   const primary = screen.getByRole('button', { name: 'Approving…' })
   expect(primary.disabled).toBe(true)
+  expect(screen.getByRole('button', { name: 'Keep Editing' }).disabled).toBe(true)
   fireEvent.click(screen.getByRole('button', { name: 'Keep Editing' }))
   expect(onSecondary).not.toHaveBeenCalled()
 })
