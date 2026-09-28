@@ -399,6 +399,10 @@ describe('ConsolidationReviewRoute', () => {
     expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(2)
     fireEvent.mouseLeave(firstPickup)
     expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(0)
+    // trial (2026-09-27): the hovered pair's markers drop their numbers
+    fireEvent.mouseEnter(firstPickup)
+    const rails = [...container.querySelectorAll('.odyssey-timeline__rail')].map((r) => r.textContent.trim())
+    expect(rails).toEqual(['P', 'P2', 'D', 'D2'])
   })
 
   // Purple = moved since the last save; a successful Save returns every stop

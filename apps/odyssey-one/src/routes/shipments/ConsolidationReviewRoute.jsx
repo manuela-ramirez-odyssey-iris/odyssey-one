@@ -243,11 +243,17 @@ export default function ConsolidationReviewRoute() {
   // it's over, down: no number, no check, no alert until the drop.
   // `dragFrom` = that index, null when nothing is held.
   const [dragFrom, setDragFrom] = useState(null)
+  // The shipment whose pair is lit — hovered, or held in a drag.
+  const [pairShipment, setPairShipment] = useState(null)
   const savedFirstMoved = effectiveDraftOrder.findIndex((key, i) => effectiveCommittedOrder[i] !== key)
   const firstMoved = dragFrom == null ? savedFirstMoved
     : savedFirstMoved === -1 ? dragFrom : Math.min(savedFirstMoved, dragFrom)
   const displayedStops = effectiveDraftOrder.map((key, i) => {
     const s = byStopKey[key]
+    // Hovered pair (not mid-drag): its markers drop their numbers too
+    // (user, 2026-09-27 — trial, replaces the opacity fade).
+    const hoveredPair = dragFrom == null && pairShipment === s.sellShipment
+    if (hoveredPair) return { ...s, label: s.type === 'pickup' ? 'P' : 'D' }
     if (firstMoved === -1 || i < firstMoved) return s
     return { ...s, label: s.type === 'pickup' ? 'P' : 'D', gray: dragFrom != null }
   })
@@ -256,8 +262,6 @@ export default function ConsolidationReviewRoute() {
     const o = overId == null ? a : effectiveDraftOrder.indexOf(overId)
     setDragFrom(Math.min(a, o === -1 ? a : o))
   }
-  // The shipment whose pair is lit — hovered, or held in a drag.
-  const [pairShipment, setPairShipment] = useState(null)
   // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
   // 8px activation distance so a plain click doesn't start a drag, plus
   // KeyboardSensor for accessible reordering).
