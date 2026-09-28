@@ -93,7 +93,10 @@
    --badge-blue-bg (the pale badge tint) — the VD's pickup marker is solid,
    not soft. */
 .consolidation-review__stop-badge--pickup.stop-badge--completed {
-  background: var(--badge-blue-text);
+  /* !important: Timeline's entry animation ends on caribbean green with
+     fill-mode both, which outranks a normal declaration — without it pickups
+     rendered green in the browser (user, 2026-09-28: pickups are blue). */
+  background: var(--badge-blue-text) !important;
 }
 
 .consolidation-review__main {

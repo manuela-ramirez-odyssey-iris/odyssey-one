@@ -287,22 +287,14 @@ describe('ConsolidationReviewRoute', () => {
     act(() => { window.__consolidationDragEnd({ active: { id: activeId }, over: { id: overId } }) })
   }
 
-  test('a drag reorder relabels stops live and shows Save Stop Changes on the footer', () => {
+  // Save lives in the stops panel again (user, 2026-09-28); Apply waits for it.
+  test('a reorder enables Save Changes and disables Apply until saved; Apply then sends the saved order', async () => {
     renderReview({ rows })
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
-    simulateDragEnd('pickup-a', 'pickup-b') // swap the two pickups
-    expect(screen.queryByRole('button', { name: 'Apply Consolidation' })).toBeNull()
-    const saveBtn = screen.getByRole('button', { name: 'Save Stop Changes' })
-    expect(saveBtn.disabled).toBe(false) // never disabled for unsaved stops (user ruling 2026-09-27, item 2)
+    simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups — valid
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false)
-  })
-
-  test('Save Stop Changes saves without a dialog and flips the footer back to Apply Consolidation; Apply then opens the modal with the saved order', async () => {
-    renderReview({ rows })
-    simulateDragEnd('pickup-a', 'pickup-b')
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    expect(screen.queryByRole('dialog')).toBeNull() // no modal on a successful save
-    expect(screen.queryByRole('button', { name: 'Save Stop Changes' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
     const applyBtn = screen.getByRole('button', { name: 'Apply Consolidation' })
     expect(applyBtn.disabled).toBe(false)
     fireEvent.click(applyBtn)
@@ -312,29 +304,40 @@ describe('ConsolidationReviewRoute', () => {
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
   })
 
-  // User, 2026-09-25: a delivery above its OWN pickup is invalid — Save marks
-  // that pair red and asks to Amend or Reset; nothing is saved.
-  test('Save with a delivery above its own pickup: pair turns red, dialog offers Amend / Reset', () => {
+  // Validated at drag RELEASE (user, 2026-09-28): the offending pair turns red,
+  // every other marker goes gray, Save + Apply stay blocked; the drop that
+  // first breaks the sequence opens Amend / Reset.
+  test('a drop that puts a delivery above its own pickup: pair red, others gray, dialog, Save blocked', () => {
     const { container } = renderReview({ rows })
     simulateDragEnd('delivery-a', 'pickup-a') // delivery-a above pickup-a
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    const dialog = screen.getByRole('dialog', { name: 'Invalid Stop Sequence' })
     expect(container.querySelectorAll('.stop-badge--issue').length).toBe(2)
+    expect(container.querySelectorAll('.stop-badge--pending').length).toBe(2)
     expect(container.querySelectorAll('.consolidation-review__stop-location--invalid').length).toBe(2)
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0) // the valid ones fall back to original colours
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
+    const dialog = screen.getByRole('dialog', { name: 'Invalid Stop Sequence' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Amend' }))
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Save Stop Changes' })).toBeTruthy() // still unsaved
+    simulateDragEnd('pickup-a', 'delivery-a') // fix it — colours return, no dialog
+    expect(container.querySelectorAll('.stop-badge--issue, .stop-badge--pending').length).toBe(0)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
   })
 
   test('the invalid dialog\'s Reset restores the original sequence and clears the red', () => {
     const { container } = renderReview({ rows })
     simulateDragEnd('delivery-a', 'pickup-a')
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Reset' }))
     expect(container.querySelectorAll('.stop-badge--issue').length).toBe(0)
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
+  })
+
+  test('markers carry no mini status icons (tracking language, not planning)', () => {
+    const { container } = renderReview({ rows })
+    expect(container.querySelectorAll('.stop-badge__status').length).toBe(0)
+    simulateDragEnd('delivery-a', 'pickup-a')
+    expect(container.querySelectorAll('.stop-badge__status').length).toBe(0)
   })
 
   // Labels follow the pair (user, 2026-09-27): P1/D1 = shipment 1, and they
@@ -346,7 +349,7 @@ describe('ConsolidationReviewRoute', () => {
       .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
     simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups
     expect(labels()).toEqual(['P', 'P', 'D', 'D']) // every stop from the first moved one down loses its number until saved
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
     expect(labels()).toEqual(['P2', 'P1', 'D1', 'D2']) // P1 still = shipment a's pickup, now second
   })
 
@@ -358,25 +361,13 @@ describe('ConsolidationReviewRoute', () => {
     expect(labels()).toEqual(['P1', 'P2', 'D', 'D'])
   })
 
-  test('the check icon shows only on numbered stops; an invalid pair shows the alert', () => {
-    const { container } = renderReview({ rows })
-    const icons = () => container.querySelectorAll('.stop-badge__status').length
-    expect(icons()).toBe(4) // all numbered
-    simulateDragEnd('delivery-a', 'delivery-b') // D, D unnumbered
-    expect(icons()).toBe(2)
-    simulateDragEnd('delivery-b', 'pickup-a') // delivery-b to the top → invalid pair on Save
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    expect(container.querySelectorAll('.stop-badge--issue .stop-badge__status').length).toBe(2)
-  })
-
-  test('mid-drag, the affected stops (from the higher of origin/over slot down) lose number, check and alert', () => {
+  test('mid-drag, the affected stops (from the higher of origin/over slot down) lose their number', () => {
     const { container } = renderReview({ rows })
     const labels = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
       .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
     act(() => { window.__consolidationDnd.onDragStart({ active: { id: 'delivery-a' } }) }) // slot 3
     act(() => { window.__consolidationDnd.onDragOver({ active: { id: 'delivery-a' }, over: { id: 'pickup-b' } }) }) // over slot 2
     expect(labels()).toEqual(['P1', 'P', 'D', 'D'])
-    expect(container.querySelectorAll('.stop-badge__status').length).toBe(1)
     act(() => { window.__consolidationDnd.onDragCancel() })
     expect(labels()).toEqual(['P1', 'P2', 'D1', 'D2'])
   })
@@ -412,7 +403,7 @@ describe('ConsolidationReviewRoute', () => {
     simulateDragEnd('pickup-a', 'pickup-b')
     expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
     expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(2)
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
     expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false) // saved ≠ original
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
