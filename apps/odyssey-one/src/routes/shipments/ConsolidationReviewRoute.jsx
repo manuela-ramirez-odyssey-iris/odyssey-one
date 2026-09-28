@@ -166,7 +166,9 @@ function stopTimelineItems(stops, changedKeys, invalidKeys, pair) {
       key: s.key,
       label: s.label,
       status: tone === 'invalid' ? 'issue' : tone === 'changed' ? 'changed' : 'completed',
-      showStatusBadge: false,
+      // Mini status icon (user, 2026-09-27): the check only on a NUMBERED
+      // unchanged stop, the alert on an invalid one; none while unconfirmed.
+      showStatusBadge: tone === 'invalid' || (!tone && /\d/.test(s.label)),
       badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
       content: pair
         ? <SortableStop s={s} tone={tone} paired={pair.shipment === s.sellShipment} onPairHover={pair.onHover} />

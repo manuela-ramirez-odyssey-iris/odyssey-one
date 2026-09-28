@@ -357,6 +357,17 @@ describe('ConsolidationReviewRoute', () => {
     expect(labels()).toEqual(['P1', 'P2', 'D', 'D'])
   })
 
+  test('the check icon shows only on numbered stops; an invalid pair shows the alert', () => {
+    const { container } = renderReview({ rows })
+    const icons = () => container.querySelectorAll('.stop-badge__status').length
+    expect(icons()).toBe(4) // all numbered
+    simulateDragEnd('delivery-a', 'delivery-b') // D, D unnumbered
+    expect(icons()).toBe(2)
+    simulateDragEnd('delivery-b', 'pickup-a') // delivery-b to the top → invalid pair on Save
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    expect(container.querySelectorAll('.stop-badge--issue .stop-badge__status').length).toBe(2)
+  })
+
   test('hovering a stop lights up both stops of its shipment', () => {
     const { container } = renderReview({ rows })
     const [firstPickup] = container.querySelectorAll('.consolidation-review__stop')

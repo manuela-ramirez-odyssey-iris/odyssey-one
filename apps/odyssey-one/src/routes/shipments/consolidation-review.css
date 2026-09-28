@@ -51,12 +51,17 @@
 .consolidation-review__stop[aria-roledescription="sortable"] { cursor: grab; }
 .consolidation-review__stop[data-dragging="true"] { cursor: grabbing; }
 /* Pair highlight (user, 2026-09-27): hovering or dragging a stop marks both
-   stops of its shipment — no background: their P#/D# markers grow a little
-   and the Shipment ID goes dark + bold on BOTH. */
-.consolidation-review__side .stop-badge { transition: scale var(--transition-fast); }
-/* `scale`, not `transform`: Timeline's entry pulse animates transform with
-   fill-mode both, which would override a transform here. */
-.consolidation-review__side .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge { scale: 1.15; }
+   stops of its shipment — their P#/D# markers turn dark and the Shipment ID
+   goes dark + bold on BOTH. */
+.consolidation-review__side .stop-badge { transition: background-color var(--transition-fast), color var(--transition-fast); }
+/* Pair marker colour (user, 2026-09-27 — replaces the scale-up): both P/D
+   markers of the lit shipment go Deep Sea dark. !important is needed to beat
+   Timeline's entry animation, which holds its end colours with fill-mode both
+   (a normal declaration loses to a running/filled animation). */
+.consolidation-review__side .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge {
+  background: var(--deep-sea-neutral-900) !important;
+  color: var(--white) !important;
+}
 .consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
    background, darker grip, darker detail lines. */
