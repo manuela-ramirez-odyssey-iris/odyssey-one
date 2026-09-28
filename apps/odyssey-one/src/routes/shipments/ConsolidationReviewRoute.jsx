@@ -476,7 +476,11 @@ export default function ConsolidationReviewRoute() {
   // the last saved one). Holds for unsaved and saved changes alike, and stays
   // after Apply since `displayedStops` still reads from the same order.
   const changedKeys = showChanged ? new Set(effectiveDraftOrder.filter((key, i) => effectiveCommittedOrder[i] !== key)) : new Set()
-  const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, applied ? null : { shipment: pairShipment, onHover: setPairShipment })
+  const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, applied ? null : {
+    shipment: pairShipment,
+    // Hover is ignored mid-drag — the pointer passing over other stops must not re-light pairs.
+    onHover: (shipment) => { if (dragFrom == null) setPairShipment(shipment) },
+  })
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS

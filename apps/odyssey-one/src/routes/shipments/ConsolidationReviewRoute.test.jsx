@@ -381,6 +381,17 @@ describe('ConsolidationReviewRoute', () => {
     expect(labels()).toEqual(['P1', 'P2', 'D1', 'D2'])
   })
 
+  test('hover is ignored while a stop is being dragged', () => {
+    const { container } = renderReview({ rows })
+    const stops = container.querySelectorAll('.consolidation-review__stop')
+    act(() => { window.__consolidationDnd.onDragStart({ active: { id: 'pickup-a' } }) })
+    const lit = () => [...container.querySelectorAll('.consolidation-review__stop--paired')].map((el) => el.textContent)
+    const before = lit()
+    fireEvent.mouseEnter(stops[1]) // pointer sweeps over shipment b's pickup
+    expect(lit()).toEqual(before)
+    act(() => { window.__consolidationDnd.onDragCancel() })
+  })
+
   test('hovering a stop lights up both stops of its shipment', () => {
     const { container } = renderReview({ rows })
     const [firstPickup] = container.querySelectorAll('.consolidation-review__stop')

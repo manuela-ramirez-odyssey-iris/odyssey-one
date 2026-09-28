@@ -63,14 +63,15 @@
 }
 .consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
-   background, darker grip, darker detail lines. */
-.consolidation-review__stop[aria-roledescription="sortable"]:hover {
+   background, darker grip, darker detail lines. Never while a stop is being
+   dragged — the pointer sweeping over other stops must not light them. */
+.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:hover {
   background: var(--deep-sea-neutral-100);
   box-shadow: 0 0 0 var(--spacing-1) var(--deep-sea-neutral-100); /* pads the tint without shifting layout */
   border-radius: var(--radius-md);
 }
-.consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-grip { color: var(--text-primary); }
-.consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-date { color: var(--text-secondary); }
+.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-grip { color: var(--text-primary); }
+.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-date { color: var(--text-secondary); }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
 /* Changed stop's location text (user ruling 2026-09-25, item 1) — the
