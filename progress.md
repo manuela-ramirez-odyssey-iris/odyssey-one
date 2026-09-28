@@ -20,6 +20,53 @@
 
 **What's next (user):** the consolidation shell/linkage UX in Figma → then `/analyze` the 09-23 transcript into canon + the soft-delete/linkage build.
 
+## Session 160 — September 25–28, 2026
+
+**ORDER CHANGE: THE NUMBERS AGREE, AND APPROVE BECAME A STEP YOU CAN SEE.** Opened on "what has order change achieved, what's missing", closed with Wave B shipped to Neon, Jana's 09-25 design review filed, and the whole Evaluate → Approve flow built. The lesson of the session, from the user: *"he always replies we already have the information in the stories"*. Of the questions I queued for Jana, **every one was already answered by a story AC**. Memory `feedback_stories_are_primary_source` now requires grepping the archived ACs before any Jana list. Plans: `docs/superpowers/plans/2026-09-24-order-change-consol-walkthrough.md` (Wave B + B5/B6), `…/2026-09-25-order-change-remaining.md`; spec `docs/superpowers/specs/2026-09-25-order-change-evaluate-approve.md`. 19 commits `S160:` + 3 `D22:` (logged in `progress-deliverables.md` D22).
+
+- **Wave B (DEC-192/196/198).** Every consolidated number now comes from one seed source:
+  - header cost = the new list's rank-1 total;
+  - stop coordinates (`LOCATIONS` lat/lng, zero draws) + a shared `src/utils/legMiles.js` (haversine × 1.2, `ponytail:`) feed per-leg distances, header and routing;
+  - the per-order compare has the Direct field set + seeded line pairs;
+  - gross weight = the orders' own records;
+  - a location change is written onto the order;
+  - one address per site.
+- **Browser-found follow-ups, all fixed.**
+  - A location change's new site was facility+city only → the created `P?` had no coordinates (legs `--`, total "0.00 mi") and a CDT clock in Phoenix. Now a full site (`025f966`); an unknown leg total reads `--`.
+  - The seed's New distance swapped the stop instead of adding one → the header disagreed with All Stops on 123 shipments. The generator now **imports the editor's own `initSandbox`** to compute it (`c6cbb7b`).
+  - Order windows anchor to **their own stop** (I4 refined, DEC-203, `50f53f4`): stops outside their orders' windows went 1,023 → 0.
+- **Add Orders (DEC-201/202).** Busy source orders are **selectable and refused at Save** (15870/15872 + Jana; reverses OC-open-11). A shipment's only order may be moved (Jana `@00:05:37`; an emptied shipment is hidden — build owed, C5). A move rewrites the list row's totals (`computeListAggregates`, OC-open-22).
+- **Jana's 09-25 design review → `/analyze`** (`order-change.md` §10c, **DEC-200…206**, 14 OC-open items closed or answered — most by their own stories). Transcript archived `vault-sources/10-domains/shipments/sources/jana-order-change-consol-design-review-2026-09-25.vtt`. Shipment statuses from Rovo's *Shipment Status Transition-WIP* (HOLD / CONSOLIDATION / REVIEW / APPROVED / DONE) recorded as DEC-204, provisional, build owed.
+- **Evaluate → Approve (DEC-207, the user's design).** "View Routing then Close to enable Approve" made no sense. Now:
+  - **Edit Stops:** footer **Evaluate** (tooltip names what blocks it) → routing modal **Keep Editing / Approve Changes** → the confirm.
+  - **Stops tab:** **Evaluate** → **Keep Reviewing / Approve Plan** → confirm.
+  - View Routing buttons and the hidden `routed` state are gone. One shared `useApproveOrderChange` path; new `approve-plan` API action.
+  - Also: **Prior** is the true pre-change plan; **Keep here** confirms a `?` stop in place; a new stop's default date fits every order on it.
+- **T4 — the new tender list finally becomes current** (`9b94b95`). No resolution had ever adopted `newTenderList`; the Tender tab kept showing the old list after every decision, Direct included. Now every resolution rewrites `tenders` + `shippingOptionList` in one transaction:
+  - the prior carrier is inserted at its rank when routing dropped it, with the chosen cost/status;
+  - the list row's scac/AP cost follow;
+  - V1 stays in Routing History.
+- **Neon reseeded 3×** on the user's go (users preserved), each verified by query + browser. **Live:** S160 + D22 rode S161's `vercel --prod`; confirmed today by grepping the live bundle (*Keep here*, *Keep Reviewing*, *Set a date on every stop*, `approve-plan`, `primaryTooltip`). T4 is API-only, not probed live.
+
+**Still open.**
+- **Neon test residue:** T4's live check resolved `25475273` and `25427840`, and a stale-server attempt **half-resolved `25525239`** (status moved, tender list not adopted). A reseed restores all three.
+- **AP Cost after choosing the prior cost:** only `rateAmount` is synced; the Tender table's AP Cost column reads `totalCostAmount` (pre-existing scope, fix before Jana sees it).
+- **Seed edge:** 4 mock shipments flag on arrival when two relocated orders share one created stop.
+- **Search chips** return 0 for Sell # / Odyssey ID — identical on live and local, so not a regression; unexplained.
+- **Housekeeping:** `toast.test.js` still fails to compile (S159). A byte-identical duplicate of the 09-25 transcript sits in the inbox (delete; the original is archived).
+
+**Parallel threads, unlogged here:**
+- `S159:`-tagged commits after the S159 wrap (`1076d45`, `533154a`, `913ef2c`, `5a801ff`, `cb4b5a3`, `85f08c9` — All Sell Shipments, ModalMedium portal, Hazardous badge, Home search, OIF radios) belong to the session that made them.
+- S161 is logged above.
+
+**What's next (user):** analyze what's missing and what's left on order change. Remaining per the plan:
+- the AP-cost field fix;
+- C3 removed orders → own shipment (15869);
+- C4 consolidation tender dates = stop dates;
+- C5 hide emptied shipments;
+- Direct D1–D5;
+- shipment statuses (DEC-204 — reseed + Cognizant progression sheets).
+
 ## Session 159 — September 24, 2026
 
 **JANA WALKED THE CONSOLIDATED ORDER CHANGE — AND PLACEMENT HAD NEVER WORKED.** Opened on the 2026-09-24 call where Jana reviewed the S142–S144 consolidated order-change build. His layout ideas were input; every presentation call was the user's. Filed via `/analyze`, then a UI wave built, browser-checked on live 25412375, and deployed. Plan: `docs/superpowers/plans/2026-09-24-order-change-consol-walkthrough.md`.
@@ -37,21 +84,15 @@
 
 ## Session 158 — September 23–24, 2026
 
-**THE PAGES STOPPED BLANKING, AND A LOST RESEED THAT NEVER HAPPENED.** Opened on "why do I have so few orders — a reseed?" and closed on a nine-part plan built in two waves, shipped to prod, then a string of small asks. Plan: `docs/superpowers/plans/2026-09-23-slide-over-routes.md`. Design-system half (footer, disabled opacity, SubAccordion) is in **D21**.
+**THE PAGES STOPPED BLANKING, AND A LOST RESEED THAT NEVER HAPPENED.** The "few orders" was a stray `VITE_API_MODE=mock` in `.env.local`, not the data. Every full-page view became a sheet over the page it came from (`7d4af94`, `sheetStack` in `location.state`). Other work:
+- consolidate-mode float-to-top;
+- one table error state;
+- OIF decisions inline (ORD-30/31);
+- Audit "+X more" modal (ORD-29);
+- TE-3 acceptance email with rates removed from every tender email (DEC-190);
+- Edit Stops footer sticky.
 
-- **The "few orders" was never the data.** Neon was whole (9,995 shipments / 23,829 orders). A stray `VITE_API_MODE=mock` appended to `.env.local` on Sep 20 won over the `live` line — local dev read the 2,200-row mock. Line removed; memory updated.
-- **Sheets, app-wide (`7d4af94`).** Every full-page view (consolidation review, order-change review + edit stops, View order, Audit Trail, Create/Edit/Resolve) is now a sheet over the page it came from, which stays mounted. `sheetStack` rides in `location.state` (browser back/forward render the right layers; Back animates too), layers portal at z 200 (the app's portal convention), exit is generic (a leaving layer is held 300ms). Pages re-apply return intents on `location.key`; consolidation close sends `consolidateExit` (restores the prior panel — the old remount silently reset it). Browser-verified: live list behind both slides, **zero** list refetches on an order-change round trip. `useSlideRoute` removed.
-- **Consolidate mode:** selected shipments float to the top of page 1 as they're checked (server `excludeIds`, pulse on move). **PGI/PGR** has no ShipmentsBar. **Export modal** Visible Columns primary.
-- **One error state for tables:** Orders list + Audit Trail render load failures inside the DataTable shell like Shipments (SpotBid can't fail — in-memory).
-- **OIF (2026-09-16 review minutes + user rulings, ORD-30/31).** StructuralFixModal deleted — decisions inline: keep one schedule (**pick-only**, other lines' dates alongside), line vs schedule value chips, time zone; every choice resettable. Breadcrumb *Orders › Resolve Order <id>* (the embedded form's second trail suppressed). Phone not validated, digits-only input. **Save & Reprocess** with a Reprocessing beat.
-- **Audit Trail (ORD-29):** "+X more" → modal grouped by line item; "N lines" badge; User blue / System gray; Home widget label → *Created*.
-- **Tender emails (DEC-190).** Adam asked for an acceptance email — not in 15795/15796/15800 (AC-03's "success confirmation" is on-page). Built **TE-3** to the carrier: Lucide check in a green circle, first→last stop band, distance, no rate, no link. **Rates removed** from all tender emails. Gallery fixture gained two mid stops. Subject wording is a placeholder pending Adam/Dave.
-- **Edit Shipment Stops:** Cancel / Approve Changes in the sticky page footer; Orders Pending To Assign sticky while stops scroll.
-- **Deployed** once mid-session (bundle-grepped; `excludeIds` probed live). Everything after the TE-3 icon (`1b6c89f`+, disabled buttons, edit-stops) is **not deployed**.
-
-**Still open.** TE-3 subject wording (Adam/Dave). The route band in tender emails shows street, not city (shared with SpotBid emails — one-line change, user's call). OIF decision chips read as plain text until picked. Audit "+X more" modal only ever shows one line group with today's data. Earlier S158 commits `8263883`, `51ce950` predate this conversation (parallel session) and are logged only here by subject.
-
-**What's next:** **review consolidation order change** (user). Deploy the post-`1b6c89f` work. OIF/Audit transcript → `/analyze` when it arrives.
+Deployed once mid-session. Design-system half in D21.
 
 ## Session 157 — September 22, 2026
 

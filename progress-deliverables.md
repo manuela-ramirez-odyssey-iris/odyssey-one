@@ -2,6 +2,18 @@
 
 > Parallel to `progress.md` (the product-prototyping build log). This file is the **design-system / dev-tooling thread**: story packs and PM/dev-facing artifacts, dev mode, DSM work, and **normalization cycles** — anything about the design system and its delivery, as opposed to product feature prototyping and domain discoveries. Separate log so the two threads can run as independent agent work streams. Sessions numbered D1, D2, … A session touching both threads logs to both files with a one-line cross-reference.
 
+## Session D22 — September 25–28, 2026
+
+**THREE COMPONENT FIXES OUT OF THE ORDER-CHANGE WORK (product thread: `progress.md` S160).**
+- **SummaryStrip 1.6.1** (`5679a8d`): the sticky un-stick hysteresis was a constant 48px, sized for a 76→36px shrink. Edit Stops' tall resting strip (~130px) shrank ~68–90px, so scroll anchoring bounced it between Default and Mini, 8 class flips in ~30ms. It now follows each instance's **measured** height delta + 8px. Browser-verified: one flip each way; Cost Allocation unchanged.
+- **StepperButtonsFooter 0.5.1** (`7ac431e`): z-index 30 (above sticky table heads 3–6, below dropdowns 60 / panel dock 100 / sheets 200). The value itself landed first in S161's `ef204ca`; this commit is the DSM bookkeeping it skipped.
+- **StepperButtonsFooter 0.5.2** (`ce47095`): new optional `primaryTooltip` explains a disabled primary (the canonical Tooltip, hover/focus, portal). Edit Stops' hand-rolled footer, an escape hatch T2 took, is replaced by it.
+- All three stay `normalizing`, each with a tracker row. **Angular twins owe** the measured hysteresis, the z-index and `primaryTooltip`. No Angular repo change this session, so no `angular-map.json` regen and no `@oneodyssey/ui` publish to recommend.
+
+**Earlier D22 commits, unlogged here:** `59ea53b` (SummaryStrip Mini + sticky auto-mini) and `c89821b` (sticky top from the scroller padding) were made by a parallel session. Its entry is owed by whoever made them, and this one does not reconstruct them.
+
+**What's next:** batch the three Angular twins with the next port; decide whether SummaryStrip's sticky/mini gets a Figma axis.
+
 ## Session D21 — September 23–24, 2026
 
 **THREE COMPONENTS BACK TO NORMALIZING, ALL FIGMA-FIRST.** Design-system half of S158.
@@ -37,18 +49,13 @@
 
 ## Session D19 — September 20–21, 2026
 
-**COMPONENT SIDE EFFECTS OF S155 (product thread: `progress.md` S155).** Three `@odyssey/ui` changes were made in service of manual consolidation and are logged here because they change library contracts; the product narrative stays in S155. **D18 is still unlogged** — its three commits (`26f021f`, `1fd5adb`, `e77cdc5`: Widget `selected`/`onSelect`) came from a sibling session and the decisions live there; the numbering gap is deliberate.
+**COMPONENT SIDE EFFECTS OF S155.** Four changes for manual consolidation:
+- **DataTable:** `meta.sticky: 'left' | 'right'`, a scrolled-x shadow, and `highlightRowId`.
+- **SummaryStrip:** node `value`.
+- **ConfirmDialog:** node `message`.
+- **AppShell:** `--sidebar-current`.
 
-- **DataTable** — `meta.sticky` now accepts `'left' | 'right'` (new `odyssey-table__cell--sticky-left`; the pinned-left shadow renders only while the wrap is horizontally scrolled, via a `data-scrolled-x` attribute the existing passive scroll handler toggles without React state); new `highlightRowId` prop → `data-highlight` on that `<tr>` (`@keyframes odyssey-row-highlight`, two symmetric pulses, reduced-motion → none). **Root-cause fix in `components.css`:** the grip-anchor rule `th:not(.…sticky-right) { position: relative }` un-stickied any pinned-left header — the `:not()` now exempts `[class*='odyssey-table__cell--sticky-']`. Verified in headless Chrome. `DataTable.demo.jsx` documents both. **Demoted to NORMALIZING in both DSMs** (`tools/dsm-flags.mjs DataTable --demote`; the Angular meta edit is local-only, unpushed) and `angular-map.json` regenerated.
-- **SummaryStrip** — a React-node `value` renders as-is (no `--` placeholder, no truncation, no `title`); the consolidation review passes its identifier chips through it. Already `normalizing: true`.
-- **ConfirmDialog** (app-local) — `message` may be a node.
-- **AppShell** (app-local) — `--sidebar-current` inline var (0 / expanded / collapsed) so fixed-position docks follow the rail.
-
-### Owed
-
-1. **Angular twins** for DataTable (sticky-left + scrolled-x shadow + `highlightRowId`) and SummaryStrip (node value) — next batch port; no `@oneodyssey/ui` publish until then (Cognizant publishes).
-2. `playground/normalization-tracker.md` DataTable row needs the S155 mod noted.
-3. The sibling Angular repo has an unrelated pre-existing `domain-usage.json` modification plus today's `data-table.demo.meta.ts` flag — both local, unpushed, awaiting the user's go.
+Owed: Angular twins for DataTable and SummaryStrip, and the tracker note for DataTable. D18 is unlogged.
 
 ## Session D17 — September 18, 2026
 
