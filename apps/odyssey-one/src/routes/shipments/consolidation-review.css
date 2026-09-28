@@ -46,6 +46,10 @@
   flex-direction: column;
   gap: var(--spacing-1);
 }
+/* Hand cursor on the editable (sortable) stops — dnd-kit's attributes carry
+   aria-roledescription="sortable"; read-only (applied) stops don't get it. */
+.consolidation-review__stop[aria-roledescription="sortable"] { cursor: grab; }
+.consolidation-review__stop[data-dragging="true"] { cursor: grabbing; }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
 /* Changed stop's location text (user ruling 2026-09-25, item 1) — the
