@@ -22,6 +22,7 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
     ...actual,
     DndContext: (props) => {
       window.__consolidationDragEnd = props.onDragEnd
+      window.__consolidationDnd = props
       return <actual.DndContext {...props} />
     },
   }
@@ -366,6 +367,18 @@ describe('ConsolidationReviewRoute', () => {
     simulateDragEnd('delivery-b', 'pickup-a') // delivery-b to the top → invalid pair on Save
     fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
     expect(container.querySelectorAll('.stop-badge--issue .stop-badge__status').length).toBe(2)
+  })
+
+  test('mid-drag, the affected stops (from the higher of origin/over slot down) lose number, check and alert', () => {
+    const { container } = renderReview({ rows })
+    const labels = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
+      .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
+    act(() => { window.__consolidationDnd.onDragStart({ active: { id: 'delivery-a' } }) }) // slot 3
+    act(() => { window.__consolidationDnd.onDragOver({ active: { id: 'delivery-a' }, over: { id: 'pickup-b' } }) }) // over slot 2
+    expect(labels()).toEqual(['P1', 'P', 'D', 'D'])
+    expect(container.querySelectorAll('.stop-badge__status').length).toBe(1)
+    act(() => { window.__consolidationDnd.onDragCancel() })
+    expect(labels()).toEqual(['P1', 'P2', 'D1', 'D2'])
   })
 
   test('hovering a stop lights up both stops of its shipment', () => {

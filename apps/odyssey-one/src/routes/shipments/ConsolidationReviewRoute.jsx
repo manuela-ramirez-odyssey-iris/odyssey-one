@@ -161,7 +161,8 @@ function SortableStop({ s, tone, paired, onPairHover }) {
 // up both stops of the hovered/dragged shipment (user, 2026-09-27).
 function stopTimelineItems(stops, changedKeys, invalidKeys, pair) {
   return stops.map((s) => {
-    const tone = invalidKeys.has(s.key) ? 'invalid' : changedKeys.has(s.key) ? 'changed' : null
+    // A gray (mid-drag, affected) stop drops its red alert too.
+    const tone = invalidKeys.has(s.key) && !s.gray ? 'invalid' : changedKeys.has(s.key) ? 'changed' : null
     return {
       key: s.key,
       label: s.label,
@@ -237,11 +238,24 @@ export default function ConsolidationReviewRoute() {
   // From the first stop that moved since the last successful save DOWN, every
   // stop shows its type letter only (P / D) — the sequence below a change is
   // unconfirmed until it saves (user, 2026-09-27).
-  const firstMoved = effectiveDraftOrder.findIndex((key, i) => effectiveCommittedOrder[i] !== key)
+  // While a stop is held it's a "gray moment" (user, 2026-09-27) for every
+  // stop it could affect — from the higher of its origin slot and the slot
+  // it's over, down: no number, no check, no alert until the drop.
+  // `dragFrom` = that index, null when nothing is held.
+  const [dragFrom, setDragFrom] = useState(null)
+  const savedFirstMoved = effectiveDraftOrder.findIndex((key, i) => effectiveCommittedOrder[i] !== key)
+  const firstMoved = dragFrom == null ? savedFirstMoved
+    : savedFirstMoved === -1 ? dragFrom : Math.min(savedFirstMoved, dragFrom)
   const displayedStops = effectiveDraftOrder.map((key, i) => {
     const s = byStopKey[key]
-    return firstMoved === -1 || i < firstMoved ? s : { ...s, label: s.type === 'pickup' ? 'P' : 'D' }
+    if (firstMoved === -1 || i < firstMoved) return s
+    return { ...s, label: s.type === 'pickup' ? 'P' : 'D', gray: dragFrom != null }
   })
+  const trackDrag = (activeId, overId) => {
+    const a = effectiveDraftOrder.indexOf(activeId)
+    const o = overId == null ? a : effectiveDraftOrder.indexOf(overId)
+    setDragFrom(Math.min(a, o === -1 ? a : o))
+  }
   // The shipment whose pair is lit — hovered, or held in a drag.
   const [pairShipment, setPairShipment] = useState(null)
   // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
@@ -532,9 +546,10 @@ export default function ConsolidationReviewRoute() {
               <DndContext
                 sensors={sortSensors}
                 collisionDetection={closestCenter}
-                onDragStart={({ active }) => setPairShipment(byStopKey[active.id]?.sellShipment ?? null)}
-                onDragEnd={(e) => { setPairShipment(null); handleStopDragEnd(e) }}
-                onDragCancel={() => setPairShipment(null)}
+                onDragStart={({ active }) => { trackDrag(active.id, null); setPairShipment(byStopKey[active.id]?.sellShipment ?? null) }}
+                onDragOver={({ active, over }) => trackDrag(active.id, over?.id ?? null)}
+                onDragEnd={(e) => { setDragFrom(null); setPairShipment(null); handleStopDragEnd(e) }}
+                onDragCancel={() => { setDragFrom(null); setPairShipment(null) }}
               >
                 <SortableContext items={effectiveDraftOrder} strategy={verticalListSortingStrategy}>
                   <Timeline items={timelineItems} animate aria-label="Planned stops" />
