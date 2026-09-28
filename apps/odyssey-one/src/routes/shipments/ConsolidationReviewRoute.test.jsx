@@ -341,10 +341,12 @@ describe('ConsolidationReviewRoute', () => {
   test('labels stay with their shipment when stops move; every stop shows its Shipment', () => {
     const { container } = renderReview({ rows })
     expect(screen.getAllByText(/^Shipment: /).length).toBe(4)
-    simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups
-    const labels = Array.from(container.querySelectorAll('.consolidation-review__stop'))
+    const labels = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
       .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
-    expect(labels).toEqual(['P2', 'P1', 'D1', 'D2']) // P1 still = shipment a's pickup, now second
+    simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups
+    expect(labels()).toEqual(['P', 'P', 'D1', 'D2']) // moved stops lose their number until saved
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    expect(labels()).toEqual(['P2', 'P1', 'D1', 'D2']) // P1 still = shipment a's pickup, now second
   })
 
   test('hovering a stop lights up both stops of its shipment', () => {

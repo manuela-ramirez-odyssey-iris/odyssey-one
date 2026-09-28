@@ -232,7 +232,12 @@ export default function ConsolidationReviewRoute() {
   // Labels follow the PAIR, not the position (user, 2026-09-27): P1/D1 are
   // always shipment 1's pickup and delivery (proposal.js), so they travel with
   // the stop when it moves — "D1 above P1" then reads as exactly the error it is.
-  const displayedStops = effectiveDraftOrder.map((key) => byStopKey[key])
+  // A stop moved since the last successful save shows its type letter only
+  // (P / D) — no number until the new sequence is saved (user, 2026-09-27).
+  const displayedStops = effectiveDraftOrder.map((key, i) => {
+    const s = byStopKey[key]
+    return effectiveCommittedOrder[i] === key ? s : { ...s, label: s.type === 'pickup' ? 'P' : 'D' }
+  })
   // The shipment whose pair is lit — hovered, or held in a drag.
   const [pairShipment, setPairShipment] = useState(null)
   // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
