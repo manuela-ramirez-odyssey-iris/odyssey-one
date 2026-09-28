@@ -546,7 +546,7 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
       // Before the fix: the fault message is on screen, not yet marked fixed.
       expect(fault.querySelector('.structural-grid__message')).toBeTruthy()
       const tzTrigger = within(fault).queryByRole('button', { name: /^Time zone, line \d+$/ })
-      const chips = within(fault).queryAllByRole('button', { name: /Schedule \d+ ·|Use (line|schedule) value ·/ })
+      const chips = within(fault).queryAllByRole('radio', { name: /Schedule \d+ ·|Use (line|schedule) value ·/ })
       if (tzTrigger) {
         fireEvent.click(tzTrigger)
         const rows = screen.getByRole('menu').querySelectorAll('.menu-row')
@@ -555,14 +555,14 @@ describe('two-step resolution shell (LINX-16049 + 11137)', () => {
         // extra-schedule → keep the first schedule; quantity-mismatch → "Use
         // schedule value" is guaranteed to resolve it (line value may already
         // equal the schedule's by seed coincidence, but schedule never fails).
-        const useSchedule = chips.find((c) => /^Use schedule value/.test(c.textContent))
+        const useSchedule = chips.find((c) => /^Use schedule value/.test(c.closest('label').textContent))
         fireEvent.click(useSchedule ?? chips[0])
       }
     }
-    // The corrected fault's message disappears and the field name goes green —
-    // committed straight through, no Done to press.
+    // The corrected fault's message turns gray (S159) and the field name goes
+    // green — committed straight through, no Done to press.
     if (fault) {
-      expect(fault.querySelector('.structural-grid__message')).toBeNull()
+      expect(fault.querySelector('.structural-grid__message--resolved')).toBeTruthy()
       expect(fault.querySelector('.structural-grid__field--fixed')).toBeTruthy()
     }
 

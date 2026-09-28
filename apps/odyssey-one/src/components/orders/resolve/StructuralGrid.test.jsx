@@ -80,7 +80,7 @@ describe('StructuralGrid', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
     const row1 = screen.getByText('A').closest('tr')
-    fireEvent.click(within(row1).getByRole('button', { name: /^Schedule 2 ·/ }))
+    fireEvent.click(within(row1).getByRole('radio', { name: /^Schedule 2 ·/ }))
     expect(onFix).toHaveBeenCalledWith('s1', { keepSchedule: 'prod-1-sch-2' })
   })
 
@@ -95,9 +95,9 @@ describe('StructuralGrid', () => {
   test('quantity mismatch: clicking a chip fires onFix(s2, { use }) immediately', () => {
     const onFix = vi.fn()
     render(<StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />)
-    fireEvent.click(screen.getByRole('button', { name: /^Use schedule value ·/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^Use schedule value ·/ }))
     expect(onFix).toHaveBeenCalledWith('s2', { use: 'schedule' })
-    fireEvent.click(screen.getByRole('button', { name: /^Use line value ·/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^Use line value ·/ }))
     expect(onFix).toHaveBeenCalledWith('s2', { use: 'line' })
   })
 
@@ -123,26 +123,18 @@ describe('StructuralGrid', () => {
     expect(onFix).toHaveBeenCalledWith('s3', { timezone: 'CST' })
   })
 
-  // Reversible by construction (user ruling, 2026-09-23): a per-fault Reset
-  // clears the decision — no Done/Cancel transaction, nothing staged.
-  test('Reset clears a fixed fault, and only shows once a decision exists', () => {
-    const onFix = vi.fn()
-    const { rerender } = render(
-      <StructuralGrid products={products} structural={structural} fixes={{}} onFix={onFix} />,
-    )
-    const row1 = screen.getByText('A').closest('tr')
-    expect(within(row1).queryByRole('button', { name: 'Reset' })).toBeNull()
-    rerender(<StructuralGrid products={products} structural={structural} fixes={{ s1: { keepSchedule: 'prod-1-sch-2' } }} onFix={onFix} />)
-    const row1b = screen.getByText('A').closest('tr')
-    fireEvent.click(within(row1b).getByRole('button', { name: 'Reset' }))
-    expect(onFix).toHaveBeenCalledWith('s1', null)
+  // S159 (user): Reset is gone — re-pick to change; the message stays, gray.
+  test('no Reset; a resolved fault keeps its message, marked resolved', () => {
+    render(<StructuralGrid products={products} structural={structural} fixes={{ s2: { use: 'schedule' } }} onFix={() => {}} />)
+    expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
+    expect(screen.getByText('Line and Schedule mismatch.').className).toContain('structural-grid__message--resolved')
   })
 
   test('a fixed fault renders its checked state and stays editable (chips/dropdown never freeze except via `disabled`)', () => {
     render(<StructuralGrid products={products} structural={structural} fixes={{ s2: { use: 'schedule' }, s3: { timezone: 'CST' } }} onFix={() => {}} />)
-    const qtyChip = screen.getByRole('button', { name: /^Use schedule value ·/ })
+    const qtyChip = screen.getByRole('radio', { name: /^Use schedule value ·/ })
     expect(qtyChip.hasAttribute('disabled')).toBe(false)
-    expect(qtyChip.getAttribute('aria-pressed')).toBe('true')
+    expect(qtyChip.checked).toBe(true)
 
     const tzTrigger = screen.getByRole('button', { name: 'Time zone, line 3' })
     expect(tzTrigger.hasAttribute('disabled')).toBe(false)
@@ -151,8 +143,8 @@ describe('StructuralGrid', () => {
 
   test('disabled: chips, Dropdown and Reset all render inert, no per-fault controls fire', () => {
     render(<StructuralGrid products={products} structural={structural} fixes={{ s2: { use: 'schedule' } }} onFix={() => {}} disabled />)
-    expect(screen.getByRole('button', { name: /^Use schedule value ·/ }).hasAttribute('disabled')).toBe(true)
-    expect(screen.getByRole('button', { name: /^Use line value ·/ }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('radio', { name: /^Use schedule value ·/ }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('radio', { name: /^Use line value ·/ }).hasAttribute('disabled')).toBe(true)
     expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Time zone, line 3' }).hasAttribute('disabled')).toBe(true)
   })

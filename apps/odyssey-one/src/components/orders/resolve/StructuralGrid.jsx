@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, Dropdown, GroupTable, PillTab } from '@odyssey/ui'
+import { Badge, Dropdown, GroupTable, Radio } from '@odyssey/ui'
 import { STRUCTURAL_DRAFT_KEYS } from './interfaceErrors.js'
 import { TIMEZONES } from '../../../data/master-data'
 
@@ -53,9 +53,10 @@ const weightLabel = (w) => `${w?.value ?? '—'}${w?.uom ? ` ${w.uom}` : ''}`
  * S158 / user ruling 2026-09-23 (OIF & Audit Trail review minutes,
  * 2026-09-16): `StructuralFixModal`'s Done/Cancel TRANSACTION is gone. Every
  * fault's decision renders INLINE in the Faults cell, same visual family as
- * `ConflictPicker` — PillTab chips, one decision per fault, committed the
- * instant a chip is clicked (`onFix` writes straight through, no staging) and
- * clearable any time via "Reset" until the order is reprocessed:
+ * `ConflictPicker` — one decision per fault, committed the instant it's picked
+ * (`onFix` writes straight through, no staging). S159 (user): options are a
+ * vertical Radio group (were PillTab chips) and "Reset" is gone — re-pick to
+ * change. The fault message stays, gray once resolved:
  *
  *   extra-schedule    → one chip per schedule on the line (ship date ·
  *                       delivery date · package count · weight); picking one
@@ -70,9 +71,9 @@ const weightLabel = (w) => `${w?.value ?? '—'}${w?.uom ? ` ${w.uom}` : ''}`
  *   timezone-missing  → the zone Dropdown, inline (no longer inside a modal).
  *
  * Controlled via `fixes` {errorId → fix} + `onFix(errorId, fix | null)` —
- * `null` clears the fault's fix (Reset), keyed by ERROR id (`s1`), the same
+ * keyed by ERROR id (`s1`), the same
  * key space `applyFixes(src, picks, structuralFixes)` expects. `disabled` =
- * read-only look-back (chips/dropdown/Reset all inert).
+ * read-only look-back (radios/dropdown inert).
  *
  * `line` is 1-based over `values.products` — same indexing `applyErrors` /
  * `applyFixes` use (`draft.products[s.line - 1]`), verified in interfaceErrors.js.
@@ -99,16 +100,14 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
   const renderFault = (p, line, s) => {
     const fix = fixes[s.id]
     const fixed = isStructuralFixed(p, s, fix)
-    const hasFix = fix && Object.keys(fix).length > 0
     return (
       <li key={s.id} className="structural-grid__fault">
         <div className={`text-label-sm-medium${fixed ? ' structural-grid__field--fixed' : ''}`}>
           {fixed && <Check {...ICON_MD} />}
           {s.field}
         </div>
-        {!fixed && (
-          <div className="structural-grid__message text-label-xs-regular">{s.message}</div>
-        )}
+        {/* Stays after a pick, softened to gray (user, S159). */}
+        <div className={`structural-grid__message text-label-xs-regular${fixed ? ' structural-grid__message--resolved' : ''}`}>{s.message}</div>
 
         {s.kind === 'extra-schedule' && (() => {
           const schedules = p[STRUCTURAL_DRAFT_KEYS['extra-schedule']] ?? []
@@ -117,13 +116,13 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
             <div className="structural-grid__decision">
               <div className="structural-grid__chips">
                 {schedules.map((sch, i) => (
-                  <PillTab
+                  <Radio
                     key={sch.id}
+                    name={`fix-${s.id}`}
                     label={`Schedule ${i + 1} · ship ${sch.requestedShipDate || '—'} · del ${sch.latestDeliveryDate || '—'} · ${sch.packageCount ?? '—'} pkgs · ${weightLabel({ value: sch.grossWeight, uom: sch.grossWeightUom })}`}
-                    showCount={false}
-                    selected={fix?.keepSchedule === sch.id}
+                    checked={fix?.keepSchedule === sch.id}
                     disabled={disabled}
-                    onClick={() => onFix(s.id, { keepSchedule: sch.id })}
+                    onChange={() => onFix(s.id, { keepSchedule: sch.id })}
                   />
                 ))}
               </div>
@@ -145,19 +144,19 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
           const pkgCount = p.handlingCount ?? '—'
           return (
             <div className="structural-grid__chips">
-              <PillTab
+              <Radio
+                name={`fix-${s.id}`}
                 label={`Use line value · ${pkgCount} pkgs · ${weightLabel(p.grossWeight)} · ${p.volume?.value ?? '—'}${p.volume?.uom ? ` ${p.volume.uom}` : ''}`}
-                showCount={false}
-                selected={fix?.use === 'line'}
+                checked={fix?.use === 'line'}
                 disabled={disabled}
-                onClick={() => onFix(s.id, { use: 'line' })}
+                onChange={() => onFix(s.id, { use: 'line' })}
               />
-              <PillTab
+              <Radio
+                name={`fix-${s.id}`}
                 label={`Use schedule value · ${pkgCount} pkgs · ${weightLabel({ value: scheduleQty?.grossWeight, uom: scheduleQty?.grossWeightUom ?? p.grossWeight?.uom })} · ${scheduleQty?.volume ?? '—'}${p.volume?.uom ? ` ${p.volume.uom}` : ''}`}
-                showCount={false}
-                selected={fix?.use === 'schedule'}
+                checked={fix?.use === 'schedule'}
                 disabled={disabled}
-                onClick={() => onFix(s.id, { use: 'schedule' })}
+                onChange={() => onFix(s.id, { use: 'schedule' })}
               />
             </div>
           )
@@ -179,14 +178,6 @@ export default function StructuralGrid({ products = [], structural = [], fixes =
           </label>
         )}
 
-        {/* Reversible by construction (2026-09-23 ruling): any decision can be
-            changed by picking again, or cleared entirely here — no Done/Cancel,
-            nothing is staged. */}
-        {!disabled && hasFix && (
-          <button type="button" className="structural-grid__reset text-label-xs-regular" onClick={() => onFix(s.id, null)}>
-            Reset
-          </button>
-        )}
       </li>
     )
   }

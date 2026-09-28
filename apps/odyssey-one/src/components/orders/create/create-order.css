@@ -931,7 +931,8 @@
 .structural-grid__message { color: var(--text-error); }
 .structural-grid__field--fixed { display: flex; align-items: center; gap: var(--spacing-1); color: var(--caribbean-green-600); }
 .structural-grid__decision { display: flex; flex-direction: column; gap: var(--spacing-2); align-items: flex-start; }
-.structural-grid__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+.structural-grid__chips { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-2); }
+.structural-grid__message--resolved { color: var(--text-tertiary); }
 /* PillTab ships no disabled appearance — the Step 2 look-back needs one,
    same rule as .conflict-picker .pill-tab:disabled. */
 .structural-grid__chips .pill-tab:disabled { cursor: default; opacity: 0.6; }

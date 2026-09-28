@@ -93,18 +93,15 @@ describe('Step1Panel', () => {
     const { derived } = setup('structural', 2)
     const qty = derived.structural.find((s) => s.kind === 'quantity-mismatch')
     const line = qty.line
-    fireEvent.click(screen.getByRole('button', { name: /^Use schedule value ·/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /^Use schedule value ·/ }))
     // BADGE is what pins the rule (review, 2026-09-10): both structural errors
     // must still count as open until BOTH are decided — one pick resolving
     // its own fault does not resolve the sibling.
     expect(screen.getByText('1 Error')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Validate and continue' }).hasAttribute('disabled')).toBe(true)
 
-    // Reset clears the decision straight back to open.
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    expect(screen.getByText('2 Errors')).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: /^Use line value ·/ }))
+    // Re-picking the other side keeps it resolved (no Reset — S159).
+    fireEvent.click(screen.getByRole('radio', { name: /^Use line value ·/ }))
     expect(screen.getByText('1 Error')).toBeTruthy()
   })
 
