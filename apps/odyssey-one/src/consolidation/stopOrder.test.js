@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { reorderStops, validateStopOrder, labelStops } from './stopOrder'
+import { reorderStops, invalidStopKeys, labelStops } from './stopOrder'
 
 const byKey = {
   'pickup-a': { key: 'pickup-a', type: 'pickup', location: 'Houston, TX' },
@@ -21,17 +21,14 @@ describe('reorderStops', () => {
   })
 })
 
-describe('validateStopOrder', () => {
-  test('valid when every delivery sits at or after the first pickup', () => {
-    expect(validateStopOrder(order, byKey)).toBeNull()
-    expect(validateStopOrder(['pickup-a', 'delivery-a', 'pickup-b', 'delivery-b'], byKey)).toBeNull()
+describe('invalidStopKeys', () => {
+  test('valid when each delivery follows its own pickup (pairs may interleave)', () => {
+    expect(invalidStopKeys(['pickup-a', 'pickup-b', 'delivery-a', 'delivery-b']).size).toBe(0)
+    expect(invalidStopKeys(['pickup-b', 'delivery-b', 'pickup-a', 'delivery-a']).size).toBe(0)
   })
-  test('a delivery above the first pickup is rejected (order-level link absent, B2 fallback)', () => {
-    const bad = ['delivery-a', 'pickup-a', 'pickup-b', 'delivery-b']
-    expect(validateStopOrder(bad, byKey)).toMatch(/cannot come before the first pickup/)
-  })
-  test('no pickups at all → nothing to check', () => {
-    expect(validateStopOrder(['delivery-a', 'delivery-b'], byKey)).toBeNull()
+  test('a delivery above its own pickup flags BOTH stops of that pair only', () => {
+    const bad = invalidStopKeys(['pickup-b', 'delivery-a', 'pickup-a', 'delivery-b'])
+    expect([...bad].sort()).toEqual(['delivery-a', 'pickup-a'])
   })
 })
 

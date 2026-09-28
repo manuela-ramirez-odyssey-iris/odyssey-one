@@ -16,19 +16,21 @@ export function reorderStops(order, fromIndex, toIndex) {
 }
 
 /**
- * Every order's pickup stop should precede its delivery stop — but a stop
- * here only knows its own sellShipment, not the order numbers riding it, so
- * the order-level link is absent. Fallback (spec B2): no delivery stop may
- * sit above the very first pickup stop.
- * @param {string[]} order   stop keys in the candidate order
- * @param {Record<string, {type: string}>} byKey
- * @returns {string|null} null = valid
+ * A delivery can't come before its own pickup (user, 2026-09-25). Stop keys
+ * are `pickup-<sellShipment>` / `delivery-<sellShipment>` (proposal.js), so
+ * each source shipment's P/D pair is linked by the key's suffix.
+ * @param {string[]} order stop keys in the candidate order
+ * @returns {Set<string>} keys of BOTH stops of every out-of-order pair (empty = valid)
  */
-export function validateStopOrder(order, byKey) {
-  const firstPickup = order.findIndex((k) => byKey[k]?.type === 'pickup')
-  if (firstPickup === -1) return null // no pickups at all — nothing to check
-  const deliveryAboveFirstPickup = order.slice(0, firstPickup).some((k) => byKey[k]?.type === 'delivery')
-  return deliveryAboveFirstPickup ? 'A delivery stop cannot come before the first pickup stop.' : null
+export function invalidStopKeys(order) {
+  const bad = new Set()
+  order.forEach((key, i) => {
+    if (!key.startsWith('delivery-')) return
+    const pickup = `pickup-${key.slice('delivery-'.length)}`
+    const p = order.indexOf(pickup)
+    if (p > i) { bad.add(key); bad.add(pickup) }
+  })
+  return bad
 }
 
 /** Re-numbers P1…/D1… by type and POSITION within that type — live as the order changes. */

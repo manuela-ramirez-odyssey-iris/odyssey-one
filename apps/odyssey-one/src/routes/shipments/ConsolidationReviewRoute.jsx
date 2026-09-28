@@ -16,7 +16,7 @@ import { useApplyConsolidation } from '../../api/queries/useApplyConsolidation'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 import { applyTenderAction } from '../../lib/tenderAction.js'
 import { buildProposal } from '../../consolidation/proposal'
-import { reorderStops, validateStopOrder, labelStops } from '../../consolidation/stopOrder'
+import { reorderStops, invalidStopKeys, labelStops } from '../../consolidation/stopOrder'
 import { currentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import useSheet from '../useSheet'
@@ -110,15 +110,15 @@ function TenderedCheckTable({ rows }) {
 }
 
 // Shared row body for a Planned Stop — `grip` shows the drag-handle icon
-// (editable/sortable rows only). `changed` (user ruling 2026-09-25, item 1)
-// marks a stop whose position differs from the ORIGINAL proposed order —
-// purple marker + purple label/location text, unsaved or saved, kept after
-// Apply too.
-function StopContent({ s, changed, grip }) {
+// (editable/sortable rows only). `tone` (user, 2026-09-25): 'invalid' = red
+// (a delivery above its own pickup, after a Save attempt), 'changed' =
+// purple (moved since the last save), otherwise the original colours.
+function StopContent({ s, tone, grip }) {
+  const toneClass = tone ? ` consolidation-review__stop-location--${tone}` : ''
   return (
     <div className="consolidation-review__stop-inner">
       <div className="consolidation-review__stop-head">
-        <span className={`text-label-sm-medium${changed ? ' consolidation-review__stop-location--changed' : ''}`}>{s.location}</span>
+        <span className={`text-label-sm-medium${toneClass}`}>{s.location}</span>
         <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
         {grip && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
       </div>
@@ -131,7 +131,7 @@ function StopContent({ s, changed, grip }) {
 // (SortablePanelItem in routes/Home.jsx): useSortable's own transform drives
 // an inline translate3d, no custom ghost/FLIP/hysteresis. Listeners go on the
 // whole row (not just the grip icon), matching Home.
-function SortableStop({ s, changed }) {
+function SortableStop({ s, tone }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.key })
   const style = {
     transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
@@ -147,25 +147,25 @@ function SortableStop({ s, changed }) {
       {...attributes}
       {...listeners}
     >
-      <StopContent s={s} changed={changed} grip />
+      <StopContent s={s} tone={tone} grip />
     </div>
   )
 }
 
 // Timeline item builder for the Planned Stops list — sortable rows only while
 // `sortable` (read-only, no grip, once applied).
-function stopTimelineItems(stops, changedKeys, sortable) {
+function stopTimelineItems(stops, changedKeys, invalidKeys, sortable) {
   return stops.map((s) => {
-    const changed = changedKeys?.has(s.key)
+    const tone = invalidKeys.has(s.key) ? 'invalid' : changedKeys.has(s.key) ? 'changed' : null
     return {
       key: s.key,
       label: s.label,
-      status: changed ? 'changed' : 'completed',
+      status: tone === 'invalid' ? 'issue' : tone === 'changed' ? 'changed' : 'completed',
       showStatusBadge: false,
       badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
       content: sortable
-        ? <SortableStop s={s} changed={changed} />
-        : <div className="consolidation-review__stop"><StopContent s={s} changed={changed} grip={false} /></div>,
+        ? <SortableStop s={s} tone={tone} />
+        : <div className="consolidation-review__stop"><StopContent s={s} tone={tone} grip={false} /></div>,
     }
   })
 }
@@ -205,12 +205,17 @@ export default function ConsolidationReviewRoute() {
   const defaultSig = defaultOrder.join('|')
   const [committedStops, setCommittedStops] = useState({ sig: defaultSig, order: defaultOrder })
   const [draftStops, setDraftStops] = useState(committedStops.order)
-  const [stopOrderError, setStopOrderError] = useState(null)
+  // After a Save attempt: the out-of-order pairs (red) and the Amend/Reset
+  // dialog. `showChanged` goes false on every Save attempt — valid stops fall
+  // back to their original colours — and true again on the next reorder.
+  const [invalidKeys, setInvalidKeys] = useState(() => new Set())
+  const [invalidPrompt, setInvalidPrompt] = useState(false)
+  const [showChanged, setShowChanged] = useState(true)
   const stopsOutOfSync = defaultSig !== committedStops.sig
   if (stopsOutOfSync) {
     setCommittedStops({ sig: defaultSig, order: defaultOrder })
     setDraftStops(defaultOrder)
-    setStopOrderError(null)
+    setInvalidKeys(new Set())
   }
   // React doesn't apply the setState calls above until the NEXT render, so
   // anything computed later in THIS render still has to use `defaultOrder`
@@ -230,6 +235,7 @@ export default function ConsolidationReviewRoute() {
   const handleStopDragEnd = (event) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
+    setShowChanged(true)
     setDraftStops((prev) => {
       const from = prev.indexOf(active.id)
       const to = prev.indexOf(over.id)
@@ -237,12 +243,20 @@ export default function ConsolidationReviewRoute() {
       return reorderStops(prev, from, to)
     })
   }
-  const handleDiscardStops = () => { setDraftStops(committedStops.order); setStopOrderError(null) }
+  // Reset = back to the ORIGINAL proposal (user, 2026-09-25), saved or not.
+  const stopsCustomised = effectiveDraftOrder.join('|') !== defaultSig || effectiveCommittedOrder.join('|') !== defaultSig
+  const handleResetStops = () => {
+    setCommittedStops({ sig: defaultSig, order: defaultOrder })
+    setDraftStops(defaultOrder)
+    setInvalidKeys(new Set())
+    setInvalidPrompt(false)
+  }
   const handleSaveStops = () => {
-    const err = validateStopOrder(draftStops, byStopKey)
-    if (err) { setStopOrderError(err); return }
+    const bad = invalidStopKeys(draftStops)
+    setInvalidKeys(bad)
+    setShowChanged(false)
+    if (bad.size) { setInvalidPrompt(true); return }
     setCommittedStops({ sig: defaultSig, order: draftStops })
-    setStopOrderError(null)
   }
 
   // ── B3/B4 follow-up: one Apply modal, Confirm ⇄ Tendered-error ──────────
@@ -428,8 +442,8 @@ export default function ConsolidationReviewRoute() {
   // (`defaultOrder` — the default sequence the review opened with, not just
   // the last saved one). Holds for unsaved and saved changes alike, and stays
   // after Apply since `displayedStops` still reads from the same order.
-  const changedKeys = new Set(effectiveDraftOrder.filter((key, i) => defaultOrder[i] !== key))
-  const timelineItems = stopTimelineItems(displayedStops, changedKeys, !applied)
+  const changedKeys = showChanged ? new Set(effectiveDraftOrder.filter((key, i) => effectiveCommittedOrder[i] !== key)) : new Set()
+  const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, !applied)
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS
@@ -505,9 +519,8 @@ export default function ConsolidationReviewRoute() {
             {!applied && (
               <>
                 <div className="consolidation-review__stop-actions">
-                  <Button variant="secondary" disabled={!stopsDirty} onClick={handleDiscardStops}>Revert</Button>
+                  <Button variant="secondary" disabled={!stopsCustomised} onClick={handleResetStops}>Reset</Button>
                 </div>
-                {stopOrderError && <Alert variant="error" showClose={false}>{stopOrderError}</Alert>}
               </>
             )}
           </aside>
@@ -651,6 +664,23 @@ export default function ConsolidationReviewRoute() {
                 })}
               </div>
             )}
+          </ModalMedium>
+        )}
+
+        {invalidPrompt && (
+          <ModalMedium
+            title="Invalid Stop Sequence"
+            onClose={() => setInvalidPrompt(false)}
+            footer={(
+              <>
+                <Button variant="secondary" onClick={handleResetStops}>Reset</Button>
+                <Button onClick={() => setInvalidPrompt(false)}>Amend</Button>
+              </>
+            )}
+          >
+            <p className="text-label-sm-regular">
+              A delivery can't come before its pickup. Move the stops marked in red so each pickup comes first, or reset to the original sequence.
+            </p>
           </ModalMedium>
         )}
 

@@ -256,18 +256,18 @@ describe('ConsolidationReviewRoute', () => {
 
   // B2 — sortable Planned Stops (S161: dnd-kit, same pattern as Home's
   // metrics-library panel list).
-  test('Revert renders disabled until the stop order changes, and each stop carries a grip', () => {
+  test('Reset renders disabled until the stop order changes, and each stop carries a grip', () => {
     const { container } = renderReview({ rows })
-    expect(screen.getByRole('button', { name: 'Revert' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Save Stop Changes' })).toBeNull()
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(4) // 2 pickups + 2 deliveries
   })
 
-  test('Planned Stops are read-only after Apply — no grips, no Revert, no helper text', async () => {
+  test('Planned Stops are read-only after Apply — no grips, no Reset, no helper text', async () => {
     const { container } = await applyAndWait()
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(0)
-    expect(screen.queryByRole('button', { name: 'Revert' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
     expect(screen.queryByText('Drag stops to reorganize')).toBeNull()
   })
 
@@ -291,7 +291,7 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.queryByRole('button', { name: 'Apply Consolidation' })).toBeNull()
     const saveBtn = screen.getByRole('button', { name: 'Save Stop Changes' })
     expect(saveBtn.disabled).toBe(false) // never disabled for unsaved stops (user ruling 2026-09-27, item 2)
-    expect(screen.getByRole('button', { name: 'Revert' }).disabled).toBe(false)
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false)
   })
 
   test('Save Stop Changes saves without a dialog and flips the footer back to Apply Consolidation; Apply then opens the modal with the saved order', async () => {
@@ -309,44 +309,43 @@ describe('ConsolidationReviewRoute', () => {
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
   })
 
-  test('an invalid reorder shows the inline validation Alert on Save Stop Changes and stays unsaved', () => {
-    renderReview({ rows })
-    // Moves delivery-a above the first pickup — invalid per validateStopOrder.
-    simulateDragEnd('delivery-a', 'pickup-a')
+  // User, 2026-09-25: a delivery above its OWN pickup is invalid — Save marks
+  // that pair red and asks to Amend or Reset; nothing is saved.
+  test('Save with a delivery above its own pickup: pair turns red, dialog offers Amend / Reset', () => {
+    const { container } = renderReview({ rows })
+    simulateDragEnd('delivery-a', 'pickup-a') // delivery-a above pickup-a
     fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    expect(screen.getByText('A delivery stop cannot come before the first pickup stop.')).toBeTruthy()
+    const dialog = screen.getByRole('dialog', { name: 'Invalid Stop Sequence' })
+    expect(container.querySelectorAll('.stop-badge--issue').length).toBe(2)
+    expect(container.querySelectorAll('.consolidation-review__stop-location--invalid').length).toBe(2)
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0) // the valid ones fall back to original colours
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Amend' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByRole('button', { name: 'Save Stop Changes' })).toBeTruthy() // still unsaved
   })
 
-  // User ruling 2026-09-25, item 1 — a stop out of its ORIGINAL proposed
-  // position marks purple, unsaved. Revert (while unsaved) clears it back to
-  // the default order, since Revert restores the last-saved draft — which,
-  // pre-Save, IS the original.
-  test('a reordered stop shows the purple changed marker while unsaved, cleared by Revert', () => {
+  test('the invalid dialog\'s Reset restores the original sequence and clears the red', () => {
     const { container } = renderReview({ rows })
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
-
-    simulateDragEnd('pickup-a', 'pickup-b') // swaps pickup-a/pickup-b — both change position
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
-    expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(2)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Revert' }))
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
+    simulateDragEnd('delivery-a', 'pickup-a')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Reset' }))
+    expect(container.querySelectorAll('.stop-badge--issue').length).toBe(0)
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
   })
 
-  // Saving a reorder keeps the purple marking — it isn't a purely-in-progress
-  // signal, since the applied sequence (built from the SAVED order) can still
-  // differ from the original proposal (user ruling: "Hidden once applied? No").
-  test('a reordered stop stays marked changed once Saved, and after Apply', async () => {
+  // Purple = moved since the last save; a successful Save returns every stop
+  // to its original colours (user, 2026-09-25).
+  test('moved stops are purple until Saved, then original colours; Reset stays enabled after a save', () => {
     const { container } = renderReview({ rows })
     simulateDragEnd('pickup-a', 'pickup-b')
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
+    expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(2)
     fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
-
-    const dialog = await clickApply()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
-    await screen.findByText(/Consolidation Successfully Applied!/)
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false) // saved ≠ original
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
   })
 
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,
