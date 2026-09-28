@@ -928,7 +928,7 @@
 .structural-grid__product-cell { display: flex; flex-direction: column; gap: 2px; line-height: 1.35; }
 .structural-grid__faults { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
 .structural-grid__fault + .structural-grid__fault { padding-top: var(--spacing-4); border-top: 1px solid var(--border-subtle); }
-.structural-grid__message { color: var(--text-error); }
+.structural-grid__message { color: var(--text-error); margin: var(--spacing-1) 0 var(--spacing-3); }
 .structural-grid__field--fixed { display: flex; align-items: center; gap: var(--spacing-1); color: var(--caribbean-green-600); }
 .structural-grid__decision { display: flex; flex-direction: column; gap: var(--spacing-2); align-items: flex-start; }
 .structural-grid__chips { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-2); }
