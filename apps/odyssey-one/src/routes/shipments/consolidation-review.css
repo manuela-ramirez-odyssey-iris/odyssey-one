@@ -55,12 +55,17 @@
    goes dark + bold on BOTH. */
 .consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
 /* Hovered pair's markers (user, 2026-09-27): the status circle's check / "!"
-   becomes a plain green dot, a bit larger. `scale`, not transform — Timeline's
-   entry animation owns transform. Hover only, never mid-drag. */
-.consolidation-review__side .stop-badge__status { transition: scale var(--transition-fast); }
+   becomes a plain dot in the badge's OWN colour (inherit = the pill's computed
+   fill: blue pickup, green delivery, purple changed, red invalid), a bit
+   larger. It must appear INSTANTLY — on an unnumbered badge the circle mounts
+   on hover and would otherwise play Timeline's delayed fade-in, so the
+   animation is cancelled here. `scale`, not transform (Timeline's entry
+   animation owns transform). Hover only, never mid-drag. */
 .consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge__status {
-  background: var(--caribbean-green-600);
+  background: inherit;
   scale: 1.3;
+  animation: none;
+  opacity: 1;
 }
 .consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge__status > svg { display: none; }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
