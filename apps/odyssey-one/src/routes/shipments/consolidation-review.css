@@ -50,15 +50,14 @@
    aria-roledescription="sortable"; read-only (applied) stops don't get it. */
 .consolidation-review__stop[aria-roledescription="sortable"] { cursor: grab; }
 .consolidation-review__stop[data-dragging="true"] { cursor: grabbing; }
-/* Pair highlight (user, 2026-09-27): hovering or dragging a stop lights up
-   both stops of its shipment — the WHOLE timeline row, marker included. The
-   spread box-shadow pads the tint without shifting layout. The row whose
-   content is mid-drag is skipped (its content has left the slot). */
-.consolidation-review__side .odyssey-timeline__row:has(.consolidation-review__stop--paired:not([data-dragging])) {
-  background: var(--deep-sea-neutral-100);
-  box-shadow: 0 0 0 var(--spacing-1) var(--deep-sea-neutral-100);
-  border-radius: var(--radius-md);
-}
+/* Pair highlight (user, 2026-09-27): hovering or dragging a stop marks both
+   stops of its shipment — no background: their P#/D# markers grow a little
+   and the Shipment ID darkens. */
+.consolidation-review__side .stop-badge { transition: scale var(--transition-fast); }
+/* `scale`, not `transform`: Timeline's entry pulse animates transform with
+   fill-mode both, which would override a transform here. */
+.consolidation-review__side .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge { scale: 1.15; }
+.consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
    darker grip, bolder location, darker detail lines. */
 .consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-grip { color: var(--text-primary); }

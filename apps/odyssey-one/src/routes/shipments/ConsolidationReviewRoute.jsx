@@ -124,7 +124,7 @@ function StopContent({ s, tone, grip }) {
       </div>
       <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
       {/* The pair key (user, 2026-09-27): a shipment's P and D share this ID. */}
-      <span className="text-label-xs-regular consolidation-review__stop-date">Shipment: {s.shipmentId}</span>
+      <span className="text-label-xs-regular consolidation-review__stop-date consolidation-review__stop-shipment">Shipment: {s.shipmentId}</span>
     </div>
   )
 }
