@@ -96,6 +96,7 @@ import { totalMiles } from '../src/utils/legMiles.js'
 // here (same accepted pattern as legMiles.js above) means one copy of the
 // rule, never two that can drift.
 import { initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
+import { shipmentStatusFor } from '../src/lib/shipmentStatus.js'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -1312,13 +1313,6 @@ function generateShipment(index, chainOverride) {
   // (preTender: routingStatuses is EMPTY by construction — Task 1).
   const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent'
     : (routingStatuses.length > 0 ? routingStatuses[0] : '');
-  // shipmentStatus: Done once a carrier committed; Review when the tender
-  // failed and a human must act; '' while mid-flight OR parked pre-tender
-  // (decided 2026-09-18: no new "Consolidation"/"Hold" status value — the tab
-  // carries that meaning; a new enum would ripple into the search vocabulary).
-  // `let`: the order-change diversion below is the ONE legitimate override.
-  let shipmentStatus = hasAccepted ? 'Done' : (hasSent || preTender || isSpot) ? '' : 'Review';
-
   // Panel + category DERIVED from the lifecycle — the category used to be a
   // separate weighted pick that never looked at the tender state beside it,
   // which put 137 tender-accepted shipments in the pool and made "Tender Sent"
@@ -1374,7 +1368,6 @@ function generateShipment(index, chainOverride) {
     if (rnd() < 0.15) {
       panel = 'exceptions';
       category = 'order-change';
-      shipmentStatus = 'Review'; // LINX-8284: order change on a live tender → Review
       validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd() * VALIDATION_MESSAGES['order-change'].length)];
     }
   } else if (panel === 'exceptions' && orders.length > 1) {
@@ -2349,7 +2342,10 @@ function generateShipment(index, chainOverride) {
     seal: `S${faker.number.int({ min: 440000, max: 449999 })}`,
     scac: carrier.scac,
     tenderStatus,
-    shipmentStatus,
+    // DEC-204: derived from the FINAL panel/category (after the order-change
+    // diversions), one rule shared with the API. Zero draws. Replaces the
+    // S151 blank-status rule (2026-09-18, "the tab carries it").
+    shipmentStatus: shipmentStatusFor({ panel, category }),
     panel,
     category,
     validationMessage,

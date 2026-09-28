@@ -4,7 +4,8 @@
 // from the whitelist maps below — never from raw request keys.
 
 import { buildRankedSubquery, resolveNeedles } from './search.mjs'
-import { buildCandidateRows, MOVE_BLOCKED_STATUS, MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
+import { buildCandidateRows, MOVE_BLOCKED_CATEGORY, MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
+import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 
 // Sentinel `sortBy` meaning "order by search relevance, no column drives".
 // Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
@@ -415,7 +416,7 @@ export function computeListAggregates(orderList) {
 
 export function buildSourceShipmentsQuery(sellShipments) {
   return {
-    text: `SELECT sell_shipment AS "sellShipment", shipment_status AS "shipmentStatus",
+    text: `SELECT sell_shipment AS "sellShipment", category,
              tender_status AS "tenderStatus", detail
            FROM shipments WHERE sell_shipment = ANY($1)`,
     values: [sellShipments],
@@ -437,7 +438,7 @@ async function pullExternalOrders(db, externalOrders) {
   for (const { orderNumber, sourceSellShipment } of deduped) {
     const src = bySell.get(sourceSellShipment)
     const rec = src?.detail?.orderList?.find((o) => idOf(o) === orderNumber)
-    if (!src || !rec || MOVE_BLOCKED_STATUS.includes(src.shipmentStatus) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus)) {
+    if (!src || !rec || MOVE_BLOCKED_CATEGORY.includes(src.category) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus)) {
       blocked.push(orderNumber)
       continue
     }
@@ -477,20 +478,25 @@ export function removeOrdersFromSource(detail, movedIds) {
 // assertion written before T4 still passes unchanged).
 export function buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier) {
   const carrierSet = listCarrier ? ', scac = $7, ap_freight_cost = $8' : ''
+  const values = listCarrier
+    ? [
+        outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
+        JSON.stringify(resolution), sellShipment, listCarrier.scac, listCarrier.apFreightCost,
+      ]
+    : [
+        outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
+        JSON.stringify(resolution), sellShipment,
+      ]
+  // DEC-204: the status follows the re-filing (last param, so the earlier
+  // placeholders keep their numbers).
+  values.push(shipmentStatusFor(outcome))
   return {
     text: `UPDATE shipments
              SET tender_status = $1, panel = $2, category = $3, validation_message = $4,
-                 detail = jsonb_set(detail, '{orderChange,resolution}', $5::jsonb)${carrierSet}
+                 detail = jsonb_set(detail, '{orderChange,resolution}', $5::jsonb)${carrierSet},
+                 shipment_status = $${values.length}
            WHERE sell_shipment = $6 RETURNING sell_shipment`,
-    values: listCarrier
-      ? [
-          outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
-          JSON.stringify(resolution), sellShipment, listCarrier.scac, listCarrier.apFreightCost,
-        ]
-      : [
-          outcome.tenderStatus, outcome.panel, outcome.category, outcome.validationMessage,
-          JSON.stringify(resolution), sellShipment,
-        ],
+    values,
   }
 }
 

@@ -92,7 +92,7 @@ Six attributes carry a fixed catalog. Every one of them is `exact`.
 | Mode | TL · LTL · RR · IMD · AIR | `MODES` |
 | Equipment Code | LTL · LTR · LTH · TL · TLR · TLH · TT · TLF · LCL · FCL · RR | `EQUIPMENT_CODES` |
 | Tender Status | Sent · Accepted · Declined · Cancelled | — |
-| Shipment Status | Review · Done | — |
+| Shipment Status | Hold · Consolidation · Review · Approved · Done | DEC-204 (provisional, Confluence *Shipment Status Transition-WIP*) — derived from panel/category, `src/lib/shipmentStatus.js` |
 | Shipment Type | Direct · Consolidation | LINX-11597 verbatim — Direct = 1 mapped order, Consolidation = >1 |
 | Planning Type | RDD · SSD | LINX-12902 verbatim — RDD if ANY mapped order is RDD, else SSD |
 
@@ -156,7 +156,7 @@ Progression order. `match` and `exact` are the code's own fields; the panel colu
 | 19 | Transport & Equipment | Seal Number | `seal` | letters | | `S447972` | ✓ |
 | 20 | Carrier & Tender Status | SCAC | `scac` | letters | | `XPOL` | ✓ |
 | 21 | Carrier & Tender Status | Tender Status | `tenderStatus` | enum (4) | ✓ | `Sent` | |
-| 22 | Carrier & Tender Status | Shipment Status | `shipmentStatus` | enum (2) | ✓ | `Done` | |
+| 22 | Carrier & Tender Status | Shipment Status | `shipmentStatus` | enum (5) | ✓ | `Done` | |
 | 23 | Classification | Shipment Type ² | `shipmentType` | enum (2) | ✓ | `Direct` | |
 | 24 | Classification | Planning Type | `planningType` | enum (2) | ✓ | `SSD` | |
 | 25 | Cargo & Handling | Gross Weight | `grossWeight` | digits | | `6129` | |

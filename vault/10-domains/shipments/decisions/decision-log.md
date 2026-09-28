@@ -1265,7 +1265,8 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 
 ### DEC-204: Shipment status derived from the lifecycle (HOLD / CONSOLIDATION / REVIEW / APPROVED / DONE)
 - **Previous:** pre-tender, sent and SpotBid shipments kept a blank status, and the tab carried the meaning (S151 "silent resolve", 2026-09-18).
-- **Decision:** Hold → `Hold`, Consolidation → `Consolidation`, sent → `Approved` (user: the word LINX-15872 uses), accepted → `Done`, every exception including SpotBid/Bid Review → `Review`. 15872's move block reads the lifecycle, not the label. Ripples into the search vocabulary and the Cognizant progression sheets. Build owed, needs a reseed. Closes OC-open-20.
+- **Decision:** Hold → `Hold`, Consolidation → `Consolidation`, sent → `Approved` (user: the word LINX-15872 uses), accepted → `Done`, every exception including SpotBid/Bid Review → `Review`. 15872's move block reads the lifecycle, not the label. Ripples into the search vocabulary and the Cognizant progression sheets. Closes OC-open-20.
+- **Built S162:** one rule in `src/lib/shipmentStatus.js`, used by the seed (derived from the FINAL panel/category, zero draws, 0 of 2,200 ids moved), the order-change resolution write, plan-shipment and consolidate. The move block now checks category ∈ sent/approved/spotbid/bid-review. **Badge colours are ours** (not in the WIP spec): Review red, Done green (both unchanged), Approved blue, Consolidation purple, Hold gray. The search result badge drops its amber Review and its "Sent" stand-in for the same map. The progression sheets carry no enum column, so they are unchanged (audit clean); the shipments progression doc's catalog is updated. **Reseed owed.**
 - **Source:** Rovo summary of Confluence *Shipment Status Transition-WIP* + LINX-5923 (2026-09-25); **WIP spec, so provisional**; user 2026-09-25.
 
 ### DEC-205: A removed order becomes its own shipment, placed by the seed's lifecycle rule

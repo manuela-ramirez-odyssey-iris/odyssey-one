@@ -125,7 +125,7 @@ export function buildConsolidatedShipment({ sources, seq, now = new Date(), stop
     seal: null,
     scac: null,
     tenderStatus: '',                     // a consolidation is born untendered (Dave, 2026-09-17)
-    shipmentStatus: '',
+    shipmentStatus: 'Consolidation',      // DEC-204: the pool's status
     panel: 'monitoring',
     category: 'consolidation',            // born in the optimization pool (DEC-156/157)
     validationMessage: null,

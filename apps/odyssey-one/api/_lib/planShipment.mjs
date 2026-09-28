@@ -11,6 +11,7 @@
 //
 // It is a REPRODUCTION of documented behaviour, never the source of a rule.
 import { projectRow } from './search-registry.mjs'
+import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 
 // Same table seed.mjs uses to turn the generator's display strings into
 // timestamptz — the abbreviation already encodes the DST decision.
@@ -184,7 +185,7 @@ export function buildDirectShipment({ mo, orderNumber, orderId, customerName, no
     seal: null,
     scac: null,
     tenderStatus: '',                     // never tendered on creation (Dave 00:21:30)
-    shipmentStatus: '',
+    shipmentStatus: shipmentStatusFor({ panel: 'monitoring', category }), // DEC-204
     panel: 'monitoring',
     category,
     validationMessage: null,

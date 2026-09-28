@@ -1705,7 +1705,7 @@ test('monitoring tabs agree with tender state — the S151 invariant', () => {
       case 'approved':      assert.equal(s.tenderStatus, 'Accepted', s.sellShipment); break
       case 'sent':          assert.equal(s.tenderStatus, 'Sent', s.sellShipment); break
       case 'consolidation':
-      case 'hold':          assert.equal(s.tenderStatus, '', `${s.sellShipment} in the pool but tendered`); assert.equal(s.shipmentStatus, ''); break
+      case 'hold':          assert.equal(s.tenderStatus, '', `${s.sellShipment} in the pool but tendered`); break
       case 'spotbid':       assert.ok(['Declined', 'Cancelled'].includes(s.tenderStatus), `${s.sellShipment} in spot with an active tender (PRD Feature 1)`); break
       default: assert.fail(`${s.sellShipment} unknown monitoring category ${s.category}`)
     }
@@ -1713,6 +1713,17 @@ test('monitoring tabs agree with tender state — the S151 invariant', () => {
   // Every monitoring category must be populated — an empty tab is a regression.
   for (const c of ['approved', 'sent', 'consolidation', 'hold', 'spotbid'])
     assert.ok(ds.shipments.some((s) => s.panel === 'monitoring' && s.category === c), `no rows in ${c}`)
+})
+
+test('DEC-204: every shipment status is the lifecycle label — Hold/Consolidation/Approved/Done in monitoring, Review otherwise', () => {
+  const ds = buildDataset()
+  const want = { hold: 'Hold', consolidation: 'Consolidation', sent: 'Approved', approved: 'Done', spotbid: 'Review' }
+  const seen = new Set()
+  for (const s of ds.shipments) {
+    assert.equal(s.shipmentStatus, s.panel === 'exceptions' ? 'Review' : want[s.category], `${s.sellShipment} ${s.panel}/${s.category}`)
+    seen.add(s.shipmentStatus)
+  }
+  assert.deepEqual([...seen].sort(), ['Approved', 'Consolidation', 'Done', 'Hold', 'Review'], 'every status is reachable in the seed')
 })
 
 test('history ends at Optimization Evaluation for a pre-tender shipment, and names the right pool (S151)', () => {

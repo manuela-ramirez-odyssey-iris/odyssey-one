@@ -68,7 +68,7 @@ A shipment with `order_count = 0` is excluded from the Shipments list, search an
 - **D4 (OC-open-3, 14513):** pickup/delivery dates editable when routing returns none.
 - **D5 (OC-open-4, 14510):** keep and show every Tender Option Version, not just prior and new. First measure what Routing History (15895) already covers, then build only the gap.
 
-## S. Shipment statuses (R4 + Rovo, closes OC-open-20)
+## S. Shipment statuses (R4 + Rovo, closes OC-open-20) — BUILT S162, reseed owed
 Derive `shipmentStatus` from the lifecycle the seed already draws, with zero new draws:
 - consolidation → `Consolidation`, hold → `Hold`, sent → `Approved`, accepted → `Done`
 - every exception category, **including SpotBid and Bid Review**, → `Review`

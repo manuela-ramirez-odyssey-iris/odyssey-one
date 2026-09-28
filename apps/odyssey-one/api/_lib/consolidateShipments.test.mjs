@@ -102,7 +102,7 @@ test('the new shipment is born in the pool, untendered, unrated (DEC-156/157)', 
   assert.equal(row.panel, 'monitoring')
   assert.equal(row.category, 'consolidation')
   assert.equal(row.tenderStatus, '')
-  assert.equal(row.shipmentStatus, '')
+  assert.equal(row.shipmentStatus, 'Consolidation') // DEC-204
   assert.equal(row.scac, null)
   assert.equal(row.pro, null)
   assert.equal(row.legType, null)

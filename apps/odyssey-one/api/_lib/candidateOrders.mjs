@@ -12,11 +12,15 @@ export const EMPTY_FILTERS = {
   orderNumber: '', buyShipment: '', shipDate: { from: '', to: '' }, deliveryDate: { from: '', to: '' },
   origin: '', destination: '', shipmentStatus: '', tenderStatus: '',
 }
-// Seed vocabulary (OC-open-20: the AC lists eight statuses the seed does not carry).
-export const SHIPMENT_STATUSES = ['Review', 'Done']
+// DEC-204 vocabulary (closes OC-open-20). Re-exported so AddOrdersModal keeps one import.
+export { SHIPMENT_STATUSES } from '../../src/lib/shipmentStatus.js'
 export const TENDER_STATUSES = ['Sent', 'Accepted', 'Cancelled', 'Declined']
 // LINX-15872 — what Save refuses; shipments.mjs imports these for the server check.
-export const MOVE_BLOCKED_STATUS = ['Approved', 'Done', 'SpotBid', 'Bid Review']
+// The AC's list is "Approved, Done, SpotBid, Bid Review". Read off the CATEGORY,
+// not the status label: SpotBid and Bid Review both display as Review (DEC-204)
+// while a Review from any other exception is movable. sent → Approved,
+// approved → Done.
+export const MOVE_BLOCKED_CATEGORY = ['sent', 'approved', 'spotbid', 'bid-review']
 export const MOVE_BLOCKED_TENDER = ['To Be Tendered', 'Sent', 'Accepted']
 
 const place = (a) => (a ? `${a.city}, ${a.state} ${a.country}` : '--')

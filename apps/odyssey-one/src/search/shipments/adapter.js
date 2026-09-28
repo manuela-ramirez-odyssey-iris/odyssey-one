@@ -1,4 +1,5 @@
 import { getAllShipments } from '../../data'
+import { SHIPMENT_STATUS_VARIANT } from '../../lib/shipmentStatus'
 import { SHIPMENTS_ATTRIBUTES, SHIPMENTS_PROGRESSION, FREE_TEXT_ATTRS } from './progression'
 import { valueMatchDetail, distinctMatches } from './searchIndex'
 // Shared chip+text matcher (S79c) — the SAME predicates the grid service applies
@@ -418,11 +419,10 @@ function formatPrimaryField(s, dataKey, query) {
   return String(val)
 }
 
+// DEC-204: every shipment carries a status now, so the badge is just it, in
+// the grid's own colours (the old 'Sent' stand-in filled the blank status).
 export function toStatusBadge(s) {
-  if (s.tenderStatus === 'Sent') return { label: 'Sent', variant: 'blue' }
-  if (s.shipmentStatus === 'Done') return { label: 'Done', variant: 'green' }
-  if (s.shipmentStatus === 'Review') return { label: 'Review', variant: 'amber' }
-  return { label: s.shipmentStatus || '—', variant: 'gray' }
+  return { label: s.shipmentStatus || '—', variant: SHIPMENT_STATUS_VARIANT[s.shipmentStatus] ?? 'gray' }
 }
 
 export function toTenderBadge(s) {

@@ -700,7 +700,10 @@ describe('resolveOrderChange', () => {
     // the carrier this resolution acted on — the prior carrier, re-costed.
     const resolveWrite = calls.find((q) => /orderChange,resolution/.test(textOf(q)))
     assert.ok(/scac = \$7, ap_freight_cost = \$8/.test(resolveWrite.text))
-    assert.deepEqual(resolveWrite.values.slice(6), ['PRIOR', '1,234.56'])
+    assert.deepEqual(resolveWrite.values.slice(6, 8), ['PRIOR', '1,234.56'])
+    // DEC-204: retender → monitoring/sent → Approved, written as the last param
+    assert.ok(/shipment_status = \$9/.test(resolveWrite.text))
+    assert.equal(resolveWrite.values[8], 'Approved')
   })
 
   it('cancel with a dropped prior falls the list-row scac/ap_freight_cost back to the new list\'s rank 1', async () => {
@@ -715,7 +718,8 @@ describe('resolveOrderChange', () => {
     const { db, calls } = mkOc(detail)
     await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
     const resolveWrite = calls.find((q) => /orderChange,resolution/.test(textOf(q)))
-    assert.deepEqual(resolveWrite.values.slice(6), ['AAAA', '750.00'], 'the AP total (totalCostAmount), not the base rate')
+    assert.deepEqual(resolveWrite.values.slice(6, 8), ['AAAA', '750.00'], 'the AP total (totalCostAmount), not the base rate')
+    assert.equal(resolveWrite.values[8], 'Review', 'DEC-204: cancel re-parks in exceptions → Review')
     const optionListWrite = calls.find((q) => /shippingOptionList/.test(textOf(q)))
     const written = JSON.parse(optionListWrite.values[0])
     assert.equal(written.length, 1, 'PRIOR was dropped by routing — never inserted for cancel')
@@ -909,7 +913,7 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
         { stopSequence: 3, stopType: 'delivery', orderIds: ['E', 'F'], facilityName: 'Z', grossWeightValue: 8 },
       ],
     }
-    const { db, calls, state } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    const { db, calls, state } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: src })
     await resolveOrderChange({ params: ['9'], body, db })
     const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
     // Deviation from the plan draft: the detail read + source revalidation
@@ -951,7 +955,7 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
       stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A'], sourceStopSequence: null }],
       externalOrders: [],
     }
-    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: source })
+    const { db, calls } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: source })
     await resolveOrderChange({ params: ['9'], body: plainBody, db })
     assert.ok(!calls.some((q) => /UPDATE orders SET shipment_sell_id/.test(q.text ?? '')))
   })
@@ -961,15 +965,20 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     // otherwise block this pick before BEGIN, and this test is about the
     // ROLLBACK path, not that check.
     const src = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'G', grossWeightValue: 3 }], shipmentStopList: [] }
-    const { db, calls, state } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src }, { failWrite: true })
+    const { db, calls, state } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: src }, { failWrite: true })
     await assert.rejects(() => resolveOrderChange({ params: ['9'], body, db }))
     const texts = calls.map((q) => (typeof q === 'string' ? q : q.text))
     assert.equal(texts[texts.length - 1], 'ROLLBACK')
     assert.ok(state.released, 'client released back to the pool even on the throwing path')
   })
 
+  it('refuses a SpotBid source even though it displays as Review — the block reads the category (DEC-204)', async () => {
+    const { db } = mk({ sellShipment: '77', category: 'spotbid', tenderStatus: 'Declined', detail: source })
+    await assert.rejects(() => resolveOrderChange({ params: ['9'], body, db }), (e) => e.status === 400)
+  })
+
   it('refuses when the source shipment is Done or has an active tender, naming the order — nothing written, no transaction opened', async () => {
-    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Done', tenderStatus: 'Cancelled', detail: source })
+    const { db, calls } = mk({ sellShipment: '77', category: 'approved', tenderStatus: 'Cancelled', detail: source })
     await assert.rejects(
       () => resolveOrderChange({ params: ['9'], body, db }),
       (e) => e.status === 400 && /cannot be moved/.test(e.message) && /Order impacted: E/.test(e.message),
@@ -986,7 +995,7 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
       orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'F', grossWeightValue: 3 }],
       shipmentStopList: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['E', 'F'], grossWeightValue: 10 }],
     }
-    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    const { db, calls } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: src })
     const emptyingBody = {
       action: 'save-stops', priorTenderStatus: 'Sent',
       stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'E', 'F'], sourceStopSequence: null }],
@@ -1007,7 +1016,7 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
       orderList: [{ orderNumber: 'E', grossWeightValue: 7 }, { orderNumber: 'F', grossWeightValue: 1 }],
       shipmentStopList: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['F'] }],
     }
-    const { db, calls } = mk({ sellShipment: '77', shipmentStatus: 'Review', tenderStatus: 'Cancelled', detail: src })
+    const { db, calls } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: src })
     await resolveOrderChange({ params: ['9'], body, db })   // body only moves E, leaves F
     assert.ok(calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
   })

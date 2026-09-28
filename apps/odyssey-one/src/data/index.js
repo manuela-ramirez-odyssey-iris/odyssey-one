@@ -1,5 +1,6 @@
 import shipments from './shipments.json'
 import { EQUIPMENT_CODES } from './master-data'
+import { SHIPMENT_STATUSES } from '../lib/shipmentStatus'
 
 // ─── Shipment list (statically imported, ~0.9 MB) + runtime overlay ─────────
 // Mock mode keeps a module-level in-memory overlay over shipments.json — the
@@ -68,6 +69,6 @@ export const SEARCH_ATTRIBUTES = [
   { key: 'mode', label: 'Mode', type: 'dropdown', dataKey: 'mode', values: ['TL', 'LTL', 'RR', 'IMD', 'AIR'] },
   { key: 'scac', label: 'SCAC', type: 'dropdown', dataKey: 'scac' },
   { key: 'tender-status', label: 'Tender Status', type: 'dropdown', dataKey: 'tenderStatus', values: ['Sent', 'Accepted', 'Declined', 'Cancelled'] },
-  { key: 'shipment-status', label: 'Shipment Status', type: 'dropdown', dataKey: 'shipmentStatus', values: ['Review', 'Done'] },
+  { key: 'shipment-status', label: 'Shipment Status', type: 'dropdown', dataKey: 'shipmentStatus', values: SHIPMENT_STATUSES },
   { key: 'equipment-code', label: 'Equipment Code', type: 'dropdown', dataKey: 'equipmentCode', values: EQUIPMENT_CODES },
 ]

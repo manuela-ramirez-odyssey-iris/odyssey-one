@@ -52,7 +52,7 @@ test('a consolidatable order lands in the pool: monitoring/consolidation, Direct
   assert.equal(row.category, 'consolidation')
   assert.equal(row.shipmentType, 'Direct')
   assert.equal(row.tenderStatus, '')
-  assert.equal(row.shipmentStatus, '')
+  assert.equal(row.shipmentStatus, 'Consolidation') // DEC-204
   assert.equal(row.scac, null)
   assert.deepEqual(row.orders, ['ORD-1001'])
   assert.equal(row.orderCount, '1')

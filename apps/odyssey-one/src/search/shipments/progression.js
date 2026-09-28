@@ -35,6 +35,7 @@
  */
 import { EQUIPMENT_CODES } from '../../data/master-data'
 import { FREE_TEXT_KEYS } from './criteria'
+import { SHIPMENT_STATUSES } from '../../lib/shipmentStatus'
 
 export const SHIPMENTS_PROGRESSION = [
   {
@@ -98,7 +99,7 @@ export const SHIPMENTS_PROGRESSION = [
     attributes: [
       { key: 'scac', label: 'SCAC', dataKey: 'scac', match: 'letters' },
       { key: 'tender-status', label: 'Tender Status', dataKey: 'tenderStatus', match: 'enum', exact: true, values: ['Sent', 'Accepted', 'Declined', 'Cancelled'] },
-      { key: 'shipment-status', label: 'Shipment Status', dataKey: 'shipmentStatus', match: 'enum', exact: true, values: ['Review', 'Done'] },
+      { key: 'shipment-status', label: 'Shipment Status', dataKey: 'shipmentStatus', match: 'enum', exact: true, values: SHIPMENT_STATUSES }, // DEC-204
     ],
   },
   {

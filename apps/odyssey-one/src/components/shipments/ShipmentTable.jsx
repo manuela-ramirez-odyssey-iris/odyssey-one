@@ -9,6 +9,7 @@ import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
 import { getErrorDetail } from '../common/errorDetail.js'
+import { SHIPMENT_STATUS_VARIANT } from '../../lib/shipmentStatus'
 
 /**
  * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
@@ -70,7 +71,7 @@ export const COLUMN_CONFIG = [
     label: 'Shipment Status',
     render: (s) => {
       const badge = s.shipmentStatus ? (
-        <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
+        <Badge variant={SHIPMENT_STATUS_VARIANT[s.shipmentStatus] ?? 'gray'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
       ) : '—'
       if (!s.tenderStatus) return <span>{badge}</span>
       return (
