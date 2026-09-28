@@ -161,7 +161,7 @@ function CheckboxField({ label, checked }) {
   )
 }
 
-function StatusBadge({ status }) {
+export function StatusBadge({ status }) {
   if (!status) return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
   const style = STATUS_STYLES[status] || STATUS_STYLES.Declined
   return (

@@ -8,6 +8,7 @@ import { Inbox, MapPin, GripVertical, Trash2, Replace } from 'lucide-react'
 import { Alert, Badge, Breadcrumb, Button, DataTable, EmptyState, ModalMedium, PageHeader, Radio, StepperButtonsFooter, SubAccordion, SummaryStrip, Timeline } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
+import { StatusBadge as TenderStatusBadge } from '../../components/detail/RoutingGuideTab.jsx'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { DEFAULT_COLUMNS } from '../../components/detail/ColumnPanel.jsx'
 import { getSellShipmentDetail, saveTenderOption } from '../../api/services/shipmentService'
@@ -90,7 +91,8 @@ function TenderedCheckTable({ rows }) {
     columnHelper.display({
       id: 'tenderedStatus',
       header: 'Shipment Status',
-      cell: ({ row }) => (ACTIVE_TENDER.has(row.original.tenderStatus) ? <Badge variant="red">Tendered</Badge> : null),
+      // Same badge + wording as the Tender table (e.g. "Accepted", "Sent") — user, 2026-09-27.
+      cell: ({ row }) => (ACTIVE_TENDER.has(row.original.tenderStatus) ? <TenderStatusBadge status={row.original.tenderStatus} /> : null),
     }),
     columnHelper.accessor('odysseyShipmentIdentifier', { header: 'Odyssey Shipment ID' }),
     columnHelper.accessor('customerId', { header: 'Customer ID(s)' }),
@@ -491,7 +493,7 @@ export default function ConsolidationReviewRoute() {
         { value: 'cancelTender', label: 'Cancel tender on the accepted shipments and continue consolidation.', Icon: Replace },
       ]
     : [
-        { value: 'discard', label: 'Discard and select different shipments. Consolidation requires at least 2 shipments.', Icon: Trash2 },
+        { value: 'discard', label: 'Discard consolidation and select different shipments. Consolidation requires at least 2 shipments.', Icon: Trash2 },
         { value: 'cancelTender', label: 'Cancel tender on the accepted shipment and continue consolidation.', Icon: Replace },
       ])
 

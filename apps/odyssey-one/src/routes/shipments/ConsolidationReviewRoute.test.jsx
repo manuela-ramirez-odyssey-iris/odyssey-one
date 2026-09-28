@@ -435,12 +435,13 @@ describe('ConsolidationReviewRoute', () => {
       expect(screen.getByText('1 Error(s): Shipment O00000001 has been tendered and cannot be consolidated.')).toBeTruthy()
       expect(screen.getByText('Remove tendered shipment(s) and proceed with the remaining 2.')).toBeTruthy()
       expect(screen.getByText('Cancel tender on the accepted shipments and continue consolidation.')).toBeTruthy()
+      expect(within(screen.getByRole('dialog')).getByText('Sent')).toBeTruthy() // Tender-table wording, not "Tendered"
     })
 
     test('remaining < 2: offers Discard / Cancel instead', async () => {
       renderReview({ rows: rowsWithTender(1) })
       await clickApply()
-      expect(screen.getByText('Discard and select different shipments. Consolidation requires at least 2 shipments.')).toBeTruthy()
+      expect(screen.getByText('Discard consolidation and select different shipments. Consolidation requires at least 2 shipments.')).toBeTruthy()
       expect(screen.getByText('Cancel tender on the accepted shipment and continue consolidation.')).toBeTruthy()
     })
 
@@ -457,7 +458,7 @@ describe('ConsolidationReviewRoute', () => {
       const dialog = await clickApply()
       fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Solution' }))
       expect(await within(dialog).findByText('Tendered shipment O00000001 removed from the consolidation.')).toBeTruthy()
-      expect(within(dialog).queryByText('Tendered')).toBeNull() // badge gone with the row
+      expect(within(dialog).queryByText('Sent')).toBeNull() // tender-status badge gone with the row
       fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
       await screen.findByText(/Consolidation Successfully Applied!/)
       expect(vi.mocked(applyConsolidation).mock.calls[0][0].sellShipments).toEqual(['b', 'c'])
@@ -482,7 +483,7 @@ describe('ConsolidationReviewRoute', () => {
       fireEvent.click(within(dialog).getByText('Cancel tender on the accepted shipments and continue consolidation.'))
       fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Solution' }))
       expect(await within(dialog).findByText('Tender cancelled on shipment O00000001.')).toBeTruthy()
-      expect(within(dialog).queryByText('Tendered')).toBeNull() // badge cleared, row still present
+      expect(within(dialog).queryByText('Sent')).toBeNull() // tender-status badge cleared, row still present
       expect(vi.mocked(saveTenderOption)).toHaveBeenCalledWith('a', expect.objectContaining({ rank: 1, status: 'Cancelled' }))
       fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
       await screen.findByText(/Consolidation Successfully Applied!/)
