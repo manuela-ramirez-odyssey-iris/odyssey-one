@@ -57,8 +57,9 @@
 /* Pair marker colour (user, 2026-09-27 — replaces the scale-up): both P/D
    markers of the lit shipment go Deep Sea dark. !important is needed to beat
    Timeline's entry animation, which holds its end colours with fill-mode both
-   (a normal declaration loses to a running/filled animation). */
-.consolidation-review__side .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge {
+   (a normal declaration loses to a running/filled animation). Hover only —
+   never while a stop is being dragged (user, 2026-09-27). */
+.consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge {
   background: var(--deep-sea-neutral-900) !important;
   color: var(--white) !important;
 }
