@@ -123,6 +123,8 @@ function StopContent({ s, tone, grip }) {
         {grip && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
       </div>
       <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
+      {/* The pair key (user, 2026-09-27): a shipment's P and D share this ID. */}
+      <span className="text-label-xs-regular consolidation-review__stop-date">Shipment: {s.shipmentId}</span>
     </div>
   )
 }
@@ -224,7 +226,15 @@ export default function ConsolidationReviewRoute() {
   const effectiveCommittedOrder = stopsOutOfSync ? defaultOrder : committedStops.order
   const effectiveDraftOrder = stopsOutOfSync ? defaultOrder : draftStops
   const stopsDirty = effectiveDraftOrder.join('|') !== effectiveCommittedOrder.join('|')
-  const displayedStops = labelStops(effectiveDraftOrder, byStopKey)
+  // Numbers are the LAST SAVED sequence (user, 2026-09-27): a stop moved since
+  // the save reads P?/D? — its position isn't confirmed — until a valid Save
+  // numbers the whole list. Same `?` meaning as order change's unsequenced stop.
+  const savedLabel = Object.fromEntries(labelStops(effectiveCommittedOrder, byStopKey).map((s) => [s.key, s.label]))
+  const displayedStops = effectiveDraftOrder.map((key, i) => {
+    const s = byStopKey[key]
+    const unsequenced = effectiveCommittedOrder[i] !== key
+    return { ...s, label: unsequenced ? (s.type === 'pickup' ? 'P?' : 'D?') : savedLabel[key] }
+  })
   // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
   // 8px activation distance so a plain click doesn't start a drag, plus
   // KeyboardSensor for accessible reordering).
@@ -679,7 +689,7 @@ export default function ConsolidationReviewRoute() {
             )}
           >
             <p className="text-label-sm-regular">
-              A delivery can't come before its pickup. Move the stops marked in red so each pickup comes first, or reset to the original sequence.
+              An order must be picked up before it can be delivered. Move the stops marked in red so each shipment's pickup comes first, or reset to the original sequence.
             </p>
           </ModalMedium>
         )}

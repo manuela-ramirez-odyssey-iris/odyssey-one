@@ -23,6 +23,7 @@ export function buildProposal(rows = [], details = []) {
     location: (type === 'pickup' ? r.origin : r.destination) || '--',
     date: (type === 'pickup' ? r.pickupDate : r.deliveryDate) || '--',
     sellShipment: r.sellShipment,
+    shipmentId: r.odysseyShipmentIdentifier || r.sellShipment,
   })
   const pickups = rows.map((r, i) => stop(r, i, 'pickup'))
   const deliveries = rows.map((r, i) => stop(r, i, 'delivery'))

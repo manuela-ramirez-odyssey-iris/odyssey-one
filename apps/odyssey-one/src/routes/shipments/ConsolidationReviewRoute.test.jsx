@@ -334,6 +334,28 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
   })
 
+  // Numbers = last saved sequence; moved stops read P?/D? until a valid Save
+  // (user, 2026-09-27). Each stop names its shipment — the P/D pair key.
+  test('moved stops read P?/D? until saved; a valid Save numbers them; every stop shows its Shipment', () => {
+    const { container } = renderReview({ rows })
+    expect(container.querySelectorAll('.consolidation-review__stop').length).toBe(4)
+    expect(screen.getAllByText(/^Shipment: /).length).toBe(4)
+    simulateDragEnd('pickup-a', 'pickup-b')
+    expect(screen.getAllByText('P?').length).toBe(2)
+    expect(screen.getByText('D1')).toBeTruthy() // unmoved stops keep their saved number
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    expect(screen.queryByText('P?')).toBeNull()
+    expect(screen.getByText('P1')).toBeTruthy()
+    expect(screen.getByText('P2')).toBeTruthy()
+  })
+
+  test('an invalid Save leaves the moved stops unnumbered (?)', () => {
+    renderReview({ rows })
+    simulateDragEnd('delivery-a', 'pickup-a')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    expect(screen.getAllByText(/^[PD]\?$/).length).toBeGreaterThan(0)
+  })
+
   // Purple = moved since the last save; a successful Save returns every stop
   // to its original colours (user, 2026-09-25).
   test('moved stops are purple until Saved, then original colours; Reset stays enabled after a save', () => {
