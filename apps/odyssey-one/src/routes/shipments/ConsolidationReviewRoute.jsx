@@ -169,7 +169,8 @@ function stopTimelineItems(stops, changedKeys, invalidKeys, pair) {
       status: tone === 'invalid' ? 'issue' : tone === 'changed' ? 'changed' : 'completed',
       // Mini status icon (user, 2026-09-27): the check only on a NUMBERED
       // unchanged stop, the alert on an invalid one; none while unconfirmed.
-      showStatusBadge: tone === 'invalid' || (!tone && /\d/.test(s.label)),
+      // A hovered pair always shows the circle — CSS turns it into a green dot.
+      showStatusBadge: (pair?.hovering && pair.shipment === s.sellShipment) || tone === 'invalid' || (!tone && /\d/.test(s.label)),
       badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
       content: pair
         ? <SortableStop s={s} tone={tone} paired={pair.shipment === s.sellShipment} onPairHover={pair.onHover} />
@@ -250,10 +251,6 @@ export default function ConsolidationReviewRoute() {
     : savedFirstMoved === -1 ? dragFrom : Math.min(savedFirstMoved, dragFrom)
   const displayedStops = effectiveDraftOrder.map((key, i) => {
     const s = byStopKey[key]
-    // Hovered pair (not mid-drag): its markers drop their numbers too
-    // (user, 2026-09-27 — trial, replaces the opacity fade).
-    const hoveredPair = dragFrom == null && pairShipment === s.sellShipment
-    if (hoveredPair) return { ...s, label: s.type === 'pickup' ? 'P' : 'D' }
     if (firstMoved === -1 || i < firstMoved) return s
     return { ...s, label: s.type === 'pickup' ? 'P' : 'D', gray: dragFrom != null }
   })
@@ -482,6 +479,7 @@ export default function ConsolidationReviewRoute() {
   const changedKeys = showChanged ? new Set(effectiveDraftOrder.filter((key, i) => effectiveCommittedOrder[i] !== key)) : new Set()
   const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, applied ? null : {
     shipment: pairShipment,
+    hovering: dragFrom == null,
     // Hover is ignored mid-drag — the pointer passing over other stops must not re-light pairs.
     onHover: (shipment) => { if (dragFrom == null) setPairShipment(shipment) },
   })

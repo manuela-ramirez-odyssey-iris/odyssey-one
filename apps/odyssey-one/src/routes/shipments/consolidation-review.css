@@ -54,6 +54,15 @@
    stops of its shipment — their P#/D# markers turn dark and the Shipment ID
    goes dark + bold on BOTH. */
 .consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+/* Hovered pair's markers (user, 2026-09-27): the status circle's check / "!"
+   becomes a plain green dot, a bit larger. `scale`, not transform — Timeline's
+   entry animation owns transform. Hover only, never mid-drag. */
+.consolidation-review__side .stop-badge__status { transition: scale var(--transition-fast); }
+.consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge__status {
+  background: var(--caribbean-green-600);
+  scale: 1.3;
+}
+.consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge__status > svg { display: none; }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
    background, darker grip, darker detail lines. Never while a stop is being
    dragged — the pointer sweeping over other stops must not light them. */
