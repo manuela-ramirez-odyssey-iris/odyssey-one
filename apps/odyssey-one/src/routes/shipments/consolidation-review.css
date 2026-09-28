@@ -74,6 +74,9 @@
   scale: 1.3;
 }
 .consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge__status { visibility: hidden; }
+.consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge--changed::after {
+  background: var(--purple-800); /* the pale pill fill would vanish as a dot — use its dark ink */
+}
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
    background, darker grip, darker detail lines. Never while a stop is being
    dragged — the pointer sweeping over other stops must not light them. */
