@@ -590,8 +590,27 @@ export function adoptNewTenderList(action, orderChange, cost, outcome) {
 
   return rows.map((o) => {
     if (o.scac !== priorScac) return { ...o, status: '' }
-    return { ...o, status: priorStatus(), rateAmount: applyCost ? cost.amount : o.rateAmount }
+    const row = { ...o, status: priorStatus() }
+    return applyCost ? withApTotal(row, cost.amount) : row
   })
+}
+
+// D3 (LINX-14515) — the planner's pick (Prior / New / Quote) is the AP TOTAL,
+// the same figure as the Tender tab's AP Cost column (totalCostAmount). The
+// row's base rate is what remains after its own additional charges, the
+// seed's formula run backwards (generate.mjs: apTotal = baseRate + charges).
+// ponytail: a quote's own charges aren't carried in the body, so a quote is
+// split against the row's charges; send the quote's rateDetails if they differ.
+function withApTotal(o, apTotal) {
+  const d = o.rateDetails
+  const charges = (d?.additionalCharges ?? []).reduce((s, c) => s + (c.amount ?? 0), 0)
+  const baseRate = Math.round((apTotal - charges) * 100) / 100
+  return {
+    ...o,
+    rateAmount: baseRate,
+    totalCostAmount: apTotal,
+    rateDetails: d && { ...d, baseRate, apTotal, arTotal: Math.round((baseRate + (d.markup ?? 0) + charges) * 100) / 100 },
+  }
 }
 
 // ponytail: same 2-decimal locale format as tools/generate.mjs's `fmt` — the
@@ -615,7 +634,8 @@ function listCarrierFor(action, rows, orderChange) {
   if (!row) return null
   return {
     scac: row.scac ?? null,
-    apFreightCost: typeof row.rateAmount === 'number' ? fmtCost(row.rateAmount) : null,
+    // The grid's AP Freight Cost is the AP total (generate.mjs mainRow.apFreightCost = fmt(apTotal)).
+    apFreightCost: typeof row.totalCostAmount === 'number' ? fmtCost(row.totalCostAmount) : null,
   }
 }
 

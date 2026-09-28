@@ -815,7 +815,7 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision:** the review's own lists plus the exception-tab origin replace the deck's View Tender jump; `ViewTenderModal` and `TableModeSide` deleted.
 - **Source:** user, S137. Deck s3 "View Tender" superseded.
 
-### DEC-125: Selected cost is a base rate; the New Tender List cell recomputes base + its own charges
+### DEC-125: Selected cost is a base rate; the New Tender List cell recomputes base + its own charges — SUPERSEDED by DEC-208
 - **Decision:** `oc.prior.apCost` = `rateDetails.baseRate`; echoing it into the AP Cost column (totals) would read as a price drop, so the row recomputes. Label/unit mismatch flagged for Jana (OC-open-2).
 - **Source:** S137 measurement.
 
@@ -1289,10 +1289,16 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
   - The label "Approve Changes" deviates from 15671's "Save" (DEC-200 amended).
 - **Source:** user 2026-09-25; LINX-15869/15872 ("View Routing before Save"); Jana design review `@00:24:19`.
 
+### DEC-208: Select Cost carries the AP total, everywhere it travels
+- **Previous:** DEC-125. Prior/New Cost were `rateDetails.baseRate` while New Quote was the quote's AP total. So the one radio group mixed units, and the New Tender List preview re-added the row's charges to a quote, counting them twice. The resolve API wrote only `rateAmount`. The Tender tab's AP Cost column (`totalCostAmount`) never moved, and the list's AP Freight Cost fell back to the base rate even though the seed prints the total there.
+- **Decision:** Prior / New / Quote are all the **AP total** (`totalCostAmount`). The preview echoes the pick as-is. The API writes it to `totalCostAmount` and derives the base rate as total − the row's own charges, with AR following. The list row reads the total. Seed `apCost` fields (prior, newOption, dropped carriers) read `totalCostAmount`, with zero new draws. **Reseed owed**: until then live radios still show the base rate.
+- **Source:** LINX-14515 (Prior/New cost = AP cost; OC-open-2 closed by the story 2026-09-25); S160 open item "AP Cost after choosing the prior cost". Supersedes DEC-125.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 28, 2026 | **DEC-208** — Select Cost = the AP total on all three radios, the preview, the Tender tab's AP Cost and the list's AP Freight Cost (supersedes DEC-125; closes OC-open-2's build; reseed owed). **Previous state:** base rate on Prior/New, total on Quote, only `rateAmount` written |
 | Sep 25, 2026 | **DEC-207** — Evaluate → routing modal → Approve on both review screens; View Routing no longer a separate button; "Approve Changes" kept over 15671's "Save" (amends DEC-200) |
 | Sep 25, 2026 | **DEC-200 through DEC-206** — Jana's 2026-09-25 design review of the consolidated order change + S160 rulings: Save runs 15671 Scenario A/B; busy source orders selectable and refused at Save (**reverses OC-open-11**); a shipment's only order movable and emptied shipments hidden; order windows anchor to their own stop (**I4 refined**); shipment statuses derived from the lifecycle (**reverses the S151 blank-status ruling**); removed orders become their own shipment; consolidation tender dates = the stops'. Most OC-open questions closed **by their stories**. **Previous state:** S159 build |
 | Sep 24, 2026 | **DEC-191 through DEC-199** — Jana's walkthrough of the consolidated order change + user rulings: Affected Orders pickup-only; one DB-backed source per value; **system placement replaces the S144 stop picker**; new label for Move To Pending; own-date-only stops; Direct field set + per-line blocks in the compare; prior/new side by side; per-leg distance; editable stop dates with out-of-window flags. **Previous state:** S142–S144 build |

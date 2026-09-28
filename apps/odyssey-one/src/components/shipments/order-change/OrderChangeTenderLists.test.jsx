@@ -218,10 +218,9 @@ describe('OrderChangeTenderLists — dropped carriers', () => {
 
 // S137 (designer/user, 2026-09-02) — "new Cost selected will update the base
 // cost": the New Tender List's AP Cost cell for the row matching
-// oc.prior.scac shows what Select Cost picked, recomputed into the column's
-// own AP-TOTAL unit (base rate + that row's additionalCharges), not the raw
-// base rate — a unit mismatch caught in review (oc.prior/newOption.apCost is
-// rateDetails.baseRate, this column's `cost` is totalCostAmount).
+// oc.prior.scac shows what Select Cost picked. D3 (LINX-14515): the pick is
+// already the AP total (the column's own unit), so it is echoed as-is —
+// never re-summed with the row's charges (that double-counted a quote).
 describe('OrderChangeTenderLists — selected cost override (S137)', () => {
   const odflNew = {
     rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'Van',
@@ -235,19 +234,17 @@ describe('OrderChangeTenderLists — selected cost override (S137)', () => {
     newTenderList: [odflNew, newSaia],
   })
 
-  test('a selected base rate that changes the recomputed total renders purple, in the AP-total unit', () => {
-    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'new', amount: 3000 }} />)
-    // 3000 (selected base) + 50 (ODFL's own additional charge) = 3050 — NOT
-    // a raw "$3,000.00" echo of the base rate.
-    const cell = screen.getByText('$3,050.00 USD')
+  test('a selected AP total that differs from the routed cost renders purple, echoed as-is', () => {
+    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'quote', amount: 3000 }} />)
+    // 3000 is already a total — NOT 3050 (3000 + ODFL's own 50 charge).
+    expect(screen.queryByText('$3,050.00 USD')).toBeNull()
+    const cell = screen.getByText('$3,000.00 USD')
     expect(cell.closest('span')?.className).toMatch(/text-badge/)
     expect(screen.queryByText('$2,850.00 USD')).toBeNull() // routed value is gone, overridden
   })
 
-  test('a selected base rate whose recomputed total matches the routed cost renders plain, not changed', () => {
-    // 2800 (selected, same as the row's own baseRate) + 50 = 2850 — equals
-    // odflNew's routed `cost` exactly.
-    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'new', amount: 2800 }} />)
+  test('a selected AP total equal to the routed cost renders plain, not changed', () => {
+    render(<OrderChangeTenderLists oc={ocFixture()} selectedCost={{ choice: 'new', amount: 2850 }} />)
     const cell = screen.getByText('$2,850.00 USD')
     expect(cell.closest('span')?.className || '').not.toMatch(/text-badge/)
   })
@@ -264,7 +261,7 @@ describe('OrderChangeTenderLists — selected cost override (S137)', () => {
   test('no row for oc.prior.scac in newTenderList (not-returned, dropped) — no override, nothing invented', () => {
     const notReturned = { prior: { scac: 'ODFL' }, priorTenderList: [odfl], newTenderList: [] }
     expect(() => render(<OrderChangeTenderLists oc={notReturned} selectedCost={{ choice: 'new', amount: 3000 }} />)).not.toThrow()
-    expect(screen.queryByText(/3,050/)).toBeNull()
+    expect(screen.queryByText(/3,000/)).toBeNull()
   })
 
   test('no selectedCost yet — renders the routed cost untouched', () => {

@@ -2851,7 +2851,7 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     const reason = rndPick(rnd, reasonPool);
     return {
       scac: o.scac, carrierName: o.carrierName, equipment: o.equipmentCode,
-      routeRank: o.routeRank, apCost: o.rateDetails.baseRate,
+      routeRank: o.routeRank, apCost: o.totalCostAmount,
       dropCode: reason.dropCode, reason: reason.reason, reasonDescription: reason.description,
     };
   });
@@ -2952,7 +2952,9 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       // carrier's own real rated cost, which exists whether or not a tender
       // on it is currently active. LINX-15435's blank rule is specific to the
       // consolidation payload's "cost of staying on the current tender".
-      apCost: prior.rateDetails.baseRate, quoted: priorQuoted,
+      // D3 (LINX-14515): Prior/New Cost = the AP total, same unit as the AP
+      // Cost column and the New Quote radio — not the base rate.
+      apCost: prior.totalCostAmount, quoted: priorQuoted,
     },
     newOption: {
       scac: prior.scac, carrierName: prior.carrierName, equipmentCode: prior.equipmentCode,
@@ -2960,7 +2962,7 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
       routeRank: newForPrior ? newForPrior.routeRank : null, // blank when not in list
       rank: newForPrior ? newForPrior.rank : insertionRank(newList, prior.equipmentCode),
       pickupDateTime: priorShifted.pickupDateTime, deliveryDateTime: priorShifted.deliveryDateTime,
-      apCost: newForPrior ? newForPrior.rateDetails.baseRate : null, // null ⇒ New Cost greyed
+      apCost: newForPrior ? newForPrior.totalCostAmount : null, // null ⇒ New Cost greyed
     },
     // No patching needed: `prior` IS the routingOptions entry whose real
     // status already equals tenderStatus (found above), so the Prior Options

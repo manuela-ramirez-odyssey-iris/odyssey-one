@@ -302,7 +302,7 @@ Plan for all of the above: `docs/superpowers/plans/2026-09-25-order-change-remai
 ## 12. Open / TBD
 
 - **OC-open-1** — CLOSED 2026-09-25 by the story: LINX-14509 names To Be Tendered, Sent and Accepted; build owed (plan D1). Was: Does *To Be Tendered* enter the review (LINX-14509) or only Sent/Accepted (Jana, LINX-8284)? Blocks nothing today; would change seed + lock gating.
-- **OC-open-2** — CLOSED 2026-09-25 by the story: LINX-14515 — Prior/New cost = AP cost; build owed (plan D3). Was: Unit/label mismatch on the cost radios vs the AP Cost column (S137). Ask Jana whether the radios should show totals.
+- **OC-open-2** — CLOSED 2026-09-25 by the story: LINX-14515 — Prior/New cost = AP cost; **built S162 (DEC-208), reseed owed**. Was: Unit/label mismatch on the cost radios vs the AP Cost column (S137). Ask Jana whether the radios should show totals.
 - **OC-open-3** — Answered by LINX-14513 (AC-required); build owed (plan D4). Was: Editable pickup/delivery dates when routing returns none (row 10). AC-required, unbuilt.
 - **OC-open-4** — Answered by LINX-14510 (AC-required); build owed (plan D5, measure Routing History first). Was: Tender Option Version history (row 11). AC-required, unbuilt.
 - **OC-open-5** — CLOSED 2026-09-08: the 13 consolidation stories exist (§10). VDs for Surface A delivered; Surface B VDs still owed.

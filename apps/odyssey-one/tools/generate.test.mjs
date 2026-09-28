@@ -1277,6 +1277,9 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     // LINX-14513: not-returned ⇒ no new cost (greyed out radio)
     if (oc.scenario === 'not-returned') assert.equal(oc.newOption.apCost, null)
     else assert.ok(oc.newOption.apCost > 0)
+    // D3 (LINX-14515): Select Cost's Prior/New = the AP total, the AP Cost column's own unit
+    assert.equal(oc.prior.apCost, priorEntry.totalCostAmount, `${s.sellShipment} prior.apCost is not the AP total`)
+    if (oc.scenario === 'returned') assert.equal(oc.newOption.apCost, oc.newTenderList.find(o => o.scac === oc.prior.scac).totalCostAmount)
     // side-by-side UI needs a carrier name on both sides
     assert.equal(oc.newOption.carrierName, oc.prior.carrierName, `${s.sellShipment} newOption missing carrierName`)
     // the comparison table's "new" date and the new-tender snapshot's own date

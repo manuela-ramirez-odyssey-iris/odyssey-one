@@ -64,7 +64,7 @@ A shipment with `order_count = 0` is excluded from the Shipments list, search an
 ## D. Direct order change (all story-answered)
 - **D1 (OC-open-1, 14509):** seed a share of order-change shipments from **To Be Tendered**, not only Sent/Accepted. Zero new faker draws (id-keyed rnd), id diff empty.
 - **D2 (OC-open-6, 14509 "shall be able to view Tender information while pending"):** the Tender tab stays readable during review. Remove the blur, keep every action locked.
-- **D3 (OC-open-2, 14515):** the Prior/New cost choices show the **AP cost** (the same total as the AP Cost column), not the base rate.
+- **D3 (OC-open-2, 14515):** the Prior/New cost choices show the **AP cost** (the same total as the AP Cost column), not the base rate. **Built S162 (DEC-208)**, together with the API write (`totalCostAmount` + the list row's AP Freight Cost). Reseed owed.
 - **D4 (OC-open-3, 14513):** pickup/delivery dates editable when routing returns none.
 - **D5 (OC-open-4, 14510):** keep and show every Tender Option Version, not just prior and new. First measure what Routing History (15895) already covers, then build only the gap.
 

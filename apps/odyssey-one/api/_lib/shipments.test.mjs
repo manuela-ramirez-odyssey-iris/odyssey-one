@@ -632,6 +632,17 @@ describe('resolveOrderChange', () => {
       assert.deepEqual(rows.filter((o) => o.scac !== 'PRIOR').map((o) => o.status), ['', ''])
     })
 
+    it('D3 (LINX-14515): the chosen cost is the AP TOTAL — totalCostAmount takes it, the base rate is what remains after the row\'s own charges', () => {
+      const withCharges = {
+        ...orderChange,
+        priorTenderList: [{ ...orderChange.priorTenderList[0], totalCostAmount: 1000, rateDetails: { baseRate: 900, markup: 100, additionalCharges: [{ amount: 60 }, { amount: 40 }], apTotal: 1000, arTotal: 1100 } }],
+      }
+      const prior = adoptNewTenderList('retender', withCharges, { amount: 1234.56 }, { tenderStatus: 'Sent' }).find((o) => o.scac === 'PRIOR')
+      assert.equal(prior.totalCostAmount, 1234.56, 'the AP Cost column reads totalCostAmount')
+      assert.equal(prior.rateAmount, 1134.56)
+      assert.deepEqual([prior.rateDetails.baseRate, prior.rateDetails.apTotal, prior.rateDetails.arTotal], [1134.56, 1234.56, 1334.56])
+    })
+
     it('retender/bypass skip insertion and cost when the prior carrier is missing a cost pick', () => {
       const rows = adoptNewTenderList('retender', orderChange, null, { tenderStatus: 'Sent' })
       const prior = rows.find((o) => o.scac === 'PRIOR')
@@ -698,13 +709,13 @@ describe('resolveOrderChange', () => {
         prior: { scac: 'PRIOR', tenderStatus: 'Sent' },
         newOption: { rank: 2 },
         priorTenderList: [{ scac: 'PRIOR', carrierName: 'Prior Co', rank: 1, status: 'Sent', rateAmount: 900 }],
-        newTenderList: [{ scac: 'AAAA', carrierName: 'A Co', rank: 1, status: '', rateAmount: 700 }],
+        newTenderList: [{ scac: 'AAAA', carrierName: 'A Co', rank: 1, status: '', rateAmount: 700, totalCostAmount: 750 }],
       },
     }
     const { db, calls } = mkOc(detail)
     await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
     const resolveWrite = calls.find((q) => /orderChange,resolution/.test(textOf(q)))
-    assert.deepEqual(resolveWrite.values.slice(6), ['AAAA', '700.00'])
+    assert.deepEqual(resolveWrite.values.slice(6), ['AAAA', '750.00'], 'the AP total (totalCostAmount), not the base rate')
     const optionListWrite = calls.find((q) => /shippingOptionList/.test(textOf(q)))
     const written = JSON.parse(optionListWrite.values[0])
     assert.equal(written.length, 1, 'PRIOR was dropped by routing — never inserted for cancel')

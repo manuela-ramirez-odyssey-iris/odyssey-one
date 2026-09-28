@@ -100,25 +100,17 @@ export function computeTenderDiffs(priorList = [], newList = []) {
  * S137 (designer/user, 2026-09-02) — "new Cost selected will update the base
  * cost": the New Tender List's AP Cost cell for the PRIOR carrier's row shows
  * what that carrier will actually be tendered at once Select Cost
- * (OrderChangeActionsCard) has picked a base rate.
+ * (OrderChangeActionsCard) has picked a cost.
  *
- * UNIT MISMATCH, verified against tools/generate.mjs (do not skip this when
- * touching either number again): `oc.prior.apCost`/`newOption.apCost` — what
- * Select Cost's radios show and what `selectedCost.amount` carries — are
- * `rateDetails.baseRate` (generate.mjs:2490/2498). This column's `cost`
- * field is `totalCostAmount`, i.e. `baseRate + sum(additionalCharges)`
- * (generate.mjs:977, mapped `${fmtDollar(totalCostAmount)} USD` at
- * mapSellShipmentOutToDetail.ts:345/mapRoutingOption). Those are different
- * figures for the same carrier — echoing the selected BASE rate straight
- * into an AP-TOTAL column would understate the row (and read as "the cost
- * dropped" when nothing did) whenever that carrier carries any additional
- * charges. `apTotalFor` below re-derives the total the same way the seed
- * does, from the row's OWN `rateDetails.additionalCharges` (survives
- * mapRoutingOption), so the override lands in the column's actual unit.
+ * D3 (LINX-14515, 2026-09-28): every Select Cost option — Prior, New, and
+ * New Quote — carries the AP TOTAL (`totalCostAmount`, base + additional
+ * charges), the same unit as this column. It used to be the base rate for
+ * Prior/New, re-derived here as base + charges, which double-counted the
+ * charges on a quote (already a total). Now the pick is echoed as-is.
  *
  * Returns a Map from the matched row's own reference (so renderListCell can
  * key off object identity, same idiom buildChangeMap already uses) to the
- * formatted display string and whether the recomputed total differs from
+ * formatted display string and whether the selected total differs from
  * that row's own routed cost — NOT from the prior list's cost, which is a
  * different comparison (buildChangeMap's, feeding the Differences count)
  * that this override doesn't touch.
@@ -128,18 +120,12 @@ export function computeTenderDiffs(priorList = [], newList = []) {
  * re-routing. There's no row to update, and inventing one isn't this
  * function's job.
  */
-function apTotalFor(row, baseAmount) {
-  const chargeTotal = (row.rateDetails?.additionalCharges ?? []).reduce((s, c) => s + (c.amount ?? 0), 0)
-  return Math.round((baseAmount + chargeTotal) * 100) / 100
-}
-
 function buildCostOverride(newList, priorScac, selectedCost) {
   if (!priorScac || !selectedCost || selectedCost.amount == null) return null
   const row = newList.find((o) => o.scac === priorScac)
   if (!row) return null
-  const recomputed = apTotalFor(row, selectedCost.amount)
-  const changed = recomputed !== parseDollar(row.cost)
-  return new Map([[row, { display: `${fmtDollar(recomputed)} USD`, changed }]])
+  const changed = selectedCost.amount !== parseDollar(row.cost)
+  return new Map([[row, { display: `${fmtDollar(selectedCost.amount)} USD`, changed }]])
 }
 
 function renderListCell(row, col, changeMap, costOverride) {
