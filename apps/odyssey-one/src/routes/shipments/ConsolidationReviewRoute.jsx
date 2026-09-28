@@ -1,7 +1,9 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQueries, useQueryClient } from '@tanstack/react-query'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { Inbox, MapPin, GripVertical, Trash2, Replace } from 'lucide-react'
 import { Alert, Badge, Breadcrumb, Button, DataTable, EmptyState, ModalMedium, PageHeader, Radio, StepperButtonsFooter, SubAccordion, SummaryStrip, Timeline } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
@@ -107,42 +109,63 @@ function TenderedCheckTable({ rows }) {
   return <DataTable table={table} ariaLabel="Shipments in this consolidation" truncationTooltip />
 }
 
-// Timeline item builder for the Planned Stops list — drag wiring only when
-// `drag` is passed (read-only once applied). `changedKeys` (user ruling
-// 2026-09-25, item 1) marks stops whose position differs from the ORIGINAL
-// proposed order — purple marker + purple label/location text, unsaved or
-// saved, kept after Apply too.
-function stopTimelineItems(stops, drag, changedKeys) {
+// Shared row body for a Planned Stop — `grip` shows the drag-handle icon
+// (editable/sortable rows only). `changed` (user ruling 2026-09-25, item 1)
+// marks a stop whose position differs from the ORIGINAL proposed order —
+// purple marker + purple label/location text, unsaved or saved, kept after
+// Apply too.
+function StopContent({ s, changed, grip }) {
+  return (
+    <div className="consolidation-review__stop-inner">
+      <div className="consolidation-review__stop-head">
+        <span className={`text-label-sm-medium${changed ? ' consolidation-review__stop-location--changed' : ''}`}>{s.location}</span>
+        <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
+        {grip && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
+      </div>
+      <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
+    </div>
+  )
+}
+
+// S161 — same sortable-row pattern as Home's metrics-library panel list
+// (SortablePanelItem in routes/Home.jsx): useSortable's own transform drives
+// an inline translate3d, no custom ghost/FLIP/hysteresis. Listeners go on the
+// whole row (not just the grip icon), matching Home.
+function SortableStop({ s, changed }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.key })
+  const style = {
+    transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
+    transition,
+    background: isDragging ? 'var(--deep-sea-neutral-200)' : undefined,
+  }
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="consolidation-review__stop"
+      data-dragging={isDragging ? 'true' : undefined}
+      {...attributes}
+      {...listeners}
+    >
+      <StopContent s={s} changed={changed} grip />
+    </div>
+  )
+}
+
+// Timeline item builder for the Planned Stops list — sortable rows only while
+// `sortable` (read-only, no grip, once applied).
+function stopTimelineItems(stops, changedKeys, sortable) {
   return stops.map((s) => {
     const changed = changedKeys?.has(s.key)
-    const isPlaceholder = !!drag && drag.draggedKey === s.key
     return {
       key: s.key,
       label: s.label,
       status: changed ? 'changed' : 'completed',
       showStatusBadge: false,
       badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
-      content: (
-        <div
-          className="consolidation-review__stop"
-          draggable={!!drag}
-          onDragStart={drag ? (e) => drag.onDragStart(e, s.key) : undefined}
-          onDragOver={drag ? (e) => drag.onDragOver(e, s.key) : undefined}
-          onDrop={drag ? drag.onDrop : undefined}
-          onDragEnd={drag ? drag.onDragEnd : undefined}
-          data-drop-placeholder={isPlaceholder ? '' : undefined}
-          ref={drag ? (el) => drag.registerEl(s.key, el) : undefined}
-        >
-          <div className="consolidation-review__stop-inner">
-            <div className="consolidation-review__stop-head">
-              <span className={`text-label-sm-medium${changed ? ' consolidation-review__stop-location--changed' : ''}`}>{s.location}</span>
-              <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
-              {drag && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
-            </div>
-            <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
-          </div>
-        </div>
-      ),
+      content: sortable
+        ? <SortableStop s={s} changed={changed} />
+        : <div className="consolidation-review__stop"><StopContent s={s} changed={changed} grip={false} /></div>,
     }
   })
 }
@@ -197,76 +220,22 @@ export default function ConsolidationReviewRoute() {
   const effectiveDraftOrder = stopsOutOfSync ? defaultOrder : draftStops
   const stopsDirty = effectiveDraftOrder.join('|') !== effectiveCommittedOrder.join('|')
   const displayedStops = labelStops(effectiveDraftOrder, byStopKey)
-  // Live preview (S161 follow-up): dragover itself reorders the working copy
-  // so the list reflows under the pointer before drop. `draggedKeyRef` +
-  // `preDragOrderRef` are refs, not state — dragover fires continuously and
-  // handleStopDragEnd needs the ORIGINAL order without waiting on a render.
-  const [draggedKey, setDraggedKey] = useState(null)
-  const draggedKeyRef = useRef(null)
-  const preDragOrderRef = useRef(null)
-  const droppedRef = useRef(false)
-  const handleStopDragStart = (e, key) => {
-    draggedKeyRef.current = key
-    preDragOrderRef.current = effectiveDraftOrder
-    droppedRef.current = false
-    // Next tick: the browser snapshots the drag image when dragstart returns —
-    // emptying the slot synchronously would make the image an empty box too.
-    setTimeout(() => { if (draggedKeyRef.current === key) setDraggedKey(key) }, 0)
-    // Drag image = the stop's CONTENT only (user, 2026-09-25): a transparent
-    // off-screen clone, so no row/card background rides along with the pointer.
-    const row = e.currentTarget
-    const inner = row.querySelector('.consolidation-review__stop-inner')
-    if (inner && e.dataTransfer.setDragImage) {
-      const ghost = inner.cloneNode(true)
-      Object.assign(ghost.style, { position: 'fixed', top: '-1000px', left: '-1000px', width: `${inner.offsetWidth}px`, background: 'transparent', pointerEvents: 'none' })
-      document.body.appendChild(ghost)
-      const r = inner.getBoundingClientRect()
-      e.dataTransfer.setDragImage(ghost, e.clientX - r.left, e.clientY - r.top)
-      setTimeout(() => ghost.remove(), 0)
-    }
-    e.dataTransfer.setData('text/plain', key)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-  const handleStopDragOver = (e, overKey) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    const dragged = draggedKeyRef.current
-    if (!dragged || dragged === overKey) return
-    // Hysteresis: only swap once the pointer crosses the hovered stop's
-    // midpoint in the direction of travel. Without it, the stop that just slid
-    // under the pointer re-triggered the swap back and the list flickered.
-    // Midpoint from the LAYOUT box — the FLIP slide's in-flight translate is
-    // subtracted so a moving stop doesn't shift its own threshold.
-    const el = e.currentTarget
-    const rect = el.getBoundingClientRect()
-    const t = window.getComputedStyle(el).transform
-    const ty = t && t !== 'none' ? new DOMMatrixReadOnly(t).m42 : 0
-    const mid = rect.top - ty + rect.height / 2
+  // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
+  // 8px activation distance so a plain click doesn't start a drag, plus
+  // KeyboardSensor for accessible reordering).
+  const sortSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const handleStopDragEnd = (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
     setDraftStops((prev) => {
-      const from = prev.indexOf(dragged)
-      const to = prev.indexOf(overKey)
-      if (from === -1 || to === -1 || from === to) return prev
-      if (rect.height && (from < to ? e.clientY < mid : e.clientY > mid)) return prev
+      const from = prev.indexOf(active.id)
+      const to = prev.indexOf(over.id)
+      if (from === -1 || to === -1) return prev
       return reorderStops(prev, from, to)
     })
-  }
-  const handleStopDrop = (e) => {
-    e.preventDefault()
-    droppedRef.current = true
-    draggedKeyRef.current = null
-    setDraggedKey(null)
-    setStopOrderError(null)
-  }
-  // Covers both a drop-less dragend AND Esc — browsers cancel a native drag
-  // on Esc by firing dragend (no drop), so one handler covers both cases in
-  // the spec (Esc never reaches a React key handler mid-drag).
-  const handleStopDragEnd = () => {
-    if (!droppedRef.current && preDragOrderRef.current) {
-      setDraftStops(preDragOrderRef.current)
-    }
-    draggedKeyRef.current = null
-    preDragOrderRef.current = null
-    setDraggedKey(null)
   }
   const handleDiscardStops = () => { setDraftStops(committedStops.order); setStopOrderError(null) }
   const handleSaveStops = () => {
@@ -460,32 +429,7 @@ export default function ConsolidationReviewRoute() {
   // the last saved one). Holds for unsaved and saved changes alike, and stays
   // after Apply since `displayedStops` still reads from the same order.
   const changedKeys = new Set(effectiveDraftOrder.filter((key, i) => defaultOrder[i] !== key))
-  // FLIP: when the order changes (live drag preview, drop, revert), each stop
-  // slides from where it was to where it now is, so the others visibly make
-  // room around the dragged one instead of jumping.
-  const stopEls = useRef(new Map())
-  const stopTops = useRef(new Map())
-  const orderSig = displayedStops.map((s) => s.key).join('|')
-  useLayoutEffect(() => {
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    for (const [key, el] of stopEls.current) {
-      el.style.transition = 'none'
-      el.style.transform = ''
-      const top = el.getBoundingClientRect().top
-      const prev = stopTops.current.get(key)
-      stopTops.current.set(key, top)
-      if (reduce || prev == null || prev === top) continue
-      el.style.transform = `translateY(${prev - top}px)`
-      el.getBoundingClientRect() // commit the inverted position before animating back
-      el.style.transition = 'transform var(--transition-base)'
-      el.style.transform = ''
-    }
-  }, [orderSig])
-  const registerEl = (key, el) => { if (el) stopEls.current.set(key, el); else stopEls.current.delete(key) }
-
-  const timelineItems = stopTimelineItems(displayedStops, applied ? null : {
-    registerEl, draggedKey, onDragStart: handleStopDragStart, onDragOver: handleStopDragOver, onDrop: handleStopDrop, onDragEnd: handleStopDragEnd,
-  }, changedKeys)
+  const timelineItems = stopTimelineItems(displayedStops, changedKeys, !applied)
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS
@@ -549,12 +493,19 @@ export default function ConsolidationReviewRoute() {
             {!applied && (
               <span className="text-label-sm-regular consolidation-review__stops-helper">Drag stops to reorganize</span>
             )}
-            <Timeline items={timelineItems} animate aria-label="Planned stops" />
+            {applied ? (
+              <Timeline items={timelineItems} animate aria-label="Planned stops" />
+            ) : (
+              <DndContext sensors={sortSensors} collisionDetection={closestCenter} onDragEnd={handleStopDragEnd}>
+                <SortableContext items={effectiveDraftOrder} strategy={verticalListSortingStrategy}>
+                  <Timeline items={timelineItems} animate aria-label="Planned stops" />
+                </SortableContext>
+              </DndContext>
+            )}
             {!applied && (
               <>
                 <div className="consolidation-review__stop-actions">
                   <Button variant="secondary" disabled={!stopsDirty} onClick={handleDiscardStops}>Revert</Button>
-                  <Button variant="secondary" disabled={!stopsDirty} onClick={handleSaveStops}>Save Changes</Button>
                 </div>
                 {stopOrderError && <Alert variant="error" showClose={false}>{stopOrderError}</Alert>}
               </>
@@ -638,12 +589,12 @@ export default function ConsolidationReviewRoute() {
               cancelLabel="Cancel Consolidation"
               showSave
               saveLabel="Edit Consolidation"
-              primaryLabel="Apply Consolidation"
-              primaryDisabled={rows.length < 2 || stopsDirty || checkingApply}
+              primaryLabel={stopsDirty ? 'Save Stop Changes' : 'Apply Consolidation'}
+              primaryDisabled={rows.length < 2 || checkingApply}
               saving={apply.isPending}
               onCancel={() => setPending('cancel')}
               onSave={backInMode}
-              onPrimary={openApplyModal}
+              onPrimary={stopsDirty ? handleSaveStops : openApplyModal}
             />
           )}
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi, afterEach, beforeEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, createEvent, within, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import ConsolidationReviewRoute from './ConsolidationReviewRoute.jsx'
@@ -9,6 +9,23 @@ import { applyConsolidation } from '../../api/services/consolidationService'
 import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
+
+// S161 — Planned Stops reorder now runs through @dnd-kit (same pattern as
+// Home's metrics-library panel list). jsdom can't do a real pointer/keyboard
+// drag (dnd-kit's collision detection needs real layout rects, which jsdom
+// always reports as zero — see project_jsdom_test_ceilings), so DndContext is
+// wrapped to capture its onDragEnd and tests invoke it directly, exactly the
+// event shape a real drag would produce ({ active: { id }, over: { id } }).
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    DndContext: (props) => {
+      window.__consolidationDragEnd = props.onDragEnd
+      return <actual.DndContext {...props} />
+    },
+  }
+})
 
 vi.mock('../../api/services/consolidationService', () => ({
   applyConsolidation: vi.fn(async ({ sellShipments }) => ({
@@ -237,19 +254,20 @@ describe('ConsolidationReviewRoute', () => {
     expect(container.querySelector('.sidebar:not(.sidebar--hidden)')).toBeNull()
   })
 
-  // B2 — draggable Planned Stops
-  test('Revert/Save Changes render disabled until the stop order changes, and each stop carries a grip', () => {
+  // B2 — sortable Planned Stops (S161: dnd-kit, same pattern as Home's
+  // metrics-library panel list).
+  test('Revert renders disabled until the stop order changes, and each stop carries a grip', () => {
     const { container } = renderReview({ rows })
     expect(screen.getByRole('button', { name: 'Revert' }).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Save Stop Changes' })).toBeNull()
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(4) // 2 pickups + 2 deliveries
   })
 
-  test('Planned Stops are read-only after Apply — no grips, no Revert/Save, no helper text', async () => {
+  test('Planned Stops are read-only after Apply — no grips, no Revert, no helper text', async () => {
     const { container } = await applyAndWait()
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(0)
     expect(screen.queryByRole('button', { name: 'Revert' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
     expect(screen.queryByText('Drag stops to reorganize')).toBeNull()
   })
 
@@ -258,62 +276,46 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByText('Drag stops to reorganize')).toBeTruthy()
   })
 
-  // jsdom has no native DataTransfer; a plain stub covers the .setData/
-  // .dropEffect access the handlers make.
-  const dataTransfer = () => ({ setData: () => {}, effectAllowed: null, dropEffect: null })
-
-  // Drags stop `from` (0-indexed, pre-drag order) onto stop `to` and drops —
-  // the shared setup for both the live-preview tests and the Save Stop
-  // Changes gate below.
-  function dragReorder(container, from, to) {
-    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-    const dragged = stops()[from]
-    const target = stops()[to]
-    fireEvent.dragStart(dragged, { dataTransfer: dataTransfer() })
-    fireEvent.dragOver(target, { dataTransfer: dataTransfer() })
-    fireEvent.drop(target, { dataTransfer: dataTransfer() })
-    fireEvent.dragEnd(dragged)
+  // Simulates a completed dnd-kit drag by invoking the DndContext's onDragEnd
+  // directly (captured by the mock above) with the event shape a real
+  // pointer/keyboard drag produces — jsdom can't do the real thing (see the
+  // mock's comment).
+  function simulateDragEnd(activeId, overId) {
+    act(() => { window.__consolidationDragEnd({ active: { id: activeId }, over: { id: overId } }) })
   }
 
-  test('live drag preview: dragover reorders the working copy and re-numbers labels, drop commits it', () => {
-    const { container } = renderReview({ rows })
-    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-    const [first, second] = stops()
-    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
-    // Dragging the first stop over the second previews it swapped, live —
-    // not just on drop.
-    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
-    expect(stops()[0]).toBe(second)
-    fireEvent.drop(second, { dataTransfer: dataTransfer() })
-    fireEvent.dragEnd(first)
-    // Committed via drop: Save Changes is now enabled (order actually changed).
-    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
+  test('a drag reorder relabels stops live and shows Save Stop Changes on the footer', () => {
+    renderReview({ rows })
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
+    simulateDragEnd('pickup-a', 'pickup-b') // swap the two pickups
+    expect(screen.queryByRole('button', { name: 'Apply Consolidation' })).toBeNull()
+    const saveBtn = screen.getByRole('button', { name: 'Save Stop Changes' })
+    expect(saveBtn.disabled).toBe(false) // never disabled for unsaved stops (user ruling 2026-09-27, item 2)
+    expect(screen.getByRole('button', { name: 'Revert' }).disabled).toBe(false)
   })
 
-  test('live drag preview: dragend without drop (cancel / Esc) restores the pre-drag order', () => {
-    const { container } = renderReview({ rows })
-    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-    const [first, second] = stops()
-    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
-    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
-    expect(stops()[0]).toBe(second) // previewed
-    fireEvent.dragEnd(first) // no drop fired — cancelled
-    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true) // back to original
-  })
-
-  // Unsaved stop changes disable Apply until Save Changes (user, 2026-09-25:
-  // the Save Stop Changes modal was tried and dropped).
-  test('Apply is disabled while stop changes are unsaved; Save Changes re-enables it', async () => {
-    const { container } = renderReview({ rows })
-    dragReorder(container, 0, 1)
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Consolidation' }))
-    const applyDialog = await screen.findByRole('dialog', { name: 'Apply Consolidation' })
-    fireEvent.click(within(applyDialog).getByRole('button', { name: 'Apply Consolidation' }))
+  test('Save Stop Changes saves without a dialog and flips the footer back to Apply Consolidation; Apply then opens the modal with the saved order', async () => {
+    renderReview({ rows })
+    simulateDragEnd('pickup-a', 'pickup-b')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    expect(screen.queryByRole('dialog')).toBeNull() // no modal on a successful save
+    expect(screen.queryByRole('button', { name: 'Save Stop Changes' })).toBeNull()
+    const applyBtn = screen.getByRole('button', { name: 'Apply Consolidation' })
+    expect(applyBtn.disabled).toBe(false)
+    fireEvent.click(applyBtn)
+    const dialog = await screen.findByRole('dialog', { name: 'Apply Consolidation' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
     await screen.findByText(/Consolidation Successfully Applied!/)
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
+  })
+
+  test('an invalid reorder shows the inline validation Alert on Save Stop Changes and stays unsaved', () => {
+    renderReview({ rows })
+    // Moves delivery-a above the first pickup — invalid per validateStopOrder.
+    simulateDragEnd('delivery-a', 'pickup-a')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
+    expect(screen.getByText('A delivery stop cannot come before the first pickup stop.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Save Stop Changes' })).toBeTruthy() // still unsaved
   })
 
   // User ruling 2026-09-25, item 1 — a stop out of its ORIGINAL proposed
@@ -324,7 +326,7 @@ describe('ConsolidationReviewRoute', () => {
     const { container } = renderReview({ rows })
     expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
 
-    dragReorder(container, 0, 1) // swaps pickup-a/pickup-b — both change position
+    simulateDragEnd('pickup-a', 'pickup-b') // swaps pickup-a/pickup-b — both change position
     expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
     expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(2)
 
@@ -337,64 +339,14 @@ describe('ConsolidationReviewRoute', () => {
   // differ from the original proposal (user ruling: "Hidden once applied? No").
   test('a reordered stop stays marked changed once Saved, and after Apply', async () => {
     const { container } = renderReview({ rows })
-    dragReorder(container, 0, 1)
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    simulateDragEnd('pickup-a', 'pickup-b')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
     expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
 
     const dialog = await clickApply()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Apply Consolidation' }))
     await screen.findByText(/Consolidation Successfully Applied!/)
     expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
-  })
-
-  // User ruling 2026-09-25, item 2 — no greyed lifted stop while dragging;
-  // instead a purple drop placeholder occupies the live-preview slot.
-  test('an empty purple-outlined drop slot shows during dragOver (a tick after dragStart) and clears after drop/dragEnd', async () => {
-    const { container } = renderReview({ rows })
-    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-    const [first, second] = stops()
-    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
-
-    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
-    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
-    // Deferred a tick so the native drag image is snapshotted with content.
-    await waitFor(() => expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy())
-    // No grayed/lifted look left behind on any stop.
-    expect(container.querySelector('.consolidation-review__stop[data-dragging]')).toBeNull()
-
-    fireEvent.drop(second, { dataTransfer: dataTransfer() })
-    fireEvent.dragEnd(first)
-    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
-  })
-
-  test('hysteresis: dragging down only swaps once the pointer passes the hovered stop\'s midpoint', () => {
-    const { container } = renderReview({ rows })
-    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-    const [first, second] = stops()
-    second.getBoundingClientRect = () => ({ top: 100, height: 40, bottom: 140, left: 0, right: 0, width: 0 })
-    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
-    // jsdom has no DragEvent, so clientY can't ride the init dict — pin it.
-    const overAt = (el, y) => {
-      const ev = createEvent.dragOver(el, { dataTransfer: dataTransfer() })
-      Object.defineProperty(ev, 'clientY', { value: y })
-      fireEvent(el, ev)
-    }
-    overAt(second, 110) // above mid (120)
-    expect(stops()[0]).toBe(first)
-    overAt(second, 130) // past mid
-    expect(stops()[0]).toBe(second)
-  })
-
-  test('the drop slot clears on dragEnd without a drop (cancel / Esc)', async () => {
-    const { container } = renderReview({ rows })
-    const stops = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-    const [first, second] = stops()
-    fireEvent.dragStart(first, { dataTransfer: dataTransfer() })
-    fireEvent.dragOver(second, { dataTransfer: dataTransfer() })
-    // Deferred a tick so the native drag image is snapshotted with content.
-    await waitFor(() => expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeTruthy())
-    fireEvent.dragEnd(first) // no drop fired — cancelled
-    expect(container.querySelector('.consolidation-review__stop[data-drop-placeholder]')).toBeNull()
   })
 
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,

@@ -46,20 +46,6 @@
   flex-direction: column;
   gap: var(--spacing-1);
 }
-.consolidation-review__stop[draggable="true"] { cursor: grab; }
-/* Drop target (user, 2026-09-25): an EMPTY slot — the dragged stop's content
-   is hidden (it rides the pointer as the native drag image) and the room it
-   will land in is a solid purple outline, no fill. Overlay so it adds no
-   layout; it spans the content, not the row's bottom gap. */
-.consolidation-review__stop[data-drop-placeholder] .consolidation-review__stop-inner { visibility: hidden; }
-.consolidation-review__stop[data-drop-placeholder]::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 var(--spacing-5) 0;
-  border: 1px solid var(--badge-purple-text);
-  border-radius: var(--radius-md);
-  pointer-events: none;
-}
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
 /* Changed stop's location text (user ruling 2026-09-25, item 1) — the
