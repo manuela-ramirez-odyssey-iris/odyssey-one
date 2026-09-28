@@ -51,11 +51,19 @@
 .consolidation-review__stop[aria-roledescription="sortable"] { cursor: grab; }
 .consolidation-review__stop[data-dragging="true"] { cursor: grabbing; }
 /* Pair highlight (user, 2026-09-27): hovering or dragging a stop lights up
-   both stops of its shipment, so the planner sees what they're moving past. */
-.consolidation-review__stop--paired {
+   both stops of its shipment — the WHOLE timeline row, marker included. The
+   spread box-shadow pads the tint without shifting layout. The row whose
+   content is mid-drag is skipped (its content has left the slot). */
+.consolidation-review__side .odyssey-timeline__row:has(.consolidation-review__stop--paired:not([data-dragging])) {
   background: var(--deep-sea-neutral-100);
+  box-shadow: 0 0 0 var(--spacing-1) var(--deep-sea-neutral-100);
   border-radius: var(--radius-md);
 }
+/* The ONE stop under the pointer (so a lit pair never reads as "both move"):
+   darker grip, bolder location, darker detail lines. */
+.consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-grip { color: var(--text-primary); }
+.consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-head > span:first-child { font-weight: var(--font-weight-semibold); }
+.consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-date { color: var(--text-secondary); }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
 /* Changed stop's location text (user ruling 2026-09-25, item 1) — the
