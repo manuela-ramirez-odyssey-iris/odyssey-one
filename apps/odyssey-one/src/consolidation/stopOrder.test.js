@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { reorderStops, invalidStopKeys, labelStops } from './stopOrder'
+import { reorderStops, invalidStopKeys } from './stopOrder'
 
 const byKey = {
   'pickup-a': { key: 'pickup-a', type: 'pickup', location: 'Houston, TX' },
@@ -29,20 +29,5 @@ describe('invalidStopKeys', () => {
   test('a delivery above its own pickup flags BOTH stops of that pair only', () => {
     const bad = invalidStopKeys(['pickup-b', 'delivery-a', 'pickup-a', 'delivery-b'])
     expect([...bad].sort()).toEqual(['delivery-a', 'pickup-a'])
-  })
-})
-
-describe('labelStops', () => {
-  test('numbers P1…/D1… by type and position, independent of interleaving', () => {
-    const labeled = labelStops(order, byKey)
-    expect(labeled.map((s) => s.label)).toEqual(['P1', 'P2', 'D1', 'D2'])
-  })
-  test('re-numbers live when the order interleaves types', () => {
-    const labeled = labelStops(['pickup-a', 'delivery-a', 'pickup-b', 'delivery-b'], byKey)
-    expect(labeled.map((s) => s.label)).toEqual(['P1', 'D1', 'P2', 'D2'])
-  })
-  test('every other field on the stop rides through unchanged', () => {
-    const labeled = labelStops(order, byKey)
-    expect(labeled[0]).toMatchObject({ key: 'pickup-a', type: 'pickup', location: 'Houston, TX' })
   })
 })

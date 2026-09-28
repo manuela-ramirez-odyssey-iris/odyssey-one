@@ -16,7 +16,7 @@ import { useApplyConsolidation } from '../../api/queries/useApplyConsolidation'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 import { applyTenderAction } from '../../lib/tenderAction.js'
 import { buildProposal } from '../../consolidation/proposal'
-import { reorderStops, invalidStopKeys, labelStops } from '../../consolidation/stopOrder'
+import { reorderStops, invalidStopKeys } from '../../consolidation/stopOrder'
 import { currentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import useSheet from '../useSheet'
@@ -133,7 +133,7 @@ function StopContent({ s, tone, grip }) {
 // (SortablePanelItem in routes/Home.jsx): useSortable's own transform drives
 // an inline translate3d, no custom ghost/FLIP/hysteresis. Listeners go on the
 // whole row (not just the grip icon), matching Home.
-function SortableStop({ s, tone }) {
+function SortableStop({ s, tone, paired, onPairHover }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.key })
   const style = {
     transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
@@ -144,8 +144,10 @@ function SortableStop({ s, tone }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="consolidation-review__stop"
+      className={`consolidation-review__stop${paired ? ' consolidation-review__stop--paired' : ''}`}
       data-dragging={isDragging ? 'true' : undefined}
+      onMouseEnter={() => onPairHover(s.sellShipment)}
+      onMouseLeave={() => onPairHover(null)}
       {...attributes}
       {...listeners}
     >
@@ -155,8 +157,9 @@ function SortableStop({ s, tone }) {
 }
 
 // Timeline item builder for the Planned Stops list — sortable rows only while
-// `sortable` (read-only, no grip, once applied).
-function stopTimelineItems(stops, changedKeys, invalidKeys, sortable) {
+// `pair` is passed (read-only, no grip, once applied). `pair.shipment` lights
+// up both stops of the hovered/dragged shipment (user, 2026-09-27).
+function stopTimelineItems(stops, changedKeys, invalidKeys, pair) {
   return stops.map((s) => {
     const tone = invalidKeys.has(s.key) ? 'invalid' : changedKeys.has(s.key) ? 'changed' : null
     return {
@@ -165,8 +168,8 @@ function stopTimelineItems(stops, changedKeys, invalidKeys, sortable) {
       status: tone === 'invalid' ? 'issue' : tone === 'changed' ? 'changed' : 'completed',
       showStatusBadge: false,
       badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
-      content: sortable
-        ? <SortableStop s={s} tone={tone} />
+      content: pair
+        ? <SortableStop s={s} tone={tone} paired={pair.shipment === s.sellShipment} onPairHover={pair.onHover} />
         : <div className="consolidation-review__stop"><StopContent s={s} tone={tone} grip={false} /></div>,
     }
   })
@@ -226,15 +229,12 @@ export default function ConsolidationReviewRoute() {
   const effectiveCommittedOrder = stopsOutOfSync ? defaultOrder : committedStops.order
   const effectiveDraftOrder = stopsOutOfSync ? defaultOrder : draftStops
   const stopsDirty = effectiveDraftOrder.join('|') !== effectiveCommittedOrder.join('|')
-  // Numbers are the LAST SAVED sequence (user, 2026-09-27): a stop moved since
-  // the save reads P?/D? — its position isn't confirmed — until a valid Save
-  // numbers the whole list. Same `?` meaning as order change's unsequenced stop.
-  const savedLabel = Object.fromEntries(labelStops(effectiveCommittedOrder, byStopKey).map((s) => [s.key, s.label]))
-  const displayedStops = effectiveDraftOrder.map((key, i) => {
-    const s = byStopKey[key]
-    const unsequenced = effectiveCommittedOrder[i] !== key
-    return { ...s, label: unsequenced ? (s.type === 'pickup' ? 'P?' : 'D?') : savedLabel[key] }
-  })
+  // Labels follow the PAIR, not the position (user, 2026-09-27): P1/D1 are
+  // always shipment 1's pickup and delivery (proposal.js), so they travel with
+  // the stop when it moves — "D1 above P1" then reads as exactly the error it is.
+  const displayedStops = effectiveDraftOrder.map((key) => byStopKey[key])
+  // The shipment whose pair is lit — hovered, or held in a drag.
+  const [pairShipment, setPairShipment] = useState(null)
   // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
   // 8px activation distance so a plain click doesn't start a drag, plus
   // KeyboardSensor for accessible reordering).
@@ -453,7 +453,7 @@ export default function ConsolidationReviewRoute() {
   // the last saved one). Holds for unsaved and saved changes alike, and stays
   // after Apply since `displayedStops` still reads from the same order.
   const changedKeys = showChanged ? new Set(effectiveDraftOrder.filter((key, i) => effectiveCommittedOrder[i] !== key)) : new Set()
-  const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, !applied)
+  const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, applied ? null : { shipment: pairShipment, onHover: setPairShipment })
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS
@@ -520,7 +520,13 @@ export default function ConsolidationReviewRoute() {
             {applied ? (
               <Timeline items={timelineItems} animate aria-label="Planned stops" />
             ) : (
-              <DndContext sensors={sortSensors} collisionDetection={closestCenter} onDragEnd={handleStopDragEnd}>
+              <DndContext
+                sensors={sortSensors}
+                collisionDetection={closestCenter}
+                onDragStart={({ active }) => setPairShipment(byStopKey[active.id]?.sellShipment ?? null)}
+                onDragEnd={(e) => { setPairShipment(null); handleStopDragEnd(e) }}
+                onDragCancel={() => setPairShipment(null)}
+              >
                 <SortableContext items={effectiveDraftOrder} strategy={verticalListSortingStrategy}>
                   <Timeline items={timelineItems} animate aria-label="Planned stops" />
                 </SortableContext>

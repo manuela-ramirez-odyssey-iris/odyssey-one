@@ -32,13 +32,3 @@ export function invalidStopKeys(order) {
   })
   return bad
 }
-
-/** Re-numbers P1…/D1… by type and POSITION within that type — live as the order changes. */
-export function labelStops(order, byKey) {
-  const counts = { pickup: 0, delivery: 0 }
-  return order.map((k) => {
-    const s = byKey[k]
-    counts[s.type] += 1
-    return { ...s, label: `${s.type === 'pickup' ? 'P' : 'D'}${counts[s.type]}` }
-  })
-}

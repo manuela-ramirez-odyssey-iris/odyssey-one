@@ -336,26 +336,24 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
   })
 
-  // Numbers = last saved sequence; moved stops read P?/D? until a valid Save
-  // (user, 2026-09-27). Each stop names its shipment — the P/D pair key.
-  test('moved stops read P?/D? until saved; a valid Save numbers them; every stop shows its Shipment', () => {
+  // Labels follow the pair (user, 2026-09-27): P1/D1 = shipment 1, and they
+  // travel with the stop. Each stop also names its shipment.
+  test('labels stay with their shipment when stops move; every stop shows its Shipment', () => {
     const { container } = renderReview({ rows })
-    expect(container.querySelectorAll('.consolidation-review__stop').length).toBe(4)
     expect(screen.getAllByText(/^Shipment: /).length).toBe(4)
-    simulateDragEnd('pickup-a', 'pickup-b')
-    expect(screen.getAllByText('P?').length).toBe(2)
-    expect(screen.getByText('D1')).toBeTruthy() // unmoved stops keep their saved number
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    expect(screen.queryByText('P?')).toBeNull()
-    expect(screen.getByText('P1')).toBeTruthy()
-    expect(screen.getByText('P2')).toBeTruthy()
+    simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups
+    const labels = Array.from(container.querySelectorAll('.consolidation-review__stop'))
+      .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
+    expect(labels).toEqual(['P2', 'P1', 'D1', 'D2']) // P1 still = shipment a's pickup, now second
   })
 
-  test('an invalid Save leaves the moved stops unnumbered (?)', () => {
-    renderReview({ rows })
-    simulateDragEnd('delivery-a', 'pickup-a')
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stop Changes' }))
-    expect(screen.getAllByText(/^[PD]\?$/).length).toBeGreaterThan(0)
+  test('hovering a stop lights up both stops of its shipment', () => {
+    const { container } = renderReview({ rows })
+    const [firstPickup] = container.querySelectorAll('.consolidation-review__stop')
+    fireEvent.mouseEnter(firstPickup)
+    expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(2)
+    fireEvent.mouseLeave(firstPickup)
+    expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(0)
   })
 
   // Purple = moved since the last save; a successful Save returns every stop

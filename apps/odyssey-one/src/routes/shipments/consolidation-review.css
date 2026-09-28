@@ -50,6 +50,12 @@
    aria-roledescription="sortable"; read-only (applied) stops don't get it. */
 .consolidation-review__stop[aria-roledescription="sortable"] { cursor: grab; }
 .consolidation-review__stop[data-dragging="true"] { cursor: grabbing; }
+/* Pair highlight (user, 2026-09-27): hovering or dragging a stop lights up
+   both stops of its shipment, so the planner sees what they're moving past. */
+.consolidation-review__stop--paired {
+  background: var(--deep-sea-neutral-100);
+  border-radius: var(--radius-md);
+}
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
 /* Changed stop's location text (user ruling 2026-09-25, item 1) — the
