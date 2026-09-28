@@ -169,7 +169,8 @@ function stopTimelineItems(stops, changedKeys, invalidKeys, pair) {
   return stops.map((s) => {
     // A gray (mid-drag, affected) stop drops its red alert too.
     const invalid = invalidKeys.has(s.key) && !s.gray
-    const tone = invalid ? 'invalid' : changedKeys.has(s.key) ? 'changed' : null
+    // 'muted' = gray text on every non-error stop while any pair is invalid.
+    const tone = invalid ? 'invalid' : anyInvalid ? 'muted' : changedKeys.has(s.key) ? 'changed' : null
     return {
       key: s.key,
       label: s.label,

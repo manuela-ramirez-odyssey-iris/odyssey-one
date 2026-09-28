@@ -313,6 +313,8 @@ describe('ConsolidationReviewRoute', () => {
     expect(container.querySelectorAll('.stop-badge--issue').length).toBe(2)
     expect(container.querySelectorAll('.stop-badge--pending').length).toBe(2)
     expect(container.querySelectorAll('.consolidation-review__stop-location--invalid').length).toBe(2)
+    expect(container.querySelectorAll('.consolidation-review__stop-location--muted').length).toBe(2) // no purple text while errors show
+    expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(0)
     expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
     const dialog = screen.getByRole('dialog', { name: 'Invalid Stop Sequence' })

@@ -78,6 +78,7 @@
    label; this covers the location line next to it. */
 .consolidation-review__stop-location--changed { color: var(--badge-purple-text); }
 .consolidation-review__stop-location--invalid { color: var(--text-error); }
+.consolidation-review__stop-location--muted { color: var(--text-tertiary); }
 .consolidation-review__stops-helper { display: block; color: var(--text-secondary); }
 /* Grip sits at the row's right edge (B2 VD) — margin-left: auto pushes it
    across the head's flex row past the location label + Pickup/Delivery badge. */
