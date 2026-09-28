@@ -59,7 +59,7 @@
    component. Opacity isn't touched by Timeline's entry animation, so a plain
    declaration holds. Hover only — never while a stop is dragged. */
 .consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge {
-  opacity: var(--opacity-disabled);
+  opacity: var(--opacity-muted);
 }
 .consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
