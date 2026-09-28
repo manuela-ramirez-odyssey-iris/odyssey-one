@@ -92,7 +92,9 @@ function TenderedCheckTable({ rows }) {
       id: 'tenderedStatus',
       header: 'Shipment Status',
       // Same badge + wording as the Tender table (e.g. "Accepted", "Sent") — user, 2026-09-27.
-      cell: ({ row }) => (ACTIVE_TENDER.has(row.original.tenderStatus) ? <TenderStatusBadge status={row.original.tenderStatus} /> : null),
+      cell: ({ row }) => (ACTIVE_TENDER.has(row.original.tenderStatus)
+        ? <span data-tendered><TenderStatusBadge status={row.original.tenderStatus} /></span>
+        : null),
     }),
     columnHelper.accessor('odysseyShipmentIdentifier', { header: 'Odyssey Shipment ID' }),
     columnHelper.accessor('customerId', { header: 'Customer ID(s)' }),
@@ -108,7 +110,8 @@ function TenderedCheckTable({ rows }) {
     columnHelper.accessor('pickupDate', { header: 'Pickup Date' }),
   ], [])
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), getRowId: (r) => r.id })
-  return <DataTable table={table} ariaLabel="Shipments in this consolidation" truncationTooltip />
+  // Tendered rows read as errors — light red (user, 2026-09-27; CSS keys off [data-tendered]).
+  return <div className="consolidation-review__tendered-table"><DataTable table={table} ariaLabel="Shipments in this consolidation" truncationTooltip /></div>
 }
 
 // Shared row body for a Planned Stop — `grip` shows the drag-handle icon

@@ -151,3 +151,6 @@
    cells fill the full row — the identifier chips need the width — so the
    strip's 160px growth ceiling is lifted for this one strip only. */
 .consolidation-review__info-strip .summary-strip__cell { max-width: none; }
+
+/* Tendered Shipment Detected: a tendered row is the error — light red. */
+.consolidation-review__tendered-table tbody tr:has([data-tendered]) td { background: var(--bg-error); }
