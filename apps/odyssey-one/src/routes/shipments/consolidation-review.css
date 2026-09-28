@@ -53,15 +53,13 @@
 /* Pair highlight (user, 2026-09-27): hovering or dragging a stop marks both
    stops of its shipment — their P#/D# markers turn dark and the Shipment ID
    goes dark + bold on BOTH. */
-.consolidation-review__side .stop-badge { transition: background-color var(--transition-fast), color var(--transition-fast); }
-/* Pair marker colour (user, 2026-09-27 — replaces the scale-up): both P/D
-   markers of the lit shipment go Deep Sea dark. !important is needed to beat
-   Timeline's entry animation, which holds its end colours with fill-mode both
-   (a normal declaration loses to a running/filled animation). Hover only —
-   never while a stop is being dragged (user, 2026-09-27). */
+.consolidation-review__side .stop-badge { transition: opacity var(--transition-fast); }
+/* Pair marker fade (user, 2026-09-27): on hover both P/D markers of the lit
+   shipment turn a faded version of their OWN colour — no new colour in the
+   component. Opacity isn't touched by Timeline's entry animation, so a plain
+   declaration holds. Hover only — never while a stop is dragged. */
 .consolidation-review__side:not(:has([data-dragging])) .odyssey-timeline__row:has(.consolidation-review__stop--paired) .stop-badge {
-  background: var(--deep-sea-neutral-900) !important;
-  color: var(--white) !important;
+  opacity: var(--opacity-disabled);
 }
 .consolidation-review__stop--paired .consolidation-review__stop-shipment { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
