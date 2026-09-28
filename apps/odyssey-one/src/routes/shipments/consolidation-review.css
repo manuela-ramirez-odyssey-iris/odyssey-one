@@ -152,5 +152,6 @@
    strip's 160px growth ceiling is lifted for this one strip only. */
 .consolidation-review__info-strip .summary-strip__cell { max-width: none; }
 
-/* Tendered Shipment Detected: a tendered row is the error — light red. */
-.consolidation-review__tendered-table tbody tr:has([data-tendered]) td { background: var(--bg-error); }
+/* Tendered Shipment Detected: a tendered row is the error — its cell text
+   reads red (user, 2026-09-27; replaces a light-red row background). */
+.consolidation-review__tendered-table tbody tr:has([data-tendered]) td { color: var(--text-error); }

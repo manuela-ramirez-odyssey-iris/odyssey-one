@@ -110,7 +110,7 @@ function TenderedCheckTable({ rows }) {
     columnHelper.accessor('pickupDate', { header: 'Pickup Date' }),
   ], [])
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), getRowId: (r) => r.id })
-  // Tendered rows read as errors — light red (user, 2026-09-27; CSS keys off [data-tendered]).
+  // Tendered rows read as errors — red cell text (user, 2026-09-27; CSS keys off [data-tendered]).
   return <div className="consolidation-review__tendered-table"><DataTable table={table} ariaLabel="Shipments in this consolidation" truncationTooltip /></div>
 }
 
