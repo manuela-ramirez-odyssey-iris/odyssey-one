@@ -37,7 +37,7 @@ import './consolidation-review.css'
 // (B3) dropping a row that got tendered out from under the planner.
 
 const COLUMN_BY_KEY = Object.fromEntries(COLUMN_CONFIG.map((c) => [c.key, c]))
-const REVIEW_COLUMNS = ['buyShipment', 'customerId', 'shipmentStatus', 'orderCount', 'orders', 'pickupDate']
+const REVIEW_COLUMNS = ['odysseyShipmentIdentifier', 'customerId', 'shipmentStatus', 'orderCount', 'orders', 'pickupDate']
 const columnHelper = createColumnHelper()
 
 // Mirrors consolidation/eligibility.js's ACTIVE_TENDER — not exported there

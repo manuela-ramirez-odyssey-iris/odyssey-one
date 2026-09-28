@@ -96,15 +96,17 @@ describe('ConsolidationReviewRoute', () => {
     expect(screen.getByRole('heading', { name: 'Review & Apply Manual Consolidation' })).toBeTruthy()
     expect(screen.getByText('Valtris Specialty Chemicals')).toBeTruthy()
     expect(screen.getByText('Selected Shipments (2)')).toBeTruthy()
-    expect(screen.getByText('O00000001')).toBeTruthy()
+    // The ID shows in the Selected Shipments chips AND the table's first column.
+    expect(within(screen.getByRole('table', { name: 'Selected shipments to consolidate' })).getByText('O00000001')).toBeTruthy()
+    expect(screen.queryByText('BUY-A')).toBeNull() // Odyssey Shipment ID replaced Buy Shipment (user, 2026-09-27)
     expect(screen.getByText('2 Pickup Stops')).toBeTruthy()
     expect(screen.getByText('2 Delivery Stops')).toBeTruthy()
     expect(screen.getByText('27,500 LB')).toBeTruthy()
     expect(await screen.findByText('1,375 cuft')).toBeTruthy()
     expect(screen.getByText('Yes')).toBeTruthy()
     const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
-    expect(within(table).getByText('BUY-A')).toBeTruthy()
-    expect(within(table).getByText('BUY-B')).toBeTruthy()
+    expect(within(table).getByText('O00000001')).toBeTruthy()
+    expect(within(table).getByText('O00000002')).toBeTruthy()
   })
 
   // B1: no checkboxes anywhere — the rows ARE the consolidation.
