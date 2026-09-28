@@ -68,8 +68,7 @@ export default function OrderChangeEditStopsRoute() {
   // LINX-15671 Scenario A/B — where Approve lands depends on whether a
   // tender is already active. Same source the Direct route reads for its
   // own resolution payload (OrderChangeReviewRoute.jsx: priorTenderStatus =
-  // oc?.prior?.tenderStatus) — NOT routingData.options, whose statuses never
-  // include 'To Be Tendered'.
+  // oc?.prior?.tenderStatus) — the payload's own record of the prior tender.
   const tender = detail?.orderChange?.prior?.tenderStatus ?? null
 
   // S143 Task 3 — PATCH save-stops. The navigation branch (Scenario A/B,

@@ -6,7 +6,7 @@
 // Exceptions are irrelevant (Dave 00:09:06); Hold is fine. Ramesh's pool gates
 // (Allow Optimization, OCM 97–101, status = Consolidation) are backend pool
 // membership and are NOT applied to the checkbox. Spec §2.
-const ACTIVE_TENDER = new Set(['Sent', 'Accepted'])
+const ACTIVE_TENDER = new Set(['To Be Tendered', 'Sent', 'Accepted']) // LINX-15872's active tender
 
 /** @returns {string|null} null = eligible; otherwise the reason shown in the checkbox tooltip */
 export function consolidationEligibility(row, anchorCustomerId = null) {

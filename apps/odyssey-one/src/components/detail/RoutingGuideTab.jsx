@@ -26,12 +26,15 @@ import { applyTenderAction } from '../../lib/tenderAction.js'
 const STATUS_STYLES = {
   Accepted: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
   Sent: { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
+  'To Be Tendered': { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
   Declined: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
   Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 
 const TENDER_ACTIONS = {
   null: ['Tender'],
+  // LINX-8253: To Be Tendered → Sent (the user tenders manually, e.g. a call) or Cancelled.
+  'To Be Tendered': ['Tender', 'Cancel'],
   Sent: ['Accept', 'Decline', 'Cancel'],
   Accepted: ['Cancel'],
   Declined: ['Re-Tender'],

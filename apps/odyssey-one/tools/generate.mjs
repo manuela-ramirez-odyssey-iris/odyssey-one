@@ -1311,8 +1311,10 @@ function generateShipment(index, chainOverride) {
   // tenderStatus = the active option's status, or the last real carrier answer
   // when every carrier said no, or '' when nothing has been tendered yet
   // (preTender: routingStatuses is EMPTY by construction — Task 1).
-  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent'
+  // `let`: D1's To Be Tendered relabel below is the one override.
+  let tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent'
     : (routingStatuses.length > 0 ? routingStatuses[0] : '');
+  let toBeTendered = false;
   // Panel + category DERIVED from the lifecycle — the category used to be a
   // separate weighted pick that never looked at the tender state beside it,
   // which put 137 tender-accepted shipments in the pool and made "Tender Sent"
@@ -1369,6 +1371,20 @@ function generateShipment(index, chainOverride) {
       panel = 'exceptions';
       category = 'order-change';
       validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd() * VALIDATION_MESSAGES['order-change'].length)];
+      // D1 (LINX-14509, OC-open-1): the review is also entered from To Be
+      // Tendered: a carrier picked, the manual tender not yet communicated
+      // (LINX-8253's status table). A share of the Sent rows become that
+      // instead: no notify time, no tender link, a Manual channel, and
+      // history says so (below). Same id-keyed rnd, zero faker draws.
+      if (!hasAccepted && rnd() < 0.4) {
+        const opt = routingOptions.find(o => o.status === 'Sent');
+        opt.status = 'To Be Tendered';
+        opt.apiSource = 'Manual';
+        opt.notifyDateTime = null;
+        delete opt.tenderToken;
+        tenderStatus = 'To Be Tendered';
+        toBeTendered = true;
+      }
     }
   } else if (panel === 'exceptions' && orders.length > 1) {
     // S144/LINX-15671 Scenario B — the diversion above only ever produces an
@@ -1915,11 +1931,16 @@ function generateShipment(index, chainOverride) {
     // it only fires when NO option on this shipment shows a real response,
     // never alongside a Declined one.
     const focusOption = acceptedOption
-      || routingOptions.find(o => o.status === 'Sent')
+      || routingOptions.find(o => o.status === 'Sent' || o.status === 'To Be Tendered')
       || routingOptions.find(o => o.status === 'Declined')
       || routingOptions[0];
     advanceClock(0.01, 0.5);
-    pushHistory('Tender Sent', 'tender', 'Net Native',
+    // D1: a To Be Tendered row was never sent, and the MVP catalog has no
+    // event for it (DEC-80: the trail renders catalog events, never invents
+    // them), so nothing is emitted. ponytail: buildAuthor still runs so the
+    // faker stream (and every later shipment id) is unmoved.
+    if (toBeTendered) buildAuthor('Tender Sent', 'Net Native');
+    else pushHistory('Tender Sent', 'tender', 'Net Native',
       `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`,
       'update'); // DEC-87: advances the lifecycle, not a milestone
 

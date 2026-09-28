@@ -1295,10 +1295,16 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** Prior / New / Quote are all the **AP total** (`totalCostAmount`). The preview echoes the pick as-is. The API writes it to `totalCostAmount` and derives the base rate as total − the row's own charges, with AR following. The list row reads the total. Seed `apCost` fields (prior, newOption, dropped carriers) read `totalCostAmount`, with zero new draws. **Reseed owed**: until then live radios still show the base rate.
 - **Source:** LINX-14515 (Prior/New cost = AP cost; OC-open-2 closed by the story 2026-09-25); S160 open item "AP Cost after choosing the prior cost". Supersedes DEC-125.
 
+### DEC-209: Order change enters review from To Be Tendered too (seed + Tender tab)
+- **Previous:** the seed only diverted Sent/Accepted shipments into order change; To Be Tendered never existed in the data, so that review case was unreachable.
+- **Decision:** 40% of the Sent order-change rows become **To Be Tendered** (14 of 2,200). The prior option has no notify time and no tender link, its channel is Manual, and history emits **no** Tender Sent — nothing replaces it, since the MVP catalog has no To Be Tendered event (DEC-80: the trail renders catalog events, never invents them). Id-keyed rnd, zero faker draws, 0 ids moved. Tender tab: amber badge; actions **Tender** (→ Sent) and **Cancel**, per LINX-8253's transitions. Consolidation's "tendered, cancel first" check now counts To Be Tendered, matching 15872's active-tender list.
+- **Source:** LINX-14509 (To Be Tendered / Sent / Accepted enter the review; closes OC-open-1); LINX-8253 status definitions + transitions.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 28, 2026 | **DEC-209** — To Be Tendered order changes seeded (14 rows, ids unmoved) + Tender-tab badge/actions per LINX-8253. **Previous state:** order change only from Sent/Accepted |
 | Sep 28, 2026 | **DEC-208** — Select Cost = the AP total on all three radios, the preview, the Tender tab's AP Cost and the list's AP Freight Cost (supersedes DEC-125; closes OC-open-2's build; reseed owed). **Previous state:** base rate on Prior/New, total on Quote, only `rateAmount` written |
 | Sep 25, 2026 | **DEC-207** — Evaluate → routing modal → Approve on both review screens; View Routing no longer a separate button; "Approve Changes" kept over 15671's "Save" (amends DEC-200) |
 | Sep 25, 2026 | **DEC-200 through DEC-206** — Jana's 2026-09-25 design review of the consolidated order change + S160 rulings: Save runs 15671 Scenario A/B; busy source orders selectable and refused at Save (**reverses OC-open-11**); a shipment's only order movable and emptied shipments hidden; order windows anchor to their own stop (**I4 refined**); shipment statuses derived from the lifecycle (**reverses the S151 blank-status ruling**); removed orders become their own shipment; consolidation tender dates = the stops'. Most OC-open questions closed **by their stories**. **Previous state:** S159 build |

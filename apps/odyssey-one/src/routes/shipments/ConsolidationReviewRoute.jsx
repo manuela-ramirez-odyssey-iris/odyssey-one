@@ -44,7 +44,7 @@ const columnHelper = createColumnHelper()
 // Mirrors consolidation/eligibility.js's ACTIVE_TENDER — not exported there
 // (that file is untouched in this pass), so the set is duplicated rather than
 // reached into.
-const ACTIVE_TENDER = new Set(['Sent', 'Accepted'])
+const ACTIVE_TENDER = new Set(['To Be Tendered', 'Sent', 'Accepted'])
 
 const fmtLb = (n) => `${Math.round(n).toLocaleString('en-US')} LB`
 const fmtCuft = (n) => (n == null ? '--' : `${Math.round(n).toLocaleString('en-US')} cuft`)

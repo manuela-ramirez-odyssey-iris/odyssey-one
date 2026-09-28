@@ -981,7 +981,8 @@ test('Routing/Optimization/Auto-Tender failures are TRANSIENT only — every shi
     // Narrowed rather than dropped: every ACTUALLY-tendered shipment still
     // must show the entry.
     if (s.tenderStatus === '' && s.panel === 'monitoring') continue
-    assert.ok(d.historyList.some((h) => h.action === 'Tender Sent'), `shipment ${s.buyShipment} has tender rows but no "Tender Sent" history entry`)
+    // D1 (DEC-209): a To Be Tendered row has tender rows but was never sent.
+    if (s.tenderStatus !== 'To Be Tendered') assert.ok(d.historyList.some((h) => h.action === 'Tender Sent'), `shipment ${s.buyShipment} has tender rows but no "Tender Sent" history entry`)
     for (const action of TRANSIENT_ONLY_ACTIONS) {
       const entries = d.historyList.filter((h) => h.action === action)
       if (!entries.some((h) => h.outcome === 'failure')) continue
@@ -1715,6 +1716,22 @@ test('monitoring tabs agree with tender state — the S151 invariant', () => {
     assert.ok(ds.shipments.some((s) => s.panel === 'monitoring' && s.category === c), `no rows in ${c}`)
 })
 
+test('D1 (LINX-14509): some order changes enter review from To Be Tendered, coherently', () => {
+  const ds = buildDataset()
+  const tbt = ds.shipments.filter((s) => s.tenderStatus === 'To Be Tendered')
+  assert.ok(tbt.length >= 10, `only ${tbt.length} To Be Tendered rows`)
+  for (const s of tbt) {
+    assert.equal(s.category, 'order-change', `${s.sellShipment} To Be Tendered outside the review`)
+    const d = ds.details.get(s.sellShipment)
+    const opt = d.shippingOptionList.find((o) => o.status === 'To Be Tendered')
+    assert.ok(opt, `${s.sellShipment} no To Be Tendered option`)
+    assert.equal(opt.notifyDateTime, null, 'not yet communicated')
+    assert.ok(!opt.tenderToken, 'no tender link was ever sent')
+    assert.equal(d.orderChange.prior.tenderStatus, 'To Be Tendered')
+    assert.ok(!d.historyList.some((h) => h.action === 'Tender Sent'), `${s.sellShipment} history claims the tender was sent`)
+  }
+})
+
 test('DEC-204: every shipment status is the lifecycle label — Hold/Consolidation/Approved/Done in monitoring, Review otherwise', () => {
   const ds = buildDataset()
   const want = { hold: 'Hold', consolidation: 'Consolidation', sent: 'Approved', approved: 'Done', spotbid: 'Review' }
@@ -1741,6 +1758,8 @@ test('history ends at Optimization Evaluation for a pre-tender shipment, and nam
       if (s.category === 'consolidation') { assert.match(opt.details, /moved to Consolidation/); seenPool++ }
       if (s.category === 'hold')          { assert.match(opt.details, /moved to Hold/); seenHold++ }
       assert.equal(d.acceptedCarrierLabel, null, `${id} pre-tender but shows an accepted carrier`)
+    } else if (s.tenderStatus === 'To Be Tendered') {
+      assert.ok(!actions.includes('Tender Sent'), `${id} To Be Tendered but has Tender Sent`) // D1
     } else {
       assert.ok(actions.includes('Tender Sent'), `${id} tendered but no Tender Sent event`)
     }
