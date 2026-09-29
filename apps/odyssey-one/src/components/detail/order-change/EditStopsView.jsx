@@ -191,15 +191,21 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // hover/drag away from the row. No transition, so nothing to reduce.
   const [tip, setTip] = useState(null)
   const dragging = useRef(false)
-  const showLegTip = (e, key, subtitle, content) => {
-    // Also off over a picker (edit mode) and over anything with its own
-    // tooltip (order links, Outside planning window) — never two cards at once.
-    if (dragging.current || e.target.closest?.('.edit-stops__date, [data-tooltip-trigger]')) { setTip(null); return }
-    const row = e.currentTarget.closest('.odyssey-timeline__row')
-    const rail = row?.querySelector('.odyssey-timeline__rail')?.getBoundingClientRect()
-    if (!rail) return
+  // User 2026-09-28: the distance shows only while the pointer is over a
+  // stop's RAIL (its badge + the line below it), one delegated handler per
+  // panel. The line below stop i draws the leg to stop i+1, so that's the
+  // leg shown; the last stop has no line and no tip. Keyed by stop in
+  // legTips (filled by buildItems).
+  const legTips = { prior: {}, new: {} }
+  const showRailTip = (e, panel) => {
+    const rail = dragging.current ? null : e.target.closest?.('.odyssey-timeline__rail')
+    const row = rail?.closest('.odyssey-timeline__row')
+    const key = row?.querySelector('[data-stop-key]')?.dataset.stopKey
+    const info = key && legTips[panel][key]
+    if (!info) { setTip(null); return }
+    const rr = rail.getBoundingClientRect()
     const r = row.getBoundingClientRect()
-    setTip({ key, x: rail.left + rail.width / 2 + 8, y: Math.min(Math.max(e.clientY, r.top), r.bottom), subtitle, content })
+    setTip({ key: `${panel}:${key}`, x: rr.left + rr.width / 2 + 8, y: Math.min(Math.max(e.clientY, r.top), r.bottom), ...info })
   }
   // A move/aside re-lays the rows under a still pointer — drop the stale tip.
   useEffect(() => setTip(null), [sb.stops])
@@ -346,16 +352,16 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       const readOnly = isPrior || !editing
       const Row = isPrior || editing ? 'div' : SortableStop
       const rowProps = Row === SortableStop ? { id: s.key } : {}
-      // A6/B2 (DEC-198) — the leg from the PREVIOUS stop in this same plan,
-      // shown on hover; the first stop has none. '--' when a leg's
+      // A6/B2 (DEC-198) — the leg drawn by THIS stop's line: to the next
+      // stop (legs[i + 1]); the last stop has none. '--' when a leg's
       // coordinate is missing (a brand-new P?/D? stop), not a wrong number.
-      if (i > 0) {
-        const leg = (isPrior ? priorLegs : newLegs).legs[i]
-        const tipKey = `${isPrior ? 'prior' : 'new'}:${s.key}`
-        const onTip = (e) => showLegTip(e, tipKey, `Distance from ${labels[i - 1]}`, leg == null ? '--' : `${leg.toFixed(2)} mi`)
-        // data-leg-tip: the row whose leg is showing — edit-stops.css darkens
-        // the rail segment above it (the previous row's) while it's set.
-        Object.assign(rowProps, { onMouseEnter: onTip, onMouseMove: onTip, onMouseLeave: () => setTip(null), 'data-leg-tip': tip?.key === tipKey || undefined })
+      if (i < list.length - 1) {
+        const panel = isPrior ? 'prior' : 'new'
+        const leg = (isPrior ? priorLegs : newLegs).legs[i + 1]
+        legTips[panel][s.key] = { subtitle: `Distance to ${labels[i + 1]}`, content: leg == null ? '--' : `${leg.toFixed(2)} mi` }
+        // data-leg-tip: the row whose line is tipped — edit-stops.css darkens
+        // that row's own segment while it's set.
+        rowProps['data-leg-tip'] = tip?.key === `${panel}:${s.key}` || undefined
       }
       return {
         key: s.key,
@@ -516,11 +522,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         <Alert variant={alertVariant} showClose={false}>{alertText}</Alert>
 
         <div className="edit-stops__body">
-          <section className="edit-stops__plan edit-stops__plan--prior" aria-label="Prior plan">
+          <section className="edit-stops__plan edit-stops__plan--prior" aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
             <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
             <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
           </section>
-          <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef}>
+          <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef} onMouseMove={(e) => showRailTip(e, 'new')} onMouseLeave={() => setTip(null)}>
             <div className="edit-stops__plan-head">
               {/* User 2026-09-28: sm buttons; Reset sits beside the "New"
                   title, Discard + Save on the trail. */}

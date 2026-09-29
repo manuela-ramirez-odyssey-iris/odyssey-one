@@ -83,9 +83,9 @@
    margin-bottom on the segment; padding on the rail column is the same gap
    without a margin). */
 .edit-stops__rail--detached .odyssey-timeline__rail { padding-bottom: var(--spacing-2); }
-/* The leg under the distance tooltip: the segment ABOVE the tipped row
-   (drawn by the previous row) takes the Timeline's reached-line tone. */
-.edit-stops__rail .odyssey-timeline__row:has(+ .odyssey-timeline__row [data-leg-tip]) .odyssey-timeline__segment {
+/* The leg under the distance tooltip: the tipped row's OWN segment (its line
+   down to the next stop) takes the Timeline's reached-line tone. */
+.edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail .odyssey-timeline__segment {
   background: var(--deep-sea-neutral-400);
 }
 

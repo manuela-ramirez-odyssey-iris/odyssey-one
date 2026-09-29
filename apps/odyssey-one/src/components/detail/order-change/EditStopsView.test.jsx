@@ -444,36 +444,33 @@ describe('New plan modes (user 2026-09-28)', () => {
   })
 })
 
-it('hovering a stop row shows its leg distance in a tooltip on the rail; the first stop has none (user 2026-09-28)', async () => {
+it('the leg distance shows only over a stop\'s rail (badge + line), for the line it draws; the last stop has none (user 2026-09-28)', () => {
   const located = baseStops.map((s, i) => ({ ...s, lat: 40 + i, lng: -90 }))
   const leg1 = legDistances(located).legs[1]
   setup({ stops: located })
-  fireEvent.mouseEnter(newStop(0))
+  const railOf = (el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail')
+  const newPlan = screen.getByRole('region', { name: 'New plan' })
+  // Over the stop's content: nothing.
   fireEvent.mouseMove(newStop(0))
   expect(screen.queryByRole('tooltip')).toBeNull()
-  fireEvent.mouseMove(newStop(1), { clientY: 120 })
+  // Over stop 1's rail: the leg its line draws, to stop 2.
+  fireEvent.mouseMove(railOf(newStop(0)), { clientY: 120 })
   const tip = screen.getByRole('tooltip')
-  expect(tip.textContent).toBe(`Distance from P1${leg1.toFixed(2)} mi`)
+  expect(tip.textContent).toBe(`Distance to P2${leg1.toFixed(2)} mi`)
   expect(tip.parentElement.style.pointerEvents).toBe('none')
-  expect(newStop(1).hasAttribute('data-leg-tip')).toBe(true)          // its segment darkens (CSS :has)
-  expect(newStop(0).hasAttribute('data-leg-tip')).toBe(false)
-  // One tooltip at a time: over an order link (its own tooltip) the leg tip hides…
-  const link = within(newStop(1)).getAllByRole('button')[0].closest('[data-tooltip-trigger]')
-  fireEvent.mouseEnter(link)
-  fireEvent.mouseMove(link)
-  expect(screen.getAllByRole('tooltip')).toHaveLength(1)
-  expect(screen.getByRole('tooltip').textContent).not.toContain('Distance from')
+  expect(newStop(0).hasAttribute('data-leg-tip')).toBe(true)          // its own segment darkens (CSS :has)
   expect(newStop(1).hasAttribute('data-leg-tip')).toBe(false)
-  fireEvent.mouseLeave(link)
-  await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull())  // TooltipTrigger's 80ms hide
-  // …and comes back on the row itself.
-  fireEvent.mouseMove(newStop(1))
-  expect(screen.getByRole('tooltip').textContent).toContain('Distance from P1')
-  fireEvent.mouseLeave(newStop(1))
+  // Back onto content → hidden; the last stop's rail has no line → none.
+  fireEvent.mouseMove(newStop(0))
   expect(screen.queryByRole('tooltip')).toBeNull()
-  expect(newStop(1).hasAttribute('data-leg-tip')).toBe(false)
-  // Prior rows carry it too.
-  const priorRow = screen.getByRole('region', { name: 'Prior plan' }).querySelectorAll('[data-stop-key]')[2]
-  fireEvent.mouseMove(priorRow)
-  expect(screen.getByRole('tooltip').textContent).toContain('Distance from P2')
+  const last = newPlan.querySelectorAll('[data-stop-key]').length - 1
+  fireEvent.mouseMove(railOf(newStop(last)))
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  fireEvent.mouseMove(railOf(newStop(0)))
+  fireEvent.mouseLeave(newPlan)
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  // Prior rails carry it too.
+  const priorRow = screen.getByRole('region', { name: 'Prior plan' }).querySelectorAll('[data-stop-key]')[1]
+  fireEvent.mouseMove(railOf(priorRow))
+  expect(screen.getByRole('tooltip').textContent).toContain('Distance to')
 })
