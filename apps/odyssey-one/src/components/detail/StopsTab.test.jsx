@@ -100,6 +100,8 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     expect(screen.getByRole('button', { name: 'Edit Shipment Stops' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'View Planning Dates' }).disabled).toBe(false)
+    // User 2026-09-28: a link with a leading calendar icon (so no underline).
+    expect(screen.getByRole('button', { name: 'View Planning Dates' }).className).toMatch(/btn--link.*btn--has-icon/)
     expect(screen.queryByRole('button', { name: 'View Routing' })).toBeNull()
     expect(screen.queryAllByRole('button', { name: 'Approve Plan' })).toHaveLength(0)
     expect(screen.getByText('New Consolidated Cost')).toBeTruthy()

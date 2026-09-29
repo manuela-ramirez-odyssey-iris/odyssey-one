@@ -86,6 +86,17 @@
   gap: var(--spacing-2);
 }
 
+/* Distance (first cell) carries a Prior/New badge pair when changed and needs
+   more room than the strip's 160px ceiling. Resting strip only — mini (stuck)
+   cells hug content already.
+   ponytail: app-level override because SummaryStrip has no per-item width;
+   upgrade path = a per-item width prop on SummaryStrip through a Figma-first
+   normalize cycle. */
+.stops-kpi-strip:not(.summary-strip--mini) > .summary-strip__cell:first-child {
+  flex-basis: 178px;
+  max-width: 178px;
+}
+
 /* All Stops card header actions (Edit Shipment Stops / Approve Plan) */
 .stops-review__actions {
   display: flex;

@@ -77,6 +77,11 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   // badges, so the stop-type badge is purple here too (not the canon
   // customer-change color mapping — a deliberate reuse).
   expect(nw().getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
+  // User 2026-09-28: one "Orders" label per stop card, no per-row "Order #".
+  expect(nw().getAllByText('Orders')).toHaveLength(3)
+  expect(screen.queryByText('Order #')).toBeNull()
+  // View Planning Dates is a link with a leading calendar icon.
+  expect(screen.getByRole('button', { name: 'View Planning Dates' }).className).toMatch(/btn--link.*btn--has-icon/)
   // User 2026-09-24: Prior is gray.
   expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-gray-bg')
 })

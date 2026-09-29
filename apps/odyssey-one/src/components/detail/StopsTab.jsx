@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import useSheet from '../../routes/useSheet'
 import { useApproveOrderChange } from '../../routes/shipments/useApproveOrderChange.js'
-import { TriangleAlert, ArrowRight } from 'lucide-react'
+import { TriangleAlert, ArrowRight, CalendarDays } from 'lucide-react'
 import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
-import { ICON_MD } from '@odyssey/tokens'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
@@ -271,7 +271,9 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                 )}
               </div>
               <div className="stops-review__actions">
-                <Button variant="secondary" onClick={() => setModal('planning')}>View Planning Dates</Button>
+                {/* User 2026-09-28: link + leading calendar (LG/20px, ButtonLink's
+                    leading-icon size); Button drops the underline itself. */}
+                <Button variant="link" icon={<CalendarDays {...ICON_LG} aria-hidden="true" />} onClick={() => setModal('planning')}>View Planning Dates</Button>
               </div>
             </div>
           )}

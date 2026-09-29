@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUp, ArrowDown, TriangleAlert } from 'lucide-react'
+import { ArrowUp, ArrowDown, CalendarDays, TriangleAlert } from 'lucide-react'
 import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
-import { ICON_MD } from '@odyssey/tokens'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
 import TimezoneSelect from '../../orders/create/fields/TimezoneSelect'
@@ -298,6 +298,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 </>
               )}
             />
+            {/* User 2026-09-28: the Stops-tab review ("Consol") card — a
+                TitleSubtitle grid, Location | Distance then the stop's date,
+                then ONE "Orders" label over the order rows. */}
             <div className="edit-stops__fields">
               <TitleSubtitle subtitle="Location" title={s.location || '--'} />
               {/* A6/B2 (DEC-198) — leg from the PREVIOUS stop in this same
@@ -310,50 +313,50 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               {/* DEC-195: a stop shows only its own date. DEC-199: editable
                   in the New plan; Prior stays the record of what was. */}
               {isPrior
-                ? <TitleSubtitle subtitle={isPickup ? 'Pickup Date' : 'Delivery Date'} title={s.date || '--'} />
+                ? <TitleSubtitle className="edit-stops__span" subtitle={isPickup ? 'Pickup Date' : 'Delivery Date'} title={s.date || '--'} />
                 : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
-            </div>
-            <div className="edit-stops__orders">
-              {s.orderIds.map((id) => {
-                const isRemovedOrder = diff.removedOrderIds.includes(id)
-                return (
-                  <div className="edit-stops__order-row" key={id} data-flash={isPrior ? undefined : flashes(`order:${id}`)}>
-                    <div className="edit-stops__order-lead">
-                      <span className="edit-stops__order-label text-label-sm-medium">Order #</span>
-                      {isRemovedOrder
-                        ? <Badge variant="gray">{id}</Badge>
-                        // ponytail: no order drill-in yet — deferred, wire up when the
-                        // Order Compare / detail surface has a route for this VM.
-                        : (
-                          <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
-                            <Button variant="link" onClick={() => {}}>{id}</Button>
-                          </TooltipTrigger>
-                        )}
-                      {!isPrior && violationOf(s.key, id) && (() => {
-                        const v = violationOf(s.key, id)
-                        return (
-                          <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `Order ${v.type} window`, content: `${v.from} – ${v.to}` }] }}>
-                            <Badge variant="amber" leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />}>Outside planning window</Badge>
-                          </TooltipTrigger>
-                        )
-                      })()}
+              <div className="edit-stops__orders edit-stops__span">
+                <TitleSubtitle subtitle="Orders" />
+                {s.orderIds.map((id) => {
+                  const isRemovedOrder = diff.removedOrderIds.includes(id)
+                  return (
+                    <div className="edit-stops__order-row" key={id} data-flash={isPrior ? undefined : flashes(`order:${id}`)}>
+                      <div className="edit-stops__order-lead">
+                        {isRemovedOrder
+                          ? <Badge variant="gray">{id}</Badge>
+                          // ponytail: no order drill-in yet — deferred, wire up when the
+                          // Order Compare / detail surface has a route for this VM.
+                          : (
+                            <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
+                              <Button variant="link" onClick={() => {}}>{id}</Button>
+                            </TooltipTrigger>
+                          )}
+                        {!isPrior && violationOf(s.key, id) && (() => {
+                          const v = violationOf(s.key, id)
+                          return (
+                            <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `Order ${v.type} window`, content: `${v.from} – ${v.to}` }] }}>
+                              <Badge variant="amber" leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />}>Outside planning window</Badge>
+                            </TooltipTrigger>
+                          )
+                        })()}
+                      </div>
+                      {isPrior ? null : singleOrderLeft ? (
+                        <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
+                          <Button variant="secondary" disabled>Set Aside</Button>
+                        </TooltipTrigger>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleMoveToPending(id)}
+                        >
+                          {/* DEC-194: "Move To Pending" → "Set Aside", text only. */}
+                          Set Aside
+                        </Button>
+                      )}
                     </div>
-                    {isPrior ? null : singleOrderLeft ? (
-                      <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
-                        <Button variant="secondary" disabled>Set Aside</Button>
-                      </TooltipTrigger>
-                    ) : (
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleMoveToPending(id)}
-                      >
-                        {/* DEC-194: "Move To Pending" → "Set Aside", text only. */}
-                        Set Aside
-                      </Button>
-                    )}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
         ),
@@ -380,7 +383,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           <div className="edit-stops__head-actions">
             {/* DEC-207 (T2) — View Routing is gone; Evaluate (footer) is the
                 only door into the routing modal now. */}
-            <Button variant="secondary" onClick={() => setModal('planning')}>View Planning Dates</Button>
+            {/* User 2026-09-28: a link with a leading calendar (ButtonLink's
+                leading icon is LG/20px) — Button drops the link underline
+                itself when an icon is present. */}
+            <Button variant="link" icon={<CalendarDays {...ICON_LG} aria-hidden="true" />} onClick={() => setModal('planning')}>View Planning Dates</Button>
           </div>
         </div>
 

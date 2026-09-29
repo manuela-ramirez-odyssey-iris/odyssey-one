@@ -42,32 +42,48 @@
 }
 
 /* Timeline (@odyssey/ui) owns the rail's own flex-column + connector; only
-   the width-sharing with the pending column belongs here — no gap override,
-   or the continuous connector line between badges would break. */
+   the width-sharing and the panel's inner inset belong here — no gap
+   override, or the continuous connector line between badges would break. */
 .edit-stops__rail {
   flex: 1 1 auto;
   min-width: 0;
+  padding: 0 var(--spacing-4);
+}
+/* Framed cards need air between them; padding on the content (not a row
+   gap) grows the row, so the rail's segment stretches through it unbroken. */
+.edit-stops__rail .odyssey-timeline__row:not(:last-child) .odyssey-timeline__content {
+  padding-bottom: var(--spacing-4);
 }
 
 .edit-stops__card {
   display: flex;
   flex-direction: column;
-  /* User ruling 2026-09-09: the gray frame around each stop card was ours,
-     not in the VD — removed. border-radius + overflow:hidden are kept: they
-     still clip HeaderStrip's own tinted band (--bg-secondary) to rounded top
-     corners against the page background, which reads fine as a plain
-     rounded-header card with no frame needed to bound it. */
-  border-radius: var(--radius-lg);
+  /* User 2026-09-28: the frame is back — the card now matches the Stops-tab
+     review card ("Consol", stops.css .stops-timeline--review .stops-item),
+     superseding the 2026-09-09 ruling that removed it as "ours, not in the
+     VD". overflow:hidden clips HeaderStrip's tinted band to the radius. */
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
+/* Consol's TitleSubtitle grid, two columns (Location | Distance), gap as
+   stops.css .stops-item__fields. 2:1, not Consol's equal thirds — a
+   location is a full address, a distance is "880.09 mi"; equal halves
+   wrapped the address to four lines at 1280px. */
 .edit-stops__fields {
   display: grid;
-  /* One column: Distance sits below Location so New has room (user 2026-09-24). */
-  grid-template-columns: 1fr;
-  gap: var(--spacing-3) var(--spacing-4);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--spacing-3) var(--spacing-5);
   padding: var(--spacing-4);
 }
+.edit-stops__span { grid-column: 1 / -1; }
+
+/* The framed panels leave a P?/D? card ~270px of band at 1280px — not enough
+   for title + badge + Keep here + both arrows, and HeaderStrip ellipsized the
+   title to "S". Let the trail drop to its own (right-aligned, via its own
+   margin-left:auto) line instead. App-scoped: HeaderStrip itself is untouched. */
+.edit-stops__card .header-strip { flex-wrap: wrap; }
 
 .edit-stops__date {
   grid-column: 1 / -1;
@@ -83,7 +99,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
-  padding: 0 var(--spacing-4) var(--spacing-4);
 }
 
 /* User ruling 2026-09-09: "Move To Pending" was sitting right after the order
@@ -99,8 +114,6 @@
   gap: var(--spacing-3);
 }
 
-.edit-stops__order-label { white-space: nowrap; }
-
 .edit-stops__order-lead {
   display: flex;
   flex-wrap: wrap;
@@ -109,13 +122,18 @@
 }
 
 /* DEC-197: Prior | New side by side, equal share of what the pending
-   column leaves; Prior is read-only. */
+   column leaves; Prior is read-only. User 2026-09-28: each is a panel framed
+   exactly like .edit-stops__pending below (HeaderStrip title on top). */
 .edit-stops__plan {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  padding-bottom: var(--spacing-4);
 }
 
 /* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
