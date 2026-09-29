@@ -98,13 +98,18 @@
   align-items: center;
   gap: var(--spacing-2);
 }
+/* User 2026-09-28: the badges flow INLINE after the address text, so when a
+   long address wraps the badge stays beside its last word instead of
+   dropping to its own line (flex-wrap moved the whole badge). */
 .edit-stops__stop-lead {
   flex: 999 1 180px;
   min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-1) var(--spacing-2);
+  display: block;
+}
+.edit-stops__stop-glue { white-space: nowrap; }
+.edit-stops__stop-glue > .text-badge {
+  margin-left: var(--spacing-2);
+  vertical-align: middle;
 }
 .edit-stops__stop-location { min-width: 0; color: var(--text-primary); }
 .edit-stops__stop-trail {

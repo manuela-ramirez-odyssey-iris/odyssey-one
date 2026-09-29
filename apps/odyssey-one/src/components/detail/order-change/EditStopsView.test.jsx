@@ -14,6 +14,11 @@ vi.mock('../../../api/services/shipmentService', () => ({
     }],
   })),
 }))
+
+// The address is split across text nodes (last word glued to its badges,
+// user 2026-09-28), so stops are matched on the span's data-location.
+const atLoc = (want) => (_, el) => !!el?.classList?.contains('edit-stops__stop-location')
+  && (typeof want === 'string' ? el.dataset.location === want : want.test(el.dataset.location))
 import { getSellShipmentDetail } from '../../../api/services/shipmentService'
 
 afterEach(() => { cleanup(); getSellShipmentDetail.mockClear() })
@@ -75,7 +80,7 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(nw().getAllByRole('button', { name: 'Move stop up' })).toHaveLength(3)
   expect(nw().queryByText('Stop 1')).toBeNull()
   expect(document.querySelector('.edit-stops .header-strip')).toBeNull()
-  expect(nw().getByText('Y, Town')).toBeTruthy()
+  expect(nw().getByText(atLoc('Y, Town'))).toBeTruthy()
   expect(nw().getAllByText(/^Distance: /)).toHaveLength(3)          // one secondary Distance line per stop
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
@@ -88,8 +93,8 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(screen.queryByText('Order #')).toBeNull()
   // View Planning Dates is a link with a leading calendar icon.
   expect(screen.getByRole('button', { name: 'View Planning Dates' }).className).toMatch(/btn--link.*btn--has-icon/)
-  // User 2026-09-24: Prior is gray.
-  expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-gray-bg')
+  // User 2026-09-28: Prior's type badge is green (was gray, 2026-09-24).
+  expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-green-bg')
 })
 
 it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reordering after a move', () => {
@@ -111,7 +116,7 @@ it('arrows reorder and renumber; an illegal move is disabled (user 2026-09-24)',
   // Stop 2 (P2) up over Stop 1 (P1) is legal — both pickups, no sequence issue.
   const up = screen.getAllByRole('button', { name: 'Move stop up' })
   fireEvent.click(up[1]) // second card's up-arrow
-  expect(nw().getByText('Y, Town')).toBeTruthy() // still rendered, now first
+  expect(nw().getByText(atLoc('Y, Town'))).toBeTruthy() // still rendered, now first
   // Now [P2(C), P1(A,B), D1(A,B,C)] — moving the middle stop down over the
   // delivery would put A/B's delivery ahead of their own pickup (LINX-15669).
   const down = screen.getAllByRole('button', { name: 'Move stop down' })
@@ -231,19 +236,19 @@ it('"Keep here" appears only on an unsequenced (P?/D?) stop in the New timeline,
   setup({ consolidation: locChange, orders: relocatedOrders })
   expect(within(screen.getByRole('region', { name: 'Prior plan' })).queryByRole('button', { name: 'Keep here' })).toBeNull()
   const keepHere = nw().getByRole('button', { name: 'Keep here' })
-  const before = nw().getAllByText(/^Y, Town$|^Q, Burg$/).map((el) => el.textContent)
+  const before = nw().getAllByText(atLoc(/^Y, Town$|^Q, Burg$/)).map((el) => el.dataset.location)
   fireEvent.click(keepHere)
   expect(nw().queryByRole('button', { name: 'Keep here' })).toBeNull()
   // Still on its own P? location — sequenced in place, not moved elsewhere.
-  expect(nw().getAllByText(/^Y, Town$|^Q, Burg$/).map((el) => el.textContent)).toEqual(before)
+  expect(nw().getAllByText(atLoc(/^Y, Town$|^Q, Burg$/)).map((el) => el.dataset.location)).toEqual(before)
 })
 
 it('the Prior column shows the relocated order at its ORIGINAL stop, never the P? the New column creates (T1.1/T2)', () => {
   const relocatedOrders = orders.map((o) => (o.orderNumber === 'C' ? { ...o, shipFrom: { ...o.shipFrom, location: 'Q, Burg' } } : o))
   setup({ consolidation: locChange, orders: relocatedOrders })
   const prior = screen.getByRole('region', { name: 'Prior plan' })
-  expect(within(prior).getByText('Y, Town')).toBeTruthy()       // C's original pickup, untouched
-  expect(within(prior).queryByText('Q, Burg')).toBeNull()       // never the relocated site
+  expect(within(prior).getByText(atLoc('Y, Town'))).toBeTruthy()       // C's original pickup, untouched
+  expect(within(prior).queryByText(atLoc('Q, Burg'))).toBeNull()       // never the relocated site
   expect(nw().getByText('P?')).toBeTruthy()                     // New shows the relocation as an unsequenced P?
 })
 

@@ -272,7 +272,17 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           <div className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
             <div className="edit-stops__stop-head">
               <span className="edit-stops__stop-lead">
-              <span className="text-label-sm-medium edit-stops__stop-location">{s.location || '--'}</span>
+              {/* User 2026-09-28: the badges stay beside the address text. The
+                  LAST word is glued to them (nowrap), so when there's no room
+                  the word wraps down together with the badges, never leaving
+                  a badge alone on its own line. */}
+              {(() => {
+                const loc = s.location || '--'
+                const cut = loc.lastIndexOf(' ')
+                return (
+                  <span className="text-label-sm-medium edit-stops__stop-location" data-location={loc}>
+                    {cut === -1 ? '' : `${loc.slice(0, cut)} `}
+                    <span className="edit-stops__stop-glue">{cut === -1 ? loc : loc.slice(cut + 1)}
               {/* User ruling 2026-09-09: purple, not green — this editor
                   already carries purple/gray change badges (Removed/Moved
                   here), so the stop-type badge picks up the same purple used
@@ -287,9 +297,15 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                   too strong in Prior. Canon's "amber = what the planner
                   changed" (§10.3/DEC-136) is stale for this surface pending
                   a docs pass. */}
-              <Badge variant={isPrior ? 'gray' : 'purple'}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+              {/* User 2026-09-28: Prior's type badge is green, like its rail
+                  markers and the plain Stops tab; New stays purple. */}
+              <Badge variant={isPrior ? 'green' : 'purple'}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
               {removed && <Badge variant="gray">Removed</Badge>}
               {moved && <Badge variant="gray">Moved</Badge>}
+                    </span>
+                  </span>
+                )
+              })()}
               </span>
               {!isPrior && (
                 <span className="edit-stops__stop-trail">
