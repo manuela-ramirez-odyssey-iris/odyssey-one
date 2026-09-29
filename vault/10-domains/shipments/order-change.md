@@ -3,7 +3,7 @@ title: Order Change
 domain: shipments
 type: canon
 tags: [order-change, tender, direct-shipment, consolidation, multi-stop, compare-screen, linx-14509, linx-14515, linx-15435, linx-15872, linx-8820, linx-8284]
-date: 2026-09-25
+date: 2026-09-29
 status: active
 ---
 
@@ -197,7 +197,7 @@ Opened by *Edit Shipment Stops*. **Nothing touches the database until Save** (15
 
 **Surface B slice 1 (S143) — Edit Shipment Stops is its own page**, `/shipments/order-change/:id/stops` (user ruling: *"shown in its own page like we did with direct order change, with a breadcrumb"*), VD `2134-53584`:
 - A pure **sandbox model** (`stopsSandbox.js`) implements 15668 placement (`P?`/`D?` appended per type, emptied stops removed), 15669 reorder validation (pickup before delivery — blocked with the AC's message), 15869 remove (last order refused), 15871 add (match location, else create), the routing→save gate, and a prior diff.
-- Reorder is **↑/↓ arrows**, not drag ([[decisions/decision-log#DEC-137]]). *Add to* places automatically ([[decisions/decision-log#DEC-138]]). *Add New Order* ships disabled — the 15870 search grid has no VD.
+- Reorder is **↑/↓ arrows**, not drag ([[decisions/decision-log#DEC-137]]). *Amended S162 by [[decisions/decision-log#DEC-212]]: drag in the compact state, arrows in edit mode.* *Add to* places automatically ([[decisions/decision-log#DEC-138]]). *Add New Order* ships disabled — the 15870 search grid has no VD.
 - **Prior toggle** ([[decisions/decision-log#DEC-136]]): disabled until the planner edits; Prior view is read-only, titled "All Stops - Prior Changes", Alert "Prior changes view mode", pending column muted, and **amber** marks what the planner changed (moved/removed stops, removed orders) — purple stays the customer's change.
 - Two metric rows on purpose: the KPI strip shows the **customer's** change (prior → new from the order update); the card head shows the **plan's** live totals as the planner edits.
 - **Approve Changes** = 15671 Save ([[decisions/decision-log#DEC-139]]): `save-stops` merges the finalized structure onto `detail.shipmentStopList` (server recomputes stop weight/volume/packages from its orders), then Scenario A (active tender → the Direct Actions card, row stays in Order Change until that decision) / Scenario B (→ Tender tab, status Review).
@@ -267,14 +267,35 @@ A 26-minute call (`vault-sources/10-domains/shipments/sources/jana-order-change-
 | # | Shipped | Ruling | Verdict |
 |---|---|---|---|
 | R1 | Tender-busy source orders greyed at add (OC-open-11) | Selectable; refused at Save (15870/15872, Jana) | **Reversed and built S160** (DEC-201) |
-| R2 | Footer "Approve Changes"; nothing after it | "Save" + Scenario A/B (15671) | **Build owed** (DEC-200) |
-| R3 | Approve Plan disabled (OC-open-8) | Pushes the new list to the Tender tab as V2 (15438) | **Build owed** |
-| R4 | Orders left pending just leave the shipment | A new shipment of their own (15869) | **Build owed** (DEC-205) |
-| R5 | Only order of a shipment greyed at add (built earlier on S160) | Movable; an emptied shipment is hidden | **Reversed and built S160** (DEC-202); hiding owed |
-| R6 | Tender dates from routing | First pickup / last delivery stop (Jana) | **Verify + fix owed** (DEC-206) |
+| R2 | Footer "Approve Changes"; nothing after it | "Save" + Scenario A/B (15671) | **Built S160/S162**: Scenario A/B built; the label stays "Approve Changes" (DEC-207 amends DEC-200) |
+| R3 | Approve Plan disabled (OC-open-8) | Pushes the new list to the Tender tab as V2 (15438) | **Built S160** (DEC-211 re-files to Tender Review) |
+| R4 | Orders left pending just leave the shipment | A new shipment of their own (15869) | **Built S163** (DEC-205, DEC-217: no carrier list until planned) |
+| R5 | Only order of a shipment greyed at add (built earlier on S160) | Movable; an emptied shipment is hidden | **Reversed and built S160** (DEC-202); hiding **built S163** |
+| R6 | Tender dates from routing | First pickup / last delivery stop (Jana) | **Built S163** (DEC-206; with DEC-215's re-route) |
 | R7 | Live per-leg distance while editing | Distances update after View Routing (routing service) | **Compatible:** live figures are a pre-routing estimate (DEC-198 stands) |
 
 Plan for all of the above: `docs/superpowers/plans/2026-09-25-order-change-remaining.md`.
+
+## 10d. The S163 audit and what it closed (2026-09-29)
+
+A clause-by-clause audit of the 13 stories plus Jana's transcripts, checked against the code, found the Save path unsafe and several numbers disagreeing. Built and deployed the same day (specs `docs/superpowers/specs/2026-09-29-order-change-{save,consistency,ac-gap}-slice.md`; plan `docs/superpowers/plans/2026-09-25-order-change-remaining.md` §C+):
+
+- **Save is safe:**
+  - an order left pending becomes its own Direct shipment (DEC-205/217);
+  - the 15872 move block reads the live tenders;
+  - a delivery-before-pickup can't reach Evaluate;
+  - the server refuses unplaced moved orders;
+  - created stops keep coordinates and zone;
+  - mock mode says Save needs the live API (DEC-218);
+  - a one-order result reads Direct in the detail too (DEC-216).
+- **One number per value:**
+  - the DB value is New everywhere (header, stops, compare);
+  - Evaluate re-routes from the edited stops, with stop dates and distance-scaled cost (DEC-206/215);
+  - Save recomputes the header and the row's lane/date columns;
+  - emptied shipments are hidden (DEC-202).
+- **Edit Stops as built** is recorded in DEC-212 (Prior | New, compact drag vs edit mode, rail distance tooltip), DEC-213 (Keep here) and DEC-214 (a created stop's joint default date).
+- **Presentation (ours):** Location is one field, so its change badge covers Site ID, City, State, Zip and Country together (15436). Address 2–3 are not displayed.
+- **Still owed:** C14 (costs in View Routing) and C18 (audit/move logs, plus Jana 09-23 "order history knows it moved") wait on design. The 2026-09-23 call is still in the inbox.
 
 ## 11. Build-delta — shipped (S134–S137) vs sources
 
@@ -315,7 +336,7 @@ Plan for all of the above: `docs/superpowers/plans/2026-09-25-order-change-remai
 - **OC-open-13** — DECIDED 2026-09-24 (DEC-199), build owed. Was: Per-stop Planned Date / Time / Time Zone editing (15669 §3–5): the Edit Shipment Stops VD shows dates read-only; the AC requires them editable and complete before routing. Needs a control from Laura (`ManualDatesModal` is a candidate).
 - **OC-open-14** — REOPENED + REVERSED 2026-09-24 (DEC-193): the stop picker goes; the system places. Was CLOSED 2026-09-09: VD `2076-8110` + user ruling confirm *Add to* is a stop picker; the other leg still auto-places per 15871.
 - **OC-open-15** — CLOSED 2026-09-09: `AddOrdersModal` shipped from VD `2137-59231` (search, inner Filters, 11-column grid, five-pick cap).
-- **OC-open-16** — CLOSED 2026-09-25: "Save" (LINX-15671 + Jana §10c `@00:20–00:22`); rename owed (plan C1). Was: Footer copy: VD "Approve Changes" vs AC "Save" (15671). Shipped with the VD's label.
+- **OC-open-16** — CLOSED 2026-09-25, then SUPERSEDED by DEC-207: the label stays "Approve Changes", inside the routing modal; no rename. Was: "Save" (LINX-15671 + Jana §10c `@00:20–00:22`); rename owed (plan C1). Was: Footer copy: VD "Approve Changes" vs AC "Save" (15671). Shipped with the VD's label.
 - **OC-open-17** — CLOSED 2026-09-25 by the story: LINX-15435 "The Stops tab shall be selected by default when accessed from an Order Change exception." Was: The Tender-tab *Review Order Change* button jumping to the Stops tab for a consolidated shipment is OUR inference (15435 describes opening the shipment, not a button; the Tender lock itself is a 14509 Direct rule). Confirm with Jana.
 - **OC-open-12** — DECIDED 2026-09-24 (DEC-196): Direct field set + per-line blocks; the seed owes per-order line pairs. Was: Per-order compare: the VD (`2107-12719`) lists hazmat rows (Boiling Point, Flash Point) per order; the seed's `orderComparisons` carries tender rows only, so those rows are unreachable until a per-order hazmat pair is seeded (seed gap, same class as build-delta row 14).
 - **OC-open-18** — VD `2066-77150`'s confirm primary reads "Remove Order" — a copy leftover from the sibling remove dialog. Figma text changed to "Approve" 2026-09-09; tell Laura.
