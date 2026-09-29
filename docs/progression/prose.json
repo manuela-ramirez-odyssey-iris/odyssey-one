@@ -49,12 +49,12 @@
       "consignor": {
         "description": "Name of consignor",
         "notes": "",
-        "example": "G2O TECH SOLUTIONS"
+        "example": "BASTROP TERMINAL"
       },
       "consignee": {
         "description": "Name of consignee",
         "notes": "",
-        "example": "SOLVAY CHEMICALS PL"
+        "example": "GREEN RIVER TERMINAL"
       },
       "origin": {
         "description": "First pickup location",
@@ -337,12 +337,12 @@
       "shipperLocation": {
         "description": "Consignor facility + city / state / country",
         "notes": "All tab column \"Shipper Location\". Projected from row.consignor as name-first text. NAMING CONFLICT: the panel calls the same thing \"Origin City, State, Country\" (key origin) and filters City|State|Country triples only — no facility name.",
-        "example": "G2O TECH SOLUTIONS, Bastrop, LA, US"
+        "example": "BASTROP TERMINAL, Bastrop, LA, US"
       },
       "destinationLocation": {
         "description": "Consignee facility + city / state / country",
         "notes": "All tab column \"Destination Location\". Projected from row.consignee. NAMING CONFLICT: panel calls it \"Destination City, State, Country\" (key destination).",
-        "example": "SOLVAY CHEMICALS PL, Green River, WY, US"
+        "example": "GREEN RIVER TERMINAL, Green River, WY, US"
       },
       "latestPickup": {
         "description": "Latest pickup date at the consignor",

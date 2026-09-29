@@ -155,8 +155,8 @@ Progression order. `match` and `exact` are the code's own fields; the panel colu
 |---:|---|---|---|---|:-:|---|---|---|
 | 1 | Order Identifiers | Order Number | `orderNumber` | both | | `0000000091000` | Order Number | Order Identifiers |
 | 2 | Customers & Parties | Customer | `customer` | letters | | `WEYERH_01` | Customer | Order Identifiers |
-| 3 | Route & Geography | Shipper Location | `shipperLocation` | letters | | `G2O TECH SOLUTIONS, Bastrop, LA, US` | Origin City, State, Country ⚠ | Route & Geography |
-| 4 | Route & Geography | Destination Location | `destinationLocation` | letters | | `SOLVAY CHEMICALS PL, Green River, WY, US` | Destination City, State, Country ⚠ | Route & Geography |
+| 3 | Route & Geography | Shipper Location | `shipperLocation` | letters | | `BASTROP TERMINAL, Bastrop, LA, US` | Origin City, State, Country ⚠ | Route & Geography |
+| 4 | Route & Geography | Destination Location | `destinationLocation` | letters | | `GREEN RIVER TERMINAL, Green River, WY, US` | Destination City, State, Country ⚠ | Route & Geography |
 | 5 | Schedule & Appointments | Latest Pickup Date | `latestPickup` | date | | `6/5/2026` | Latest Pickup Date | Schedule |
 | 6 | Schedule & Appointments | Latest Delivery Date | `latestDelivery` | date | | `6/7/2026` | Latest Delivery Date | Schedule |
 | 7 | Transport & Equipment | Equipment | `equipment` | enum (11) | ✓ | `LTR` | — none | |

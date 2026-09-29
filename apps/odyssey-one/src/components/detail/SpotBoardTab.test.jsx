@@ -82,7 +82,7 @@ describe('SpotBoardTab', () => {
   // since @testing-library/user-event isn't in this repo).
   it('shows the full stop location in a tooltip on hover over a compacted cell', () => {
     const details = makeShipmentDetails([])
-    details.stopsData.stops[0].location = 'NOURYON COLUMBUS PL, Kansas City, MO 64101 US'
+    details.stopsData.stops[0].location = 'KANSAS CITY TERMINAL, Kansas City, MO 64101 US'
     const { container } = render(<SpotBoardTab shipmentDetails={details} shipment={shipment} />)
     const strip = container.querySelector('.spot-sticky-strip')
     expect(strip.textContent).toContain('Kansas City, MO')
@@ -90,7 +90,7 @@ describe('SpotBoardTab', () => {
 
     const trigger = strip.querySelector('[data-tooltip-trigger]')
     fireEvent.mouseEnter(trigger)
-    expect(screen.getByText('NOURYON COLUMBUS PL, Kansas City, MO 64101 US')).toBeTruthy()
+    expect(screen.getByText('KANSAS CITY TERMINAL, Kansas City, MO 64101 US')).toBeTruthy()
   })
 
   // The carrier rows' Planned Pickup/Delivery default off the order's LATEST

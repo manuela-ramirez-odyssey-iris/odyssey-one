@@ -13,7 +13,7 @@ function mk(orderNumber: string, extra: Record<string, unknown> = {}) {
     freightTerms: 'P',
     equipment: 'VAN',
     consignor: {
-      locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
+      locationId: 'HT-TX-001', city: 'Houston', state: 'TX', country: 'US',
       earliestPickupDateTime: '2026-06-10T08:00:00.000Z',
       latestPickupDateTime: '2026-06-10T16:00:00.000Z',
     },
@@ -37,7 +37,7 @@ const STORE = [
   mk('BBB100004', { customer: 'BASF_CHM_01' }),
   mk('BBB100003', {
     consignor: {
-      locationId: 'EW-TX-001', city: 'Freeport', state: 'TX', country: 'US',
+      locationId: 'HT-TX-001', city: 'Freeport', state: 'TX', country: 'US',
       earliestPickupDateTime: '2026-07-01T08:00:00.000Z',
       latestPickupDateTime: '2026-07-01T16:00:00.000Z',
     },

@@ -1300,10 +1300,16 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** 40% of the Sent order-change rows become **To Be Tendered** (14 of 2,200). The prior option has no notify time and no tender link, its channel is Manual, and history emits **no** Tender Sent — nothing replaces it, since the MVP catalog has no To Be Tendered event (DEC-80: the trail renders catalog events, never invents them). Id-keyed rnd, zero faker draws, 0 ids moved. Tender tab: amber badge; actions **Tender** (→ Sent) and **Cancel**, per LINX-8253's transitions. Consolidation's "tendered, cancel first" check now counts To Be Tendered, matching 15872's active-tender list.
 - **Source:** LINX-14509 (To Be Tendered / Sent / Accepted enter the review; closes OC-open-1); LINX-8253 status definitions + transitions.
 
+### DEC-210: Sites have neutral names and pickups come from the customer's own sites
+- **Previous:** 30 sites named after companies (e.g. CELANESE MIDWEST HUB, OLIN CORP MCINTOSH, ACME FREIGHT SERVICES), several matching our own customers, picked at random regardless of the shipment's customer. Edit Shipment Stops read as if each stop were a different customer.
+- **Decision:** 300 sites named `<CITY> <KIND>` (TERMINAL, PLANT, WORKS, DIST CTR…; no company names, enforced by a seed test). Each customer owns 4 ship-from sites in 4 different cities, assigned by index with no randomness and none shared. Every pickup (origin, extra pickups, order ship-from, relocated pickups) comes from the customer's own sites; deliveries never go to them. Multi-leg chains: leg 1 picks up at the customer's plant, later legs at the previous leg's interchange. Zero ids moved (faker's `arrayElement` takes one draw for any list of 2 or more, which is why each customer owns 4). The progression example values follow (BASTROP TERMINAL / GREEN RIVER TERMINAL). **Reseed owed.**
+- **Source:** user 2026-09-28 ("dont put customer names there as facility site names, and yes they need to be tied to the customer").
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 28, 2026 | **DEC-210** — neutral site names + customer-owned pickups (seed; ids unmoved; reseed owed). **Previous state:** company-named sites, random regardless of customer |
 | Sep 28, 2026 | **DEC-209** — To Be Tendered order changes seeded (14 rows, ids unmoved) + Tender-tab badge/actions per LINX-8253. **Previous state:** order change only from Sent/Accepted |
 | Sep 28, 2026 | **DEC-208** — Select Cost = the AP total on all three radios, the preview, the Tender tab's AP Cost and the list's AP Freight Cost (supersedes DEC-125; closes OC-open-2's build; reseed owed). **Previous state:** base rate on Prior/New, total on Quote, only `rateAmount` written |
 | Sep 25, 2026 | **DEC-207** — Evaluate → routing modal → Approve on both review screens; View Routing no longer a separate button; "Approve Changes" kept over 15671's "Save" (amends DEC-200) |

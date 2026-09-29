@@ -16,9 +16,9 @@ const mo = () => ({
   pickupAppointment: '2026-06-15T16:00:00', pickupAppointmentTimeZoneCode: 'CST',
   requestedDeliveryDate: undefined, requestedDeliveryTimeZoneCode: undefined,
   deliveryAppointment: '2026-06-18T12:00:00', deliveryAppointmentTimeZoneCode: 'CST',
-  originPartnerId: 'EW-TX-001', originFullName: 'ERCO WORLDWIDE', originAddress1: '100 Industrial Blvd',
+  originPartnerId: 'HT-TX-001', originFullName: 'HOUSTON TERMINAL', originAddress1: '100 Industrial Blvd',
   originCity: 'Houston', originRegion: 'TX', originCountry: 'United States', originPostal: '77001',
-  destinationPartnerId: 'GCR-TX-015', destinationFullName: 'GULF COAST RECEIVING', destinationAddress1: '114 Industrial Blvd',
+  destinationPartnerId: 'SAT-TX-015', destinationFullName: 'SAN ANTONIO TERMINAL', destinationAddress1: '114 Industrial Blvd',
   destinationCity: 'San Antonio', destinationRegion: 'TX', destinationCountry: 'United States', destinationPostal: '78201',
   grossWeightValue: 4300, grossWeightUomCode: 'lb', volumeValue: 730, volumeUomCode: 'cuft',
   orderCarrierEquipDetailList: [{ equipmentCode: 'VAN' }],
@@ -70,8 +70,8 @@ test('row facts come from the order: customer, lane strings, dates, weight, refs
   const { row } = buildDirectShipment(args())
   assert.equal(row.customerId, 'ERCO_SYS_01')
   assert.equal(row.customerName, 'ERCO Systems Inc')
-  assert.equal(row.consignor, 'ERCO WORLDWIDE')
-  assert.equal(row.consignee, 'GULF COAST RECEIVING')
+  assert.equal(row.consignor, 'HOUSTON TERMINAL')
+  assert.equal(row.consignee, 'SAN ANTONIO TERMINAL')
   assert.equal(row.origin, 'Houston TX US 77001')
   assert.equal(row.destination, 'San Antonio TX US 78201')
   assert.equal(row.pickupDate, '06/15/2026 08:00 CST')
@@ -113,7 +113,7 @@ test('detail: one order, two stops carrying it, no routing, two history rows, po
   const [pu, dl] = detail.shipmentStopList
   assert.equal(pu.stopType, 'pickup'); assert.equal(pu.stopSequence, 1)
   assert.deepEqual(pu.orderIds, ['ORD-1001'])
-  assert.equal(pu.facilityName, 'ERCO WORLDWIDE')
+  assert.equal(pu.facilityName, 'HOUSTON TERMINAL')
   assert.equal(pu.scheduledDateTime, '06/15/2026 08:00 CST')
   assert.equal(pu.grossWeightValue, 4300)
   assert.equal(pu.packageCount, 4)

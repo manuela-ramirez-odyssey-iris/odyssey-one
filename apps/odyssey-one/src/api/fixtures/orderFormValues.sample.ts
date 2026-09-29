@@ -1,8 +1,8 @@
 import type { OrderFormValues } from '../types/orderFormVm'
 
 // Filled long-form sample for schema/mapper/service tests. Location ids use
-// the generator formula (EW-TX-001 = Houston/ERCO, GCR-TX-015 = San Antonio/
-// GULF COAST RECEIVING); product items come from CHEMICAL_PRODUCTS; weights
+// the generator formula (HT-TX-001 = Houston, one of ERCO's own ship-from sites; SAT-TX-015 = San Antonio/
+// SAN ANTONIO TERMINAL); product items come from CHEMICAL_PRODUCTS; weights
 // sum to 4300 lb / 730 cuft — the LLD list example's numbers.
 export const orderFormValuesSample: OrderFormValues = {
   general: {
@@ -27,8 +27,8 @@ export const orderFormValuesSample: OrderFormValues = {
   },
   pickupDelivery: {
     consignor: {
-      locationId: 'EW-TX-001', manualMode: false,
-      idOrgName: 'EW-TX-001', longName: 'ERCO WORLDWIDE',
+      locationId: 'HT-TX-001', manualMode: false,
+      idOrgName: 'HT-TX-001', longName: 'HOUSTON TERMINAL',
       address1: '100 Industrial Blvd', address2: '',
       city: 'Houston', state: 'TX', postal: '77001', country: 'United States',
       showContact: true,
@@ -37,8 +37,8 @@ export const orderFormValuesSample: OrderFormValues = {
       contactEmail: 'nick.strauss@krm.com',
     },
     consignee: {
-      locationId: 'GCR-TX-015', manualMode: false,
-      idOrgName: 'GCR-TX-015', longName: 'GULF COAST RECEIVING',
+      locationId: 'SAT-TX-015', manualMode: false,
+      idOrgName: 'SAT-TX-015', longName: 'SAN ANTONIO TERMINAL',
       address1: '114 Industrial Blvd', address2: '',
       city: 'San Antonio', state: 'TX', postal: '78201', country: 'United States',
       showContact: false, contactName: '', contactPhone: '', contactEmail: '',

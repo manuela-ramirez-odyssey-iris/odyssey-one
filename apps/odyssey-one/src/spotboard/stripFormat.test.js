@@ -3,7 +3,7 @@ import { cityState, compactWindow } from './stripFormat.js'
 
 describe('cityState', () => {
   it('extracts "City, ST" from a full stop location', () => {
-    expect(cityState('NOURYON COLUMBUS PL, Kansas City, MO 64101 US')).toBe('Kansas City, MO')
+    expect(cityState('KANSAS CITY TERMINAL, Kansas City, MO 64101 US')).toBe('Kansas City, MO')
   })
   it('passes through short/unparseable values', () => {
     expect(cityState('Kansas City')).toBe('Kansas City')

@@ -68,8 +68,8 @@ describe('mapFormToOrderInterface', () => {
 
   it('flattens the parties to origin*/destination* fields incl. contact', () => {
     const mo = mapFormToOrderInterface(sample()).manualOrder
-    expect(mo.originPartnerId).toBe('EW-TX-001')
-    expect(mo.originFullName).toBe('ERCO WORLDWIDE')
+    expect(mo.originPartnerId).toBe('HT-TX-001')
+    expect(mo.originFullName).toBe('HOUSTON TERMINAL')
     expect(mo.originAddress1).toBe('100 Industrial Blvd')
     expect(mo.originCity).toBe('Houston')
     expect(mo.originRegion).toBe('TX')
@@ -78,7 +78,7 @@ describe('mapFormToOrderInterface', () => {
     expect(mo.originContactName).toBe('Nick Strauss')
     expect(mo.originPhone).toBe('+17656704444') // normalized E.164 on the wire
     expect(mo.originEmail).toBe('nick.strauss@krm.com')
-    expect(mo.destinationPartnerId).toBe('GCR-TX-015')
+    expect(mo.destinationPartnerId).toBe('SAT-TX-015')
     expect(mo.destinationCity).toBe('San Antonio')
     expect(mo.destinationContactName).toBeUndefined() // consignee has no contact
   })

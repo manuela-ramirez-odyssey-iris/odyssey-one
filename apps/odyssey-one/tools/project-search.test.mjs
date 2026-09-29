@@ -6,7 +6,7 @@ const ROW = {
   odysseyShipmentIdentifier: 'O50000123',
   sellShipment: '25950714', buyShipment: '43708610', orders: ['0000000091000'],
   pro: '442376', customerId: 'WEYERH_01', customerName: 'Weyerhaeuser Company',
-  consignor: 'WESTLAKE CHEMICAL PL', consignee: 'BAYOU CHEMICAL PLANT',
+  consignor: 'LAKE CHARLES TERMINAL', consignee: 'BATON ROUGE TERMINAL',
   origin: 'Lake Charles LA US 70601', destination: 'Baton Rouge LA US 70801',
   equipment: '4359', seal: 'S442272', scac: 'FXFE', load: '16587',
   pickupNumbers: ['PU-820622'],

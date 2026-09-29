@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
-import { EXTRA_CUSTOMERS } from './data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, shipFromSites } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 import { totalMiles } from '../src/utils/legMiles.js'
 import { windowViolations, parseStamp, initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
@@ -1933,4 +1933,43 @@ test('S160: consolidation.summaryChanges.distance.new agrees with the Edit Stops
       `${s.sellShipment}: summaryChanges.distance.new (${c.summaryChanges.distance.new}) != editor's All Stops total (${expected})`)
   }
   assert.ok(checked > 0, 'no location-change consolidation rows found — test is vacuous')
+})
+
+// User ruling 2026-09-28 — sites are tied to the customer: every pickup and
+// every order's ship-from is one of the customer's OWN sites; no delivery is.
+// Exception: a chain leg ≥2 picks up at the interchange waypoint (stop 1) —
+// the previous leg's delivery point, not a customer plant.
+test('pickups and order ship-froms are the customer\'s own sites; deliveries never are', () => {
+  const ds = buildDataset()
+  const own = (c) => new Set(shipFromSites(c).map((l) => l.facility))
+  const allowedByOrder = new Map()
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    const mine = own(s.customerId)
+    const interchange = s.shipmentSequenceLeg > 1 ? d.shipmentStopList.find((st) => st.stopSequence === 1).facilityName : null
+    for (const st of d.shipmentStopList) {
+      if (st.stopType === 'pickup' && st.facilityName !== interchange) assert.ok(mine.has(st.facilityName), `${s.sellShipment} pickup ${st.facilityName} not ${s.customerId}'s`)
+      if (st.stopType === 'delivery') assert.ok(!mine.has(st.facilityName), `${s.sellShipment} delivers to own site ${st.facilityName}`)
+    }
+    for (const o of d.orderList) {
+      assert.ok(mine.has(o.origin.externalIdentifier) || o.origin.externalIdentifier === interchange, `${o.orderNumber} origin ${o.origin.externalIdentifier}`)
+      allowedByOrder.set(o.orderNumber, interchange)
+    }
+  }
+  for (const o of ds.orders) {
+    const mine = own(o.customer)
+    const ok = mine.has(o.consignor.name) || (o.orderNumber && allowedByOrder.get(o.orderNumber) === o.consignor.name)
+    assert.ok(ok, `order ${o.orderNumber || '(pending)'} ships from ${o.consignor.name}, not ${o.customer}'s`)
+    assert.ok(!mine.has(o.consignee.name), `order ${o.orderNumber} delivers to own site ${o.consignee.name}`)
+  }
+})
+
+test('no facility name contains a word from any customer name; names unique', () => {
+  const words = new Set([...CUSTOMERS, ...EXTRA_CUSTOMERS]
+    .flatMap((c) => c.name.toUpperCase().split(/[^A-Z0-9]+/)).filter((w) => w.length > 1))
+  for (const l of LOCATIONS) {
+    const hit = l.facility.split(/\s+/).find((w) => words.has(w))
+    assert.equal(hit, undefined, `${l.facility} contains customer word ${hit}`)
+  }
+  assert.equal(new Set(LOCATIONS.map((l) => l.facility)).size, LOCATIONS.length)
 })

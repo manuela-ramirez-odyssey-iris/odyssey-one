@@ -55,44 +55,57 @@ export const CUSTOMERS = [
 ];
 
 // lat/lng (plan B2, DEC-198) — a static constant table, ZERO RNG draws, so
-// adding it cannot renumber any seeded id. Approximate city-center coordinates
+// adding it cannot renumber any seeded id. Every site in a city shares that
+// city's zip/lat/lng. Approximate city-center coordinates
 // (public geographic data), read by tools/generate.mjs to seed stop
 // coordinates and by src/utils/legMiles.js (generator + Edit Stops sandbox)
 // to compute leg/total distance. Not survey-grade — city center is enough
 // for a straight-line-times-road-factor estimate (see legMiles.js's own
 // ponytail note on the ceiling this ships with).
-export const LOCATIONS = [
-  { city: 'Houston', state: 'TX', zip: '77001', facility: 'ERCO WORLDWIDE', lat: 29.76, lng: -95.37 },
-  { city: 'Bastrop', state: 'LA', zip: '71202', facility: 'G2O TECH SOLUTIONS', lat: 32.78, lng: -91.88 },
-  { city: 'Geismar', state: 'LA', zip: '70734', facility: 'USALCO CHEMICALS', lat: 30.21, lng: -91.03 },
-  { city: 'Dallas', state: 'TX', zip: '75201', facility: 'ACME DISTRIBUTION CTR', lat: 32.78, lng: -96.80 },
-  { city: 'Lake Charles', state: 'LA', zip: '70601', facility: 'WESTLAKE CHEMICAL PL', lat: 30.23, lng: -93.22 },
-  { city: 'Baton Rouge', state: 'LA', zip: '70801', facility: 'BAYOU CHEMICAL PLANT', lat: 30.45, lng: -91.15 },
-  { city: 'Freeport', state: 'TX', zip: '77541', facility: 'DOW CHEMICAL FREEPORT', lat: 28.95, lng: -95.36 },
-  { city: 'Baytown', state: 'TX', zip: '77520', facility: 'COVESTRO BAYTOWN PL', lat: 29.73, lng: -94.98 },
-  { city: 'Channelview', state: 'TX', zip: '77530', facility: 'LYONDELLBASELL CHANN', lat: 29.78, lng: -95.11 },
-  { city: 'Odessa', state: 'TX', zip: '79761', facility: 'HUNTSMAN CORP ODESSA', lat: 31.85, lng: -102.37 },
-  { city: 'Atlanta', state: 'GA', zip: '30301', facility: 'ERCO GLOBAL LOGISTICS', lat: 33.75, lng: -84.39 },
-  { city: 'Columbus', state: 'GA', zip: '31907', facility: 'INEOS STYROLUTION PL', lat: 32.46, lng: -84.99 },
-  { city: 'Chicago', state: 'IL', zip: '60601', facility: 'CELANESE MIDWEST HUB', lat: 41.88, lng: -87.63 },
-  { city: 'Miami', state: 'FL', zip: '33101', facility: 'ACME FREIGHT SERVICES', lat: 25.76, lng: -80.19 },
-  { city: 'San Antonio', state: 'TX', zip: '78201', facility: 'GULF COAST RECEIVING', lat: 29.42, lng: -98.49 },
-  { city: 'Kingsport', state: 'TN', zip: '37660', facility: 'EASTMAN CHEMICAL RECV', lat: 36.55, lng: -82.56 },
-  { city: 'Wyandotte', state: 'MI', zip: '48192', facility: 'BASF CORP WYANDOTTE', lat: 42.20, lng: -83.15 },
-  { city: 'Phoenix', state: 'AZ', zip: '85001', facility: 'ERCO SOUTHWEST', lat: 33.45, lng: -112.07 },
-  { city: 'Denver', state: 'CO', zip: '80201', facility: 'USALCO MOUNTAIN DIV', lat: 39.74, lng: -104.99 },
-  { city: 'Seattle', state: 'WA', zip: '98101', facility: 'ACME PACIFIC NW', lat: 47.61, lng: -122.33 },
-  { city: 'Portland', state: 'OR', zip: '97201', facility: 'USALCO PACIFIC', lat: 45.52, lng: -122.68 },
-  { city: 'Minneapolis', state: 'MN', zip: '55401', facility: 'NOURYON NORTH CENTRAL', lat: 44.98, lng: -93.27 },
-  { city: 'Detroit', state: 'MI', zip: '48201', facility: 'DOW MIDLAND COMPLEX', lat: 42.33, lng: -83.05 },
-  { city: 'New Orleans', state: 'LA', zip: '70112', facility: 'CF INDUSTRIES DONALDSV', lat: 29.95, lng: -90.07 },
-  { city: 'Salt Lake City', state: 'UT', zip: '84101', facility: 'WEYERHAEUSER WEST', lat: 40.76, lng: -111.89 },
-  { city: 'Kansas City', state: 'MO', zip: '64101', facility: 'NOURYON COLUMBUS PL', lat: 39.10, lng: -94.58 },
-  { city: 'San Diego', state: 'CA', zip: '92101', facility: 'SEMPRA ENERGY OTAY', lat: 32.72, lng: -117.16 },
-  { city: 'Neenah', state: 'WI', zip: '54956', facility: 'SHIPTUSLA NEENAH', lat: 44.18, lng: -88.46 },
-  { city: 'McIntosh', state: 'AL', zip: '36553', facility: 'OLIN CORP MCINTOSH', lat: 31.27, lng: -88.02 },
-  { city: 'Green River', state: 'WY', zip: '82935', facility: 'SOLVAY CHEMICALS PL', lat: 41.53, lng: -109.47 },
+// Site cities. Kept in the original pool order: LOCATIONS[0..29] (the
+// TERMINAL row) keep the indices, and so the location ids, they always had.
+const SITE_CITIES = [
+  { city: 'Houston', state: 'TX', zip: '77001', lat: 29.76, lng: -95.37 },
+  { city: 'Bastrop', state: 'LA', zip: '71202', lat: 32.78, lng: -91.88 },
+  { city: 'Geismar', state: 'LA', zip: '70734', lat: 30.21, lng: -91.03 },
+  { city: 'Dallas', state: 'TX', zip: '75201', lat: 32.78, lng: -96.80 },
+  { city: 'Lake Charles', state: 'LA', zip: '70601', lat: 30.23, lng: -93.22 },
+  { city: 'Baton Rouge', state: 'LA', zip: '70801', lat: 30.45, lng: -91.15 },
+  { city: 'Freeport', state: 'TX', zip: '77541', lat: 28.95, lng: -95.36 },
+  { city: 'Baytown', state: 'TX', zip: '77520', lat: 29.73, lng: -94.98 },
+  { city: 'Channelview', state: 'TX', zip: '77530', lat: 29.78, lng: -95.11 },
+  { city: 'Odessa', state: 'TX', zip: '79761', lat: 31.85, lng: -102.37 },
+  { city: 'Atlanta', state: 'GA', zip: '30301', lat: 33.75, lng: -84.39 },
+  { city: 'Columbus', state: 'GA', zip: '31907', lat: 32.46, lng: -84.99 },
+  { city: 'Chicago', state: 'IL', zip: '60601', lat: 41.88, lng: -87.63 },
+  { city: 'Miami', state: 'FL', zip: '33101', lat: 25.76, lng: -80.19 },
+  { city: 'San Antonio', state: 'TX', zip: '78201', lat: 29.42, lng: -98.49 },
+  { city: 'Kingsport', state: 'TN', zip: '37660', lat: 36.55, lng: -82.56 },
+  { city: 'Wyandotte', state: 'MI', zip: '48192', lat: 42.20, lng: -83.15 },
+  { city: 'Phoenix', state: 'AZ', zip: '85001', lat: 33.45, lng: -112.07 },
+  { city: 'Denver', state: 'CO', zip: '80201', lat: 39.74, lng: -104.99 },
+  { city: 'Seattle', state: 'WA', zip: '98101', lat: 47.61, lng: -122.33 },
+  { city: 'Portland', state: 'OR', zip: '97201', lat: 45.52, lng: -122.68 },
+  { city: 'Minneapolis', state: 'MN', zip: '55401', lat: 44.98, lng: -93.27 },
+  { city: 'Detroit', state: 'MI', zip: '48201', lat: 42.33, lng: -83.05 },
+  { city: 'New Orleans', state: 'LA', zip: '70112', lat: 29.95, lng: -90.07 },
+  { city: 'Salt Lake City', state: 'UT', zip: '84101', lat: 40.76, lng: -111.89 },
+  { city: 'Kansas City', state: 'MO', zip: '64101', lat: 39.10, lng: -94.58 },
+  { city: 'San Diego', state: 'CA', zip: '92101', lat: 32.72, lng: -117.16 },
+  { city: 'Neenah', state: 'WI', zip: '54956', lat: 44.18, lng: -88.46 },
+  { city: 'McIntosh', state: 'AL', zip: '36553', lat: 31.27, lng: -88.02 },
+  { city: 'Green River', state: 'WY', zip: '82935', lat: 41.53, lng: -109.47 },
 ];
+
+// Site names are NEUTRAL "<CITY> <KIND>" labels — never a company name (user
+// ruling 2026-09-28: customer/company names read as facility names on Edit
+// Stops). ≤22 chars; SALT LAKE is the one shortened city.
+const SITE_KINDS = ['TERMINAL', 'PLANT', 'WORKS', 'DIST CTR', 'WAREHOUSE', 'TANK FARM', 'RAIL YARD', 'DEPOT', 'TRANSLOAD', 'PACKAGING'];
+const SITE_CITY_LABEL = { 'Salt Lake City': 'SALT LAKE' };
+// 10 kinds × 30 cities = 300 unique sites, kind-major (index = kind*30 + city).
+export const LOCATIONS = SITE_KINDS.flatMap((kind) => SITE_CITIES.map((c) => ({
+  ...c, facility: `${SITE_CITY_LABEL[c.city] ?? c.city.toUpperCase()} ${kind}`,
+})));
 
 // Deterministic location ids in the LLD "RGC-STL-001" shape: facility initials
 // (≤3) – state – sequence. Single source for the generators AND the
@@ -177,6 +190,25 @@ export const EXTRA_CUSTOMERS = [
   '*JELD-WEN SOURCE SYSTEM 01', '*MASCO-CABINET SOURCE SYSTEM 01',
   '*PELLA-CORP SOURCE SYSTEM 01', '*USG-CORP SOURCE SYSTEM 01',
 ].map((name) => ({ id: name.replace(/[^A-Z0-9]+/gi, '_').replace(/^_|_$/g, ''), name }))
+
+// Ship-from ownership (user ruling 2026-09-28: sites are tied to the customer).
+// Zero RNG: customer k (CUSTOMERS then EXTRA_CUSTOMERS order) owns LOCATIONS
+// 4k..4k+3 — four DISTINCT cities (consecutive mod 30), no site shared between
+// customers (68 × 4 = 272 owned; the last 28 are delivery-only). Four, not
+// fewer: an extra pickup excludes the origin AND destination cities and must
+// still leave ≥2 candidates — faker.helpers.arrayElement makes ZERO draws on a
+// 1-element array, which would shift the seeded stream and renumber every id.
+// Appending a customer is safe; reordering these lists reassigns sites.
+export const CUSTOMER_SITES = Object.fromEntries(
+  [...CUSTOMERS, ...EXTRA_CUSTOMERS].map((c, k) => [c.id, LOCATIONS.slice(4 * k, 4 * k + 4)]),
+)
+/** Sites a customer ships FROM (its own). */
+export const shipFromSites = (customerId) => CUSTOMER_SITES[customerId]
+/** Delivery pool for a customer: every site except its own ship-from sites. */
+export const deliverySites = (customerId) => {
+  const own = CUSTOMER_SITES[customerId]
+  return LOCATIONS.filter((l) => !own.includes(l))
+}
 
 // Class-TYPE selector (QA screenshot + live dev capture 2026-07-28): wire codes
 // H/C/P/N. This is the create form's "Product Class" cell. The NMFC scale below

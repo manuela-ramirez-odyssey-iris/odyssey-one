@@ -39,7 +39,7 @@ describe('orderService.createOrder (mock)', () => {
     expect(row!.orderStatus).toBe('Planned Shipment') // S150: the shipment exists, so the order is planned (Dave 2026-09-17)
     expect(row!.orderSource).toBe('MANUAL')
     expect(row!.customer).toBe('ERCO_SYS_01')
-    expect(row!.consignor.locationId).toBe('EW-TX-001')
+    expect(row!.consignor.locationId).toBe('HT-TX-001')
     expect(row!.grossWeight).toEqual({ value: 4300, uom: 'lb' })
   })
 

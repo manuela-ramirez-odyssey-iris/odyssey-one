@@ -77,7 +77,7 @@
 //                  rollup is Σ of its orders' directCostAmount (DEC-68).
 import { faker, Faker, en } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES } from './data-pools.mjs'
+import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, shipFromSites, deliverySites, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES } from './data-pools.mjs'
 import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 // Row capacity per Level-1 error class — single source of truth, shared with
 // the resolve view so a seeded count can never exceed what the derive renders.
@@ -712,8 +712,13 @@ function generateShipment(index, chainOverride) {
   const buyShipment = genUniqueBuyShipment();
   const sellShipment = genUniqueSellShipment();
   const customer = chainOverride?.customer ?? pickCustomer();
-  const originLoc = chainOverride?.originLoc ?? pick(LOCATIONS);
-  const destLoc = chainOverride?.destLoc ?? pick(LOCATIONS.filter(l => l.city !== originLoc.city));
+  // Pickups come from the customer's OWN ship-from sites; deliveries from every
+  // other site (user ruling 2026-09-28). pick() is one draw whatever the array
+  // length (≥2), so drawing from a subset keeps the seeded stream — no id shift.
+  const ownSites = shipFromSites(customer.id);
+  const deliveryPool = deliverySites(customer.id);
+  const originLoc = chainOverride?.originLoc ?? pick(ownSites);
+  const destLoc = chainOverride?.destLoc ?? pick(deliveryPool.filter(l => l.city !== originLoc.city));
   // A shipment's times are read in the STOP's timezone (user ruling, S102) —
   // never the carrier's. Quote pickup/delivery inherit these.
   const originTz = deriveTimezone(originLoc.city) || 'America/Chicago';
@@ -907,7 +912,7 @@ function generateShipment(index, chainOverride) {
   const stopLocs = [];
   const stops = [];
   for (let s = 0; s < pickupStopCount; s++) {
-    const stopLoc = s === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
+    const stopLoc = s === 0 ? originLoc : pick(ownSites.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
     stopLocs.push(stopLoc);
     const stopOrders = orders.filter(o => o.pickupStopIdx === s);
     // This stop's own zone + own instant, shared by scheduledDateTime AND
@@ -969,7 +974,7 @@ function generateShipment(index, chainOverride) {
   orders.forEach((o, oi) => { o.deliveryStopIdx = Math.min(Math.floor(oi / dChunk), deliveryStopCount - 1); });
   const deliveryLocs = [];
   for (let s = 0; s < deliveryStopCount; s++) {
-    const dLoc = s === 0 ? destLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
+    const dLoc = s === 0 ? destLoc : pick(deliveryPool.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
     deliveryLocs.push(dLoc);
     const dOrders = orders.filter(o => o.deliveryStopIdx === s);
     // Same one-source rule as the pickup side (S104 Task 10b).
@@ -3133,7 +3138,8 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
       packageCount: { prior: st.packageCount, new: st.packageCount + sum('packages') },
     };
     if (locationChange && st.stopType === 'pickup') {
-      const loc = rndPick(rnd, LOCATIONS.filter(l => l.city !== st.city));
+      // Relocated pickup = ANOTHER of the customer's own ship-from sites.
+      const loc = rndPick(rnd, shipFromSites(customer.id).filter(l => l.city !== st.city));
       fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
       // Bug fix (S160 follow-up, live 25390278) — the LOCATIONS pool entry
       // already carries real lat/lng; a location-changed site needs the
@@ -3443,11 +3449,14 @@ const LONG_INSTRUCTIONS = [
 
 function generateUnshippedOrder(n, pending) {
   const customer = pickCustomer();
-  const originIdx = faker.number.int({ min: 0, max: LOCATIONS.length - 1 });
-  let destIdx = faker.number.int({ min: 0, max: LOCATIONS.length - 1 });
-  if (destIdx === originIdx) destIdx = (destIdx + 1) % LOCATIONS.length;
-  const from = LOCATIONS[originIdx];
-  const to = LOCATIONS[destIdx];
+  // Same two number.int draws as before (one each, whatever `max`); only the
+  // pools narrowed: origin = the customer's own site, dest = any other city.
+  const own = shipFromSites(customer.id);
+  const from = own[faker.number.int({ min: 0, max: own.length - 1 })];
+  const destPool = deliverySites(customer.id).filter(l => l.city !== from.city);
+  const to = destPool[faker.number.int({ min: 0, max: destPool.length - 1 })];
+  const originIdx = LOCATIONS.indexOf(from);
+  const destIdx = LOCATIONS.indexOf(to);
 
   // Lines first; totals roll up (I5 applies Orders-side too)
   const lineCount = faker.number.int({ min: 1, max: 3 });
@@ -3653,10 +3662,20 @@ const LEG_TYPES = ['Pooling', 'Rule 11'];
 function buildChainLegs(legCount) {
   const legType = pick(LEG_TYPES);           // invariant 7: one type per chain
   const customer = pickCustomer();           // invariant 2: same customer per chain
-  // invariant 1: legCount+1 DISTINCT waypoints (30 unique cities in the pool,
-  // ample for a 2–3 leg chain) sliced into consecutive (origin, dest) pairs —
-  // leg N's destination IS leg N+1's origin because they are the same object.
-  const waypoints = faker.helpers.arrayElements(LOCATIONS, legCount + 1);
+  // invariant 1: legCount+1 DISTINCT-city waypoints sliced into consecutive
+  // (origin, dest) pairs — leg N's destination IS leg N+1's origin because
+  // they are the same object. Waypoint 0 is the customer's own ship-from site;
+  // the rest are pool/interchange points and the final consignee, one site per
+  // city the customer has no site in (26 cities). Drawn as before —
+  // arrayElements makes one draw per element while count < pool length — and
+  // waypoint 0 is then swapped for an own site derived from that draw (no
+  // extra draw), so the seeded stream is unchanged.
+  const ownSites = shipFromSites(customer.id);
+  const ownCities = new Set(ownSites.map(l => l.city));
+  const interchange = [...new Map(deliverySites(customer.id)
+    .filter(l => !ownCities.has(l.city)).map(l => [l.city, l])).values()];
+  const drawn = faker.helpers.arrayElements(interchange, legCount + 1);
+  const waypoints = [ownSites[interchange.indexOf(drawn[0]) % ownSites.length], ...drawn.slice(1)];
   // First leg's pickup instant; each subsequent leg's is derived below from
   // the ACTUAL delivery instant generateShipment produced (transitDays is
   // randomized inside it, so it can't be predicted from out here).

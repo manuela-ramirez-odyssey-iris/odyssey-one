@@ -10,8 +10,8 @@ section",Search status,Notes
 "Who it belongs to
 ↓",n/a — grid-column derived,Customers & Parties,Customer,WEYERH_01,Owning customer / org code,Autocomplete Text (lazy),Customer,Order Identifiers,Live in search,"Column on all three tabs. Panel: lazy-paged ComboBox, all tabs (LINX-10285)."
 "Where it goes
-↓",n/a — grid-column derived,Route & Geography,Shipper Location,"G2O TECH SOLUTIONS, Bastrop, LA, US",Consignor facility + city / state / country,Autocomplete Text (City/State/Country),"Origin City, State, Country",Route & Geography,Live in search,"All tab column ""Shipper Location"". Projected from row.consignor as name-first text."
-,,,Destination Location,"SOLVAY CHEMICALS PL, Green River, WY, US",Consignee facility + city / state / country,Autocomplete Text (City/State/Country),"Destination City, State, Country",Route & Geography,Live in search,"All tab column ""Destination Location"". Projected from row.consignee."
+↓",n/a — grid-column derived,Route & Geography,Shipper Location,"BASTROP TERMINAL, Bastrop, LA, US",Consignor facility + city / state / country,Autocomplete Text (City/State/Country),"Origin City, State, Country",Route & Geography,Live in search,"All tab column ""Shipper Location"". Projected from row.consignor as name-first text."
+,,,Destination Location,"GREEN RIVER TERMINAL, Green River, WY, US",Consignee facility + city / state / country,Autocomplete Text (City/State/Country),"Destination City, State, Country",Route & Geography,Live in search,"All tab column ""Destination Location"". Projected from row.consignee."
 "When it moves
 ↓",n/a — grid-column derived,Schedule & Appointments,Latest Pickup Date,6/5/2026,Latest pickup date at the consignor,Date Picker + Range,Latest Pickup Date,Schedule,Live in search,"All tab column is ""Latest Pickup Date and Time"" — the bar drops time-of-day because no date criterion is finer…"
 ,,,Latest Delivery Date,6/7/2026,Latest delivery date at the consignee,Date Picker + Range,Latest Delivery Date,Schedule,Live in search,"All tab column ""Latest Delivery Date and Time"". Same time-of-day drop. Panel: date-range, All tab."

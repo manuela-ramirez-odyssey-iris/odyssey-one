@@ -124,8 +124,8 @@ describe('chipClause reproduces matchesChip semantics', () => {
     const { sql } = build({ key: 'shipper-location', queryValue: 'G2O' })
     expect(sql).toContain("concat_ws(', ', consignor->>'name', consignor->>'city', consignor->>'state', consignor->>'country')")
     expect(orderSearchRow({
-      consignor: { name: 'G2O TECH', city: 'Bastrop', state: 'LA', country: 'US' },
-    }).shipperLocation).toBe('G2O TECH, Bastrop, LA, US')
+      consignor: { name: 'BASTROP TERMINAL', city: 'Bastrop', state: 'LA', country: 'US' },
+    }).shipperLocation).toBe('BASTROP TERMINAL, Bastrop, LA, US')
   })
 
   it('an unknown key and an empty value both restrict nothing', () => {

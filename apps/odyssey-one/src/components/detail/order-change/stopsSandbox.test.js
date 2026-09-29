@@ -326,11 +326,11 @@ describe('stop dates + planning windows (DEC-199)', () => {
 })
 
 describe('placement matches on site id + postal, not display strings (DEC-193 bug, live 25412375)', () => {
-  // The live shapes: a stop reads "ACME FREIGHT SERVICES, Miami, FL 33101 US",
+  // The live shapes: a stop reads "MIAMI TERMINAL, Miami, FL 33101 US",
   // its order's fmtLocation reads "33101, Miami, FL, US" — never equal.
-  const site = { facilityName: 'ACME FREIGHT SERVICES', city: 'Miami', region: 'FL', postal: '33101', country: 'US' }
+  const site = { facilityName: 'MIAMI TERMINAL', city: 'Miami', region: 'FL', postal: '33101', country: 'US' }
   const liveStops = [
-    { type: 'pickup', stopNumber: 1, orderIds: ['A', 'B'], siteKey: 'ACME FREIGHT SERVICES|33101', location: 'ACME FREIGHT SERVICES, Miami, FL 33101 US', date: 'June 4, 2026 08:00 CDT' },
+    { type: 'pickup', stopNumber: 1, orderIds: ['A', 'B'], siteKey: 'MIAMI TERMINAL|33101', location: 'MIAMI TERMINAL, Miami, FL 33101 US', date: 'June 4, 2026 08:00 CDT' },
     { type: 'delivery', stopNumber: 2, orderIds: ['A', 'B'], siteKey: 'SEMPRA|92101', location: 'SEMPRA, San Diego, CA 92101 US', date: 'June 6, 2026 08:00 CDT' },
   ]
   const at = (s, loc) => ({ siteKey: `${s.facilityName}|${s.postal}`, location: loc, stopLocation: 'X', site: s })
@@ -365,14 +365,14 @@ describe('location-change created stop carries coordinates + zone (S160 follow-u
     { type: 'pickup', stopNumber: 2, orderIds: ['C'], location: 'Y, Town', date: 'June 4, 2026 08:00 CDT', lat: 30.45, lng: -91.15 },
     { type: 'delivery', stopNumber: 3, orderIds: ['A', 'C'], location: 'Z, Ville', date: 'June 6, 2026 08:00 CDT', lat: 29.42, lng: -98.49 },
   ]
-  const phoenixSite = { facilityName: 'ERCO SOUTHWEST', city: 'Phoenix', region: 'AZ', postal: '85001', country: 'US', lat: 33.45, lng: -112.07, timeZone: 'America/Phoenix' }
-  const relocatedC = { orderNumber: 'C', shipFrom: { siteKey: 'ERCO SOUTHWEST|85001', location: 'ERCO SOUTHWEST, Phoenix, AZ 85001 US', stopLocation: 'ERCO SOUTHWEST, Phoenix, AZ 85001 US', site: phoenixSite }, earliestPickup: '06/01/2026 03:30 CDT' }
+  const phoenixSite = { facilityName: 'PHOENIX TERMINAL', city: 'Phoenix', region: 'AZ', postal: '85001', country: 'US', lat: 33.45, lng: -112.07, timeZone: 'America/Phoenix' }
+  const relocatedC = { orderNumber: 'C', shipFrom: { siteKey: 'PHOENIX TERMINAL|85001', location: 'PHOENIX TERMINAL, Phoenix, AZ 85001 US', stopLocation: 'PHOENIX TERMINAL, Phoenix, AZ 85001 US', site: phoenixSite }, earliestPickup: '06/01/2026 03:30 CDT' }
   const coordOrders = [{ orderNumber: 'A' }, relocatedC]
-  const coordLocChange = { ...noChange, locationChange: true, changedOrderIds: ['C'], stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'ERCO SOUTHWEST, Phoenix' } } } } }
+  const coordLocChange = { ...noChange, locationChange: true, changedOrderIds: ['C'], stopChanges: { '2': { changedOrderIds: ['C'], fields: { location: { prior: 'Y, Town', new: 'PHOENIX TERMINAL, Phoenix' } } } } }
 
   it('the created P? carries the site lat/lng and its full location string', () => {
     const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: coordOrders })
-    expect(s.stops[1]).toMatchObject({ type: 'pickup', unsequenced: true, lat: 33.45, lng: -112.07, location: 'ERCO SOUTHWEST, Phoenix, AZ 85001 US' })
+    expect(s.stops[1]).toMatchObject({ type: 'pickup', unsequenced: true, lat: 33.45, lng: -112.07, location: 'PHOENIX TERMINAL, Phoenix, AZ 85001 US' })
   })
   it("the created P?'s default date is in the SITE's own zone, long-format like every other stop", () => {
     const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: coordOrders })
@@ -387,7 +387,7 @@ describe('location-change created stop carries coordinates + zone (S160 follow-u
     expect(total).toBeGreaterThan(0)
   })
   it('a leg with no coordinate source reads null (UI shows "--"), and the total is null, not an invented 0.00', () => {
-    const bareOrders = [{ orderNumber: 'A' }, { orderNumber: 'C', shipFrom: { location: 'ERCO SOUTHWEST, Phoenix' } }]
+    const bareOrders = [{ orderNumber: 'A' }, { orderNumber: 'C', shipFrom: { location: 'PHOENIX TERMINAL, Phoenix' } }]
     const s = initSandbox({ stops: coordStops, consolidation: coordLocChange, orders: bareOrders })
     const { legs, total } = legDistances(s.stops)
     expect(legs[1]).toBeNull() // leg INTO the coordinate-less created stop

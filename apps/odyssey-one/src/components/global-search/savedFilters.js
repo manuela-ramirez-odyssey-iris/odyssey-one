@@ -101,12 +101,12 @@ export function formatChipsForCopy(chips) {
 //   SCAC: SEFL   — Southeastern Freight Lines, one of the 15 CARRIERS
 //                  (tools/generate.mjs) drawn near-uniformly per shipment;
 //                  166/2200 mock rows carry it.
-//   Origin: Houston — one of the 30 LOCATIONS (tools/data-pools.mjs) drawn
+//   Origin: Houston — one of the 30 site cities (tools/data-pools.mjs LOCATIONS) drawn
 //                  near-uniformly as shipment origin; stored as
 //                  "HOUSTON TX US 77001" (generate.mjs's `origin` field) —
 //                  the chip's substring match ("Houston") doesn't need the
 //                  full "City, ST" format, only to appear IN that string;
-//                  95/2200 mock rows carry it.
+//                  77/2200 mock rows carry it (was 95 before sites were tied to customers, 2026-09-28).
 // Both are genuinely useful planner lenses (carrier-scoped and lane-origin-
 // scoped worklists) and replace the old status-based picks, which have no
 // substitute in the registry (no enum/status attribute is projected — see

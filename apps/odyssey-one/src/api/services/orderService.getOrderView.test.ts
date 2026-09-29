@@ -11,7 +11,7 @@ const SEEDED = [
     freightTerms: 'P',
     equipment: 'VAN',
     consignor: {
-      locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
+      locationId: 'HT-TX-001', city: 'Houston', state: 'TX', country: 'US',
       earliestPickupDateTime: '2026-06-10T08:00:00.000Z',
       latestPickupDateTime: '2026-06-10T16:00:00.000Z',
     },
@@ -35,7 +35,7 @@ const SEEDED = [
     freightTerms: 'P',
     equipment: 'VAN',
     consignor: {
-      locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
+      locationId: 'HT-TX-001', city: 'Houston', state: 'TX', country: 'US',
       earliestPickupDateTime: '2026-06-10T08:00:00.000Z',
       latestPickupDateTime: '2026-06-10T16:00:00.000Z',
     },
@@ -58,7 +58,7 @@ const SEEDED = [
     freightTerms: 'P',
     equipment: 'VAN',
     consignor: {
-      locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
+      locationId: 'HT-TX-001', city: 'Houston', state: 'TX', country: 'US',
       earliestPickupDateTime: '2026-06-10T08:00:00.000Z',
       latestPickupDateTime: '2026-06-10T16:00:00.000Z',
     },

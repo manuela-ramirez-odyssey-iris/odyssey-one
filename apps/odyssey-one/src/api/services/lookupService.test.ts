@@ -46,10 +46,10 @@ describe('lookupService.getLookupOptions (mock)', () => {
   })
 
   it('org-address options carry the hydration meta (manual-grid autofill)', async () => {
-    const [opt] = await getLookupOptions('org-address', 'EW-TX-001')
-    expect(opt.value).toBe('EW-TX-001')
+    const [opt] = await getLookupOptions('org-address', 'HT-TX-001')
+    expect(opt.value).toBe('HT-TX-001')
     expect(opt.meta).toMatchObject({
-      longName: 'ERCO WORLDWIDE',
+      longName: 'HOUSTON TERMINAL',
       city: 'Houston',
       state: 'TX',
       postal: '77001',

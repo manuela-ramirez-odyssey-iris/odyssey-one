@@ -144,8 +144,8 @@ Progression order. `match` and `exact` are the code's own fields; the panel colu
 | 7 | Shipment Identifiers | Pickup # ¹ | `pickupNumbers` | both | | `PU-929686` | ✓ |
 | 8 | Customers & Parties | Customer ID | `customerId` | letters | | `WEYERH_01` | ✓ |
 | 9 | Customers & Parties | Customer Name | `customerName` | letters | | `Weyerhaeuser Company` | ✓ |
-| 10 | Customers & Parties | Consignor | `consignor` | letters | | `G2O TECH SOLUTIONS` | ✓ |
-| 11 | Customers & Parties | Consignee | `consignee` | letters | | `SOLVAY CHEMICALS PL` | ✓ |
+| 10 | Customers & Parties | Consignor | `consignor` | letters | | `BASTROP TERMINAL` | ✓ |
+| 11 | Customers & Parties | Consignee | `consignee` | letters | | `GREEN RIVER TERMINAL` | ✓ |
 | 12 | Route & Geography | Origin | `origin` | letters | | `Bastrop LA US 71202` | ✓ |
 | 13 | Route & Geography | Destination | `destination` | letters | | `Green River WY US 82935` | ✓ |
 | 14 | Schedule & Appointments | Pickup Date | `pickupDate` | date | | `06/05/2026 12:30 CDT` | |

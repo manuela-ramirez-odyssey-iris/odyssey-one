@@ -16,8 +16,8 @@ section",Search status,Notes
 "Who it belongs to
 ↓",Customer & Parties involved,Customers & Parties,Customer ID,WEYERH_01,Cross customer IDs separated by comma,Autocomplete Text,Customer ID,Customers & Parties,Live in search,
 ,,,Customer Name,Weyerhaeuser Company,-,Autocomplete Text,Customer Name,Customers & Parties,Live in search,
-,,,Consignor,G2O TECH SOLUTIONS,Name of consignor,Autocomplete Text,Consignor,Customers & Parties,Live in search,
-,,,Consignee,SOLVAY CHEMICALS PL,Name of consignee,Autocomplete Text,Consignee,Customers & Parties,Live in search,
+,,,Consignor,BASTROP TERMINAL,Name of consignor,Autocomplete Text,Consignor,Customers & Parties,Live in search,
+,,,Consignee,GREEN RIVER TERMINAL,Name of consignee,Autocomplete Text,Consignee,Customers & Parties,Live in search,
 "Where it goes
 ↓",Location & Route,Route & Geography,Origin,Bastrop LA US 71202,First pickup location,Autocomplete Text,Origin,Route & Geography,Live in search,
 ,,,Destination,Green River WY US 82935,Last drop off location,Autocomplete Text,Destination,Route & Geography,Live in search,

@@ -49,8 +49,8 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
     deliveryAppointment: '2026-06-18T17:00:00.000Z',
     deliveryAppointmentTimeZoneCode: 'EST',
     equipmentNumber: 'EQ-REF-9',
-    originPartnerId: 'EW-TX-001',
-    originFullName: 'ERCO WORLDWIDE',
+    originPartnerId: 'HT-TX-001',
+    originFullName: 'HOUSTON TERMINAL',
     originAddress1: '100 Industrial Blvd',
     originCity: 'Houston',
     originRegion: 'TX',
@@ -59,7 +59,7 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
     originContactName: 'Nick Strauss',
     originPhone: '+17656704444',
     originEmail: 'nick@krm.com',
-    destinationPartnerId: 'GCR-TX-015',
+    destinationPartnerId: 'SAT-TX-015',
     destinationCity: 'San Antonio',
     destinationRegion: 'TX',
     destinationCountry: 'United States',
@@ -119,9 +119,9 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
 
   it('reverses origin/destination party fields (incl. Region → state)', () => {
     const { consignor, consignee } = vm.pickupDelivery
-    expect(consignor.locationId).toBe('EW-TX-001')
-    expect(consignor.idOrgName).toBe('EW-TX-001')
-    expect(consignor.longName).toBe('ERCO WORLDWIDE')
+    expect(consignor.locationId).toBe('HT-TX-001')
+    expect(consignor.idOrgName).toBe('HT-TX-001')
+    expect(consignor.longName).toBe('HOUSTON TERMINAL')
     expect(consignor.address1).toBe('100 Industrial Blvd')
     expect(consignor.city).toBe('Houston')
     expect(consignor.state).toBe('TX')
@@ -130,7 +130,7 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
     expect(consignor.contactName).toBe('Nick Strauss')
     expect(consignor.contactPhone).toBe('+17656704444')
     expect(consignor.contactEmail).toBe('nick@krm.com')
-    expect(consignee.locationId).toBe('GCR-TX-015')
+    expect(consignee.locationId).toBe('SAT-TX-015')
     expect(consignee.city).toBe('San Antonio')
     expect(consignee.state).toBe('TX')
   })
