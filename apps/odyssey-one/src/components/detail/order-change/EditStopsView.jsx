@@ -569,8 +569,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           </section>
 
           {/* User 2026-09-28: the pending column shows in edit mode only
-              (Set Aside / Add live there), floating on the right as before. */}
-          {editing && (
+              (Set Aside / Add live there), floating on the right as before,
+              and slides open / closed. It stays mounted so it can animate
+              out; closed, it's inert and hidden from assistive tech. */}
+          <div className={`edit-stops__pending-slot${editing ? ' edit-stops__pending-slot--open' : ''}`} inert={!editing} aria-hidden={editing ? undefined : true}>
           <div className="edit-stops__pending">
             <h3 className="text-label-base-semibold edit-stops__plan-title">Orders Pending To Assign</h3>
             <Button variant="secondary" onClick={() => setModal('add-orders')}>Add New Order</Button>
@@ -583,11 +585,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 </TooltipTrigger>
                 {/* DEC-193: no stop picker — the system places each leg
                     (same type + location, else a new P?/D?). */}
-                <Button variant="secondary" aria-label={`Add order ${id}`} onClick={() => handleAddTo(id)}>Add</Button>
+                <Button variant="secondary" size="sm" aria-label={`Add order ${id}`} onClick={() => handleAddTo(id)}>Add</Button>
               </div>
             ))}
           </div>
-          )}
+          </div>
         </div>
       </SubAccordion>
 

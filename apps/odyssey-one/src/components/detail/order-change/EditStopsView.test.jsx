@@ -82,7 +82,7 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(screen.getByText(/^Drag a stop to move it/)).toBeTruthy()
   // User 2026-09-28 (round 2): Consolidation Planned Stops rows — no
   // HeaderStrip, no "Stop N"; the rail badge + row order carry position.
-  expect(screen.queryByText('Orders Pending To Assign')).toBeNull()   // collapsed: no pending column
+  expect(screen.queryByRole('heading', { name: 'Orders Pending To Assign' })).toBeNull()   // collapsed: pending column closed (inert, aria-hidden)
   edit()
   expect(nw().getAllByRole('button', { name: 'Move stop up' })).toHaveLength(3)
   expect(nw().queryByText('Stop 1')).toBeNull()

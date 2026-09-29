@@ -35,6 +35,9 @@
 }
 
 .edit-stops__body {
+  /* Pending column width (user 2026-09-28: narrower; 300px before). Fits its
+     title and the widest row — a 13-digit order id + Add. */
+  --edit-stops-pending-w: 240px;
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-4);
@@ -248,16 +251,39 @@
 /* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
    300px to make room for the Prior plan (DEC-197, user 2026-09-24). */
 .edit-stops__pending {
-  width: 300px;
-  flex-shrink: 0;
+  width: var(--edit-stops-pending-w);
   box-sizing: border-box;
-  /* Stays in view while the stop list scrolls (S158), floating a little below
-     the anchored KPI strip (user 2026-09-24). The strip docks at
-     -spacing-8 (flush under the navbar); its live height comes from
-     EditStopsView (--edit-stops-strip-h, 0 when there is no strip). */
+}
+
+/* The slot carries the column's float and its open/close motion (user
+   2026-09-28): width ↔ 0, the body's gap folded away by a matching
+   negative margin, content fading + sliding in from the right. The panel
+   inside keeps its full width, so nothing reflows while it slides.
+   Floats (sticky) below the anchored KPI strip as before (S158, user
+   2026-09-24) — the strip's live height comes from EditStopsView
+   (--edit-stops-strip-h). overflow: clip + a clip margin keep the panel's
+   shadow while the slot is narrower than its content. */
+.edit-stops__pending-slot {
+  flex-shrink: 0;
+  width: 0;
+  margin-left: calc(-1 * var(--spacing-4));
+  overflow: clip;
+  overflow-clip-margin: var(--spacing-2);
   position: sticky;
   top: calc(-1 * var(--spacing-8) + var(--edit-stops-strip-h, var(--spacing-8)) + var(--spacing-4));
   align-self: flex-start;
+  transition: width var(--transition-panel), margin-left var(--transition-panel);
+}
+.edit-stops__pending-slot--open { width: var(--edit-stops-pending-w); margin-left: 0; }
+.edit-stops__pending-slot > .edit-stops__pending {
+  opacity: 0;
+  transform: translateX(var(--spacing-4));
+  transition: opacity var(--transition-panel), transform var(--transition-panel);
+}
+.edit-stops__pending-slot--open > .edit-stops__pending { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .edit-stops__pending-slot,
+  .edit-stops__pending-slot > .edit-stops__pending { transition: none; }
 }
 
 /* Bleeds to <main>'s edges like the other page footers; width: auto lets the
