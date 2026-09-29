@@ -63,22 +63,28 @@ const setup = (over = {}) => {
 // Prior and New render the same stops side by side (DEC-197) — scope stop
 // queries to the editable New plan.
 const nw = () => within(screen.getByRole('region', { name: 'New plan' }))
+// The nth stop row (0-based) in the New plan — rows carry data-stop-key.
+const newStop = (n) => screen.getByRole('region', { name: 'New plan' }).querySelectorAll('[data-stop-key]')[n]
 
 it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, and the pending column', () => {
   setup()
   expect(screen.getByText('All Stops')).toBeTruthy()
   expect(screen.getByText(/arrow buttons on each stop/)).toBeTruthy()
-  expect(nw().getByText('Stop 1')).toBeTruthy()
-  expect(nw().getByText('Stop 2')).toBeTruthy()
-  expect(nw().getByText('Stop 3')).toBeTruthy()
+  // User 2026-09-28 (round 2): Consolidation Planned Stops rows — no
+  // HeaderStrip, no "Stop N"; the rail badge + row order carry position.
+  expect(nw().getAllByRole('button', { name: 'Move stop up' })).toHaveLength(3)
+  expect(nw().queryByText('Stop 1')).toBeNull()
+  expect(document.querySelector('.edit-stops .header-strip')).toBeNull()
+  expect(nw().getByText('Y, Town')).toBeTruthy()
+  expect(nw().getAllByText(/^Distance: /)).toHaveLength(3)          // one secondary Distance line per stop
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
   // User ruling 2026-09-09: this editor already carries purple/gray change
   // badges, so the stop-type badge is purple here too (not the canon
   // customer-change color mapping — a deliberate reuse).
   expect(nw().getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
-  // User 2026-09-28: one "Orders" label per stop card, no per-row "Order #".
-  expect(nw().getAllByText('Orders')).toHaveLength(3)
+  // One "Orders:" line per stop, no per-row "Order #".
+  expect(nw().getAllByText('Orders:')).toHaveLength(3)
   expect(screen.queryByText('Order #')).toBeNull()
   // View Planning Dates is a link with a leading calendar icon.
   expect(screen.getByRole('button', { name: 'View Planning Dates' }).className).toMatch(/btn--link.*btn--has-icon/)
@@ -96,8 +102,8 @@ it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reor
   fireEvent.click(screen.getAllByRole('button', { name: 'Move stop down' })[0])
   const badges = nw().getAllByLabelText(/^P\d — changed$/)
   expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual(['P1 — changed', 'P2 — changed'])
-  // P2 (Y, Town) is now first, so "Stop 1" (the rail's position label) carries it.
-  expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('Y, Town')
+  // P2 (Y, Town) is now the first row.
+  expect(newStop(0).textContent).toContain('Y, Town')
 })
 
 it('arrows reorder and renumber; an illegal move is disabled (user 2026-09-24)', () => {
@@ -133,7 +139,7 @@ it('Add places the order automatically — no stop menu; a new location becomes 
 
 it('a stop shows only its own date (DEC-195)', () => {
   setup()
-  const p1 = nw().getByText('Stop 1').closest('.edit-stops__card')
+  const p1 = newStop(0)
   expect(p1.textContent).toContain('Pickup Date')
   expect(p1.textContent).not.toContain('Delivery Date')
 })
@@ -302,7 +308,7 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   fireEvent.click(screen.getByText('mock-add'))
   expect(await screen.findByRole('button', { name: 'E' })).toBeTruthy()          // pending row link
   fireEvent.click(screen.getByRole('button', { name: 'Add order E' }))            // auto: P1 (X, City)
-  expect(nw().getByText('Stop 1').closest('.edit-stops__card').textContent).toContain('E')
+  expect(newStop(0).textContent).toContain('E')
   expect(screen.getByText('17 LB')).toBeTruthy()                                  // 5+5+7 — external order counts in totals
   fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
   fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Approve Changes' }))
@@ -343,7 +349,7 @@ it('the New plan edits a stop date; a date outside an order window flags that or
 it('marks what an action touched so it pulses where it landed (user 2026-09-24)', () => {
   setup()
   fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0])
-  expect(nw().getByText('Stop 2').closest('.edit-stops__card').hasAttribute('data-flash')).toBe(true)   // moved P1, now second
+  expect(newStop(1).hasAttribute('data-flash')).toBe(true)   // moved P1, now second
   fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
   const pendingRow = screen.getByRole('button', { name: /^Add order / }).closest('.edit-stops__pending-row')
   expect(pendingRow.hasAttribute('data-flash')).toBe(true)

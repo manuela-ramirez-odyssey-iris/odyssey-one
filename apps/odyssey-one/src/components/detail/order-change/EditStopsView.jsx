@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown, CalendarDays, TriangleAlert } from 'lucide-react'
-import { Alert, Badge, Button, DatePicker, HeaderStrip, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
+import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -125,7 +125,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   useEffect(() => () => clearTimeout(flashTimer.current), [])
   const snapshotTops = () => {
     // Rows are keyed by stop but carry no key attribute (Timeline is a
-    // normalized @odyssey/ui component) — the card carries data-stop-key.
+    // normalized @odyssey/ui component) — the stop row carries data-stop-key.
     const cards = newPlanRef.current?.querySelectorAll('[data-stop-key]') ?? []
     prevTops.current = new Map([...cards].map((c) => [c.dataset.stopKey, c.closest('.odyssey-timeline__row').getBoundingClientRect().top]))
   }
@@ -261,33 +261,38 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         // User 2026-09-24: Prior's P/D markers are green like the plain
         // Stops tab ('completed'); purple stays on New only.
         status: isPrior ? 'completed' : 'changed',
+        // Consolidation's Planned Stops (user, 2026-09-28): no mini status
+        // icons on the rail — tracking language, not planning.
+        showStatusBadge: false,
+        // User 2026-09-28 (round 2): a stop is a light row in the
+        // Consolidation Planned Stops anatomy (ConsolidationReviewRoute
+        // StopContent, VD 3039:147748) — no HeaderStrip, no card frame, no
+        // "Stop N": the rail's P1/D1 badge and the row order carry position.
         content: (
-          <div className="edit-stops__card" data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
-            <HeaderStrip
-              title={`Stop ${i + 1}`}
-              badge={(
-                <>
-                  {/* User ruling 2026-09-09: purple, not green — this editor
-                      already carries purple/gray change badges (Removed/Moved
-                      below), so the stop-type badge picks up the same purple
-                      used elsewhere on this surface. Canon reserves purple for
-                      the customer's change (vault/10-domains/shipments/order-change.md
-                      §10.3, DEC-136); the type badge is not a change signal, so this
-                      is a deliberate, user-ruled reuse of the color — do not
-                      "fix" it back to the canon mapping.
-                      Also per the 2026-09-09 ruling: Prior mode's planner-edit
-                      badges (Removed/Moved here, and the removed-order pill
-                      below) are `gray`, not `amber` — the amber treatment read
-                      too strong in Prior. Canon's "amber = what the planner
-                      changed" (§10.3/DEC-136) is stale for this surface pending
-                      a docs pass. */}
-                  <Badge variant={isPrior ? 'gray' : 'purple'}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
-                  {removed && <Badge variant="gray">Removed</Badge>}
-                  {moved && <Badge variant="gray">Moved</Badge>}
-                </>
-              )}
-              trail={isPrior ? null : (
-                <>
+          <div className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
+            <div className="edit-stops__stop-head">
+              <span className="edit-stops__stop-lead">
+              <span className="text-label-sm-medium edit-stops__stop-location">{s.location || '--'}</span>
+              {/* User ruling 2026-09-09: purple, not green — this editor
+                  already carries purple/gray change badges (Removed/Moved
+                  here), so the stop-type badge picks up the same purple used
+                  elsewhere on this surface. Canon reserves purple for the
+                  customer's change (vault/10-domains/shipments/order-change.md
+                  §10.3, DEC-136); the type badge is not a change signal, so
+                  this is a deliberate, user-ruled reuse of the color — do not
+                  "fix" it back to the canon mapping.
+                  Also per the 2026-09-09 ruling: Prior mode's planner-edit
+                  badges (Removed/Moved here, and the removed-order pill
+                  below) are `gray`, not `amber` — the amber treatment read
+                  too strong in Prior. Canon's "amber = what the planner
+                  changed" (§10.3/DEC-136) is stale for this surface pending
+                  a docs pass. */}
+              <Badge variant={isPrior ? 'gray' : 'purple'}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+              {removed && <Badge variant="gray">Removed</Badge>}
+              {moved && <Badge variant="gray">Moved</Badge>}
+              </span>
+              {!isPrior && (
+                <span className="edit-stops__stop-trail">
                   {/* T1.2/T2 — "Keep here": a P?/D? stop only, beside the
                       arrows. Sequences without moving. */}
                   {s.unsequenced && (
@@ -295,68 +300,63 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                   )}
                   <Button variant="icon" icon={<ArrowUp {...ICON_MD} />} aria-label="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
                   <Button variant="icon" icon={<ArrowDown {...ICON_MD} />} aria-label="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
-                </>
+                </span>
               )}
-            />
-            {/* User 2026-09-28: the Stops-tab review ("Consol") card — a
-                TitleSubtitle grid, Location | Distance then the stop's date,
-                then ONE "Orders" label over the order rows. */}
-            <div className="edit-stops__fields">
-              <TitleSubtitle subtitle="Location" title={s.location || '--'} />
-              {/* A6/B2 (DEC-198) — leg from the PREVIOUS stop in this same
-                  plan; the first stop has none. '--' when a leg's coordinate
-                  is missing (a brand-new P?/D? stop), not a wrong number. */}
-              <TitleSubtitle subtitle="Distance" title={(() => {
-                const leg = (isPrior ? priorLegs : newLegs).legs[i]
-                return leg == null ? '--' : `${leg.toFixed(2)} mi`
-              })()} />
-              {/* DEC-195: a stop shows only its own date. DEC-199: editable
-                  in the New plan; Prior stays the record of what was. */}
-              {isPrior
-                ? <TitleSubtitle className="edit-stops__span" subtitle={isPickup ? 'Pickup Date' : 'Delivery Date'} title={s.date || '--'} />
-                : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
-              <div className="edit-stops__orders edit-stops__span">
-                <TitleSubtitle subtitle="Orders" />
-                {s.orderIds.map((id) => {
-                  const isRemovedOrder = diff.removedOrderIds.includes(id)
-                  return (
-                    <div className="edit-stops__order-row" key={id} data-flash={isPrior ? undefined : flashes(`order:${id}`)}>
-                      <div className="edit-stops__order-lead">
-                        {isRemovedOrder
-                          ? <Badge variant="gray">{id}</Badge>
-                          // ponytail: no order drill-in yet — deferred, wire up when the
-                          // Order Compare / detail surface has a route for this VM.
-                          : (
-                            <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
-                              <Button variant="link" onClick={() => {}}>{id}</Button>
-                            </TooltipTrigger>
-                          )}
-                        {!isPrior && violationOf(s.key, id) && (() => {
-                          const v = violationOf(s.key, id)
-                          return (
-                            <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `Order ${v.type} window`, content: `${v.from} – ${v.to}` }] }}>
-                              <Badge variant="amber" leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />}>Outside planning window</Badge>
-                            </TooltipTrigger>
-                          )
-                        })()}
-                      </div>
-                      {isPrior ? null : singleOrderLeft ? (
-                        <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
-                          <Button variant="secondary" disabled>Set Aside</Button>
-                        </TooltipTrigger>
-                      ) : (
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleMoveToPending(id)}
-                        >
-                          {/* DEC-194: "Move To Pending" → "Set Aside", text only. */}
-                          Set Aside
-                        </Button>
-                      )}
+            </div>
+            {/* A6/B2 (DEC-198) — leg from the PREVIOUS stop in this same
+                plan; the first stop has none. '--' when a leg's coordinate
+                is missing (a brand-new P?/D? stop), not a wrong number. */}
+            <span className="text-label-xs-regular edit-stops__stop-meta">Distance: {(() => {
+              const leg = (isPrior ? priorLegs : newLegs).legs[i]
+              return leg == null ? '--' : `${leg.toFixed(2)} mi`
+            })()}</span>
+            {/* DEC-195: a stop shows only its own date. DEC-199: editable
+                in the New plan; Prior stays the record of what was. */}
+            {isPrior
+              ? <span className="text-label-xs-regular edit-stops__stop-meta">{isPickup ? 'Pickup Date' : 'Delivery Date'}: {s.date || '--'}</span>
+              : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
+            <div className="edit-stops__orders">
+              <span className="text-label-xs-regular edit-stops__stop-meta">Orders:</span>
+              {s.orderIds.map((id) => {
+                const isRemovedOrder = diff.removedOrderIds.includes(id)
+                return (
+                  <div className="edit-stops__order-row" key={id} data-flash={isPrior ? undefined : flashes(`order:${id}`)}>
+                    <div className="edit-stops__order-lead">
+                      {isRemovedOrder
+                        ? <Badge variant="gray">{id}</Badge>
+                        // ponytail: no order drill-in yet — deferred, wire up when the
+                        // Order Compare / detail surface has a route for this VM.
+                        : (
+                          <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
+                            <Button variant="link" onClick={() => {}}>{id}</Button>
+                          </TooltipTrigger>
+                        )}
+                      {!isPrior && violationOf(s.key, id) && (() => {
+                        const v = violationOf(s.key, id)
+                        return (
+                          <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `Order ${v.type} window`, content: `${v.from} – ${v.to}` }] }}>
+                            <Badge variant="amber" leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />}>Outside planning window</Badge>
+                          </TooltipTrigger>
+                        )
+                      })()}
                     </div>
-                  )
-                })}
-              </div>
+                    {isPrior ? null : singleOrderLeft ? (
+                      <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
+                        <Button variant="secondary" size="sm" disabled>Set Aside</Button>
+                      </TooltipTrigger>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleMoveToPending(id)}
+                      >
+                        {/* DEC-194: "Move To Pending" → "Set Aside", text only. */}
+                        Set Aside
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ),
@@ -394,17 +394,17 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
         <div className="edit-stops__body">
           <section className="edit-stops__plan edit-stops__plan--prior" aria-label="Prior plan">
-            <HeaderStrip title="Prior" />
+            <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
             <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
           </section>
           <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef}>
-            <HeaderStrip title="New" />
+            <h3 className="text-label-base-semibold edit-stops__plan-title">New</h3>
             <Timeline animate items={buildItems(sb.stops, false)} className="edit-stops__rail" aria-label="All stops" />
           </section>
 
           <div className="edit-stops__pending">
-            <HeaderStrip title="Orders Pending To Assign" />
-            <Button variant="secondary" className="edit-stops__add-new" onClick={() => setModal('add-orders')}>Add New Order</Button>
+            <h3 className="text-label-base-semibold edit-stops__plan-title">Orders Pending To Assign</h3>
+            <Button variant="secondary" onClick={() => setModal('add-orders')}>Add New Order</Button>
             {sb.pending.map((id) => (
               <div className="edit-stops__pending-row" key={id} data-flash={flashes(`pending:${id}`)}>
                 {/* ponytail: no order drill-in yet — deferred, wire up when the

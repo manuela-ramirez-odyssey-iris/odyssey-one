@@ -41,72 +41,128 @@
   padding-top: var(--spacing-4);
 }
 
+/* User 2026-09-28 (round 2): Prior / New / Pending read like the
+   Consolidation "Proposed Stop Count & Sequence" panel (VD 3039:147748,
+   built in routes/shipments/consolidation-review.css — values copied, not
+   imported, so that route's CSS stays its own): a white shadow-sm panel,
+   plain-text title, and stops as light rows on the Timeline rail — no
+   HeaderStrips, no per-stop boxes. Supersedes round 1's framed "Stops-tab"
+   cards (cd07d27). */
+.edit-stops__plan,
+.edit-stops__pending {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-5);
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+}
+.edit-stops__plan-title { margin: 0; color: var(--text-primary); }
+
+/* DEC-197: Prior | New side by side, equal share of what the pending
+   column leaves; Prior is read-only. */
+.edit-stops__plan {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 /* Timeline (@odyssey/ui) owns the rail's own flex-column + connector; only
-   the width-sharing and the panel's inner inset belong here — no gap
-   override, or the continuous connector line between badges would break. */
+   the width-sharing belongs here — no gap override, or the continuous
+   connector line between badges would break. */
 .edit-stops__rail {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0 var(--spacing-4);
-}
-/* Framed cards need air between them; padding on the content (not a row
-   gap) grows the row, so the rail's segment stretches through it unbroken. */
-.edit-stops__rail .odyssey-timeline__row:not(:last-child) .odyssey-timeline__content {
-  padding-bottom: var(--spacing-4);
 }
 
-.edit-stops__card {
+/* A stop row (consolidation-review.css .consolidation-review__stop /
+   __stop-inner): the air between stops is padding INSIDE the content, so
+   the row grows and the rail segment stretches through it unbroken. */
+.edit-stops__stop {
+  position: relative;
+  isolation: isolate; /* keeps the hover tint's z-index:-1 above the panel */
   display: flex;
   flex-direction: column;
-  /* User 2026-09-28: the frame is back — the card now matches the Stops-tab
-     review card ("Consol", stops.css .stops-timeline--review .stops-item),
-     superseding the 2026-09-09 ruling that removed it as "ours, not in the
-     VD". overflow:hidden clips HeaderStrip's tinted band to the radius. */
-  border: 1px solid var(--border-subtle);
+  gap: var(--spacing-1);
+  padding-bottom: var(--spacing-5);
+}
+/* Line 1: location + type badge(s) (the lead), New's controls on the right.
+   The lead takes (nearly) all the surplus (flex-grow 999) so the location
+   wraps as late as possible; below ~180px of lead the controls drop to
+   their own line instead of squeezing the address to a word per line
+   (1280px, P?/D? rows with Keep here). The trail grows to fill whatever
+   line it sits on and packs its buttons right — no auto margin. */
+.edit-stops__stop-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.edit-stops__stop-lead {
+  flex: 999 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-2);
+}
+.edit-stops__stop-location { min-width: 0; color: var(--text-primary); }
+.edit-stops__stop-trail {
+  flex: 1 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+/* Secondary lines — Consolidation's "Scheduled: …" / "Shipment: …". */
+.edit-stops__stop-meta { color: var(--text-secondary-soft); }
+
+/* Hover (consolidation-review.css, the editable-stop tint): New rows only —
+   Prior is read-only, like Consolidation's non-editing stops. Tint pads 8px
+   round the content; the row's 20px bottom spacer stays untinted. Off while
+   a row pulses, so the tint never hides the data-flash highlight. */
+.edit-stops__stop--editable:not([data-flash]):hover::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--spacing-2)) calc(-1 * var(--spacing-2)) calc(var(--spacing-5) - var(--spacing-2));
+  z-index: -1;
+  background: var(--deep-sea-neutral-100);
   border-radius: var(--radius-md);
-  overflow: hidden;
 }
+.edit-stops__stop--editable:hover .edit-stops__stop-meta { color: var(--text-secondary); }
 
-/* Consol's TitleSubtitle grid, two columns (Location | Distance), gap as
-   stops.css .stops-item__fields. 2:1, not Consol's equal thirds — a
-   location is a full address, a distance is "880.09 mi"; equal halves
-   wrapped the address to four lines at 1280px. */
-.edit-stops__fields {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--spacing-3) var(--spacing-5);
-  padding: var(--spacing-4);
-}
-.edit-stops__span { grid-column: 1 / -1; }
-
-/* The framed panels leave a P?/D? card ~270px of band at 1280px — not enough
-   for title + badge + Keep here + both arrows, and HeaderStrip ellipsized the
-   title to "S". Let the trail drop to its own (right-aligned, via its own
-   margin-left:auto) line instead. App-scoped: HeaderStrip itself is untouched. */
-.edit-stops__card .header-strip { flex-wrap: wrap; }
-
+/* New's date + time + zone, as compact as the pickers allow (they take no
+   size prop, so only the row layout is ours): one row when the column has
+   room, wrapping otherwise — they carry clear buttons + chevrons and must
+   not overlap. */
 .edit-stops__date {
-  grid-column: 1 / -1;
-  display: grid;
-  /* Wraps to two rows when the New column is narrow — the pickers carry a
-     clear button + chevron and must not overlap the zone select. */
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--spacing-3);
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-3);
+  align-items: flex-end;
+  padding-block: var(--spacing-1);
 }
+/* Bases: the date needs room for MM/DD/YYYY + clear + calendar icons
+   (150px clipped the year); the time picker won't render narrower than
+   ~150px (it overflowed the column at 1280px on a smaller basis); the zone
+   only needs "CST" + chevron. 1600px: one row. 1280px: date, then
+   time + zone. */
+.edit-stops__date > * { flex: 1 1 150px; min-width: 0; }
+.edit-stops__date > :first-child { flex-basis: 160px; }
+.edit-stops__date > :last-child { flex-basis: 96px; }
 
 .edit-stops__orders {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
 }
 
 /* User ruling 2026-09-09: "Move To Pending" was sitting right after the order
    link instead of the row's trailing edge. `justify-content: space-between`
    on the row itself (not `margin-left: auto` on the button — an earlier
    session, S137, put a bare auto-margin on a moved button and it rendered
-   529px off-centre in its new flex parent) with the label+link grouped in
-   their own child so they read together on the left. */
+   529px off-centre in its new flex parent) with the link grouped in its own
+   child so it reads together with its badge on the left. */
 .edit-stops__order-row {
   display: flex;
   align-items: center;
@@ -118,36 +174,15 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-3);
-}
-
-/* DEC-197: Prior | New side by side, equal share of what the pending
-   column leaves; Prior is read-only. User 2026-09-28: each is a panel framed
-   exactly like .edit-stops__pending below (HeaderStrip title on top). */
-.edit-stops__plan {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  padding-bottom: var(--spacing-4);
+  gap: var(--spacing-2);
 }
 
 /* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
    300px to make room for the Prior plan (DEC-197, user 2026-09-24). */
 .edit-stops__pending {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
   width: 300px;
   flex-shrink: 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  padding-bottom: var(--spacing-4);
+  box-sizing: border-box;
   /* Stays in view while the stop list scrolls (S158), floating a little below
      the anchored KPI strip (user 2026-09-24). The strip docks at
      -spacing-8 (flush under the navbar); its live height comes from
@@ -165,16 +200,11 @@
   margin-top: var(--spacing-6);
 }
 
-.edit-stops__add-new {
-  margin: 0 var(--spacing-4);
-}
-
 .edit-stops__pending-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
-  padding: 0 var(--spacing-4);
 }
 
 /* Native `disabled` suppresses mouse events on the button itself, so a
