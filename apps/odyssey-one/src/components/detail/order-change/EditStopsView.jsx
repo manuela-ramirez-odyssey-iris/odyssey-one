@@ -435,7 +435,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             {readOnly
               ? <span className="text-label-xs-regular edit-stops__stop-meta">{isPickup ? 'Pickup Date' : 'Delivery Date'}: {s.date || '--'}</span>
               : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
-            <div className="edit-stops__orders">
+            {/* User 2026-09-28: read-only rows (Prior, collapsed New) list
+                their orders inline; edit mode keeps one row per order for
+                its Set Aside button. */}
+            <div className={`edit-stops__orders${readOnly ? ' edit-stops__orders--inline' : ''}`}>
               <span className="text-label-xs-regular edit-stops__stop-meta">Orders:</span>
               {s.orderIds.map((id) => {
                 const isRemovedOrder = diff.removedOrderIds.includes(id)
@@ -448,7 +451,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                         // Order Compare / detail surface has a route for this VM.
                         : (
                           <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), s.type, id)}>
-                            <Button variant="link" onClick={() => {}}>{id}</Button>
+                            <Button variant="link" className="edit-stops__order-link" onClick={() => {}}>{id}</Button>
                           </TooltipTrigger>
                         )}
                       {!isPrior && violationOf(s.key, id) && (() => {
@@ -559,7 +562,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 {/* ponytail: no order drill-in yet — deferred, wire up when the
                     Order Compare / detail surface has a route for this VM. */}
                 <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>
-                  <Button variant="link" onClick={() => {}}>{id}</Button>
+                  <Button variant="link" className="edit-stops__order-link" onClick={() => {}}>{id}</Button>
                 </TooltipTrigger>
                 {/* DEC-193: no stop picker — the system places each leg
                     (same type + location, else a new P?/D?). */}

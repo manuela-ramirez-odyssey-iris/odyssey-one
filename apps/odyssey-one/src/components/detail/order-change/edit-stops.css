@@ -228,6 +228,19 @@
   gap: var(--spacing-2);
 }
 
+/* Read-only rows (Prior, collapsed New): the orders wrap inline after the
+   "Orders:" label instead of stacking one per row (user 2026-09-28). */
+.edit-stops__orders--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+
+/* User 2026-09-28: order ids read as links by colour alone, no underline.
+   (The link Button underlines itself when it has no icon.) */
+.edit-stops .btn--link.edit-stops__order-link { text-decoration: none; }
+
 /* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
    300px to make room for the Prior plan (DEC-197, user 2026-09-24). */
 .edit-stops__pending {
