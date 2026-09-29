@@ -258,25 +258,34 @@ describe('ConsolidationReviewRoute', () => {
   })
 
   // B2 — sortable Planned Stops (S161: dnd-kit, same pattern as Home's
-  // metrics-library panel list).
-  test('Reset renders disabled until the stop order changes, and each stop carries a grip', () => {
-    const { container } = renderReview({ rows })
-    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Save Stop Changes' })).toBeNull()
-    expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(4) // 2 pickups + 2 deliveries
-  })
+  // metrics-library panel list). Edit mode (user, 2026-09-28): stops only
+  // drag after Edit; Reset / Discard / Save Changes appear with it.
+  const enterEdit = () => fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+  const railLabels = (container) => [...container.querySelectorAll('.odyssey-timeline__rail')].map((r) => r.textContent.trim())
 
-  test('Planned Stops are read-only after Apply — no grips, no Reset, no helper text', async () => {
-    const { container } = await applyAndWait()
+  test('stops are read-only until Edit; Edit shows Reset / Discard / Save Changes and the grips', () => {
+    const { container } = renderReview({ rows })
     expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(0)
     expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
-    expect(screen.queryByText('Drag stops to reorganize')).toBeNull()
+    expect(railLabels(container)).toEqual(['P1', 'P2', 'D1', 'D2'])
+    enterEdit()
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeTruthy()
+    expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(4) // 2 pickups + 2 deliveries
+    expect(railLabels(container)).toEqual(['P', 'P', 'D', 'D']) // no numbering in edit mode
+    // Animation stalls while editing.
+    expect(container.querySelector('.odyssey-timeline--animate')).toBeNull()
+    expect(container.querySelector('.consolidation-review__timeline--editing')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
   })
 
-  test('helper text "Drag stops to reorganize" shows only while editable', () => {
-    renderReview({ rows })
-    expect(screen.getByText('Drag stops to reorganize')).toBeTruthy()
+  test('Planned Stops are read-only after Apply — no grips, no Edit', async () => {
+    const { container } = await applyAndWait()
+    expect(container.querySelectorAll('.consolidation-review__stop-grip').length).toBe(0)
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
   })
 
   // Simulates a completed dnd-kit drag by invoking the DndContext's onDragEnd
@@ -287,14 +296,14 @@ describe('ConsolidationReviewRoute', () => {
     act(() => { window.__consolidationDragEnd({ active: { id: activeId }, over: { id: overId } }) })
   }
 
-  // Save lives in the stops panel again (user, 2026-09-28); Apply waits for it.
-  test('a reorder enables Save Changes and disables Apply until saved; Apply then sends the saved order', async () => {
-    renderReview({ rows })
+  test('Save commits the reorder and leaves edit mode; Apply then sends the saved order', async () => {
+    const { container } = renderReview({ rows })
+    enterEdit()
     simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups — valid
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
+    expect(railLabels(container)).toEqual(['P2', 'P1', 'D1', 'D2']) // P1 still = shipment a's pickup, now second
     const applyBtn = screen.getByRole('button', { name: 'Apply Consolidation' })
     expect(applyBtn.disabled).toBe(false)
     fireEvent.click(applyBtn)
@@ -304,78 +313,100 @@ describe('ConsolidationReviewRoute', () => {
     expect(vi.mocked(applyConsolidation).mock.calls[0][0].stopOrder).toEqual(['pickup-b', 'pickup-a', 'delivery-a', 'delivery-b'])
   })
 
-  // Validated at drag RELEASE (user, 2026-09-28): the offending pair turns red,
-  // every other marker goes gray, Save + Apply stay blocked; the drop that
-  // first breaks the sequence opens Amend / Reset.
-  test('a drop that puts a delivery above its own pickup: pair red, others gray, dialog, Save blocked', () => {
+  test('Discard with no changes leaves edit mode without asking', () => {
+    renderReview({ rows })
+    enterEdit()
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy()
+  })
+
+  test('Discard with unsaved changes asks first; No keeps editing, Yes drops the reorder', () => {
     const { container } = renderReview({ rows })
+    enterEdit()
+    simulateDragEnd('pickup-a', 'pickup-b')
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Discard Stop Changes' })).getByRole('button', { name: 'No' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Discard Stop Changes' })).getByRole('button', { name: 'Yes, Discard' }))
+    expect(railLabels(container)).toEqual(['P1', 'P2', 'D1', 'D2'])
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
+  })
+
+  // Out-of-order pair (VD 3039:147748, user 2026-09-28): pair red, only the
+  // DELIVERY carries the message; every other stop + marker at 50% and locked.
+  test('a delivery above its own pickup: pair red, message on the delivery only, others dimmed + locked, Save blocked', () => {
+    const { container } = renderReview({ rows })
+    enterEdit()
     simulateDragEnd('delivery-a', 'pickup-a') // delivery-a above pickup-a
     expect(container.querySelectorAll('.stop-badge--issue').length).toBe(2)
-    expect(container.querySelectorAll('.stop-badge--pending').length).toBe(2)
-    expect(container.querySelectorAll('.consolidation-review__stop-location--invalid').length).toBe(2)
-    expect(container.querySelectorAll('.consolidation-review__stop-location--muted').length).toBe(2) // no purple text while errors show
-    expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(0)
+    expect(container.querySelectorAll('.consolidation-review__stop--invalid').length).toBe(2)
+    expect(screen.getAllByText('Stops are out of order').length).toBe(1)
+    expect(screen.getByText('Stops are out of order').closest('.consolidation-review__stop').textContent).toMatch(/Delivery/)
+    expect(container.querySelectorAll('.consolidation-review__stop--locked').length).toBe(2)
+    expect(container.querySelectorAll('.consolidation-review__stop-badge--locked').length).toBe(2)
+    expect(container.querySelectorAll('.consolidation-review__stop--locked .consolidation-review__stop-grip').length).toBe(0)
+    fireEvent.mouseEnter(container.querySelector('.consolidation-review__stop--locked'))
+    expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(0) // dimmed stops take no hover
+    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0) // no purple anywhere
     expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(true)
-    const dialog = screen.getByRole('dialog', { name: 'Invalid Stop Sequence' })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Amend' }))
-    expect(screen.queryByRole('dialog')).toBeNull()
-    simulateDragEnd('pickup-a', 'delivery-a') // fix it — colours return, no dialog
-    expect(container.querySelectorAll('.stop-badge--issue, .stop-badge--pending').length).toBe(0)
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull() // no error modal — the inline message is the error
+    simulateDragEnd('pickup-a', 'delivery-a') // fix it
+    expect(container.querySelectorAll('.stop-badge--issue, .consolidation-review__stop--locked').length).toBe(0)
+    expect(screen.queryByText('Stops are out of order')).toBeNull()
     expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
   })
 
-  test('the invalid dialog\'s Reset restores the original sequence and clears the red', () => {
+  test('Reset asks first, then restores the ORIGINAL sequence (saved changes too) and leaves edit mode', () => {
     const { container } = renderReview({ rows })
-    simulateDragEnd('delivery-a', 'pickup-a')
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Reset' }))
+    enterEdit()
+    simulateDragEnd('pickup-a', 'pickup-b')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    enterEdit()
+    simulateDragEnd('delivery-a', 'pickup-b') // unsaved + invalid on top of the saved swap
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Reset Stop Sequence' })).getByRole('button', { name: 'No' }))
+    expect(container.querySelectorAll('.stop-badge--issue').length).toBe(2) // still editing, untouched
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Reset Stop Sequence' })).getByRole('button', { name: 'Yes, Reset' }))
     expect(container.querySelectorAll('.stop-badge--issue').length).toBe(0)
-    expect(screen.getByRole('button', { name: 'Apply Consolidation' }).disabled).toBe(false)
+    expect(railLabels(container)).toEqual(['P1', 'P2', 'D1', 'D2'])
+    enterEdit()
     expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
+  })
+
+  test('Discard only drops the unsaved changes — the saved order stays', () => {
+    const { container } = renderReview({ rows })
+    enterEdit()
+    simulateDragEnd('pickup-a', 'pickup-b')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    enterEdit()
+    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false) // saved ≠ original
+    simulateDragEnd('delivery-a', 'delivery-b')
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Discard Stop Changes' })).getByRole('button', { name: 'Yes, Discard' }))
+    expect(railLabels(container)).toEqual(['P2', 'P1', 'D1', 'D2'])
   })
 
   test('markers carry no mini status icons (tracking language, not planning)', () => {
     const { container } = renderReview({ rows })
     expect(container.querySelectorAll('.stop-badge__status').length).toBe(0)
+    enterEdit()
     simulateDragEnd('delivery-a', 'pickup-a')
     expect(container.querySelectorAll('.stop-badge__status').length).toBe(0)
   })
 
-  // Labels follow the pair (user, 2026-09-27): P1/D1 = shipment 1, and they
-  // travel with the stop. Each stop also names its shipment.
-  test('labels stay with their shipment when stops move; every stop shows its Shipment', () => {
-    const { container } = renderReview({ rows })
+  test('every stop shows its Shipment', () => {
+    renderReview({ rows })
     expect(screen.getAllByText(/^Shipment: /).length).toBe(4)
-    const labels = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-      .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
-    simulateDragEnd('pickup-a', 'pickup-b') // swap the pickups
-    expect(labels()).toEqual(['P', 'P', 'D', 'D']) // every stop from the first moved one down loses its number until saved
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
-    expect(labels()).toEqual(['P2', 'P1', 'D1', 'D2']) // P1 still = shipment a's pickup, now second
-  })
-
-  test('stops ABOVE the first moved one keep their numbers', () => {
-    const { container } = renderReview({ rows })
-    const labels = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-      .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
-    simulateDragEnd('delivery-a', 'delivery-b') // swap the deliveries (positions 3 and 4)
-    expect(labels()).toEqual(['P1', 'P2', 'D', 'D'])
-  })
-
-  test('mid-drag, the affected stops (from the higher of origin/over slot down) lose their number', () => {
-    const { container } = renderReview({ rows })
-    const labels = () => Array.from(container.querySelectorAll('.consolidation-review__stop'))
-      .map((el) => el.closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__rail').textContent.trim())
-    act(() => { window.__consolidationDnd.onDragStart({ active: { id: 'delivery-a' } }) }) // slot 3
-    act(() => { window.__consolidationDnd.onDragOver({ active: { id: 'delivery-a' }, over: { id: 'pickup-b' } }) }) // over slot 2
-    expect(labels()).toEqual(['P1', 'P', 'D', 'D'])
-    act(() => { window.__consolidationDnd.onDragCancel() })
-    expect(labels()).toEqual(['P1', 'P2', 'D1', 'D2'])
   })
 
   test('hover is ignored while a stop is being dragged', () => {
     const { container } = renderReview({ rows })
+    enterEdit()
     const stops = container.querySelectorAll('.consolidation-review__stop')
     act(() => { window.__consolidationDnd.onDragStart({ active: { id: 'pickup-a' } }) })
     const lit = () => [...container.querySelectorAll('.consolidation-review__stop--paired')].map((el) => el.textContent)
@@ -387,29 +418,12 @@ describe('ConsolidationReviewRoute', () => {
 
   test('hovering a stop lights up both stops of its shipment', () => {
     const { container } = renderReview({ rows })
+    enterEdit()
     const [firstPickup] = container.querySelectorAll('.consolidation-review__stop')
     fireEvent.mouseEnter(firstPickup)
     expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(2)
     fireEvent.mouseLeave(firstPickup)
     expect(container.querySelectorAll('.consolidation-review__stop--paired').length).toBe(0)
-    // hovered pair keeps its numbers and always shows the status circle (CSS dots it)
-    fireEvent.mouseEnter(firstPickup)
-    const rails = [...container.querySelectorAll('.odyssey-timeline__rail')].map((r) => r.textContent.trim())
-    expect(rails).toEqual(['P1', 'P2', 'D1', 'D2'])
-  })
-
-  // Purple = moved since the last save; a successful Save returns every stop
-  // to its original colours (user, 2026-09-25).
-  test('moved stops are purple until Saved, then original colours; Reset stays enabled after a save', () => {
-    const { container } = renderReview({ rows })
-    simulateDragEnd('pickup-a', 'pickup-b')
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(2)
-    expect(container.querySelectorAll('.consolidation-review__stop-location--changed').length).toBe(2)
-    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
-    expect(container.querySelectorAll('.stop-badge--changed').length).toBe(0)
-    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(false) // saved ≠ original
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    expect(screen.getByRole('button', { name: 'Reset' }).disabled).toBe(true)
   })
 
   // B3 — tendered check at Apply (Math.random pinned above 0.5 in beforeEach,

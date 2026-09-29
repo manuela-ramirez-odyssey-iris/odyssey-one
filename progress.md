@@ -51,7 +51,13 @@ The findings became plan items C6–C24, rulings N1–N6 and DEC-212…218. Four
 
 **Lessons (memory `feedback_batch_reseeds`).** I reseeded between slices, and the next slice changed the seed again. The user: *"feels like you are going in circles."* Rule: build ALL approved slices first, then ONE reseed + ONE deploy. Also, "done" means the whole approved scope, not the slices finished so far.
 
-**Parallel session, unlogged here:** the uncommitted `ConsolidationReviewRoute.jsx` / `.test.jsx`, `consolidation-review.css` and `domain-usage.json` belong to another session. They shipped in this deploy but were **not committed** by this wrap.
+**Consolidation Planned Stops, in edit mode** (a parallel session, merged into S163 at the user's request since consolidation and order change are now too correlated to log apart). Built from Figma `x38TOJGsNryYl3LsKhCtSc` 3039:147748; DEC-219.
+- **Edit mode.** An *Edit* button beside *Planned Stops* reveals Reset / Discard / Save Changes. Only then are stops draggable. The markers read P / D (no numbers), and the rail stops animating, with segments ending short of the next marker. Outside edit mode the stops are read-only, numbered and animated; Apply is disabled while editing.
+- **Save / Discard / Reset.** Save commits and exits. Discard drops only the unsaved changes, with a confirm when there are any. Reset confirms, then goes back to the order the review opened with (saved changes too) and exits.
+- **Out-of-order pair.** Red card, red outlined badge and red marker; only the delivery carries the *"Stops are out of order"* Alert. Everything else goes to 50% opacity, locked, with no hover. The *Invalid Stop Sequence* modal is removed.
+- **Visuals.** Green only (no blue pickups, no purple "changed"); gray count banners; panel 307 → 420px; 40px between the buttons row and the stops; the hover tint pads 8px on every side of the content.
+- Tests: `ConsolidationReviewRoute.test.jsx` rewritten for edit mode (39 pass; shipments + consolidation suite 159 pass). **Not seen in a browser by me, and not deployed in its final form**: the S163 deploy carried an earlier, mid-session copy of these files.
+- `domain-usage.json` (uncommitted before this session started) is still not ours and is left out of this commit.
 
 **Still open.**
 - **Reseed + deploy owed for the AC-gap and Direct slices**, ONE of each, on the user's go. Live today = the Save and consistency slices.
@@ -60,6 +66,8 @@ The findings became plan items C6–C24, rulings N1–N6 and DEC-212…218. Four
 - The 09-23 call (`vault/00-inbox/Consoloidation Questions 2.vtt`) is still un-analyzed, plus a duplicate 09-25 transcript in the inbox.
 - The row menu after a Scenario A save lands on plain Stops (`ponytail:`; the Tender-tab button leads to the decision).
 - `toast.test.js` still fails to compile (S159).
+
+- Consolidation Planned Stops edit mode: a click-through in the browser, then it rides the single deploy.
 
 **What's next (user):** Jana's feedback from today's call. Then the single reseed + deploy.
 

@@ -9,7 +9,7 @@
 }
 
 .consolidation-review__side {
-  flex: 0 0 307px; /* VD SidePanel width */
+  flex: 0 0 420px; /* VD left panel width (3039:147748) */
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
@@ -22,8 +22,8 @@
 .consolidation-review__stops-heading { color: var(--text-primary); }
 .consolidation-review__counts { display: flex; flex-direction: column; gap: var(--spacing-3); }
 
-/* Pickup/Delivery count badges — full-width solid blocks, not the compact
-   Badge pill (VD 2249:46444 side panel). Icon inherits `color` via currentColor. */
+/* Pickup/Delivery count badges — full-width gray blocks, not the compact
+   Badge pill (VD 3039:147748). Icon inherits `color` via currentColor. */
 .consolidation-review__count {
   display: flex;
   align-items: center;
@@ -31,14 +31,14 @@
   padding: var(--spacing-3);
   border-radius: var(--radius-lg);
 }
-.consolidation-review__count--pickup { background: var(--badge-blue-bg); color: var(--badge-blue-text); }
-.consolidation-review__count--delivery { background: var(--badge-green-bg); color: var(--badge-green-text); }
+.consolidation-review__count { background: var(--deep-sea-neutral-100); color: var(--text-primary); }
 
 /* padding-bottom, not a gap: the Timeline row height is content-driven and the
    connecting segment stretches to it, so the air between consecutive stops has
    to come from inside the content. */
 .consolidation-review__stop {
   position: relative;
+  isolation: isolate; /* keeps the hover tint's z-index:-1 above the panel */
   padding-bottom: var(--spacing-5);
 }
 .consolidation-review__stop-inner {
@@ -64,41 +64,48 @@
 /* The ONE stop under the pointer (so a lit pair never reads as "both move"):
    background, darker grip, darker detail lines. Never while a stop is being
    dragged — the pointer sweeping over other stops must not light them. */
-.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:hover {
+.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:not(.consolidation-review__stop--invalid):not(.consolidation-review__stop--locked):hover::before {
+  /* Tint pads 8px on every side of the content — the rest of the row's 20px
+     spacer stays untinted (user, 2026-09-28). */
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--spacing-2)) calc(-1 * var(--spacing-2)) calc(var(--spacing-5) - var(--spacing-2));
+  z-index: -1;
   background: var(--deep-sea-neutral-100);
-  box-shadow: 0 0 0 var(--spacing-1) var(--deep-sea-neutral-100); /* pads the tint without shifting layout */
   border-radius: var(--radius-md);
 }
 .consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-grip { color: var(--text-primary); }
-.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:hover .consolidation-review__stop-date { color: var(--text-secondary); }
+.consolidation-review__side:not(:has([data-dragging])) .consolidation-review__stop[aria-roledescription="sortable"]:not(.consolidation-review__stop--locked):hover .consolidation-review__stop-date { color: var(--text-secondary); }
 .consolidation-review__stop-head { display: flex; align-items: center; gap: var(--spacing-2); }
 .consolidation-review__stop-date { color: var(--text-secondary-soft); }
-/* Changed stop's location text (user ruling 2026-09-25, item 1) — the
-   marker's own purple pill (StopBadge status="changed") covers the P#/D#
-   label; this covers the location line next to it. */
-.consolidation-review__stop-location--changed { color: var(--badge-purple-text); }
-.consolidation-review__stop-location--invalid { color: var(--text-error); }
-.consolidation-review__stop-location--muted { color: var(--text-tertiary); }
-.consolidation-review__stops-helper { display: block; color: var(--text-secondary); }
+/* Out-of-order pair (VD 3039:147748): red card, red Pickup/Delivery badge
+   with a dark outline; the delivery carries the inline Alert. */
+.consolidation-review__stop--invalid {
+  background: var(--badge-red-bg);
+  box-shadow: 0 0 0 var(--spacing-2) var(--badge-red-bg); /* pads the tint without shifting layout */
+  border-radius: var(--radius-md);
+  padding-bottom: 0;
+  margin-bottom: var(--spacing-5);
+}
+.consolidation-review__stop--invalid .consolidation-review__stop-head .text-badge { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.consolidation-review__stop-alert { margin-top: var(--spacing-1); }
+.consolidation-review__stop-alert .alert__message { display: flex; flex-direction: column; gap: var(--spacing-1); }
+/* While a pair is out of order the rest of the list steps back (user,
+   2026-09-28): row + marker at 50%, not draggable. */
+.consolidation-review__stop--locked,
+.consolidation-review__stop-badge--locked { opacity: 0.5; }
+.consolidation-review__stop[aria-roledescription="sortable"].consolidation-review__stop--locked { cursor: default; }
 /* Grip sits at the row's right edge (B2 VD) — margin-left: auto pushes it
    across the head's flex row past the location label + Pickup/Delivery badge. */
 .consolidation-review__stop-grip { margin-left: auto; color: var(--text-tertiary); flex-shrink: 0; }
 
-.consolidation-review__stop-actions { display: flex; gap: var(--spacing-2); }
-.consolidation-review__stop-actions > * { flex: 1 1 0; }
+.consolidation-review__stops-header { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2); }
+.consolidation-review__stop-actions { display: flex; justify-content: space-between; gap: var(--spacing-3); margin-bottom: var(--spacing-6); } /* + the panel's 16px gap = 40px above the stops (user, 2026-09-28) */
+.consolidation-review__stop-actions-end { display: flex; gap: var(--spacing-3); }
 
-/* Marker pills (S154): both use StopBadge status="completed" as the SOLID
-   white-label base (Caribbean Green/600 — already exactly the delivery
-   marker); pickup markers are re-tinted here since StopBadge has no blue
-   status. Fill is --badge-blue-text (the dark blue ink token), not
-   --badge-blue-bg (the pale badge tint) — the VD's pickup marker is solid,
-   not soft. */
-.consolidation-review__stop-badge--pickup.stop-badge--completed {
-  /* !important: Timeline's entry animation ends on caribbean green with
-     fill-mode both, which outranks a normal declaration — without it pickups
-     rendered green in the browser (user, 2026-09-28: pickups are blue). */
-  background: var(--badge-blue-text) !important;
-}
+/* Edit mode (user, 2026-09-28): the rail's segments stop short of the next
+   marker instead of running into it. */
+.consolidation-review__timeline--editing .odyssey-timeline__segment { margin-bottom: var(--spacing-2); }
 
 .consolidation-review__main {
   flex: 1 1 auto;

@@ -1363,6 +1363,16 @@ The user ruled on N1, N2, N3 and N6 on 2026-09-29, each time taking the recommen
 - **Decision:** in mock mode, Approve raises a clear "needs the live API" error and doesn't navigate. The server logic (transactions, moves, splits) is not re-implemented in the client mock. Built in the Save slice (C21).
 - **Source:** user 2026-09-29 (N6).
 
+### DEC-219: Consolidation Planned Stops get an edit mode; an out-of-order pair is flagged inline
+- **Previous:** (S161) stops were always draggable, with Reset + Save Changes under the list. Moved stops turned purple until saved; from the first moved stop down, markers lost their numbers; mid-drag, the affected stops went gray. A drop that broke the sequence opened an *Invalid Stop Sequence* modal (Amend / Reset), and the other markers went to the gray `pending` skin. Pickups were blue (marker + badge); the count banners were blue/green; the panel was 307px.
+- **Decision:** An **Edit** button next to the *Planned Stops* heading turns on edit mode. It shows **Reset** (left), **Discard** and **Save Changes** (right), with grips, P/D markers without numbers, and a static rail whose segments stop short of the next marker (no arrival animation). Outside edit mode the stops are read-only, numbered P1/D1…, and animated. Apply is disabled while editing.
+  - **Save** commits the order and leaves edit mode.
+  - **Discard** drops only the unsaved changes, and confirms first if there are any.
+  - **Reset** confirms, then restores the order the review opened with (saved changes included) and leaves edit mode.
+  - An out-of-order pair turns red: red card, red outlined badge, `issue` marker. Only the **delivery** carries the inline *"Stops are out of order"* Alert (VD `x38TOJGsNryYl3LsKhCtSc` 3039:147748). Every other stop and marker drops to 50% opacity, is locked (not draggable) and takes no hover until the pair is fixed. The error modal is gone.
+  - One marker/badge colour: green, no blue pickups and no purple "changed". Gray count banners; panel 420px.
+- **Source:** user 2026-09-28/29 (this session) + the Figma frame above. Overrides the S161 rulings on purple / gray-moment / the invalid modal.
+
 ## Changelog
 
 | Date | Decisions added |

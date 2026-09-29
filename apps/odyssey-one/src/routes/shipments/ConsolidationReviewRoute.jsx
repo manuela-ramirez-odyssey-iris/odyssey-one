@@ -115,21 +115,27 @@ function TenderedCheckTable({ rows }) {
 }
 
 // Shared row body for a Planned Stop — `grip` shows the drag-handle icon
-// (editable/sortable rows only). `tone` (user, 2026-09-25): 'invalid' = red
-// (a delivery above its own pickup, after a Save attempt), 'changed' =
-// purple (moved since the last save), otherwise the original colours.
-function StopContent({ s, tone, grip }) {
-  const toneClass = tone ? ` consolidation-review__stop-location--${tone}` : ''
+// (edit mode only). `invalid` (a delivery above its own pickup) turns the
+// Pickup/Delivery badge red; only the pair's DELIVERY carries the inline
+// message (VD 3039:147748, user 2026-09-28). One badge colour — no blue
+// pickups, no purple "changed" (user, 2026-09-28).
+function StopContent({ s, invalid, grip }) {
   return (
     <div className="consolidation-review__stop-inner">
       <div className="consolidation-review__stop-head">
-        <span className={`text-label-sm-medium${toneClass}`}>{s.location}</span>
-        <Badge variant={s.type === 'pickup' ? 'blue' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
+        <span className="text-label-sm-medium">{s.location}</span>
+        <Badge variant={invalid ? 'red' : 'green'}>{s.type === 'pickup' ? 'Pickup' : 'Delivery'}</Badge>
         {grip && <GripVertical size={16} className="consolidation-review__stop-grip" aria-hidden="true" />}
       </div>
       <span className="text-label-xs-regular consolidation-review__stop-date">Scheduled: {s.date}</span>
       {/* The pair key (user, 2026-09-27): a shipment's P and D share this ID. */}
       <span className="text-label-xs-regular consolidation-review__stop-date consolidation-review__stop-shipment">Shipment: {s.shipmentId}</span>
+      {invalid && s.type === 'delivery' && (
+        <Alert variant="error" showClose={false} className="consolidation-review__stop-alert">
+          <span className="text-label-xs-semibold">Stops are out of order</span>
+          <span className="text-label-xs-regular">Each shipment must be picked up before its delivery. Reorder the highlighted stops.</span>
+        </Alert>
+      )}
     </div>
   )
 }
@@ -138,8 +144,9 @@ function StopContent({ s, tone, grip }) {
 // (SortablePanelItem in routes/Home.jsx): useSortable's own transform drives
 // an inline translate3d, no custom ghost/FLIP/hysteresis. Listeners go on the
 // whole row (not just the grip icon), matching Home.
-function SortableStop({ s, tone, paired, onPairHover }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.key })
+function SortableStop({ s, invalid, locked, paired, onPairHover }) {
+  // `locked`: while a pair is out of order, only the errored stops can move.
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.key, disabled: locked })
   const style = {
     transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
     transition,
@@ -149,41 +156,39 @@ function SortableStop({ s, tone, paired, onPairHover }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`consolidation-review__stop${paired ? ' consolidation-review__stop--paired' : ''}`}
+      className={`consolidation-review__stop${paired ? ' consolidation-review__stop--paired' : ''}${invalid ? ' consolidation-review__stop--invalid' : ''}${locked ? ' consolidation-review__stop--locked' : ''}`}
       data-dragging={isDragging ? 'true' : undefined}
-      onMouseEnter={() => onPairHover(s.sellShipment)}
-      onMouseLeave={() => onPairHover(null)}
+      // Dimmed (locked) stops take no hover at all (user, 2026-09-28).
+      onMouseEnter={locked ? undefined : () => onPairHover(s.sellShipment)}
+      onMouseLeave={locked ? undefined : () => onPairHover(null)}
       {...attributes}
       {...listeners}
     >
-      <StopContent s={s} tone={tone} grip />
+      <StopContent s={s} invalid={invalid} grip={!locked} />
     </div>
   )
 }
 
 // Timeline item builder for the Planned Stops list — sortable rows only while
-// `pair` is passed (read-only, no grip, once applied). `pair.shipment` lights
-// up both stops of the hovered/dragged shipment (user, 2026-09-27).
-function stopTimelineItems(stops, changedKeys, invalidKeys, pair) {
+// `pair` is passed (edit mode). `pair.shipment` lights up both stops of the
+// hovered/dragged shipment (user, 2026-09-27). While any pair is out of
+// order, every OTHER stop (row + marker) drops to 50% and is locked in place
+// until the error is fixed (user, 2026-09-28).
+function stopTimelineItems(stops, invalidKeys, pair) {
   const anyInvalid = invalidKeys.size > 0
   return stops.map((s) => {
-    // A gray (mid-drag, affected) stop drops its red alert too.
-    const invalid = invalidKeys.has(s.key) && !s.gray
-    // 'muted' = gray text on every non-error stop while any pair is invalid.
-    const tone = invalid ? 'invalid' : anyInvalid ? 'muted' : changedKeys.has(s.key) ? 'changed' : null
+    const invalid = invalidKeys.has(s.key)
+    const locked = anyInvalid && !invalid
     return {
       key: s.key,
       label: s.label,
-      // While any pair is out of order, every OTHER marker goes gray (the
-      // StopBadge `pending` look) so the errors are what the eye lands on;
-      // once fixed, the colour logic returns (user, 2026-09-28).
-      status: invalid ? 'issue' : anyInvalid ? 'pending' : tone === 'changed' ? 'changed' : 'completed',
+      status: invalid ? 'issue' : 'completed',
       // No mini icons — they're tracking language, not planning (user, 2026-09-28).
       showStatusBadge: false,
-      badgeClassName: s.type === 'pickup' ? 'consolidation-review__stop-badge--pickup' : undefined,
+      badgeClassName: locked ? 'consolidation-review__stop-badge--locked' : undefined,
       content: pair
-        ? <SortableStop s={s} tone={tone} paired={pair.shipment === s.sellShipment} onPairHover={pair.onHover} />
-        : <div className="consolidation-review__stop"><StopContent s={s} tone={tone} grip={false} /></div>,
+        ? <SortableStop s={s} invalid={invalid} locked={locked} paired={pair.shipment === s.sellShipment} onPairHover={pair.onHover} />
+        : <div className="consolidation-review__stop"><StopContent s={s} grip={false} /></div>,
     }
   })
 }
@@ -223,8 +228,10 @@ export default function ConsolidationReviewRoute() {
   const defaultSig = defaultOrder.join('|')
   const [committedStops, setCommittedStops] = useState({ sig: defaultSig, order: defaultOrder })
   const [draftStops, setDraftStops] = useState(committedStops.order)
-  // The Amend/Reset dialog — opened by the drop that FIRST breaks the sequence.
-  const [invalidPrompt, setInvalidPrompt] = useState(false)
+  // Discard (unsaved changes only) / Reset (back to the order the review
+  // opened with, saved changes included) each confirm first (user, 2026-09-28).
+  const [discardPrompt, setDiscardPrompt] = useState(false)
+  const [resetPrompt, setResetPrompt] = useState(false)
   const stopsOutOfSync = defaultSig !== committedStops.sig
   if (stopsOutOfSync) {
     setCommittedStops({ sig: defaultSig, order: defaultOrder })
@@ -242,32 +249,18 @@ export default function ConsolidationReviewRoute() {
   // pickup marks the pair red and blocks Save + Apply until fixed.
   const invalidKeys = invalidStopKeys(effectiveDraftOrder)
   const hasInvalid = invalidKeys.size > 0
-  // Labels follow the PAIR, not the position (user, 2026-09-27): P1/D1 are
-  // always shipment 1's pickup and delivery (proposal.js), so they travel with
-  // the stop when it moves — "D1 above P1" then reads as exactly the error it is.
-  // From the first stop that moved since the last successful save DOWN, every
-  // stop shows its type letter only (P / D) — the sequence below a change is
-  // unconfirmed until it saves (user, 2026-09-27).
-  // While a stop is held it's a "gray moment" (user, 2026-09-27) for every
-  // stop it could affect — from the higher of its origin slot and the slot
-  // it's over, down: no number, no check, no alert until the drop.
-  // `dragFrom` = that index, null when nothing is held.
-  const [dragFrom, setDragFrom] = useState(null)
+  // Edit mode (user, 2026-09-28): stops only drag while editing; Save
+  // commits the draft, Discard drops it, Reset goes back to the original
+  // proposal (still unsaved). Outside edit mode the markers carry P1/D1 —
+  // the pair's own numbers from proposal.js; inside it they're just P / D.
+  const [editing, setEditing] = useState(false)
   // The shipment whose pair is lit — hovered, or held in a drag.
   const [pairShipment, setPairShipment] = useState(null)
-  const savedFirstMoved = effectiveDraftOrder.findIndex((key, i) => effectiveCommittedOrder[i] !== key)
-  const firstMoved = dragFrom == null ? savedFirstMoved
-    : savedFirstMoved === -1 ? dragFrom : Math.min(savedFirstMoved, dragFrom)
-  const displayedStops = effectiveDraftOrder.map((key, i) => {
+  const [dragging, setDragging] = useState(false)
+  const displayedStops = effectiveDraftOrder.map((key) => {
     const s = byStopKey[key]
-    if (firstMoved === -1 || i < firstMoved) return s
-    return { ...s, label: s.type === 'pickup' ? 'P' : 'D', gray: dragFrom != null }
+    return editing ? { ...s, label: s.type === 'pickup' ? 'P' : 'D' } : s
   })
-  const trackDrag = (activeId, overId) => {
-    const a = effectiveDraftOrder.indexOf(activeId)
-    const o = overId == null ? a : effectiveDraftOrder.indexOf(overId)
-    setDragFrom(Math.min(a, o === -1 ? a : o))
-  }
   // S161 — same sensors as Home's dnd-kit sortables (PointerSensor with an
   // 8px activation distance so a plain click doesn't start a drag, plus
   // KeyboardSensor for accessible reordering).
@@ -283,16 +276,25 @@ export default function ConsolidationReviewRoute() {
     if (from === -1 || to === -1) return
     const next = reorderStops(draftStops, from, to)
     setDraftStops(next)
-    if (!hasInvalid && invalidStopKeys(next).size) setInvalidPrompt(true)
   }
   // Reset = back to the ORIGINAL proposal (user, 2026-09-25), saved or not.
   const stopsCustomised = effectiveDraftOrder.join('|') !== defaultSig || effectiveCommittedOrder.join('|') !== defaultSig
-  const handleResetStops = () => {
+  const resetStops = () => {
     setCommittedStops({ sig: defaultSig, order: defaultOrder })
     setDraftStops(defaultOrder)
-    setInvalidPrompt(false)
+    setEditing(false)
+    setResetPrompt(false)
   }
-  const handleSaveStops = () => setCommittedStops({ sig: defaultSig, order: draftStops })
+  const discardStops = () => {
+    setDraftStops(effectiveCommittedOrder)
+    setEditing(false)
+    setDiscardPrompt(false)
+  }
+  const handleDiscardStops = () => (stopsDirty ? setDiscardPrompt(true) : discardStops())
+  const handleSaveStops = () => {
+    setCommittedStops({ sig: defaultSig, order: draftStops })
+    setEditing(false)
+  }
 
   // ── B3/B4 follow-up: one Apply modal, Confirm ⇄ Tendered-error ──────────
   // { phase: 'confirm'|'error', action?: 'remove'|'discard'|'cancelTender', alert?: string } | null
@@ -466,23 +468,11 @@ export default function ConsolidationReviewRoute() {
     )
   }
 
-  // S154: the VD's marker pills are SOLID with white text, not the outlined
-  // "pending" skin — `completed` is already exactly the delivery marker
-  // (Caribbean Green/600 + white); pickup reuses it as its base and gets
-  // re-tinted blue by a scoped CSS rule (Timeline forwards badgeClassName to
-  // StopBadge). No status circle — these are planned stops, not tracked
-  // progress.
-  // A stop is "changed" (user ruling 2026-09-25, item 1) when its position in
-  // the currently displayed order differs from the ORIGINAL proposed order
-  // (`defaultOrder` — the default sequence the review opened with, not just
-  // the last saved one). Holds for unsaved and saved changes alike, and stays
-  // after Apply since `displayedStops` still reads from the same order.
-  const changedKeys = new Set(effectiveDraftOrder.filter((key, i) => effectiveCommittedOrder[i] !== key))
-  const timelineItems = stopTimelineItems(displayedStops, changedKeys, invalidKeys, applied ? null : {
+  const timelineItems = stopTimelineItems(displayedStops, editing ? invalidKeys : new Set(), editing && !applied ? {
     shipment: pairShipment,
     // Hover is ignored mid-drag — the pointer passing over other stops must not re-light pairs.
-    onHover: (shipment) => { if (dragFrom == null) setPairShipment(shipment) },
-  })
+    onHover: (shipment) => { if (!dragging) setPairShipment(shipment) },
+  } : null)
 
   const tableRows = applied ? [applied.row] : rows
   const tableColumns = applied ? DEFAULT_COLUMNS : REVIEW_COLUMNS
@@ -533,42 +523,44 @@ export default function ConsolidationReviewRoute() {
           <aside className="consolidation-review__side">
             <h2 className="text-heading-xl-semibold consolidation-review__side-title">Proposed Stop Count &amp; Sequence</h2>
             <div className="consolidation-review__counts">
-              <div className="consolidation-review__count consolidation-review__count--pickup">
+              <div className="consolidation-review__count">
                 <MapPin size={16} />
                 <span className="text-label-sm-medium">{proposal.pickupCount} Pickup Stops</span>
               </div>
-              <div className="consolidation-review__count consolidation-review__count--delivery">
+              <div className="consolidation-review__count">
                 <MapPin size={16} />
                 <span className="text-label-sm-medium">{proposal.deliveryCount} Delivery Stops</span>
               </div>
             </div>
-            <h3 className="text-label-base-semibold consolidation-review__stops-heading">Planned Stops</h3>
-            {!applied && (
-              <span className="text-label-sm-regular consolidation-review__stops-helper">Drag stops to reorganize</span>
+            <div className="consolidation-review__stops-header">
+              <h3 className="text-label-base-semibold consolidation-review__stops-heading">Planned Stops</h3>
+              {!applied && !editing && <Button variant="secondary" onClick={() => setEditing(true)}>Edit</Button>}
+            </div>
+            {editing && !applied && (
+              <div className="consolidation-review__stop-actions">
+                <Button variant="secondary" disabled={!stopsCustomised} onClick={() => setResetPrompt(true)}>Reset</Button>
+                <span className="consolidation-review__stop-actions-end">
+                  <Button variant="secondary" onClick={handleDiscardStops}>Discard</Button>
+                  <Button disabled={hasInvalid} onClick={handleSaveStops}>Save Changes</Button>
+                </span>
+              </div>
             )}
-            {applied ? (
-              <Timeline items={timelineItems} animate aria-label="Planned stops" />
-            ) : (
+            {editing && !applied ? (
               <DndContext
                 sensors={sortSensors}
                 collisionDetection={closestCenter}
-                onDragStart={({ active }) => { trackDrag(active.id, null); setPairShipment(byStopKey[active.id]?.sellShipment ?? null) }}
-                onDragOver={({ active, over }) => trackDrag(active.id, over?.id ?? null)}
-                onDragEnd={(e) => { setDragFrom(null); setPairShipment(null); handleStopDragEnd(e) }}
-                onDragCancel={() => { setDragFrom(null); setPairShipment(null) }}
+                onDragStart={({ active }) => { setDragging(true); setPairShipment(byStopKey[active.id]?.sellShipment ?? null) }}
+                onDragEnd={(e) => { setDragging(false); setPairShipment(null); handleStopDragEnd(e) }}
+                onDragCancel={() => { setDragging(false); setPairShipment(null) }}
               >
                 <SortableContext items={effectiveDraftOrder} strategy={verticalListSortingStrategy}>
-                  <Timeline items={timelineItems} animate aria-label="Planned stops" />
+                  {/* No arrival animation while editing (user, 2026-09-28) — the
+                      segments sit static and stop short of the next marker. */}
+                  <Timeline items={timelineItems} className="consolidation-review__timeline--editing" aria-label="Planned stops" />
                 </SortableContext>
               </DndContext>
-            )}
-            {!applied && (
-              <>
-                <div className="consolidation-review__stop-actions">
-                  <Button variant="secondary" disabled={!stopsCustomised} onClick={handleResetStops}>Reset</Button>
-                  <Button variant="secondary" disabled={!stopsDirty || hasInvalid} onClick={handleSaveStops}>Save Changes</Button>
-                </div>
-              </>
+            ) : (
+              <Timeline items={timelineItems} animate aria-label="Planned stops" />
             )}
           </aside>
 
@@ -650,7 +642,7 @@ export default function ConsolidationReviewRoute() {
               showSave
               saveLabel="Edit Consolidation"
               primaryLabel="Apply Consolidation"
-              primaryDisabled={rows.length < 2 || stopsDirty || hasInvalid || checkingApply}
+              primaryDisabled={rows.length < 2 || editing || stopsDirty || hasInvalid || checkingApply}
               saving={apply.isPending}
               onCancel={() => setPending('cancel')}
               onSave={backInMode}
@@ -714,21 +706,26 @@ export default function ConsolidationReviewRoute() {
           </ModalMedium>
         )}
 
-        {invalidPrompt && (
-          <ModalMedium
-            title="Invalid Stop Sequence"
-            onClose={() => setInvalidPrompt(false)}
-            footer={(
-              <>
-                <Button variant="secondary" onClick={handleResetStops}>Reset</Button>
-                <Button onClick={() => setInvalidPrompt(false)}>Amend</Button>
-              </>
-            )}
-          >
-            <p className="text-label-sm-regular">
-              An order must be picked up before it can be delivered. Move the stops marked in red so each shipment's pickup comes first, or reset to the original sequence.
-            </p>
-          </ModalMedium>
+        {resetPrompt && (
+          <ConfirmDialog
+            title="Reset Stop Sequence"
+            message="Are you sure you want to reset the stops? Every change, saved or not, will be undone and the stops will return to the original proposed sequence."
+            confirmLabel="Yes, Reset"
+            cancelLabel="No"
+            onConfirm={resetStops}
+            onCancel={() => setResetPrompt(false)}
+          />
+        )}
+
+        {discardPrompt && (
+          <ConfirmDialog
+            title="Discard Stop Changes"
+            message="Are you sure you want to discard your changes? The stops will return to their last saved sequence."
+            confirmLabel="Yes, Discard"
+            cancelLabel="No"
+            onConfirm={discardStops}
+            onCancel={() => setDiscardPrompt(false)}
+          />
         )}
 
         {pending === 'cancel' && (
