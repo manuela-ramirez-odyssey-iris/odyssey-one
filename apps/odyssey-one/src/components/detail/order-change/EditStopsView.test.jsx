@@ -456,7 +456,7 @@ it('the leg distance shows only over a stop\'s rail (badge + line), for the line
   // Over stop 1's rail: the leg its line draws, to stop 2.
   fireEvent.mouseMove(railOf(newStop(0)), { clientY: 120 })
   const tip = screen.getByRole('tooltip')
-  expect(tip.textContent).toBe(`Distance to P2${leg1.toFixed(2)} mi`)
+  expect(tip.textContent).toBe(`Distance from P1 to P2${leg1.toFixed(2)} mi`)
   expect(tip.parentElement.style.pointerEvents).toBe('none')
   expect(newStop(0).hasAttribute('data-leg-tip')).toBe(true)          // its own segment darkens (CSS :has)
   expect(newStop(1).hasAttribute('data-leg-tip')).toBe(false)
@@ -472,5 +472,5 @@ it('the leg distance shows only over a stop\'s rail (badge + line), for the line
   // Prior rails carry it too.
   const priorRow = screen.getByRole('region', { name: 'Prior plan' }).querySelectorAll('[data-stop-key]')[1]
   fireEvent.mouseMove(railOf(priorRow))
-  expect(screen.getByRole('tooltip').textContent).toContain('Distance to')
+  expect(screen.getByRole('tooltip').textContent).toContain('Distance from')
 })

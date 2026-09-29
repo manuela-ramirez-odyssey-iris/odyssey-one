@@ -205,7 +205,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     if (!info) { setTip(null); return }
     const rr = rail.getBoundingClientRect()
     const r = row.getBoundingClientRect()
-    setTip({ key: `${panel}:${key}`, x: rr.left + rr.width / 2 + 8, y: Math.min(Math.max(e.clientY, r.top), r.bottom), ...info })
+    // User 2026-09-28: the card opens to the LEFT of the line (right edge
+    // 8px short of it), clear of the stop's content.
+    setTip({ key: `${panel}:${key}`, x: rr.left + rr.width / 2 - 8, y: Math.min(Math.max(e.clientY, r.top), r.bottom), ...info })
   }
   // A move/aside re-lays the rows under a still pointer — drop the stale tip.
   useEffect(() => setTip(null), [sb.stops])
@@ -358,7 +360,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       if (i < list.length - 1) {
         const panel = isPrior ? 'prior' : 'new'
         const leg = (isPrior ? priorLegs : newLegs).legs[i + 1]
-        legTips[panel][s.key] = { subtitle: `Distance to ${labels[i + 1]}`, content: leg == null ? '--' : `${leg.toFixed(2)} mi` }
+        legTips[panel][s.key] = { next: list[i + 1].key, subtitle: `Distance from ${label} to ${labels[i + 1]}`, content: leg == null ? '--' : `${leg.toFixed(2)} mi` }
         // data-leg-tip: the row whose line is tipped — edit-stops.css darkens
         // that row's own segment while it's set.
         rowProps['data-leg-tip'] = tip?.key === `${panel}:${s.key}` || undefined
@@ -375,6 +377,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         // Consolidation's Planned Stops (user, 2026-09-28): no mini status
         // icons on the rail — tracking language, not planning.
         showStatusBadge: false,
+        // User 2026-09-28: both ends of the tipped leg read bolder.
+        badgeClassName: tip && (tip.key === `${isPrior ? 'prior' : 'new'}:${s.key}` || (tip.key.startsWith(isPrior ? 'prior:' : 'new:') && tip.next === s.key)) ? 'edit-stops__badge--leg' : undefined,
         // User 2026-09-28 (round 2): a stop is a light row in the
         // Consolidation Planned Stops anatomy (ConsolidationReviewRoute
         // StopContent, VD 3039:147748) — no HeaderStrip, no card frame, no
@@ -601,7 +605,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       />
 
       {tip && createPortal(
-        <div style={{ position: 'fixed', left: tip.x, top: tip.y, transform: 'translateY(-50%)', width: 'max-content', zIndex: 9999, pointerEvents: 'none' }}>
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y, transform: 'translate(-100%, -50%)', width: 'max-content', zIndex: 9999, pointerEvents: 'none' }}>
           <Tooltip groups={[{ subtitle: tip.subtitle, content: tip.content }]} />
         </div>,
         document.body,
