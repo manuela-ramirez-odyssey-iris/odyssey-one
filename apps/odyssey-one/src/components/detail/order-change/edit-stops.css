@@ -58,11 +58,12 @@
   gap: var(--spacing-4);
   padding: var(--spacing-5);
   background: var(--bg-primary);
+  /* User 2026-09-28: same outline as Routing History's nested cards
+     (tender.css .routing-version__body .sub-accordion): 1px border-subtle,
+     no shadow, the SubAccordion's radius-2xl. */
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-sm);
-  /* User 2026-09-28: inside the white All Stops card the shadow alone read
-     faint — a default-tone border outlines Prior / New / Pending. */
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
 }
 .edit-stops__plan-title { margin: 0; color: var(--text-primary); }
 /* Every column title sits on a button-high line (New's carries Edit /
