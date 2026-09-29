@@ -90,6 +90,11 @@
    margin-bottom on the segment; padding on the rail column is the same gap
    without a margin). */
 .edit-stops__rail--detached .odyssey-timeline__rail { padding-bottom: var(--spacing-2); }
+/* User 2026-09-28: New's lines carry the default line tone from the start —
+   the Timeline's bare track (DSN/100) is the SAME colour as the hover tint,
+   so a hovered stop's line vanished. (With it already dark, the tooltip's
+   leg-darkening below only shows on Prior-style rails.) */
+.edit-stops__rail--detached .odyssey-timeline__segment { background: var(--deep-sea-neutral-400); }
 /* Both ends of the tipped leg: the rail badges' labels go bolder. */
 .edit-stops .edit-stops__badge--leg .stop-badge__label { font-weight: var(--font-weight-semibold); }
 
