@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -181,6 +181,35 @@ describe('moveStop', () => {
     expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1'])
     s = moveStop(s, 0, 'down')
     expect(labelsOf(s)).toEqual(['P?', 'P1', 'D1'])
+  })
+})
+describe('reorderStop (drag)', () => {
+  const four = [
+    stop({ stopNumber: 1, orderIds: ['A', 'B'] }),
+    stop({ stopNumber: 2, orderIds: ['C'], location: 'Y, Town' }),
+    stop({ type: 'delivery', stopNumber: 3, orderIds: ['C'], location: 'W, Ville' }),
+    stop({ type: 'delivery', stopNumber: 4, orderIds: ['A', 'B'], location: 'Z, Ville' }),
+  ]
+  it('a legal multi-slot drop moves the stop with all its orders and marks dirty', () => {
+    const s = initSandbox({ stops: four, consolidation: noChange, orders })
+    const r = reorderStop(s, 0, 2) // P(A,B) below D(C), still above D(A,B)
+    expect(r.stops.map((x) => x.key)).toEqual(['s2', 's3', 's1', 's4'])
+    expect(labelsOf(r)).toEqual(['P1', 'D1', 'P2', 'D2'])
+    expect(r.dirty).toBe(true)
+  })
+  it('an illegal drop is refused with the SAME reason canMoveStop gives, and returns the same reference', () => {
+    const s = initSandbox({ stops: four, consolidation: noChange, orders })
+    const arrowRefusal = canMoveStop(s, 2, 'up') // D(C) above P(C)
+    expect(arrowRefusal.ok).toBe(false)
+    expect(canReorderStop(s, 0, 3)).toEqual(arrowRefusal) // P(A,B) below D(A,B)
+    expect(reorderStop(s, 0, 3)).toBe(s)
+    expect(reorderStop(s, 1, 1)).toBe(s) // dropped in place: no-op
+  })
+  it('an adjacent drop is exactly the arrow move; dropping a P? sequences only the dropped stop (parity with moveStop)', () => {
+    const s = initSandbox({ stops, consolidation: locChange, orders: relocate(orders, 'C', 'shipFrom', 'Q, Burg') })
+    expect(reorderStop(s, 1, 0)).toEqual(moveStop(s, 1, 'up'))
+    expect(labelsOf(reorderStop(s, 1, 0))).toEqual(['P1', 'P2', 'D1'])
+    expect(labelsOf(reorderStop(s, 0, 1))).toEqual(['P?', 'P1', 'D1']) // P1 dragged past the P? — the P? stays unplaced
   })
 })
 describe('moveToPending / addToStop', () => {

@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUp, ArrowDown, CalendarDays, TriangleAlert } from 'lucide-react'
-import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter } from '@odyssey/ui'
+import { createPortal } from 'react-dom'
+import { ArrowUp, ArrowDown, CalendarDays, GripVertical, TriangleAlert } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
+import { Alert, Badge, Button, DatePicker, IconButtonGhost, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -12,13 +15,23 @@ import { getSellShipmentDetail } from '../../../api/services/shipmentService'
 import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
-  initSandbox, labelsOf, canMoveStop, moveStop, moveToPending, addToStop, addPending,
+  initSandbox, labelsOf, canMoveStop, moveStop, canReorderStop, reorderStop, moveToPending, addToStop, addPending,
   isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto,
   parseStamp, formatStopDate, setStopDate, windowViolations, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
 
-const HINT = 'Use the (↑ ↓) arrow buttons on each stop to move the entire stop (including all its orders) to a different position.'
+// User 2026-09-28: the New plan has a collapsed (drag) mode and an edit
+// (arrows, dates, set-aside) mode — same Edit → Reset/Discard/Save pattern
+// as Consolidation's Planned Stops.
+const HINT = {
+  collapsed: 'Drag a stop to move it with all its orders. Select Edit to change dates or set orders aside.',
+  editing: "Use the arrows to move a stop with all its orders, set dates, or set orders aside. Save when you're done.",
+}
+const EDITING_TOOLTIP = 'Save or discard your stop edits first'
+// Structural compare for Discard's "anything changed?" and Reset's disabled
+// state — reference inequality would count a move-and-move-back as a change.
+const sigOf = (sb) => JSON.stringify([sb.stops, sb.pending])
 const LAST_ORDER_TOOLTIP = 'The last remaining order cannot be removed from the shipment.'
 // DEC-207 (T2) — Evaluate's disabled tooltip, keyed off routeBlocker's reason.
 const BLOCKER_TOOLTIP = {
@@ -66,6 +79,27 @@ function StopDateField({ id, label, value, onChange }) {
   )
 }
 
+// Collapsed-mode row: the whole stop drags (Consolidation's SortableStop —
+// useSortable's own transform, no custom ghost). The row is also the
+// activator node, so Enter/Space on a button INSIDE it (Keep here, an order
+// link) presses that button instead of starting a keyboard drag.
+function SortableStop({ id, className, children, ...rest }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div
+      ref={(n) => { setNodeRef(n); setActivatorNodeRef(n) }}
+      style={{ transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined, transition }}
+      className={className}
+      data-dragging={isDragging ? 'true' : undefined}
+      {...rest}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  )
+}
+
 export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, saveError, onApprove, onCancel, sellShipment, customerId, customerName }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
@@ -88,6 +122,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // underneath (Approve fails → planner lands back on the routing modal,
   // which is still showing the error, not back on the bare editor).
   const [confirmOpen, setConfirmOpen] = useState(false)
+  // Edit mode (user 2026-09-28): `snapshot` is the sandbox when Edit was
+  // pressed — Discard returns to it; Reset returns to `initial`.
+  const [editing, setEditing] = useState(false)
+  const [snapshot, setSnapshot] = useState(null)
+  const [stopsPrompt, setStopsPrompt] = useState(null) // 'discard' | 'reset'
 
   const initialTotals = useMemo(() => totals(initial, orders), [initial, orders])
   const curTotals = totals(sb, allOrders)
@@ -145,6 +184,26 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   }, [flash])
   const flashes = (k) => flash.includes(k) || undefined
 
+  // Leg distance tooltip (user 2026-09-28): replaces the "Distance: …" line.
+  // Pinned just right of the row's rail line, it slides along the line with
+  // the pointer's y (clamped to the row). Body portal + fixed + no pointer
+  // events, like SummaryStrip's truncation tooltip, so it never takes a
+  // hover/drag away from the row. No transition, so nothing to reduce.
+  const [tip, setTip] = useState(null)
+  const dragging = useRef(false)
+  const showLegTip = (e, key, subtitle, content) => {
+    // Also off over a picker (edit mode) and over anything with its own
+    // tooltip (order links, Outside planning window) — never two cards at once.
+    if (dragging.current || e.target.closest?.('.edit-stops__date, [data-tooltip-trigger]')) { setTip(null); return }
+    const row = e.currentTarget.closest('.odyssey-timeline__row')
+    const rail = row?.querySelector('.odyssey-timeline__rail')?.getBoundingClientRect()
+    if (!rail) return
+    const r = row.getBoundingClientRect()
+    setTip({ key, x: rail.left + rail.width / 2 + 8, y: Math.min(Math.max(e.clientY, r.top), r.bottom), subtitle, content })
+  }
+  // A move/aside re-lays the rows under a still pointer — drop the stale tip.
+  useEffect(() => setTip(null), [sb.stops])
+
   const handleMove = (i, dir) => {
     const check = canMoveStop(sb, i, dir)
     if (!check.ok) { setErrorMsg(check.reason); return }
@@ -153,6 +212,37 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     flashOn([`stop:${sb.stops[i].key}`])
     setSb((s) => moveStop(s, i, dir))
   }
+  // Collapsed-mode drop: same LINX-15669 gate + message as the arrows
+  // (canReorderStop). A refused drop just doesn't apply — dnd-kit snaps the
+  // row back. No FLIP here: dnd-kit already slid the row to its new slot,
+  // a FLIP from the pre-drag layout would jump it back first. Pulse only.
+  const handleDragEnd = ({ active, over }) => {
+    dragging.current = false
+    if (!over || active.id === over.id) return
+    const from = sb.stops.findIndex((s) => s.key === active.id)
+    const to = sb.stops.findIndex((s) => s.key === over.id)
+    const check = canReorderStop(sb, from, to)
+    if (!check.ok) { setErrorMsg(check.reason); return }
+    setErrorMsg(null)
+    flashOn([`stop:${active.id}`])
+    setSb((s) => reorderStop(s, from, to))
+  }
+  const sortSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const startEditing = () => { setErrorMsg(null); setSnapshot(sb); setEditing(true) }
+  const leaveEditing = (next) => {
+    if (next) setSb(next)
+    setErrorMsg(null)
+    setEditing(false)
+    setSnapshot(null)
+    setStopsPrompt(null)
+  }
+  const canReset = sigOf(sb) !== sigOf(initial)
+  const handleDiscardStops = () => (sigOf(sb) !== sigOf(snapshot) ? setStopsPrompt('discard') : leaveEditing(snapshot))
+
   const handleMoveToPending = (id) => {
     setErrorMsg(null)
     snapshotTops()
@@ -173,7 +263,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // DEC-207 (T2) — the footer's Evaluate opens the routing modal directly;
   // there is no separate View Routing button any more.
   const blocker = routeBlocker(sb)
-  const evaluateDisabled = !isRoutable(sb) || saving
+  const evaluateDisabled = !isRoutable(sb) || saving || editing
 
   // T1.2 — "Keep here" (a P?/D? stop's own row action): sequences it in
   // place, no move — so it pulses (flashOn) like every other action here,
@@ -236,7 +326,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const violationOf = (stopKey, id) => violations.find((v) => v.stopKey === stopKey && v.orderId === id)
 
   const alertVariant = errorMsg ? 'error' : 'info'
-  const alertText = errorMsg || HINT
+  const alertText = errorMsg || (editing ? HINT.editing : HINT.collapsed)
 
   // DEC-197 (Jana 2026-09-24, user ruling): Prior and New side by side, both
   // always visible — no toggle, nothing collapsible. One builder renders
@@ -252,6 +342,21 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       // edges AND sequencing (LINX-15669), via the same canMoveStop the move uses.
       const upDisabled = !canMoveStop(sb, i, 'up').ok
       const downDisabled = !canMoveStop(sb, i, 'down').ok
+      // Collapsed New rows are read-only apart from drag + Keep here.
+      const readOnly = isPrior || !editing
+      const Row = isPrior || editing ? 'div' : SortableStop
+      const rowProps = Row === SortableStop ? { id: s.key } : {}
+      // A6/B2 (DEC-198) — the leg from the PREVIOUS stop in this same plan,
+      // shown on hover; the first stop has none. '--' when a leg's
+      // coordinate is missing (a brand-new P?/D? stop), not a wrong number.
+      if (i > 0) {
+        const leg = (isPrior ? priorLegs : newLegs).legs[i]
+        const tipKey = `${isPrior ? 'prior' : 'new'}:${s.key}`
+        const onTip = (e) => showLegTip(e, tipKey, `Distance from ${labels[i - 1]}`, leg == null ? '--' : `${leg.toFixed(2)} mi`)
+        // data-leg-tip: the row whose leg is showing — edit-stops.css darkens
+        // the rail segment above it (the previous row's) while it's set.
+        Object.assign(rowProps, { onMouseEnter: onTip, onMouseMove: onTip, onMouseLeave: () => setTip(null), 'data-leg-tip': tip?.key === tipKey || undefined })
+      }
       return {
         key: s.key,
         label,
@@ -269,7 +374,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         // StopContent, VD 3039:147748) — no HeaderStrip, no card frame, no
         // "Stop N": the rail's P1/D1 badge and the row order carry position.
         content: (
-          <div className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
+          <Row {...rowProps} className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
             <div className="edit-stops__stop-head">
               <span className="edit-stops__stop-lead">
               {/* User 2026-09-28: the badges stay beside the address text. The
@@ -314,21 +419,20 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                   {s.unsequenced && (
                     <Button variant="secondary" size="sm" onClick={() => handleKeepHere(s.key)}>Keep here</Button>
                   )}
-                  <Button variant="icon" icon={<ArrowUp {...ICON_MD} />} aria-label="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
-                  <Button variant="icon" icon={<ArrowDown {...ICON_MD} />} aria-label="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
+                  {editing ? (
+                    <>
+                      <IconButtonGhost icon={<ArrowUp {...ICON_MD} />} ariaLabel="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
+                      <IconButtonGhost icon={<ArrowDown {...ICON_MD} />} ariaLabel="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
+                    </>
+                  ) : (
+                    <GripVertical {...ICON_MD} className="edit-stops__stop-grip" aria-hidden="true" />
+                  )}
                 </span>
               )}
             </div>
-            {/* A6/B2 (DEC-198) — leg from the PREVIOUS stop in this same
-                plan; the first stop has none. '--' when a leg's coordinate
-                is missing (a brand-new P?/D? stop), not a wrong number. */}
-            <span className="text-label-xs-regular edit-stops__stop-meta">Distance: {(() => {
-              const leg = (isPrior ? priorLegs : newLegs).legs[i]
-              return leg == null ? '--' : `${leg.toFixed(2)} mi`
-            })()}</span>
             {/* DEC-195: a stop shows only its own date. DEC-199: editable
                 in the New plan; Prior stays the record of what was. */}
-            {isPrior
+            {readOnly
               ? <span className="text-label-xs-regular edit-stops__stop-meta">{isPickup ? 'Pickup Date' : 'Delivery Date'}: {s.date || '--'}</span>
               : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
             <div className="edit-stops__orders">
@@ -356,7 +460,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                         )
                       })()}
                     </div>
-                    {isPrior ? null : singleOrderLeft ? (
+                    {readOnly ? null : singleOrderLeft ? (
                       <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
                         <Button variant="secondary" size="sm" disabled>Set Aside</Button>
                       </TooltipTrigger>
@@ -374,7 +478,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 )
               })}
             </div>
-          </div>
+          </Row>
         ),
       }
     })
@@ -414,8 +518,37 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
           </section>
           <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef}>
-            <h3 className="text-label-base-semibold edit-stops__plan-title">New</h3>
-            <Timeline animate items={buildItems(sb.stops, false)} className="edit-stops__rail" aria-label="All stops" />
+            <div className="edit-stops__plan-head">
+              <h3 className="text-label-base-semibold edit-stops__plan-title">New</h3>
+              <span className="edit-stops__plan-actions">
+                {editing ? (
+                  <>
+                    <Button variant="secondary" disabled={!canReset} onClick={() => setStopsPrompt('reset')}>Reset</Button>
+                    <Button variant="secondary" onClick={handleDiscardStops}>Discard</Button>
+                    <Button onClick={() => leaveEditing()}>Save</Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" onClick={startEditing}>Edit</Button>
+                )}
+              </span>
+            </div>
+            {/* User 2026-09-28: New's rail is detached and static, like
+                Consolidation's editing timeline — no arrival animation. */}
+            {editing ? (
+              <Timeline items={buildItems(sb.stops, false)} className="edit-stops__rail edit-stops__rail--detached" aria-label="All stops" />
+            ) : (
+              <DndContext
+                sensors={sortSensors}
+                collisionDetection={closestCenter}
+                onDragStart={() => { dragging.current = true; setTip(null) }}
+                onDragEnd={handleDragEnd}
+                onDragCancel={() => { dragging.current = false }}
+              >
+                <SortableContext items={sb.stops.map((s) => s.key)} strategy={verticalListSortingStrategy}>
+                  <Timeline items={buildItems(sb.stops, false)} className="edit-stops__rail edit-stops__rail--detached" aria-label="All stops" />
+                </SortableContext>
+              </DndContext>
+            )}
           </section>
 
           <div className="edit-stops__pending">
@@ -449,11 +582,17 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         cancelLabel="Cancel"
         primaryLabel="Evaluate"
         primaryDisabled={evaluateDisabled}
-        primaryTooltip={blocker ? BLOCKER_TOOLTIP[blocker] : undefined}
+        primaryTooltip={editing ? EDITING_TOOLTIP : blocker ? BLOCKER_TOOLTIP[blocker] : undefined}
         onCancel={handleCancel}
         onPrimary={() => setModal('routing')}
       />
 
+      {tip && createPortal(
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y, transform: 'translateY(-50%)', width: 'max-content', zIndex: 9999, pointerEvents: 'none' }}>
+          <Tooltip groups={[{ subtitle: tip.subtitle, content: tip.content }]} />
+        </div>,
+        document.body,
+      )}
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} violations={violations} onClose={() => setModal(null)} />}
       {modal === 'routing' && (
         <ViewRoutingModal
@@ -490,6 +629,26 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           excludeOrderIds={[...liveOrderIds, ...sb.pending]}
           onAdd={handleAddOrders}
           onClose={() => setModal(null)}
+        />
+      )}
+      {stopsPrompt === 'discard' && (
+        <ConfirmDialog
+          title="Discard Stop Changes"
+          message="Are you sure you want to discard your changes? The stops will return to their last saved state."
+          confirmLabel="Yes, Discard"
+          cancelLabel="No"
+          onConfirm={() => leaveEditing(snapshot)}
+          onCancel={() => setStopsPrompt(null)}
+        />
+      )}
+      {stopsPrompt === 'reset' && (
+        <ConfirmDialog
+          title="Reset Stop Sequence"
+          message="Are you sure you want to reset the stops? Every change on this page, saved or not (moves, dates, set-aside and added orders), will be undone and the stops will return to how they were when you opened it."
+          confirmLabel="Yes, Reset"
+          cancelLabel="No"
+          onConfirm={() => leaveEditing(initial)}
+          onCancel={() => setStopsPrompt(null)}
         />
       )}
       {modal === 'discard' && (

@@ -59,6 +59,9 @@
   box-shadow: var(--shadow-sm);
 }
 .edit-stops__plan-title { margin: 0; color: var(--text-primary); }
+/* Every column title sits on a button-high line (New's carries Edit /
+   Reset·Discard·Save), so Prior, New and Pending start level. */
+.edit-stops__plan-title { min-height: var(--spacing-9); display: flex; align-items: center; }
 
 /* DEC-197: Prior | New side by side, equal share of what the pending
    column leaves; Prior is read-only. */
@@ -73,6 +76,17 @@
 .edit-stops__rail {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* New's rail (user 2026-09-28): each segment stops short of the next
+   marker, like consolidation-review.css's --editing timeline (which uses a
+   margin-bottom on the segment; padding on the rail column is the same gap
+   without a margin). */
+.edit-stops__rail--detached .odyssey-timeline__rail { padding-bottom: var(--spacing-2); }
+/* The leg under the distance tooltip: the segment ABOVE the tipped row
+   (drawn by the previous row) takes the Timeline's reached-line tone. */
+.edit-stops__rail .odyssey-timeline__row:has(+ .odyssey-timeline__row [data-leg-tip]) .odyssey-timeline__segment {
+  background: var(--deep-sea-neutral-400);
 }
 
 /* A stop row (consolidation-review.css .consolidation-review__stop /
@@ -126,7 +140,7 @@
    Prior is read-only, like Consolidation's non-editing stops. Tint pads 8px
    round the content; the row's 20px bottom spacer stays untinted. Off while
    a row pulses, so the tint never hides the data-flash highlight. */
-.edit-stops__stop--editable:not([data-flash]):hover::before {
+.edit-stops__plan:not(:has([data-dragging])) .edit-stops__stop--editable:not([data-flash]):hover::before {
   content: '';
   position: absolute;
   inset: calc(-1 * var(--spacing-2)) calc(-1 * var(--spacing-2)) calc(var(--spacing-5) - var(--spacing-2));
@@ -134,7 +148,39 @@
   background: var(--deep-sea-neutral-100);
   border-radius: var(--radius-md);
 }
-.edit-stops__stop--editable:hover .edit-stops__stop-meta { color: var(--text-secondary); }
+.edit-stops__plan:not(:has([data-dragging])) .edit-stops__stop--editable:hover .edit-stops__stop-meta { color: var(--text-secondary); }
+
+/* Collapsed-mode drag (user 2026-09-28) — consolidation-review.css's
+   sortable stop: grab cursor (dnd-kit's attributes carry
+   aria-roledescription="sortable"), grabbing + a DSN/200 tint while held,
+   drawn above the rows it passes; no hover tint anywhere mid-drag (above). */
+.edit-stops__stop[aria-roledescription="sortable"] { cursor: grab; }
+.edit-stops__stop[data-dragging="true"] { cursor: grabbing; z-index: 1; }
+.edit-stops__stop[data-dragging="true"]::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--spacing-2)) calc(-1 * var(--spacing-2)) calc(var(--spacing-5) - var(--spacing-2));
+  z-index: -1;
+  background: var(--deep-sea-neutral-200);
+  border-radius: var(--radius-md);
+}
+.edit-stops__stop-grip { color: var(--text-tertiary); flex-shrink: 0; }
+.edit-stops__plan:not(:has([data-dragging])) .edit-stops__stop[aria-roledescription="sortable"]:hover .edit-stops__stop-grip { color: var(--text-primary); }
+
+/* New's heading row: title left, Edit (or Reset / Discard / Save) trailing;
+   the buttons wrap under the title when the column is narrow. */
+.edit-stops__plan-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+.edit-stops__plan-actions { flex: 1 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-2); }
+
+/* IconButtonGhost has no disabled look of its own (components.css) — an
+   arrow that can't move reads dimmed and takes no hover. */
+.edit-stops .icon-button-ghost:disabled { opacity: var(--opacity-disabled); cursor: default; pointer-events: none; }
 
 /* New's date + time + zone, as compact as the pickers allow (they take no
    size prop, so only the row layout is ours): one row when the column has

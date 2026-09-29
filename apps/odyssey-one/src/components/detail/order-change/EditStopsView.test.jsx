@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import EditStopsView from './EditStopsView'
+import { legDistances } from './stopsSandbox.js'
 
 vi.mock('./AddOrdersModal', () => ({
   default: ({ onAdd }) => <button onClick={() => onAdd([{ orderNumber: 'E', sourceSellShipment: '77' }])}>mock-add</button>,
@@ -70,18 +71,23 @@ const setup = (over = {}) => {
 const nw = () => within(screen.getByRole('region', { name: 'New plan' }))
 // The nth stop row (0-based) in the New plan — rows carry data-stop-key.
 const newStop = (n) => screen.getByRole('region', { name: 'New plan' }).querySelectorAll('[data-stop-key]')[n]
+// User 2026-09-28: New opens collapsed (drag); arrows, pickers and Set Aside
+// live in edit mode behind its Edit button.
+const edit = () => fireEvent.click(nw().getByRole('button', { name: 'Edit' }))
+const save = () => fireEvent.click(nw().getByRole('button', { name: 'Save' }))
 
 it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, and the pending column', () => {
   setup()
   expect(screen.getByText('All Stops')).toBeTruthy()
-  expect(screen.getByText(/arrow buttons on each stop/)).toBeTruthy()
+  expect(screen.getByText(/^Drag a stop to move it/)).toBeTruthy()
   // User 2026-09-28 (round 2): Consolidation Planned Stops rows — no
   // HeaderStrip, no "Stop N"; the rail badge + row order carry position.
+  edit()
   expect(nw().getAllByRole('button', { name: 'Move stop up' })).toHaveLength(3)
   expect(nw().queryByText('Stop 1')).toBeNull()
   expect(document.querySelector('.edit-stops .header-strip')).toBeNull()
   expect(nw().getByText(atLoc('Y, Town'))).toBeTruthy()
-  expect(nw().getAllByText(/^Distance: /)).toHaveLength(3)          // one secondary Distance line per stop
+  expect(screen.queryByText(/^Distance: /)).toBeNull()               // the leg lives in the hover tooltip now
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
   expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
   // User ruling 2026-09-09: this editor already carries purple/gray change
@@ -104,6 +110,7 @@ it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reor
   expect(nw().getByLabelText('D1 — changed')).toBeTruthy()
   // Move stop 1 (P1) down over stop 2 (P2, also a pickup) — legal, and the
   // rail's badge order should follow (P1 now labels the second card).
+  edit()
   fireEvent.click(screen.getAllByRole('button', { name: 'Move stop down' })[0])
   const badges = nw().getAllByLabelText(/^P\d — changed$/)
   expect(badges.map((b) => b.getAttribute('aria-label'))).toEqual(['P1 — changed', 'P2 — changed'])
@@ -113,6 +120,7 @@ it('renders the stops on the Timeline rail with P1/P2/D1 StopBadge markers, reor
 
 it('arrows reorder and renumber; an illegal move is disabled (user 2026-09-24)', () => {
   setup()
+  edit()
   // Stop 2 (P2) up over Stop 1 (P1) is legal — both pickups, no sequence issue.
   const up = screen.getAllByRole('button', { name: 'Move stop up' })
   fireEvent.click(up[1]) // second card's up-arrow
@@ -126,6 +134,7 @@ it('arrows reorder and renumber; an illegal move is disabled (user 2026-09-24)',
 
 it('Set Aside moves the order to the pending column; the last remaining order is disabled with the tooltip copy', () => {
   setup()
+  edit()
   const moveToPendingButtons = screen.getAllByRole('button', { name: 'Set Aside' })
   fireEvent.click(moveToPendingButtons[0]) // pends A
   expect(screen.getByRole('button', { name: 'Add order A' })).toBeTruthy()
@@ -135,6 +144,7 @@ it('Set Aside moves the order to the pending column; the last remaining order is
 
 it('Add places the order automatically — no stop menu; a new location becomes P? (DEC-193)', () => {
   setup()
+  edit()
   fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])   // C off P2/D1 — P2 empties
   fireEvent.click(screen.getByRole('button', { name: 'Add order C' }))
   expect(screen.queryByRole('menuitem')).toBeNull()
@@ -177,7 +187,9 @@ it('Approve Shipment Change confirm — Cancel closes the confirm only, routing 
 
 it('Keep Editing closes the routing modal with state intact', () => {
   setup()
+  edit()
   fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0]) // dirty the sandbox
+  save()
   fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
   fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Keep Editing' }))
   expect(screen.queryByRole('dialog', { name: 'View Routing' })).toBeNull()
@@ -260,6 +272,7 @@ it('Prior and New render side by side; Prior is read-only and badges the planner
   expect(within(prior).queryByRole('button', { name: 'Set Aside' })).toBeNull()
   expect(within(prior).queryByRole('button', { name: 'Move stop up' })).toBeNull()
   // Stop 2 (P2) holds only order C — setting it aside empties and removes the stop.
+  edit()
   fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Set Aside' })[2])
   expect(within(prior).getByText('Removed').style.background).toContain('badge-gray-bg')
 })
@@ -279,6 +292,7 @@ it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when 
 
   cleanup()
   const dirty = setup()
+  edit()
   fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0])
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   expect(screen.getByText('Discard changes?')).toBeTruthy()
@@ -308,7 +322,9 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   const { onApprove } = setup({ sellShipment: '9', customerId: 'ERCO', customerName: 'Erco' })
   // Pend C first (as the other Add-to test does) so P1 (A, B) is the only
   // pickup stop left — isolates the "17 LB" total to A(5)+B(5)+E(7) below.
+  edit()
   fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])
+  save()
   fireEvent.click(screen.getByRole('button', { name: 'Add New Order' }))
   fireEvent.click(screen.getByText('mock-add'))
   expect(await screen.findByRole('button', { name: 'E' })).toBeTruthy()          // pending row link
@@ -342,10 +358,12 @@ it('the New plan edits a stop date; a date outside an order window flags that or
   const newPlan = nw()
   expect(newPlan.queryByText('Outside planning window')).toBeNull()
   expect(within(screen.getByRole('region', { name: 'Prior plan' })).queryByLabelText('Pickup Date')).toBeNull() // Prior read-only
+  edit()
   const input = document.getElementById('stop-s1-time')
   fireEvent.change(input, { target: { value: '11:30' } })
   fireEvent.blur(input)
   expect(nw().getAllByText('Outside planning window').length).toBe(2)               // A and B on stop 1
+  save()
   // T1 (S160): the `routed` gate is gone — a window violation is flagged, never
   // blocked, and every stop still carries a date, so Evaluate stays enabled.
   expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
@@ -353,6 +371,7 @@ it('the New plan edits a stop date; a date outside an order window flags that or
 
 it('marks what an action touched so it pulses where it landed (user 2026-09-24)', () => {
   setup()
+  edit()
   fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0])
   expect(newStop(1).hasAttribute('data-flash')).toBe(true)   // moved P1, now second
   fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
@@ -360,4 +379,101 @@ it('marks what an action touched so it pulses where it landed (user 2026-09-24)'
   expect(pendingRow.hasAttribute('data-flash')).toBe(true)
   fireEvent.click(screen.getByRole('button', { name: /^Add order / }))
   expect(document.querySelectorAll('.edit-stops__order-row[data-flash]').length).toBeGreaterThan(0)
+})
+
+describe('New plan modes (user 2026-09-28)', () => {
+  it('collapsed: grip + read-only dates, no arrows / pickers / Set Aside; Edit swaps in Reset / Discard / Save and IconButtonGhost arrows', () => {
+    setup()
+    expect(nw().queryByRole('button', { name: 'Move stop up' })).toBeNull()
+    expect(nw().queryByRole('button', { name: 'Set Aside' })).toBeNull()
+    expect(document.getElementById('stop-s1-date')).toBeNull()
+    expect(newStop(0).textContent).toContain('Pickup Date: June 4, 2026 08:00 CDT')
+    expect(newStop(0).getAttribute('aria-roledescription')).toBe('sortable')
+    expect(newStop(0).querySelector('.edit-stops__stop-grip')).toBeTruthy()
+    expect(nw().queryByRole('button', { name: 'Save' })).toBeNull()
+    edit()
+    expect(nw().queryByRole('button', { name: 'Edit' })).toBeNull()
+    expect(nw().getByRole('button', { name: 'Reset' }).disabled).toBe(true) // nothing differs from the page's opening state
+    expect(nw().getByRole('button', { name: 'Discard' })).toBeTruthy()
+    expect(nw().getByRole('button', { name: 'Save' })).toBeTruthy()
+    expect(nw().getAllByRole('button', { name: 'Move stop up' })[0].className).toContain('icon-button-ghost')
+    expect(newStop(0).getAttribute('aria-roledescription')).toBeNull()      // no drag in edit mode
+    expect(newStop(0).querySelector('.edit-stops__stop-grip')).toBeNull()
+    expect(document.getElementById('stop-s1-date')).toBeTruthy()
+    expect(screen.getByText(/^Use the arrows to move a stop/)).toBeTruthy()
+  })
+
+  it('Evaluate is disabled while editing, with the "Save or discard" tooltip; Save re-enables it and keeps the edit', () => {
+    setup()
+    edit()
+    fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0])
+    const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
+    expect(evaluateBtn.disabled).toBe(true)
+    fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
+    expect(screen.getByRole('tooltip').textContent).toContain('Save or discard your stop edits first')
+    save()
+    expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
+    expect(newStop(0).textContent).toContain('Y, Town')                      // the move survived Save
+    expect(nw().getByRole('button', { name: 'Edit' })).toBeTruthy()
+  })
+
+  it('Discard reverts to the state when Edit was pressed (confirm only if changed); Reset goes back to the page\'s opening state', () => {
+    setup()
+    // Nothing changed → Discard leaves edit mode without a confirm.
+    edit()
+    fireEvent.click(nw().getByRole('button', { name: 'Discard' }))
+    expect(screen.queryByText('Discard Stop Changes')).toBeNull()
+    expect(nw().getByRole('button', { name: 'Edit' })).toBeTruthy()
+    // Saved move, then an unsaved one: Discard drops only the unsaved one.
+    edit()
+    fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0]) // [Y, X, Z]
+    save()
+    edit()
+    fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
+    fireEvent.click(nw().getByRole('button', { name: 'Discard' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, Discard' }))
+    expect(newStop(0).textContent).toContain('Y, Town')
+    expect(screen.queryByRole('button', { name: /^Add order / })).toBeNull()
+    // Reset undoes the saved move too, after its confirm.
+    edit()
+    fireEvent.click(nw().getByRole('button', { name: 'Reset' }))
+    expect(screen.getByText('Reset Stop Sequence')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, Reset' }))
+    expect(newStop(0).textContent).toContain('X, City')
+    expect(nw().getByRole('button', { name: 'Edit' })).toBeTruthy()
+  })
+})
+
+it('hovering a stop row shows its leg distance in a tooltip on the rail; the first stop has none (user 2026-09-28)', async () => {
+  const located = baseStops.map((s, i) => ({ ...s, lat: 40 + i, lng: -90 }))
+  const leg1 = legDistances(located).legs[1]
+  setup({ stops: located })
+  fireEvent.mouseEnter(newStop(0))
+  fireEvent.mouseMove(newStop(0))
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  fireEvent.mouseMove(newStop(1), { clientY: 120 })
+  const tip = screen.getByRole('tooltip')
+  expect(tip.textContent).toBe(`Distance from P1${leg1.toFixed(2)} mi`)
+  expect(tip.parentElement.style.pointerEvents).toBe('none')
+  expect(newStop(1).hasAttribute('data-leg-tip')).toBe(true)          // its segment darkens (CSS :has)
+  expect(newStop(0).hasAttribute('data-leg-tip')).toBe(false)
+  // One tooltip at a time: over an order link (its own tooltip) the leg tip hides…
+  const link = within(newStop(1)).getAllByRole('button')[0].closest('[data-tooltip-trigger]')
+  fireEvent.mouseEnter(link)
+  fireEvent.mouseMove(link)
+  expect(screen.getAllByRole('tooltip')).toHaveLength(1)
+  expect(screen.getByRole('tooltip').textContent).not.toContain('Distance from')
+  expect(newStop(1).hasAttribute('data-leg-tip')).toBe(false)
+  fireEvent.mouseLeave(link)
+  await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull())  // TooltipTrigger's 80ms hide
+  // …and comes back on the row itself.
+  fireEvent.mouseMove(newStop(1))
+  expect(screen.getByRole('tooltip').textContent).toContain('Distance from P1')
+  fireEvent.mouseLeave(newStop(1))
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  expect(newStop(1).hasAttribute('data-leg-tip')).toBe(false)
+  // Prior rows carry it too.
+  const priorRow = screen.getByRole('region', { name: 'Prior plan' }).querySelectorAll('[data-stop-key]')[2]
+  fireEvent.mouseMove(priorRow)
+  expect(screen.getByRole('tooltip').textContent).toContain('Distance from P2')
 })

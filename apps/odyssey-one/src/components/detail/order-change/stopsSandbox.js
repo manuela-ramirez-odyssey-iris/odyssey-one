@@ -229,24 +229,46 @@ export function labelsOf(sb) {
   })
 }
 
-export function canMoveStop(sb, i, dir) {
-  if (i < 0 || i >= sb.stops.length) return { ok: false, reason: 'Already at the edge.' }
-  const j = dir === 'up' ? i - 1 : i + 1
-  if (j < 0 || j >= sb.stops.length) return { ok: false, reason: 'Already at the edge.' }
-  const stops = sb.stops.slice()
-  ;[stops[i], stops[j]] = [stops[j], stops[i]]
-  if (!validSequence(stops)) return { ok: false, reason: 'An order must be picked up before it can be delivered.' }
+const SEQUENCE_REASON = 'An order must be picked up before it can be delivered.'
+
+// The stop at `from` lifted out and dropped at `to` (an arrow move is the
+// adjacent case: to = from ± 1, which is the same as a swap).
+function relocate(stops, from, to) {
+  const next = stops.slice()
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
+
+// LINX-15669 — the ONE gate for every reorder (arrows + drag). A drag is
+// only checked at its drop point: moving one stop can only ADD pickup/
+// delivery inversions as it passes stops, so if the final spot is legal
+// every adjacent step on the way was too — a drag and the equivalent arrow
+// run accept exactly the same moves.
+export function canReorderStop(sb, from, to) {
+  const n = sb.stops.length
+  if (from < 0 || from >= n || to < 0 || to >= n) return { ok: false, reason: 'Already at the edge.' }
+  if (!validSequence(relocate(sb.stops, from, to))) return { ok: false, reason: SEQUENCE_REASON }
   return { ok: true }
 }
 
-export function moveStop(sb, i, dir) {
-  const check = canMoveStop(sb, i, dir)
-  if (!check.ok) return sb
-  const j = dir === 'up' ? i - 1 : i + 1
-  const stops = sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] }))
-  ;[stops[i], stops[j]] = [stops[j], stops[i]]
-  stops[j].unsequenced = false
+export function canMoveStop(sb, i, dir) {
+  if (i < 0 || i >= sb.stops.length) return { ok: false, reason: 'Already at the edge.' }
+  return canReorderStop(sb, i, dir === 'up' ? i - 1 : i + 1)
+}
+
+// Moving a stop sequences it (a P?/D? stops being "?" once the planner has
+// placed it) and marks the sandbox dirty. Rejected moves return `sb` as is.
+export function reorderStop(sb, from, to) {
+  if (from === to || !canReorderStop(sb, from, to).ok) return sb
+  const stops = relocate(sb.stops.map((s) => ({ ...s, orderIds: [...s.orderIds] })), from, to)
+  stops[to].unsequenced = false
   return { ...sb, stops, dirty: true }
+}
+
+export function moveStop(sb, i, dir) {
+  if (!canMoveStop(sb, i, dir).ok) return sb
+  return reorderStop(sb, i, dir === 'up' ? i - 1 : i + 1)
 }
 
 // T1.2 — "Keep here" (user default): clears `unsequenced` on a stop WITHOUT
