@@ -522,16 +522,20 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           </section>
           <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef}>
             <div className="edit-stops__plan-head">
-              <h3 className="text-label-base-semibold edit-stops__plan-title">New</h3>
+              {/* User 2026-09-28: sm buttons; Reset sits beside the "New"
+                  title, Discard + Save on the trail. */}
+              <span className="edit-stops__plan-lead">
+                <h3 className="text-label-base-semibold edit-stops__plan-title">New</h3>
+                {editing && <Button variant="secondary" size="sm" disabled={!canReset} onClick={() => setStopsPrompt('reset')}>Reset</Button>}
+              </span>
               <span className="edit-stops__plan-actions">
                 {editing ? (
                   <>
-                    <Button variant="secondary" disabled={!canReset} onClick={() => setStopsPrompt('reset')}>Reset</Button>
-                    <Button variant="secondary" onClick={handleDiscardStops}>Discard</Button>
-                    <Button onClick={() => leaveEditing()}>Save</Button>
+                    <Button variant="secondary" size="sm" onClick={handleDiscardStops}>Discard</Button>
+                    <Button size="sm" onClick={() => leaveEditing()}>Save</Button>
                   </>
                 ) : (
-                  <Button variant="secondary" onClick={startEditing}>Edit</Button>
+                  <Button variant="secondary" size="sm" onClick={startEditing}>Edit</Button>
                 )}
               </span>
             </div>
