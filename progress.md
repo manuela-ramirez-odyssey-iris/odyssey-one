@@ -2,6 +2,67 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 163 — September 29, 2026
+
+**ORDER CHANGE, AUDITED AND FINISHED: FOUR SLICES FROM ONE AUDIT, ALL BUT TWO DESIGN-BOUND ITEMS BUILT.** Picked up S162's "verify consol order change isn't missing anything". Four read-only audits, run in parallel, found the Save path unsafe and the numbers disagreeing:
+- every AC clause of the 13 consolidation stories (15435…15438, 15667…15671, 15869…15872), checked against the code;
+- Jana's 08-14, 08-29, 09-24 and 09-25 transcripts, plus the 09-23 call.
+
+The findings became plan items C6–C24, rulings N1–N6 and DEC-212…218. Four specs, each implemented by two agents in parallel on disjoint files. About 20 commits, all `S163:`. Models: Opus 5.5 main thread; Opus agents for the audits and implementation (see the tier change below).
+
+- **Plan and decision log.** `docs/superpowers/plans/2026-09-25-order-change-remaining.md` §C+ holds the whole audit.
+  - DEC-212 records the S162 Edit Stops redesign (amends DEC-137/197/198). DEC-213 records Keep here, DEC-214 the joint default date.
+  - DEC-200 is marked amended by DEC-207, and DEC-207 carries a caveat.
+  - User rulings: N1 → DEC-215 (Evaluate re-routes from the edited stops, as a prototype recompute); N2 → DEC-216 (a one-order result flips to Direct in place; the 09-23 hide rule doesn't apply); N3 → DEC-217 (a split shipment has no carrier list until planned); N6 → DEC-218 (order-change Save is live-only).
+  - N4 (capacity validation) is provisionally dropped, since no story carries it. N5 closed: the planner marks survived.
+  - Canon: `order-change.md` gets §10d; §10c R2–R6 and OC-open-16 now match the build.
+- **Save slice** (`specs/2026-09-29-order-change-save-slice.md`):
+  - C3: an order left pending becomes its own Direct shipment, sell `26000000 + orders.id`. It lands in Consolidation or Hold, and a stale emptied shell is replaced.
+  - C6: the 15872 move block reads the live `tenders` table. `saveTender` never updates `shipments.tender_status`.
+  - C7: a delivery-before-pickup can't reach Evaluate, and a move can't break a valid sequence.
+  - C8: the server refuses moved orders that aren't placed on a stop.
+  - C9: created stops keep lat/lng/timeZone.
+  - C21: mock Save throws.
+- **Consistency slice** (`…-consistency-slice.md`):
+  - C10: the DB value is New everywhere (header, stop cards, compare).
+  - C4/C12: a shared `src/lib/orderChangeRouting.js` puts the stop dates on the tender list and scales cost by the edited miles.
+  - C11: Save recomputes the header (volume, distance, both costs).
+  - C19: Save recomputes the row's lane/date columns and the search rows.
+  - C5: emptied shipments are hidden from list, counts and search.
+  - C22 (seed): Scenario B 5 → 29 of 98 consolidated; 12 dropped-only lists; every changed order has a changed line.
+- **AC-gap slice** (`…-ac-gap-slice.md`):
+  - C13: every 15436 field badges (full-format location, address, seeded appointment changes).
+  - C15: Search & Add matches site ID/ZIP and gains To Be Tendered / Not Tendered. Orders now carry `postal`.
+  - C16: Evaluate needs date, time and zone.
+  - C17: street address on stop rows.
+  - C20: `stopsSaved` + `consolidatedReviewPending` make the doorways agree, and a fresh open lands on Stops.
+  - C23: copy, cost format and DST round-trip fixes.
+  - C24: dropped carriers follow an adopted list.
+- **Direct slice** (`…-direct-slice.md`):
+  - D2: the Tender tab is readable during review with every action locked. The Review button is back in the sub-tabs row.
+  - D4: blank required pickup/delivery fields when the prior carrier wasn't returned; the API answers 400 without them. `StopDateField` now keeps a time or zone picked before the date.
+  - D5: `detail.tenderOptionVersions` is appended on every adoption, and Routing History reads it newest-first.
+- **Neon reseeded once** (after the consistency slice, on the user's go). Users preserved (13). 477 consolidated order changes, 163 Scenario B, 51 dropped-only; 0 C10 violations by SELECT.
+- **Deployed once** (`vercel --prod`), together with the parallel session's uncommitted consolidation files at the user's request.
+  - The bundle was grepped on both URLs: the sequence tooltip, the confirm copy and the live-only message.
+  - The live C8 guard answered 400 on a no-write probe.
+- **Agent tiers (user ruling).** New project agents: `.claude/agents/auditor.md` (Fable, high, read-only) and `implementer.md` (Sonnet, medium, only after an approved spec). The memory policy was updated. Claude Code must go to **2.1.284** for Sonnet 5.5: `npm install -g @anthropic-ai/claude-code@latest` under nvm Node 20.
+- **Jana saw the progress on a call today and liked it; he gave feedback**, which isn't captured here (the user carries it into the next session).
+
+**Lessons (memory `feedback_batch_reseeds`).** I reseeded between slices, and the next slice changed the seed again. The user: *"feels like you are going in circles."* Rule: build ALL approved slices first, then ONE reseed + ONE deploy. Also, "done" means the whole approved scope, not the slices finished so far.
+
+**Parallel session, unlogged here:** the uncommitted `ConsolidationReviewRoute.jsx` / `.test.jsx`, `consolidation-review.css` and `domain-usage.json` belong to another session. They shipped in this deploy but were **not committed** by this wrap.
+
+**Still open.**
+- **Reseed + deploy owed for the AC-gap and Direct slices**, ONE of each, on the user's go. Live today = the Save and consistency slices.
+- C14 (costs in View Routing) and C18 (move/audit logs; Jana 09-23 "order history knows it moved") are **on hold for design**.
+- Nothing has run a real Save against Neon: click through Edit Stops → Approve on a live Scenario A and a Scenario B shipment.
+- The 09-23 call (`vault/00-inbox/Consoloidation Questions 2.vtt`) is still un-analyzed, plus a duplicate 09-25 transcript in the inbox.
+- The row menu after a Scenario A save lands on plain Stops (`ponytail:`; the Tender-tab button leads to the decision).
+- `toast.test.js` still fails to compile (S159).
+
+**What's next (user):** Jana's feedback from today's call. Then the single reseed + deploy.
+
 ## Session 162 — September 28, 2026
 
 **ORDER CHANGE: THREE BUILDS, AN AUDIT THAT FOUND SCENARIO B FILED AS TENDERED, AND EDIT STOPS REDRAWN IN THE PLANNED STOPS LANGUAGE.** Picked up S160's order-change list, shipped three plan items, reseeded Neon twice and deployed once. Then the user asked "are we sure consol order change is properly wired?", and a read-only audit answered no: the approve-with-no-tender path filed shipments under Monitoring › Sent. After that, ~20 rounds of user-driven redesign on Edit Shipment Stops. 24 commits, all `S162:`. Models: Opus (personal account) wrote the small changes directly; Opus agents did the larger slices and the audit.
@@ -81,50 +142,15 @@
 
 ## Session 160 — September 25–28, 2026
 
-**ORDER CHANGE: THE NUMBERS AGREE, AND APPROVE BECAME A STEP YOU CAN SEE.** Opened on "what has order change achieved, what's missing", closed with Wave B shipped to Neon, Jana's 09-25 design review filed, and the whole Evaluate → Approve flow built. The lesson of the session, from the user: *"he always replies we already have the information in the stories"*. Of the questions I queued for Jana, **every one was already answered by a story AC**. Memory `feedback_stories_are_primary_source` now requires grepping the archived ACs before any Jana list. Plans: `docs/superpowers/plans/2026-09-24-order-change-consol-walkthrough.md` (Wave B + B5/B6), `…/2026-09-25-order-change-remaining.md`; spec `docs/superpowers/specs/2026-09-25-order-change-evaluate-approve.md`. 19 commits `S160:` + 3 `D22:` (logged in `progress-deliverables.md` D22).
+**ORDER CHANGE: THE NUMBERS AGREE, AND APPROVE BECAME A STEP YOU CAN SEE — condensed.**
+- Wave B (DEC-192/196/198): one seed source per consolidated number, per-leg distances via `src/utils/legMiles.js`, and the Direct field set in the per-order compare.
+- Jana's 09-25 design review filed (DEC-200…206).
+- Busy source orders selectable and refused at Save (DEC-201); a shipment's only order movable (DEC-202).
+- Evaluate → routing modal → Approve on both review screens (DEC-207).
+- T4: every resolution finally adopts the new tender list.
+- Neon reseeded 3×; rode S161's deploy.
 
-- **Wave B (DEC-192/196/198).** Every consolidated number now comes from one seed source:
-  - header cost = the new list's rank-1 total;
-  - stop coordinates (`LOCATIONS` lat/lng, zero draws) + a shared `src/utils/legMiles.js` (haversine × 1.2, `ponytail:`) feed per-leg distances, header and routing;
-  - the per-order compare has the Direct field set + seeded line pairs;
-  - gross weight = the orders' own records;
-  - a location change is written onto the order;
-  - one address per site.
-- **Browser-found follow-ups, all fixed.**
-  - A location change's new site was facility+city only → the created `P?` had no coordinates (legs `--`, total "0.00 mi") and a CDT clock in Phoenix. Now a full site (`025f966`); an unknown leg total reads `--`.
-  - The seed's New distance swapped the stop instead of adding one → the header disagreed with All Stops on 123 shipments. The generator now **imports the editor's own `initSandbox`** to compute it (`c6cbb7b`).
-  - Order windows anchor to **their own stop** (I4 refined, DEC-203, `50f53f4`): stops outside their orders' windows went 1,023 → 0.
-- **Add Orders (DEC-201/202).** Busy source orders are **selectable and refused at Save** (15870/15872 + Jana; reverses OC-open-11). A shipment's only order may be moved (Jana `@00:05:37`; an emptied shipment is hidden — build owed, C5). A move rewrites the list row's totals (`computeListAggregates`, OC-open-22).
-- **Jana's 09-25 design review → `/analyze`** (`order-change.md` §10c, **DEC-200…206**, 14 OC-open items closed or answered — most by their own stories). Transcript archived `vault-sources/10-domains/shipments/sources/jana-order-change-consol-design-review-2026-09-25.vtt`. Shipment statuses from Rovo's *Shipment Status Transition-WIP* (HOLD / CONSOLIDATION / REVIEW / APPROVED / DONE) recorded as DEC-204, provisional, build owed.
-- **Evaluate → Approve (DEC-207, the user's design).** "View Routing then Close to enable Approve" made no sense. Now:
-  - **Edit Stops:** footer **Evaluate** (tooltip names what blocks it) → routing modal **Keep Editing / Approve Changes** → the confirm.
-  - **Stops tab:** **Evaluate** → **Keep Reviewing / Approve Plan** → confirm.
-  - View Routing buttons and the hidden `routed` state are gone. One shared `useApproveOrderChange` path; new `approve-plan` API action.
-  - Also: **Prior** is the true pre-change plan; **Keep here** confirms a `?` stop in place; a new stop's default date fits every order on it.
-- **T4 — the new tender list finally becomes current** (`9b94b95`). No resolution had ever adopted `newTenderList`; the Tender tab kept showing the old list after every decision, Direct included. Now every resolution rewrites `tenders` + `shippingOptionList` in one transaction:
-  - the prior carrier is inserted at its rank when routing dropped it, with the chosen cost/status;
-  - the list row's scac/AP cost follow;
-  - V1 stays in Routing History.
-- **Neon reseeded 3×** on the user's go (users preserved), each verified by query + browser. **Live:** S160 + D22 rode S161's `vercel --prod`; confirmed today by grepping the live bundle (*Keep here*, *Keep Reviewing*, *Set a date on every stop*, `approve-plan`, `primaryTooltip`). T4 is API-only, not probed live.
-
-**Still open.**
-- **Neon test residue:** T4's live check resolved `25475273` and `25427840`, and a stale-server attempt **half-resolved `25525239`** (status moved, tender list not adopted). A reseed restores all three.
-- **AP Cost after choosing the prior cost:** only `rateAmount` is synced; the Tender table's AP Cost column reads `totalCostAmount` (pre-existing scope, fix before Jana sees it).
-- **Seed edge:** 4 mock shipments flag on arrival when two relocated orders share one created stop.
-- **Search chips** return 0 for Sell # / Odyssey ID — identical on live and local, so not a regression; unexplained.
-- **Housekeeping:** `toast.test.js` still fails to compile (S159). A byte-identical duplicate of the 09-25 transcript sits in the inbox (delete; the original is archived).
-
-**Parallel threads, unlogged here:**
-- `S159:`-tagged commits after the S159 wrap (`1076d45`, `533154a`, `913ef2c`, `5a801ff`, `cb4b5a3`, `85f08c9` — All Sell Shipments, ModalMedium portal, Hazardous badge, Home search, OIF radios) belong to the session that made them.
-- S161 is logged above.
-
-**What's next (user):** analyze what's missing and what's left on order change. Remaining per the plan:
-- the AP-cost field fix;
-- C3 removed orders → own shipment (15869);
-- C4 consolidation tender dates = stop dates;
-- C5 hide emptied shipments;
-- Direct D1–D5;
-- shipment statuses (DEC-204 — reseed + Cognizant progression sheets).
+Lesson: questions for Jana are usually already answered by the story ACs (`feedback_stories_are_primary_source`). Full narrative in git (`S160:` commits).
 
 ## Session 159 — September 24, 2026
 
