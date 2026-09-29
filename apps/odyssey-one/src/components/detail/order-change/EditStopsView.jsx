@@ -142,6 +142,17 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // landed (the table's odyssey-row-highlight), scrolled into view.
   // Reduced motion: no slide, no pulse (CSS + the guard below).
   const newPlanRef = useRef(null)
+  // The pending column docks just below the page's anchored KPI strip
+  // (user 2026-09-24) — the strip shrinks to Mini when stuck, so its height
+  // is measured, not guessed, and fed to CSS as --edit-stops-strip-h.
+  const rootRef = useRef(null)
+  useEffect(() => {
+    const strip = rootRef.current?.closest('.order-change')?.querySelector('.summary-strip--sticky')
+    if (!strip || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => rootRef.current?.style.setProperty('--edit-stops-strip-h', `${strip.offsetHeight}px`))
+    ro.observe(strip)
+    return () => ro.disconnect()
+  }, [])
   const prevTops = useRef(null)
   const [flash, setFlash] = useState([])
   const flashTimer = useRef(null)
@@ -487,7 +498,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   }
 
   return (
-    <div className="edit-stops">
+    <div className="edit-stops" ref={rootRef}>
       <SubAccordion
         title="All Stops"
         collapsible={false}
@@ -538,29 +549,6 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 )}
               </span>
             </div>
-            {/* User 2026-09-28: Orders Pending To Assign is a subsection of
-                New, shown only in edit mode (Set Aside / Add live there). */}
-            {editing && (
-              <div className="edit-stops__pending">
-                <div className="edit-stops__pending-head">
-                  <h4 className="text-label-sm-semibold edit-stops__pending-title">Orders Pending To Assign</h4>
-                  <Button variant="secondary" size="sm" onClick={() => setModal('add-orders')}>Add New Order</Button>
-                </div>
-                {sb.pending.length === 0 && <span className="text-label-xs-regular edit-stops__stop-meta">No orders set aside.</span>}
-                {sb.pending.map((id) => (
-                  <div className="edit-stops__pending-row" key={id} data-flash={flashes(`pending:${id}`)}>
-                    {/* ponytail: no order drill-in yet — deferred, wire up when the
-                        Order Compare / detail surface has a route for this VM. */}
-                    <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>
-                      <Button variant="link" className="edit-stops__order-link" onClick={() => {}}>{id}</Button>
-                    </TooltipTrigger>
-                    {/* DEC-193: no stop picker — the system places each leg
-                        (same type + location, else a new P?/D?). */}
-                    <Button variant="secondary" size="sm" aria-label={`Add order ${id}`} onClick={() => handleAddTo(id)}>Add</Button>
-                  </div>
-                ))}
-              </div>
-            )}
             {/* User 2026-09-28: New's rail is detached and static, like
                 Consolidation's editing timeline — no arrival animation. */}
             {editing ? (
@@ -580,6 +568,26 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             )}
           </section>
 
+          {/* User 2026-09-28: the pending column shows in edit mode only
+              (Set Aside / Add live there), floating on the right as before. */}
+          {editing && (
+          <div className="edit-stops__pending">
+            <h3 className="text-label-base-semibold edit-stops__plan-title">Orders Pending To Assign</h3>
+            <Button variant="secondary" onClick={() => setModal('add-orders')}>Add New Order</Button>
+            {sb.pending.map((id) => (
+              <div className="edit-stops__pending-row" key={id} data-flash={flashes(`pending:${id}`)}>
+                {/* ponytail: no order drill-in yet — deferred, wire up when the
+                    Order Compare / detail surface has a route for this VM. */}
+                <TooltipTrigger tooltipProps={orderTooltipProps(orderById.get(id), undefined, id)}>
+                  <Button variant="link" className="edit-stops__order-link" onClick={() => {}}>{id}</Button>
+                </TooltipTrigger>
+                {/* DEC-193: no stop picker — the system places each leg
+                    (same type + location, else a new P?/D?). */}
+                <Button variant="secondary" aria-label={`Add order ${id}`} onClick={() => handleAddTo(id)}>Add</Button>
+              </div>
+            ))}
+          </div>
+          )}
         </div>
       </SubAccordion>
 

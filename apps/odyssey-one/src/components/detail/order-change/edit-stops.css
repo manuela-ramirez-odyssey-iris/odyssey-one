@@ -48,7 +48,8 @@
    plain-text title, and stops as light rows on the Timeline rail — no
    HeaderStrips, no per-stop boxes. Supersedes round 1's framed "Stops-tab"
    cards (cd07d27). */
-.edit-stops__plan {
+.edit-stops__plan,
+.edit-stops__pending {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
@@ -246,23 +247,18 @@
 
 /* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
    300px to make room for the Prior plan (DEC-197, user 2026-09-24). */
-/* Orders Pending To Assign — a subsection of New, edit mode only (user
-   2026-09-28): a quiet tinted box between New's header and its stops. */
 .edit-stops__pending {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3) var(--spacing-4);
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
+  width: 300px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  /* Stays in view while the stop list scrolls (S158), floating a little below
+     the anchored KPI strip (user 2026-09-24). The strip docks at
+     -spacing-8 (flush under the navbar); its live height comes from
+     EditStopsView (--edit-stops-strip-h, 0 when there is no strip). */
+  position: sticky;
+  top: calc(-1 * var(--spacing-8) + var(--edit-stops-strip-h, var(--spacing-8)) + var(--spacing-4));
+  align-self: flex-start;
 }
-.edit-stops__pending-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
-}
-.edit-stops__pending-title { margin: 0; color: var(--text-primary); }
 
 /* Bleeds to <main>'s edges like the other page footers; width: auto lets the
    negative margins widen the (sticky) bar instead of shifting it. */

@@ -82,7 +82,7 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(screen.getByText(/^Drag a stop to move it/)).toBeTruthy()
   // User 2026-09-28 (round 2): Consolidation Planned Stops rows — no
   // HeaderStrip, no "Stop N"; the rail badge + row order carry position.
-  expect(screen.queryByText('Orders Pending To Assign')).toBeNull()   // collapsed: no pending subsection
+  expect(screen.queryByText('Orders Pending To Assign')).toBeNull()   // collapsed: no pending column
   edit()
   expect(nw().getAllByRole('button', { name: 'Move stop up' })).toHaveLength(3)
   expect(nw().queryByText('Stop 1')).toBeNull()
@@ -90,8 +90,7 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   expect(nw().getByText(atLoc('Y, Town'))).toBeTruthy()
   expect(screen.queryByText(/^Distance: /)).toBeNull()               // the leg lives in the hover tooltip now
   expect(screen.getAllByText('A').length).toBeGreaterThan(0)
-  // Orders Pending To Assign is a New subsection, edit mode only (user 2026-09-28).
-  expect(nw().getByText('Orders Pending To Assign')).toBeTruthy()
+  expect(screen.getByText('Orders Pending To Assign')).toBeTruthy()
   // User ruling 2026-09-09: this editor already carries purple/gray change
   // badges, so the stop-type badge is purple here too (not the canon
   // customer-change color mapping — a deliberate reuse).
@@ -196,7 +195,7 @@ it('Keep Editing closes the routing modal with state intact', () => {
   fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Keep Editing' }))
   expect(screen.queryByRole('dialog', { name: 'View Routing' })).toBeNull()
   // "state intact" — the pended order is still off its stop (Add order A still
-  // offered in the pending subsection, which shows in edit mode only).
+  // offered in the pending column, which shows in edit mode only).
   expect(screen.queryByRole('button', { name: 'Add order A' })).toBeNull()
   edit()
   expect(screen.getByRole('button', { name: 'Add order A' })).toBeTruthy()
