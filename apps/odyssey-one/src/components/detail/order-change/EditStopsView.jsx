@@ -574,7 +574,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               out; closed, it's inert and hidden from assistive tech. */}
           <div className={`edit-stops__pending-slot${editing ? ' edit-stops__pending-slot--open' : ''}`} inert={!editing} aria-hidden={editing ? undefined : true}>
           <div className="edit-stops__pending">
-            <h3 className="text-label-base-semibold edit-stops__plan-title">Orders Pending To Assign</h3>
+            <h3 className="text-label-sm-semibold edit-stops__plan-title">Orders Pending To Assign</h3>
             <Button variant="secondary" onClick={() => setModal('add-orders')}>Add New Order</Button>
             {sb.pending.map((id) => (
               <div className="edit-stops__pending-row" key={id} data-flash={flashes(`pending:${id}`)}>
