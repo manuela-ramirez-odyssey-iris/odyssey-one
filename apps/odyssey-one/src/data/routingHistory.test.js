@@ -358,6 +358,43 @@ describe('deriveRoutingHistory (LINX-15895)', () => {
   // (amendment): the accepted-today carrier's row now legitimately draws
   // Accepted across ~600 shipments' worth of perturbed versions, not just the
   // 81 order-change ones — > 500 is the amendment's own stated expectation.
+  // D5 (S163, LINX-14510) — versions resolveOrderChange persisted on adoption.
+  describe('D5 — persisted tenderOptionVersions', () => {
+    const persisted = [
+      {
+        version: 1, adoptedAt: '2026-09-20T10:00:00.000Z', reason: 'Order Change', orders: ['ORD-S2600074M'],
+        tenderList: [{ rank: 1, scac: 'CNWY', status: 'Accepted', quoteFlag: 'Y' }],
+        droppedCarrierList: [{ scac: 'ODFL' }],
+      },
+      {
+        version: 2, adoptedAt: '2026-09-25T12:00:00.000Z', reason: 'Order Change', orders: ['ORD-S2600074M', 'ORD-JAN7ERCO7'],
+        tenderList: [{ rank: 1, scac: 'JBHT', status: 'Sent' }],
+        droppedCarrierList: [{ scac: 'RLCA' }],
+      },
+    ]
+    const stored = { ...withOrderChange, tenderOptionVersions: persisted }
+
+    it('renders newest first, each with its own tender and dropped list — no duplicate of the derived V1', () => {
+      const versions = derive(stored)
+      expect(versions.map((v) => v.version)).toEqual([2, 1])
+      expect(versions.map((v) => v.options.map((o) => o.scac))).toEqual([['JBHT'], ['CNWY']])
+      expect(versions.map((v) => v.droppedCarriers.map((d) => d.scac))).toEqual([['RLCA'], ['ODFL']])
+      expect(versions.map((v) => v.orders)).toEqual([persisted[1].orders, persisted[0].orders])
+      expect(versions[1].options[0].quoteFlag).toBeUndefined()
+    })
+
+    it('a version is dated when it became current; V1 strictly before its replacement', () => {
+      const [v2, v1] = derive(stored)
+      expect(v2.routedAt).toBe(persisted[0].adoptedAt)
+      expect(Date.parse(v1.routedAt)).toBeLessThan(Date.parse(persisted[0].adoptedAt))
+    })
+
+    it('with no persisted array (or an empty one) the output is unchanged', () => {
+      expect(derive({ ...withOrderChange, tenderOptionVersions: [] })).toEqual(derive(withOrderChange))
+      expect(derive({ ...detail(), tenderOptionVersions: undefined })).toEqual(derive(detail()))
+    })
+  })
+
   ;(DETAIL_FILES.length > 0 ? it : it.skip)(
     'corpus guard — 0 historical rows carry an acceptance artifact under a non-Accepted status, and Accepted is reachable at scale (public/details not present locally: skipped)',
     () => {

@@ -439,7 +439,7 @@ export function parseStamp(str) {
 }
 
 const TZ_OFFSET_H = { EST: -5, EDT: -4, CST: -6, CDT: -5, MST: -7, MDT: -6, PST: -8, PDT: -7, AKST: -9, AKDT: -8, HST: -10 }
-const stampValue = (p) => (p ? Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - (TZ_OFFSET_H[p.tz] ?? 0) * 3600000 : null)
+export const stampValue = (p) => (p ? Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - (TZ_OFFSET_H[p.tz] ?? 0) * 3600000 : null)
 
 // Same long shape the stop cards and save-stops already carry.
 export function formatStopDate({ y, mo, d, h, mi, tz }) {

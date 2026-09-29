@@ -19,6 +19,13 @@ vi.mock('../../api/services/shipmentService', () => ({
   resolveOrderChange: vi.fn().mockResolvedValue(undefined),
 }))
 import { getSellShipmentDetail, resolveOrderChange } from '../../api/services/shipmentService'
+// D4 — same stand-in as OrderChangeActionsCard.test.jsx: the real picker's
+// zone list is virtualized and jsdom can't pick from it.
+vi.mock('../../components/detail/order-change/EditStopsView.jsx', () => ({
+  StopDateField: ({ label, value, onChange }) => (
+    <input aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
+  ),
+}))
 
 const SELL_SHIPMENT = '25319141'
 // The user-facing id (LINX-11591/12490) — distinct from SELL_SHIPMENT on
@@ -284,11 +291,14 @@ describe('OrderChangeReviewRoute', () => {
     })
   })
 
-  test('Re tender on a not-returned scenario defaults to Prior Cost — the disabled New Cost path never emits an unusable selection', async () => {
+  // D4 (LINX-14513 Scenario 2) — the planner-entered dates reach the payload.
+  test('Re tender on a not-returned scenario defaults to Prior Cost and sends the entered dates — the disabled New Cost path never emits an unusable selection', async () => {
     getSellShipmentDetail.mockResolvedValue(NOT_RETURNED_DETAIL)
     renderRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
+    fireEvent.change(await screen.findByLabelText('Pickup Date'), { target: { value: 'August 21, 2026 09:00 CDT' } })
+    fireEvent.change(screen.getByLabelText('Delivery Date'), { target: { value: 'August 23, 2026 14:00 CDT' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Re Tender' }))
     confirmAction('Re Tender')
 
     await waitFor(() => {
@@ -297,6 +307,7 @@ describe('OrderChangeReviewRoute', () => {
         priorTenderStatus: 'Accepted',
         priorScac: 'ODFL',
         cost: { choice: 'prior', amount: 2790 },
+        dates: { pickupDateTime: '08/21/2026 09:00 CDT', deliveryDateTime: '08/23/2026 14:00 CDT' },
       })
     })
   })

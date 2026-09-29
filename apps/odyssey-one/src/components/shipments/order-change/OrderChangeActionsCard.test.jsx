@@ -7,6 +7,17 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import OrderChangeActionsCard from './OrderChangeActionsCard.jsx'
 
+// D4 — the real StopDateField is DatePicker + TimePicker + TimezoneSelect, and
+// the zone list is virtualized (jsdom can't pick from it — project memory on
+// jsdom ceilings). A plain text box speaking the same long-form string
+// contract ("June 4, 2026 08:00 CDT") stands in, so these tests drive the
+// card's gate and payload, not the picker (EditStopsView.test.jsx covers that).
+vi.mock('../../detail/order-change/EditStopsView.jsx', () => ({
+  StopDateField: ({ label, value, onChange }) => (
+    <input aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
+  ),
+}))
+
 afterEach(cleanup)
 
 // Real OrderChangeCarrierVM shape (api/types/shipmentDetail.ts) — raw values,
@@ -250,5 +261,64 @@ describe('OrderChangeActionsCard — New Quote cancel reverts the radio', () => 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.getByRole('radio', { name: 'New Quote' }).checked).toBe(false)
     expect(screen.getByRole('radio', { name: 'New Cost' }).checked).toBe(true)
+  })
+})
+
+// D4 (LINX-14513 Scenario 2, note 2) — prior carrier not returned: the planner
+// must enter Pickup and Delivery before Re-Tender/Bypass.
+describe('OrderChangeActionsCard — required dates when the prior carrier is not returned (D4)', () => {
+  const setDate = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } })
+
+  test('Scenario 2 shows blank Pickup/Delivery fields in place of the read-only New dates', () => {
+    render(<OrderChangeActionsCard oc={NOT_RETURNED} onAction={vi.fn()} />)
+    expect(screen.getByLabelText('Pickup Date').value).toBe('')
+    expect(screen.getByLabelText('Delivery Date').value).toBe('')
+    // Only the Prior panel still shows a read-only date pair.
+    expect(screen.getAllByText('Pickup Date/Time')).toHaveLength(1)
+  })
+
+  test('Re-Tender and Bypass stay disabled until both dates (with zone) are set and delivery is after pickup', () => {
+    render(<OrderChangeActionsCard oc={NOT_RETURNED} onAction={vi.fn()} />)
+    const retender = () => screen.getByRole('button', { name: 'Re Tender' })
+    const bypass = () => screen.getByRole('button', { name: 'Bypass Tender' })
+    expect(retender().disabled).toBe(true)
+    expect(bypass().disabled).toBe(true)
+    fireEvent.mouseEnter(retender().closest('[data-tooltip-trigger]'))
+    expect(screen.getByText('Enter the pickup and delivery dates first')).toBeTruthy()
+
+    setDate('Pickup Date', 'June 4, 2026 08:00 CDT')
+    expect(retender().disabled).toBe(true)
+    setDate('Delivery Date', 'June 6, 2026 14:00')          // no zone yet (C16)
+    expect(retender().disabled).toBe(true)
+    setDate('Delivery Date', 'June 4, 2026 07:00 CDT')      // before pickup
+    expect(retender().disabled).toBe(true)
+    setDate('Delivery Date', 'June 6, 2026 14:00 CDT')
+    expect(retender().disabled).toBe(false)
+    expect(bypass().disabled).toBe(false)
+  })
+
+  test('the action carries the dates in the tender option short form', () => {
+    const onAction = vi.fn()
+    render(<OrderChangeActionsCard oc={NOT_RETURNED} onAction={onAction} />)
+    setDate('Pickup Date', 'June 4, 2026 08:00 CDT')
+    setDate('Delivery Date', 'June 6, 2026 14:30 CDT')
+    fireEvent.click(screen.getByRole('button', { name: 'Re Tender' }))
+    expect(onAction).toHaveBeenCalledWith('retender', { choice: 'prior', amount: 2790 }, {
+      pickupDateTime: '06/04/2026 08:00 CDT',
+      deliveryDateTime: '06/06/2026 14:30 CDT',
+    })
+  })
+
+  test('Scenario 1 (returned) shows no date fields and keeps the New dates read-only', () => {
+    render(<OrderChangeActionsCard oc={makeOc()} onAction={vi.fn()} />)
+    expect(screen.queryByLabelText('Pickup Date')).toBeNull()
+    expect(screen.getAllByText('Pickup Date/Time')).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Re Tender' }).disabled).toBe(false)
+  })
+
+  test('a consolidated order change is exempt — the stops supply the dates (DEC-206)', () => {
+    render(<OrderChangeActionsCard oc={{ ...NOT_RETURNED, consolidation: { stopsSaved: true } }} onAction={vi.fn()} />)
+    expect(screen.queryByLabelText('Pickup Date')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Re Tender' }).disabled).toBe(false)
   })
 })

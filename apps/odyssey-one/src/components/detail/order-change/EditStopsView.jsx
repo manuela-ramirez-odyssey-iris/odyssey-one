@@ -65,10 +65,17 @@ export const zoneOn = (picked, p) => (picked === (STD_TZ[p.tz] ?? p.tz)
   : (p.y != null && tzAbbrev(IANA_OF[picked], new Date(Date.UTC(p.y, p.mo, p.d, 12)))) || picked)
 const pad2 = (n) => String(n).padStart(2, '0')
 
-function StopDateField({ id, label, value, onChange }) {
-  const p = parseStamp(value) ?? { y: null, mo: 0, d: 1, h: 0, mi: 0, tz: '' }
-  const date = p.y != null ? new Date(p.y, p.mo, p.d) : null
-  const time = p.y != null ? `${pad2(p.h)}:${pad2(p.mi)}` : ''
+// D4 — also the Direct review's required Pickup/Delivery pair (OrderChangeActionsCard).
+export function StopDateField({ id, label, value, onChange }) {
+  // D4 (S163) — a time/zone picked BEFORE any date has no stamp to live in
+  // (the value is one string); held here until the date arrives, else the
+  // blank Direct-review fields silently dropped them.
+  const [draft, setDraft] = useState({ time: '', tz: '' })
+  const [dh, dmi] = draft.time.split(':').map(Number)
+  const p = parseStamp(value) ?? { y: null, mo: 0, d: 1, h: Number.isFinite(dh) ? dh : 0, mi: Number.isFinite(dmi) ? dmi : 0, tz: '' }
+  const dated = p.y != null
+  const date = dated ? new Date(p.y, p.mo, p.d) : null
+  const time = dated ? `${pad2(p.h)}:${pad2(p.mi)}` : draft.time
   const emit = (next) => { if (next.y != null) onChange(formatStopDate(next)) }
   return (
     <div className="edit-stops__date">
@@ -76,7 +83,11 @@ function StopDateField({ id, label, value, onChange }) {
         id={`${id}-date`}
         label={label}
         value={date}
-        onChange={(d) => d && emit({ ...p, y: d.getFullYear(), mo: d.getMonth(), d: d.getDate() })}
+        onChange={(d) => {
+          if (!d) return
+          const next = { ...p, y: d.getFullYear(), mo: d.getMonth(), d: d.getDate() }
+          emit(!dated && draft.tz ? { ...next, tz: zoneOn(draft.tz, next) } : next)
+        }}
       />
       <TimePicker
         id={`${id}-time`}
@@ -84,10 +95,12 @@ function StopDateField({ id, label, value, onChange }) {
         value={time}
         onChange={(t) => {
           const [h, mi] = (t || '').split(':').map(Number)
-          if (Number.isFinite(h) && Number.isFinite(mi)) emit({ ...p, h, mi })
+          if (!Number.isFinite(h) || !Number.isFinite(mi)) return
+          if (dated) emit({ ...p, h, mi })
+          else setDraft((dr) => ({ ...dr, time: t }))
         }}
       />
-      <TimezoneSelect id={`${id}-tz`} label="Time Zone" value={STD_TZ[p.tz] ?? p.tz} onChange={(tz) => emit({ ...p, tz: zoneOn(tz, p) })} short />
+      <TimezoneSelect id={`${id}-tz`} label="Time Zone" value={dated ? (STD_TZ[p.tz] ?? p.tz) : draft.tz} onChange={(tz) => (dated ? emit({ ...p, tz: zoneOn(tz, p) }) : setDraft((dr) => ({ ...dr, tz })))} short />
     </div>
   )
 }

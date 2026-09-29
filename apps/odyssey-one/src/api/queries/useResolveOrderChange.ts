@@ -22,6 +22,10 @@ export interface ResolveOrderChangeInput {
   // the server revalidates each source shipment and moves the order record
   // in, all inside the same save-stops transaction (api/_lib/shipments.mjs).
   externalOrders?: Array<{ orderNumber: string; sourceSellShipment: string }>
+  // D4 (LINX-14513 Scenario 2) — retender/bypass only, when the prior carrier
+  // wasn't returned by routing: the planner-entered dates for its inserted
+  // row, tender-option short form ("01/07/2026 09:00 CST").
+  dates?: { pickupDateTime: string; deliveryDateTime: string }
 }
 
 // LINX-14509…14515 — planner's Tender Resolution Action off the Review Order
@@ -46,8 +50,8 @@ export interface ResolveOrderChangeInput {
 export function useResolveOrderChange() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac, stops, externalOrders }: ResolveOrderChangeInput) =>
-      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac, stops, externalOrders }),
+    mutationFn: ({ sellShipment, action, priorTenderStatus, cost, priorScac, stops, externalOrders, dates }: ResolveOrderChangeInput) =>
+      resolveOrderChange(sellShipment, { action, priorTenderStatus, cost, priorScac, stops, externalOrders, dates }),
     onSuccess: () => {
       // Prefix, not the exact key: a 15872 move also changes SOURCE
       // shipments' cached detail (their orderList/stops), not just this one.

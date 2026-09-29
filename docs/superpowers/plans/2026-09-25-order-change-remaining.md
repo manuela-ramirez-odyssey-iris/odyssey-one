@@ -2,7 +2,7 @@
 title: Order change — everything still missing after Wave B (consolidated + Direct + shipment statuses)
 date: 2026-09-25
 session: S160
-status: consolidated half done — C0–C13, C15–C17, C19–C24, D1, D3, S built; C14/C18 on hold for design; D2/D4/D5 (Direct) owed; reseed + deploy owed; C6–C23 added by the S163 audit (2026-09-29)
+status: all built except C14/C18 (on hold for design); reseed + deploy owed for the AC-gap + Direct slices; C6–C23 added by the S163 audit (2026-09-29)
 ---
 
 # Order change — remaining work
@@ -128,6 +128,7 @@ What was asked:
 N2, N3 and C18 overlap the 2026-09-23 call. `/analyze` it first (it waits on your Figma linkage UX), or rule them here.
 
 ## D. Direct order change (all story-answered)
+**D2, D4, D5 BUILT S163** (spec `docs/superpowers/specs/2026-09-29-order-change-direct-slice.md`): Tender tab readable with actions locked; required dates when the prior carrier isn't returned; `detail.tenderOptionVersions` appended on every adoption and read by Routing History newest-first.
 - **D1 (OC-open-1, 14509):** seed a share of order-change shipments from **To Be Tendered**, not only Sent/Accepted. Zero new faker draws (id-keyed rnd), id diff empty. **Built S162 (DEC-209).**
 - **D2 (OC-open-6, 14509 "shall be able to view Tender information while pending"):** the Tender tab stays readable during review. Remove the blur, keep every action locked.
 - **D3 (OC-open-2, 14515):** the Prior/New cost choices show the **AP cost** (the same total as the AP Cost column), not the base rate. **Built S162 (DEC-208)**, together with the API write (`totalCostAmount` + the list row's AP Freight Cost). Reseed owed.

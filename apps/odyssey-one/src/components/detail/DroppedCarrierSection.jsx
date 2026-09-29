@@ -2,6 +2,8 @@ import { Check, CircleX } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
 import { isDuplicate } from '../../lib/processScac'
+import TooltipTrigger from '../ui/TooltipTrigger.jsx'
+import { OC_REVIEW_LOCK_TOOLTIP } from '../../lib/orderChangeDoorway.js'
 
 /**
  * LINX-13953 — Dropped Carrier.
@@ -174,11 +176,10 @@ export default function DroppedCarrierSection({
   tenderOptions = [],
   // S137 — a pending order change blocks tendering actions everywhere on the
   // Tender screen (domain ruling, Jana via designer), and Process SCAC lands
-  // in the tender list, so it counts. `locked` forces the section shut and
-  // keeps it that way: SubAccordion's `expanded` prop is CONTROLLED once
-  // passed (see packages/ui/src/SubAccordion.jsx), so `expanded={false}`
-  // alone already stops it opening — the header row below just makes sure a
-  // click on it doesn't feel like a dead button.
+  // in the tender list, so it counts. D2 (LINX-14509 "shall be able to view
+  // Tender information while … pending") — `locked` no longer forces the
+  // section shut: the rows stay readable and only Reinstate disables, in
+  // place, with the lock reason as its tooltip.
   locked = false,
   // LINX-15895 — a routing version in the Routing History tab owes the AC's own
   // verbatim line ("This routing version does not contain any dropped
@@ -227,6 +228,12 @@ export default function DroppedCarrierSection({
         <Button size="sm" variant="secondary" disabled>
           Reinstated
         </Button>
+      ) : locked ? (
+        <TooltipTrigger tooltipProps={{ groups: [{ content: OC_REVIEW_LOCK_TOOLTIP }] }}>
+          <Button size="sm" variant="secondary" disabled>
+            Reinstate
+          </Button>
+        </TooltipTrigger>
       ) : (
         <Button
           size="sm"
@@ -240,24 +247,14 @@ export default function DroppedCarrierSection({
     ) : undefined,
   }))
 
-  // S137 — the wrapper, not SubAccordion itself, carries the lock: it's what
-  // this file is allowed to touch (SubAccordion is a shared @odyssey/ui
-  // molecule; modifying it would kick off a normalization cycle out of scope
-  // here), and it's the one place both the CSS hook (`dropped-carrier--locked`,
-  // styled in tender.css) and `aria-disabled` — which SubAccordion has no prop
-  // for — can land without SubAccordion knowing anything changed.
   return (
-    <div className={locked ? 'dropped-carrier--locked' : undefined} aria-disabled={locked || undefined}>
+    // Kept as a plain wrapper (its S137 lock class is gone): RoutingHistoryTab's
+    // suite reads a version's own sections as `.routing-version__body >
+    // .sub-accordion`, and unwrapped this one would join them.
+    <div>
       <SubAccordion
         title={`Dropped Carrier (${carriers.length})`}
         defaultExpanded={defaultOpen}
-        // Controlled + forced shut while locked. Passing `expanded` at all
-        // switches SubAccordion out of its own internal (uncontrolled) state,
-        // so `locked` wins over whatever the user had open before a review
-        // landed — not just over future clicks (its header stays a real
-        // <button>, so onToggle would still fire; simply not wiring onToggle
-        // here means that click has nothing to call).
-        expanded={locked ? false : undefined}
       >
         {carriers.length === 0 ? (
           <p className="dropped-carrier__empty text-label-sm-regular">

@@ -15,7 +15,9 @@
  * there is no write path for a version yet; Saikat's code read, LINX-15895
  * comment 2026-09-15). What we render is therefore a plausible reconstruction
  * for review, not a read of stored history. Every rule below is ours and
- * provisional — see the decision log.
+ * provisional — see the decision log. Exception (D5, S163): once an order
+ * change is resolved, the versions it replaced are STORED
+ * (`tenderOptionVersions`) and read verbatim — see `persistedVersions`.
  *
  * Coherence rules (plan D6–D8), so a reviewer never sees a version that routing
  * could not have produced:
@@ -255,8 +257,32 @@ function orderChangeVersion(orderChange, currentOptions, orders, key, now) {
 }
 
 /**
+ * D5 (LINX-14510, S163) — the versions resolveOrderChange PERSISTED
+ * (`details.tenderOptionVersions`, appended on every adoption, oldest first,
+ * each with its own dropped list): read, not derived. Version 1 is the
+ * original routing — the same version orderChangeVersion derives from
+ * `priorTenderList` — so a persisted array REPLACES the derivation rather than
+ * joining it (no duplicate V1).
+ *
+ * `routedAt` is when the version became current: the adoption that replaced
+ * its predecessor. V1 has no recorded instant — it is drawn 2–20h before its
+ * own replacement, orderChangeVersion's span, so older stays strictly older.
+ */
+function persistedVersions(entries, orders, key) {
+  const r = rng(hash(`routing-history:${key}`))
+  return entries.map((e, i) => ({
+    version: e.version,
+    routedAt: i > 0 ? entries[i - 1].adoptedAt : isoMinus(new Date(e.adoptedAt), intIn(r, 2, 20)),
+    orders: e.orders ?? orders,
+    // A quote is a live-screen affordance, never a historical fact (as above).
+    options: (e.tenderList ?? []).map((o) => ({ ...o, quoteFlag: undefined, quoteAudit: undefined })),
+    droppedCarriers: e.droppedCarrierList ?? [],
+  })).reverse()
+}
+
+/**
  * @param {object} details  ShipmentDetailVM (routingData.options, droppedCarriers,
- *                          orderDetails) — read, never mutated.
+ *                          orderDetails, tenderOptionVersions) — read, never mutated.
  * @param {string} key      stable per-shipment PRNG key (the shipment identifier).
  * @param {Date}   [now]    fallback anchor, used only when no option carries a
  *                          parseable notify/pickup stamp (see `anchorInstant`).
@@ -270,6 +296,9 @@ export function deriveRoutingHistory(details, key, now = new Date()) {
   const orders = (details?.orderDetails ?? [])
     .map((o) => o.orderNumber || o.orderId)
     .filter(Boolean)
+
+  // D5 — stored history wins over any reconstruction.
+  if (details?.tenderOptionVersions?.length) return persistedVersions(details.tenderOptionVersions, orders, key)
 
   // DEC-175 R1 — checked first, but gated on a REAL prior list existing, not
   // just `orderChange` being present: an order-change payload with an empty

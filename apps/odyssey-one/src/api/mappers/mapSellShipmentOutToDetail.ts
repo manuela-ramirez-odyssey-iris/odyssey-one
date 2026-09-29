@@ -848,6 +848,16 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     productData: mapProducts(dto),
     routingData: mapRouting(dto),
     droppedCarriers: (dto.droppedCarrierList ?? []).map(mapDroppedCarrier),
+    // D5 (LINX-14510) — undefined when absent, so routingHistory.js falls back
+    // to its derivation. Rows through the same whitelists as the live lists.
+    tenderOptionVersions: dto.tenderOptionVersions?.map((v) => ({
+      version: v.version,
+      adoptedAt: v.adoptedAt,
+      reason: v.reason,
+      orders: v.orders,
+      tenderList: (v.tenderList ?? []).map(mapRoutingOption),
+      droppedCarrierList: (v.droppedCarrierList ?? []).map(mapDroppedCarrier),
+    })),
     orderChange: mapOrderChange(dto),
     costData: mapCost(dto),
     instructionsData: mapInstructions(dto),

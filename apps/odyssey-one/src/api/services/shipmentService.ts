@@ -116,6 +116,8 @@ export async function resolveOrderChange(
     stops?: Array<Partial<SellShipmentStop> & { stopSequence: number; stopType: string; sourceStopSequence: number | null }>
     // S144 — save-stops only; see ResolveOrderChangeInput's comment.
     externalOrders?: Array<{ orderNumber: string; sourceSellShipment: string }>
+    // D4 — retender/bypass, prior carrier not returned; see ResolveOrderChangeInput.
+    dates?: { pickupDateTime: string; deliveryDateTime: string }
   },
 ): Promise<void> {
   if (getApiMode() !== 'live') throw new Error('Order change needs the live API: run with the deployed or local API to save this change.')

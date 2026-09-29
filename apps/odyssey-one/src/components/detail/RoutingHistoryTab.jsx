@@ -29,6 +29,8 @@ import { formatDateTimeMDYHM } from '../../lib/dates.js'
  * clears the previous run's rows before writing the new ones — so there is
  * nothing to read even in live mode. Deriving keeps mock and live identical and
  * costs no API work; every rule in it is ours and provisional (decision log).
+ * Once an order change is resolved the replaced versions are stored instead
+ * (`tenderOptionVersions`, D5 / LINX-14510) and routingHistory.js reads them.
  *
  * ── WHY THE COLUMNS ARE THE TENDER TAB'S ───────────────────────────────────
  * "The information displayed within each section shall represent the snapshot of

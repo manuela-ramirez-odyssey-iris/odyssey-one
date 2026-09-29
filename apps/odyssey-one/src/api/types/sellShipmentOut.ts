@@ -474,6 +474,15 @@ export interface SellShipmentConsolidationLinePairVM {
   wgkClass: string | null
 }
 
+export interface SellShipmentTenderOptionVersion {
+  version: number
+  adoptedAt: string
+  reason: string
+  orders?: string[]
+  tenderList: SellShipmentRoutingOption[]
+  droppedCarrierList: SellShipmentDroppedCarrier[]
+}
+
 export interface SellShipmentOut {
   shipmentId: string
   /** S148 — the shipment's displayed name (prefix `O`/`C` + sequence), distinct
@@ -504,6 +513,9 @@ export interface SellShipmentOut {
   shippingOptionList?: SellShipmentRoutingOption[]
   droppedCarrierList?: SellShipmentDroppedCarrier[]
   orderChange?: SellShipmentOrderChange | null
+  /** D5 (LINX-14510) — each tender list an order-change adoption replaced,
+      oldest first (resolveOrderChange). Absent until the first adoption. */
+  tenderOptionVersions?: SellShipmentTenderOptionVersion[]
   /* Fake-data-only attachments (no real-contract equivalent yet): passed through
      verbatim to the Documents / Notes / History panes. */
   documentList?: unknown[]

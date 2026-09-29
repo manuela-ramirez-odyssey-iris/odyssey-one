@@ -65,6 +65,17 @@ function finishExitAnimation() {
 }
 
 describe('ProcessScacBar (LINX-15075) — collapse/expand', () => {
+  // D2 (LINX-14509) — a pending order change review locks Add Carrier in place.
+  it('locked: Add Carrier stays visible but disabled, with the lock reason', () => {
+    render(<ProcessScacBar onProcess={() => {}} locked />)
+    const btn = screen.getByRole('button', { name: 'Add Carrier' })
+    expect(btn.disabled).toBe(true)
+    fireEvent.click(btn)
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0)
+    fireEvent.mouseEnter(btn.closest('[data-tooltip-trigger]'))
+    expect(screen.getByText('Complete the order change review first.')).toBeTruthy()
+  })
+
   it('starts collapsed, showing only the Add Carrier button', () => {
     render(<ProcessScacBar onProcess={() => {}} />)
     expect(getToggleButton()).toBeTruthy()

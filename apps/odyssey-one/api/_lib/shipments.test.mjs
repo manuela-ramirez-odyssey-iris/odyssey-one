@@ -687,7 +687,8 @@ describe('resolveOrderChange', () => {
     }
     const { db, calls } = mkOc(detail)
     await resolveOrderChange({
-      params: ['S1'], body: { action: 'retender', cost: { choice: 'new', amount: 1234.56 } }, db,
+      // D4 — PRIOR isn't in the new list, so a Direct retender needs the dates.
+      params: ['S1'], body: { action: 'retender', cost: { choice: 'new', amount: 1234.56 }, dates: { pickupDateTime: '10/01/2026 08:00 CDT', deliveryDateTime: '10/03/2026 17:00 CDT' } }, db,
     })
     const texts = calls.map(textOf)
     const beginIdx = texts.indexOf('BEGIN')
@@ -729,6 +730,98 @@ describe('resolveOrderChange', () => {
     const optionListWrite = calls.find((q) => /shippingOptionList/.test(textOf(q)))
     const written = JSON.parse(optionListWrite.values[0])
     assert.equal(written.length, 1, 'PRIOR was dropped by routing — never inserted for cancel')
+  })
+
+  // ── D4 (S163, LINX-14513 Scenario 2): dates for a carrier routing didn't return ──
+  describe('D4 — required dates for an inserted prior carrier', () => {
+    const oc = {
+      prior: { scac: 'PRIOR', tenderStatus: 'Sent' },
+      newOption: { rank: 2 },
+      priorTenderList: [{ scac: 'PRIOR', rank: 1, status: 'Sent', pickupDateTime: '09/01/2026 08:00 CDT', deliveryDateTime: '09/02/2026 08:00 CDT' }],
+      newTenderList: [{ scac: 'AAAA', rank: 1, status: '' }],
+    }
+    const dates = { pickupDateTime: '10/01/2026 08:00 CDT', deliveryDateTime: '10/03/2026 17:00 CDT' }
+
+    for (const action of ['retender', 'bypass']) {
+      it(`${action}: a missing or malformed date 400s before any transaction opens`, async () => {
+        for (const bad of [undefined, { pickupDateTime: dates.pickupDateTime }, { ...dates, deliveryDateTime: '10/03/2026' }]) {
+          const { db, calls } = mkOc({ orderChange: oc })
+          await assert.rejects(
+            () => resolveOrderChange({ params: ['S1'], body: { action, priorTenderStatus: 'Sent', dates: bad }, db }),
+            (e) => e.status === 400 && e.message === 'Pickup and delivery dates are required for a carrier not returned by routing',
+          )
+          assert.ok(!calls.some((q) => textOf(q) === 'BEGIN'), 'nothing written')
+        }
+      })
+    }
+
+    it('the inserted prior row carries the planner\'s dates; the new list\'s own rows are untouched', async () => {
+      const { db, calls } = mkOc({ orderChange: oc })
+      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', dates }, db })
+      const written = JSON.parse(calls.find((q) => /shippingOptionList/.test(textOf(q))).values[0])
+      const prior = written.find((o) => o.scac === 'PRIOR')
+      assert.deepEqual([prior.pickupDateTime, prior.deliveryDateTime], [dates.pickupDateTime, dates.deliveryDateTime])
+      assert.equal(written.find((o) => o.scac === 'AAAA').pickupDateTime, undefined)
+    })
+
+    it('no dates needed when routing returned the prior carrier, or for cancel', async () => {
+      const returned = { ...oc, newTenderList: [...oc.newTenderList, { scac: 'PRIOR', rank: 2, status: '' }] }
+      await resolveOrderChange({ params: ['S1'], body: { action: 'retender' }, db: mkOc({ orderChange: returned }).db })
+      await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db: mkOc({ orderChange: oc }).db })
+    })
+
+    it('a consolidated order change is exempt — the inserted carrier takes the stop dates (DEC-206)', async () => {
+      const detail = {
+        orderChange: { ...oc, consolidation: {} },
+        shipmentStopList: [
+          { stopType: 'pickup', scheduledDateTime: 'October 5, 2026 09:00 CDT' },
+          { stopType: 'delivery', scheduledDateTime: 'October 7, 2026 15:00 CDT' },
+        ],
+      }
+      const { db, calls } = mkOc(detail)
+      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', dates }, db })
+      const prior = JSON.parse(calls.find((q) => /shippingOptionList/.test(textOf(q))).values[0]).find((o) => o.scac === 'PRIOR')
+      assert.deepEqual([prior.pickupDateTime, prior.deliveryDateTime], ['10/05/2026 09:00 CDT', '10/07/2026 15:00 CDT'], 'the stops, not body.dates')
+    })
+  })
+
+  // ── D5 (S163, LINX-14510): every adoption retains the list it replaces ──
+  it('D5: two successive adoptions leave two versions in order, each with its own dropped list', async () => {
+    const original = [{ scac: 'ORIG', rank: 1, status: 'Sent' }]
+    const d1 = {
+      orderList: [{ orderNumber: 'O1' }],
+      shippingOptionList: original,
+      droppedCarrierList: [{ scac: 'DROP1' }],
+      orderChange: { newTenderList: [{ scac: 'AAAA', rank: 1, status: '' }], droppedCarriers: { new: [{ scac: 'DROP2' }] } },
+    }
+    const first = mkOc(d1)
+    await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db: first.db })
+    const w1 = first.calls.find((q) => /tenderOptionVersions/.test(textOf(q)))
+    assert.ok(w1, 'the versions land in the shippingOptionList write')
+    const v1 = JSON.parse(w1.values[w1.values.length - 1])
+    assert.equal(v1.length, 1)
+    assert.deepEqual(
+      [v1[0].version, v1[0].reason, v1[0].orders, v1[0].tenderList, v1[0].droppedCarrierList.map((d) => d.scac)],
+      [1, 'Order Change', ['O1'], original, ['DROP1']],
+    )
+    assert.ok(!Number.isNaN(Date.parse(v1[0].adoptedAt)))
+
+    // The second adoption reads what the first wrote (the blob it left behind).
+    const d2 = {
+      ...d1,
+      shippingOptionList: JSON.parse(w1.values[0]),
+      droppedCarrierList: JSON.parse(w1.values[2]),
+      tenderOptionVersions: v1,
+      orderChange: { newTenderList: [{ scac: 'BBBB', rank: 1, status: '' }], droppedCarriers: { new: [{ scac: 'DROP3' }] } },
+    }
+    const second = mkOc(d2)
+    await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan' }, db: second.db })
+    const w2 = second.calls.find((q) => /tenderOptionVersions/.test(textOf(q)))
+    const v2 = JSON.parse(w2.values[w2.values.length - 1])
+    assert.deepEqual(v2.map((v) => v.version), [1, 2])
+    assert.deepEqual(v2[0], v1[0], 'version 1 untouched')
+    assert.deepEqual(v2[1].tenderList.map((o) => o.scac), ['AAAA'])
+    assert.deepEqual(v2[1].droppedCarrierList.map((d) => d.scac), ['DROP2'])
   })
 
   it('a failing tender write rolls back the whole resolution — nothing left half-written', async () => {

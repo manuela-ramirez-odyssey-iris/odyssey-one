@@ -462,6 +462,16 @@ export interface ShipmentDetailVM {
   productData: { orders: ProductOrderVM[] }
   routingData: { options: RoutingOptionVM[] }
   droppedCarriers: DroppedCarrierVM[]
+  /** D5 (LINX-14510) — persisted tender option versions, oldest first; absent
+      until an order-change adoption (src/data/routingHistory.js reads it). */
+  tenderOptionVersions?: {
+    version: number
+    adoptedAt: string
+    reason: string
+    orders?: string[]
+    tenderList: RoutingOptionVM[]
+    droppedCarrierList: DroppedCarrierVM[]
+  }[]
   /** LINX-14509…14515. Null on every shipment except the one row diverted
       into the 'order-change' exceptions category. */
   orderChange: OrderChangeVM | null

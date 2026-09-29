@@ -155,12 +155,14 @@ export default function OrderChangeReviewRoute() {
   // choice/quoteAmount state.
   const [selectedCost, setSelectedCost] = useState(null)
 
-  function finish(action, cost) {
-    setPending({ action, cost })
+  // D4 (LINX-14513 Scenario 2) — `dates` rides along only when the card
+  // made the planner enter them (prior carrier not returned by routing).
+  function finish(action, cost, dates) {
+    setPending({ action, cost, dates })
   }
 
   function runPending() {
-    const { action, cost } = pending
+    const { action, cost, dates } = pending
     setPending(null)
     setResolveError('') // clear any stale error before a fresh attempt
     resolve.mutate(
@@ -173,6 +175,7 @@ export default function OrderChangeReviewRoute() {
         // consume it.
         priorScac: oc?.prior?.scac,
         cost,
+        dates,
       },
       {
         onSuccess: () => {

@@ -3,6 +3,8 @@ import { Plus, Truck } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { ComboBox, Button } from '@odyssey/ui'
 import { TENDER_SCAC_OPTIONS, equipmentForScac, EQUIPMENT_LABELS } from '../../data/master-data.js'
+import TooltipTrigger from '../ui/TooltipTrigger.jsx'
+import { OC_REVIEW_LOCK_TOOLTIP } from '../../lib/orderChangeDoorway.js'
 
 /**
  * LINX-15075 — the SCAC + Equipment picker doorway into Process SCAC.
@@ -29,7 +31,9 @@ import { TENDER_SCAC_OPTIONS, equipmentForScac, EQUIPMENT_LABELS } from '../../d
 // Static for the app's lifetime — computed once, not per render.
 const SCAC_OPTIONS = TENDER_SCAC_OPTIONS.map((c) => ({ value: c.scac, label: `${c.scac} — ${c.name}` }))
 
-export default function ProcessScacBar({ onProcess, processingScac = null, excludeScacs = [] }) {
+// D2 (LINX-14509) — `locked` (a pending order change review) disables Add
+// Carrier in place, with the lock reason as its tooltip.
+export default function ProcessScacBar({ onProcess, processingScac = null, excludeScacs = [], locked = false }) {
   const [expanded, setExpanded] = useState(false)
   const [scac, setScac] = useState(null)
   const [equipment, setEquipment] = useState(null)
@@ -86,6 +90,16 @@ export default function ProcessScacBar({ onProcess, processingScac = null, exclu
       {expanded ? 'Cancel' : 'Add Carrier'}
     </Button>
   )
+
+  if (locked) {
+    return (
+      <div className="process-scac-bar">
+        <TooltipTrigger tooltipProps={{ groups: [{ content: OC_REVIEW_LOCK_TOOLTIP }] }}>
+          <Button variant="secondary" size="sm" icon={<Plus {...ICON_MD} aria-hidden="true" />} disabled>Add Carrier</Button>
+        </TooltipTrigger>
+      </div>
+    )
+  }
 
   if (!expanded) {
     return <div className="process-scac-bar">{toggle}</div>

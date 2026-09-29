@@ -815,6 +815,20 @@ export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChang
   }
 }
 
+// The prior carrier's row when retender/bypass will INSERT it into the new
+// list (LINX-14513 Scenario 2: routing didn't return it), else null. One
+// predicate for adoptNewTenderList and resolveOrderChange's D4 date gate.
+function priorToInsert(action, orderChange) {
+  const priorScac = orderChange?.prior?.scac ?? null
+  if ((action !== 'retender' && action !== 'bypass') || !priorScac) return null
+  if ((orderChange?.newTenderList ?? []).some((o) => o.scac === priorScac)) return null
+  return (orderChange?.priorTenderList ?? []).find((o) => o.scac === priorScac) ?? null
+}
+
+// D4 — the tender option's own short form, `MM/DD/YYYY HH:MM TZ`
+// (lib/dates.js; e.g. '05/12/2026 12:00 EDT').
+const TENDER_DATE_RE = /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2} [A-Z]{2,5}$/
+
 // T4 (S160) — the new tender list actually becomes current on every
 // resolution. Before this, no resolution ever wrote `orderChange.newTenderList`
 // anywhere durable: the Tender tab kept reading the PRIOR list forever (via
@@ -834,24 +848,25 @@ export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChang
 // never inserted, there's no carrier left to cancel. approve-plan / a
 // save-stops Scenario-B save: the new list stands untendered (LINX-15671 —
 // "No tender action shall be automatically initiated").
-export function adoptNewTenderList(action, orderChange, cost, outcome) {
+//
+// `dates` (D4, LINX-14513 Scenario 2) — {pickupDateTime, deliveryDateTime}
+// the planner entered for an INSERTED prior carrier: routing didn't return
+// it, so it has no dates of its own for the new plan. Ignored otherwise.
+export function adoptNewTenderList(action, orderChange, cost, outcome, dates = null) {
   const priorScac = orderChange?.prior?.scac ?? null
-  const priorTenderList = orderChange?.priorTenderList ?? []
   let rows = (orderChange?.newTenderList ?? []).map((o) => ({ ...o }))
 
-  const hasPrior = priorScac != null && rows.some((o) => o.scac === priorScac)
-  if ((action === 'retender' || action === 'bypass') && priorScac && !hasPrior) {
-    const priorRow = priorTenderList.find((o) => o.scac === priorScac)
-    if (priorRow) {
-      // newOption.rank is the seeded insertion rank (generate.mjs's
-      // insertionRank — one past the last option sharing its equipment
-      // group); rows.length + 1 (append) is the only defensive fallback,
-      // unreachable against real seed data.
-      const insertAt = orderChange?.newOption?.rank ?? (rows.length + 1)
-      rows = rows.map((o) => (o.rank >= insertAt ? { ...o, rank: o.rank + 1 } : o))
-      rows.push({ ...priorRow, rank: insertAt })
-      rows.sort((a, b) => a.rank - b.rank)
-    }
+  const priorRow = priorToInsert(action, orderChange)
+  if (priorRow) {
+    // newOption.rank is the seeded insertion rank (generate.mjs's
+    // insertionRank — one past the last option sharing its equipment
+    // group); rows.length + 1 (append) is the only defensive fallback,
+    // unreachable against real seed data.
+    const insertAt = orderChange?.newOption?.rank ?? (rows.length + 1)
+    rows = rows.map((o) => (o.rank >= insertAt ? { ...o, rank: o.rank + 1 } : o))
+    const dated = dates ? { pickupDateTime: dates.pickupDateTime, deliveryDateTime: dates.deliveryDateTime } : {}
+    rows.push({ ...priorRow, ...dated, rank: insertAt })
+    rows.sort((a, b) => a.rank - b.rank)
   }
 
   const applyCost = (action === 'retender' || action === 'bypass') && typeof cost?.amount === 'number'
@@ -913,13 +928,39 @@ export function buildTenderDeleteQuery(sellShipment) {
 // C24 (S163) — `dropped` (adoptDroppedCarriers) lands in the same write, so
 // the adopted list and its dropped carriers can't disagree; null keeps the
 // shipment's own droppedCarrierList.
-export function buildShippingOptionListQuery(sellShipment, rows, dropped = null) {
-  const set = `jsonb_set(detail, '{shippingOptionList}', $1::jsonb)`
+// D5 (LINX-14510) — `versions` (tenderOptionVersionsAfter) too: the whole
+// detail.tenderOptionVersions array, same write.
+export function buildShippingOptionListQuery(sellShipment, rows, dropped = null, versions = null) {
+  const values = [JSON.stringify(rows), sellShipment]
+  let set = `jsonb_set(detail, '{shippingOptionList}', $1::jsonb)`
+  if (dropped) { values.push(JSON.stringify(dropped)); set = `jsonb_set(${set}, '{droppedCarrierList}', $${values.length}::jsonb)` }
+  if (versions) { values.push(JSON.stringify(versions)); set = `jsonb_set(${set}, '{tenderOptionVersions}', $${values.length}::jsonb)` }
   return {
-    text: `UPDATE shipments SET detail = ${dropped ? `jsonb_set(${set}, '{droppedCarrierList}', $3::jsonb)` : set}
+    text: `UPDATE shipments SET detail = ${set}
            WHERE sell_shipment = $2`,
-    values: dropped ? [JSON.stringify(rows), sellShipment, JSON.stringify(dropped)] : [JSON.stringify(rows), sellShipment],
+    values,
   }
+}
+
+// D5 (LINX-14510) — "previous versions retained… each with its own Dropped
+// Carrier list": every adoption appends the list it REPLACES, so version 1 is
+// the original routing and the adopted list is always the (unstored) current
+// one. `detail` is the pre-adoption blob. ponytail: the blob's
+// shippingOptionList, not the tenders table — the two agree at every adoption
+// the prototype reaches (seed.mjs copies the blob into tenders, tendering is
+// locked for the whole review, LINX-14509, and each adoption rewrites both);
+// read tenders here if a live tender edit can ever land between two adoptions.
+export function tenderOptionVersionsAfter(detail, adoptedAt) {
+  const versions = detail?.tenderOptionVersions ?? []
+  return [...versions, {
+    version: versions.length + 1,
+    adoptedAt,
+    reason: 'Order Change',
+    // The roster that version was routed for — a save-stops adoption changes it in the same write.
+    orders: (detail?.orderList ?? []).map((o) => o.orderNumber ?? String(o.orderId)),
+    tenderList: detail?.shippingOptionList ?? [],
+    droppedCarrierList: detail?.droppedCarrierList ?? [],
+  }]
 }
 
 // C24 (S163) — an adopted tender list carries the dropped carriers of the
@@ -952,10 +993,10 @@ export function adoptDroppedCarriers(orderChange, existing = []) {
 // of adopting a list is "this is the list now"; the row count here (a
 // shipment's carrier count) is small enough that N+1 inserts cost nothing
 // worth a bulk-VALUES query.
-async function writeTenderAdoption(client, sellShipment, rows, dropped) {
+async function writeTenderAdoption(client, sellShipment, rows, dropped, versions) {
   await client.query(buildTenderDeleteQuery(sellShipment))
   for (const row of rows) await client.query(buildTenderInsertQuery(sellShipment, row))
-  await client.query(buildShippingOptionListQuery(sellShipment, rows, dropped))
+  await client.query(buildShippingOptionListQuery(sellShipment, rows, dropped, versions))
 }
 
 export async function resolveOrderChange({ params, body, db }) {
@@ -1071,7 +1112,7 @@ export async function resolveOrderChange({ params, body, db }) {
         const tenderRows = adoptNewTenderList(action, adopted, null, outcome)
         listCarrier = listCarrierFor(action, tenderRows, adopted)
         await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
-        await writeTenderAdoption(client, sellShipment, tenderRows, adoptDroppedCarriers(adopted, detail.droppedCarrierList))
+        await writeTenderAdoption(client, sellShipment, tenderRows, adoptDroppedCarriers(adopted, detail.droppedCarrierList), tenderOptionVersionsAfter(detail, resolution.resolvedAt))
       }
       if (searchRow) {
         const { pickupNumbers, shipmentType } = computeListAggregates(orderList)
@@ -1111,7 +1152,17 @@ export async function resolveOrderChange({ params, body, db }) {
     // The planner approved exactly what View Routing showed (same function).
     orderChange = { ...orderChange, newTenderList: rerouteTenderList(orderChange.newTenderList ?? [], stops, baselineMilesOf(detail)) }
   }
-  let tenderRows = adoptNewTenderList(action, orderChange, cost, outcome)
+  // D4 (LINX-14513 Scenario 2 note: "user shall be forced to pick 'Pickup
+  // Date' and 'Delivery Date'") — a Direct order change inserting a carrier
+  // routing didn't return has no dates for it; the planner supplies them.
+  // Checked before BEGIN, so a 400 writes nothing. A consolidated one is
+  // exempt: applyStopDates below dates it from the stops (DEC-206).
+  const dates = orderChange.consolidation ? null : body?.dates
+  if (!orderChange.consolidation && priorToInsert(action, orderChange)
+      && !(TENDER_DATE_RE.test(dates?.pickupDateTime ?? '') && TENDER_DATE_RE.test(dates?.deliveryDateTime ?? ''))) {
+    const e = new Error('Pickup and delivery dates are required for a carrier not returned by routing'); e.status = 400; throw e
+  }
+  let tenderRows = adoptNewTenderList(action, orderChange, cost, outcome, dates)
   // The inserted prior carrier also carries the stop dates (Jana 09-25
   // @00:15:03–00:16:29); the rest already do (Save wrote the re-routed list).
   if (orderChange.consolidation && (action === 'retender' || action === 'bypass')) tenderRows = applyStopDates(tenderRows, stops)
@@ -1121,7 +1172,7 @@ export async function resolveOrderChange({ params, body, db }) {
   try {
     await client.query('BEGIN')
     await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
-    await writeTenderAdoption(client, sellShipment, tenderRows, adoptDroppedCarriers(orderChange, detail.droppedCarrierList))
+    await writeTenderAdoption(client, sellShipment, tenderRows, adoptDroppedCarriers(orderChange, detail.droppedCarrierList), tenderOptionVersionsAfter(detail, resolution.resolvedAt))
     await client.query('COMMIT')
   } catch (e) {
     try { await client.query('ROLLBACK') } catch {}

@@ -260,27 +260,26 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
 
   // S137 — a pending order change blocks this section (Process SCAC is a
   // tendering action) via the `locked` prop RoutingGuideTab drives off
-  // `pendingOrderChange`. Unit-tested here in isolation from that gate.
-  describe('locked (S137)', () => {
-    it('forces the section shut even though defaultOpen defaults to true', () => {
-      render(<DroppedCarrierSection carriers={[carrier]} locked />)
-      expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+  // `pendingOrderChange`. D2 (LINX-14509) — the rows stay readable; only
+  // Reinstate disables. Unit-tested here in isolation from that gate.
+  describe('locked (S137, D2)', () => {
+    it('keeps the section open and its rows readable', () => {
+      render(<DroppedCarrierSection carriers={[carrier]} onProcess={vi.fn()} locked />)
+      expect(screen.getByRole('button', { name: /JBHT/ })).toBeTruthy()
     })
 
-    it('clicking the header while locked does not expand it', () => {
-      render(<DroppedCarrierSection carriers={[carrier]} locked />)
-      fireEvent.click(screen.getByRole('button', { name: /Dropped Carrier/ }))
-      expect(screen.queryByRole('button', { name: /JBHT/ })).toBeNull()
+    it('disables Reinstate with the lock reason as its tooltip', () => {
+      const onProcess = vi.fn()
+      render(<DroppedCarrierSection carriers={[carrier]} onProcess={onProcess} locked />)
+      const btn = screen.getByRole('button', { name: 'Reinstate' })
+      expect(btn.disabled).toBe(true)
+      fireEvent.click(btn)
+      expect(onProcess).not.toHaveBeenCalled()
+      fireEvent.mouseEnter(btn.closest('[data-tooltip-trigger]'))
+      expect(screen.getByText('Complete the order change review first.')).toBeTruthy()
     })
 
-    it('marks the wrapper aria-disabled and tags it with the locked class', () => {
-      const { container } = render(<DroppedCarrierSection carriers={[carrier]} locked />)
-      const wrapper = container.querySelector('.dropped-carrier--locked')
-      expect(wrapper).toBeTruthy()
-      expect(wrapper.getAttribute('aria-disabled')).toBe('true')
-    })
-
-    it('leaves the section fully togglable when not locked (contrast case)', () => {
+    it('leaves the section fully togglable (contrast case)', () => {
       render(<DroppedCarrierSection carriers={[carrier]} />)
       // defaultOpen: starts expanded, collapses, then reopens — proving the
       // header genuinely still works when `locked` isn't set.

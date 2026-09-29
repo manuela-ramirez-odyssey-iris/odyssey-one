@@ -18,7 +18,8 @@ import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { WRAP_HEADER_W, LOCKED_COLUMNS, NEVER_COLLAPSE_KEYS, COLLAPSIBLE_KEYS, TAB_COLUMNS, SUB_TABS } from './tenderColumns.js'
 import { applyTenderAction } from '../../lib/tenderAction.js'
-import { consolidatedReviewPending } from '../../lib/orderChangeDoorway.js'
+import { consolidatedReviewPending, OC_REVIEW_LOCK_TOOLTIP } from '../../lib/orderChangeDoorway.js'
+import TooltipTrigger from '../ui/TooltipTrigger.jsx'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -489,7 +490,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, tabColumns, highlightedRank, processRank, addedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns }) {
+function RoutingTable({ options, tabColumns, highlightedRank, processRank, addedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns, locked = false }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -679,11 +680,6 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
         <div
           onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
           title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
-          // S137 — the ONLY reason this lane carries a class: it is neither a
-          // tbody nor the Process SCAC bar, so the order-change lock's blur
-          // (tender.css) had no selector for it and the expander stayed crisp
-          // in front of the overlay while everything around it receded.
-          className="tender-pane__col-toggle"
           style={{
             /* 36px lane, white, 20px glyph — the mock's Right Table Expander
                (Figma 1596:21583). It was a 20px gray lane with a 14px icon: at
@@ -774,11 +770,18 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                     // `position: sticky; z-index: 3` sits above the row-level
                     // overlay, so the drift passes behind it. Correct for a
                     // pinned column — it stays put while the row moves under it.
+                    // D2 (LINX-14509) — the row menu (Tender/Accept/Decline/
+                    // Cancel, Add/Edit Quote) is a tender action: while a
+                    // review is pending the lane stays in place, its glyph
+                    // dimmed (not the cell — it's sticky, a translucent cell
+                    // would show the scrolled columns through it), and opens
+                    // nothing.
+                    aria-disabled={locked || undefined}
                     style={{
                       ...stickyLastCol,
                       ...ACTION_LANE,
                       borderBottom: '1px solid var(--border-subtle)',
-                      cursor: 'pointer',
+                      cursor: locked ? 'not-allowed' : 'pointer',
                       // S136 — a highlighted no-status row (freshly Process-SCAC'd) falls
                       // back to the SAME blue getRowBg already tints the rest of the row
                       // with, not plain white. Without this the action lane was the one
@@ -789,6 +792,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
+                      if (locked) return
                       const rect = e.currentTarget.getBoundingClientRect()
                       const dropdownHeight = 200
                       const spaceBelow = window.innerHeight - rect.bottom
@@ -803,7 +807,9 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                           the same weight as the header's arrange control (user, 2026-08-17).
                           S136 — same highlighted fallback as the cell's own background,
                           so the icon doesn't read as invisible/placeholder-gray against it. */}
-                      <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? 'var(--text-placeholder)' }} />
+                      <TooltipTrigger asSpan disabled={!locked} tooltipProps={{ groups: [{ content: OC_REVIEW_LOCK_TOOLTIP }] }}>
+                        <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? 'var(--text-placeholder)', opacity: locked ? 0.5 : undefined }} />
+                      </TooltipTrigger>
                     </div>
                   </td>
                 </tr>
@@ -1559,14 +1565,20 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // Order Change tab remains the shortcut; this is the AC's canonical entry
   // point.
   //
-  // S137 — moved OFF the sub-tabs row and ONTO the table-card overlay below
-  // (domain ruling, Jana via designer): a pending order change now blocks
-  // every OTHER tendering action on this screen too — Accept/Decline/Cancel/
-  // Tender in the table, Process SCAC in both its doorways (the trailing
-  // ProcessScacBar row AND the Dropped Carrier section) — not just the entry
-  // point into the review. One instance only; size bumped sm → md → lg per
-  // the designer's successive instructions for its new, more prominent home
-  // (it is now the ONLY thing the planner can act on in this whole card).
+  // S137 — a pending order change blocks every OTHER tendering action on
+  // this screen too (domain ruling, Jana via designer) — the row menus
+  // (Accept/Decline/Cancel/Tender, Add/Edit Quote), Process SCAC in both its
+  // doorways (the trailing ProcessScacBar row AND the Dropped Carrier
+  // section) — not just the entry point into the review.
+  //
+  // D2 (LINX-14509 "shall be able to view Tender information while the
+  // shipment is pending Order Change review") — S137's blur+inert overlay hid
+  // the tender list it was meant to lock. The content now renders as usual;
+  // each tender control is DISABLED in place (not hidden, so the layout never
+  // shifts) with OC_REVIEW_LOCK_TOOLTIP as its reason. With no overlay to sit
+  // on, the button went back to its S135 home: the trailing side of the
+  // sub-tabs row, at the size it had there (sm) — no new CSS, and the table
+  // card's own layout doesn't move when a review lands or clears.
   const { openSheet } = useSheet()
   const pendingOrderChange = shipmentDetails?.orderChange && !shipmentDetails.orderChange.resolution
   // C20 (LINX-15435 BR1) — same rule as the Stops-tab review: once the stops
@@ -1575,18 +1587,15 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   const reviewOrderChangeButton = (
     <Button
       variant="secondary"
-      size="lg"
+      size="sm"
       // No icon (user, 2026-09-07 — it wore three different glyphs across
       // the day and none earned its place). The LABEL is purple instead:
       // the review flow's accent, the same token the diff badges and the
       // Tender tab's own alert badge use.
       style={{ color: 'var(--badge-purple-text)' }}
-      // No `tender-pane__review-oc` class any more (S137, caught in the
-      // browser): that rule was `margin-left: auto` + `margin-bottom`, which
-      // is how it right-aligned itself in the sub-tabs row it USED to live in.
-      // Carried onto the overlay, the auto margin beats the overlay's own
-      // `justify-content: center` — the button rendered 529px right of centre,
-      // hard against the table's right edge. The rule went with the old home.
+      // Right-aligned by the row's own `justify-content: space-between`
+      // (tender.css) inside `.tender-pane__tab-actions` — the old
+      // `tender-pane__review-oc` auto-margin rule stays retired (S137).
       // LINX-14509: the Direct review route is "Direct Shipments only". A
       // consolidated shipment reviews on its Stops tab instead (LINX-15435
       // "Stops tab shall be selected by default when accessed from an Order
@@ -1620,31 +1629,18 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
               />
             ))}
           </div>
+          {pendingOrderChange && (
+            <div className="tender-pane__tab-actions">{reviewOrderChangeButton}</div>
+          )}
         </div>
       </div>
 
       <div className="pane-col pane-col--wide tender-pane__col">
         {/* Row 2: table in a wide bordered container directly on canvas.
-            S137 — a pending order change blocks every tendering action here
-            (domain ruling, Jana via designer): the table (RoutingTable) AND
-            the ProcessScacBar trailing row (Process SCAC IS a tendering
-            action) both go behind a blur+scrim, Review Order Change centered
-            on top as the one thing still reachable. The blurred content lives
-            in its OWN inner wrapper, never on `.tender-pane__table-card`
-            itself — the overlay is that wrapper's SIBLING, so a blurred
-            ancestor can't blur the button along with it. */}
+            D2 (LINX-14509) — readable during a pending review; the tender
+            controls inside lock individually (`locked` below), not the card. */}
         <div className="tender-pane__table-card">
-          <div
-            className={`tender-pane__table-card-inner${pendingOrderChange ? ' tender-pane__table-card-inner--locked' : ''}`}
-            // aria-hidden pulls it out of the accessibility tree; `inert`
-            // (React 19, plain prop) additionally drops it from the tab
-            // order and swallows pointer/keyboard input on every descendant
-            // — `pointer-events: none` alone leaves it tabbable. Same pairing
-            // SubAccordion's own collapsed reveal already uses (packages/ui/
-            // src/SubAccordion.jsx) — no new precedent invented here.
-            aria-hidden={pendingOrderChange || undefined}
-            inert={pendingOrderChange || undefined}
-          >
+          <div className="tender-pane__table-card-inner">
             {/* S140 — the card's own name. Same heading size SubAccordion
                 gives the Dropped Carrier section below, so the two read as
                 siblings rather than a titled section under an untitled one. */}
@@ -1667,6 +1663,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
             onExpand={handleExpand}
             onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
             onOpenColumns={() => setColumnPanelOpen(true)}
+            locked={!!pendingOrderChange}
           />
             </div>
             {/* LINX-15075 — the picker doorway. Revised 2026-09-01: mounted
@@ -1683,13 +1680,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
               // re-added here — offering it twice only routes to the
               // duplicate refusal.
               excludeScacs={(shipmentDetails?.droppedCarriers || []).map((c) => c.scac)}
+              locked={!!pendingOrderChange}
             />
           </div>{/* /tender-pane__table-card-inner */}
-          {pendingOrderChange && (
-            <div className="tender-pane__oc-overlay">
-              {reviewOrderChangeButton}
-            </div>
-          )}
         </div>{/* /tender-pane__table-card */}
 
         {/* LINX-13953 — its own card: GroupTable owns horizontal scroll and
@@ -1706,9 +1699,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
             processingScac={processingScac}
             tenderOptions={options}
             // S137 — Process SCAC from this doorway is a tendering action too;
-            // collapse + lock it shut while a review is pending, same ruling
-            // as the table above.
-            locked={pendingOrderChange}
+            // D2: its Reinstate buttons disable while a review is pending, the
+            // dropped rows themselves stay readable.
+            locked={!!pendingOrderChange}
           />
         </div>
       </div>{/* /pane-col */}

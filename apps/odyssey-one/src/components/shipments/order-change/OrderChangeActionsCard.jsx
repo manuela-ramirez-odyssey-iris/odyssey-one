@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, FormField, HeaderStrip, Radio } from '@odyssey/ui'
 import { QuoteModal } from '../../detail/QuoteModal.jsx'
+import { StopDateField } from '../../detail/order-change/EditStopsView.jsx'
+import { parseStamp, stampValue } from '../../detail/order-change/stopsSandbox.js'
+import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 
 // "Actions to Keep Current Carrier" (Figma 1794-5544, LINX-14513/14514). The
 // entire card is about ONE carrier — the prior one (domain expert: "the
@@ -16,6 +19,15 @@ const DASH = '--' // LINX-13590 convention — empty optional values read '--'
 const amountStr = (n) => (n == null ? '' : n.toFixed(2))
 
 const dash = (v) => (v === null || v === undefined || v === '' ? DASH : v)
+
+// D4 (LINX-14513 Scenario 2, note 2: "If Date are not available, user shall
+// be forced to pick 'Pickup Date' and 'Delivery Date'").
+const DATES_TOOLTIP = 'Enter the pickup and delivery dates first'
+const pad2 = (n) => String(n).padStart(2, '0')
+// The tender option's own short form ("01/07/2026 09:00 CST") — what the
+// server writes onto the inserted prior row. StopDateField speaks the stops'
+// long form, so it's converted here, on the way out.
+const shortStamp = (p) => `${pad2(p.mo + 1)}/${pad2(p.d)}/${p.y} ${pad2(p.h)}:${pad2(p.mi)} ${p.tz}`
 
 // Tender Status / Route Rank / Rank all render as Badge (Figma 1793:5274).
 // Pixel-measured off the mock: the Prior|New panel does NOT color-code
@@ -90,7 +102,9 @@ function ComparisonField({ label, changed = false, children }) {
 // fields (SCAC / Equipment / Tender Status, then Route Rank / Rank / empty),
 // and a 2-column grid for the two dates (Delivery precedes Pickup, the AC's
 // own order). `changed` is only ever non-empty for the New side.
-function ComparisonPanel({ heading, carrier, changed = {} }) {
+// `dateFields` (D4) replaces the read-only date pair when the dates are the
+// planner's to enter (build-delta row 10).
+function ComparisonPanel({ heading, carrier, changed = {}, dateFields = null }) {
   return (
     <div className="order-change-actions__panel">
       <HeaderStrip title={heading} />
@@ -112,10 +126,12 @@ function ComparisonPanel({ heading, carrier, changed = {} }) {
             Pickup Date above Delivery Date on both panels. LINX-14511's field
             list happens to name Delivery first, but it's a list of fields,
             not a stated ordering rule, so the mock decides the layout here. */}
-        <div className="order-change-actions__grid-2">
-          <ComparisonField label="Pickup Date/Time">{dash(carrier.pickupDateTime)}</ComparisonField>
-          <ComparisonField label="Delivery Date/Time">{dash(carrier.deliveryDateTime)}</ComparisonField>
-        </div>
+        {dateFields ?? (
+          <div className="order-change-actions__grid-2">
+            <ComparisonField label="Pickup Date/Time">{dash(carrier.pickupDateTime)}</ComparisonField>
+            <ComparisonField label="Delivery Date/Time">{dash(carrier.deliveryDateTime)}</ComparisonField>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -188,7 +204,35 @@ export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
     setQuoteOpen(false)
   }
 
-  const fire = (action) => onAction(action, { choice, amount: selectedAmount })
+  // D4 (LINX-14513 Scenario 2) — the prior carrier wasn't returned, so
+  // routing gave it no dates: the planner enters Pickup and Delivery (date,
+  // time AND zone — the C16 rule Edit Stops already enforces), blank to
+  // start, and Re-Tender/Bypass wait for both with delivery after pickup.
+  // Cancel Tender (the route's header) needs none. A consolidated change is
+  // exempt: its inserted prior carrier takes the stop dates (DEC-206,
+  // applyStopDates server-side).
+  // ponytail: keyed on `scenario` alone — `newOption` is present in both
+  // scenarios (generate.mjs) and this card already dereferences it throughout.
+  const needsDates = oc.scenario === 'not-returned' && !oc.consolidation
+  const [pickupDate, setPickupDate] = useState('')
+  const [deliveryDate, setDeliveryDate] = useState('')
+  const pickup = parseStamp(pickupDate)
+  const delivery = parseStamp(deliveryDate)
+  const datesReady = !needsDates || (!!pickup?.tz && !!delivery?.tz && stampValue(delivery) > stampValue(pickup))
+
+  // Dates ride as a third argument only when entered — Scenario 1 keeps the
+  // two-argument call it always made.
+  const fire = (action) => onAction(
+    action,
+    { choice, amount: selectedAmount },
+    ...(needsDates ? [{ pickupDateTime: shortStamp(pickup), deliveryDateTime: shortStamp(delivery) }] : []),
+  )
+  const dateFields = needsDates ? (
+    <>
+      <StopDateField id="oc-pickup" label="Pickup Date" value={pickupDate} onChange={setPickupDate} />
+      <StopDateField id="oc-delivery" label="Delivery Date" value={deliveryDate} onChange={setDeliveryDate} />
+    </>
+  ) : null
 
   return (
     <section className="order-change-actions">
@@ -235,7 +279,7 @@ export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
 
       <div className="order-change-actions__comparison">
         <ComparisonPanel heading="Prior" carrier={prior} />
-        <ComparisonPanel heading="New" carrier={newOption} changed={newSideChanges} />
+        <ComparisonPanel heading="New" carrier={newOption} changed={newSideChanges} dateFields={dateFields} />
       </div>
 
       <hr className="order-change-actions__hr" />
@@ -248,12 +292,16 @@ export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
               it was Accepted (both backend's job — this card reports the
               choice). aria-describedby ties the required-selection "*" to
               both actions, since the label itself isn't a native <label>. */}
-          <Button variant="secondary" onClick={() => fire('bypass')} disabled={selectedAmount == null} aria-describedby="oc-tender-action-label">
-            Bypass Tender
-          </Button>
-          <Button variant="primary" onClick={() => fire('retender')} disabled={selectedAmount == null} aria-describedby="oc-tender-action-label">
-            Re Tender
-          </Button>
+          <TooltipTrigger disabled={datesReady} tooltipProps={{ groups: [{ content: DATES_TOOLTIP }] }}>
+            <Button variant="secondary" onClick={() => fire('bypass')} disabled={selectedAmount == null || !datesReady} aria-describedby="oc-tender-action-label">
+              Bypass Tender
+            </Button>
+          </TooltipTrigger>
+          <TooltipTrigger disabled={datesReady} tooltipProps={{ groups: [{ content: DATES_TOOLTIP }] }}>
+            <Button variant="primary" onClick={() => fire('retender')} disabled={selectedAmount == null || !datesReady} aria-describedby="oc-tender-action-label">
+              Re Tender
+            </Button>
+          </TooltipTrigger>
         </div>
       </div>
 
