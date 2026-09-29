@@ -29825,11 +29825,11 @@
   "poNumber": "79BDWZD69",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "DW-TX-064",
-   "name": "DALLAS WORKS",
-   "address": "9568 Cedar Avenue",
-   "city": "Dallas",
-   "state": "TX",
+   "locationId": "BW-LA-062",
+   "name": "BASTROP WORKS",
+   "address": "2840 Industrial Pkwy",
+   "city": "Bastrop",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-03-12T04:15:00",
    "latestPickupDateTime": "2026-03-12T07:00:00"
@@ -45152,11 +45152,11 @@
   "poNumber": "VVJPNIABA",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "SAW-TX-075",
-   "name": "SAN ANTONIO WORKS",
-   "address": "1339 Pauline Ridges",
-   "city": "San Antonio",
-   "state": "TX",
+   "locationId": "CW-IL-073",
+   "name": "CHICAGO WORKS",
+   "address": "4999 Industrial Pkwy",
+   "city": "Chicago",
+   "state": "IL",
    "country": "US",
    "earliestPickupDateTime": "2026-03-03T09:30:00",
    "latestPickupDateTime": "2026-03-03T14:00:00"
@@ -52568,11 +52568,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "LCD-LA-095",
-   "name": "LAKE CHARLES DIST CTR",
-   "address": "689 Bay Street",
-   "city": "Lake Charles",
-   "state": "LA",
+   "locationId": "DDC-TX-094",
+   "name": "DALLAS DIST CTR",
+   "address": "4708 Industrial Pkwy",
+   "city": "Dallas",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-06-20T04:45:00",
    "latestPickupDateTime": "2026-06-20T08:00:00"
@@ -63191,11 +63191,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "DT-TX-004",
-   "name": "DALLAS TERMINAL",
-   "address": "6396 Vito Ports",
-   "city": "Dallas",
-   "state": "TX",
+   "locationId": "BT-LA-002",
+   "name": "BASTROP TERMINAL",
+   "address": "2539 Industrial Pkwy",
+   "city": "Bastrop",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-01-22T05:00:00",
    "latestPickupDateTime": "2026-01-22T08:00:00"
@@ -63281,11 +63281,11 @@
   "poNumber": "4337674908",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "HT-TX-001",
-   "name": "HOUSTON TERMINAL",
-   "address": "9754 Witting Park",
-   "city": "Houston",
-   "state": "TX",
+   "locationId": "BT-LA-002",
+   "name": "BASTROP TERMINAL",
+   "address": "2027 Industrial Pkwy",
+   "city": "Bastrop",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-01-22T09:45:00",
    "latestPickupDateTime": "2026-01-22T11:00:00"
@@ -73208,11 +73208,11 @@
   "poNumber": "6276744711",
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "CW-TX-069",
-   "name": "CHANNELVIEW WORKS",
-   "address": "438 St Mary's Close",
-   "city": "Channelview",
-   "state": "TX",
+   "locationId": "AW-GA-071",
+   "name": "ATLANTA WORKS",
+   "address": "2755 Industrial Pkwy",
+   "city": "Atlanta",
+   "state": "GA",
    "country": "US",
    "earliestPickupDateTime": "2026-01-05T12:15:00",
    "latestPickupDateTime": "2026-01-05T13:00:00"
@@ -73240,7 +73240,7 @@
   "hazardous": true,
   "createdAt": "2026-01-02T08:15:00",
   "createdBy": "eve.planner",
-  "createdTimeZoneCode": "CST"
+  "createdTimeZoneCode": "EST"
  },
  {
   "orderNumber": "GEO-92619",
@@ -73253,11 +73253,11 @@
   "poNumber": "38-491700573",
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "CW-GA-072",
-   "name": "COLUMBUS WORKS",
-   "address": "8217 Sandra Pike",
-   "city": "Columbus",
-   "state": "GA",
+   "locationId": "OW-TX-070",
+   "name": "ODESSA WORKS",
+   "address": "1507 Industrial Pkwy",
+   "city": "Odessa",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-01-05T12:30:00",
    "latestPickupDateTime": "2026-01-05T16:00:00"
@@ -73285,7 +73285,7 @@
   "hazardous": false,
   "createdAt": "2025-12-31T11:30:00",
   "createdBy": "mia.manager",
-  "createdTimeZoneCode": "EST"
+  "createdTimeZoneCode": "CST"
  },
  {
   "orderNumber": "0000000092620",
@@ -86040,11 +86040,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "SAT-TX-015",
-   "name": "SAN ANTONIO TERMINAL",
-   "address": "8852 E 12th Street",
-   "city": "San Antonio",
-   "state": "TX",
+   "locationId": "CT-IL-013",
+   "name": "CHICAGO TERMINAL",
+   "address": "6326 Industrial Pkwy",
+   "city": "Chicago",
+   "state": "IL",
    "country": "US",
    "earliestPickupDateTime": "2026-06-17T07:45:00",
    "latestPickupDateTime": "2026-06-17T12:30:00"
@@ -145694,11 +145694,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "GDC-LA-093",
-   "name": "GEISMAR DIST CTR",
-   "address": "9131 Nightingale Close",
-   "city": "Geismar",
-   "state": "LA",
+   "locationId": "DDC-TX-094",
+   "name": "DALLAS DIST CTR",
+   "address": "6645 Industrial Pkwy",
+   "city": "Dallas",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-02-21T05:15:00",
    "latestPickupDateTime": "2026-02-21T07:00:00"
@@ -145784,11 +145784,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "GDC-LA-093",
-   "name": "GEISMAR DIST CTR",
-   "address": "8873 The Orchard",
-   "city": "Geismar",
-   "state": "LA",
+   "locationId": "DDC-TX-094",
+   "name": "DALLAS DIST CTR",
+   "address": "6645 Industrial Pkwy",
+   "city": "Dallas",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-02-21T02:30:00",
    "latestPickupDateTime": "2026-02-21T07:00:00"
@@ -151809,11 +151809,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "BP-LA-032",
-   "name": "BASTROP PLANT",
-   "address": "8473 Johanna Canyon",
-   "city": "Bastrop",
-   "state": "LA",
+   "locationId": "HP-TX-031",
+   "name": "HOUSTON PLANT",
+   "address": "2825 Industrial Pkwy",
+   "city": "Houston",
+   "state": "TX",
    "country": "US",
    "earliestPickupDateTime": "2026-03-01T08:30:00",
    "latestPickupDateTime": "2026-03-01T12:00:00"
@@ -169038,11 +169038,11 @@
   "poNumber": null,
   "planningDateType": "RDD",
   "consignor": {
-   "locationId": "MW-AL-149",
-   "name": "MCINTOSH WAREHOUSE",
-   "address": "9668 Claudia Rapid",
-   "city": "McIntosh",
-   "state": "AL",
+   "locationId": "BTF-LA-152",
+   "name": "BASTROP TANK FARM",
+   "address": "3501 Industrial Pkwy",
+   "city": "Bastrop",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-06-16T08:00:00",
    "latestPickupDateTime": "2026-06-16T13:30:00"
@@ -169083,11 +169083,11 @@
   "poNumber": null,
   "planningDateType": "SSD",
   "consignor": {
-   "locationId": "MW-AL-149",
-   "name": "MCINTOSH WAREHOUSE",
-   "address": "6197 5th Avenue",
-   "city": "McIntosh",
-   "state": "AL",
+   "locationId": "BTF-LA-152",
+   "name": "BASTROP TANK FARM",
+   "address": "3501 Industrial Pkwy",
+   "city": "Bastrop",
+   "state": "LA",
    "country": "US",
    "earliestPickupDateTime": "2026-06-16T10:30:00",
    "latestPickupDateTime": "2026-06-16T13:30:00"

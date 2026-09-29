@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import StopsTab from './StopsTab'
+import { totalMiles } from '../../utils/legMiles.js'
 
 // T3 (S160) — StopsTab's Approve Plan now resolves through useApproveOrderChange
 // (useResolveOrderChange -> the service layer), same mocking convention as
@@ -60,7 +61,14 @@ const consolidation = {
   summaryChanges: { grossWeight: { prior: '54,907 LB', new: '70,907 LB' } },
   costs: { prior: '1,500.00 USD', newDirect: '2,000.00 USD', newConsolidated: '3,000.00 USD' },
 }
-const oc = { scenario: 'returned', prior: {}, newOption: {}, priorTenderList: [], newTenderList: [], comparison: [], hazmat: [], droppedCarriers: { prior: [], new: [] }, resolution: null, consolidation }
+// DEC-192 — the header's New Consolidated Cost is this list's (re-routed)
+// rank 1: 2,900 base + 100 charges = the 3,000.00 the costs block also seeds.
+const newTenderList = [{
+  rank: 1, routeRank: 1, scac: 'AAAA', cost: '$3,000.00 USD', status: '',
+  rateDetails: { baseRate: 2900, currency: 'USD', markup: 0, additionalCharges: [{ amount: 100 }], apTotal: 3000, arTotal: 3000 },
+  pickupDateTime: '01/01/2026 08:00 CST', deliveryDateTime: '01/02/2026 08:00 CST',
+}]
+const oc = { scenario: 'returned', prior: {}, newOption: {}, priorTenderList: [], newTenderList, comparison: [], hazmat: [], droppedCarriers: { prior: [], new: [] }, resolution: null, consolidation }
 const shipment = { sellShipment: '25319141', buyShipment: '87654321' }
 const renderReview = (extra = {}) => renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={oc} orderDetails={[]} shipment={shipment} {...extra} />)
 
@@ -262,6 +270,35 @@ describe('StopsTab — Evaluate -> Approve Plan (T3)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
     expect(await screen.findByText('boom')).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+  })
+})
+
+// C4 + C12 (DEC-206, DEC-215) — the header and View Routing read the SAME
+// re-route of the New list over the detail's stops (DEC-192: header = routing).
+describe('StopsTab — re-routed New list (C4/C12)', () => {
+  const located = [
+    { ...stops[0], lat: 29.76, lng: -95.37 },
+    { ...stops[1], lat: 32.78, lng: -96.8 },
+  ]
+  // The seeded list was priced at HALF these stops' miles → factor 2.
+  const miles = totalMiles(located)
+  const halfSummary = { ...summary, headerDistance: `${(miles / 2).toFixed(2)} mi` }
+
+  it('New Consolidated Cost and View Routing show the re-routed rank 1, dated from the stops', () => {
+    renderReview({ data: { summary: halfSummary, stops: located } })
+    expect(screen.getByText('5,900.00 USD')).toBeTruthy()   // 2,900 × 2 + 100 charges
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    const dialog = screen.getByRole('dialog', { name: 'View Routing' })
+    expect(within(dialog).getByText('$5,900.00 USD')).toBeTruthy()
+    expect(within(dialog).getByText('06/04/2026 03:00 PDT')).toBeTruthy()
+    expect(within(dialog).getByText('06/06/2026 03:00 PDT')).toBeTruthy()
+  })
+
+  it('an empty New list (dropped carriers only) shows -- for New Consolidated Cost', () => {
+    renderReview({ orderChange: { ...oc, newTenderList: [] } })
+    expect(screen.queryByText('3,000.00 USD')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
     expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   })
 })

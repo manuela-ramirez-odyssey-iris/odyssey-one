@@ -173,6 +173,11 @@ function chipRestrictionSql(domain, chip, p) {
  * parameter list (buildListQuery) pass their own `bind` instead, so the ranking
  * SQL can be embedded in a larger query without renumbering.
  */
+// C5 (DEC-202) — an emptied shipment (order_count '0', text) is hidden from
+// search as it is from the grid (shipments.mjs NOT_EMPTIED; inlined here —
+// importing it back would be a cycle). REGISTRY has one domain, shipments.
+const LIVE_SHIPMENT = `order_count IS DISTINCT FROM '0'`
+
 function buildHits({ domain, needles, customerIds, chips, bind }) {
   const values = []
   const p = bind ?? ((v) => { values.push(v); return `$${values.length}` })
@@ -205,7 +210,7 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   // no unreferenced parameter can 42P18.
   if (!needles.length && !chipList.length) {
     const [lead, ...restCols] = colChips
-    const clauses = [lead.clauses(p), ...restCols.map((c) => c.clauses(p))]
+    const clauses = [lead.clauses(p), ...restCols.map((c) => c.clauses(p)), LIVE_SHIPMENT]
     if (customerIds) clauses.push(`customer_id = ANY(${p(customerIds)})`)
     const sql = `SELECT sell_shipment AS entity_id, ${p(lead.attr)} AS attr, ${lead.display} AS display, 2 AS tier, 0 AS needle_ix
       FROM shipments WHERE ${clauses.join(' AND ')}`
@@ -213,9 +218,8 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   }
 
   const dom = p(domain)
-  const scope = customerIds
-    ? `AND entity_id IN (SELECT sell_shipment FROM shipments WHERE customer_id = ANY(${p(customerIds)}))`
-    : ''
+  const scope = `AND entity_id IN (SELECT sell_shipment FROM shipments WHERE ${LIVE_SHIPMENT}${
+    customerIds ? ` AND customer_id = ANY(${p(customerIds)})` : ''})`
 
   if (needles.length) {
     const chipSql = [

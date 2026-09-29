@@ -1416,8 +1416,11 @@ function generateShipment(index, chainOverride) {
     // shipment id. Only multi-order (orders.length > 1) rows qualify: a
     // Direct order-change row has no consolidation payload for Scenario B to
     // exercise (see the `orders.length > 1` gate below, ~line 1197).
+    // C22 (S163) — 0.03 → 0.10: at 0.03 only 5 of 74 consolidated order
+    // changes were Scenario B, too few for QA to find one of each shape
+    // (and for the empty-list slice, ':oc-empty' below, to exist at all).
     const rnd2 = mulberry32(seedFrom(sellShipment + ':oc-notender'));
-    if (rnd2() < 0.03) {
+    if (rnd2() < 0.10) {
       category = 'order-change';
       validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd2() * VALIDATION_MESSAGES['order-change'].length)];
     }
@@ -1443,6 +1446,15 @@ function generateShipment(index, chainOverride) {
       // The prior tender version's own dropped list = the shipment's already
       // built droppedCarrierList (S135), never re-drawn here.
       priorDropped: droppedCarrierList,
+      // C22 (S163) — LINX-15671 Scenario B "(or only dropped carriers if the
+      // list is empty)", Jana 09-25 @00:21:39: a third of the consolidated
+      // no-active-tender rows re-route to NO carrier at all. Own salt
+      // (':oc-empty') on the id-keyed PRNG — zero faker draws, so no id
+      // renumbers. Scenario B = the same no-active-tender rule the API and
+      // useApproveOrderChange read (To Be Tendered/Sent/Accepted = active).
+      emptyNewList: orders.length > 1
+        && !['To Be Tendered', 'Sent', 'Accepted'].includes(tenderStatus)
+        && mulberry32(seedFrom(sellShipment + ':oc-empty'))() < 1 / 3,
     });
     // LINX-15435…15438 Stops-tab review — only meaningful for a consolidated
     // (>1 order) shipment; a Direct order-change shipment has nothing for
@@ -2773,7 +2785,7 @@ export function insertionRank(newList, equipmentCode) {
 function buildOrderChange(sellShipment, routingOptions, ctx) {
   const {
     tenderStatus, baseDate, originTz, destTz, routingDeliveryDates, grossWeight, totalVolume, totalPackages,
-    customer, freightTerms, planningType, firstPickup, lastDelivery, priorDropped,
+    customer, freightTerms, planningType, firstPickup, lastDelivery, priorDropped, emptyNewList,
   } = ctx;
   // Distinct seed from the diversion gate's `mulberry32(seedFrom(sellShipment))`
   // (~line 1143) — NOT the same seed. The gate already proved its own first
@@ -2784,7 +2796,9 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   // stream while staying id-keyed (still zero faker draws, still stable
   // under a category reshuffle).
   const rnd = mulberry32(seedFrom(sellShipment + ':oc'));
-  const scenario = rnd() < 0.5 ? 'returned' : 'not-returned';
+  // rnd() is drawn first either way, so an empty-list row consumes the same
+  // draws as before; an empty list can't have returned the prior carrier.
+  const scenario = rnd() < 0.5 && !emptyNewList ? 'returned' : 'not-returned';
   // prior = the option that actually carries the shipment's real tenderStatus
   // (LINX-14511 "Prior Options") — NOT routingOptions[0]: the accepted/sent
   // carrier's rank is drawn independently of array position (decisiveRank,
@@ -2860,6 +2874,13 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
   const extraDropCount = Math.min(Math.floor(rnd() * 3), Math.max(0, otherScacs.length - 1));
   const droppedScacs = new Set(otherScacs.slice(0, extraDropCount));
   if (scenario === 'not-returned') droppedScacs.add(prior.scac);
+  // C22 (S163) — the empty-list Scenario B row (see the caller): routing
+  // dropped EVERY carrier, so each lands in the new version's dropped list
+  // through the same newDropped build below (shape + DROP_REASONS
+  // vocabulary). newList comes out [], newOption falls to the not-returned
+  // shape (rank 1 via insertionRank, no cost), and buildConsolidationChange
+  // finds no rank 1, so costs.newConsolidated is null.
+  if (emptyNewList) for (const o of shiftedOptions) droppedScacs.add(o.scac);
 
   const newList = shiftedOptions
     .filter(o => !droppedScacs.has(o.scac))
@@ -3130,12 +3151,17 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   for (const st of stops) {
     const ids = st.orderIds.filter(id => changedOrderIds.includes(id));
     if (!ids.length) continue;
-    // Stop weight/volume/package deltas = Σ of its changed orders' deltas (I5, run forward).
+    // Stop weight/volume/package deltas = Σ of its changed orders' deltas (I5).
+    // C10 (S163) — the order update is ALREADY applied to the order (Jana
+    // 09-25 @00:02:24), so the stop's own roll-up is New and Prior = own −
+    // delta: the same convention summaryChanges uses below. It used to run
+    // the other way (own = Prior, own + delta = New), so the stop card's New
+    // disagreed with the header and with the stop's own Weight value.
     const sum = (k) => ids.reduce((t, id) => t + delta[id][k], 0);
     const fields = {
-      weight: { prior: st.grossWeightValue, new: st.grossWeightValue + sum('weight') },
-      volume: { prior: st.volumeValue, new: st.volumeValue + sum('volume') },
-      packageCount: { prior: st.packageCount, new: st.packageCount + sum('packages') },
+      weight: { prior: st.grossWeightValue - sum('weight'), new: st.grossWeightValue },
+      volume: { prior: st.volumeValue - sum('volume'), new: st.volumeValue },
+      packageCount: { prior: st.packageCount - sum('packages'), new: st.packageCount },
     };
     if (locationChange && st.stopType === 'pickup') {
       // Relocated pickup = ANOTHER of the customer's own ship-from sites.
@@ -3239,10 +3265,15 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     const deliveryStop = deliveryOf(o);
     const pickupChange = stopChanges[pickupStop?.stopSequence];
     const deliveryChange = stopChanges[deliveryStop?.stopSequence];
+    // C10 (S163) — New = the order's own (already-updated) record, Prior =
+    // own − delta, same convention as the stop fields and summaryChanges.
+    // Deltas are 5–30% of the order's own value, so Prior stays > 0; the
+    // Math.max(1, …) only guards a future delta rule.
+    const priorOf = (own, dk) => Math.max(1, own - d[dk]);
     const rows = [
-      { field: 'Gross Weight', source: 'Order', prior: `${fmtInt(o.orderGross)} LB`, new: `${fmtInt(o.orderGross + d.weight)} LB`, changed: true },
-      { field: 'Volume', source: 'Order', prior: `${fmtInt(o.orderVolume)} cuft`, new: `${fmtInt(o.orderVolume + d.volume)} cuft`, changed: true },
-      { field: 'Package Count', source: 'Order', prior: String(o.orderPackages), new: String(o.orderPackages + d.packages), changed: true },
+      { field: 'Gross Weight', source: 'Order', prior: `${fmtInt(priorOf(o.orderGross, 'weight'))} LB`, new: `${fmtInt(o.orderGross)} LB`, changed: true },
+      { field: 'Volume', source: 'Order', prior: `${fmtInt(priorOf(o.orderVolume, 'volume'))} cuft`, new: `${fmtInt(o.orderVolume)} cuft`, changed: true },
+      { field: 'Package Count', source: 'Order', prior: String(priorOf(o.orderPackages, 'packages')), new: String(o.orderPackages), changed: true },
       // Read back from the STOP this order actually picks up/delivers at
       // (LINX-15435 fix) — the exact same strings the stop card shows, so
       // the two surfaces can't disagree about when this order now moves.
@@ -3287,16 +3318,38 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
   // OrderCompareModal's purple "Changed" line badge is reachable; every
   // other line (unchanged orders, or the other half of a changed order's
   // lines) stays prior===new, which is truthful — no line edit exists there.
+  //
+  // C22 (S163) — a changed order ALWAYS carries at least one changed line:
+  // its FIRST line flips unconditionally (was 11 of 116 changed orders with
+  // any changed line — the 50% roll only ran on hazmat lines). A hazmat
+  // first line flips a hazmat field as before; a non-hazmat one flips
+  // shippingClass, within the value vocabulary its own class TYPE implies
+  // (the same rule the line build uses, ~line 800), so the pair never shows
+  // an NMFC value under a Harmonized type. Remaining lines keep the 50%
+  // hazmat-only rule. Id-keyed `rnd` only, zero faker draws.
+  // Another value in [lo, lo+span) that is never n itself (offset 1..span-1, wrapped).
+  const otherIn = (n, lo, span) => lo + ((n - lo + 1 + Math.floor(rnd() * (span - 1))) % span);
+  const flipShippingClass = (l) => {
+    if (l.shipClassCode === 'N') return rndPick(rnd, PRODUCT_CLASSES.filter((c) => c !== l.shippingClass));
+    if (l.shipClassCode === 'H') {
+      // Harmonized "HHHH.xx.xx.xx" (2800–3999 heading) — a different heading, same suffix.
+      const [head, ...rest] = l.shippingClass.split('.');
+      return [otherIn(Number(head), 2800, 1200), ...rest].join('.');
+    }
+    return String(otherIn(Number(l.shippingClass), 100000, 900000)); // Commodity/Product: 6-digit code
+  };
   const orderLinePairs = Object.fromEntries(orders.map((o) => {
     const eligible = changedOrderIds.includes(o.orderId);
-    const pairs = o.lines.map((l) => {
+    const pairs = o.lines.map((l, li) => {
       const base = {
         lineNumber: l.lineNumber, shipItem: l.itemCode, description: l.itemDescription,
         hazmatUnNumber: l.hazmatUnNumber, hazmatClass: l.hazmatClass, hazmatGroup: l.hazmatGroup,
         hazmatDescription: l.hazmatDescription, flashPoint: l.flashPoint, boilingPoint: l.boilingPoint,
         marinePollutant: l.marinePollutant, shippingClass: l.shippingClass, tunnelCode: l.tunnelCode, wgkClass: l.wgkClass,
       };
-      if (!eligible || !l.hazmatCode || rnd() < 0.5) return { prior: base, new: { ...base } };
+      const first = eligible && li === 0;
+      if (first && !l.hazmatCode) return { prior: base, new: { ...base, shippingClass: flipShippingClass(l) } };
+      if (!first && (!eligible || !l.hazmatCode || rnd() < 0.5)) return { prior: base, new: { ...base } };
       const flip = rndPick(rnd, ['marinePollutant', 'tunnelCode', 'wgkClass']);
       const changed = { ...base };
       if (flip === 'marinePollutant') changed.marinePollutant = base.marinePollutant === 'Yes' ? 'No' : 'Yes';

@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom'
 import { Alert, Badge, Button, GroupTable, ModalMedium } from '@odyssey/ui'
 import { DiffValue, rowsToFlatGroups, val } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { rerouteTenderList } from '../../../lib/orderChangeRouting.js'
+import { fmtDollar, parseDollar } from '../../../utils/money.js'
 
 // LINX-15438 View Routing — VD 2108-14708. New above Prior (canon §7, same
 // ordering as the Direct review's OrderChangeTenderLists), the Tender tab's
@@ -33,6 +35,21 @@ const DROP_COLS = [
 // (tools/generate.mjs TENDER_STATUSES, generate.mjs:149).
 const STATUS_VARIANT = { Accepted: 'green', Sent: 'blue', Declined: 'red', Cancelled: 'gray' }
 
+// C4 + C12 (DEC-206, DEC-215) — the New list re-routed over `stops` (the
+// sandbox's in Edit Stops, the detail's on the Stops tab) by the SAME function
+// the API's Save/Approve adopt, so what the planner approves is what's written.
+// Baseline = the miles the seeded list was priced at (API baselineMilesOf);
+// the VM carries both as display strings. Rows are the mapped VM, so the AP
+// Cost string is re-derived from the re-routed total (mapRoutingOption's shape).
+// Also read by the Stops-tab header's New Consolidated Cost (DEC-192).
+export function reroutedNewList(oc, stops, summary) {
+  const baseline = parseDollar(oc?.consolidation?.summaryChanges?.distance?.new) ?? parseDollar(summary?.headerDistance)
+  const routing = (stops ?? []).map((s) => ({ type: s.type, date: s.date, lat: s.lat, lng: s.lng, timeZone: s.site?.timeZone ?? s.timeZone }))
+  return rerouteTenderList(oc?.newTenderList ?? [], routing, baseline).map((o) => (o.totalCostAmount == null
+    ? o
+    : { ...o, cost: `${fmtDollar(o.totalCostAmount)} USD`, rate: fmtDollar(o.rateAmount) }))
+}
+
 const costByScac = (rows) => Object.fromEntries(rows.map((o) => [o.scac, o.cost]))
 
 function TenderTable({ title, rows, otherCostByScac }) {
@@ -58,12 +75,13 @@ function TenderTable({ title, rows, otherCostByScac }) {
 // to pass them, for its Keep Editing / Approve Changes footer (T3 gives
 // StopsTab its own Keep Reviewing / Approve Plan pair the same way).
 export default function ViewRoutingModal({
-  orderChange: oc, onClose,
+  orderChange: oc, stops, summary, onClose,
   secondaryLabel, onSecondary, primaryLabel, onPrimary, primaryLoading = false, primaryDisabled = false,
   error,
 }) {
   const priorList = oc?.priorTenderList ?? []
-  const newList = oc?.newTenderList ?? []
+  // The Prior list is history — shown as it was.
+  const newList = reroutedNewList(oc, stops, summary)
   const dropped = oc?.droppedCarriers?.new ?? []
   const hasFooter = !!(secondaryLabel || primaryLabel)
 

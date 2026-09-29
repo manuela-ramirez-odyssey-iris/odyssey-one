@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildDataset, VALIDATION_MESSAGES } from './generate.mjs'
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, shipFromSites } from './data-pools.mjs'
+import { buildDataset, VALIDATION_MESSAGES, DROP_REASONS } from './generate.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, shipFromSites, PRODUCT_CLASSES } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 import { totalMiles } from '../src/utils/legMiles.js'
 import { windowViolations, parseStamp, initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
@@ -1272,7 +1272,12 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     assert.ok(['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(oc.prior.tenderStatus))
     // LINX-14511: comparison = prior list vs new list, each a routing-option-shaped array
     assert.ok(Array.isArray(oc.priorTenderList) && oc.priorTenderList.length > 0)
-    assert.ok(Array.isArray(oc.newTenderList) && oc.newTenderList.length > 0)
+    // C22 (S163): a consolidated Scenario B row may re-route to NO carrier
+    // (LINX-15671 "only dropped carriers if the list is empty"); every other
+    // row still carries a non-empty new list.
+    const emptyAllowed = detail.orderList.length > 1 && !['Sent', 'Accepted', 'To Be Tendered'].includes(s.tenderStatus)
+    assert.ok(Array.isArray(oc.newTenderList) && (oc.newTenderList.length > 0 || emptyAllowed),
+      `${s.sellShipment} empty newTenderList outside consolidated Scenario B`)
     const inNew = oc.newTenderList.some(o => o.scac === oc.prior.scac)
     assert.equal(inNew, oc.scenario === 'returned', `${s.sellShipment} scenario/list mismatch`)
     // LINX-14513: not-returned ⇒ no new cost (greyed out radio)
@@ -1346,7 +1351,8 @@ test('multi-order order-change shipments carry a coherent orderChange.consolidat
       assert.ok(c.orderComparisons[id].every(r => 'field' in r && 'source' in r && 'prior' in r && 'new' in r && 'changed' in r))
     }
     assert.equal(typeof c.costs.newDirect, 'number')
-    if (c.locationChange) assert.equal(c.costs.newConsolidated, null)
+    // C22 (S163): an empty new list has no rank 1, so nothing to price either.
+    if (c.locationChange || d.orderChange.newTenderList.length === 0) assert.equal(c.costs.newConsolidated, null)
     else assert.equal(typeof c.costs.newConsolidated, 'number')
     // LINX-15435 "No active tender" bullet: Prior Cost is blank exactly when
     // this row's real tenderStatus isn't one of the active ones — S144.
@@ -1396,8 +1402,10 @@ test('at least one multi-order order-change row has no active tender and a null 
   // stream and shrank this population to 5. Floor lowered to keep guarding
   // the real risk this test exists for — the population going to zero, not
   // its exact size, which was never a design target.
-  assert.ok(scenarioBRows.length >= 3 && scenarioBRows.length <= 20,
-    `expected 3-20 no-active-tender multi-order order-change rows, got ${scenarioBRows.length}`)
+  // C22 (S163): the ':oc-notender' share went 0.03 → 0.10 (5 → 29 rows), so
+  // QA can reach both Scenario B shapes, the empty-list one included.
+  assert.ok(scenarioBRows.length >= 15 && scenarioBRows.length <= 50,
+    `expected 15-50 no-active-tender multi-order order-change rows, got ${scenarioBRows.length}`)
   for (const s of scenarioBRows) {
     const d = ds.details.get(s.sellShipment)
     const c = d.orderChange.consolidation
@@ -1564,6 +1572,83 @@ test("B3b(b): summaryChanges.new equals the shipment's real, unmodified order-we
   }
   assert.ok(checked > 0)
   assert.equal(mismatches, 0, `${mismatches} gross/volume mismatches across ${checked} consolidated rows`)
+})
+
+// C10 (S163) — ONE convention everywhere: the order update is already applied
+// (Jana 09-25 @00:02:24), so the DB value is New and Prior = DB − delta. The
+// stop fields and the per-order compare used to run the other way.
+test('C10: header, stop fields and order compare all read the DB value as New', () => {
+  const ds = buildDataset()
+  let stopsChecked = 0, comparesChecked = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c) continue
+    assert.equal(c.summaryChanges.grossWeight.new, d.orderList.reduce((t, o) => t + o.grossWeightValue, 0), `${s.sellShipment} header weight`)
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      const st = d.shipmentStopList.find(x => x.stopSequence === Number(seq))
+      assert.equal(sc.fields.weight.new, st.grossWeightValue, `${s.sellShipment} stop ${seq} weight.new`)
+      assert.equal(sc.fields.volume.new, st.volumeValue, `${s.sellShipment} stop ${seq} volume.new`)
+      assert.equal(sc.fields.packageCount.new, st.packageCount, `${s.sellShipment} stop ${seq} packageCount.new`)
+      assert.ok(sc.fields.weight.prior > 0 && sc.fields.weight.prior < sc.fields.weight.new)
+      stopsChecked++
+    }
+    for (const id of c.changedOrderIds) {
+      const own = d.orderList.find(o => o.orderId === id)
+      const row = c.orderComparisons[id].find(r => r.field === 'Gross Weight')
+      assert.equal(Number(row.new.replace(/[^0-9]/g, '')), own.grossWeightValue, `${s.sellShipment} order ${id} Gross Weight new`)
+      assert.ok(Number(row.prior.replace(/[^0-9]/g, '')) > 0)
+      comparesChecked++
+    }
+  }
+  assert.ok(stopsChecked > 0 && comparesChecked > 0)
+})
+
+// C22 (S163) — seed reachability: both Scenario B shapes (LINX-15671, incl.
+// "only dropped carriers if the list is empty") and a changed line on every
+// changed order (was 11 of 116).
+test('C22: empty-list Scenario B rows exist and every changed order carries a changed line', () => {
+  const ds = buildDataset()
+  const ACTIVE = ['Sent', 'Accepted', 'To Be Tendered']
+  const reasons = new Set(DROP_REASONS.map(r => r.dropCode))
+  let empty = 0, scenarioB = 0, changedOrders = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const oc = d.orderChange
+    const c = oc.consolidation
+    if (!c) continue
+    if (!ACTIVE.includes(s.tenderStatus)) scenarioB++
+    if (oc.newTenderList.length === 0) {
+      empty++
+      assert.ok(!ACTIVE.includes(s.tenderStatus), `${s.sellShipment} empty list on an active tender`)
+      // Every carrier routing had is now a dropped one, in buildOrderChange's own shape.
+      assert.deepEqual(oc.droppedCarriers.new.map(x => x.scac).sort(), oc.priorTenderList.map(o => o.scac).sort())
+      for (const x of oc.droppedCarriers.new) {
+        assert.ok(reasons.has(x.dropCode) && x.reason && x.reasonDescription && 'apCost' in x && 'equipment' in x)
+      }
+      assert.equal(oc.scenario, 'not-returned')
+      assert.equal(oc.newOption.apCost, null)
+      assert.equal(c.costs.newConsolidated, null)
+    }
+    for (const id of c.changedOrderIds) {
+      changedOrders++
+      const pairs = c.orderLinePairs[id]
+      assert.ok(pairs.some(p => JSON.stringify(p.prior) !== JSON.stringify(p.new)), `${s.sellShipment} order ${id} has no changed line`)
+      const line = d.orderList.find(o => o.orderId === id).orderLines[0]
+      if (!line.hazmatCode) {
+        // Non-hazmat first line: exactly shippingClass flips, within its class type's vocabulary.
+        const { prior, new: next } = pairs[0]
+        assert.notEqual(next.shippingClass, prior.shippingClass)
+        assert.deepEqual({ ...next, shippingClass: prior.shippingClass }, prior)
+        if (line.shipClassCode === 'N') assert.ok(PRODUCT_CLASSES.includes(next.shippingClass))
+        else if (line.shipClassCode === 'H') assert.match(next.shippingClass, /^\d{4}\.\d{2}\.\d{2}\.\d{2}$/)
+        else assert.match(next.shippingClass, /^\d{6}$/)
+      }
+    }
+  }
+  assert.ok(scenarioB >= 15, `expected ≥15 consolidated Scenario B rows, got ${scenarioB}`)
+  assert.ok(empty >= 3 && empty < scenarioB, `expected some (not all) Scenario B rows with an empty list, got ${empty}/${scenarioB}`)
+  assert.ok(changedOrders > 0)
 })
 
 // Plan B3b(c) — a location change is written onto the order's OWN origin,

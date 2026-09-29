@@ -2,7 +2,7 @@
 title: Order change — everything still missing after Wave B (consolidated + Direct + shipment statuses)
 date: 2026-09-25
 session: S160
-status: in progress — C0–C3, C6–C9, C21, D1, D3, S built; C4/C5 owed; C6–C23 added by the S163 audit (2026-09-29)
+status: in progress — C0–C12, C19, C21, C22, D1, D3, S built (C12 = DEC-215 recompute); reseed + deploy owed; C6–C23 added by the S163 audit (2026-09-29)
 ---
 
 # Order change — remaining work
@@ -55,11 +55,11 @@ Enable **Approve Plan** on the Stops-tab review. The new tender list becomes V2 
 ### C3. Removed orders get their own shipment (LINX-15869, OC-open-19) — **BUILT S163** (was: data loss) (S163 audit: `api/_lib/shipments.mjs:708` drops pending orders from `orderList`/`orders`, `orders.shipment_sell_id` still points here, and Search & Add can't find them — `candidateOrders.mjs:42` walks `s.orders` only)
 At Save, each order left in *Orders Pending To Assign* becomes a **new single-order Direct shipment**. Its stops come from the order's own ship-from/ship-to, and its tab follows R6. It gets a new sell/buy shipment number from a non-colliding range. The move is written in the same transaction as the save (the `save-stops` path in `api/_lib/shipments.mjs`), including `orders.shipment_sell_id` and the OC-open-22 list aggregates.
 
-### C4. Consolidated tender dates (Jana `@00:16:29`, 15671) — **OWED** (`adoptNewTenderList` `:577-613` keeps the seeded dates)
+### C4. Consolidated tender dates (Jana `@00:16:29`, 15671) — **BUILT S163** (consistency slice) (`adoptNewTenderList` `:577-613` keeps the seeded dates)
 The tender's pickup date = the **first pickup stop's** planner-set date, and its delivery date = the **last delivery stop's**. Routing's dates are ignored for a consolidation. Verify View Routing + the tender rows show these, and fix wherever routing's dates leak through.
 - The same dates fill a **prior carrier inserted into the new list** in Scenario A, which routing returns without dates (Jana 09-25 `@00:15:03–00:16:29`). So D4's "dates editable when routing returns none" does not apply to a consolidation: the stops supply them.
 
-### C5. Emptied source hidden (R3, OC-open-23) — **OWED**
+### C5. Emptied source hidden (R3, OC-open-23) — **BUILT S163** (consistency slice)
 A shipment with `order_count = 0` is excluded from the Shipments list, search and counts. Its detail stays readable by id (nothing links to it). It's a list-query filter plus the search index projection.
 
 ## C+. Added by the S163 audit (2026-09-29)
@@ -74,7 +74,7 @@ Four read-only audits: every AC clause of LINX-15435…15438, 15667…15671 and 
 - **C8. The server trusts the client's `externalOrders` (15872).** The source loses every listed order, but the target gains only those on stops (API `:709` vs `:736-738`). A bad body orphans orders. Guard: 400 unless the two sets match.
 - **C9. Created stops lose data at Save (15872 "saved with the user's date/time/time zone").** `toDto` (SB `:384-396`) omits lat/lng/timeZone, and `mergeStops` (API `:359-361`) builds from an empty base (`appointmentTime` null). After Save, the adjacent legs and the total read `--`.
 
-### Consistency (batch with the next reseed)
+### Consistency (batch with the next reseed) — **BUILT S163** with C4, C5, C12 (spec `docs/superpowers/specs/2026-09-29-order-change-consistency-slice.md`); **reseed + deploy owed**
 - **C10. Header Weight/Volume contradict the stop cards on 74 of 74 consolidated shipments (DEC-192).** The stop cards take the DB value as Prior and DB + delta as New (`tools/generate.mjs:3136`); the header takes the DB value as New (`:3323`). Example: 25008677's header shows 30,165 → 34,528 LB, while its stop badge shows 38,891 LB. The per-order compare agrees with the stops. Pick one convention in the seed.
 - **C11. Save leaves the header stale (DEC-192):**
   - `detail.totalVolumeValue` is never rewritten (API `:535-558`).
@@ -98,6 +98,8 @@ Four read-only audits: every AC clause of LINX-15435…15438, 15667…15671 and 
 - **C20. 15435 BR1 doorway:**
   - A plain row click on an Order Change row opens the Orders tab, not Stops (`BottomBar.jsx:209`).
   - The row menu picks the review by `orderCount > 1`, the Tender tab by `orderChange.consolidation`. A save that changes the count can split them.
+
+- **C24. An adopted list doesn't carry its dropped carriers (S163, found building C22).** Scenario B / approve-plan adopt `newTenderList` into `tenders`, but `orderChange.droppedCarriers.new` never reaches `detail.droppedCarrierList`, so after an adoption (visibly after an EMPTY one) the Tender tab shows the old dropped list. The shapes differ: the order-change rows lack `rpcId`, `startDate`/`stopDate`, `routeGroup`, and use `equipment` for `equipmentCode`. Map them, or seed the order-change rows in the full shape.
 
 ### Parity and cosmetics
 - **C21. Mock-mode Save is a no-op.** `resolveOrderChange` returns early outside live (`shipmentService.ts`): no revalidation, no move, no re-filing, yet it navigates to Tender Review. Needs ruling N6.

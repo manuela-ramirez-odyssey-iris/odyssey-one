@@ -9,7 +9,7 @@ import TooltipTrigger from '../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import { DiffValue, val } from '../shipments/order-change/comparisonHelpers.jsx'
 import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
-import ViewRoutingModal from './order-change/ViewRoutingModal.jsx'
+import ViewRoutingModal, { reroutedNewList } from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
 import KpiStrip from './order-change/ReviewKpiStrip.jsx'
 
@@ -184,6 +184,16 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
   // Same source the Direct route / Edit Shipment Stops read for their own
   // resolution payload (useApproveOrderChange's Scenario A/B gate).
   const tenderStatus = orderChange?.prior?.tenderStatus ?? null
+  // DEC-192 (header = routing) — New Consolidated Cost is View Routing's
+  // re-routed rank 1 (same call), formatted as the mapper's fmtUsd; '--' when
+  // the list is empty. A pending location change keeps the seeded (null)
+  // value its tooltip explains.
+  const rank1Cost = review && !c.locationChange
+    ? reroutedNewList(orderChange, stops, summary).find((o) => o.rank === 1)?.totalCostAmount
+    : undefined
+  const newConsolidatedCost = rank1Cost != null
+    ? `${rank1Cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+    : (c?.locationChange ? c.costs?.newConsolidated : null)
 
   const handleApprovePlan = () => {
     setSaveError('')
@@ -264,10 +274,10 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                 <TitleSubtitle subtitle="New Direct Cost" title={val(c.costs?.newDirect)} />
                 {c.locationChange ? (
                   <TooltipTrigger tooltipProps={{ groups: [{ content: 'Not calculated — an order location changed. Finalize stops in Edit Shipment Stops to re-consolidate.' }] }}>
-                    <TitleSubtitle subtitle="New Consolidated Cost" title={val(c.costs?.newConsolidated)} />
+                    <TitleSubtitle subtitle="New Consolidated Cost" title={val(newConsolidatedCost)} />
                   </TooltipTrigger>
                 ) : (
-                  <TitleSubtitle subtitle="New Consolidated Cost" title={val(c.costs?.newConsolidated)} />
+                  <TitleSubtitle subtitle="New Consolidated Cost" title={val(newConsolidatedCost)} />
                 )}
               </div>
               <div className="stops-review__actions">
@@ -286,6 +296,8 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
       {modal === 'routing' && (
         <ViewRoutingModal
           orderChange={orderChange}
+          stops={stops}
+          summary={summary}
           onClose={() => setModal(null)}
           secondaryLabel="Keep Reviewing"
           onSecondary={() => setModal(null)}

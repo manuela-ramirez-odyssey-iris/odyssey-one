@@ -1,6 +1,7 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders, buildSourceShipmentsQuery, buildSplitShipment } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders, buildSourceShipmentsQuery, buildSplitShipment, rowFromStops } from './shipments.mjs'
+import { totalMiles } from '../../src/utils/legMiles.js'
 import { MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
 
 test('counts: panel only', () => {
@@ -771,12 +772,15 @@ describe('resolveOrderChange', () => {
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Sent', stops }, db,
     })
     assert.deepEqual(res, { success: true })
-    assert.equal(seen.length, 4, 'detail read, BEGIN, stop write, COMMIT — no refile query, no resolution write')
+    assert.equal(seen.length, 7, 'detail read, search-row read, BEGIN, stop write, search DELETE + INSERT (C19), COMMIT — no refile query, no resolution write')
     assert.match(seen[0].text, /SELECT detail FROM shipments/)
-    assert.equal(seen[1], 'BEGIN')
-    assert.match(seen[2].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
-    assert.ok(!/resolution/.test(seen[2].text))
-    assert.equal(seen[3], 'COMMIT')
+    assert.match(seen[1].text, /SELECT odyssey_shipment_id/)
+    assert.equal(seen[2], 'BEGIN')
+    assert.match(seen[3].text, /jsonb_set\(detail, '\{shipmentStopList\}'/)
+    assert.ok(!/resolution/.test(seen[3].text))
+    assert.match(seen[4].text, /^DELETE FROM search_index/)
+    assert.match(seen[5].text, /^INSERT INTO search_index/)
+    assert.equal(seen[6], 'COMMIT')
     assert.ok(released, 'client released back to the pool')
   })
 
@@ -852,7 +856,8 @@ describe('resolveOrderChange', () => {
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Cancelled', stops }, db,
     })
     assert.deepEqual(res, { success: true })
-    assert.equal(seen.length, 7, 'detail read, BEGIN, stop write, resolve write, tender DELETE, shippingOptionList write, COMMIT')
+    assert.equal(seen.length, 10, 'detail read, search-row read, BEGIN, stop write, resolve write, tender DELETE, shippingOptionList write, search DELETE + INSERT, COMMIT')
+    seen.splice(1, 1)   // the C19 search-row read — the rest keeps its pre-C19 positions
     assert.equal(seen[1], 'BEGIN')
     assert.match(seen[3].text, /detail = jsonb_set\(detail, '\{orderChange,resolution\}'/)
     const values = seen[3].values
@@ -861,7 +866,7 @@ describe('resolveOrderChange', () => {
     assert.match(seen[4].text, /^DELETE FROM tenders/)
     assert.match(seen[5].text, /shippingOptionList/)
     assert.deepEqual(JSON.parse(seen[5].values[0]), [])
-    assert.equal(seen[6], 'COMMIT')
+    assert.equal(seen[8], 'COMMIT')
     assert.ok(released, 'client released back to the pool')
   })
 
@@ -1296,4 +1301,160 @@ test('candidateOrders handler builds rows through buildCandidateRows', async () 
   assert.equal(rows.length, 1)
   assert.equal(rows[0].origin, 'Atlanta, GA US')
   assert.deepEqual(rows[0].ordersInShipment, ['A', 'B'])
+})
+
+describe('consistency slice (C4/C12 re-route, C11 header, C19 row columns, C5 emptied hidden)', () => {
+  const opt = (rank, scac, baseRate) => ({
+    rank, scac, status: '', pickupDateTime: '01/01/2026 08:00 CST', deliveryDateTime: '01/02/2026 08:00 CST',
+    pickupTZ: 'America/Chicago', deliveryTZ: 'America/Chicago', rateAmount: baseRate, totalCostAmount: baseRate + 50,
+    rateDetails: { baseRate, markup: 10, additionalCharges: [{ amount: 50 }], apTotal: baseRate + 50, arTotal: baseRate + 60 },
+  })
+  const stops = [
+    { stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], facilityName: 'P1', city: 'Houston', region: 'TX', postal: '77001', country: 'US', lat: 29.76, lng: -95.37, timeZone: 'America/Chicago', scheduledDateTime: 'March 4, 2026 10:00 CST' },
+    { stopSequence: 2, stopType: 'delivery', orderIds: ['A', 'B'], facilityName: 'D1', city: 'Dallas', region: 'TX', postal: '75201', country: 'US', lat: 32.78, lng: -96.8, timeZone: 'America/Chicago', scheduledDateTime: 'March 6, 2026 9:30 CST' },
+  ]
+  const miles = totalMiles(stops)
+  const order = (id, w, v, direct) => ({ orderId: id, orderNumber: id, grossWeightValue: w, volumeValue: v, orderLines: [{ packageCount: 1 }], cost: { directCostAmount: direct } })
+  // `baseline` = the miles the seeded new list was priced at; miles / 2 → factor 2.
+  const mkDetail = ({ newTenderList = [opt(1, 'AAAA', 1000), opt(2, 'BBBB', 1200)], baseline = miles / 2, consolidation = true } = {}) => ({
+    shipmentId: 'T', odysseyShipmentIdentifier: 'C1', distanceMiles: baseline, totalVolumeValue: 30,
+    orderList: [order('A', 100, 10, 400), order('B', 200, 20, 500)],
+    shipmentStopList: stops,
+    orderChange: {
+      prior: { scac: 'PRIOR', tenderStatus: 'Sent' }, newOption: { rank: 1 },
+      priorTenderList: [{ ...opt(1, 'PRIOR', 900), status: 'Sent' }],
+      newTenderList,
+      droppedCarriers: { prior: [], new: [] },
+      ...(consolidation && { consolidation: {
+        locationChange: false, stopChanges: {},
+        summaryChanges: { grossWeight: { prior: 250, new: 300 }, volume: { prior: 25, new: 30 } },
+        costs: { prior: 950, newDirect: 900, newConsolidated: 1050 },
+      } }),
+    },
+  })
+  const mk = (detail) => {
+    const calls = []
+    const query = async (q) => {
+      calls.push(q)
+      const text = typeof q === 'string' ? q : q.text
+      if (/SELECT detail FROM shipments/.test(text)) return { rows: [{ detail }] }
+      if (/SELECT odyssey_shipment_id/.test(text)) return { rows: [{ odysseyShipmentIdentifier: 'C1', buyShipment: '900', customerId: 'C', customerName: 'Cust', scac: 'OLD' }] }
+      return { rows: [], rowCount: 1 }
+    }
+    return { db: { query, connect: async () => ({ query, release: () => {} }) }, calls }
+  }
+  const save = (priorTenderStatus) => ({
+    action: 'save-stops', priorTenderStatus,
+    stops: [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], sourceStopSequence: 1 },
+      { stopSequence: 2, stopType: 'delivery', orderIds: ['A', 'B'], sourceStopSequence: 2 },
+    ],
+  })
+  const stopWrite = (calls) => calls.find((q) => /shipmentStopList/.test(q.text ?? ''))
+  // The jsonb value bound to one patched path of the stop write.
+  const patchOf = (q, path) => {
+    const m = new RegExp(`'\\{${path}\\}', \\$(\\d+)::jsonb`).exec(q.text)
+    return m ? JSON.parse(q.values[Number(m[1]) - 1]) : undefined
+  }
+  const optionList = (calls) => JSON.parse(calls.find((q) => /SET detail = jsonb_set\(detail, '\{shippingOptionList\}'/.test(q.text ?? '')).values[0])
+
+  it('C4: save-stops writes the re-routed list to orderChange.newTenderList — stop dates, cost scaled by miles, ranks/carriers kept', async () => {
+    const { db, calls } = mk(mkDetail())
+    await resolveOrderChange({ params: ['T'], body: save('Sent'), db })   // Scenario A
+    const list = patchOf(stopWrite(calls), 'orderChange,newTenderList')
+    assert.deepEqual(list.map((o) => [o.rank, o.scac]), [[1, 'AAAA'], [2, 'BBBB']])
+    assert.deepEqual([list[0].pickupDateTime, list[0].deliveryDateTime], ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST'])
+    assert.deepEqual([list[0].rateDetails.baseRate, list[0].totalCostAmount, list[0].rateAmount], [2000, 2050, 2000])
+    assert.deepEqual(list[0].rateDetails.additionalCharges, [{ amount: 50 }])
+    assert.ok(!calls.some((q) => /^INSERT INTO tenders/.test(q.text ?? '')), 'Scenario A tenders nothing')
+  })
+
+  it('C12: Scenario B adopts the SAME re-routed list', async () => {
+    const { db, calls } = mk(mkDetail())
+    await resolveOrderChange({ params: ['T'], body: save('Declined'), db })
+    const adopted = optionList(calls)
+    assert.deepEqual(adopted.map((o) => [o.scac, o.status, o.totalCostAmount, o.pickupDateTime]), [
+      ['AAAA', '', 2050, '03/04/2026 10:00 CST'], ['BBBB', '', 2450, '03/04/2026 10:00 CST'],
+    ])
+  })
+
+  it('C11: the target write recomputes volume, distance, summaryChanges.new and both costs', async () => {
+    const detail = mkDetail()
+    detail.orderList[1] = order('B', 260, 26, 550)   // the customer's update, already on the order
+    const { db, calls } = mk(detail)
+    await resolveOrderChange({ params: ['T'], body: save('Sent'), db })
+    const q = stopWrite(calls)
+    assert.equal(patchOf(q, 'totalVolumeValue'), 36)
+    assert.equal(patchOf(q, 'distanceMiles'), miles)
+    assert.deepEqual(patchOf(q, 'orderChange,consolidation,summaryChanges'), {
+      grossWeight: { prior: 250, new: 360 }, volume: { prior: 25, new: 36 }, distance: { prior: miles / 2, new: miles },
+    })
+    assert.deepEqual(patchOf(q, 'orderChange,consolidation,costs'), { prior: 950, newDirect: 950, newConsolidated: 2050 })
+  })
+
+  it('an EMPTY new list (dropped carriers only): Scenario B adopts [], New Consolidated Cost is null', async () => {
+    const { db, calls } = mk(mkDetail({ newTenderList: [] }))
+    await resolveOrderChange({ params: ['T'], body: save('Declined'), db })
+    assert.deepEqual(optionList(calls), [])
+    assert.equal(patchOf(stopWrite(calls), 'orderChange,consolidation,costs').newConsolidated, null)
+  })
+
+  it('a Direct order change (no consolidation) keeps its list as seeded', async () => {
+    const { db, calls } = mk(mkDetail({ consolidation: false }))
+    await resolveOrderChange({ params: ['T'], body: save('Declined'), db })
+    assert.equal(patchOf(stopWrite(calls), 'orderChange,newTenderList'), undefined)
+    assert.equal(optionList(calls)[0].pickupDateTime, '01/01/2026 08:00 CST')
+  })
+
+  it('approve-plan adopts the list re-routed over the detail\'s own stops (dates; factor 1 at the priced miles)', async () => {
+    const { db, calls } = mk(mkDetail({ baseline: miles }))
+    await resolveOrderChange({ params: ['T'], body: { action: 'approve-plan' }, db })
+    const adopted = optionList(calls)
+    assert.deepEqual(adopted.map((o) => [o.pickupDateTime, o.deliveryDateTime, o.totalCostAmount]), [
+      ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST', 1050], ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST', 1250],
+    ])
+  })
+
+  it('retender on a consolidated change: the inserted prior carrier carries the stop dates too', async () => {
+    const detail = mkDetail()
+    detail.orderChange.newOption = { rank: 2 }
+    const { db, calls } = mk(detail)
+    await resolveOrderChange({ params: ['T'], body: { action: 'retender', cost: { choice: 'prior', amount: 999 } }, db })
+    const prior = optionList(calls).find((o) => o.scac === 'PRIOR')
+    assert.deepEqual([prior.rank, prior.status, prior.totalCostAmount], [2, 'Sent', 999])
+    assert.deepEqual([prior.pickupDateTime, prior.deliveryDateTime, prior.pickupTZ], ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST', 'America/Chicago'])
+  })
+
+  it('C19: the stop write sets the list columns from the first pickup / last delivery', () => {
+    const q = buildSaveStopsQuery('T', stops, [order('A', 100, 10, 1)])
+    assert.match(q.text, /origin = \$\d+, destination = \$\d+, consignor = \$\d+, consignee = \$\d+/)
+    assert.match(q.text, /pickup_ts = \$\d+::timestamptz, delivery_ts = \$\d+::timestamptz/)
+    const r = rowFromStops(stops)
+    assert.deepEqual(r, {
+      origin: 'Houston TX US 77001', destination: 'Dallas TX US 75201', consignor: 'P1', consignee: 'D1',
+      pickupDate: '03/04/2026 10:00 CST', deliveryDate: '03/06/2026 09:30 CST',
+      pickupTs: '2026-03-04T10:00:00-06:00', deliveryTs: '2026-03-06T09:30:00-06:00',
+    })
+    for (const v of Object.values(r)) assert.ok(q.values.includes(v))
+  })
+
+  it('C19: an emptied source keeps its list columns', () => {
+    const q = buildSaveStopsQuery('77', [], [], { resetChanges: false })
+    assert.doesNotMatch(q.text, /origin =|pickup_ts =/)
+  })
+
+  it('C19: the target\'s search rows are replaced with its new roster and route', async () => {
+    const { db, calls } = mk(mkDetail())
+    await resolveOrderChange({ params: ['T'], body: save('Sent'), db })
+    const del = calls.findIndex((q) => /^DELETE FROM search_index/.test(q.text ?? ''))
+    assert.deepEqual(calls[del].values, ['T'])
+    const ins = calls[del + 1]
+    assert.match(ins.text, /^INSERT INTO search_index/)
+    for (const v of ['A', 'B', 'Houston TX US 77001', 'P1', 'OLD']) assert.ok(ins.values.includes(v), v)
+  })
+
+  it('C5: the list and the tab counts exclude an emptied shipment (order_count is text)', () => {
+    assert.match(buildListQuery({ filter: { panel: 'monitoring' } }).text, /order_count IS DISTINCT FROM '0'/)
+    assert.match(buildCountsQuery({ panel: 'monitoring' }).text, /order_count IS DISTINCT FROM '0'/)
+  })
 })

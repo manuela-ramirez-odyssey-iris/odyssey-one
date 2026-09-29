@@ -406,3 +406,17 @@ test('the values handler caps the page size a client can ask for', async () => {
   await valuesHandler({ body: { attr: 'scac', page: { limit: 100000 } }, db })
   assert.ok(bound.includes(200), 'clamped to 200')
 })
+
+// C5 (DEC-202) — an emptied shipment (order_count '0') is hidden from search
+// as it is from the grid: every hit branch restricts to live shipments.
+test('search hides an emptied shipment — needle, chips-only and column-chip branches', () => {
+  const live = /order_count IS DISTINCT FROM '0'/
+  const needle = buildSearchQuery({ domain: 'shipments', needles: ['A1'], limit: 15 })
+  assert.match(needle.text, live)
+  assertAllParamsReferenced(needle.text, needle.values)
+  const scoped = buildSearchQuery({ domain: 'shipments', needles: ['A1'], limit: 15, customerIds: ['VALTRIS_01'] })
+  assert.match(scoped.text, /order_count IS DISTINCT FROM '0' AND customer_id = ANY\(/)
+  const col = buildSearchQuery({ domain: 'shipments', needles: [], limit: 15, chips: [{ key: 'mode', dataKey: 'mode', queryValue: 'TL', exact: true }] })
+  assert.match(col.text, live)
+  assertAllParamsReferenced(col.text, col.values)
+})

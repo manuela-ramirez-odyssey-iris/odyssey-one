@@ -627,6 +627,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       {modal === 'routing' && (
         <ViewRoutingModal
           orderChange={orderChange}
+          stops={sb.stops}
+          summary={summary}
           onClose={() => setModal(null)}
           secondaryLabel="Keep Editing"
           onSecondary={() => setModal(null)}

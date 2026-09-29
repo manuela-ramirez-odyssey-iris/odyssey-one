@@ -139,3 +139,25 @@ it('renders an error Alert above the tables when `error` is set; nothing when no
   rerender(<ViewRoutingModal orderChange={oc} onClose={() => {}} />)
   expect(screen.queryByText('Could not save. Try again.')).toBeNull()
 })
+
+// C4 (DEC-206) — the New list is re-routed over the stops the caller passes
+// (Edit Stops' sandbox stops here: a created stop carries its zone on `site`);
+// the Prior list is history and keeps its own dates.
+it('dates the New list from the first pickup / last delivery stop; Prior keeps its own', () => {
+  const sandboxStops = [
+    { type: 'pickup', date: 'March 4, 2026 10:00 PST', site: { timeZone: 'America/Los_Angeles' } },
+    { type: 'delivery', date: 'March 5, 2026 11:00 MST' },
+    { type: 'delivery', date: 'March 7, 2026 12:00 EST' },
+  ]
+  render(<ViewRoutingModal orderChange={oc} stops={sandboxStops} onClose={() => {}} />)
+  const n = tableFor('New')
+  expect(within(n).getAllByText('03/04/2026 10:00 PST')).toHaveLength(2)
+  expect(within(n).getAllByText('03/07/2026 12:00 EST')).toHaveLength(2)
+  expect(within(tableFor('Prior')).getAllByText('05/23/2026 14:30 CDT')).toHaveLength(4)
+})
+
+it('an empty New list renders an empty New table (dropped carriers still listed)', () => {
+  render(<ViewRoutingModal orderChange={{ ...oc, newTenderList: [] }} stops={[]} onClose={() => {}} />)
+  expect(within(tableFor('New')).queryByText('DDFL')).toBeNull()
+  expect(screen.getByText('JBHT')).toBeTruthy()
+})

@@ -8,6 +8,8 @@ import { buildCandidateRows, MOVE_BLOCKED_CATEGORY, MOVE_BLOCKED_TENDER } from '
 import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 import { idsFor, buildInsertShipmentQuery, buildLinkOrderQuery, buildSearchIndexQuery } from './planShipment.mjs'
 import { tsFromDisplay } from './consolidateShipments.mjs'
+import { totalMiles } from '../../src/utils/legMiles.js'
+import { applyStopDates, rerouteTenderList, stopDateToDisplay, withApTotal } from '../../src/lib/orderChangeRouting.js'
 
 // Sentinel `sortBy` meaning "order by search relevance, no column drives".
 // Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
@@ -71,6 +73,12 @@ const FIELD_MAP = {
 // Identifiers search group, so it should be the first column ORed across too.
 const FREE_TEXT_COLUMNS = ['odyssey_shipment_id', 'sell_shipment', 'buy_shipment', 'customer_name', 'origin', 'destination', 'scac']
 
+// C5 (DEC-202) — a shipment a save-stops emptied (every order moved out,
+// order_count is text: 001_schema.sql:34) leaves the list, the tab counts and
+// search; its detail stays readable by id (sellShipmentDetail). IS DISTINCT
+// FROM so a NULL count is never hidden with it.
+export const NOT_EMPTIED = `order_count IS DISTINCT FROM '0'`
+
 function scope(where, values, customerIds) {
   if (customerIds === undefined) return
   if (customerIds.length === 0) { where.push('FALSE'); return }   // honest empty (S79c decision 10)
@@ -118,7 +126,7 @@ function relevanceJoin(searchCriteria, needles, bind) {
 
 export function buildCountsQuery({ panel, customerIds, searchCriteria } = {}, needles) {
   const values = [panel]
-  const where = ['panel = $1']
+  const where = ['panel = $1', NOT_EMPTIED]
   scope(where, values, customerIds)
   // Tab badges must narrow with the search, or they contradict the grid below them.
   const join = relevanceJoin(searchCriteria, needles, (v) => { values.push(v); return `$${values.length}` })
@@ -130,7 +138,7 @@ export function buildCountsQuery({ panel, customerIds, searchCriteria } = {}, ne
 
 export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sortBy, orderBy } = {}, needles) {
   const values = []
-  const where = []
+  const where = [NOT_EMPTIED]
   const add = (clause, v) => { values.push(v); where.push(clause.replace('?', `$${values.length}`)) }
 
   if (filter.panel) add('panel = ?', filter.panel)
@@ -494,17 +502,32 @@ export function removeOrdersFromSource(detail, movedIds) {
   return { orderList, stops: mergeStops({ ...detail, orderList }, rows) }
 }
 
-// A stop's scheduledDateTime is the long form ('March 4, 2026 10:00 PST',
-// generate.mjs:946 / stopsSandbox formatStopDate); the row's pickup_date /
-// delivery_date is 'MM/DD/YYYY HH:MM TZ' (001_schema.sql:27, generate.mjs
-// formatDateTime). An already-short string passes through.
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-function stopDateToDisplay(s) {
-  const m = /^([A-Za-z]+) (\d{1,2}), (\d{4}) (\d{1,2}):(\d{2})(?: ([A-Z]{3,4}))?/.exec(s ?? '')
-  if (!m || !MONTHS.includes(m[1])) return s ?? ''
-  const pad = (v) => String(v).padStart(2, '0')
-  return `${pad(MONTHS.indexOf(m[1]) + 1)}/${pad(m[2])}/${m[3]} ${pad(m[4])}:${m[5]} ${m[6] || 'CST'}`
+// C19 (S163) — the list columns a shipment's stops decide, from the FIRST
+// pickup and the LAST delivery, in the seeded row's shapes (origin
+// 'City ST US 12345', short date, tsFromDisplay). null when the stops can't
+// answer (no pickup or no delivery left) — the caller keeps its columns.
+export function rowFromStops(stops) {
+  const pu = stops.find((s) => s.stopType === 'pickup')
+  const del = stops.findLast((s) => s.stopType === 'delivery')
+  if (!pu || !del) return null
+  const pickupDate = stopDateToDisplay(pu.scheduledDateTime)
+  const deliveryDate = stopDateToDisplay(del.scheduledDateTime)
+  return {
+    origin: [pu.city, pu.region, pu.country, pu.postal].filter(Boolean).join(' '),
+    destination: [del.city, del.region, del.country, del.postal].filter(Boolean).join(' '),
+    consignor: pu.facilityName ?? '',     // seed: consignor = pickup stop's facility
+    consignee: del.facilityName ?? '',
+    pickupDate, deliveryDate,
+    pickupTs: tsFromDisplay(pickupDate), deliveryTs: tsFromDisplay(deliveryDate),
+  }
 }
+
+// C4/C12 — stored stops → the { type, date, lat, lng, timeZone } shape
+// orderChangeRouting reads; and the miles the seeded new list was priced at.
+const routingStopsOf = (stops) => (stops ?? []).map((s) => ({
+  type: s.stopType, date: s.scheduledDateTime, lat: s.lat, lng: s.lng, timeZone: s.timeZone,
+}))
+const baselineMilesOf = (detail) => detail?.orderChange?.consolidation?.summaryChanges?.distance?.new ?? detail?.distanceMiles
 
 // C3 / DEC-205 / ruling N3 (S163) — an order left in Orders Pending To Assign
 // at a save-stops becomes its OWN Direct shipment, same shape as
@@ -533,9 +556,7 @@ export function buildSplitShipment({ source, orderRec, orderSerialId, now = new 
     stopSequence: i + 1, stopType: s.stopType, orderIds: [id], sourceStopSequence: s.stopSequence,
   }))
   const stops = mergeStops({ ...source.detail, orderList: [orderRec] }, rows)
-  const [pu, del] = stops
-  const pickupDate = stopDateToDisplay(pu.scheduledDateTime)
-  const deliveryDate = stopDateToDisplay(del.scheduledDateTime)
+  const fromStops = rowFromStops(stops)
   const agg = computeListAggregates([orderRec])
   // R6 — a missing flag is Y (consolidatableOf's default).
   const consolidatable = orderRec.consolidatable !== false
@@ -555,11 +576,12 @@ export function buildSplitShipment({ source, orderRec, orderSerialId, now = new 
     pro: null,
     customerId: src.customerId,
     customerName: src.customerName,
-    consignor: pu.facilityName ?? '',     // seed: consignor = pickup stop's facility
-    consignee: del.facilityName ?? '',
-    origin: [pu.city, pu.region, pu.country, pu.postal].filter(Boolean).join(' '),
-    destination: [del.city, del.region, del.country, del.postal].filter(Boolean).join(' '),
-    pickupDate, deliveryDate,
+    consignor: fromStops.consignor,
+    consignee: fromStops.consignee,
+    origin: fromStops.origin,
+    destination: fromStops.destination,
+    pickupDate: fromStops.pickupDate,
+    deliveryDate: fromStops.deliveryDate,
     mode: src.mode,
     equipmentCode: src.equipmentCode ?? '',
     // Deliberately NOT the source's equipment NUMBER: the carrier assigns it
@@ -618,7 +640,7 @@ export function buildSplitShipment({ source, orderRec, orderSerialId, now = new 
         outcome: consolidatable ? 'update' : 'neutral' },
     ],
   }
-  return { row, detail, pickupTs: tsFromDisplay(pickupDate), deliveryTs: tsFromDisplay(deliveryDate) }
+  return { row, detail, pickupTs: fromStops.pickupTs, deliveryTs: fromStops.deliveryTs }
 }
 
 // Pre-transaction reads for the C3 split: the target's own list columns and
@@ -676,6 +698,64 @@ export function buildDetailReadQuery(sellShipment) {
   return { text: 'SELECT detail FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
 }
 
+// C19 — the columns buildSearchIndexQuery projects that a save-stops doesn't
+// recompute itself (roster/route come from the save).
+export function buildSearchRowQuery(sellShipment) {
+  return {
+    text: `SELECT odyssey_shipment_id AS "odysseyShipmentIdentifier", buy_shipment AS "buyShipment", pro,
+             customer_id AS "customerId", customer_name AS "customerName", equipment, seal, scac, load,
+             planning_type AS "planningType"
+           FROM shipments WHERE sell_shipment = $1`,
+    values: [sellShipment],
+  }
+}
+
+// C11 (S163) — Save recomputes the header, so every number the review shows
+// agrees before and after Save (DEC-192). The header fields for ANY saved
+// shipment (target or 15872 source); the review state — summaryChanges' `new`
+// side and the costs — only for a target given its `rerouted` list. Priors
+// stay: they're the customer's pre-change values. A pair the seed didn't
+// write (the value never changed) is only created when this save changes it —
+// LINX-15435 shows Prior/New only for a changed value.
+const round2 = (n) => Math.round(n * 100) / 100
+export function recomputeReviewTotals(detail, orderList, stops, rerouted) {
+  const sum = (list, f) => round2(list.reduce((t, o) => t + (f(o) ?? 0), 0))
+  const volume = sum(orderList, (o) => o.volumeValue)
+  const miles = totalMiles(stops)
+  const out = { totalVolumeValue: volume }
+  if (miles != null) out.distanceMiles = miles
+  const c = detail?.orderChange?.consolidation
+  if (!c || !rerouted) return out
+  const pair = (cur, oldValue, newValue) => (cur
+    ? { ...cur, new: newValue }
+    : (newValue !== oldValue ? { prior: oldValue, new: newValue } : undefined))
+  const sc = c.summaryChanges ?? {}
+  out.summaryChanges = {
+    ...sc,
+    grossWeight: pair(sc.grossWeight, sum(detail.orderList ?? [], (o) => o.grossWeightValue), sum(orderList, (o) => o.grossWeightValue)),
+    volume: pair(sc.volume, detail.totalVolumeValue, volume),
+    distance: miles != null ? pair(sc.distance, detail.distanceMiles, miles) : sc.distance,
+  }
+  out.costs = {
+    ...c.costs,
+    // Same rank-1 convention as the seed (generate.mjs selectedNew); an empty
+    // list (Scenario B, dropped carriers only) genuinely has none.
+    newConsolidated: rerouted.find((o) => o.rank === 1)?.totalCostAmount ?? null,
+    newDirect: sum(orderList, (o) => o.cost?.directCostAmount),
+  }
+  return out
+}
+
+// Where each recomputeReviewTotals key (plus the rerouted newTenderList) lives
+// in the detail blob. Code constants, never request input.
+const PATCH_PATHS = {
+  totalVolumeValue: '{totalVolumeValue}',
+  distanceMiles: '{distanceMiles}',
+  summaryChanges: '{orderChange,consolidation,summaryChanges}',
+  costs: '{orderChange,consolidation,costs}',
+  newTenderList: '{orderChange,newTenderList}',
+}
+
 // Whole-array replace of shipmentStopList, same "send the finalized whole" as
 // buildOverridesQuery — the merged rows already carry everything the sandbox
 // changed plus everything it couldn't (mergeStops above).
@@ -685,36 +765,50 @@ export function buildDetailReadQuery(sellShipment) {
 // write renumbers shipmentStopList — left alone, the Stops tab's review
 // badges land on the wrong stops and locationChange keeps reporting a
 // change that's now baked into the plan. The plan is finalized at this
-// point, so both reset to their "nothing pending" values; everything else
-// on consolidation (summaryChanges/changedOrderIds/orderComparisons/costs)
-// is the customer-facing diff and stays untouched.
+// point, so both reset to their "nothing pending" values; the rest of
+// consolidation (changedOrderIds/orderComparisons, summaryChanges' priors)
+// is the customer-facing diff and stays untouched — `patch` (C11) rewrites
+// only the recomputed values.
 // `orderList`/`orders`/`order_count` land in the SAME write (LINX-15872 —
 // an external order copied in, or a pending one dropped, has to change the
 // shipment's order roster in lockstep with its stops). `resetChanges: false`
 // skips the consolidation-badge reset for a SOURCE shipment in the 15872
 // move — its own review state (if any) isn't this save's business.
-export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChanges = true } = {}) {
+export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChanges = true, patch = {} } = {}) {
   const ids = orderList.map((o) => o.orderNumber ?? String(o.orderId))
+  // OC-open-22 — gross_weight/load_count/po_numbers/pickup_numbers/shipment_type
+  // land in the SAME write as orders/order_count, recomputed from this call's
+  // orderList (computeListAggregates above).
+  const agg = computeListAggregates(orderList)
+  const values = [
+    JSON.stringify(stops), JSON.stringify(orderList), ids, String(ids.length), sellShipment,
+    agg.grossWeight, agg.loadCount, agg.poNumbers, agg.pickupNumbers, agg.shipmentType,
+  ]
+  const bind = (v) => { values.push(v); return `$${values.length}` }
   // N2 (S163) — detail.shipmentType follows the row's shipment_type ($10),
   // so a save that leaves one order reads Direct in the modal too.
   const base = `jsonb_set(jsonb_set(jsonb_set(detail, '{shipmentStopList}', $1::jsonb), '{orderList}', $2::jsonb), '{shipmentType}', to_jsonb($10::text))`
   // The target's own consolidation badges are stale after a save (S143);
   // a SOURCE shipment keeps whatever review state it had.
-  const detailSql = resetChanges
+  let detailSql = resetChanges
     ? `jsonb_set(jsonb_set(${base}, '{orderChange,consolidation,stopChanges}', '{}'::jsonb), '{orderChange,consolidation,locationChange}', 'false'::jsonb)`
     : base
-  // OC-open-22 — gross_weight/load_count/po_numbers/pickup_numbers/shipment_type
-  // land in the SAME write as orders/order_count, recomputed from this call's
-  // orderList (computeListAggregates above).
-  const agg = computeListAggregates(orderList)
+  for (const [key, path] of Object.entries(PATCH_PATHS)) {
+    if (patch[key] !== undefined) detailSql = `jsonb_set(${detailSql}, '${path}', ${bind(JSON.stringify(patch[key]))}::jsonb)`
+  }
+  // C19 (S163) — the list columns the stops decide land in the same write
+  // (target and every source). No pickup/delivery left = keep the columns.
+  const r = rowFromStops(stops)
+  const rowSql = r
+    ? `, origin = ${bind(r.origin)}, destination = ${bind(r.destination)}, consignor = ${bind(r.consignor)}, consignee = ${bind(r.consignee)},
+             pickup_date = ${bind(r.pickupDate)}, delivery_date = ${bind(r.deliveryDate)},
+             pickup_ts = ${bind(r.pickupTs)}::timestamptz, delivery_ts = ${bind(r.deliveryTs)}::timestamptz`
+    : ''
   return {
     text: `UPDATE shipments SET detail = ${detailSql}, orders = $3, order_count = $4,
-             gross_weight = $6, load_count = $7, po_numbers = $8, pickup_numbers = $9, shipment_type = $10
+             gross_weight = $6, load_count = $7, po_numbers = $8, pickup_numbers = $9, shipment_type = $10${rowSql}
            WHERE sell_shipment = $5 RETURNING sell_shipment`,
-    values: [
-      JSON.stringify(stops), JSON.stringify(orderList), ids, String(ids.length), sellShipment,
-      agg.grossWeight, agg.loadCount, agg.poNumbers, agg.pickupNumbers, agg.shipmentType,
-    ],
+    values,
   }
 }
 
@@ -775,24 +869,6 @@ export function adoptNewTenderList(action, orderChange, cost, outcome) {
   })
 }
 
-// D3 (LINX-14515) — the planner's pick (Prior / New / Quote) is the AP TOTAL,
-// the same figure as the Tender tab's AP Cost column (totalCostAmount). The
-// row's base rate is what remains after its own additional charges, the
-// seed's formula run backwards (generate.mjs: apTotal = baseRate + charges).
-// ponytail: a quote's own charges aren't carried in the body, so a quote is
-// split against the row's charges; send the quote's rateDetails if they differ.
-function withApTotal(o, apTotal) {
-  const d = o.rateDetails
-  const charges = (d?.additionalCharges ?? []).reduce((s, c) => s + (c.amount ?? 0), 0)
-  const baseRate = Math.round((apTotal - charges) * 100) / 100
-  return {
-    ...o,
-    rateAmount: baseRate,
-    totalCostAmount: apTotal,
-    rateDetails: d && { ...d, baseRate, apTotal, arTotal: Math.round((baseRate + (d.markup ?? 0) + charges) * 100) / 100 },
-  }
-}
-
 // ponytail: same 2-decimal locale format as tools/generate.mjs's `fmt` — the
 // shipments.ap_freight_cost column is a formatted string, not a number, and
 // the grid must keep printing what the seed would have printed.
@@ -811,7 +887,10 @@ function listCarrierFor(action, rows, orderChange) {
     ? rows.find((o) => o.scac === priorScac)
     : null
   if (!row) row = rows.find((o) => o.rank === 1) ?? rows[0]
-  if (!row) return null
+  // C22 (S163) — an adopted EMPTY list (dropped carriers only) clears the
+  // grid's carrier + cost; returning null would skip the SET and leave the
+  // old carrier showing on a shipment that no longer has one.
+  if (!row) return { scac: null, apFreightCost: null }
   return {
     scac: row.scac ?? null,
     // The grid's AP Freight Cost is the AP total (generate.mjs mainRow.apFreightCost = fmt(apTotal)).
@@ -882,6 +961,19 @@ export async function resolveOrderChange({ params, body, db }) {
     // its reads done) before BEGIN; zero pending = zero extra queries.
     const pending = (detail.orderList ?? []).filter((o) => !onStops.has(idOf(o)))
     const splits = pending.length ? await planSplits(db, sellShipment, detail, pending) : []
+    // C4/C12 (DEC-206, DEC-215) — the new list re-routed ONCE over the saved
+    // stops: the target's review keeps it (Scenario A's Direct review shows
+    // it) and Scenario B adopts it below. A Direct order change has no
+    // consolidated plan to re-route — its list is left as seeded.
+    const orderChange = detail?.orderChange ?? {}
+    const rerouted = orderChange.consolidation
+      ? rerouteTenderList(orderChange.newTenderList ?? [], routingStopsOf(merged), baselineMilesOf(detail))
+      : null
+    // C11 — the header recomputed in the same write (review state only with a re-route).
+    const patch = recomputeReviewTotals(detail, orderList, merged, rerouted)
+    if (rerouted) patch.newTenderList = rerouted
+    // C19 — the target's search rows follow its new roster/route (read here, written in the tx).
+    const { rows: [searchRow] } = await db.query(buildSearchRowQuery(sellShipment))
 
     // ponytail: first BEGIN/COMMIT in this file — the AC (LINX-15872) demands
     // one Save transaction now that a save-stops can touch more than one
@@ -893,7 +985,7 @@ export async function resolveOrderChange({ params, body, db }) {
     const client = await db.connect()
     try {
       await client.query('BEGIN')
-      await client.query(buildSaveStopsQuery(sellShipment, merged, orderList))
+      await client.query(buildSaveStopsQuery(sellShipment, merged, orderList, { patch }))
       // LINX-15872 "Remove the order from its source shipment" / OC-open-22:
       // the `orders` table row itself still points at the OLD shipment until
       // this repoints it — the two JSONB detail blobs (this save + the
@@ -911,7 +1003,9 @@ export async function resolveOrderChange({ params, body, db }) {
           .filter((e) => e.sourceSellShipment === src.sellShipment)
           .map((e) => e.orderNumber)
         const next = removeOrdersFromSource(src.detail, movedIds)
-        await client.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, { resetChanges: false }))
+        await client.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, {
+          resetChanges: false, patch: recomputeReviewTotals(src.detail, next.orderList, next.stops),
+        }))
       }
       for (const split of splits) {
         const sell = split.row.sellShipment
@@ -936,16 +1030,28 @@ export async function resolveOrderChange({ params, body, db }) {
       // The TARGET's scenario reads body.priorTenderStatus, not the live
       // tenders table (unlike a source's move block, C6): its tendering is
       // locked for the whole review (LINX-14509), so the prior can't drift.
+      let listCarrier = null
       if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
         // Scenario B — same "final decision" stamp as retender/bypass/cancel,
         // AND (T4) the same tender-list adoption: the new plan is final, so
         // its stops AND its tender list both become current in this one save.
         const resolution = { action, cost: null, resolvedAt: new Date().toISOString() }
-        const orderChange = detail?.orderChange ?? {}
-        const tenderRows = adoptNewTenderList(action, orderChange, null, outcome)
-        const listCarrier = listCarrierFor(action, tenderRows, orderChange)
+        const adopted = rerouted ? { ...orderChange, newTenderList: rerouted } : orderChange
+        const tenderRows = adoptNewTenderList(action, adopted, null, outcome)
+        listCarrier = listCarrierFor(action, tenderRows, adopted)
         await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
         await writeTenderAdoption(client, sellShipment, tenderRows)
+      }
+      if (searchRow) {
+        const { pickupNumbers, shipmentType } = computeListAggregates(orderList)
+        const index = buildSearchIndexQuery({
+          ...searchRow, ...rowFromStops(merged), sellShipment, scac: listCarrier?.scac ?? searchRow.scac,
+          orders: orderList.map(idOf), pickupNumbers, shipmentType,
+        })
+        // ponytail: the target only — a 15872 source's rows keep the moved
+        // order until its next reseed (an emptied one is hidden anyway, C5).
+        await client.query({ text: `DELETE FROM search_index WHERE domain = 'shipments' AND entity_id = $1`, values: [sellShipment] })
+        if (index.values.length) await client.query(index)
       }
       await client.query('COMMIT')
     } catch (e) {
@@ -963,10 +1069,21 @@ export async function resolveOrderChange({ params, body, db }) {
   if (detailRows.length === 0) {
     const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e
   }
-  const orderChange = detailRows[0].detail?.orderChange ?? {}
+  const detail = detailRows[0].detail ?? {}
+  let orderChange = detail.orderChange ?? {}
   const cost = body?.cost ?? null
   const resolution = { action, cost, resolvedAt: new Date().toISOString() }
-  const tenderRows = adoptNewTenderList(action, orderChange, cost, outcome)
+  // C4/C12 — only a CONSOLIDATED order change re-routes over its stops;
+  // Direct order changes are untouched.
+  const stops = routingStopsOf(detail.shipmentStopList)
+  if (orderChange.consolidation && action === 'approve-plan') {
+    // The planner approved exactly what View Routing showed (same function).
+    orderChange = { ...orderChange, newTenderList: rerouteTenderList(orderChange.newTenderList ?? [], stops, baselineMilesOf(detail)) }
+  }
+  let tenderRows = adoptNewTenderList(action, orderChange, cost, outcome)
+  // The inserted prior carrier also carries the stop dates (Jana 09-25
+  // @00:15:03–00:16:29); the rest already do (Save wrote the re-routed list).
+  if (orderChange.consolidation && (action === 'retender' || action === 'bypass')) tenderRows = applyStopDates(tenderRows, stops)
   const listCarrier = listCarrierFor(action, tenderRows, orderChange)
 
   const client = await db.connect()
