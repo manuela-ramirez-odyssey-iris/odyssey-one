@@ -60,6 +60,9 @@
   background: var(--bg-primary);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
+  /* User 2026-09-28: inside the white All Stops card the shadow alone read
+     faint — a default-tone border outlines Prior / New / Pending. */
+  border: 1px solid var(--border-default);
 }
 .edit-stops__plan-title { margin: 0; color: var(--text-primary); }
 /* Every column title sits on a button-high line (New's carries Edit /
