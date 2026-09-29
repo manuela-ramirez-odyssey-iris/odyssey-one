@@ -876,7 +876,7 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision (user, 2026-09-08):** its own route with breadcrumb, like the Direct review. "Prior Shipment View" is a `ButtonToggle New | Prior` in the section header, **enabled only once the planner has edited something**; Prior is a read-only rendering of the structure at open: title "All Stops - Prior Changes", every control in the slot disabled, the pending column grayed, the info alert reading "Prior changes view mode", and the planner's own changes highlighted in **amber** — purple stays reserved for what the customer changed.
 - **Source:** user session S143 (*"will be shown in its own page like we did with direct order change… 'Prior Shipment View' will be shown through toggling a subaccordion toggle button, which will be enabled only when we edit something… show the changes made in yellow"*); VD `2134-53584`.
 
-### DEC-137: Stops reorder with ↑/↓ arrows; an illegal move is blocked with the AC's message
+### DEC-137: Stops reorder with ↑/↓ arrows; an illegal move is blocked with the AC's message — AMENDED by DEC-212 (drag in the compact state, arrows in edit mode)
 - **Previous:** Jana's deck sketched drag-and-drop; the designer's feasibility objection (2026-08-14) targeted exactly that.
 - **Decision (S143):** LINX-15669 says "reposition"/"move", never drag; the VD draws arrow buttons per stop. A move that would put an order's delivery before one of its pickups is refused and the alert reads *"An order must be picked up before it can be delivered."* (15669 §2). Arrows are disabled only at the list edges so the reason can surface.
 - **Source:** LINX-15669; VD `2134-53584`.
@@ -1223,12 +1223,12 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** the Direct review's full field set with Changed / Unchanged bands; line-level fields render once per order line, grouped *Line 1, Line 2…*, each with its own changed marker.
 - **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:00:48`, `@00:02:18`; user 2026-09-24.
 
-### DEC-197: Prior plan side by side with the new plan, not collapsible
+### DEC-197: Prior plan side by side with the new plan, not collapsible — AMENDED by DEC-212 (pending column edit-mode only)
 - **Previous:** a New/Prior toggle swapping one timeline.
 - **Decision:** Prior and New render side by side, both always visible; width comes from the Pending column and the stop content. Jana's sliding/collapsible pane is not taken.
 - **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:09:34`; user 2026-09-24 ("no collapsable anything").
 
-### DEC-198: Distance per leg, recomputed on reorder
+### DEC-198: Distance per leg, recomputed on reorder — AMENDED by DEC-212 (shown in a rail tooltip)
 - **Previous:** per-stop distance hard-coded `--`; header total not recomputed after edits.
 - **Decision:** each consecutive-stop leg shows its distance; reordering or placing a stop recomputes legs and the header total.
 - **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:18:33`; user 2026-09-24.
@@ -1240,13 +1240,14 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 
 ## Order Change (Consolidated) — design review + S160 rulings, DEC-200 … DEC-206
 
-### DEC-200: Save runs LINX-15671's Scenario A/B; the label is "Save"
+### DEC-200: Save runs LINX-15671's Scenario A/B; the label is "Save" — AMENDED by DEC-207 (label stays "Approve Changes")
 - **Previous:** the footer read "Approve Changes" (VD label, OC-open-16) and nothing happened after it (OC-open-26).
 - **Decision:** the label is **Save**. After a successful save:
   - **Scenario A** (active tender To Be Tendered/Sent/Accepted) opens the Direct Current Tender Decision screen as a sheet over Edit Stops, with the same rules.
   - **Scenario B** goes to the Tender tab with the new list as V2 over V1, the shipment stays in Review, and nothing is auto-tendered.
   - Cancel discards.
 - **Source:** LINX-15671; Jana design review 2026-09-25 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-design-review-2026-09-25.vtt`) `@00:11:02–00:24:42`; user 2026-09-25 (sheet reuse).
+- **Amended by DEC-207 (same day):** the label stays **Approve Changes**, inside the routing modal, not "Save". Scenario A replaces the Edit Stops screen with the Direct review rather than opening it as a sheet over it (S163 audit). The canon's §10c R2 and OC-open-16 still read "rename owed"; that rename is superseded.
 
 ### DEC-201: Tender- or status-busy source orders are selectable; Save refuses them
 - **Previous:** greyed and unselectable at add (user ruling 2026-09-09, OC-open-11).
@@ -1289,6 +1290,7 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
   - Both approve paths then run 15671's Scenario A/B (for Approve Plan that is our inference).
   - The label "Approve Changes" deviates from 15671's "Save" (DEC-200 amended).
 - **Source:** user 2026-09-25; LINX-15869/15872 ("View Routing before Save"); Jana design review `@00:24:19`.
+- **Caveat (S163 audit, 2026-09-29):** the modal is always the *current* one, but what it shows is not. It renders the seeded `orderChange.newTenderList` whatever the planner edited, and Scenario B adopts that same seeded list. Re-routing on the edited stops (15669 §6–7, 15671, Jana 09-25 `@00:18:42`) is owed: plan item C12, which needs a ruling first.
 
 ### DEC-208: Select Cost carries the AP total, everywhere it travels
 - **Previous:** DEC-125. Prior/New Cost were `rateDetails.baseRate` while New Quote was the quote's AP total. So the one radio group mixed units, and the New Tender List preview re-added the row's charges to a quote, counting them twice. The resolve API wrote only `rateAmount`. The Tender tab's AP Cost column (`totalCostAmount`) never moved, and the list's AP Freight Cost fell back to the base rate even though the seed prints the total there.
@@ -1310,10 +1312,38 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** Scenario B re-files to **Exceptions › Tender Review** with status **Review**, a blank tender status (the adopted list is untendered) and LINX-14514's review message; the planner lands on that tab. Moving the review to a new tab rather than leaving it in Order Change is our call: the order-change review is done, and tendering the new list is the next step. The doorway picks the review by load count (row `orderCount > 1`, detail `orderChange.consolidation`), per LINX-8284's "Consolidation (more than one load)" vs "Direct (one load)": a one-load C gets the Direct review.
 - **Source:** S162 audit; LINX-15671, LINX-8284, DEC-200.
 
+## Order Change (Consolidated) — decisions built without an entry, recorded by the S163 audit (DEC-212 … DEC-214)
+
+The 2026-09-29 audit (13 stories × build, plus Jana's transcripts) found three shipped behaviours with no decision entry. Each is recorded here after the fact, with its source. Nothing about the build changed.
+
+### DEC-212: Edit Shipment Stops = Prior | New with a separate edit mode; leg distance lives in a rail tooltip (amends DEC-197, DEC-198, DEC-137)
+- **Previous:**
+  - DEC-197: Prior, New and the Pending column side by side, all always visible (user: "no collapsable anything").
+  - DEC-198: each leg's distance shown on the leg.
+  - DEC-137: reorder with ↑/↓ arrows only, no drag.
+- **Decision (S162, many rounds):**
+  - Two panels, **Prior | New**, in the Consolidation Planned Stops anatomy (Figma `3039:147748`): light rows, no HeaderStrips, no "Stop N".
+  - **New** defaults to a compact read state. Stops reorder there with dnd-kit drag, and an illegal drop is refused with LINX-15669's message through the shared `canReorderStop`/`reorderStop`.
+  - **Edit** is a separate mode with Reset / Discard / Save and confirms. It holds the date/time/zone pickers, Set Aside, and ↑/↓ icon buttons that appear only while the stop is hovered or focused. Evaluate is disabled while editing.
+  - **Orders Pending To Assign** appears in edit mode only, as a 240px column floating right that slides open and closed. This walks back DEC-197's "always visible" for that column. Prior and New stay side by side.
+  - Per-leg distance moves into a tooltip over the stop's rail, "Distance from X to Y". It still recomputes on reorder, so DEC-198's substance holds.
+- **Source:** user rulings 2026-09-28 (S162: `29a47a0`, `0e955d5`, `7bb50fc` and the round around them). Jana's needs behind DEC-197/198 (see both plans while editing; judge the sequence by leg distance, walkthrough `@00:09:34`, `@00:18:33`) are kept; how they're shown is the user's call ([[feedback_jana_does_not_decide_ui]]).
+
+### DEC-213: *Keep here* numbers a `P?`/`D?` stop in place
+- **Previous:** per LINX-15668 §5, a `P?`/`D?` got its number only by being moved (S143 sandbox).
+- **Decision:** a `P?`/`D?` in the New plan offers **Keep here**. It accepts the system's position without a move, clears the `?` and marks the sandbox dirty. This deviates from 15668 §5 ("cannot finalize without moving"). **Our inference:** the AC's intent (the planner deliberately places every unplaced stop) holds, because Keep here is an explicit act on that stop.
+- **Source:** user default in the S160 spec (`docs/superpowers/specs/2026-09-25-order-change-evaluate-approve.md` T1.2); built `1e6b2c1`, `76742a7`.
+
+### DEC-214: A created stop's default date fits every order on it
+- **Previous:** LINX-15871 says a new stop's Date/Time/TZ start **blank**. The build before S160 already prefilled the first order's date.
+- **Decision:** a `new:*` stop the planner hasn't dated by hand gets the **latest** of its orders' earliest bounds, but only if that's ≤ the **earliest** of their latest bounds. Otherwise it keeps the first order's date, and the out-of-window flag (DEC-199) then shows. The time zone comes from the address (15669 §4). This deviates from 15871's blank start. Evaluate's date check then passes for these stops without the planner touching them. The completeness check before routing (15669 §5: date, time **and** zone) is still owed (plan C16).
+- **Source:** user default in the S160 spec (`docs/superpowers/specs/2026-09-25-order-change-evaluate-approve.md` T1.3); built `1e6b2c1`.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 29, 2026 | **DEC-212 through DEC-214**: shipped without an entry, recorded after the S163 audit. The Edit Stops redesign (Prior \| New, compact drag state vs edit mode, pending column in edit mode only, rail distance tooltip; amends DEC-197/198/137); *Keep here* (deviates from 15668 §5); a created stop's joint default date (deviates from 15871's blank). DEC-200 marked amended by DEC-207; DEC-207 caveat: the routing modal still shows the seeded list. **Previous state:** built S160/S162, untraced |
 | Sep 28, 2026 | **DEC-211** — Scenario B stays in Review (Exceptions › Tender Review) instead of Monitoring › Sent/Approved; the review doorway goes by load count, so one-load C shipments get the Direct review. **Previous state:** Bypass's outcome reused; doorway by shipmentType |
 | Sep 28, 2026 | **DEC-210** — neutral site names + customer-owned pickups (seed; ids unmoved; reseed owed). **Previous state:** company-named sites, random regardless of customer |
 | Sep 28, 2026 | **DEC-209** — To Be Tendered order changes seeded (14 rows, ids unmoved) + Tender-tab badge/actions per LINX-8253. **Previous state:** order change only from Sent/Accepted |
