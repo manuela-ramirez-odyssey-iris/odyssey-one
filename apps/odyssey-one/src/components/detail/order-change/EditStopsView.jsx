@@ -217,7 +217,6 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     if (!check.ok) { setErrorMsg(check.reason); return }
     setErrorMsg(null)
     snapshotTops()
-    flashOn([`stop:${sb.stops[i].key}`])
     setSb((s) => moveStop(s, i, dir))
   }
   // Collapsed-mode drop: same LINX-15669 gate + message as the arrows
@@ -232,7 +231,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     const check = canReorderStop(sb, from, to)
     if (!check.ok) { setErrorMsg(check.reason); return }
     setErrorMsg(null)
-    flashOn([`stop:${active.id}`])
+    // User 2026-09-29: a moved stop doesn't pulse when it lands.
     setSb((s) => reorderStop(s, from, to))
   }
   const sortSensors = useSensors(

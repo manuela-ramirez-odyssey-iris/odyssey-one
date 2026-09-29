@@ -374,11 +374,11 @@ it('the New plan edits a stop date; a date outside an order window flags that or
   expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
 })
 
-it('marks what an action touched so it pulses where it landed (user 2026-09-24)', () => {
+it('marks what an action touched so it pulses where it landed — but a moved stop doesn\'t pulse (users 2026-09-24 / 09-29)', () => {
   setup()
   edit()
   fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0])
-  expect(newStop(1).hasAttribute('data-flash')).toBe(true)   // moved P1, now second
+  expect(newStop(1).hasAttribute('data-flash')).toBe(false)  // moved P1, now second: slides, no pulse
   fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
   const pendingRow = screen.getByRole('button', { name: /^Add order / }).closest('.edit-stops__pending-row')
   expect(pendingRow.hasAttribute('data-flash')).toBe(true)
