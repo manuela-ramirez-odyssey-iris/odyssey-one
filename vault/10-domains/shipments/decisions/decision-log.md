@@ -1339,10 +1339,35 @@ The 2026-09-29 audit (13 stories × build, plus Jana's transcripts) found three 
 - **Decision:** a `new:*` stop the planner hasn't dated by hand gets the **latest** of its orders' earliest bounds, but only if that's ≤ the **earliest** of their latest bounds. Otherwise it keeps the first order's date, and the out-of-window flag (DEC-199) then shows. The time zone comes from the address (15669 §4). This deviates from 15871's blank start. Evaluate's date check then passes for these stops without the planner touching them. The completeness check before routing (15669 §5: date, time **and** zone) is still owed (plan C16).
 - **Source:** user default in the S160 spec (`docs/superpowers/specs/2026-09-25-order-change-evaluate-approve.md` T1.3); built `1e6b2c1`.
 
+## Order Change (Consolidated) — S163 rulings on the audit's open questions (DEC-215 … DEC-218)
+
+The user ruled on N1, N2, N3 and N6 on 2026-09-29, each time taking the recommended option. N4 (capacity validation) is **provisionally dropped** because no story carries it; that is a default the user may still override, so it is not a DEC. N5 closed on inspection: the planner-change marks survived as gray Removed/Moved badges in Prior (`EditStopsView.jsx:346-411`).
+
+### DEC-215: Evaluate re-routes from the edited stops (prototype recompute)
+- **Previous:** the routing modal and Scenario B's adopted list were the seeded `orderChange.newTenderList`, whatever the planner edited (DEC-207 caveat).
+- **Decision:** the carriers and ranks stay as routed, but each option's pickup/delivery dates come from the stops (first pickup and last delivery, DEC-206), and its cost scales with the edited total distance (`legMiles`). Save stores that recomputed list. This is a stand-in for a routing engine the prototype doesn't have; mark it `ponytail:` in code. Build owed (plan C12, with C4).
+- **Source:** user 2026-09-29 (N1); LINX-15669 §6–7, LINX-15671 "new routing result retained"; Jana 09-25 `@00:18:42`.
+
+### DEC-216: An order-change Save that leaves one order flips the shipment to Direct in place
+- **Previous:** the row's `shipment_type` flipped to Direct but `detail.shipmentType` stayed Consolidation. The 09-23 consolidation ruling (no single-load C: hide it, and the load gets a new O) had not been considered for order change.
+- **Decision:** the shipment and its tender stay, and the detail follows the row (Direct). The 09-23 hide-and-new-O rule does **not** apply to order change: the review sits on an already tendered shipment, and hiding it would discard the tender the planner is deciding on in Scenario A. Built in the Save slice.
+- **Source:** user 2026-09-29 (N2).
+
+### DEC-217: A removed order's new shipment gets no carrier list until it is planned
+- **Previous:** DEC-205 placed the new shipment (Consolidation or Hold) but said nothing about its carrier list. Jana 09-23 `@00:43:38`: "a new list is generated [under] prevailing conditions".
+- **Decision:** it starts with an empty tender list, like every untendered shipment in those tabs. The list comes when the shipment is planned, which satisfies "prevailing conditions" without simulating routing. Built in the Save slice (C3).
+- **Source:** user 2026-09-29 (N3); DEC-205.
+
+### DEC-218: Order change's Save is live-only
+- **Previous:** in mock mode `resolveOrderChange` returned early: no revalidation, no move, no re-filing. The UI still navigated as if the save had happened.
+- **Decision:** in mock mode, Approve raises a clear "needs the live API" error and doesn't navigate. The server logic (transactions, moves, splits) is not re-implemented in the client mock. Built in the Save slice (C21).
+- **Source:** user 2026-09-29 (N6).
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 29, 2026 | **DEC-215 through DEC-218**: the user's rulings on the S163 audit. Evaluate re-routes from the edited stops (prototype recompute); a one-order result flips to Direct in place (09-23 hide rule not applied); a removed order's new shipment has no carrier list until planned; order-change Save is live-only. N4 provisionally dropped, N5 closed. **Previous state:** seeded list, row/detail mismatch, unspecified list, mock no-op |
 | Sep 29, 2026 | **DEC-212 through DEC-214**: shipped without an entry, recorded after the S163 audit. The Edit Stops redesign (Prior \| New, compact drag state vs edit mode, pending column in edit mode only, rail distance tooltip; amends DEC-197/198/137); *Keep here* (deviates from 15668 §5); a created stop's joint default date (deviates from 15871's blank). DEC-200 marked amended by DEC-207; DEC-207 caveat: the routing modal still shows the seeded list. **Previous state:** built S160/S162, untraced |
 | Sep 28, 2026 | **DEC-211** — Scenario B stays in Review (Exceptions › Tender Review) instead of Monitoring › Sent/Approved; the review doorway goes by load count, so one-load C shipments get the Direct review. **Previous state:** Bypass's outcome reused; doorway by shipmentType |
 | Sep 28, 2026 | **DEC-210** — neutral site names + customer-owned pickups (seed; ids unmoved; reseed owed). **Previous state:** company-named sites, random regardless of customer |

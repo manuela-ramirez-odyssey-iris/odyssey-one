@@ -114,7 +114,8 @@ Four read-only audits: every AC clause of LINX-15435…15438, 15667…15671 and 
   - A DST stamp displays as the standard zone, so re-picking it shifts the time by an hour (`EditStopsView.jsx:52,77`).
 - **Canon drift (vault):** `order-change.md` §10c R2 and OC-open-16 still say "rename to Save owed" (superseded by DEC-207; see DEC-200's amendment), and §10.3 still describes DEC-137's arrows-only reorder. Sync them with DEC-212…214.
 
-### Needs a ruling before build (user)
+### Rulings (user, 2026-09-29): N1 → DEC-215, N2 → DEC-216, N3 → DEC-217, N6 → DEC-218. N4 provisionally dropped (no story); N5 closed (marks kept). Save slice spec: `docs/superpowers/specs/2026-09-29-order-change-save-slice.md`
+What was asked:
 - **N1. Re-routing in the prototype (C12).** There is no routing engine. Options: (a) regenerate the new list's costs and dates from the edited stops (distance via `legMiles`, dates via C4); (b) keep the seeded list, and label it as unchanged by the edits; (c) leave it as is.
 - **N2. A C left with one order by an order-change Save.** Your 09-23 ruling: no single-load C, it is hidden and the load gets a new O. Today the row flips to Direct in place. Does the 09-23 ruling apply here too?
 - **N3. A load taken out of a C gets a new carrier list** (Jana 09-23 `@00:43:38`: "a new list is generated [under] prevailing conditions"). This extends DEC-205, which only files the new shipment under Consolidation or Hold.
