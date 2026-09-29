@@ -387,7 +387,7 @@ it('marks what an action touched so it pulses where it landed (user 2026-09-24)'
 })
 
 describe('New plan modes (user 2026-09-28)', () => {
-  it('collapsed: grip + read-only dates, no arrows / pickers / Set Aside; Edit swaps in Reset / Discard / Save and IconButtonGhost arrows', () => {
+  it('collapsed: grip + read-only dates, no arrows / pickers / Set Aside; Edit swaps in Reset / Discard / Save and hover-revealed icon-Button arrows', () => {
     setup()
     expect(nw().queryByRole('button', { name: 'Move stop up' })).toBeNull()
     expect(nw().queryByRole('button', { name: 'Set Aside' })).toBeNull()
@@ -401,7 +401,9 @@ describe('New plan modes (user 2026-09-28)', () => {
     expect(nw().getByRole('button', { name: 'Reset' }).disabled).toBe(true) // nothing differs from the page's opening state
     expect(nw().getByRole('button', { name: 'Discard' })).toBeTruthy()
     expect(nw().getByRole('button', { name: 'Save' })).toBeTruthy()
-    expect(nw().getAllByRole('button', { name: 'Move stop up' })[0].className).toContain('icon-button-ghost')
+    const up = nw().getAllByRole('button', { name: 'Move stop up' })[0]
+    expect(up.className).toContain('btn--icon')
+    expect(up.closest('.edit-stops__stop-arrows')).toBeTruthy()   // CSS reveals it on stop hover / focus
     expect(newStop(0).getAttribute('aria-roledescription')).toBeNull()      // no drag in edit mode
     expect(newStop(0).querySelector('.edit-stops__stop-grip')).toBeNull()
     expect(document.getElementById('stop-s1-date')).toBeTruthy()

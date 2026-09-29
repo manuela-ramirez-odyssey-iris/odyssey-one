@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ArrowUp, ArrowDown, CalendarDays, GripVertical, TriangleAlert } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
-import { Alert, Badge, Button, DatePicker, IconButtonGhost, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
+import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -430,10 +430,12 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                     <Button variant="secondary" size="sm" onClick={() => handleKeepHere(s.key)}>Keep here</Button>
                   )}
                   {editing ? (
-                    <>
-                      <IconButtonGhost icon={<ArrowUp {...ICON_MD} />} ariaLabel="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
-                      <IconButtonGhost icon={<ArrowDown {...ICON_MD} />} ariaLabel="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
-                    </>
+                    // User 2026-09-28: icon Buttons, shown only while the stop
+                    // is hovered (or holds keyboard focus; always on touch).
+                    <span className="edit-stops__stop-arrows">
+                      <Button variant="icon" icon={<ArrowUp {...ICON_MD} />} aria-label="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
+                      <Button variant="icon" icon={<ArrowDown {...ICON_MD} />} aria-label="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
+                    </span>
                   ) : (
                     <GripVertical {...ICON_MD} className="edit-stops__stop-grip" aria-hidden="true" />
                   )}

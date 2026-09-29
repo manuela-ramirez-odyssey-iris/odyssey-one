@@ -189,9 +189,13 @@
 .edit-stops__plan-lead { display: flex; align-items: center; gap: var(--spacing-3); }
 .edit-stops__plan-actions { flex: 1 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-2); }
 
-/* IconButtonGhost has no disabled look of its own (components.css) — an
-   arrow that can't move reads dimmed and takes no hover. */
-.edit-stops .icon-button-ghost:disabled { opacity: var(--opacity-disabled); cursor: default; pointer-events: none; }
+/* New's arrows (edit mode) exist only while their stop is hovered or holds
+   keyboard focus — display:none otherwise, so the address takes the space
+   by default (user 2026-09-28). Touch screens have no hover: always shown. */
+.edit-stops__stop-arrows { display: none; gap: var(--spacing-1); }
+.edit-stops__stop--editable:hover .edit-stops__stop-arrows,
+.edit-stops__stop--editable:focus-within .edit-stops__stop-arrows { display: inline-flex; }
+@media (hover: none) { .edit-stops__stop-arrows { display: inline-flex; } }
 
 /* New's date + time + zone, as compact as the pickers allow (they take no
    size prop, so only the row layout is ours): one row when the column has
