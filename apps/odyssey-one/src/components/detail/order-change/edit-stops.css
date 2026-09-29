@@ -147,14 +147,22 @@
 .edit-stops__stop-meta { color: var(--text-secondary-soft); }
 
 /* Hover (consolidation-review.css, the editable-stop tint): New rows only —
-   Prior is read-only, like Consolidation's non-editing stops. Tint pads 8px
-   round the content; the row's 20px bottom spacer stays untinted. Off while
-   a row pulses, so the tint never hides the data-flash highlight. */
-.edit-stops__plan:not(:has([data-dragging])) .edit-stops__stop--editable:not([data-flash]):hover::before {
+   Prior is read-only, like Consolidation's non-editing stops. User
+   2026-09-28: the tint spans the WHOLE stop — its rail badge + line too,
+   they're part of it — drawn on the Timeline row, but only while the stop's
+   CONTENT is hovered: over the rail (the distance-tooltip zone) it goes
+   away. Pads 8px round the row; the 20px bottom spacer stays untinted. Off
+   while a row pulses (data-flash) and mid-drag. The rail and content are
+   positioned (z-index auto), so they paint over the tint by tree order
+   without a new stacking context — the dragged stop's z-index:1 still
+   lifts it above the neighbouring rows. */
+.edit-stops__rail .odyssey-timeline__row,
+.edit-stops__rail .odyssey-timeline__rail,
+.edit-stops__rail .odyssey-timeline__content { position: relative; }
+.edit-stops__plan:not(:has([data-dragging])) .edit-stops__rail .odyssey-timeline__row:has(.edit-stops__stop--editable:not([data-flash]):hover)::before {
   content: '';
   position: absolute;
   inset: calc(-1 * var(--spacing-2)) calc(-1 * var(--spacing-2)) calc(var(--spacing-5) - var(--spacing-2));
-  z-index: -1;
   background: var(--deep-sea-neutral-100);
   border-radius: var(--radius-md);
 }
