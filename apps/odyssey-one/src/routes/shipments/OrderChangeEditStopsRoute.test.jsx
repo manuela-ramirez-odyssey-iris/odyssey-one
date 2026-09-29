@@ -174,7 +174,7 @@ describe('OrderChangeEditStopsRoute', () => {
     },
   )
 
-  test('Approve with no active tender saves stops then navigates to /shipments Tender tab, still on the Order Change tab (LINX-15671 Scenario B)', async () => {
+  test('Approve with no active tender saves stops then navigates to /shipments Tender tab, re-filed under Tender Review (LINX-15671 Scenario B, DEC-200)', async () => {
     resolveOrderChange.mockResolvedValue(undefined)
     getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: null }))
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
@@ -188,7 +188,7 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(probe.textContent).toContain(`"selectedShipmentId":"${SELL_SHIPMENT}"`)
     expect(probe.textContent).toContain('"key":"routing"')
     expect(probe.textContent).toContain('"panel":"exceptions"')
-    expect(probe.textContent).toContain('"tab":"order-change"')
+    expect(probe.textContent).toContain('"tab":"tender-review"')
     expect(resolveOrderChange).toHaveBeenCalledTimes(1)
     expect(resolveOrderChange.mock.calls[0][1].action).toBe('save-stops')
   })

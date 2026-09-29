@@ -298,6 +298,17 @@ export async function saveShipmentOverrides({ params, body, db }) {
 // Tender statuses a shipment can be resolved OUT of by retender/bypass/save-stops.
 const OC_ACTIVE_TENDER_STATUSES = ['To Be Tendered', 'Sent', 'Accepted']
 
+// LINX-15671 Scenario B / DEC-200 (no active tender): the shipment STAYS in
+// Review and nothing is tendered. It re-files to Exceptions › Tender Review,
+// where the planner tenders the adopted list; the list is untendered, so the
+// row's tender status is blank. Deliberately NOT an OC_OUTCOMES key (those are
+// the accepted API actions). It used to reuse bypass, which filed the row under
+// Monitoring › Sent (status Approved) and invented 'Sent' for a null prior (S162 audit).
+const SCENARIO_B = () => ({
+  tenderStatus: '', panel: 'exceptions', category: 'tender-review',
+  validationMessage: 'User to review the current tender options and take appropriate action.',
+})
+
 const OC_OUTCOMES = {
   // retender re-solicits the carrier regardless of prior status — an
   // Accepted tender goes back to Sent, not back to Accepted (call w/ Jana).
@@ -319,16 +330,16 @@ const OC_OUTCOMES = {
   // where it was: the planner still owes the Direct Actions card a tender
   // decision on the new stops plan, so the row stays in Order Change
   // exceptions with no outcome change at all. Scenario B (no active tender)
-  // behaves exactly like bypass — nothing to re-solicit, the plan is just final.
+  // is SCENARIO_B — nothing to re-solicit, the shipment stays in Review.
   'save-stops': (prior) => OC_ACTIVE_TENDER_STATUSES.includes(prior)
     ? { tenderStatus: prior, panel: 'exceptions', category: 'order-change', validationMessage: null }
-    : OC_OUTCOMES.bypass(prior),
+    : SCENARIO_B(),
   // T3 (S160) — StopsTab's Approve Plan. Only ever called for Scenario B (no
   // active tender — the client-side useApproveOrderChange hook gates Scenario
   // A to no server call at all), so it's always save-stops' non-active
-  // outcome: bypass's shape, nothing to re-solicit. No stops are written —
+  // outcome: SCENARIO_B, nothing to re-solicit. No stops are written —
   // the plan is already what stands.
-  'approve-plan': (prior) => OC_OUTCOMES.bypass(prior),
+  'approve-plan': () => SCENARIO_B(),
 }
 
 // S143 Task 3 — Edit Shipment Stops "Approve Changes" (LINX-15667…15671).

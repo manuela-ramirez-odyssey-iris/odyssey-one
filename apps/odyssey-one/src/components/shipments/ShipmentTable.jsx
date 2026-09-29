@@ -325,8 +325,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                     // Stops tab (LINX-15435), a different surface than the Direct
                     // route — the label says so even though both hang off this same
                     // row-menu doorway.
-                    label: row.original.shipmentType === 'Consolidation' ? 'Review Consolidated Change' : 'Review Order Change',
-                    onSelect: () => row.original.shipmentType === 'Consolidation'
+                    // By LOAD count, not shipmentType (S162 audit): a C that dropped to
+                    // one order stays typed Consolidation (Dave) but has no stops review
+                    // — LINX-8284: "Consolidation (more than one load)" vs "Direct (one
+                    // load)". Same gate as the seed's consolidation payload (orders > 1).
+                    label: Number(row.original.orderCount) > 1 ? 'Review Consolidated Change' : 'Review Order Change',
+                    onSelect: () => Number(row.original.orderCount) > 1
                       ? onRowSelect(row.original.id, 'stops', false)
                       : openSheet(`/shipments/order-change/${row.original.sellShipment}`, { state: { buyShipment: row.original.buyShipment, odysseyShipmentIdentifier: row.original.odysseyShipmentIdentifier } }),
                   },

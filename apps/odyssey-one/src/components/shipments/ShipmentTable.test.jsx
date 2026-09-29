@@ -96,7 +96,13 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
   }
   const consolidationOrderChangeRow = {
     id: '0000000067890', sellShipment: '0000000067890', buyShipment: '0000000098765',
-    category: 'order-change', shipmentType: 'Consolidation', orders: [],
+    category: 'order-change', shipmentType: 'Consolidation', orderCount: '3', orders: [],
+  }
+  // S162 audit: a C that dropped to one order stays typed Consolidation (Dave)
+  // but is one load — LINX-8284 sends it to the Direct review.
+  const oneLoadConsolidationRow = {
+    id: '0000000055555', sellShipment: '0000000055555', buyShipment: '0000000066666',
+    category: 'order-change', shipmentType: 'Consolidation', orderCount: '1', orders: [],
   }
   const dateIssueRow = {
     id: '0000000099999', sellShipment: '0000000099999', buyShipment: '0000000011111',
@@ -183,6 +189,15 @@ describe('ShipmentTable — row actions menu (LINX-14509 Review Order Change)', 
     fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
     expect(screen.getByRole('menuitem', { name: 'Review Consolidated Change' })).toBeTruthy()
     expect(screen.queryByRole('menuitem', { name: 'Review Order Change' })).toBeFalsy()
+  })
+
+  test('a one-load Consolidation row goes to the Direct review, not the Stops tab (LINX-8284, S162)', () => {
+    const onRowSelect = vi.fn()
+    renderTable({ shipments: [oneLoadConsolidationRow], onRowSelect })
+    fireEvent.click(screen.getByRole('button', { name: 'Shipment actions' }))
+    expect(screen.queryByRole('menuitem', { name: 'Review Consolidated Change' })).toBeFalsy()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Review Order Change' }))
+    expect(onRowSelect).not.toHaveBeenCalledWith(oneLoadConsolidationRow.id, 'stops', false)
   })
 })
 

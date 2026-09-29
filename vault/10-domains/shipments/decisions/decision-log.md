@@ -1305,10 +1305,16 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 - **Decision:** 300 sites named `<CITY> <KIND>` (TERMINAL, PLANT, WORKS, DIST CTR…; no company names, enforced by a seed test). Each customer owns 4 ship-from sites in 4 different cities, assigned by index with no randomness and none shared. Every pickup (origin, extra pickups, order ship-from, relocated pickups) comes from the customer's own sites; deliveries never go to them. Multi-leg chains: leg 1 picks up at the customer's plant, later legs at the previous leg's interchange. Zero ids moved (faker's `arrayElement` takes one draw for any list of 2 or more, which is why each customer owns 4). The progression example values follow (BASTROP TERMINAL / GREEN RIVER TERMINAL). **Reseed owed.**
 - **Source:** user 2026-09-28 ("dont put customer names there as facility site names, and yes they need to be tied to the customer").
 
+### DEC-211: Scenario B keeps the shipment in Review; the review doorway follows the load count
+- **Previous:** Approve Plan and a no-tender Save reused Bypass's outcome, filing the shipment under Monitoring › Sent with status Approved (and inventing tender status 'Sent' for a null prior), against LINX-15671 and DEC-200. The tests asserted it. Separately, the row menu and the Tender tab picked the review by `shipmentType`, so five single-order C shipments (typed Consolidation by Dave's rule, but with no consolidated payload) landed on a plain Stops tab with no way into review.
+- **Decision:** Scenario B re-files to **Exceptions › Tender Review** with status **Review**, a blank tender status (the adopted list is untendered) and LINX-14514's review message; the planner lands on that tab. Moving the review to a new tab rather than leaving it in Order Change is our call: the order-change review is done, and tendering the new list is the next step. The doorway picks the review by load count (row `orderCount > 1`, detail `orderChange.consolidation`), per LINX-8284's "Consolidation (more than one load)" vs "Direct (one load)": a one-load C gets the Direct review.
+- **Source:** S162 audit; LINX-15671, LINX-8284, DEC-200.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 28, 2026 | **DEC-211** — Scenario B stays in Review (Exceptions › Tender Review) instead of Monitoring › Sent/Approved; the review doorway goes by load count, so one-load C shipments get the Direct review. **Previous state:** Bypass's outcome reused; doorway by shipmentType |
 | Sep 28, 2026 | **DEC-210** — neutral site names + customer-owned pickups (seed; ids unmoved; reseed owed). **Previous state:** company-named sites, random regardless of customer |
 | Sep 28, 2026 | **DEC-209** — To Be Tendered order changes seeded (14 rows, ids unmoved) + Tender-tab badge/actions per LINX-8253. **Previous state:** order change only from Sent/Accepted |
 | Sep 28, 2026 | **DEC-208** — Select Cost = the AP total on all three radios, the preview, the Tender tab's AP Cost and the list's AP Freight Cost (supersedes DEC-125; closes OC-open-2's build; reseed owed). **Previous state:** base rate on Prior/New, total on Quote, only `rateAmount` written |

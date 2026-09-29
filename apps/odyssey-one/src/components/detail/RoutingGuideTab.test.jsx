@@ -1524,7 +1524,7 @@ describe('Review Order Change entry (LINX-14509)', () => {
   it('routes a Consolidation shipment to the Stops tab via onRequestTab instead of navigating', () => {
     const onRequestTab = vi.fn()
     const props = baseProps()
-    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null }, shipmentType: 'Consolidation' }
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null, consolidation: {} }, shipmentType: 'Consolidation' }
     render(<RoutingGuideTab {...props} onRequestTab={onRequestTab} />)
     fireEvent.click(screen.getByRole('button', { name: 'Review Consolidated Change' }))
     expect(onRequestTab).toHaveBeenCalledWith('stops')
@@ -1536,10 +1536,19 @@ describe('Review Order Change entry (LINX-14509)', () => {
   // Order Change".
   it('labels the button "Review Consolidated Change" for a Consolidation shipment', () => {
     const props = baseProps()
-    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null }, shipmentType: 'Consolidation' }
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null, consolidation: {} }, shipmentType: 'Consolidation' }
     render(<RoutingGuideTab {...props} />)
     expect(screen.getByRole('button', { name: 'Review Consolidated Change' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Review Order Change' })).toBeNull()
+  })
+
+  it('a one-load Consolidation (no consolidated payload) gets the Direct review button (LINX-8284, S162)', () => {
+    const onRequestTab = vi.fn()
+    const props = baseProps()
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null }, shipmentType: 'Consolidation' }
+    render(<RoutingGuideTab {...props} onRequestTab={onRequestTab} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Review Order Change' }))
+    expect(onRequestTab).not.toHaveBeenCalled()
   })
 })
 

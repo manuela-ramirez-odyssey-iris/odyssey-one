@@ -32,8 +32,11 @@ export function useApproveOrderChange({ sellShipment, buyShipment, odysseyShipme
     `/shipments/order-change/${sellShipment}`,
     { state: { buyShipment, odysseyShipmentIdentifier }, replace: true },
   )
+  // Scenario B re-files the row to Exceptions › Tender Review (SCENARIO_B,
+  // api/_lib/shipments.mjs), so land THERE — the Order Change tab no longer
+  // holds it.
   const closeToTenderTab = () => closeSheet('/shipments', {
-    state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'order-change' },
+    state: { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' }, panel: 'exceptions', tab: 'tender-review' },
   })
 
   // Edit Shipment Stops: the save-stops mutate() already ran (unconditionally,

@@ -1587,14 +1587,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
       // consolidated shipment reviews on its Stops tab instead (LINX-15435
       // "Stops tab shall be selected by default when accessed from an Order
       // Change exception").
-      onClick={() => shipmentDetails?.shipmentType === 'Consolidation'
+      // S162 audit: keyed on the consolidated payload itself, not shipmentType —
+      // a one-load C has no stops review (LINX-8284: one load = Direct).
+      onClick={() => shipmentDetails?.orderChange?.consolidation
         ? onRequestTab?.('stops')
         : openSheet(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, odysseyShipmentIdentifier: shipment?.odysseyShipmentIdentifier, from: 'tender' } })}
     >
       {/* S144 (user, 2026-09-09): consolidated shipments review on the Stops
           tab (LINX-15435), a different surface than the Direct route — the
           label says so even though both hang off the same doorway. */}
-      {shipmentDetails?.shipmentType === 'Consolidation' ? 'Review Consolidated Change' : 'Review Order Change'}
+      {shipmentDetails?.orderChange?.consolidation ? 'Review Consolidated Change' : 'Review Order Change'}
     </Button>
   )
 

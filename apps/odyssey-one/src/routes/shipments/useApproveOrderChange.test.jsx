@@ -78,7 +78,7 @@ describe('useApproveOrderChange — afterApprove (a mutate the caller already ra
     expect(probe.textContent).toContain('/shipments ')
     expect(probe.textContent).toContain('"selectedShipmentId":"S1"')
     expect(probe.textContent).toContain('"key":"routing"')
-    expect(probe.textContent).toContain('"tab":"order-change"')
+    expect(probe.textContent).toContain('"tab":"tender-review"')
   })
 
   it('never calls the server itself — the caller already did', () => {

@@ -555,22 +555,26 @@ describe('resolveOrderChange', () => {
   // ── T3 (S160): StopsTab's Approve Plan — Scenario B only (the client
   // gates Scenario A to no server call at all). No stops written; same
   // shape as bypass's non-active outcome. ──────────────────────────────
-  it('approve-plan (non-active prior) behaves like bypass and writes the approve-plan resolution', async () => {
+  // Scenario B (LINX-15671, DEC-200): the shipment STAYS in Review, nothing is
+  // tendered. It re-files to Exceptions › Tender Review (where the planner
+  // tenders the new list), never to Monitoring › Sent as if a tender went out.
+  it('approve-plan re-files to exceptions/tender-review with status Review — never monitoring/sent (DEC-200)', async () => {
     const { db, calls } = mkOc()
-    const res = await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan', priorTenderStatus: 'Sent' }, db })
+    const res = await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan', priorTenderStatus: 'Declined' }, db })
     assert.deepEqual(res, { success: true })
     const values = valuesOf(calls)
-    assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
+    assert.ok(values.includes('exceptions') && values.includes('tender-review') && values.includes('Review'))
+    assert.ok(!values.includes('monitoring') && !values.includes('sent') && !values.includes('Approved'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"approve-plan"')))
     // No stops write — approve-plan never touches shipmentStopList.
     assert.ok(!calls.some((q) => /shipmentStopList/.test(textOf(q))))
   })
 
-  it('approve-plan writes no stops even with a null priorTenderStatus (still non-active)', async () => {
+  it('approve-plan with a null priorTenderStatus invents no tender status', async () => {
     const { db, calls } = mkOc()
     await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan' }, db })
     const values = valuesOf(calls)
-    assert.ok(values.includes('Sent') && values.includes('monitoring'))
+    assert.ok(!values.includes('Sent') && values.includes('tender-review'))
   })
 
   it('rejects unknown action with 400', async () => {
@@ -830,7 +834,7 @@ describe('resolveOrderChange', () => {
     assert.deepEqual(q.values.slice(5), ['300', '1', ['PO-2'], ['PU-2'], 'Direct'])
   })
 
-  it('save-stops with no active prior tender status (Cancelled) resolves like bypass, stamping a resolution, and adopts an empty tender list (T4)', async () => {
+  it('save-stops with no active prior tender status (Cancelled) is Scenario B — tender-review/Review, stamps a resolution, adopts an empty tender list (T4)', async () => {
     const seen = []
     let released = false
     const detail = { orderList: [], shipmentStopList: [] } // no seeded orderChange — T4 still runs, over an empty list
@@ -845,7 +849,7 @@ describe('resolveOrderChange', () => {
     assert.equal(seen[1], 'BEGIN')
     assert.match(seen[3].text, /detail = jsonb_set\(detail, '\{orderChange,resolution\}'/)
     const values = seen[3].values
-    assert.ok(values.includes('Cancelled') && values.includes('monitoring') && values.includes('sent'))
+    assert.ok(values.includes('exceptions') && values.includes('tender-review') && values.includes('Review'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"save-stops"')))
     assert.match(seen[4].text, /^DELETE FROM tenders/)
     assert.match(seen[5].text, /shippingOptionList/)
