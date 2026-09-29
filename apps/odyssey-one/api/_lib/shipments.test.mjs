@@ -1,6 +1,7 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders, buildSourceShipmentsQuery, buildSplitShipment } from './shipments.mjs'
+import { MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -789,6 +790,12 @@ describe('resolveOrderChange', () => {
     ])
   })
 
+  it('save-stops writes detail.shipmentType from the same value as the shipment_type column (N2)', () => {
+    const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }], { resetChanges: false })
+    assert.match(q.text, /'\{shipmentType\}', to_jsonb\(\$10::text\)/)
+    assert.equal(q.values[9], 'Direct')
+  })
+
   it('save-stops with resetChanges:false skips the consolidation-badge reset (source shipment in the 15872 move)', () => {
     const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }], { resetChanges: false })
     assert.ok(!/stopChanges/.test(q.text))
@@ -880,7 +887,15 @@ describe('resolveOrderChange', () => {
 })
 
 describe('save-stops with externalOrders (LINX-15872 slice)', () => {
-  const target = { orderList: [{ orderNumber: 'A', grossWeightValue: 5 }, { orderNumber: 'B', grossWeightValue: 5 }], shipmentStopList: [] }
+  // B is on the target's stops before the save; bodies below that leave it
+  // off the final stops make it pending → its own shipment (C3, orders.id 42).
+  const target = {
+    orderList: [{ orderNumber: 'A', grossWeightValue: 5 }, { orderNumber: 'B', grossWeightValue: 5 }],
+    shipmentStopList: [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], facilityName: 'P', city: 'Houston', scheduledDateTime: 'March 4, 2026 10:00 CST' },
+      { stopSequence: 2, stopType: 'delivery', orderIds: ['A', 'B'], facilityName: 'D', city: 'Dallas', scheduledDateTime: 'March 5, 2026 10:00 CST' },
+    ],
+  }
   const source = { orderList: [{ orderNumber: 'E', grossWeightValue: 7 }] }
   // failWrite lets a test make the FIRST shipmentStopList write throw, so the
   // ROLLBACK path is exercised without relying on the (pre-transaction)
@@ -893,6 +908,8 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
       const text = typeof q === 'string' ? q : q.text
       if (/SELECT detail FROM shipments WHERE sell_shipment = \$1/.test(text)) return { rows: [{ detail: target }] }
       if (/sell_shipment = ANY/.test(text)) return { rows: [srcRow] }
+      if (/SELECT customer_id/.test(text)) return { rows: [{ customerId: 'C1', customerName: 'Cust', planningType: 'SSD', equipmentCode: 'VAN', mode: 'TL' }] }
+      if (/FROM orders WHERE order_number = ANY/.test(text)) return { rows: q.values[0].map((n) => ({ id: { B: 42, A: 41 }[n], orderNumber: n })) }
       if (failWrite && /shipmentStopList/.test(text)) throw new Error('write failed')
       return { rows: [], rowCount: 1 }
     }
@@ -961,7 +978,8 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     }
     const { db, calls } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: source })
     await resolveOrderChange({ params: ['9'], body: plainBody, db })
-    assert.ok(!calls.some((q) => /UPDATE orders SET shipment_sell_id/.test(q.text ?? '')))
+    // The move's repoint (order_number = ANY) — B's C3 split link is a different query.
+    assert.ok(!calls.some((q) => /UPDATE orders SET shipment_sell_id = \$1 WHERE order_number = ANY/.test(q.text ?? '')))
   })
 
   it('a failing write rolls back and writes nothing further', async () => {
@@ -1024,6 +1042,144 @@ describe('save-stops with externalOrders (LINX-15872 slice)', () => {
     await resolveOrderChange({ params: ['9'], body, db })   // body only moves E, leaves F
     assert.ok(calls.some((q) => (typeof q === 'string' ? q : q.text) === 'BEGIN'))
   })
+
+  // C8 (S163)
+  it('refuses an external order that is on no stop — 400, nothing past the detail read', async () => {
+    const { db, calls } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: 'Cancelled', detail: source })
+    const offStops = { ...body, stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], sourceStopSequence: null }] }
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['9'], body: offStops, db }),
+      (e) => e.status === 400 && /externalOrders must all be placed on stops: E/.test(e.message),
+    )
+    assert.equal(calls.length, 1, 'only the detail read — no source read, no BEGIN')
+  })
+
+  // C6 (S163)
+  it('blocks a source whose row tender_status is blank but whose live tenders hold a Sent row', async () => {
+    const { db } = mk({ sellShipment: '77', category: 'tender-review', tenderStatus: '', activeTender: true, detail: source })
+    await assert.rejects(
+      () => resolveOrderChange({ params: ['9'], body, db }),
+      (e) => e.status === 400 && /cannot be moved/.test(e.message) && /Order impacted: E/.test(e.message),
+    )
+  })
+
+  it('buildSourceShipmentsQuery reads the live tenders table against MOVE_BLOCKED_TENDER', () => {
+    const q = buildSourceShipmentsQuery(['77'])
+    assert.match(q.text, /EXISTS \(SELECT 1 FROM tenders t WHERE t\.shipment_sell_id = shipments\.sell_shipment AND t\.status = ANY\(\$2\)\) AS "activeTender"/)
+    assert.deepEqual(q.values, [['77'], MOVE_BLOCKED_TENDER])
+  })
+})
+
+// C3 / DEC-205 (S163) — an order left pending becomes its own Direct shipment.
+describe('save-stops splits pending orders into their own shipments (C3)', () => {
+  const stopsWith = (ids) => [
+    { stopSequence: 1, stopType: 'pickup', orderIds: ids, facilityName: 'P1', city: 'Houston', region: 'TX', postal: '77001', country: 'US', lat: 29.76, lng: -95.37, timeZone: 'America/Chicago', scheduledDateTime: 'March 4, 2026 10:00 CST' },
+    { stopSequence: 2, stopType: 'delivery', orderIds: ids, facilityName: 'D1', city: 'Dallas', region: 'TX', postal: '75201', country: 'US', lat: 32.78, lng: -96.8, timeZone: 'America/Chicago', scheduledDateTime: 'March 6, 2026 9:30 CST' },
+  ]
+  const order = (id, extra = {}) => ({ orderId: id, orderNumber: id, grossWeightValue: 100, volumeValue: 10, orderLines: [{ packageCount: 2 }], poNumber: `PO-${id}`, pickupNumber: `PU-${id}`, ...extra })
+  const target = {
+    shipmentId: '25000009', odysseyShipmentIdentifier: 'C50000009',
+    orderList: [order('A'), order('B', { grossWeightValue: 300 }), order('C', { consolidatable: false })],
+    shipmentStopList: stopsWith(['A', 'B', 'C']),
+  }
+  const serials = { A: 1, B: 7, C: 8 }
+  const mk = ({ failInsert = false } = {}) => {
+    const calls = []
+    const query = async (q) => {
+      calls.push(q)
+      const text = typeof q === 'string' ? q : q.text
+      if (/SELECT detail FROM shipments WHERE sell_shipment = \$1/.test(text)) return { rows: [{ detail: target }] }
+      if (/SELECT customer_id/.test(text)) return { rows: [{ customerId: 'C1', customerName: 'Cust', planningType: 'RDD', equipmentCode: 'VAN', mode: 'TL' }] }
+      if (/FROM orders WHERE order_number = ANY/.test(text)) return { rows: q.values[0].map((n) => ({ id: serials[n], orderNumber: n })) }
+      if (failInsert && /^INSERT INTO shipments/.test(text)) throw new Error('duplicate key')
+      return { rows: [], rowCount: 1 }
+    }
+    return { db: { query, connect: async () => ({ query, release: () => {} }) }, calls, texts: () => calls.map((q) => (typeof q === 'string' ? q : q.text)) }
+  }
+  const save = (ids) => ({
+    action: 'save-stops', priorTenderStatus: 'Sent',
+    stops: [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ids, sourceStopSequence: 1 },
+      { stopSequence: 2, stopType: 'delivery', orderIds: ids, sourceStopSequence: 2 },
+    ],
+  })
+  const inserts = (calls) => calls.filter((q) => /^INSERT INTO shipments/.test(q.text ?? ''))
+
+  it('one pending order → INSERT at sell 26000000 + orders.id, category per its flag, no tender list, and the order link', async () => {
+    const { db, calls } = mk()
+    await resolveOrderChange({ params: ['25000009'], body: save(['A', 'C']), db })   // B pending
+    const [ins] = inserts(calls)
+    assert.equal(inserts(calls).length, 1)
+    assert.equal(ins.values[0], '26000007')
+    assert.equal(ins.values[22], 'consolidation')   // category (B has no flag → Y)
+    const detail = JSON.parse(ins.values[30])
+    assert.deepEqual(detail.shippingOptionList, [])
+    assert.equal(detail.shipmentType, 'Direct')
+    assert.equal(detail.orderChange, undefined)
+    assert.match(detail.historyList[0].details, /for Order B, removed from shipment C50000009 during order change review\.$/)
+    const link = calls.find((q) => /order_status = 'Planned Shipment'/.test(q.text ?? ''))
+    assert.deepEqual(link.values, ['26000007', 'B'])
+    assert.ok(calls.some((q) => /^INSERT INTO search_index/.test(q.text ?? '')))
+  })
+
+  it('a pending order flagged not consolidatable lands in Hold', async () => {
+    const { db, calls } = mk()
+    await resolveOrderChange({ params: ['25000009'], body: save(['A', 'B']), db })   // C pending
+    assert.equal(inserts(calls)[0].values[22], 'hold')
+  })
+
+  it('two pending orders produce two shipments', async () => {
+    const { db, calls } = mk()
+    await resolveOrderChange({ params: ['25000009'], body: save(['A']), db })
+    assert.deepEqual(inserts(calls).map((q) => q.values[0]), ['26000007', '26000008'])
+  })
+
+  it('zero pending orders issue no extra queries', async () => {
+    const { db, texts } = mk()
+    await resolveOrderChange({ params: ['25000009'], body: save(['A', 'B', 'C']), db })
+    assert.ok(!texts().some((t) => /SELECT customer_id|FROM orders WHERE|INSERT INTO shipments|DELETE FROM shipments/.test(t)))
+  })
+
+  it('clears a stale emptied shell (and its search rows) before the insert, inside the transaction', async () => {
+    const { db, calls, texts } = mk()
+    await resolveOrderChange({ params: ['25000009'], body: save(['A', 'C']), db })
+    const t = texts()
+    const at = (re) => t.findIndex((x) => re.test(x))
+    const shell = calls[at(/DELETE FROM shipments/)]
+    assert.match(shell.text, /WHERE sell_shipment = \$1 AND order_count = '0'/)
+    assert.deepEqual(shell.values, ['26000007'])
+    assert.ok(at(/BEGIN/) < at(/DELETE FROM search_index/))
+    assert.ok(at(/DELETE FROM search_index/) < at(/^INSERT INTO shipments/))
+    assert.ok(at(/DELETE FROM shipments/) < at(/^INSERT INTO shipments/))
+    assert.equal(t[t.length - 1], 'COMMIT')
+  })
+
+  it('an INSERT failure rolls the whole save back — nothing committed', async () => {
+    const { db, texts } = mk({ failInsert: true })
+    await assert.rejects(() => resolveOrderChange({ params: ['25000009'], body: save(['A', 'C']), db }), /duplicate key/)
+    const t = texts()
+    assert.equal(t[t.length - 1], 'ROLLBACK')
+    assert.ok(!t.includes('COMMIT'))
+  })
+
+  it('buildSplitShipment: stops keep the source sites (coords + zone), totals are the order\'s own, row dates in the seeded shape', () => {
+    const { row, detail, pickupTs, deliveryTs } = buildSplitShipment({
+      source: { row: { customerId: 'C1', customerName: 'Cust', planningType: 'RDD', equipmentCode: 'VAN', mode: 'TL' }, detail: target },
+      orderRec: target.orderList[1], orderSerialId: 7, now: new Date('2026-09-29T12:00:00Z'),
+    })
+    const [p, d] = detail.shipmentStopList
+    assert.deepEqual([p.stopSequence, p.stopType, p.orderIds, p.lat, p.lng, p.timeZone], [1, 'pickup', ['B'], 29.76, -95.37, 'America/Chicago'])
+    assert.deepEqual([d.stopSequence, d.stopType, d.lat, d.timeZone], [2, 'delivery', 32.78, 'America/Chicago'])
+    assert.equal(p.grossWeightValue, 300)
+    assert.equal(row.grossWeight, '300')
+    assert.deepEqual([row.origin, row.destination, row.consignor, row.consignee], ['Houston TX US 77001', 'Dallas TX US 75201', 'P1', 'D1'])
+    assert.deepEqual([row.pickupDate, row.deliveryDate], ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST'])
+    assert.deepEqual([pickupTs, deliveryTs], ['2026-03-04T10:00:00-06:00', '2026-03-06T09:30:00-06:00'])
+    assert.deepEqual([row.odysseyShipmentIdentifier, row.buyShipment, row.load, row.orderCount], ['O60000007', '900000007', '7', '1'])
+    assert.deepEqual([row.customerId, row.planningType, row.equipmentCode, row.mode, row.equipment], ['C1', 'RDD', 'VAN', 'TL', ''])
+    assert.deepEqual([row.scac, row.pro, row.seal, row.tenderStatus, row.apFreightCost, row.panel], [null, null, null, '', null, 'monitoring'])
+    assert.deepEqual([detail.numberOfStops, detail.totalVolumeValue, detail.droppedCarrierList], [2, 10, []])
+  })
 })
 
 describe('mergeStops', () => {
@@ -1066,6 +1222,15 @@ describe('mergeStops', () => {
     assert.equal(merged.volumeValue, 20)
     assert.equal(merged.packageCount, 5)
     assert.equal(merged.pickupNumber, null, 'delivery stops never carry a pickupNumber')
+  })
+
+  it('C9: a created stop keeps its submitted lat/lng/timeZone; an existing stop prefers its base', () => {
+    const [created, existing] = mergeStops({ ...detail, shipmentStopList: [{ ...detail.shipmentStopList[0], lat: 41.88, lng: -87.63 }] }, [
+      { stopSequence: 2, stopType: 'delivery', orderIds: ['B'], lat: 39.74, lng: -104.99, timeZone: 'America/Denver', sourceStopSequence: null },
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A'], lat: 0, lng: 0, timeZone: 'UTC', sourceStopSequence: 1 },
+    ])
+    assert.deepEqual([created.lat, created.lng, created.timeZone], [39.74, -104.99, 'America/Denver'])
+    assert.deepEqual([existing.lat, existing.lng, existing.timeZone], [41.88, -87.63, 'America/Chicago'])
   })
 
   it('pickupNumber scans every order on the stop, not just the first (generate.mjs R2-2 rule)', () => {

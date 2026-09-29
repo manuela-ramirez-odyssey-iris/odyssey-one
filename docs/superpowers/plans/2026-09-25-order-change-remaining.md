@@ -2,7 +2,7 @@
 title: Order change — everything still missing after Wave B (consolidated + Direct + shipment statuses)
 date: 2026-09-25
 session: S160
-status: in progress — C0/C1/C2/D1/D3/S built; C3–C5 owed; C6–C23 added by the S163 audit (2026-09-29)
+status: in progress — C0–C3, C6–C9, C21, D1, D3, S built; C4/C5 owed; C6–C23 added by the S163 audit (2026-09-29)
 ---
 
 # Order change — remaining work
@@ -52,7 +52,7 @@ The label "Approve Changes" deviates from 15671's "Save" (user ruling; the stori
 ### C2. Approve Plan (LINX-15438 note, OC-open-8) — **BUILT S160; DEC-211 fix S162, not deployed**
 Enable **Approve Plan** on the Stops-tab review. The new tender list becomes V2 on the Tender tab and the prior becomes V1. The exception clears the same way as Scenario B. No sandbox is involved (the planner accepts the change as the system computed it).
 
-### C3. Removed orders get their own shipment (LINX-15869, OC-open-19) — **OWED; data loss today** (S163 audit: `api/_lib/shipments.mjs:708` drops pending orders from `orderList`/`orders`, `orders.shipment_sell_id` still points here, and Search & Add can't find them — `candidateOrders.mjs:42` walks `s.orders` only)
+### C3. Removed orders get their own shipment (LINX-15869, OC-open-19) — **BUILT S163** (was: data loss) (S163 audit: `api/_lib/shipments.mjs:708` drops pending orders from `orderList`/`orders`, `orders.shipment_sell_id` still points here, and Search & Add can't find them — `candidateOrders.mjs:42` walks `s.orders` only)
 At Save, each order left in *Orders Pending To Assign* becomes a **new single-order Direct shipment**. Its stops come from the order's own ship-from/ship-to, and its tab follows R6. It gets a new sell/buy shipment number from a non-colliding range. The move is written in the same transaction as the save (the `save-stops` path in `api/_lib/shipments.mjs`), including `orders.shipment_sell_id` and the OC-open-22 list aggregates.
 
 ### C4. Consolidated tender dates (Jana `@00:16:29`, 15671) — **OWED** (`adoptNewTenderList` `:577-613` keeps the seeded dates)
@@ -66,7 +66,7 @@ A shipment with `order_count = 0` is excluded from the Shipments list, search an
 
 Four read-only audits: every AC clause of LINX-15435…15438, 15667…15671 and 15869…15872, checked against code (not comments), plus Jana's 08-14, 08-29, 09-24 and 09-25 transcripts and the 09-23 call (still in the inbox) against the canon. Order-change tests were green (849/849) and cover none of these. Paths are under `apps/odyssey-one/`. SB = `src/components/detail/order-change/stopsSandbox.js`; API = `api/_lib/shipments.mjs`.
 
-### Save slice: correctness and data loss (do with C3, one spec)
+### Save slice: correctness and data loss (do with C3, one spec) — **BUILT S163** (C3, C6–C9, C21 + N2's detail.shipmentType; spec `docs/superpowers/specs/2026-09-29-order-change-save-slice.md`; not deployed)
 - **C6. The move block reads a stale tender status (15872).** `saveTender` (API `:829`) writes only the `tenders` table. Nothing ever updates `shipments.tender_status`, which `pullExternalOrders` (`:451`) checks. An order on a shipment tendered after the reseed passes revalidation and is moved. Fix: every tender action keeps `shipments.tender_status` current, or the check reads the `tenders` rows. The spec picks one. The same stale column feeds Scenario A/B: the client sends the seeded `orderChange.prior.tenderStatus` (`OrderChangeEditStopsRoute.jsx:72`).
 - **C7. A delivery-before-pickup stop order can reach routing (15669 §2, 15869).** `isRoutable` (SB `:317`) never calls `validSequence`, and neither `addToStop` nor placement validates. Reproduced: P1(O1) D1(O1) P2(O2) D2(O2), then add O3 picking up at P2's site and delivering at D1's. Also:
   - `validSequence` (SB `:148`) checks that *a* pickup comes first, not *every* pickup (15669's multi-order delivery-stop rule).

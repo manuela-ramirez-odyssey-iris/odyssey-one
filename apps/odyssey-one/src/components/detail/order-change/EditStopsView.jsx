@@ -16,7 +16,7 @@ import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.j
 import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, canReorderStop, reorderStop, moveToPending, addToStop, addPending,
-  isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto,
+  isRoutable, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto,
   parseStamp, formatStopDate, setStopDate, windowViolations, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
@@ -34,12 +34,15 @@ const EDITING_TOOLTIP = 'Save or discard your stop edits first'
 const sigOf = (sb) => JSON.stringify([sb.stops, sb.pending])
 const LAST_ORDER_TOOLTIP = 'The last remaining order cannot be removed from the shipment.'
 // DEC-207 (T2) — Evaluate's disabled tooltip, keyed off routeBlocker's reason.
+// C7's 'sequence' names the order, so it's built at the call site.
 const BLOCKER_TOOLTIP = {
   unsequenced: 'Place every P? / D? stop first',
   undated: 'Set a date on every stop',
 }
 const CONFIRM_TITLE = 'Approve Shipment Change'
-const CONFIRM_BODY = 'Any orders left pending for assignment will be removed from this shipment when you approve it.'
+// DEC-205 (LINX-15869) — a pending order isn't dropped: Save moves it to a
+// new single-order shipment (C3).
+const CONFIRM_BODY = 'Orders left in Orders Pending To Assign will each be moved to a new shipment of their own when you approve it.'
 
 // LINX-15667…15671/15869/15871, VD x38TOJGsNryYl3LsKhCtSc node 2134-53584.
 // Editor over the pure stopsSandbox model — every mutation here goes through
@@ -270,6 +273,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // DEC-207 (T2) — the footer's Evaluate opens the routing modal directly;
   // there is no separate View Routing button any more.
   const blocker = routeBlocker(sb)
+  const blockerTooltip = blocker === 'sequence'
+    ? `Order ${firstSequenceViolation(sb.stops)} is delivered before it is picked up. Move its pickup stop above its delivery stop.`
+    : BLOCKER_TOOLTIP[blocker]
   const evaluateDisabled = !isRoutable(sb) || saving || editing
 
   // T1.2 — "Keep here" (a P?/D? stop's own row action): sequences it in
@@ -606,7 +612,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         cancelLabel="Cancel"
         primaryLabel="Evaluate"
         primaryDisabled={evaluateDisabled}
-        primaryTooltip={editing ? EDITING_TOOLTIP : blocker ? BLOCKER_TOOLTIP[blocker] : undefined}
+        primaryTooltip={editing ? EDITING_TOOLTIP : blockerTooltip}
         onCancel={handleCancel}
         onPrimary={() => setModal('routing')}
       />

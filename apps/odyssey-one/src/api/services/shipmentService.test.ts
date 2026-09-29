@@ -69,11 +69,14 @@ describe('resolveOrderChange', () => {
     expect(body.sellShipment).toBeUndefined()
   })
 
-  it('mock mode is a no-op', async () => {
+  // C21 (DEC-218) — mock can't honour a save, so it says so instead of
+  // silently succeeding.
+  it('mock mode throws the live-API error and never fetches', async () => {
     vi.stubEnv('VITE_API_MODE', 'mock')
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    await resolveOrderChange('25690001', { action: 'cancel', priorTenderStatus: null, cost: null, priorScac: null })
+    await expect(resolveOrderChange('25690001', { action: 'save-stops', priorTenderStatus: null, cost: null, priorScac: null }))
+      .rejects.toThrow('Order change needs the live API')
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

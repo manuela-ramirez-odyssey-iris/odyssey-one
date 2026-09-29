@@ -225,6 +225,27 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(screen.queryByText(/landed at/)).toBeNull()
   })
 
+  // C21 (DEC-218) — the REAL service in mock mode: Save refuses with the
+  // live-API message, surfaced in the routing modal, and nothing navigates.
+  test('mock mode: Approve shows the live-API error and does not navigate', async () => {
+    const actual = await vi.importActual('../../api/services/shipmentService')
+    vi.stubEnv('VITE_API_MODE', 'mock')
+    resolveOrderChange.mockImplementation(actual.resolveOrderChange)
+    getSellShipmentDetail.mockResolvedValue(makeDetail({ priorTenderStatus: 'Sent' }))
+    try {
+      renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+      await screen.findByRole('button', { name: 'Evaluate' })
+      fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Approve' }))
+      expect(await screen.findByText(/Order change needs the live API/)).toBeTruthy()
+      expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+      expect(screen.queryByText(/landed at/)).toBeNull()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  }, 15000) // importActual loads the real service's mock-data graph — slow under a full parallel run
+
   // LINX-15872 "Save Failure" (user ruling 2026-09-25, reverses OC-open-11's
   // grey-at-add): a 400 from the server's Save-time revalidation (an
   // external order's source shipment turned out to be blocked) surfaces its

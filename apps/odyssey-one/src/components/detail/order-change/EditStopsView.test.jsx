@@ -167,7 +167,7 @@ it('Evaluate opens the routing modal; its Approve Changes asks for confirmation,
   fireEvent.click(within(modal).getByRole('button', { name: 'Approve Changes' }))
   expect(onApprove).not.toHaveBeenCalled()
   expect(screen.getByText('Approve Shipment Change')).toBeTruthy()
-  expect(screen.getByText(/Any orders left pending for assignment will be removed/)).toBeTruthy()
+  expect(screen.getByText('Orders left in Orders Pending To Assign will each be moved to a new shipment of their own when you approve it.')).toBeTruthy() // DEC-205
   // The confirm stacks ABOVE the routing modal — both still in the DOM.
   expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
@@ -238,6 +238,16 @@ it('an undated (sequenced) stop disables Evaluate with the "Set a date" tooltip'
   expect(evaluateBtn.disabled).toBe(true)
   fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
   expect(screen.getByRole('tooltip').textContent).toContain('Set a date on every stop')
+})
+
+// C7 (LINX-15669) — a delivery-before-pickup order holds Evaluate and the
+// tooltip names it.
+it('a delivery-before-pickup order disables Evaluate with the sequence tooltip naming the order', () => {
+  setup({ stops: [baseStops[0], baseStops[2], baseStops[1]] }) // D(A,B,C) above P(C)
+  const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
+  expect(evaluateBtn.disabled).toBe(true)
+  fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
+  expect(screen.getByRole('tooltip').textContent).toContain('Order C is delivered before it is picked up. Move its pickup stop above its delivery stop.')
 })
 
 it('Evaluate stays disabled while saving even once routable, with no tooltip', () => {

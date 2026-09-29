@@ -236,6 +236,25 @@ describe('StopsTab — Evaluate -> Approve Plan (T3)', () => {
     expect(probe.textContent).toContain('"key":"routing"')
   })
 
+  // C21 (DEC-218) — the REAL service in mock mode: Scenario B's approve-plan
+  // refuses with the live-API message and nothing navigates.
+  it('mock mode: Approve Plan shows the live-API error and does not navigate', async () => {
+    const actual = await vi.importActual('../../api/services/shipmentService')
+    vi.stubEnv('VITE_API_MODE', 'mock')
+    resolveOrderChange.mockImplementation(actual.resolveOrderChange)
+    try {
+      renderReview()
+      fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+      expect(await screen.findByText(/Order change needs the live API/)).toBeTruthy()
+      expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
+      expect(screen.getByTestId('nav-probe').textContent).not.toContain('"key":"routing"')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  }, 15000) // importActual loads the real service's mock-data graph — slow under a full parallel run
+
   it('a failed Approve keeps the routing modal open and shows the error inside it', async () => {
     resolveOrderChange.mockRejectedValue(new Error('boom'))
     renderReview()

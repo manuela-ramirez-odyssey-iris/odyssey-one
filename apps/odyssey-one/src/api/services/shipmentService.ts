@@ -100,7 +100,10 @@ export async function saveShipmentOverrides(
  * selected cost written onto it (retender/bypass only — see the handler).
  * Cancel and a null cost both legitimately send priorScac as null.
  *
- * Live writes; mock is a no-op, same contract as its two siblings above.
+ * Live writes only. C21 (DEC-218, ruling N6) — mock THROWS rather than
+ * no-op: the save's server logic (moves, splits, re-filing) isn't mirrored
+ * in the client mock, and a silent return let callers navigate as if the
+ * save had happened. Callers surface the message via their onError.
  */
 export async function resolveOrderChange(
   sellShipment: string,
@@ -115,7 +118,7 @@ export async function resolveOrderChange(
     externalOrders?: Array<{ orderNumber: string; sourceSellShipment: string }>
   },
 ): Promise<void> {
-  if (getApiMode() !== 'live') return
+  if (getApiMode() !== 'live') throw new Error('Order change needs the live API: run with the deployed or local API to save this change.')
   await apiPatch(`/shipment-service/v1/sell-shipment-out/${sellShipment}/order-change`, body)
 }
 

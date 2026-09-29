@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, routeBlocker, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -421,5 +421,58 @@ describe('location-change created stop carries coordinates + zone (S160 follow-u
     const { legs, total } = legDistances(s.stops)
     expect(legs[1]).toBeNull() // leg INTO the coordinate-less created stop
     expect(total).toBeNull()
+  })
+})
+
+// C7 (S163 audit, LINX-15669/15668 §2) — a system placement can join an
+// order to stops in the wrong order; routing must refuse it until repaired.
+describe('delivery-before-pickup gate (C7)', () => {
+  const site = (name) => ({ siteKey: `${name}|0`, location: `${name}, Town`, site: { facilityName: name, city: 'Town' } })
+  const seqStops = [
+    { type: 'pickup', stopNumber: 1, orderIds: ['O1'], siteKey: 'P1|0', location: 'P1, Town', date: 'June 4, 2026 08:00 CDT' },
+    { type: 'delivery', stopNumber: 2, orderIds: ['O1'], siteKey: 'D1|0', location: 'D1, Town', date: 'June 5, 2026 08:00 CDT' },
+    { type: 'pickup', stopNumber: 3, orderIds: ['O2'], siteKey: 'P2|0', location: 'P2, Town', date: 'June 5, 2026 10:00 CDT' },
+    { type: 'delivery', stopNumber: 4, orderIds: ['O2'], siteKey: 'D2|0', location: 'D2, Town', date: 'June 6, 2026 08:00 CDT' },
+  ]
+  const o3 = { orderNumber: 'O3', shipFrom: site('P2'), shipTo: site('D1') }
+  const seqOrders = [{ orderNumber: 'O1' }, { orderNumber: 'O2' }, o3]
+
+  it('the S163 repro: O3 joins P2 and D1, so it is delivered before pickup; moving P2 above D1 repairs it', () => {
+    let s = initSandbox({ stops: seqStops, consolidation: noChange, orders: seqOrders })
+    s = addToStop(addPending(s, ['O3']), 'O3', seqOrders)
+    expect(labelsOf(s)).toEqual(['P1', 'D1', 'P2', 'D2'])        // joined, no P?/D?
+    expect(isRoutable(s)).toBe(false)
+    expect(routeBlocker(s)).toBe('sequence')
+    expect(firstSequenceViolation(s.stops)).toBe('O3')
+    // Already invalid, so the repairing move is allowed.
+    expect(canReorderStop(s, 2, 1).ok).toBe(true)
+    s = reorderStop(s, 2, 1)
+    expect(firstSequenceViolation(s.stops)).toBeNull()
+    expect(isRoutable(s)).toBe(true)
+  })
+  it('canReorderStop still refuses a move that breaks a valid sequence', () => {
+    const s = initSandbox({ stops: seqStops, consolidation: noChange, orders: seqOrders })
+    expect(canReorderStop(s, 0, 1)).toEqual({ ok: false, reason: 'An order must be picked up before it can be delivered.' })
+  })
+  it("a new P? for an order whose delivery sits before the last pickup goes just above that delivery", () => {
+    // O1's pickup relocates to a new site: the pickup group ends at P2
+    // (index 2), but O1's delivery D1 is at index 1.
+    const c = { ...noChange, stopChanges: { '1': { changedOrderIds: ['O1'], fields: { location: { prior: 'P1, Town', new: 'PX, Town' } } } } }
+    const relocatedOrders = [{ orderNumber: 'O1', shipFrom: site('PX') }, ...seqOrders.slice(1)]
+    const s = initSandbox({ stops: [{ ...seqStops[0], orderIds: ['O1', 'O2'] }, ...seqStops.slice(1)], consolidation: c, orders: relocatedOrders })
+    expect(s.stops.map((x) => x.location)).toEqual(['P1, Town', 'PX, Town', 'D1, Town', 'P2, Town', 'D2, Town'])
+    expect(labelsOf(s)).toEqual(['P1', 'P?', 'D1', 'P2', 'D2'])
+    expect(firstSequenceViolation(s.stops)).toBeNull()
+  })
+})
+
+// C9 — a created stop's coordinates + zone ride the save (mergeStops keeps
+// an existing stop's own).
+describe('toDto carries lat/lng/timeZone (C9)', () => {
+  it('a created stop emits its site coordinates and zone', () => {
+    const s = initSandbox({ stops, consolidation: noChange, orders })
+    const e = { orderNumber: 'E', shipFrom: { siteKey: 'NEW|1', location: 'NEW, Phoenix', site: { facilityName: 'NEW', city: 'Phoenix', lat: 33.45, lng: -112.07, timeZone: 'America/Phoenix' } }, shipTo: orders[0].shipTo }
+    const created = toDto(addToStop(addPending(s, ['E']), 'E', [...orders, e])).find((d) => d.sourceStopSequence == null)
+    expect(created).toMatchObject({ lat: 33.45, lng: -112.07, timeZone: 'America/Phoenix' })
   })
 })

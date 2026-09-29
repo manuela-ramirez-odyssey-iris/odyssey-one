@@ -131,26 +131,37 @@ function placeOrder(list, orderId, type, at, makeKey, orders) {
     lat: at.site?.lat,
     lng: at.site?.lng,
   }
-  if (lastIdx === -1) {
-    if (type === 'pickup') list.unshift(newStop)
-    else list.push(newStop)
-  } else {
-    list.splice(lastIdx + 1, 0, newStop)
+  let insertAt = lastIdx === -1 ? (type === 'pickup' ? 0 : list.length) : lastIdx + 1
+  // C7 (LINX-15668 §2, "before the same order's delivery") — a relocated
+  // pickup whose order's delivery already sits at or before the end of the
+  // pickup group goes just above that delivery, so the system's own
+  // placement never hands the planner a delivery-before-pickup.
+  if (type === 'pickup') {
+    const dIdx = list.findIndex((s) => s.type === 'delivery' && s.orderIds.includes(orderId))
+    if (dIdx !== -1 && dIdx < insertAt) insertAt = dIdx
   }
+  list.splice(insertAt, 0, newStop)
 }
 
 // LINX-15669: every pickup of an order must precede that order's delivery.
-function validSequence(stops) {
+// C7 — the first order delivered before it's picked up, else null (the
+// Evaluate tooltip names it).
+export function firstSequenceViolation(stops) {
   for (let i = 0; i < stops.length; i++) {
     const st = stops[i]
     if (st.type !== 'delivery') continue
     for (const id of st.orderIds) {
       const pickedBefore = stops.slice(0, i).some((s) => s.type === 'pickup' && s.orderIds.includes(id))
-      if (!pickedBefore) return false
+      if (!pickedBefore) return id
     }
   }
-  return true
+  return null
 }
+
+// ponytail: per-order check only. With one pickup stop per order, 15669's
+// "all pickups on a multi-order delivery stop precede it" is the same rule;
+// widen if an order can ever sit on two pickup stops.
+const validSequence = (stops) => firstSequenceViolation(stops) == null
 
 // LINX-15668: on open, relocate every order whose location changed.
 export function initSandbox({ stops, consolidation, orders }) {
@@ -240,15 +251,18 @@ function relocate(stops, from, to) {
   return next
 }
 
-// LINX-15669 — the ONE gate for every reorder (arrows + drag). A drag is
-// only checked at its drop point: moving one stop can only ADD pickup/
-// delivery inversions as it passes stops, so if the final spot is legal
-// every adjacent step on the way was too — a drag and the equivalent arrow
-// run accept exactly the same moves.
+// LINX-15669 — the ONE gate for every reorder (arrows + drag): a move is
+// refused only when it BREAKS a valid sequence. C7 — when the sequence is
+// already invalid (a placement joined an order to stops in the wrong order),
+// every move is allowed so the planner can repair it; isRoutable holds
+// Evaluate until they do. A drag is only checked at its drop point: from a
+// valid sequence, moving one stop can only ADD pickup/delivery inversions as
+// it passes stops, so if the final spot is legal every adjacent step on the
+// way was too — a drag and the equivalent arrow run accept the same moves.
 export function canReorderStop(sb, from, to) {
   const n = sb.stops.length
   if (from < 0 || from >= n || to < 0 || to >= n) return { ok: false, reason: 'Already at the edge.' }
-  if (!validSequence(relocate(sb.stops, from, to))) return { ok: false, reason: SEQUENCE_REASON }
+  if (validSequence(sb.stops) && !validSequence(relocate(sb.stops, from, to))) return { ok: false, reason: SEQUENCE_REASON }
   return { ok: true }
 }
 
@@ -313,14 +327,16 @@ export function addPending(sb, ids) {
   return add.length ? { ...sb, pending: [...sb.pending, ...add] } : sb
 }
 
-// Gate for LINX-15670/15869/15871: routable iff no unsequenced stop and every stop has a date.
+// Gate for LINX-15670/15869/15871: routable iff no unsequenced stop, every
+// stop has a date, and (C7, LINX-15669) no order is delivered before pickup.
 export function isRoutable(sb) {
-  return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && s.date)
+  return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && s.date) && validSequence(sb.stops)
 }
 
 // T1.5 — isRoutable's reason, for the Evaluate tooltip.
 export function routeBlocker(sb) {
   if (sb.stops.some((s) => s.unsequenced)) return 'unsequenced'
+  if (!validSequence(sb.stops)) return 'sequence'
   if (sb.stops.some((s) => !s.date)) return 'undated'
   return null
 }
@@ -392,6 +408,11 @@ export function toDto(sb) {
       region: s.site?.region,
       postal: s.site?.postal,
       country: s.site?.country,
+      // C9 — a created stop's coordinates + zone (mergeStops keeps an
+      // existing stop's own; these only fill a created one).
+      lat: s.lat,
+      lng: s.lng,
+      timeZone: s.site?.timeZone,
       sourceStopSequence,
     }
   })

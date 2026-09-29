@@ -6,6 +6,8 @@
 import { buildRankedSubquery, resolveNeedles } from './search.mjs'
 import { buildCandidateRows, MOVE_BLOCKED_CATEGORY, MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
 import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
+import { idsFor, buildInsertShipmentQuery, buildLinkOrderQuery, buildSearchIndexQuery } from './planShipment.mjs'
+import { tsFromDisplay } from './consolidateShipments.mjs'
 
 // Sentinel `sortBy` meaning "order by search relevance, no column drives".
 // Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
@@ -379,6 +381,11 @@ export function mergeStops(detail, rows) {
       region: base.region ?? row.region,
       postal: base.postal ?? row.postal,
       address1: base.address1 ?? row.address1,
+      // C9 (S163) — a created stop's coordinates + zone ride in from toDto;
+      // dropping them left the map pin and the zone-aware date checks blind.
+      lat: base.lat ?? row.lat,
+      lng: base.lng ?? row.lng,
+      timeZone: base.timeZone ?? row.timeZone,
       // DEC-199: the planner's edited date wins — it used to be dropped for
       // every existing stop (base first).
       scheduledDateTime: row.scheduledDateTime ?? base.scheduledDateTime,
@@ -425,12 +432,16 @@ export function computeListAggregates(orderList) {
   }
 }
 
+// C6 (S163) — `activeTender` reads the LIVE tenders table: Tender-tab actions
+// write only `tenders` (saveTender), so shipments.tender_status stays the
+// seeded value and a source tendered after the seed would slip through.
 export function buildSourceShipmentsQuery(sellShipments) {
   return {
     text: `SELECT sell_shipment AS "sellShipment", category,
-             tender_status AS "tenderStatus", detail
+             tender_status AS "tenderStatus", detail,
+             EXISTS (SELECT 1 FROM tenders t WHERE t.shipment_sell_id = shipments.sell_shipment AND t.status = ANY($2)) AS "activeTender"
            FROM shipments WHERE sell_shipment = ANY($1)`,
-    values: [sellShipments],
+    values: [sellShipments, MOVE_BLOCKED_TENDER],
   }
 }
 
@@ -449,7 +460,8 @@ async function pullExternalOrders(db, externalOrders) {
   for (const { orderNumber, sourceSellShipment } of deduped) {
     const src = bySell.get(sourceSellShipment)
     const rec = src?.detail?.orderList?.find((o) => idOf(o) === orderNumber)
-    if (!src || !rec || MOVE_BLOCKED_CATEGORY.includes(src.category) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus)) {
+    // Seeded status OR a live tender row — either one blocks (C6).
+    if (!src || !rec || MOVE_BLOCKED_CATEGORY.includes(src.category) || MOVE_BLOCKED_TENDER.includes(src.tenderStatus) || src.activeTender) {
       blocked.push(orderNumber)
       continue
     }
@@ -480,6 +492,155 @@ export function removeOrdersFromSource(detail, movedIds) {
     .filter((s) => s.orderIds.length > 0)
     .map((s, i) => ({ stopSequence: i + 1, stopType: s.stopType, orderIds: s.orderIds, sourceStopSequence: s.stopSequence }))
   return { orderList, stops: mergeStops({ ...detail, orderList }, rows) }
+}
+
+// A stop's scheduledDateTime is the long form ('March 4, 2026 10:00 PST',
+// generate.mjs:946 / stopsSandbox formatStopDate); the row's pickup_date /
+// delivery_date is 'MM/DD/YYYY HH:MM TZ' (001_schema.sql:27, generate.mjs
+// formatDateTime). An already-short string passes through.
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+function stopDateToDisplay(s) {
+  const m = /^([A-Za-z]+) (\d{1,2}), (\d{4}) (\d{1,2}):(\d{2})(?: ([A-Z]{3,4}))?/.exec(s ?? '')
+  if (!m || !MONTHS.includes(m[1])) return s ?? ''
+  const pad = (v) => String(v).padStart(2, '0')
+  return `${pad(MONTHS.indexOf(m[1]) + 1)}/${pad(m[2])}/${m[3]} ${pad(m[4])}:${m[5]} ${m[6] || 'CST'}`
+}
+
+// C3 / DEC-205 / ruling N3 (S163) — an order left in Orders Pending To Assign
+// at a save-stops becomes its OWN Direct shipment, same shape as
+// planShipment's buildDirectShipment (so the same INSERT / link / search-index
+// builders write it). Sourced from the target's PRE-save state, not a
+// ManualOrder: only ~65% of seeded orders carry manual_order, and the old
+// stops already hold the full sites (address, lat/lng, timeZone, dates).
+// Lives here, not in planShipment.mjs: it needs mergeStops/
+// computeListAggregates, and planShipment is in the client bundle
+// (consolidateShipments → consolidationService.ts) — importing this module
+// there would be a cycle dragging the whole SQL layer client-side.
+//   source        { row, detail } — row = customer/planning/equipment/mode columns
+//   orderSerialId orders.id (drives idsFor, same band as a created order)
+export function buildSplitShipment({ source, orderRec, orderSerialId, now = new Date() }) {
+  const ids = idsFor(orderSerialId)
+  const id = idOf(orderRec)
+  const orderNumber = orderRec.orderNumber ?? String(orderRec.orderId)
+  const stopOf = (type) => {
+    const s = (source.detail.shipmentStopList ?? []).find((x) => x.stopType === type && (x.orderIds ?? []).includes(id))
+    // Every order sits on one pickup + one delivery (generate.mjs I-rules);
+    // a gap is corrupt data — refuse before any write rather than invent a site.
+    if (!s) throw new Error(`Order ${id} has no ${type} stop on ${source.detail.shipmentId ?? 'its shipment'}`)
+    return s
+  }
+  const rows = [stopOf('pickup'), stopOf('delivery')].map((s, i) => ({
+    stopSequence: i + 1, stopType: s.stopType, orderIds: [id], sourceStopSequence: s.stopSequence,
+  }))
+  const stops = mergeStops({ ...source.detail, orderList: [orderRec] }, rows)
+  const [pu, del] = stops
+  const pickupDate = stopDateToDisplay(pu.scheduledDateTime)
+  const deliveryDate = stopDateToDisplay(del.scheduledDateTime)
+  const agg = computeListAggregates([orderRec])
+  // R6 — a missing flag is Y (consolidatableOf's default).
+  const consolidatable = orderRec.consolidatable !== false
+  const category = consolidatable ? 'consolidation' : 'hold'
+  const src = source.row
+
+  const row = {
+    odysseyShipmentIdentifier: ids.odysseyShipmentIdentifier,
+    buyShipment: ids.buyShipment,
+    sellShipment: ids.sellShipment,
+    orders: [orderNumber],
+    pickupNumbers: agg.pickupNumbers,
+    poNumbers: agg.poNumbers,
+    shipmentType: agg.shipmentType,       // 'Direct' — one order
+    planningType: src.planningType ?? null,
+    legType: null, shipmentSequenceLeg: null, nextShipmentId: null,
+    pro: null,
+    customerId: src.customerId,
+    customerName: src.customerName,
+    consignor: pu.facilityName ?? '',     // seed: consignor = pickup stop's facility
+    consignee: del.facilityName ?? '',
+    origin: [pu.city, pu.region, pu.country, pu.postal].filter(Boolean).join(' '),
+    destination: [del.city, del.region, del.country, del.postal].filter(Boolean).join(' '),
+    pickupDate, deliveryDate,
+    mode: src.mode,
+    equipmentCode: src.equipmentCode ?? '',
+    // Deliberately NOT the source's equipment NUMBER: the carrier assigns it
+    // (planShipment buildDirectShipment), and this shipment has no carrier.
+    equipment: '',
+    seal: null,
+    scac: null,
+    tenderStatus: '',
+    shipmentStatus: shipmentStatusFor({ panel: 'monitoring', category }), // DEC-204
+    panel: 'monitoring',
+    category,
+    validationMessage: null,
+    grossWeight: agg.grossWeight,
+    load: ids.load,
+    loadCount: agg.loadCount,
+    orderCount: '1',
+    apFreightCost: null,                  // not rated
+  }
+
+  const t0 = new Date(now)
+  const t1 = new Date(t0.getTime() + 30_000)
+  const author = { name: 'OdysseyONE', kind: 'system' }
+  const detail = {
+    shipmentId: ids.sellShipment,
+    odysseyShipmentIdentifier: ids.odysseyShipmentIdentifier,
+    shipmentType: 'Direct',
+    customerId: row.customerId,
+    customerName: row.customerName,
+    shipDirection: orderRec.shipDirectionCode ?? source.detail.shipDirection ?? '',
+    freightTerms: source.detail.freightTerms ?? '',
+    incotermInfo: null,
+    numberOfStops: 2,
+    pgiFlag: false,
+    ratingStatus: 'Not Rated',
+    trackingUrl: null,
+    distanceMiles: null,
+    totalVolumeValue: orderRec.volumeValue ?? 0,
+    totalVolumeUomCode: orderRec.volumeUomCode ?? 'cuft',
+    acceptedCarrierLabel: null,
+    seedEquipment: row.equipmentCode || null,
+    utilizationPercent: null,
+    costSummary: undefined,
+    orderList: [orderRec],
+    shipmentStopList: stops,
+    shippingOptionList: [],               // N3: no carrier list until planned
+    droppedCarrierList: [],
+    documentList: [],
+    noteList: [],
+    historyList: [
+      { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t0.toISOString(), action: 'Shipment Created', category: 'create', outcome: 'update', author,
+        details: `Buy Shipment ${ids.buyShipment} and Sell Shipment ${ids.sellShipment} created successfully for Order ${orderNumber}, removed from shipment ${source.detail.odysseyShipmentIdentifier ?? source.detail.shipmentId} during order change review.` },
+      { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t1.toISOString(), action: 'Optimization Evaluation', category: 'update', author,
+        details: consolidatable
+          ? 'Optimization evaluation completed. Shipment moved to Consolidation.'
+          : 'Optimization evaluation completed. Shipment moved to Hold.',
+        outcome: consolidatable ? 'update' : 'neutral' },
+    ],
+  }
+  return { row, detail, pickupTs: tsFromDisplay(pickupDate), deliveryTs: tsFromDisplay(deliveryDate) }
+}
+
+// Pre-transaction reads for the C3 split: the target's own list columns and
+// each pending order's serial id. Any gap throws here, before BEGIN.
+async function planSplits(db, sellShipment, detail, pending) {
+  const { rows: [row] } = await db.query({
+    text: `SELECT customer_id AS "customerId", customer_name AS "customerName", planning_type AS "planningType",
+             equipment_code AS "equipmentCode", mode
+           FROM shipments WHERE sell_shipment = $1`,
+    values: [sellShipment],
+  })
+  const { rows: idRows } = await db.query({
+    text: 'SELECT id, order_number AS "orderNumber" FROM orders WHERE order_number = ANY($1)',
+    values: [pending.map(idOf)],
+  })
+  const serial = new Map(idRows.map((r) => [r.orderNumber, Number(r.id)]))
+  const now = new Date()
+  return pending.map((orderRec) => {
+    const orderSerialId = serial.get(idOf(orderRec))
+    if (orderSerialId == null) throw new Error(`No orders row for order ${idOf(orderRec)}`)
+    return buildSplitShipment({ source: { row, detail }, orderRec, orderSerialId, now })
+  })
 }
 
 // `listCarrier` (T4, S160) — optional {scac, apFreightCost}, the grid columns
@@ -534,7 +695,9 @@ export function buildDetailReadQuery(sellShipment) {
 // move — its own review state (if any) isn't this save's business.
 export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChanges = true } = {}) {
   const ids = orderList.map((o) => o.orderNumber ?? String(o.orderId))
-  const base = `jsonb_set(jsonb_set(detail, '{shipmentStopList}', $1::jsonb), '{orderList}', $2::jsonb)`
+  // N2 (S163) — detail.shipmentType follows the row's shipment_type ($10),
+  // so a save that leaves one order reads Direct in the modal too.
+  const base = `jsonb_set(jsonb_set(jsonb_set(detail, '{shipmentStopList}', $1::jsonb), '{orderList}', $2::jsonb), '{shipmentType}', to_jsonb($10::text))`
   // The target's own consolidation badges are stale after a save (S143);
   // a SOURCE shipment keeps whatever review state it had.
   const detailSql = resetChanges
@@ -701,13 +864,24 @@ export async function resolveOrderChange({ params, body, db }) {
     const { rows } = await db.query(buildDetailReadQuery(sellShipment))
     if (rows.length === 0) { const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e }
     const detail = rows[0].detail
+    const onStops = new Set(body.stops.flatMap((s) => s.orderIds ?? []))
+    // C8 (S163) — an external order that isn't on any stop can't be honoured
+    // (it would leave its source for nowhere). The client already filters
+    // (EditStopsView), so this only guards the server.
+    const unplaced = (body.externalOrders ?? []).map((e) => e.orderNumber).filter((id) => !onStops.has(id))
+    if (unplaced.length) {
+      const e = new Error(`externalOrders must all be placed on stops: ${unplaced.join(', ')}`); e.status = 400; throw e
+    }
     // Revalidated + read BEFORE the transaction opens — a blocked source
     // order 400s here with nothing written, no BEGIN ever issued.
     const { records: external, sources } = await pullExternalOrders(db, body.externalOrders)
-    const onStops = new Set(body.stops.flatMap((s) => s.orderIds ?? []))
     // D2 — the confirm dialog's promise: orders left pending leave the shipment.
     const orderList = [...(detail.orderList ?? []), ...external].filter((o) => onStops.has(idOf(o)))
     const merged = mergeStops({ ...detail, orderList }, body.stops)
+    // C3 / DEC-205 — ...and each becomes a shipment of its own. Built (and
+    // its reads done) before BEGIN; zero pending = zero extra queries.
+    const pending = (detail.orderList ?? []).filter((o) => !onStops.has(idOf(o)))
+    const splits = pending.length ? await planSplits(db, sellShipment, detail, pending) : []
 
     // ponytail: first BEGIN/COMMIT in this file — the AC (LINX-15872) demands
     // one Save transaction now that a save-stops can touch more than one
@@ -739,11 +913,29 @@ export async function resolveOrderChange({ params, body, db }) {
         const next = removeOrdersFromSource(src.detail, movedIds)
         await client.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, { resetChanges: false }))
       }
+      for (const split of splits) {
+        const sell = split.row.sellShipment
+        // idsFor is keyed by orders.id, so an order split twice mints the same
+        // sell id. The earlier row can only be an emptied shell (its order has
+        // since moved on) — clear it and its search rows (tenders cascade).
+        // A NON-empty row holding the id makes the INSERT below violate the
+        // PK and roll back the whole save — acceptable: nothing is half-written.
+        // order_count is text (001_schema.sql:34), written as String(n).
+        await client.query({ text: `DELETE FROM search_index WHERE domain = 'shipments' AND entity_id = $1`, values: [sell] })
+        await client.query({ text: `DELETE FROM shipments WHERE sell_shipment = $1 AND order_count = '0'`, values: [sell] })
+        await client.query(buildInsertShipmentQuery(split))
+        // Also flips order_status to 'Planned Shipment'.
+        await client.query(buildLinkOrderQuery(split.row.orders[0], sell))
+        await client.query(buildSearchIndexQuery(split.row))
+      }
       // Scenario A (active tender) writes nothing further: the row is already
       // exceptions/order-change at this tender status (that's what "active"
       // means), and orderChange.resolution stays untouched — the tender
       // decision is still pending on the Direct Actions card (LINX-15671).
       // A refile query here would just re-set the same values it already has.
+      // The TARGET's scenario reads body.priorTenderStatus, not the live
+      // tenders table (unlike a source's move block, C6): its tendering is
+      // locked for the whole review (LINX-14509), so the prior can't drift.
       if (!OC_ACTIVE_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
         // Scenario B — same "final decision" stamp as retender/bypass/cancel,
         // AND (T4) the same tender-list adoption: the new plan is final, so
