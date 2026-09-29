@@ -19,6 +19,7 @@ import { PANEL_CONFIG, panelTotals, landingPanel } from '../../data/panelConfig'
 import { PGIPGR_DEMO_COUNTS } from '../../data/pgipgrWidgets'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
+import { getApiMode } from '../../api/config'
 import { useUserPreference } from '../../api/queries/useUserPreference'
 import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
 import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
@@ -369,21 +370,36 @@ function ShipmentsRoute() {
   }, [listParams])
 
   // Selection id = sellShipment (the contract detail-link key). The raw row for
-  // BottomBar (buy label + summary) comes from the LIVE page rows first — the
-  // mock full set only covers live data by coincidence (S93: live sell ids
-  // missed it, so the bar fell back to labeling with the sell id). The ref keeps
-  // the last-found row so the summary survives paging away from the selection.
+  // BottomBar (buy label + summary) comes from the LIVE page rows first (S93:
+  // never label the bar with the raw sell id when a better one exists). The
+  // ref keeps the last-found row so the summary survives paging away from the
+  // selection. Off-page (e.g. back from Edit Shipment Stops), LIVE mode must
+  // NOT read the mock set: Neon and shipments.json share the seed, so sell ids
+  // coincide but the O/C counter and every other field don't (sell 25430468 =
+  // C50001579 in Neon, C50001578 in the json). It builds the row from the live
+  // detail instead — only once that detail is the SELECTED shipment's, not
+  // the previous one's held over by keepPreviousData (detailsStale).
   const selectedRowRef = useRef(null)
   const selectedShipment = useMemo(() => {
     if (!selectedShipmentId) { selectedRowRef.current = null; return null }
+    const detailRow = shipmentDetails && !detailsStale
+      ? {
+          sellShipment: selectedShipmentId,
+          // '' = absent on the wire; undefined lets the bar's `??` chain fall through.
+          odysseyShipmentIdentifier: shipmentDetails.odysseyShipmentIdentifier || undefined,
+          customerName: shipmentDetails.customerName || undefined,
+          // ponytail: buyShipment/mode/pro/shipmentStatus aren't on the detail —
+          // left undefined (consumers fall back) rather than borrowed from mock.
+        }
+      : null
     const row =
       pageRows.find(r => r.sellShipment === selectedShipmentId)
       ?? (selectedRowRef.current?.sellShipment === selectedShipmentId ? selectedRowRef.current : null)
-      ?? allShipments.find(s => s.sellShipment === selectedShipmentId)
+      ?? (getApiMode() === 'mock' ? allShipments.find(s => s.sellShipment === selectedShipmentId) : detailRow)
       ?? null
     selectedRowRef.current = row
     return row
-  }, [selectedShipmentId, pageRows, allShipments])
+  }, [selectedShipmentId, pageRows, allShipments, shipmentDetails, detailsStale])
 
   // Tab badges + metrics strip: counts come from the count endpoint per panel,
   // scoped to the selected customers (decision 10) and filtered by the committed
