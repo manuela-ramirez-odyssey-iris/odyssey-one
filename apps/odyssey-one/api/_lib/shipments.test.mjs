@@ -1,6 +1,6 @@
 import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders, buildSourceShipmentsQuery, buildSplitShipment, rowFromStops } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, buildTenderUpdateQuery, categoryCounts, buildOverridesQuery, saveShipmentOverrides, resolveOrderChange, adoptNewTenderList, adoptDroppedCarriers, buildTenderDeleteQuery, buildShippingOptionListQuery, mergeStops, buildSaveStopsQuery, computeListAggregates, buildCandidateOrdersQuery, candidateOrders, buildSourceShipmentsQuery, buildSplitShipment, rowFromStops } from './shipments.mjs'
 import { totalMiles } from '../../src/utils/legMiles.js'
 import { MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
 
@@ -751,6 +751,54 @@ describe('resolveOrderChange', () => {
       assert.match(q.text, /jsonb_set\(detail, '\{shippingOptionList\}', \$1::jsonb\)/)
       assert.deepEqual(q.values, [JSON.stringify([{ scac: 'A' }]), 'S1'])
     })
+
+    it('C24: writes the adopted dropped carriers into detail.droppedCarrierList in the same write', () => {
+      const q = buildShippingOptionListQuery('S1', [{ scac: 'A' }], [{ scac: 'D' }])
+      assert.match(q.text, /jsonb_set\(jsonb_set\(detail, '\{shippingOptionList\}', \$1::jsonb\), '\{droppedCarrierList\}', \$3::jsonb\)/)
+      assert.deepEqual(q.values, [JSON.stringify([{ scac: 'A' }]), 'S1', JSON.stringify([{ scac: 'D' }])])
+    })
+  })
+
+  // C24 (S163) — the adopted list's dropped carriers, in the shipment's own
+  // droppedCarrierList shape; rate-contract fields fill from the existing entry.
+  describe('adoptDroppedCarriers', () => {
+    const oc = { droppedCarriers: { new: [
+      { scac: 'KEEP', carrierName: 'Keep Co', equipment: 'LTR', routeRank: 3, apCost: 10, dropCode: 2, reason: 'Prohibited Carrier', reasonDescription: 'Prohibited.' },
+      { scac: 'NEW1', carrierName: 'New Co', equipment: 'V53', routeRank: null, apCost: null, dropCode: 23, reason: 'Missing Transit Time', reasonDescription: 'No transit.' },
+    ] } }
+    const existing = [{ scac: 'KEEP', rpcId: 4442791, startDate: '01/03/2026', stopDate: '10/01/2026', routeGroup: 'Backup', transitTime: '5 DY' }]
+
+    it('maps to the droppedCarrierList shape; rpcId/startDate/stopDate/routeGroup from the existing entry, else null', () => {
+      const [keep, fresh] = adoptDroppedCarriers(oc, existing)
+      assert.deepEqual(keep, {
+        scac: 'KEEP', carrierName: 'Keep Co', equipmentCode: 'LTR', dropCode: 2, reason: 'Prohibited Carrier', reasonDescription: 'Prohibited.', routeRank: 3,
+        rpcId: 4442791, startDate: '01/03/2026', stopDate: '10/01/2026', routeGroup: 'Backup',
+        pickupDateTime: null, deliveryDateTime: null, transitTime: null, transitSource: null, ttId: null,
+        commitment: null, uom: null, accepted: null, open: null, comment: null, cvcId: null,
+        orderEquipment: false, indirectPoint: false,
+      })
+      assert.equal(fresh.equipmentCode, 'V53')
+      assert.deepEqual([fresh.rpcId, fresh.startDate, fresh.stopDate, fresh.routeGroup], [null, null, null, null])
+      assert.ok(!('apCost' in fresh) && !('equipment' in fresh))
+    })
+
+    it('null when the order change carries no new dropped list (the shipment keeps its own)', () => {
+      assert.equal(adoptDroppedCarriers({}, existing), null)
+      assert.equal(adoptDroppedCarriers(undefined), null)
+    })
+
+    it('an adoption writes it in the same transaction', async () => {
+      const detail = {
+        droppedCarrierList: existing,
+        orderChange: { ...oc, prior: { scac: 'PRIOR', tenderStatus: 'Sent' }, priorTenderList: [], newTenderList: [{ scac: 'AAAA', rank: 1, status: '' }] },
+      }
+      const { db, calls } = mkOc(detail)
+      await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db })
+      const texts = calls.map(textOf)
+      const i = texts.findIndex((t) => /droppedCarrierList/.test(t))
+      assert.ok(i > texts.indexOf('BEGIN') && i < texts.lastIndexOf('COMMIT'))
+      assert.deepEqual(JSON.parse(calls[i].values[2]).map((d) => [d.scac, d.rpcId]), [['KEEP', 4442791], ['NEW1', null]])
+    })
   })
 
   // ── S143 Task 3: save-stops (Edit Shipment Stops → Approve Changes) ──────
@@ -788,6 +836,8 @@ describe('resolveOrderChange', () => {
     const q = buildSaveStopsQuery('S1', [{ stopSequence: 1 }], [{ orderNumber: 'A' }])
     assert.match(q.text, /'\{orderChange,consolidation,stopChanges\}', '\{\}'::jsonb/)
     assert.match(q.text, /'\{orderChange,consolidation,locationChange\}', 'false'::jsonb/)
+    // C20 (S163, LINX-15435 BR1) — the consolidated review is done from here on.
+    assert.match(q.text, /'\{orderChange,consolidation,stopsSaved\}', 'true'::jsonb/)
     assert.deepEqual(q.values, [
       JSON.stringify([{ stopSequence: 1 }]), JSON.stringify([{ orderNumber: 'A' }]), ['A'], '1', 'S1',
       '0', '0', [], [], 'Direct',
@@ -1356,7 +1406,7 @@ describe('consistency slice (C4/C12 re-route, C11 header, C19 row columns, C5 em
     const m = new RegExp(`'\\{${path}\\}', \\$(\\d+)::jsonb`).exec(q.text)
     return m ? JSON.parse(q.values[Number(m[1]) - 1]) : undefined
   }
-  const optionList = (calls) => JSON.parse(calls.find((q) => /SET detail = jsonb_set\(detail, '\{shippingOptionList\}'/.test(q.text ?? '')).values[0])
+  const optionList = (calls) => JSON.parse(calls.find((q) => /'\{shippingOptionList\}', \$1::jsonb/.test(q.text ?? '')).values[0])
 
   it('C4: save-stops writes the re-routed list to orderChange.newTenderList — stop dates, cost scaled by miles, ranks/carriers kept', async () => {
     const { db, calls } = mk(mkDetail())

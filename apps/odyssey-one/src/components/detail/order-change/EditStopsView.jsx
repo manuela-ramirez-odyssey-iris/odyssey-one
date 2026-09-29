@@ -8,6 +8,7 @@ import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
 import TimezoneSelect from '../../orders/create/fields/TimezoneSelect'
+import { tzAbbrev } from '../../../data/master-data'
 import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
 import AddOrdersModal from './AddOrdersModal.jsx'
@@ -37,7 +38,7 @@ const LAST_ORDER_TOOLTIP = 'The last remaining order cannot be removed from the 
 // C7's 'sequence' names the order, so it's built at the call site.
 const BLOCKER_TOOLTIP = {
   unsequenced: 'Place every P? / D? stop first',
-  undated: 'Set a date on every stop',
+  undated: 'Set a date, time and time zone on every stop', // C16
 }
 const CONFIRM_TITLE = 'Approve Shipment Change'
 // DEC-205 (LINX-15869) — a pending order isn't dropped: Save moves it to a
@@ -53,6 +54,15 @@ const CONFIRM_BODY = 'Orders left in Orders Pending To Assign will each be moved
 // The zone select lists standard abbreviations only, so a DST label maps to
 // its standard twin for display.
 const STD_TZ = { CDT: 'CST', EDT: 'EST', MDT: 'MST', PDT: 'PST', AKDT: 'AKST', HDT: 'HST' }
+// C23 — a picked zone is stamped as that zone's abbreviation ON the stop's
+// date (PST picked for a June stop writes PDT), so picking never shifts the
+// stop by an hour. Re-picking the stop's own zone keeps its stamp as is.
+// ponytail: one IANA zone per option — MST means Denver, so a July pick of
+// MST writes MDT (Arizona would need the stop's own IANA zone).
+const IANA_OF = { EST: 'America/New_York', CST: 'America/Chicago', MST: 'America/Denver', PST: 'America/Los_Angeles', AKST: 'America/Anchorage', HST: 'Pacific/Honolulu' }
+export const zoneOn = (picked, p) => (picked === (STD_TZ[p.tz] ?? p.tz)
+  ? p.tz
+  : (p.y != null && tzAbbrev(IANA_OF[picked], new Date(Date.UTC(p.y, p.mo, p.d, 12)))) || picked)
 const pad2 = (n) => String(n).padStart(2, '0')
 
 function StopDateField({ id, label, value, onChange }) {
@@ -77,7 +87,7 @@ function StopDateField({ id, label, value, onChange }) {
           if (Number.isFinite(h) && Number.isFinite(mi)) emit({ ...p, h, mi })
         }}
       />
-      <TimezoneSelect id={`${id}-tz`} label="Time Zone" value={STD_TZ[p.tz] ?? p.tz} onChange={(tz) => emit({ ...p, tz })} short />
+      <TimezoneSelect id={`${id}-tz`} label="Time Zone" value={STD_TZ[p.tz] ?? p.tz} onChange={(tz) => emit({ ...p, tz: zoneOn(tz, p) })} short />
     </div>
   )
 }
@@ -447,6 +457,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 </span>
               )}
             </div>
+            {/* C17 (LINX-15667 §3) — the street address under the location, Prior and New alike. */}
+            {s.address && s.address !== '--' && <span className="text-label-xs-regular edit-stops__stop-meta">{s.address}</span>}
             {/* DEC-195: a stop shows only its own date. DEC-199: editable
                 in the New plan; Prior stays the record of what was. */}
             {readOnly

@@ -790,8 +790,11 @@ export function buildSaveStopsQuery(sellShipment, stops, orderList, { resetChang
   const base = `jsonb_set(jsonb_set(jsonb_set(detail, '{shipmentStopList}', $1::jsonb), '{orderList}', $2::jsonb), '{shipmentType}', to_jsonb($10::text))`
   // The target's own consolidation badges are stale after a save (S143);
   // a SOURCE shipment keeps whatever review state it had.
+  // C20 (S163, LINX-15435 BR1) — stopsSaved marks the consolidated review
+  // done, so every doorway (Stops tab, Tender tab's Review button) agrees;
+  // what's left after a Scenario A save is the Direct decision (LINX-15671).
   let detailSql = resetChanges
-    ? `jsonb_set(jsonb_set(${base}, '{orderChange,consolidation,stopChanges}', '{}'::jsonb), '{orderChange,consolidation,locationChange}', 'false'::jsonb)`
+    ? `jsonb_set(jsonb_set(jsonb_set(${base}, '{orderChange,consolidation,stopChanges}', '{}'::jsonb), '{orderChange,consolidation,locationChange}', 'false'::jsonb), '{orderChange,consolidation,stopsSaved}', 'true'::jsonb)`
     : base
   for (const [key, path] of Object.entries(PATCH_PATHS)) {
     if (patch[key] !== undefined) detailSql = `jsonb_set(${detailSql}, '${path}', ${bind(JSON.stringify(patch[key]))}::jsonb)`
@@ -907,12 +910,40 @@ export function buildTenderDeleteQuery(sellShipment) {
 // rows exist) — writing it here too means a live read that, for whatever
 // reason, sees zero tender rows still agrees with the resolved list rather
 // than falling back to the stale pre-change blob.
-export function buildShippingOptionListQuery(sellShipment, rows) {
+// C24 (S163) — `dropped` (adoptDroppedCarriers) lands in the same write, so
+// the adopted list and its dropped carriers can't disagree; null keeps the
+// shipment's own droppedCarrierList.
+export function buildShippingOptionListQuery(sellShipment, rows, dropped = null) {
+  const set = `jsonb_set(detail, '{shippingOptionList}', $1::jsonb)`
   return {
-    text: `UPDATE shipments SET detail = jsonb_set(detail, '{shippingOptionList}', $1::jsonb)
+    text: `UPDATE shipments SET detail = ${dropped ? `jsonb_set(${set}, '{droppedCarrierList}', $3::jsonb)` : set}
            WHERE sell_shipment = $2`,
-    values: [JSON.stringify(rows), sellShipment],
+    values: dropped ? [JSON.stringify(rows), sellShipment, JSON.stringify(dropped)] : [JSON.stringify(rows), sellShipment],
   }
+}
+
+// C24 (S163) — an adopted tender list carries the dropped carriers of the
+// SAME routing (orderChange.droppedCarriers.new, LINX-14510), in the
+// shipment's droppedCarrierList shape (sellShipmentOut.ts
+// SellShipmentDroppedCarrier). The preview rows don't carry the rate-contract
+// fields: rpcId/startDate/stopDate/routeGroup come from the shipment's
+// existing entry for the same scac, else null; the rest of the shape is
+// null/false (the mapper renders both as `--`/unchecked). Null when the order
+// change has no new dropped list — nothing to adopt.
+export function adoptDroppedCarriers(orderChange, existing = []) {
+  const rows = orderChange?.droppedCarriers?.new
+  if (!Array.isArray(rows)) return null
+  return rows.map((r) => {
+    const e = (existing ?? []).find((d) => d.scac === r.scac)
+    return {
+      scac: r.scac, carrierName: r.carrierName, equipmentCode: r.equipment,
+      dropCode: r.dropCode, reason: r.reason, reasonDescription: r.reasonDescription, routeRank: r.routeRank,
+      rpcId: e?.rpcId ?? null, startDate: e?.startDate ?? null, stopDate: e?.stopDate ?? null, routeGroup: e?.routeGroup ?? null,
+      pickupDateTime: null, deliveryDateTime: null, transitTime: null, transitSource: null, ttId: null,
+      commitment: null, uom: null, accepted: null, open: null, comment: null, cvcId: null,
+      orderEquipment: false, indirectPoint: false,
+    }
+  })
 }
 
 // T4 — replaces a shipment's tenders rows wholesale (delete then re-insert in
@@ -921,10 +952,10 @@ export function buildShippingOptionListQuery(sellShipment, rows) {
 // of adopting a list is "this is the list now"; the row count here (a
 // shipment's carrier count) is small enough that N+1 inserts cost nothing
 // worth a bulk-VALUES query.
-async function writeTenderAdoption(client, sellShipment, rows) {
+async function writeTenderAdoption(client, sellShipment, rows, dropped) {
   await client.query(buildTenderDeleteQuery(sellShipment))
   for (const row of rows) await client.query(buildTenderInsertQuery(sellShipment, row))
-  await client.query(buildShippingOptionListQuery(sellShipment, rows))
+  await client.query(buildShippingOptionListQuery(sellShipment, rows, dropped))
 }
 
 export async function resolveOrderChange({ params, body, db }) {
@@ -1040,7 +1071,7 @@ export async function resolveOrderChange({ params, body, db }) {
         const tenderRows = adoptNewTenderList(action, adopted, null, outcome)
         listCarrier = listCarrierFor(action, tenderRows, adopted)
         await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
-        await writeTenderAdoption(client, sellShipment, tenderRows)
+        await writeTenderAdoption(client, sellShipment, tenderRows, adoptDroppedCarriers(adopted, detail.droppedCarrierList))
       }
       if (searchRow) {
         const { pickupNumbers, shipmentType } = computeListAggregates(orderList)
@@ -1090,7 +1121,7 @@ export async function resolveOrderChange({ params, body, db }) {
   try {
     await client.query('BEGIN')
     await client.query(buildOrderChangeResolveQuery(sellShipment, outcome, resolution, listCarrier))
-    await writeTenderAdoption(client, sellShipment, tenderRows)
+    await writeTenderAdoption(client, sellShipment, tenderRows, adoptDroppedCarriers(orderChange, detail.droppedCarrierList))
     await client.query('COMMIT')
   } catch (e) {
     try { await client.query('ROLLBACK') } catch {}

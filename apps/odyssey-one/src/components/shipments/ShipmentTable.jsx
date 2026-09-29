@@ -329,6 +329,10 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
                     // one order stays typed Consolidation (Dave) but has no stops review
                     // — LINX-8284: "Consolidation (more than one load)" vs "Direct (one
                     // load)". Same gate as the seed's consolidation payload (orders > 1).
+                    // ponytail: C20 — the row carries no detail, so no `stopsSaved`: after a
+                    // Scenario A save this still lands on the (now plain) Stops tab, and the
+                    // Tender tab's button takes the planner to the Direct decision. Upgrade
+                    // path = a list column for the marker, then consolidatedReviewPending here.
                     label: Number(row.original.orderCount) > 1 ? 'Review Consolidated Change' : 'Review Order Change',
                     onSelect: () => Number(row.original.orderCount) > 1
                       ? onRowSelect(row.original.id, 'stops', false)

@@ -562,12 +562,13 @@ function deriveOrderProjection(mo) {
   const line = mo.orderLines?.[0] ?? {}
   const consignor = {
     locationId: mo.originPartnerId ?? '', name: mo.originFullName ?? '', city: mo.originCity ?? '',
-    state: mo.originRegion ?? '', country: mo.originCountry ?? 'US',
+    // C15 (S163, LINX-15870) — postal feeds Search & Add's ZIP match, same key the seed writes.
+    state: mo.originRegion ?? '', postal: mo.originPostal ?? '', country: mo.originCountry ?? 'US',
     earliestPickupDateTime: mo.requestedPickupDate ?? '', latestPickupDateTime: mo.pickupAppointment ?? '',
   }
   const consignee = {
     locationId: mo.destinationPartnerId ?? '', name: mo.destinationFullName ?? '', city: mo.destinationCity ?? '',
-    state: mo.destinationRegion ?? '', country: mo.destinationCountry ?? 'US',
+    state: mo.destinationRegion ?? '', postal: mo.destinationPostal ?? '', country: mo.destinationCountry ?? 'US',
     earliestDeliveryDateTime: mo.requestedDeliveryDate ?? '', latestDeliveryDateTime: mo.deliveryAppointment ?? '',
   }
   return {

@@ -327,17 +327,20 @@ export function addPending(sb, ids) {
   return add.length ? { ...sb, pending: [...sb.pending, ...add] } : sb
 }
 
+// C16 (LINX-15669 §5 / BR-4) — dated means date, time AND time zone.
+export const isStopDated = (s) => !!parseStamp(s.date)?.tz
+
 // Gate for LINX-15670/15869/15871: routable iff no unsequenced stop, every
-// stop has a date, and (C7, LINX-15669) no order is delivered before pickup.
+// stop is dated (C16), and (C7, LINX-15669) no order is delivered before pickup.
 export function isRoutable(sb) {
-  return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && s.date) && validSequence(sb.stops)
+  return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && isStopDated(s)) && validSequence(sb.stops)
 }
 
 // T1.5 — isRoutable's reason, for the Evaluate tooltip.
 export function routeBlocker(sb) {
   if (sb.stops.some((s) => s.unsequenced)) return 'unsequenced'
   if (!validSequence(sb.stops)) return 'sequence'
-  if (sb.stops.some((s) => !s.date)) return 'undated'
+  if (!sb.stops.every(isStopDated)) return 'undated'
   return null
 }
 

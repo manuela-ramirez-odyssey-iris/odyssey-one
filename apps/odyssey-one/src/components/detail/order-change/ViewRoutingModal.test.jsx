@@ -46,10 +46,11 @@ it('renders New above Prior above Dropped Carriers with the 8 tender columns (LI
 it('badges an AP cost that differs between New and Prior on BOTH sides; unchanged stays plain; statuses badge', () => {
   render(<ViewRoutingModal orderChange={oc} onClose={() => {}} />)
   // New DDFL: $1,500.00 vs Prior DDFL: $1,445,543.00 — differ, both badge.
-  expect(screen.getByText('$1,500.00').closest('.text-badge')).toBeTruthy()
-  expect(screen.getByText('$1,445,543.00').closest('.text-badge')).toBeTruthy()
+  // C23: shown without the $ (the Stops-tab header's format); compared raw.
+  expect(screen.getByText('1,500.00').closest('.text-badge')).toBeTruthy()
+  expect(screen.getByText('1,445,543.00').closest('.text-badge')).toBeTruthy()
   // ODFL: $900.00 on both sides — unchanged, plain on both.
-  const nines = screen.getAllByText('$900.00')
+  const nines = screen.getAllByText('900.00')
   expect(nines).toHaveLength(2)
   for (const el of nines) expect(el.closest('.text-badge')).toBeNull()
   expect(screen.getByText('Sent').closest('.text-badge')).toBeTruthy()
@@ -61,7 +62,7 @@ it('renders a SCAC present in New but absent from Prior as plain (no match to di
     newTenderList: [...oc.newTenderList, opt({ scac: 'XPOL', cost: '$2,000.00' })],
   }
   render(<ViewRoutingModal orderChange={solo} onClose={() => {}} />)
-  expect(screen.getByText('$2,000.00').closest('.text-badge')).toBeNull()
+  expect(screen.getByText('2,000.00').closest('.text-badge')).toBeNull()
 })
 
 it('shows an empty Dropped Carriers table when nothing was dropped', () => {

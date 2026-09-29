@@ -2,7 +2,7 @@
 title: Order change — everything still missing after Wave B (consolidated + Direct + shipment statuses)
 date: 2026-09-25
 session: S160
-status: in progress — C0–C12, C19, C21, C22, D1, D3, S built (C12 = DEC-215 recompute); reseed + deploy owed; C6–C23 added by the S163 audit (2026-09-29)
+status: consolidated half done — C0–C13, C15–C17, C19–C24, D1, D3, S built; C14/C18 on hold for design; D2/D4/D5 (Direct) owed; reseed + deploy owed; C6–C23 added by the S163 audit (2026-09-29)
 ---
 
 # Order change — remaining work
@@ -83,7 +83,7 @@ Four read-only audits: every AC clause of LINX-15435…15438, 15667…15671 and 
   - A one-order C flips to Direct on the row (`computeListAggregates` `:424`) but not in `detail.shipmentType`. Depends on ruling N2.
 - **C19. The rest of OC-open-22:** after a move, the source row's origin/destination, pickup/delivery date columns and volume stay stale. Weight, loads, PO/pickup numbers, type and count already update.
 
-### AC-required, not built
+### AC-required, not built — **C13, C15, C16, C17, C20 BUILT S163** (spec `docs/superpowers/specs/2026-09-29-order-change-ac-gap-slice.md`); C12 built in the consistency slice; C14/C18 on hold for design
 - **C12. Re-route on the edited stops (15669 §6–7, 15671 "new routing result retained", Jana 09-25 `@00:18:42`).** The modal and Scenario B both use the seeded `newTenderList` (`ViewRoutingModal.jsx:42-44`). **Needs ruling N1** on what re-routing means in the prototype.
 - **C13. 15436: 8 of 14 stop fields are never highlighted.** Built: Location, Date, Weight, Volume, Package Count, Orders (`StopsTab.jsx:129-137`). Not built: Address 1–3, State, Zip, Country, Appointment, and Site ID/City on their own. On a location change, Address still shows the old `address1` next to the new Location badge. The seed also never draws an appointment change (15438 BR2).
 - **C14 — ON HOLD (needs design; user 2026-09-29). 15438 BR5: the three costs are missing from the View Routing modal.** They sit only in the Stops-tab head behind it. The header prints `1,234.00 USD` and the modal `$1,234.00 USD`; use one format.
@@ -101,7 +101,7 @@ Four read-only audits: every AC clause of LINX-15435…15438, 15667…15671 and 
 
 - **C24. An adopted list doesn't carry its dropped carriers (S163, found building C22).** Scenario B / approve-plan adopt `newTenderList` into `tenders`, but `orderChange.droppedCarriers.new` never reaches `detail.droppedCarrierList`, so after an adoption (visibly after an EMPTY one) the Tender tab shows the old dropped list. The shapes differ: the order-change rows lack `rpcId`, `startDate`/`stopDate`, `routeGroup`, and use `equipment` for `equipmentCode`. Map them, or seed the order-change rows in the full shape.
 
-### Parity and cosmetics
+### Parity and cosmetics — **C21–C24 BUILT S163** (C23's edit-mode "Save" label dropped: the user's S162 choice)
 - **C21. Mock-mode Save is a no-op.** `resolveOrderChange` returns early outside live (`shipmentService.ts`): no revalidation, no move, no re-filing, yet it navigates to Tender Review. Needs ruling N6.
 - **C22. Seed reachability:**
   - Scenario B exists on only 5 of 74.

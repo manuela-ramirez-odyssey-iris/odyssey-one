@@ -51,6 +51,11 @@ export function reroutedNewList(oc, stops, summary) {
 }
 
 const costByScac = (rows) => Object.fromEntries(rows.map((o) => [o.scac, o.cost]))
+// C23 — AP Cost reads like the Stops-tab header ("1,234.00 USD", the mapper's
+// fmtUsd), not the tender VM's "$1,234.00 USD". Display only, this modal only:
+// the VM string (shared with the Direct review's OrderChangeTenderLists) and
+// the Prior/New comparison above stay on the raw value.
+const headerCost = (cost) => (typeof cost === 'string' ? cost.replace(/^(-?)\$/, '$1') : cost)
 
 function TenderTable({ title, rows, otherCostByScac }) {
   const cell = (r, c) => {
@@ -60,7 +65,7 @@ function TenderTable({ title, rows, otherCostByScac }) {
       // buildChangeMap docblock) — accepted here since this modal is
       // read-only and the Direct review's per-row change map isn't exported.
       const changed = Object.hasOwn(otherCostByScac, r.scac) && otherCostByScac[r.scac] !== r.cost
-      return <DiffValue value={r.cost} changed={changed} />
+      return <DiffValue value={headerCost(r.cost)} changed={changed} />
     }
     if (c.key === 'status') return r.status ? <Badge variant={STATUS_VARIANT[r.status] ?? 'gray'}>{r.status}</Badge> : ''
     return val(r[c.key])

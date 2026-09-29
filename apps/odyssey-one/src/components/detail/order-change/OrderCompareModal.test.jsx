@@ -4,14 +4,14 @@ import { afterEach, expect, it, vi } from 'vitest'
 import OrderCompareModal from './OrderCompareModal'
 afterEach(cleanup)
 const rows = [
-  { field: 'Incoterm', source: 'Order', prior: 'FOB', new: 'FOB', changed: false },
+  { field: 'Incoterm Info', source: 'Order', prior: 'FOB', new: 'FOB', changed: false },
   { field: 'Gross Weight', source: 'Order', prior: '100 LB', new: '120 LB', changed: true },
 ]
 it('titles the dialog, names the order, and lists changed rows before unchanged (LINX-15437 → 14512)', () => {
   render(<OrderCompareModal orderId="000000004852" rows={rows} onClose={() => {}} />)
   expect(screen.getByRole('dialog', { name: 'Order Changes' })).toBeTruthy()
   expect(screen.getByText('Order Number: 000000004852')).toBeTruthy()
-  const gw = screen.getByText('Gross Weight'), inc = screen.getByText('Incoterm')
+  const gw = screen.getByText('Gross Weight'), inc = screen.getByText('Incoterm Info')
   expect(!!(gw.compareDocumentPosition(inc) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true)
   expect(screen.getByText('120 LB').closest('.text-badge')).toBeTruthy()
   expect(screen.getAllByText('FOB')[0].closest('.text-badge')).toBeNull()

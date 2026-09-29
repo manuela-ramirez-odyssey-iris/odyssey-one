@@ -2513,7 +2513,9 @@ function generateShipment(index, chainOverride) {
           const drawn = `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`;
           return relocated ? originRec.address1 : drawn;
         })(),
-        city: from.city, state: from.state, country: 'US',
+        // C15 (S163, LINX-15870) — postal lets Search & Add match origin by
+        // ZIP; the pool's own zip (zero draws).
+        city: from.city, state: from.state, postal: from.zip, country: 'US',
         earliestPickupDateTime: toIsoLocal(w.earliestPickup),
         latestPickupDateTime: toIsoLocal(w.latestPickup),
       },
@@ -2521,7 +2523,7 @@ function generateShipment(index, chainOverride) {
         locationId: locationIdFor(to, ord.shipToLocIdx),
         name: to.facility,
         address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
-        city: to.city, state: to.state, country: 'US',
+        city: to.city, state: to.state, postal: to.zip, country: 'US',
         earliestDeliveryDateTime: toIsoLocal(w.earliestDelivery),
         latestDeliveryDateTime: toIsoLocal(w.latestDelivery),
       },
@@ -3166,7 +3168,6 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     if (locationChange && st.stopType === 'pickup') {
       // Relocated pickup = ANOTHER of the customer's own ship-from sites.
       const loc = rndPick(rnd, shipFromSites(customer.id).filter(l => l.city !== st.city));
-      fields.location = { prior: `${st.facilityName}, ${st.city}`, new: `${loc.facility}, ${loc.city}` };
       // Bug fix (S160 follow-up, live 25390278) — the LOCATIONS pool entry
       // already carries real lat/lng; a location-changed site needs the
       // REST of a full site (address1, country, timeZone) too, so the order
@@ -3181,6 +3182,16 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
         country: 'US',
         timeZone: deriveTimezone(loc.city) || 'America/Chicago',
       });
+      // C13 (S163, LINX-15436) — the stop's own display format (facility,
+      // city, ST zip country; what StopsTab shows as the stop's Location), so
+      // the badge reads as a full Location, not a bare "facility, city".
+      // Address is its own field (same address1 written onto the order below).
+      const newLoc = newLocByStopSeq.get(st.stopSequence);
+      fields.location = {
+        prior: stopLocationOf(st),
+        new: stopLocationOf({ facilityName: loc.facility, city: loc.city, region: loc.state, postal: loc.zip, country: newLoc.country }),
+      };
+      fields.address = { prior: st.address1, new: newLoc.address1 };
     }
     changedStops.push({ st, ids, fields });
   }
@@ -3203,6 +3214,19 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
     if (st.stopType === 'pickup') continue;
     const shift = maxPickupShift + Math.floor(rnd() * 2);
     fields.date = shiftStopDate(st, shift);
+  }
+
+  // C13 (S163, LINX-15436) — ~30% of changed stops also move their
+  // appointment: same zone, 1–3 hours later (wrapped past 23). Own salted
+  // stream (':occ-appt'), NOT `rnd` — drawing from `rnd` here would shift
+  // every value drawn after it; two draws per changed stop, unconditional,
+  // so the stream stays deterministic. Zero faker draws.
+  const apptRnd = mulberry32(seedFrom(sellShipment + ':occ-appt'));
+  for (const { st, fields } of changedStops) {
+    const moves = apptRnd() < 0.3;
+    const shiftHours = 1 + Math.floor(apptRnd() * 3);
+    const m = moves && st.appointmentTime?.match(/^(\d{2}):00 (\S+)$/);
+    if (m) fields.appointment = { prior: st.appointmentTime, new: `${String((Number(m[1]) + shiftHours) % 24).padStart(2, '0')}:00 ${m[2]}` };
   }
 
   for (const { st, ids, fields } of changedStops) {
@@ -3289,7 +3313,8 @@ function buildConsolidationChange(sellShipment, orders, stops, ctx) {
         new: deliveryChange ? deliveryChange.fields.date.new : (deliveryStop ? deliveryStop.scheduledDateTime : '--'),
         changed: !!deliveryChange?.fields.date,
       },
-      { field: 'Incoterm', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
+      // C23 (S163) — the Direct review's own label (buildOrderChange above).
+      { field: 'Incoterm Info', source: 'Order', prior: freightTerms, new: freightTerms, changed: false },
       { field: 'Ship Direction', source: 'Order', prior: shipDirLabel(h?.shipDirectionCode), new: shipDirLabel(h?.shipDirectionCode), changed: false },
       { field: 'Seed Equipment', source: 'Order', prior: h?.equipmentCode ?? '--', new: h?.equipmentCode ?? '--', changed: false },
       { field: 'Distance', source: 'Routing', prior: `${distanceMiles} MI`, new: `${distanceMiles} MI`, changed: false },
@@ -3568,7 +3593,7 @@ function generateUnshippedOrder(n, pending) {
       locationId: locationIdFor(from, originIdx),
       name: from.facility,
       address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
-      city: from.city, state: from.state, country: 'US',
+      city: from.city, state: from.state, postal: from.zip, country: 'US', // C15 (S163) — see the shipped-order consignor
       earliestPickupDateTime: toIsoLocal(earliestPickup),
       latestPickupDateTime: toIsoLocal(latestPickup),
     },
@@ -3576,7 +3601,7 @@ function generateUnshippedOrder(n, pending) {
       locationId: locationIdFor(to, destIdx),
       name: to.facility,
       address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
-      city: to.city, state: to.state, country: 'US',
+      city: to.city, state: to.state, postal: to.zip, country: 'US',
       earliestDeliveryDateTime: toIsoLocal(earliestDelivery),
       latestDeliveryDateTime: toIsoLocal(latestDelivery),
     },

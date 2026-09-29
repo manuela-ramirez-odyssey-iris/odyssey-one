@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -248,6 +248,18 @@ describe('gate, totals, prior diff, dto', () => {
     s = moveStop(s, 1, 'up')                                          // sequences it, but it has no date yet
     expect(routeBlocker(s)).toBe('undated')
     s = setStopDate(s, s.stops[0].key, 'June 5, 2026 09:00 CDT')
+    expect(routeBlocker(s)).toBeNull()
+    expect(isRoutable(s)).toBe(true)
+  })
+  // C16 (LINX-15669 §5 / BR-4) — date, time AND zone.
+  it('a stop dated without a time zone blocks Evaluate; a fully stamped one passes', () => {
+    let s = initSandbox({ stops, consolidation: noChange, orders })
+    expect(isStopDated(s.stops[0])).toBe(true)
+    s = setStopDate(s, s.stops[0].key, 'March 4, 2026 10:00')
+    expect(isStopDated(s.stops[0])).toBe(false)
+    expect(routeBlocker(s)).toBe('undated')
+    expect(isRoutable(s)).toBe(false)
+    s = setStopDate(s, s.stops[0].key, 'March 4, 2026 10:00 CST')
     expect(routeBlocker(s)).toBeNull()
     expect(isRoutable(s)).toBe(true)
   })

@@ -17,6 +17,9 @@ const productTabMock = vi.fn(() => <div data-testid="product-pane">product</div>
 
 vi.mock('./OrderTab', () => ({ default: (props) => orderTabMock(props) }))
 vi.mock('./ProductTab', () => ({ default: (props) => productTabMock(props) }))
+// C20 — a fresh open of a consolidated order-change row lands on Stops; the
+// real pane needs a Router + QueryClient, so it's stubbed like the two above.
+vi.mock('./StopsTab', () => ({ default: () => <div data-testid="stops-pane">stops</div> }))
 // Not under test here and not worth giving real data shapes to — StopsTab /
 // RoutingGuideTab / etc. are owned by other agents this session and never
 // reached by these scenarios (default tab is 'order'; the one tab switch
@@ -315,6 +318,13 @@ describe('S140 — Tender tab indicators', () => {
     expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
   })
 
+  // C20 — after a Scenario A save-stops the Direct decision is what's left, on Tender.
+  test('a consolidated change whose stops are saved badges Tender, not Stops', () => {
+    renderBar({ orderChange: { resolution: null, consolidation: { stopsSaved: true } } })
+    expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
+    expect(within(stopsTab()).queryByLabelText('Consolidated order change pending')).toBeNull()
+  })
+
   test('an order change is the only Tender alert, dropped carriers or not', () => {
     renderBar({ droppedCarriers: [{ scac: 'KNGT', equipment: 'V' }], orderChange: { resolution: null } })
     expect(within(tenderTab()).getByLabelText('Order change pending')).toBeTruthy()
@@ -343,6 +353,25 @@ describe('S140 — Tender tab indicators', () => {
     renderBar({})
     expect(within(tenderTab()).queryByLabelText(/dropped carrier/)).toBeNull()
     expect(within(tenderTab()).queryByLabelText('Order change pending')).toBeNull()
+  })
+})
+
+describe('C20 — fresh-open default tab (LINX-15435)', () => {
+  const tabNamed = (name) => within(screen.getByRole('tablist')).getAllByRole('tab').find((t) => t.textContent.trim() === name)
+  const open = (shipment) => render(
+    <BottomBar {...baseProps} shipment={shipment} shipmentDetails={{ orderDetails: [{ orderNumber: 'ORD-A' }] }} detailsLoading={false} detailsError={false} />,
+  )
+  test('a consolidated order-change row opens on Stops', async () => {
+    open({ buyShipment: 'BUY-1', category: 'order-change', orderCount: 3 })
+    expect(tabNamed('Stops').getAttribute('aria-selected')).toBe('true')
+    expect(await screen.findByTestId('stops-pane')).toBeTruthy()
+  })
+  test('a one-order order-change row (Direct review) and a plain row open on Orders', () => {
+    open({ buyShipment: 'BUY-1', category: 'order-change', orderCount: 1 })
+    expect(tabNamed('Orders').getAttribute('aria-selected')).toBe('true')
+    cleanup()
+    open({ buyShipment: 'BUY-1', category: 'planning', orderCount: 3 })
+    expect(tabNamed('Orders').getAttribute('aria-selected')).toBe('true')
   })
 })
 

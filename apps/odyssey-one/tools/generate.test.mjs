@@ -1532,7 +1532,7 @@ test('B2: header distance, every routing option, and Σ legMiles all agree', () 
 test('B3: orderComparisons carries the Direct field set; at least one line pair is genuinely changed', () => {
   const ds = buildDataset()
   const DIRECT_FIELDS = [
-    'Gross Weight', 'Volume', 'Package Count', 'Pickup Date/Time', 'Delivery Date', 'Incoterm',
+    'Gross Weight', 'Volume', 'Package Count', 'Pickup Date/Time', 'Delivery Date', 'Incoterm Info',
     'Ship Direction', 'Seed Equipment', 'Distance', 'Distance Source', 'Network Leverage',
     'Order Requested Date', 'Bill To', 'Freight Terms', 'Pickup Appointment', 'Delivery Appointment',
     'Ship From', 'Ship To',
@@ -1553,6 +1553,41 @@ test('B3: orderComparisons carries the Direct field set; at least one line pair 
   }
   assert.ok(checkedOrders > 0)
   assert.ok(lineChanges > 0, 'expected at least one changed order to carry a genuinely changed line pair')
+})
+
+// C13 (S163, LINX-15436) — every 15436 stop field can carry a change: a
+// location-changed stop badges its full Location (the stop's own display
+// format) AND its street Address; some changed stops move their appointment.
+test('C13: location-changed stops carry a full-format location + address; some stops carry an appointment change', () => {
+  const ds = buildDataset()
+  let locStops = 0, apptStops = 0
+  for (const s of ds.shipments.filter(x => x.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    const c = d.orderChange.consolidation
+    if (!c) continue
+    for (const [seq, sc] of Object.entries(c.stopChanges)) {
+      const st = d.shipmentStopList.find(x => x.stopSequence === Number(seq))
+      const f = sc.fields
+      if (f.location) {
+        locStops++
+        // "facility, city, ST zip country" — three comma parts, last is "ST 12345 US"
+        for (const v of [f.location.prior, f.location.new]) assert.match(v, /^[^,]+, [^,]+, [A-Z]{2} \d{5} US$/, `${s.sellShipment} stop ${seq} location "${v}"`)
+        assert.ok(f.address, `${s.sellShipment} stop ${seq} location change without an address change`)
+        assert.equal(f.address.prior, st.address1)
+        assert.notEqual(f.address.new, f.address.prior)
+      }
+      if (f.appointment) {
+        apptStops++
+        assert.equal(f.appointment.prior, st.appointmentTime)
+        const [ph, pz] = f.appointment.prior.split(/:00 /), [nh, nz] = f.appointment.new.split(/:00 /)
+        assert.equal(nz, pz, 'same zone')
+        const shift = (Number(nh) - Number(ph) + 24) % 24
+        assert.ok(shift >= 1 && shift <= 3, `shift ${shift}`)
+      }
+    }
+  }
+  assert.ok(locStops > 0, 'expected at least one location-changed stop')
+  assert.ok(apptStops > 0, 'expected at least one appointment-changed stop')
 })
 
 // Plan B3b(b) — summaryChanges is Σ of the orders' own (unmodified) records,

@@ -18,6 +18,7 @@ import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { WRAP_HEADER_W, LOCKED_COLUMNS, NEVER_COLLAPSE_KEYS, COLLAPSIBLE_KEYS, TAB_COLUMNS, SUB_TABS } from './tenderColumns.js'
 import { applyTenderAction } from '../../lib/tenderAction.js'
+import { consolidatedReviewPending } from '../../lib/orderChangeDoorway.js'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -1568,6 +1569,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // (it is now the ONLY thing the planner can act on in this whole card).
   const { openSheet } = useSheet()
   const pendingOrderChange = shipmentDetails?.orderChange && !shipmentDetails.orderChange.resolution
+  // C20 (LINX-15435 BR1) — same rule as the Stops-tab review: once the stops
+  // are saved (Scenario A), the remaining decision is the Direct route's.
+  const reviewOnStops = consolidatedReviewPending(shipmentDetails?.orderChange)
   const reviewOrderChangeButton = (
     <Button
       variant="secondary"
@@ -1589,14 +1593,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
       // Change exception").
       // S162 audit: keyed on the consolidated payload itself, not shipmentType —
       // a one-load C has no stops review (LINX-8284: one load = Direct).
-      onClick={() => shipmentDetails?.orderChange?.consolidation
+      onClick={() => reviewOnStops
         ? onRequestTab?.('stops')
         : openSheet(`/shipments/order-change/${shipment?.sellShipment}`, { state: { buyShipment: shipment?.buyShipment, odysseyShipmentIdentifier: shipment?.odysseyShipmentIdentifier, from: 'tender' } })}
     >
       {/* S144 (user, 2026-09-09): consolidated shipments review on the Stops
           tab (LINX-15435), a different surface than the Direct route — the
           label says so even though both hang off the same doorway. */}
-      {shipmentDetails?.orderChange?.consolidation ? 'Review Consolidated Change' : 'Review Order Change'}
+      {reviewOnStops ? 'Review Consolidated Change' : 'Review Order Change'}
     </Button>
   )
 

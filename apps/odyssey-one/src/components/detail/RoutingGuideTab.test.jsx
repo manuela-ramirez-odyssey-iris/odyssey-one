@@ -1550,6 +1550,17 @@ describe('Review Order Change entry (LINX-14509)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Review Order Change' }))
     expect(onRequestTab).not.toHaveBeenCalled()
   })
+
+  // C20 (LINX-15435 BR1) — after a Scenario A save-stops the consolidated
+  // review is done; the Direct decision remains, on the Direct route.
+  it('a consolidated change whose stops are saved (stopsSaved) goes Direct', () => {
+    const onRequestTab = vi.fn()
+    const props = baseProps()
+    props.shipmentDetails = { orderChange: { scenario: 'returned', resolution: null, consolidation: { stopsSaved: true } }, shipmentType: 'Consolidation' }
+    render(<RoutingGuideTab {...props} onRequestTab={onRequestTab} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Review Order Change' }))
+    expect(onRequestTab).not.toHaveBeenCalled()
+  })
 })
 
 // S137 — domain ruling (Jana via designer): a pending order change blocks

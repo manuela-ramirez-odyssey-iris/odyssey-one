@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import EditStopsView from './EditStopsView'
+import EditStopsView, { zoneOn } from './EditStopsView'
 import { legDistances } from './stopsSandbox.js'
 
 vi.mock('./AddOrdersModal', () => ({
@@ -227,7 +227,7 @@ it('Evaluate is gated on isRoutable, with a tooltip naming routeBlocker\'s reaso
   expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
 })
 
-it('an undated (sequenced) stop disables Evaluate with the "Set a date" tooltip', () => {
+it('an undated (sequenced) stop disables Evaluate with the "Set a date, time and time zone" tooltip (C16)', () => {
   const relocatedOrders = orders.map((o) => (o.orderNumber === 'C' ? { ...o, shipFrom: { ...o.shipFrom, location: 'Q, Burg' } } : o))
   render(
     <EditStopsView stops={baseStops} consolidation={locChange} orders={relocatedOrders} orderChange={orderChange} summary={summary} onApprove={() => {}} onCancel={() => {}} />,
@@ -237,7 +237,7 @@ it('an undated (sequenced) stop disables Evaluate with the "Set a date" tooltip'
   const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
   expect(evaluateBtn.disabled).toBe(true)
   fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
-  expect(screen.getByRole('tooltip').textContent).toContain('Set a date on every stop')
+  expect(screen.getByRole('tooltip').textContent).toContain('Set a date, time and time zone on every stop')
 })
 
 // C7 (LINX-15669) — a delivery-before-pickup order holds Evaluate and the
@@ -366,6 +366,35 @@ it('hovering an order link shows the order Tooltip with the stop leg date (VD 21
   fireEvent.mouseEnter(screen.getAllByRole('button', { name: 'C' })[0].parentElement)  // C's only pickup row (P2)
   expect(screen.getByRole('tooltip').textContent).toContain('Order Number: C')
   expect(screen.getByRole('tooltip').textContent).toContain('Pickup Date Time06/04/2026')
+})
+
+// C17 (LINX-15667 §3) — the street address sits under the location, both sides.
+it('renders each stop\'s street address, on Prior and New', () => {
+  setup({ stops: [stop({ stopNumber: 1, orderIds: ['A', 'B', 'C'], address: '831 8th Street' }), baseStops[2]] })
+  expect(within(screen.getByRole('region', { name: 'Prior plan' })).getByText('831 8th Street')).toBeTruthy()
+  expect(nw().getByText('831 8th Street')).toBeTruthy()
+})
+
+// C23 — a DST stamp round-trips: it opens on its zone (the list's standard
+// option), saves unchanged when untouched, and a picked zone is stamped as
+// that zone's abbreviation ON the stop's date, never an hour off.
+it('a PDT-stamped stop opens on Pacific and saves unchanged when nothing is edited', () => {
+  const pdt = [stop({ stopNumber: 1, orderIds: ['A', 'B', 'C'], date: 'June 4, 2026 08:00 PDT' }), stop({ type: 'delivery', stopNumber: 3, orderIds: ['A', 'B', 'C'], location: 'Z, Ville', date: 'June 6, 2026 08:00 PDT' })]
+  const { onApprove } = setup({ stops: pdt })
+  edit()
+  expect(document.getElementById('stop-s1-tz').value).toBe('PST')
+  save()
+  fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Approve Changes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+  expect(onApprove.mock.calls[0][0].map((r) => r.scheduledDateTime)).toEqual(['June 4, 2026 08:00 PDT', 'June 6, 2026 08:00 PDT'])
+})
+it('zoneOn: re-picking the shown zone keeps the stamp; another zone takes its DST-correct abbreviation for the date', () => {
+  const june = { y: 2026, mo: 5, d: 4, h: 8, mi: 0, tz: 'PDT' }
+  expect(zoneOn('PST', june)).toBe('PDT')
+  expect(zoneOn('CST', june)).toBe('CDT')
+  expect(zoneOn('CST', { ...june, mo: 0, tz: 'PST' })).toBe('CST')
+  expect(zoneOn('HST', june)).toBe('HST')
 })
 
 it('the New plan edits a stop date; a date outside an order window flags that order, never blocks (DEC-199)', () => {

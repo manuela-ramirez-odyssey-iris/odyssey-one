@@ -12,9 +12,12 @@ import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
 import ViewRoutingModal, { reroutedNewList } from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
 import KpiStrip from './order-change/ReviewKpiStrip.jsx'
+import { consolidatedReviewPending } from '../../lib/orderChangeDoorway.js'
 
 const APPROVE_TITLE = 'Approve Plan'
-const APPROVE_BODY = 'The shipment will be approved with the order changes as shown.'
+// C23 — true for both paths: Scenario A goes on to the Direct decision,
+// Scenario B to Tender Review.
+const APPROVE_BODY = "The order changes will be applied as shown. You'll choose the tender action next."
 
 // Stops pane — All Stops card per Figma 4273:15227 (S80 redesign, sourced
 // from Tracking's old-library screen): @odyssey/ui Timeline (StopBadge rail +
@@ -125,12 +128,16 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
             canon mapping. Plain mode below stays green: no purple badges
             exist there, so purple would falsely imply a change. */}
         <HeaderStrip title={`Stop ${stop.stopNumber}`} badge={<Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
+        {/* C13 (LINX-15436) — every 15436 stop field can badge. Location's one
+            badge carries Site ID, City, State, Zip and Country together: the
+            stop shows a single Location field (our presentation, recorded in
+            the canon). Address 2–3 aren't displayed anywhere, so nothing to badge. */}
         <div className="stops-item__fields">
           <ReviewField label="Location"      value={stop.location} change={fields.location} />
           <ReviewField label="Date"          value={stop.date} change={fields.date} />
-          <ReviewField label="Appointment"   value={stop.appointment} />
+          <ReviewField label="Appointment"   value={stop.appointment} change={fields.appointment} />
           <OrderField orderIds={stop.orderIds} changedIds={changedIds} />
-          <ReviewField label="Address"       value={stop.address} />
+          <ReviewField label="Address"       value={stop.address} change={fields.address} />
           <ReviewField label="Weight"        value={stop.weight} change={fields.weight} />
           <ReviewField label="Volume"        value={stop.volume} change={fields.volume} />
           <ReviewField label="Package Count" value={stop.packageCount} change={fields.packageCount} />
@@ -178,8 +185,9 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
   const { summary, stops } = data
   const c = orderChange?.consolidation
   // Review mode: only while a consolidation plan is pending a decision — once
-  // resolved (or there never was one) the tab is the plain read-only pane.
-  const review = !!c && !orderChange?.resolution
+  // resolved, its stops saved (C20: what remains is the Direct decision), or
+  // there never was one, the tab is the plain read-only pane.
+  const review = consolidatedReviewPending(orderChange)
   const routingBlocked = review && c.locationChange // LINX-15438
   // Same source the Direct route / Edit Shipment Stops read for their own
   // resolution payload (useApproveOrderChange's Scenario A/B gate).

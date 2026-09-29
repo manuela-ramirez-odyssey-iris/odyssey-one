@@ -13,7 +13,7 @@ const MAX = 5
 const CAP_MSG = 'You can select up to five orders at a time.'
 const COLUMNS = [
   { key: 'customer', label: 'Customer' }, { key: 'origin', label: 'Origin' }, { key: 'destination', label: 'Destination' },
-  { key: 'orderNumber', label: 'Order Number' }, { key: 'weight', label: 'Order Weight' }, { key: 'volume', label: 'Order Volume' },
+  { key: 'orderNumber', label: 'Order #' }, { key: 'weight', label: 'Order Weight' }, { key: 'volume', label: 'Order Volume' },
   { key: 'buyShipment', label: 'Buy Shipment' }, { key: 'shipmentStatus', label: 'Shipment Status' }, { key: 'tenderStatus', label: 'Tender Status' },
   { key: 'shipmentType', label: 'Shipment Type' }, { key: 'ordersInShipment', label: 'Orders in the Shipment' },
 ]
@@ -89,7 +89,8 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
           </>)}>
           <div className="add-orders__grid">
             {/* ponytail: FormField has no readOnly, only disabled; onChange is inert since disabled already blocks input. */}
-            <FormField id="add-orders-customer" label="Customer" value={customerName} disabled onChange={() => {}} />
+            {/* C15 (LINX-15870) — the locked customer reads "Name (ID)". */}
+            <FormField id="add-orders-customer" label="Customer" value={customerId ? `${customerName} (${customerId})` : customerName} disabled onChange={() => {}} />
             <FormField id="add-orders-order-number" label="Order #" value={draft.orderNumber} onChange={setField('orderNumber')} />
             <FormField id="add-orders-buy-shipment" label="Buy Shipment" value={draft.buyShipment} onChange={setField('buyShipment')} />
             <DatePicker mode="range" label="Ship Date" value={{ start: isoToDate(draft.shipDate.from), end: isoToDate(draft.shipDate.to) }} onChange={setRange('shipDate')} />

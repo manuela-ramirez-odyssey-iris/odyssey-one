@@ -8,6 +8,7 @@ import ShipmentDetailsModal from './ShipmentDetailsModal'
 import PaneErrorBoundary from '../common/PaneErrorBoundary.jsx'
 import ErrorState from '../common/ErrorState.jsx'
 import { getErrorDetail } from '../common/errorDetail.js'
+import { consolidatedReviewPending } from '../../lib/orderChangeDoorway.js'
 
 const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
@@ -204,15 +205,19 @@ export default function BottomBar({
   // Only a FRESH open (null → id) resets to the Orders tab; a selected →
   // selected switch (prev/next arrows, row-to-row click) keeps the bar open on
   // the same tab (S79d — resetting on every id change lost the user's tab).
+  // C20 (LINX-15435: "Stops tab shall be selected by default when accessed
+  // from an Order Change exception") — a consolidated order-change row opens
+  // on Stops. Row-level, like the row menu's gate (ShipmentTable): the row
+  // carries no stopsSaved, and the detail isn't loaded yet at open.
   const prevIdRef = useRef(null)
   useEffect(() => {
     const fresh = selectedShipmentId && !prevIdRef.current
     prevIdRef.current = selectedShipmentId
     if (!fresh) return
-    setActiveTab('order')
+    setActiveTab(shipment?.category === 'order-change' && Number(shipment?.orderCount) > 1 ? 'stops' : 'order')
     setStage('partial')
     setDetailsModalOpen(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- shipmentDetails read once at open
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shipment read once at open
   }, [selectedShipmentId])
 
   // Cell→tab mapping (S82): a qualifying cell click lands on its mapped tab.
@@ -312,7 +317,9 @@ export default function BottomBar({
   // Stops (StopsTab's own `review` guard) — the badge follows the tab where
   // the review actually happens, never both, so the planner isn't pointed at
   // two tabs for one change (user, 2026-09-09).
-  const isConsolidatedChange = pendingOrderChange && !!shownDetails.orderChange.consolidation
+  // C20 — the same rule (consolidatedReviewPending), so after a Scenario A
+  // save the badge moves to Tender, where the Direct decision now is.
+  const isConsolidatedChange = consolidatedReviewPending(shownDetails?.orderChange)
   // SpotBid: a live dot while this shipment's quote is open (user,
   // 2026-09-07) — the same LiveBidDot the pane's Live Bids sub-tab wears.
   const { quote: spotQuote } = useSpotQuote(shipment?.sellShipment)

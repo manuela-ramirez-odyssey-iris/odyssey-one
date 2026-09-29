@@ -26,7 +26,7 @@ it('renders the title, the 11 columns and Results (n); Add Order(s) disabled unt
   setup()
   expect(screen.getByText('Add New Order(s)')).toBeTruthy()
   expect(screen.getByText('Results (7)')).toBeTruthy()
-  for (const h of ['Customer', 'Origin', 'Destination', 'Order Number', 'Order Weight', 'Order Volume', 'Buy Shipment', 'Shipment Status', 'Tender Status', 'Shipment Type', 'Orders in the Shipment']) expect(screen.getByText(h)).toBeTruthy()
+  for (const h of ['Customer', 'Origin', 'Destination', 'Order #', 'Order Weight', 'Order Volume', 'Buy Shipment', 'Shipment Status', 'Tender Status', 'Shipment Type', 'Orders in the Shipment']) expect(screen.getByText(h)).toBeTruthy()
   expect(screen.getByRole('button', { name: 'Add Order(s)' }).disabled).toBe(true)
 })
 
@@ -72,7 +72,7 @@ it('Filter opens the inner Filters modal (back arrow); Apply filters the grid; C
   setup()
   fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
   expect(screen.getByText('Filters')).toBeTruthy()
-  expect(screen.getByDisplayValue('Erco').disabled).toBe(true)                      // Customer locked
+  expect(screen.getByDisplayValue('Erco (ERCO)').disabled).toBe(true)               // Customer locked, "Name (ID)" (C15)
   fireEvent.change(screen.getByLabelText('Origin'), { target: { value: 'MA' } })
   fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
   expect(screen.queryByText('Filters')).toBeNull()

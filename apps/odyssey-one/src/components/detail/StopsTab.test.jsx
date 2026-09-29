@@ -89,6 +89,12 @@ describe('StopsTab — plain mode', () => {
     renderReview({ orderChange: { ...oc, resolution: { action: 'approve-plan' } } })
     expect(screen.queryByRole('button', { name: 'Evaluate' })).toBeNull()
   })
+  // C20 — a Scenario A save-stops leaves resolution null; the Direct decision remains.
+  it('stays plain once the stops are saved (stopsSaved), resolution or not', () => {
+    renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, stopsSaved: true } } })
+    expect(screen.queryByRole('button', { name: 'Evaluate' })).toBeNull()
+    expect(screen.queryByText('Affected Orders')).toBeNull()
+  })
 })
 
 describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () => {
@@ -135,6 +141,13 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     const orderCell = within(stop1).getByText('Order').parentElement
     expect(within(orderCell).getByText('B').closest('.text-badge')).toBeTruthy()
     expect(within(orderCell).getByText('A').closest('.text-badge')).toBeNull()
+  })
+  // C13 — Appointment and Address badge too.
+  it('badges a changed Appointment and Address', () => {
+    const fields = { ...consolidation.stopChanges['1'].fields, appointment: { prior: '3:00 PDT', new: '5:00 PDT' }, address: { prior: '831 8th Street', new: '12 Elm Avenue' } }
+    renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, stopChanges: { '1': { ...consolidation.stopChanges['1'], fields } } } } })
+    expect(screen.getByText('5:00 PDT').closest('.text-badge')).toBeTruthy()
+    expect(screen.getByText('12 Elm Avenue').closest('.text-badge')).toBeTruthy()
   })
   it('lists affected orders per stop and opens the compare modal', () => {
     renderReview()
@@ -206,11 +219,12 @@ describe('StopsTab — Evaluate -> Approve Plan (T3)', () => {
     expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   })
 
+  // C23 — one body for both paths (Scenario A → Direct decision, B → Tender Review).
   it('Approve Plan confirm dialog carries the AC copy', () => {
     renderReview()
     fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
     fireEvent.click(screen.getByRole('button', { name: 'Approve Plan' }))
-    expect(screen.getByText('The shipment will be approved with the order changes as shown.')).toBeTruthy()
+    expect(screen.getByText("The order changes will be applied as shown. You'll choose the tender action next.")).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Approve' })).toBeTruthy()
   })
 
@@ -290,7 +304,7 @@ describe('StopsTab — re-routed New list (C4/C12)', () => {
     expect(screen.getByText('5,900.00 USD')).toBeTruthy()   // 2,900 × 2 + 100 charges
     fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
     const dialog = screen.getByRole('dialog', { name: 'View Routing' })
-    expect(within(dialog).getByText('$5,900.00 USD')).toBeTruthy()
+    expect(within(dialog).getByText('5,900.00 USD')).toBeTruthy()          // C23 — the header's format
     expect(within(dialog).getByText('06/04/2026 03:00 PDT')).toBeTruthy()
     expect(within(dialog).getByText('06/06/2026 03:00 PDT')).toBeTruthy()
   })
