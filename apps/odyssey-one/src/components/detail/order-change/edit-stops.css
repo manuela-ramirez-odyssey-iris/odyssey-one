@@ -206,7 +206,10 @@
   flex-wrap: wrap;
   gap: var(--spacing-2) var(--spacing-3);
   align-items: flex-end;
-  padding-block: var(--spacing-1);
+  /* User 2026-09-28: air between the address line and the edit fields
+     (16px with the stop's own 4px gap). */
+  padding-top: var(--spacing-3);
+  padding-bottom: var(--spacing-1);
 }
 /* Bases: the date needs room for MM/DD/YYYY + clear + calendar icons
    (150px clipped the year); the time picker won't render narrower than
