@@ -3,7 +3,7 @@
 // the SERVICE layer, not the query hook — same convention as
 // OrderChangeReviewRoute.test.jsx.
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderChangeEditStopsRoute from './OrderChangeEditStopsRoute.jsx'
@@ -101,7 +101,7 @@ describe('OrderChangeEditStopsRoute', () => {
 
     expect(await screen.findByText(`Buy Shipment ${BUY_SHIPMENT}`)).toBeTruthy()
     expect(screen.getByText('Shipment')).toBeTruthy()
-    expect(screen.getByText('Review Order Change')).toBeTruthy()
+    expect(screen.getByText('Review Consolidated Change')).toBeTruthy() // E2 — matches the doorway
     expect(screen.getAllByText('Edit Shipment Stops').length).toBeGreaterThan(0)
     // The editor itself rendered (Evaluate is its own, DEC-207).
     expect(screen.getByRole('button', { name: 'Evaluate' })).toBeTruthy()
@@ -145,6 +145,37 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(probe.textContent).toContain('"key":"stops"')
   })
 
+  // E1 — the crumbs (and the X, which shares `leave`) ask before dropping edits.
+  test('a crumb with unsaved edits opens the discard confirm; Discard then leaves, Keep editing stays', async () => {
+    getSellShipmentDetail.mockResolvedValue(makeDetail())
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'Evaluate' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Review Consolidated Change' }))
+
+    expect(await screen.findByText('Discard changes?')).toBeTruthy()
+    expect(screen.queryByText(/landed at/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(screen.queryByText(/landed at/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Shipment' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Discard' }))
+    const probe = await screen.findByText(/landed at \/shipments with state/)
+    expect(probe.textContent).toContain('"tab":"order-change"')
+    expect(probe.textContent).not.toContain('selectedShipmentId')
+  })
+
+  test('a crumb with no edits leaves straight away', async () => {
+    getSellShipmentDetail.mockResolvedValue(makeDetail())
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'Evaluate' })
+    fireEvent.click(screen.getByRole('button', { name: 'Review Consolidated Change' }))
+    const probe = await screen.findByText(/landed at \/shipments with state/)
+    expect(probe.textContent).toContain('"key":"stops"')
+  })
+
   test.each(['To Be Tendered', 'Sent', 'Accepted'])(
     'Approve with an active tender (%s) saves stops then navigates back to the review screen (LINX-15671 Scenario A)',
     async (priorTenderStatus) => {
@@ -159,8 +190,8 @@ describe('OrderChangeEditStopsRoute', () => {
 
       const probe = await screen.findByText(new RegExp(`landed at /shipments/order-change/${SELL_SHIPMENT} with state`))
       expect(probe.textContent).toContain(`"buyShipment":"${BUY_SHIPMENT}"`)
-      // No `from` key — the Direct route only special-cases from === 'tender'.
-      expect(probe.textContent).not.toContain('"from"')
+      // E3 — the review's X returns to the shipment just edited.
+      expect(probe.textContent).toContain('"from":"stops"')
 
       expect(resolveOrderChange).toHaveBeenCalledTimes(1)
       const [calledSellShipment, body] = resolveOrderChange.mock.calls[0]

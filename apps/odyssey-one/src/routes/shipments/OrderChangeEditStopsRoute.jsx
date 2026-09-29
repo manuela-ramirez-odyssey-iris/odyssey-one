@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
@@ -59,6 +59,13 @@ export default function OrderChangeEditStopsRoute() {
     },
   })
 
+  // E1 — X and crumbs go through the editor's own dirty check (its footer
+  // Cancel does), so unsaved stop edits can't be lost by one click. Falls back
+  // to leaving directly while the editor isn't mounted (loading/empty).
+  const cancelRef = useRef(null)
+  const leave = (to) => () => (cancelRef.current ? cancelRef.current(to) : to())
+  const toShipmentTab = () => closeSheet('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })
+
   // Nothing to edit — deep-linked on a shipment with no pending consolidation
   // plan, or one already resolved out of the category. Same guard StopsTab
   // uses to fall back to plain mode (`review = !!c && !orderChange.resolution`).
@@ -92,13 +99,14 @@ export default function OrderChangeEditStopsRoute() {
     <AppShell
       titleMode={{
         title: 'Edit Shipment Stops',
-        onClose: exit,
+        onClose: leave(exit),
       }}
     >
       <div className="order-change order-change--edit-stops">
         <nav className="order-change__crumbs" aria-label="Breadcrumb">
-          <Breadcrumb label="Shipment" onClick={() => closeSheet('/shipments', { state: { panel: 'exceptions', tab: 'order-change' } })} />
-          <Breadcrumb label="Review Order Change" onClick={exit} />
+          <Breadcrumb label="Shipment" onClick={leave(toShipmentTab)} />
+          {/* E2 — the consolidated review's doorway says "Review Consolidated Change" (ShipmentTable, RoutingGuideTab). */}
+          <Breadcrumb label="Review Consolidated Change" onClick={leave(exit)} />
           <Breadcrumb label="Edit Shipment Stops" current />
         </nav>
 
@@ -132,6 +140,7 @@ export default function OrderChangeEditStopsRoute() {
               saveError={saveError}
               onApprove={handleApprove}
               onCancel={exit}
+              cancelRef={cancelRef}
               sellShipment={sellShipment}
               customerId={detail.customerId}
               customerName={detail.customerName}

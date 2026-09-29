@@ -1210,7 +1210,7 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 
 ### DEC-194: *Move To Pending* gets a new, shorter label and no icon
 - **Previous:** "Move To Pending" button with an icon.
-- **Decision:** a shorter non-destructive verb (Jana's "Remove" rejected — reads as delete); text-only button.
+- **Decision:** a shorter non-destructive verb (Jana's "Remove" rejected — reads as delete); text-only button.  **Amended by DEC-223 (2026-09-29): Remove.**
 - **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:14:30`; user 2026-09-24.
 
 ### DEC-195: A stop shows only its own date
@@ -1373,10 +1373,40 @@ The user ruled on N1, N2, N3 and N6 on 2026-09-29, each time taking the recommen
   - One marker/badge colour: green, no blue pickups and no purple "changed". Gray count banners; panel 420px.
 - **Source:** user 2026-09-28/29 (this session) + the Figma frame above. Overrides the S161 rulings on purple / gray-moment / the invalid modal.
 
+## Order Change — Jana 09-29 sync, non-design slice (DEC-220 … DEC-224)
+
+Spec: `docs/superpowers/specs/2026-09-29-order-change-jana-sync-slice.md`.
+
+### DEC-220: After Bypass / Re-Tender the planner lands on the shipment's Tender screen
+- **Previous:** S135 `landingFor()` sent Bypass and Re-Tender back to the Order Change tab, which the shipment had already left.
+- **Decision:** land where the resolve filed the shipment (Monitoring › Tender Sent, or Monitoring › Approved for a Bypass of an Accepted prior), with the shipment open on its Tender tab. The resolve PATCH returns that outcome. A toast confirms: Re-Tender *"Shipment re-tendered to {SCAC}."*; Bypass *"{SCAC} kept. Tender status unchanged."* (our wording, since Bypass sends nothing).
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@23:20`.
+
+### DEC-221: A review with no active prior tender approves and goes to the Tender screen for a manual tender
+- **Previous:** the Direct review offered Bypass / Re-Tender whatever the prior tender was; `bypass(null)` invented *Sent*, and Bypass on a To Be Tendered prior filed an untendered shipment under Monitoring › Tender Sent.
+- **Decision:** no active tender means a null, Declined, Cancelled or **To Be Tendered** prior (user ruling R2). The Direct review then offers only **Approve Changes**: approve-plan, the Scenario B outcome (Exceptions › Tender Review) and the Tender screen, where the planner tenders manually. The API refuses Bypass / Re-Tender there with a 409. DEC-209 still governs entry: To Be Tendered enters the review, and the 15872 move-block still counts it as active. Seed: a few Direct order changes with a never-tendered prior (user ruling R3).
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@23:50`, `@26:10`; user 2026-09-29.
+
+### DEC-222: Tender resolution shows the approved plan's dates, not routing's
+- **Previous:** C4/C12 (S163) re-dated only `newTenderList`. The Prior | New carrier panel (`newOption`) and the comparison rows kept the seeded routing shift (+1–3 days), so Jana saw the 16th where the plan said the 14th.
+- **Decision:** for a consolidated order change, one `rerouteOrderChange` re-dates the list, `newOption` (with its re-scaled AP cost) and the comparison on save-stops and approve-plan. The seed generates them from the stop dates too. This completes DEC-206/DEC-215.
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@22:33`.
+
+### DEC-223: "Set Aside" becomes "Remove"
+- **Previous:** DEC-194, *Set Aside* (Jana's "Remove" rejected on 09-24 as reading like delete).
+- **Decision:** **Remove**, text-only as before. Amends DEC-194.
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@06:06` (*"add and remove is a common word… everyone understands"*); user ruling R1, 2026-09-29.
+
+### DEC-224: The review's X and breadcrumbs never drop edits or re-open a resolved review
+- **Previous:** Edit Shipment Stops' X and crumbs skipped the unsaved-changes confirm. Its middle crumb read *Review Order Change* for the consolidated review. The Direct review after a Scenario A approve lost its origin. A resolved review could be re-entered and resolved twice.
+- **Decision:** X and crumbs go through the same confirm as Cancel. The crumb matches its doorway (*Review Consolidated Change*). The origin is threaded, so X returns to the shipment. A resolved review redirects to its landing, and the API refuses a second resolve with a 409. No Back button (user).
+- **Source:** user 2026-09-29 (*"no back button just make sure the x and breadcrumb makes sense"*), after Jana `@22:09`.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 29, 2026 | **DEC-220 through DEC-224** (Jana 09-29 sync, non-design slice): land on the Tender screen after Bypass/Re-Tender; no active prior tender (incl. To Be Tendered) → Approve Changes → manual tender; tender resolution carries the plan's dates; *Set Aside* → *Remove* (amends DEC-194); X/crumbs keep edits and block re-resolving. **Previous state:** S135 landing, Bypass on any prior, seeded routing dates on `newOption`, DEC-194 label |
 | Sep 29, 2026 | **DEC-215 through DEC-218**: the user's rulings on the S163 audit. Evaluate re-routes from the edited stops (prototype recompute); a one-order result flips to Direct in place (09-23 hide rule not applied); a removed order's new shipment has no carrier list until planned; order-change Save is live-only. N4 provisionally dropped, N5 closed. **Previous state:** seeded list, row/detail mismatch, unspecified list, mock no-op |
 | Sep 29, 2026 | **DEC-212 through DEC-214**: shipped without an entry, recorded after the S163 audit. The Edit Stops redesign (Prior \| New, compact drag state vs edit mode, pending column in edit mode only, rail distance tooltip; amends DEC-197/198/137); *Keep here* (deviates from 15668 §5); a created stop's joint default date (deviates from 15871's blank). DEC-200 marked amended by DEC-207; DEC-207 caveat: the routing modal still shows the seeded list. **Previous state:** built S160/S162, untraced |
 | Sep 28, 2026 | **DEC-211** — Scenario B stays in Review (Exceptions › Tender Review) instead of Monitoring › Sent/Approved; the review doorway goes by load count, so one-load C shipments get the Direct review. **Previous state:** Bypass's outcome reused; doorway by shipmentType |

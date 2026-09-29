@@ -71,3 +71,28 @@ export function rerouteTenderList(options, stops, baselineMiles) {
     return withApTotal(o, round2(round2(d.baseRate * factor) + charges))
   })
 }
+
+// B1 (S164, Jana 09-29 @22:33 "should be 14th") — the Prior | New carrier
+// panel reads orderChange.newOption and the Preview Tender Details rows read
+// orderChange.comparison, not newTenderList, so re-dating the list alone left
+// them on the seeded routing shift. Dates only (no re-pricing): the seed's B3
+// calls this too, where the list's costs already stand.
+export function redateOrderChange(oc, stops) {
+  if (!oc.newOption) return { newOption: undefined, comparison: oc.comparison }
+  const [newOption] = applyStopDates([oc.newOption], stops)
+  const newFor = { 'Pickup Date/Time': newOption.pickupDateTime, 'Delivery Date': newOption.deliveryDateTime }
+  const comparison = oc.comparison?.map((r) => (
+    r.field in newFor ? { ...r, new: newFor[r.field], changed: r.prior !== newFor[r.field] } : r
+  ))
+  return { newOption, comparison }
+}
+
+// One re-route for everything the review shows about the NEW plan; save-stops
+// and approve-plan both call it. newOption.apCost follows the matching SCAC's
+// re-scaled total; stays null when routing didn't return the carrier.
+export function rerouteOrderChange(oc, stops, baselineMiles) {
+  const newTenderList = rerouteTenderList(oc.newTenderList, stops, baselineMiles)
+  const { newOption, comparison } = redateOrderChange(oc, stops)
+  const match = newTenderList.find((o) => o.scac === newOption?.scac)
+  return { newTenderList, newOption: newOption && { ...newOption, apCost: match ? match.totalCostAmount : newOption.apCost }, comparison }
+}

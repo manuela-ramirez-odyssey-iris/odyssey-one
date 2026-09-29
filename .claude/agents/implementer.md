@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: Implements code from an APPROVED spec (docs/superpowers/specs/*). Use only after a spec exists; one invocation per disjoint file set. Writes code + tests, runs them, reports; never commits.
-model: sonnet
+model: claude-sonnet-5-5
 effort: medium
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---

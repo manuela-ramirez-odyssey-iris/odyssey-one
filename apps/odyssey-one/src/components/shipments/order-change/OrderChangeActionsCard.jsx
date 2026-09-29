@@ -3,6 +3,7 @@ import { Badge, Button, FormField, HeaderStrip, Radio } from '@odyssey/ui'
 import { QuoteModal } from '../../detail/QuoteModal.jsx'
 import { StopDateField } from '../../detail/order-change/EditStopsView.jsx'
 import { parseStamp, stampValue } from '../../detail/order-change/stopsSandbox.js'
+import { hasActivePriorTender } from '../../../routes/shipments/useApproveOrderChange.js'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 
 // "Actions to Keep Current Carrier" (Figma 1794-5544, LINX-14513/14514). The
@@ -227,6 +228,10 @@ export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
     { choice, amount: selectedAmount },
     ...(needsDates ? [{ pickupDateTime: shortStamp(pickup), deliveryDateTime: shortStamp(delivery) }] : []),
   )
+  // D1 (S164, Jana 09-29 @23:50) — no active prior tender means nothing to keep
+  // or re-tender: a single Approve Changes files it to Tender Review, where the
+  // planner tenders manually. Needs no cost or dates (approve-plan sends none).
+  const noActiveTender = !hasActivePriorTender(prior.tenderStatus)
   const dateFields = needsDates ? (
     <>
       <StopDateField id="oc-pickup" label="Pickup Date" value={pickupDate} onChange={setPickupDate} />
@@ -285,6 +290,11 @@ export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
       <hr className="order-change-actions__hr" />
 
       <div className="order-change-actions__footer">
+        {noActiveTender ? (
+          <div className="order-change-actions__footer-actions">
+            <Button variant="primary" onClick={() => onAction('approve-plan', null)}>Approve Changes</Button>
+          </div>
+        ) : (<>
         <span id="oc-tender-action-label" className="text-label-sm-medium">Select Tender Action *</span>
         <div className="order-change-actions__footer-actions">
           {/* Bypass keeps the carrier with no message, prior status retained;
@@ -303,6 +313,7 @@ export default function OrderChangeActionsCard({ oc, onAction, onCostChange }) {
             </Button>
           </TooltipTrigger>
         </div>
+        </>)}
       </div>
 
       {quoteOpen && priorRoutingOption && (

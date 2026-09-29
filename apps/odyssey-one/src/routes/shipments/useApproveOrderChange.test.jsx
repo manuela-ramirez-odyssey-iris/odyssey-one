@@ -69,6 +69,7 @@ describe('useApproveOrderChange — afterApprove (a mutate the caller already ra
     expect(probe.textContent).toContain('/shipments/order-change/S1')
     expect(probe.textContent).toContain('"buyShipment":"B1"')
     expect(probe.textContent).toContain('"odysseyShipmentIdentifier":"ODY-1"')
+    expect(probe.textContent).toContain('"from":"stops"') // E3
   })
 
   it('Scenario B (no active tender): closes to the Tender tab on /shipments', () => {

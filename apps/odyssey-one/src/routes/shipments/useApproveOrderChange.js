@@ -20,6 +20,12 @@ import useSheet from '../useSheet'
 export const ACTIVE_TENDER_STATUSES = ['To Be Tendered', 'Sent', 'Accepted']
 export const isActiveTender = (status) => ACTIVE_TENDER_STATUSES.includes(status)
 
+// D1 (S164) — "no active tender" for the review card: null/''/Declined/
+// Cancelled/To Be Tendered (R2: a routing list nobody tendered isn't a tender
+// to keep). Deliberately NOT ACTIVE_TENDER_STATUSES, which still gates the
+// Scenario A/B edit-stops branch (DEC-209 governs entry, not the outcome).
+export const hasActivePriorTender = (status) => status === 'Sent' || status === 'Accepted'
+
 export function useApproveOrderChange({ sellShipment, buyShipment, odysseyShipmentIdentifier }) {
   const { openSheet, closeSheet } = useSheet()
   const resolve = useResolveOrderChange()
@@ -28,9 +34,10 @@ export function useApproveOrderChange({ sellShipment, buyShipment, odysseyShipme
   // sheet at the same depth, not the base underneath this one — replace
   // swaps this layer for it so closing IT still lands on /shipments, not
   // back on whichever screen opened it (S158 plan §3).
+  // E3 — from:'stops' so the review's X returns to the shipment just edited.
   const openDirectReview = () => openSheet(
     `/shipments/order-change/${sellShipment}`,
-    { state: { buyShipment, odysseyShipmentIdentifier }, replace: true },
+    { state: { buyShipment, odysseyShipmentIdentifier, from: 'stops' }, replace: true },
   )
   // Scenario B re-files the row to Exceptions › Tender Review (SCENARIO_B,
   // api/_lib/shipments.mjs), so land THERE — the Order Change tab no longer

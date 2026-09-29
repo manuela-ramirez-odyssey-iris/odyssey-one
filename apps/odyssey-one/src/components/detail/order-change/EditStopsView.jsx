@@ -126,7 +126,7 @@ function SortableStop({ id, className, children, ...rest }) {
   )
 }
 
-export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, saveError, onApprove, onCancel, sellShipment, customerId, customerName }) {
+export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, saveError, onApprove, onCancel, cancelRef, sellShipment, customerId, customerName }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
   // (OrderChangeEditStopsRoute.jsx) mounts this with `key={sellShipment}`,
@@ -314,10 +314,16 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   sb.stops.forEach((s) => s.orderIds.forEach((id) => liveOrderIds.add(id)))
   const planningOrders = allOrders.filter((o) => liveOrderIds.has(o.orderNumber))
 
-  const handleCancel = () => {
+  // E1 — the route's X and breadcrumbs leave through this same dirty check
+  // (via `cancelRef`), each with its own destination; the footer Cancel uses
+  // the default (`onCancel`).
+  const leaveTo = useRef(null)
+  const handleCancel = (to) => {
+    leaveTo.current = typeof to === 'function' ? to : onCancel
     if (sb.dirty) { setModal('discard'); return }
-    onCancel?.()
+    leaveTo.current?.()
   }
+  if (cancelRef) cancelRef.current = handleCancel
 
   // D7: the record comes off the SOURCE shipment's detail through the same
   // mapper the shipment's own orders use — same fmtLocation, so Add to's
@@ -479,7 +485,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
             {/* User 2026-09-28: read-only rows (Prior, collapsed New) list
                 their orders inline; edit mode keeps one row per order for
-                its Set Aside button. */}
+                its Remove button. */}
             <div className={`edit-stops__orders${readOnly ? ' edit-stops__orders--inline' : ''}`}>
               <span className="text-label-xs-regular edit-stops__stop-meta">Orders:</span>
               {s.orderIds.map((id) => {
@@ -507,7 +513,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                     </div>
                     {readOnly ? null : singleOrderLeft ? (
                       <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
-                        <Button variant="secondary" size="sm" disabled>Set Aside</Button>
+                        <Button variant="secondary" size="sm" disabled>Remove</Button>
                       </TooltipTrigger>
                     ) : (
                       <Button
@@ -515,8 +521,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                         size="sm"
                         onClick={() => handleMoveToPending(id)}
                       >
-                        {/* DEC-194: "Move To Pending" → "Set Aside", text only. */}
-                        Set Aside
+                        {/* DEC-194 (amended 09-29): "Move To Pending" → "Set Aside" → "Remove", text only. */}
+                        Remove
                       </Button>
                     )}
                   </div>
@@ -601,7 +607,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           </section>
 
           {/* User 2026-09-28: the pending column shows in edit mode only
-              (Set Aside / Add live there), floating on the right as before,
+              (Remove / Add live there), floating on the right as before,
               and slides open / closed. It stays mounted so it can animate
               out; closed, it's inert and hidden from assistive tech. */}
           <div className={`edit-stops__pending-slot${editing ? ' edit-stops__pending-slot--open' : ''}`} inert={!editing} aria-hidden={editing ? undefined : true}>
@@ -638,7 +644,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         primaryLabel="Evaluate"
         primaryDisabled={evaluateDisabled}
         primaryTooltip={editing ? EDITING_TOOLTIP : blockerTooltip}
-        onCancel={handleCancel}
+        onCancel={() => handleCancel()}
         onPrimary={() => setModal('routing')}
       />
 
@@ -714,7 +720,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           message="Your stop changes will be lost."
           confirmLabel="Discard"
           cancelLabel="Keep editing"
-          onConfirm={() => { setModal(null); onCancel?.() }}
+          onConfirm={() => { setModal(null); leaveTo.current?.() }}
           onCancel={() => setModal(null)}
         />
       )}

@@ -297,6 +297,18 @@ A clause-by-clause audit of the 13 stories plus Jana's transcripts, checked agai
 - **Presentation (ours):** Location is one field, so its change badge covers Site ID, City, State, Zip and Country together (15436). Address 2–3 are not displayed.
 - **Still owed:** C14 (costs in View Routing) and C18 (audit/move logs, plus Jana 09-23 "order history knows it moved") wait on design. The 2026-09-23 call is still in the inbox.
 
+## 10e. Jana's order-change sync (2026-09-29)
+
+Source: `vault/00-inbox/Order Change Sync.vtt`. Jana: the flow is "95%". Built in S164 (spec `docs/superpowers/specs/2026-09-29-order-change-jana-sync-slice.md`, DEC-220…224):
+- **After Bypass / Re-Tender** the planner lands on the shipment's Tender screen where the resolve filed it, with a toast (DEC-220, `@23:20`).
+- **No active prior tender** (null, Declined, Cancelled, To Be Tendered): the Direct review offers only *Approve Changes*, which leads to the Tender screen for a manual tender. The API refuses Bypass / Re-Tender there (DEC-221, `@23:50`). 8 never-tendered Direct order changes are seeded.
+- **Tender resolution carries the plan's dates**: the carrier panel and comparison showed routing's seeded +1–3 days (the "16th vs 14th"), and are now re-dated with the list (DEC-222, `@22:33`).
+- **Set Aside → Remove** (DEC-223, `@06:06`).
+- **X / breadcrumbs**: no Back button (user). X and crumbs confirm before dropping edits, and a resolved review can't be resolved again (DEC-224).
+- Confirmed as built: auto-placement with *D?* for a new location plus *Keep here*; *Outside planning window*; adding several orders to refill a freed truck; planning dates show the order as it is now, with no prior/new tracking.
+- **Waiting for Figma (design):** collapse Prior in edit mode; regroup the summary blocks (distance, weight and volume prior→new, carrier, equipment and utilization go under **Prior**; all stops, costs, distance, weight, volume and planning dates under **New**); a distance info icon between stop markers; always-visible move buttons; line items compared line by line (tabs); the stop's pickup date in the planning-dates view.
+- **Consolidation (next spec):** the workbench lists only Consolidation-state shipments (the optimizer's leftovers; no Hold, no exceptions). After choosing, it's this same flow starting at **New**, with no Prior and a routing list but no prior tender (`@27:13`–`@35:07`). Open: add orders from the consolidation pool only (`@34:32`) or any order for a what-if (`@28:23`).
+
 ## 11. Build-delta — shipped (S134–S137) vs sources
 
 | # | Shipped state | Ruling / source | Verdict |

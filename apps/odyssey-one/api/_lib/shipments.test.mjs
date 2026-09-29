@@ -506,10 +506,10 @@ describe('resolveOrderChange', () => {
     const { db, calls } = mkOc()
     const res = await resolveOrderChange({
       params: ['S260000010'],
-      body: { action: 'retender', cost: { choice: 'prior', amount: 1901.56 } },
+      body: { action: 'retender', priorTenderStatus: 'Sent', cost: { choice: 'prior', amount: 1901.56 } },
       db,
     })
-    assert.deepEqual(res, { success: true })
+    assert.deepEqual(res, { success: true, outcome: { panel: 'monitoring', category: 'sent' } })
     const values = valuesOf(calls)
     assert.ok(values.includes('Sent') && values.includes('monitoring') && values.includes('sent'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"retender"')))
@@ -563,13 +563,59 @@ describe('resolveOrderChange', () => {
   it('approve-plan re-files to exceptions/tender-review with status Review — never monitoring/sent (DEC-200)', async () => {
     const { db, calls } = mkOc()
     const res = await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan', priorTenderStatus: 'Declined' }, db })
-    assert.deepEqual(res, { success: true })
+    assert.deepEqual(res, { success: true, outcome: { panel: 'exceptions', category: 'tender-review' } })
     const values = valuesOf(calls)
     assert.ok(values.includes('exceptions') && values.includes('tender-review') && values.includes('Review'))
     assert.ok(!values.includes('monitoring') && !values.includes('sent') && !values.includes('Approved'))
     assert.ok(values.some((v) => typeof v === 'string' && v.includes('"action":"approve-plan"')))
     // No stops write — approve-plan never touches shipmentStopList.
     assert.ok(!calls.some((q) => /shipmentStopList/.test(textOf(q))))
+  })
+
+  // D1/D2 (S164, R2) — a Direct (one-load) change with no sent tender approves
+  // through approve-plan: same Scenario B filing, its routing list adopted as-is.
+  it('approve-plan accepts a Direct order change (no consolidation) with a null / To Be Tendered prior — Scenario B, list adopted untendered', async () => {
+    for (const priorTenderStatus of [null, 'To Be Tendered', 'Declined', 'Cancelled']) {
+      const { db, calls } = mkOc({ orderChange: { prior: { scac: 'PRIOR', tenderStatus: priorTenderStatus }, newTenderList: [{ scac: 'AAAA', rank: 1, status: '' }] } })
+      const res = await resolveOrderChange({ params: ['S1'], body: { action: 'approve-plan', priorTenderStatus }, db })
+      assert.deepEqual(res.outcome, { panel: 'exceptions', category: 'tender-review' })
+      const insert = calls.find((q) => /^INSERT INTO tenders/.test(q.text ?? ''))
+      assert.equal(insert.values[0], 'S1')
+      assert.equal(insert.values[1], 'AAAA')
+      assert.equal(insert.values[3], '', 'the adopted row is untendered')
+      assert.ok(valuesOf(calls).some((v) => v === ''), 'tender_status blank')
+    }
+  })
+
+  it('D2: retender/bypass with no sent tender → 409, nothing written (To Be Tendered counts as none, R2)', async () => {
+    for (const action of ['retender', 'bypass']) {
+      for (const priorTenderStatus of [undefined, null, 'Declined', 'Cancelled', 'To Be Tendered']) {
+        const { db, calls } = mkOc()
+        await assert.rejects(
+          () => resolveOrderChange({ params: ['S1'], body: { action, priorTenderStatus }, db }),
+          (e) => e.status === 409 && e.message === 'No active tender to keep; approve the changes and tender manually.',
+        )
+        assert.equal(calls.length, 0)
+      }
+    }
+  })
+
+  it('E4: a second resolve of an already-resolved order change → 409 and no write (any action)', async () => {
+    for (const body of [{ action: 'retender', priorTenderStatus: 'Sent' }, { action: 'approve-plan' }, { action: 'save-stops', priorTenderStatus: 'Sent', stops: [{ stopSequence: 1, stopType: 'pickup', orderIds: [] }] }]) {
+      const { db, calls } = mkOc({ orderChange: { resolution: { action: 'bypass', resolvedAt: '2026-09-29T00:00:00Z' } } })
+      await assert.rejects(
+        () => resolveOrderChange({ params: ['S1'], body, db }),
+        (e) => e.status === 409 && e.message === 'This order change was already resolved.',
+      )
+      assert.ok(!calls.some((q) => textOf(q) === 'BEGIN'))
+    }
+  })
+
+  it('A: the PATCH returns where the shipment now is — Accepted bypass → monitoring/approved, retender → sent', async () => {
+    const r = (body) => resolveOrderChange({ params: ['S1'], body, db: mkOc().db })
+    assert.deepEqual((await r({ action: 'bypass', priorTenderStatus: 'Accepted' })).outcome, { panel: 'monitoring', category: 'approved' })
+    assert.deepEqual((await r({ action: 'bypass', priorTenderStatus: 'Sent' })).outcome, { panel: 'monitoring', category: 'sent' })
+    assert.deepEqual((await r({ action: 'retender', priorTenderStatus: 'Accepted' })).outcome, { panel: 'monitoring', category: 'sent' })
   })
 
   it('approve-plan with a null priorTenderStatus invents no tender status', async () => {
@@ -688,7 +734,7 @@ describe('resolveOrderChange', () => {
     const { db, calls } = mkOc(detail)
     await resolveOrderChange({
       // D4 — PRIOR isn't in the new list, so a Direct retender needs the dates.
-      params: ['S1'], body: { action: 'retender', cost: { choice: 'new', amount: 1234.56 }, dates: { pickupDateTime: '10/01/2026 08:00 CDT', deliveryDateTime: '10/03/2026 17:00 CDT' } }, db,
+      params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Sent', cost: { choice: 'new', amount: 1234.56 }, dates: { pickupDateTime: '10/01/2026 08:00 CDT', deliveryDateTime: '10/03/2026 17:00 CDT' } }, db,
     })
     const texts = calls.map(textOf)
     const beginIdx = texts.indexOf('BEGIN')
@@ -757,7 +803,7 @@ describe('resolveOrderChange', () => {
 
     it('the inserted prior row carries the planner\'s dates; the new list\'s own rows are untouched', async () => {
       const { db, calls } = mkOc({ orderChange: oc })
-      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', dates }, db })
+      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Sent', dates }, db })
       const written = JSON.parse(calls.find((q) => /shippingOptionList/.test(textOf(q))).values[0])
       const prior = written.find((o) => o.scac === 'PRIOR')
       assert.deepEqual([prior.pickupDateTime, prior.deliveryDateTime], [dates.pickupDateTime, dates.deliveryDateTime])
@@ -766,7 +812,7 @@ describe('resolveOrderChange', () => {
 
     it('no dates needed when routing returned the prior carrier, or for cancel', async () => {
       const returned = { ...oc, newTenderList: [...oc.newTenderList, { scac: 'PRIOR', rank: 2, status: '' }] }
-      await resolveOrderChange({ params: ['S1'], body: { action: 'retender' }, db: mkOc({ orderChange: returned }).db })
+      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Sent' }, db: mkOc({ orderChange: returned }).db })
       await resolveOrderChange({ params: ['S1'], body: { action: 'cancel' }, db: mkOc({ orderChange: oc }).db })
     })
 
@@ -779,7 +825,7 @@ describe('resolveOrderChange', () => {
         ],
       }
       const { db, calls } = mkOc(detail)
-      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', dates }, db })
+      await resolveOrderChange({ params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Sent', dates }, db })
       const prior = JSON.parse(calls.find((q) => /shippingOptionList/.test(textOf(q))).values[0]).find((o) => o.scac === 'PRIOR')
       assert.deepEqual([prior.pickupDateTime, prior.deliveryDateTime], ['10/05/2026 09:00 CDT', '10/07/2026 15:00 CDT'], 'the stops, not body.dates')
     })
@@ -826,7 +872,7 @@ describe('resolveOrderChange', () => {
 
   it('a failing tender write rolls back the whole resolution — nothing left half-written', async () => {
     const { db, calls, state } = mkOc({ orderChange: { newTenderList: [] } }, { failOn: /^DELETE FROM tenders/ })
-    await assert.rejects(() => resolveOrderChange({ params: ['S1'], body: { action: 'retender' }, db }))
+    await assert.rejects(() => resolveOrderChange({ params: ['S1'], body: { action: 'retender', priorTenderStatus: 'Sent' }, db }))
     const texts = calls.map(textOf)
     assert.equal(texts[texts.length - 1], 'ROLLBACK')
     assert.ok(state.released, 'client released back to the pool even on the throwing path')
@@ -912,7 +958,7 @@ describe('resolveOrderChange', () => {
     const res = await resolveOrderChange({
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Sent', stops }, db,
     })
-    assert.deepEqual(res, { success: true })
+    assert.deepEqual(res, { success: true, outcome: { panel: 'exceptions', category: 'order-change' } })
     assert.equal(seen.length, 7, 'detail read, search-row read, BEGIN, stop write, search DELETE + INSERT (C19), COMMIT — no refile query, no resolution write')
     assert.match(seen[0].text, /SELECT detail FROM shipments/)
     assert.match(seen[1].text, /SELECT odyssey_shipment_id/)
@@ -998,7 +1044,7 @@ describe('resolveOrderChange', () => {
     const res = await resolveOrderChange({
       params: ['S1'], body: { action: 'save-stops', priorTenderStatus: 'Cancelled', stops }, db,
     })
-    assert.deepEqual(res, { success: true })
+    assert.deepEqual(res, { success: true, outcome: { panel: 'exceptions', category: 'tender-review' } })
     assert.equal(seen.length, 10, 'detail read, search-row read, BEGIN, stop write, resolve write, tender DELETE, shippingOptionList write, search DELETE + INSERT, COMMIT')
     seen.splice(1, 1)   // the C19 search-row read — the rest keeps its pre-C19 positions
     assert.equal(seen[1], 'BEGIN')
@@ -1521,6 +1567,23 @@ describe('consistency slice (C4/C12 re-route, C11 header, C19 row columns, C5 em
     ])
   })
 
+  it('B2 (S164): save-stops re-dates newOption + the compare rows to the stops; newOption.apCost follows the re-scaled list', async () => {
+    const detail = mkDetail()
+    detail.orderChange.newOption = { rank: 1, scac: 'AAAA', pickupDateTime: '01/05/2026 08:00 CST', deliveryDateTime: '01/06/2026 08:00 CST', apCost: 1 }
+    detail.orderChange.comparison = [
+      { field: 'Pickup Date/Time', prior: '01/01/2026 08:00 CST', new: '01/05/2026 08:00 CST', changed: true },
+      { field: 'Delivery Date', prior: '01/02/2026 08:00 CST', new: '01/06/2026 08:00 CST', changed: true },
+      { field: 'Freight Terms', prior: 'PPD', new: 'PPD', changed: false },
+    ]
+    const { db, calls } = mk(detail)
+    await resolveOrderChange({ params: ['T'], body: save('Sent'), db })
+    const q = stopWrite(calls)
+    const opt1 = patchOf(q, 'orderChange,newOption')
+    assert.deepEqual([opt1.pickupDateTime, opt1.deliveryDateTime, opt1.apCost], ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST', 2050])
+    const cmp = patchOf(q, 'orderChange,comparison')
+    assert.deepEqual(cmp.map((r) => [r.field, r.new]), [['Pickup Date/Time', '03/04/2026 10:00 CST'], ['Delivery Date', '03/06/2026 09:30 CST'], ['Freight Terms', 'PPD']])
+  })
+
   it('C11: the target write recomputes volume, distance, summaryChanges.new and both costs', async () => {
     const detail = mkDetail()
     detail.orderList[1] = order('B', 260, 26, 550)   // the customer's update, already on the order
@@ -1562,7 +1625,7 @@ describe('consistency slice (C4/C12 re-route, C11 header, C19 row columns, C5 em
     const detail = mkDetail()
     detail.orderChange.newOption = { rank: 2 }
     const { db, calls } = mk(detail)
-    await resolveOrderChange({ params: ['T'], body: { action: 'retender', cost: { choice: 'prior', amount: 999 } }, db })
+    await resolveOrderChange({ params: ['T'], body: { action: 'retender', priorTenderStatus: 'Sent', cost: { choice: 'prior', amount: 999 } }, db })
     const prior = optionList(calls).find((o) => o.scac === 'PRIOR')
     assert.deepEqual([prior.rank, prior.status, prior.totalCostAmount], [2, 'Sent', 999])
     assert.deepEqual([prior.pickupDateTime, prior.deliveryDateTime, prior.pickupTZ], ['03/04/2026 10:00 CST', '03/06/2026 09:30 CST', 'America/Chicago'])

@@ -71,7 +71,7 @@ const setup = (over = {}) => {
 const nw = () => within(screen.getByRole('region', { name: 'New plan' }))
 // The nth stop row (0-based) in the New plan — rows carry data-stop-key.
 const newStop = (n) => screen.getByRole('region', { name: 'New plan' }).querySelectorAll('[data-stop-key]')[n]
-// User 2026-09-28: New opens collapsed (drag); arrows, pickers and Set Aside
+// User 2026-09-28: New opens collapsed (drag); arrows, pickers and Remove
 // live in edit mode behind its Edit button.
 const edit = () => fireEvent.click(nw().getByRole('button', { name: 'Edit' }))
 const save = () => fireEvent.click(nw().getByRole('button', { name: 'Save' }))
@@ -133,10 +133,10 @@ it('arrows reorder and renumber; an illegal move is disabled (user 2026-09-24)',
   expect(screen.getAllByRole('button', { name: 'Move stop up' })[0].disabled).toBe(true) // first stop can't go up
 })
 
-it('Set Aside moves the order to the pending column; the last remaining order is disabled with the tooltip copy', () => {
+it('Remove moves the order to the pending column; the last remaining order is disabled with the tooltip copy', () => {
   setup()
   edit()
-  const moveToPendingButtons = screen.getAllByRole('button', { name: 'Set Aside' })
+  const moveToPendingButtons = screen.getAllByRole('button', { name: 'Remove' })
   fireEvent.click(moveToPendingButtons[0]) // pends A
   expect(screen.getByRole('button', { name: 'Add order A' })).toBeTruthy()
   const pendingLink = screen.getAllByRole('button').find((b) => b.textContent === 'A')
@@ -146,7 +146,7 @@ it('Set Aside moves the order to the pending column; the last remaining order is
 it('Add places the order automatically — no stop menu; a new location becomes P? (DEC-193)', () => {
   setup()
   edit()
-  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])   // C off P2/D1 — P2 empties
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[2])   // C off P2/D1 — P2 empties
   fireEvent.click(screen.getByRole('button', { name: 'Add order C' }))
   expect(screen.queryByRole('menuitem')).toBeNull()
   expect(screen.queryByRole('button', { name: 'Add order C' })).toBeNull()
@@ -189,7 +189,7 @@ it('Approve Shipment Change confirm — Cancel closes the confirm only, routing 
 it('Keep Editing closes the routing modal with state intact', () => {
   setup()
   edit()
-  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0]) // dirty the sandbox
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0]) // dirty the sandbox
   save()
   fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
   fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Keep Editing' }))
@@ -283,11 +283,11 @@ it('Prior and New render side by side; Prior is read-only and badges the planner
   const prior = screen.getByRole('region', { name: 'Prior plan' })
   expect(screen.getByRole('region', { name: 'New plan' })).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'Prior' })).toBeNull()             // no toggle
-  expect(within(prior).queryByRole('button', { name: 'Set Aside' })).toBeNull()
+  expect(within(prior).queryByRole('button', { name: 'Remove' })).toBeNull()
   expect(within(prior).queryByRole('button', { name: 'Move stop up' })).toBeNull()
   // Stop 2 (P2) holds only order C — setting it aside empties and removes the stop.
   edit()
-  fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Set Aside' })[2])
+  fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Remove' })[2])
   expect(within(prior).getByText('Removed').style.background).toContain('badge-gray-bg')
 })
 
@@ -307,7 +307,7 @@ it('Approve Changes calls onApprove with toDto rows; Cancel calls onCancel when 
   cleanup()
   const dirty = setup()
   edit()
-  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[0])
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   expect(screen.getByText('Discard changes?')).toBeTruthy()
   expect(dirty.onCancel).not.toHaveBeenCalled()
@@ -337,7 +337,7 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   // Pend C first (as the other Add-to test does) so P1 (A, B) is the only
   // pickup stop left — isolates the "17 LB" total to A(5)+B(5)+E(7) below.
   edit()
-  fireEvent.click(screen.getAllByRole('button', { name: 'Set Aside' })[2])
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[2])
   fireEvent.click(screen.getByRole('button', { name: 'Add New Order' }))         // pending lives in edit mode
   fireEvent.click(screen.getByText('mock-add'))
   expect(await screen.findByRole('button', { name: 'E' })).toBeTruthy()          // pending row link
@@ -418,7 +418,7 @@ it('marks what an action touched so it pulses where it landed — but a moved st
   edit()
   fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0])
   expect(newStop(1).hasAttribute('data-flash')).toBe(false)  // moved P1, now second: slides, no pulse
-  fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
+  fireEvent.click(nw().getAllByRole('button', { name: 'Remove' })[0])
   const pendingRow = screen.getByRole('button', { name: /^Add order / }).closest('.edit-stops__pending-row')
   expect(pendingRow.hasAttribute('data-flash')).toBe(true)
   fireEvent.click(screen.getByRole('button', { name: /^Add order / }))
@@ -426,10 +426,10 @@ it('marks what an action touched so it pulses where it landed — but a moved st
 })
 
 describe('New plan modes (user 2026-09-28)', () => {
-  it('collapsed: grip + read-only dates, no arrows / pickers / Set Aside; Edit swaps in Reset / Discard / Save and hover-revealed icon-Button arrows', () => {
+  it('collapsed: grip + read-only dates, no arrows / pickers / Remove; Edit swaps in Reset / Discard / Save and hover-revealed icon-Button arrows', () => {
     setup()
     expect(nw().queryByRole('button', { name: 'Move stop up' })).toBeNull()
-    expect(nw().queryByRole('button', { name: 'Set Aside' })).toBeNull()
+    expect(nw().queryByRole('button', { name: 'Remove' })).toBeNull()
     expect(document.getElementById('stop-s1-date')).toBeNull()
     expect(newStop(0).textContent).toContain('Pickup Date: June 4, 2026 08:00 CDT')
     expect(newStop(0).getAttribute('aria-roledescription')).toBe('sortable')
@@ -475,7 +475,7 @@ describe('New plan modes (user 2026-09-28)', () => {
     fireEvent.click(nw().getAllByRole('button', { name: 'Move stop down' })[0]) // [Y, X, Z]
     save()
     edit()
-    fireEvent.click(nw().getAllByRole('button', { name: 'Set Aside' })[0])
+    fireEvent.click(nw().getAllByRole('button', { name: 'Remove' })[0])
     fireEvent.click(nw().getByRole('button', { name: 'Discard' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes, Discard' }))
     expect(newStop(0).textContent).toContain('Y, Town')

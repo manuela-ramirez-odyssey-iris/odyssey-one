@@ -19,6 +19,8 @@ vi.mock('../../api/services/shipmentService', () => ({
   resolveOrderChange: vi.fn().mockResolvedValue(undefined),
 }))
 import { getSellShipmentDetail, resolveOrderChange } from '../../api/services/shipmentService'
+vi.mock('../../utils/toast', async (orig) => ({ ...(await orig()), showToast: vi.fn() }))
+import { showToast } from '../../utils/toast'
 // D4 — same stand-in as OrderChangeActionsCard.test.jsx: the real picker's
 // zone list is virtualized and jsdom can't pick from it.
 vi.mock('../../components/detail/order-change/EditStopsView.jsx', () => ({
@@ -132,6 +134,7 @@ function LocationProbe() {
 
 afterEach(() => {
   cleanup()
+  showToast.mockReset()
   getSellShipmentDetail.mockReset()
   resolveOrderChange.mockClear()
 })
@@ -312,6 +315,77 @@ describe('OrderChangeReviewRoute', () => {
     })
   })
 
+  test('Re Tender toasts "re-tendered to {SCAC}" and lands on Monitoring › Sent with the shipment open', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    resolveOrderChange.mockResolvedValue({ success: true, outcome: { panel: 'monitoring', category: 'sent' } })
+    renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Re Tender' }))
+    confirmAction('Re Tender')
+
+    expect(
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'monitoring', tab: 'sent', selectedShipmentId: SELL_SHIPMENT, requestedTab: { key: 'routing' } })}`),
+    ).toBeTruthy()
+    expect(showToast).toHaveBeenCalledWith('Shipment re-tendered to ODFL.')
+  })
+
+  test('Bypass toasts "{SCAC} kept. Tender status unchanged." and, with no outcome from the API, falls back to the client rule (Accepted → Approved)', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    resolveOrderChange.mockResolvedValue(undefined)
+    renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Bypass Tender' }))
+    confirmAction('Bypass Tender')
+
+    expect(
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'monitoring', tab: 'approved', selectedShipmentId: SELL_SHIPMENT, requestedTab: { key: 'routing' } })}`),
+    ).toBeTruthy()
+    expect(showToast).toHaveBeenCalledWith('ODFL kept. Tender status unchanged.')
+  })
+
+  // D1 — no active prior tender: one Approve Changes, straight to Tender Review.
+  test.each([null, 'Declined', 'Cancelled', 'To Be Tendered'])('prior tender %s: Approve Changes replaces Bypass/Re Tender and files to Tender Review', async (tenderStatus) => {
+    getSellShipmentDetail.mockResolvedValue({
+      ...ORDER_CHANGE_DETAIL,
+      orderChange: { ...ORDER_CHANGE_DETAIL.orderChange, prior: { ...ORDER_CHANGE_DETAIL.orderChange.prior, tenderStatus } },
+    })
+    resolveOrderChange.mockResolvedValue({ success: true, outcome: { panel: 'exceptions', category: 'tender-review' } })
+    renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve Changes' }))
+    expect(screen.queryByRole('button', { name: 'Bypass Tender' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Re Tender' })).toBeNull()
+    confirmAction('Approve Changes')
+
+    await waitFor(() => expect(resolveOrderChange).toHaveBeenCalledWith(SELL_SHIPMENT, expect.objectContaining({ action: 'approve-plan', cost: null })))
+    expect(
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'exceptions', tab: 'tender-review', selectedShipmentId: SELL_SHIPMENT, requestedTab: { key: 'routing' } })}`),
+    ).toBeTruthy()
+    expect(showToast).not.toHaveBeenCalled()
+  })
+
+  test('a server 409 (D2/E4) shows its own message', async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    resolveOrderChange.mockRejectedValueOnce(Object.assign(new Error('This order change was already resolved.'), { status: 409 }))
+    renderRoute()
+    fireEvent.click(await screen.findByRole('button', { name: 'Bypass Tender' }))
+    confirmAction('Bypass Tender')
+    expect(await screen.findByText('This order change was already resolved.')).toBeTruthy()
+  })
+
+  // E4 — Back / a pasted URL onto a resolved review redirects to its landing.
+  test('a resolved order change redirects to the resolution landing instead of rendering the actions', async () => {
+    getSellShipmentDetail.mockResolvedValue({
+      ...ORDER_CHANGE_DETAIL,
+      orderChange: { ...ORDER_CHANGE_DETAIL.orderChange, resolution: { action: 'retender', resolvedAt: '2026-09-29T00:00:00Z' } },
+    })
+    renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
+    expect(
+      await screen.findByText(`landed with state: ${JSON.stringify({ panel: 'monitoring', tab: 'sent', selectedShipmentId: SELL_SHIPMENT, requestedTab: { key: 'routing' } })}`),
+    ).toBeTruthy()
+    expect(resolveOrderChange).not.toHaveBeenCalled()
+  })
+
   test('Cancel lands on the Tender Review tab with the shipment open on its Tender screen', async () => {
     getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
     renderRoute(SELL_SHIPMENT, { shipmentsElement: <LocationProbe /> })
@@ -444,9 +518,26 @@ describe('landingFor', () => {
     })
   })
 
-  test('retender and bypass return to the Order Change tab — the review is finished', () => {
-    for (const action of ['retender', 'bypass']) {
-      expect(landingFor(action, '123')).toEqual({ panel: 'exceptions', tab: 'order-change' })
-    }
+  // S164 A (Jana 09-29 @23:20, amends S135) — the shipment's Tender screen, on
+  // the category the resolution re-filed it to (mirrors OC_OUTCOMES).
+  test('retender lands on Monitoring › Sent with the Tender screen open', () => {
+    expect(landingFor('retender', '123', 'Accepted')).toEqual({
+      panel: 'monitoring', tab: 'sent', selectedShipmentId: '123', requestedTab: { key: 'routing' },
+    })
+  })
+
+  test('bypass lands on Approved when the prior was Accepted, else Sent', () => {
+    expect(landingFor('bypass', '123', 'Accepted').tab).toBe('approved')
+    for (const prior of ['Sent', 'To Be Tendered', null]) expect(landingFor('bypass', '123', prior).tab).toBe('sent')
+  })
+
+  test('approve-plan (no active prior tender) lands on Tender Review like Cancel', () => {
+    expect(landingFor('approve-plan', '123', null)).toEqual(landingFor('cancel', '123'))
+  })
+
+  test("the server's outcome wins over the client rule when present", () => {
+    expect(landingFor('bypass', '123', 'Sent', { panel: 'monitoring', category: 'approved' })).toEqual({
+      panel: 'monitoring', tab: 'approved', selectedShipmentId: '123', requestedTab: { key: 'routing' },
+    })
   })
 })

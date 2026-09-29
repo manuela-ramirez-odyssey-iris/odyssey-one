@@ -108,7 +108,7 @@ export async function saveShipmentOverrides(
 export async function resolveOrderChange(
   sellShipment: string,
   body: {
-    action: string
+    action: string // S164: 'approve-plan' also serves a Direct shipment with no active prior tender
     priorTenderStatus: string | null
     cost: { choice: string; amount: number } | null
     priorScac: string | null
@@ -119,9 +119,9 @@ export async function resolveOrderChange(
     // D4 — retender/bypass, prior carrier not returned; see ResolveOrderChangeInput.
     dates?: { pickupDateTime: string; deliveryDateTime: string }
   },
-): Promise<void> {
+): Promise<{ success: boolean; outcome?: { panel: string; category: string } }> {
   if (getApiMode() !== 'live') throw new Error('Order change needs the live API: run with the deployed or local API to save this change.')
-  await apiPatch(`/shipment-service/v1/sell-shipment-out/${sellShipment}/order-change`, body)
+  return apiPatch(`/shipment-service/v1/sell-shipment-out/${sellShipment}/order-change`, body)
 }
 
 export interface CandidateOrderRow {

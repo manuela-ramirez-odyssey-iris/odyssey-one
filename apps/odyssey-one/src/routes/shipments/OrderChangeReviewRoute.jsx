@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Alert, Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
@@ -8,6 +8,7 @@ import OrderChangeTenderLists from '../../components/shipments/order-change/Orde
 import OrderChangeTenderDetails from '../../components/shipments/order-change/OrderChangeTenderDetails'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import { fmtDollar } from '../../utils/money'
+import { showToast } from '../../utils/toast'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
 import useSheet from '../useSheet'
@@ -54,6 +55,13 @@ function confirmCopy(action, cost, scac) {
       cancelLabel: 'No',
     }
   }
+  if (action === 'approve-plan') {
+    return {
+      title: 'Approve Changes',
+      message: 'The changes will be approved and this shipment goes to Tender Review, where you can tender it manually. Do you want to continue?',
+      confirmLabel: 'Approve Changes',
+    }
+  }
   if (action === 'retender') {
     return {
       title: 'Keep Carrier & Re-Tender',
@@ -83,19 +91,30 @@ function confirmCopy(action, cost, scac) {
  *   detail, `requestedTab` picks its tab (BottomBar.jsx:216). The tender
  *   screen's key is `routing` (TABS: `{ key: 'routing', label: 'Tender' }`) —
  *   `tender` is the Tender HISTORY tab, a different surface.
- * - retender / bypass — the review is complete and the shipment left the
- *   category, so there's nothing to open: back to the Order Change tab.
+ * - retender / bypass — S164 (Jana 09-29 @23:20, amends S135): the planner
+ *   lands on the shipment's own Tender screen, on the category the server
+ *   re-filed it to (OC_OUTCOMES, api/_lib/shipments.mjs): retender → Monitoring
+ *   › Sent; bypass → Approved if the prior was Accepted, else Sent.
+ * - approve-plan (D1, no active prior tender) — same as cancel: Tender Review,
+ *   Tender screen open, the planner tenders manually.
+ *
+ * `outcome` is the resolve PATCH's { panel, category }; the rule above is the
+ * fallback for mock mode / an older API that doesn't return it, so it lives
+ * in one place server-side and is mirrored here only as a fallback.
  */
-export function landingFor(action, sellShipment) {
-  if (action === 'cancel') {
-    return {
-      panel: 'exceptions',
-      tab: 'tender-review',
-      selectedShipmentId: sellShipment,
-      requestedTab: { key: 'routing' },
-    }
+export function landingFor(action, sellShipment, priorStatus, outcome) {
+  const open = { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' } }
+  if (outcome?.panel && outcome?.category) return { panel: outcome.panel, tab: outcome.category, ...open }
+  if (action === 'cancel' || action === 'approve-plan') {
+    return { panel: 'exceptions', tab: 'tender-review', ...open }
   }
-  return { panel: 'exceptions', tab: 'order-change' }
+  if (action === 'retender') return { panel: 'monitoring', tab: 'sent', ...open }
+  return { panel: 'monitoring', tab: priorStatus === 'Accepted' ? 'approved' : 'sent', ...open }
+}
+
+const TOASTS = {
+  retender: (scac) => `Shipment re-tendered to ${scac}.`,
+  bypass: (scac) => `${scac} kept. Tender status unchanged.`,
 }
 
 export default function OrderChangeReviewRoute() {
@@ -108,13 +127,20 @@ export default function OrderChangeReviewRoute() {
   // tab's Review order change button (RoutingGuideTab), otherwise the table's
   // row menu. Close and the Tender breadcrumb return to the origin.
   const fromTender = location.state?.from === 'tender'
+  // E3 — Scenario A's approve from the Stops tab (useApproveOrderChange) opens
+  // this review with from:'stops', so X returns to the shipment just edited.
+  const fromStops = location.state?.from === 'stops'
   // The shipment's own Tender screen — detail open on the routing tab, still
   // parked on the Order Change category while the review is pending.
   const tenderScreenState = {
     panel: 'exceptions', tab: 'order-change',
     selectedShipmentId: sellShipment, requestedTab: { key: 'routing' },
   }
-  const closeState = fromTender ? tenderScreenState : { panel: 'exceptions', tab: 'order-change' }
+  const closeState = fromTender
+    ? tenderScreenState
+    : fromStops
+    ? { panel: 'exceptions', tab: 'order-change', selectedShipmentId: sellShipment, requestedTab: { key: 'stops' } }
+    : { panel: 'exceptions', tab: 'order-change' }
   const { data: detail, isPending, isError, refetch } = useShipmentDetail(sellShipment)
   const resolve = useResolveOrderChange()
   const oc = detail?.orderChange
@@ -131,6 +157,18 @@ export default function OrderChangeReviewRoute() {
   // attempt and on manual dismiss) — this codebase's existing convention for
   // a failed mutation, not a new pattern.
   const [resolveError, setResolveError] = useState('')
+
+  // E4 — a resolved review can't be re-entered (Back / pasted URL): send the
+  // planner to where that resolution landed. `resolvedHere` keeps this from
+  // racing the onSuccess navigation below when the invalidated detail
+  // refetches with `resolution` already set.
+  const resolvedHere = useRef(false)
+  const resolution = oc?.resolution
+  useEffect(() => {
+    if (!resolution || resolvedHere.current) return
+    closeSheet('/shipments', { state: landingFor(resolution.action, sellShipment, oc.prior?.tenderStatus) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolution])
 
   // Tender Resolution Action (LINX-14515). Every exit off this screen —
   // Cancel tender here; retender/bypass live in OrderChangeActionsCard (Task
@@ -178,11 +216,18 @@ export default function OrderChangeReviewRoute() {
         dates,
       },
       {
-        onSuccess: () => {
-          closeSheet('/shipments', { state: landingFor(action, sellShipment) })
+        onSuccess: (data) => {
+          resolvedHere.current = true
+          // Fire-then-navigate, same as ExecutedShipmentDetailsRoute; bypass
+          // sends nothing, so it never says "tendered" (S164 A).
+          const toast = TOASTS[action]?.(oc?.prior?.scac)
+          if (toast) showToast(toast)
+          closeSheet('/shipments', { state: landingFor(action, sellShipment, oc?.prior?.tenderStatus, data?.outcome) })
         },
-        onError: () => {
-          setResolveError("Couldn't resolve this tender. Please try again.")
+        // D2/E4 409s carry a specific message ("No active tender to keep…",
+        // "…already resolved."); anything else keeps the generic copy.
+        onError: (e) => {
+          setResolveError(e?.status === 409 && e.message ? e.message : "Couldn't resolve this tender. Please try again.")
         },
       },
     )
@@ -216,10 +261,12 @@ export default function OrderChangeReviewRoute() {
             <span className="text-label-sm-regular">Something went wrong loading this shipment.</span>
             <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
           </div>
-        ) : !oc ? (
+        ) : !oc || oc.resolution ? (
           // Reachable by deep-link on a shipment that never carried an order
           // change, or one already resolved out of the category — an empty
-          // state beats crashing on oc.prior below.
+          // state beats crashing on oc.prior below. A resolved one (E4) shows
+          // it only for the frame before the redirect effect fires; the
+          // Actions card must never render, or a second PATCH re-files it.
           <EmptyState icon={<Inbox size={32} />} message="No order change to review for this shipment." />
         ) : (
           <div className="order-change__content">

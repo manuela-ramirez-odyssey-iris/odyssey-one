@@ -97,6 +97,7 @@ import { totalMiles } from '../src/utils/legMiles.js'
 // rule, never two that can drift.
 import { initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
 import { shipmentStatusFor } from '../src/lib/shipmentStatus.js'
+import { redateOrderChange, applyStopDates } from '../src/lib/orderChangeRouting.js'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -1424,6 +1425,20 @@ function generateShipment(index, chainOverride) {
       category = 'order-change';
       validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd2() * VALIDATION_MESSAGES['order-change'].length)];
     }
+  } else if (panel === 'monitoring' && category === 'hold' && orders.length === 1) {
+    // S164 R3 (user 2026-09-29; Jana 09-29 @23:50 "no prior tender → approve →
+    // tender manually") — a DIRECT order change whose prior was never tendered
+    // (prior.tenderStatus null), so the review's Approve Changes card (D1) is
+    // reachable in a demo; every other Direct one carried Sent/Accepted/To Be
+    // Tendered. Only never-tendered Hold rows (pool-eligible ones are the
+    // consolidation candidates, left alone). Own salt on the id-keyed PRNG,
+    // zero faker draws, so no shipment id moves.
+    const rnd3 = mulberry32(seedFrom(sellShipment + ':oc-direct-notender'));
+    if (rnd3() < 0.09) {
+      panel = 'exceptions';
+      category = 'order-change';
+      validationMessage = VALIDATION_MESSAGES['order-change'][Math.floor(rnd3() * VALIDATION_MESSAGES['order-change'].length)];
+    }
   }
   // Hoisted above the order-change block (S135) so the review payload can
   // reuse the PRIOR tender version's dropped list instead of drawing a second
@@ -2333,6 +2348,14 @@ function generateShipment(index, chainOverride) {
       newTenderList: orderChangePayload.newTenderList, priorTenderList: orderChangePayload.priorTenderList,
       orderHeaders, orderList, costOrders,
     });
+    // B3 (S164, DEC-206: routing's dates are ignored for a consolidation) —
+    // the Prior | New panel (newOption), the compare rows and the list carry
+    // the STOP dates, as the Save's re-route (redateOrderChange) would write
+    // them, so an unedited Scenario A approve (no server call) is coherent
+    // too. Dates only: no rnd draws, costs untouched.
+    const ocStops = stops.map((st) => ({ type: st.stopType, date: st.scheduledDateTime, timeZone: st.timeZone }));
+    Object.assign(orderChangePayload, redateOrderChange(orderChangePayload, ocStops));
+    orderChangePayload.newTenderList = applyStopDates(orderChangePayload.newTenderList, ocStops);
   }
 
   // Main table row
@@ -2988,7 +3011,8 @@ function buildOrderChange(sellShipment, routingOptions, ctx) {
     scenario,
     prior: {
       scac: prior.scac, carrierName: prior.carrierName, equipmentCode: prior.equipmentCode,
-      tenderStatus,
+      // S164 R3 — a never-tendered prior is null, not '' (the review reads it as "no prior tender").
+      tenderStatus: tenderStatus || null,
       routeRank: prior.routeRank, rank: prior.rank,
       pickupDateTime: prior.pickupDateTime, deliveryDateTime: prior.deliveryDateTime,
       // S144 — deliberately NOT nulled for the no-active-tender case (unlike

@@ -322,3 +322,24 @@ describe('OrderChangeActionsCard — required dates when the prior carrier is no
     expect(screen.getByRole('button', { name: 'Re Tender' }).disabled).toBe(false)
   })
 })
+
+// D1 (S164, Jana 09-29 @23:50) — no active prior tender: one Approve Changes.
+describe('OrderChangeActionsCard — tender actions by prior tender status (D1)', () => {
+  const withStatus = (tenderStatus) => makeOc({ prior: { ...makeOc().prior, tenderStatus } })
+
+  test.each([null, '', 'Declined', 'Cancelled', 'To Be Tendered'])('prior %j: Approve Changes only', (status) => {
+    const onAction = vi.fn()
+    render(<OrderChangeActionsCard oc={withStatus(status)} onAction={onAction} />)
+    expect(screen.queryByRole('button', { name: 'Bypass Tender' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Re Tender' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Approve Changes' }))
+    expect(onAction).toHaveBeenCalledWith('approve-plan', null)
+  })
+
+  test.each(['Sent', 'Accepted'])('prior %s: Bypass / Re Tender, no Approve Changes', (status) => {
+    render(<OrderChangeActionsCard oc={withStatus(status)} onAction={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Bypass Tender' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Re Tender' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Approve Changes' })).toBeNull()
+  })
+})

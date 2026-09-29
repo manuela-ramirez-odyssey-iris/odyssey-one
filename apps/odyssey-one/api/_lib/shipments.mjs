@@ -9,7 +9,7 @@ import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 import { idsFor, buildInsertShipmentQuery, buildLinkOrderQuery, buildSearchIndexQuery } from './planShipment.mjs'
 import { tsFromDisplay } from './consolidateShipments.mjs'
 import { totalMiles } from '../../src/utils/legMiles.js'
-import { applyStopDates, rerouteTenderList, stopDateToDisplay, withApTotal } from '../../src/lib/orderChangeRouting.js'
+import { applyStopDates, rerouteOrderChange, stopDateToDisplay, withApTotal } from '../../src/lib/orderChangeRouting.js'
 
 // Sentinel `sortBy` meaning "order by search relevance, no column drives".
 // Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
@@ -307,6 +307,13 @@ export async function saveShipmentOverrides({ params, body, db }) {
 // exceptions so the planner is dropped back on Tender Review to choose again.
 // Tender statuses a shipment can be resolved OUT of by retender/bypass/save-stops.
 const OC_ACTIVE_TENDER_STATUSES = ['To Be Tendered', 'Sent', 'Accepted']
+// R2 (S164, Jana 09-29 @23:50/@26:10) — in the REVIEW, a To Be Tendered prior
+// is "no prior tender": nothing was sent, so there's nothing to Keep or
+// Re-Tender; the planner approves and tenders manually. Deliberately NOT
+// OC_ACTIVE_TENDER_STATUSES (save-stops' scenario) and never candidateOrders'
+// MOVE_BLOCKED_TENDER — the 15872 "tendered, cancel first" block keeps
+// counting To Be Tendered as active (DEC-209).
+const OC_SENT_TENDER_STATUSES = ['Sent', 'Accepted']
 
 // LINX-15671 Scenario B / DEC-200 (no active tender): the shipment STAYS in
 // Review and nothing is tendered. It re-files to Exceptions › Tender Review,
@@ -754,6 +761,9 @@ const PATCH_PATHS = {
   summaryChanges: '{orderChange,consolidation,summaryChanges}',
   costs: '{orderChange,consolidation,costs}',
   newTenderList: '{orderChange,newTenderList}',
+  // B2 (S164) — the rest of the re-routed review: the Prior | New panel and the compare rows.
+  newOption: '{orderChange,newOption}',
+  comparison: '{orderChange,comparison}',
 }
 
 // Whole-array replace of shipmentStopList, same "send the finalized whole" as
@@ -1006,7 +1016,18 @@ export async function resolveOrderChange({ params, body, db }) {
     const e = new Error(`Unknown order-change action: ${action ?? '(none)'}`); e.status = 400; throw e
   }
   const sellShipment = params[0]
+  // D2 — retender/bypass act ON a sent tender; with none, bypass(null) used to
+  // invent 'Sent' (S162 audit). approve-plan is the no-tender path.
+  if ((action === 'retender' || action === 'bypass') && !OC_SENT_TENDER_STATUSES.includes(body?.priorTenderStatus)) {
+    const e = new Error('No active tender to keep; approve the changes and tender manually.'); e.status = 409; throw e
+  }
   const outcome = outcomeFor(body?.priorTenderStatus)
+  // A: the client lands where the shipment now IS, read off ONE rule (this file).
+  const result = { success: true, outcome: { panel: outcome.panel, category: outcome.category } }
+  // E4 — a resolved review re-entered (Back, a pasted URL) must not re-file the shipment.
+  const alreadyResolved = (detail) => {
+    if (detail?.orderChange?.resolution) { const e = new Error('This order change was already resolved.'); e.status = 409; throw e }
+  }
 
   if (action === 'save-stops') {
     if (!Array.isArray(body?.stops) || body.stops.length === 0) {
@@ -1015,6 +1036,7 @@ export async function resolveOrderChange({ params, body, db }) {
     const { rows } = await db.query(buildDetailReadQuery(sellShipment))
     if (rows.length === 0) { const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e }
     const detail = rows[0].detail
+    alreadyResolved(detail)
     const onStops = new Set(body.stops.flatMap((s) => s.orderIds ?? []))
     // C8 (S163) — an external order that isn't on any stop can't be honoured
     // (it would leave its source for nowhere). The client already filters
@@ -1038,12 +1060,13 @@ export async function resolveOrderChange({ params, body, db }) {
     // it) and Scenario B adopts it below. A Direct order change has no
     // consolidated plan to re-route — its list is left as seeded.
     const orderChange = detail?.orderChange ?? {}
-    const rerouted = orderChange.consolidation
-      ? rerouteTenderList(orderChange.newTenderList ?? [], routingStopsOf(merged), baselineMilesOf(detail))
+    const reroutedOc = orderChange.consolidation
+      ? rerouteOrderChange(orderChange, routingStopsOf(merged), baselineMilesOf(detail))
       : null
+    const rerouted = reroutedOc?.newTenderList ?? null
     // C11 — the header recomputed in the same write (review state only with a re-route).
     const patch = recomputeReviewTotals(detail, orderList, merged, rerouted)
-    if (rerouted) patch.newTenderList = rerouted
+    if (reroutedOc) Object.assign(patch, reroutedOc)
     // C19 — the target's search rows follow its new roster/route (read here, written in the tx).
     const { rows: [searchRow] } = await db.query(buildSearchRowQuery(sellShipment))
 
@@ -1132,7 +1155,7 @@ export async function resolveOrderChange({ params, body, db }) {
     } finally {
       client.release()
     }
-    return { success: true }
+    return result
   }
 
   // T4 — read BEFORE the transaction (same shape as save-stops above): a
@@ -1142,6 +1165,7 @@ export async function resolveOrderChange({ params, body, db }) {
     const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e
   }
   const detail = detailRows[0].detail ?? {}
+  alreadyResolved(detail)
   let orderChange = detail.orderChange ?? {}
   const cost = body?.cost ?? null
   const resolution = { action, cost, resolvedAt: new Date().toISOString() }
@@ -1150,7 +1174,7 @@ export async function resolveOrderChange({ params, body, db }) {
   const stops = routingStopsOf(detail.shipmentStopList)
   if (orderChange.consolidation && action === 'approve-plan') {
     // The planner approved exactly what View Routing showed (same function).
-    orderChange = { ...orderChange, newTenderList: rerouteTenderList(orderChange.newTenderList ?? [], stops, baselineMilesOf(detail)) }
+    orderChange = { ...orderChange, ...rerouteOrderChange(orderChange, stops, baselineMilesOf(detail)) }
   }
   // D4 (LINX-14513 Scenario 2 note: "user shall be forced to pick 'Pickup
   // Date' and 'Delivery Date'") — a Direct order change inserting a carrier
@@ -1180,7 +1204,7 @@ export async function resolveOrderChange({ params, body, db }) {
   } finally {
     client.release()
   }
-  return { success: true }
+  return result
 }
 
 // PUT /shipment-service/v1/sell-shipment-out/:id/tender — add or update ONE
