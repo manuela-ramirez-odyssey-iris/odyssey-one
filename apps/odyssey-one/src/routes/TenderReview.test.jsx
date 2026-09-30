@@ -260,3 +260,15 @@ describe('TenderReview — already-responded states', () => {
     expect(screen.queryByRole('button', { name: 'Accept Tender' })).toBe(null)
   })
 })
+
+describe('TenderReview layout (S159 — team review 2026-09-30)', () => {
+  it('Load References shows Order Number, Load ID, Customer PO Number and Pickup Number as separate columns', async () => {
+    renderAt(`/tender-review/${TOKEN}`)
+    const heading = await screen.findByText('Load References')
+    const table = heading.parentElement.querySelector('table')
+    const headers = [...table.querySelectorAll('th')].map((th) => th.textContent)
+    expect(headers).toEqual(['Order Number', 'Load ID', 'Customer PO Number', 'Pickup Number'])
+    const cells = [...table.querySelectorAll('tbody td')].map((td) => td.textContent)
+    expect(cells).toEqual(['SO-990001', '--', 'PO-4421', 'PU-8891'])
+  })
+})

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Alert, Badge, Button, Dropdown, TextArea, SubAccordion, TitleSubtitle } from '@odyssey/ui'
+import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Alert, Badge, Button, Dropdown, TextArea } from '@odyssey/ui'
 import { decodeToken } from '../spotboard/token.js'
 import { useShipmentDetail } from '../api/queries/useShipmentDetail'
 import { saveTenderOption } from '../api/services/shipmentService'
@@ -286,108 +286,154 @@ export default function TenderReview() {
     )
   }
 
+  const orders = shipment.orderDetails ?? []
+  const productOrders = shipment.productData?.orders ?? []
+  const lines = productOrders.flatMap((o) => o.lines ?? [])
+  const dash = (v) => (v && v !== '--' ? v : '--')
+  const fact = (label, value) => (
+    <div className="tender-review-fact">
+      <span className="text-label-xs-regular">{label}</span>
+      <span className="text-label-sm-medium">{value || '--'}</span>
+    </div>
+  )
+
+  // S159 (team review 2026-09-30, Papu's Tender Review Page PDF): ONE details
+  // card with plain section headings — no SubAccordion per section — and a
+  // separate response card. Load References = four separate fields per order.
   return (
     <div className="carrier-bid-page">
       <HeroBackground heroIndex={heroIndex} />
       {navbar}
 
       <main className="carrier-bid-page__main">
-        <div className={sectionEnterClass} style={{ '--enter-delay': `${0 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion
-            title={`${effectiveOption.carrierName} - Tender ${shipment.odysseyShipmentIdentifier}`}
-            defaultExpanded
-          >
+        <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': '0ms' }}>
+          <header className="tender-review-head">
+            <h1 className="text-heading-lg-semibold">{`${effectiveOption.carrierName} — Tender ${shipment.odysseyShipmentIdentifier}`}</h1>
             <div className="tender-review-subline text-label-sm-regular">
               {firstPickup?.location ?? '--'} → {lastDelivery?.location ?? '--'}
             </div>
             <Badge variant="blue">{`Tendered ${effectiveOption.notifyDateTime}`}</Badge>
-            <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs" style={{ marginTop: 'var(--spacing-3)' }}>
-              <TitleSubtitle title={shipment.customerName} subtitle="Shipper" />
-              <TitleSubtitle title={shipment.odysseyShipmentIdentifier} subtitle="Shipment ID" />
-              <TitleSubtitle title={effectiveOption.carrierName} subtitle="Carrier" />
-              <TitleSubtitle title={effectiveOption.equipment} subtitle="Equipment" />
-              <TitleSubtitle title={distanceDisplay} subtitle="Distance" />
-              <TitleSubtitle title={weightDisplay} subtitle="Weight" />
-              <TitleSubtitle title={order?.hazmat ?? '--'} subtitle="Hazmat" />
-            </div>
-          </SubAccordion>
-        </div>
+          </header>
 
-        <div className={sectionEnterClass} style={{ '--enter-delay': `${1 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Lane" defaultExpanded>
+          <div className="tender-review-facts tender-review-facts--summary">
+            {fact('Shipper', shipment.customerName)}
+            {fact('Carrier', `${effectiveOption.scac} - ${effectiveOption.carrierName}`)}
+            {fact('Shipment ID', shipment.odysseyShipmentIdentifier)}
+            {fact('Equipment', effectiveOption.equipment)}
+            {fact('Weight', weightDisplay)}
+            {fact('Hazmat', order?.hazmat)}
+          </div>
+
+          <div className="tender-review-section">
+            <h2 className="tender-review-h text-label-sm-semibold">Lane</h2>
             <div className="tender-review-lane">
               <div className="tender-review-lane__stop">
-                <TitleSubtitle title={firstPickup?.location ?? '--'} subtitle="Ship From" />
-                <p className="text-label-sm-regular">{firstPickup?.address ?? '--'}</p>
-                <p className="text-label-sm-regular">{`Pickup: ${effectiveOption.pickupDateTime ?? '--'} (${effectiveOption.pickupTZ})`}</p>
+                <span className="text-label-xs-regular tender-review-muted">Ship From</span>
+                <span className="text-label-sm-medium">{firstPickup?.location ?? '--'}</span>
+                <span className="text-label-sm-regular">{firstPickup?.address ?? '--'}</span>
+                <span className="text-label-sm-regular">{`Pickup: ${effectiveOption.pickupDateTime ?? '--'} (${effectiveOption.pickupTZ})`}</span>
               </div>
               <span className="tender-review-lane__arrow" aria-hidden="true">→</span>
               <div className="tender-review-lane__stop">
-                <TitleSubtitle title={lastDelivery?.location ?? '--'} subtitle="Ship To" />
-                <p className="text-label-sm-regular">{lastDelivery?.address ?? '--'}</p>
-                <p className="text-label-sm-regular">{`Delivery: ${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`}</p>
+                <span className="text-label-xs-regular tender-review-muted">Ship To</span>
+                <span className="text-label-sm-medium">{lastDelivery?.location ?? '--'}</span>
+                <span className="text-label-sm-regular">{lastDelivery?.address ?? '--'}</span>
+                <span className="text-label-sm-regular">{`Delivery: ${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`}</span>
               </div>
             </div>
-          </SubAccordion>
-        </div>
+          </div>
 
-        <div className={sectionEnterClass} style={{ '--enter-delay': `${2 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Equipment & Freight" defaultExpanded>
-            <div className="tender-review-rows">
-              <div className="tender-review-row"><span>Equipment</span><span>{effectiveOption.equipment}</span></div>
-              <div className="tender-review-row"><span>Carrier ID</span><span>{effectiveOption.scac}</span></div>
-              <div className="tender-review-row"><span>Total weight</span><span>{weightDisplay}</span></div>
-              <div className="tender-review-row"><span>Package count</span><span>{shipment.stopsData?.summary?.packageCount ?? '--'}</span></div>
-              <div className="tender-review-row"><span>Requested delivery</span><span>{`${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`}</span></div>
-              <div className="tender-review-row"><span>Transit</span><span>{effectiveOption.transit}</span></div>
-              <div className="tender-review-row tender-review-row--bold"><span>Offered rate</span><span>{offeredRate || '--'}</span></div>
+          <div className="tender-review-section tender-review-split">
+            <div>
+              <h2 className="tender-review-h text-label-sm-semibold">Schedule & Distance</h2>
+              <div className="tender-review-facts">
+                {fact('Requested delivery', `${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`)}
+                {fact('Distance', distanceDisplay)}
+              </div>
             </div>
-          </SubAccordion>
-        </div>
-
-        <div className={sectionEnterClass} style={{ '--enter-delay': `${3 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Load References" defaultExpanded>
-            <div className="tender-review-rows">
-              {(shipment.orderDetails ?? []).map((o, i) => (
-                <div key={i} className="tender-review-row">
-                  <span>{`Load ${shipment.odysseyShipmentIdentifier}`}</span>
-                  <span>{`PO ${o.poNumber ?? '--'} · Pickup No ${o.pickupNumber ?? '--'}`}</span>
-                </div>
-              ))}
+            <div>
+              <h2 className="tender-review-h text-label-sm-semibold">Equipment & Freight</h2>
+              <div className="tender-review-facts">
+                {/* Mode: no field on the detail VM yet (shipmentMode is DASH) —
+                    the planner's override is the only source today. */}
+                {fact('Mode', dash(shipment.overrides?.mode))}
+                {fact('Equipment', effectiveOption.equipment)}
+                {fact('Carrier ID', effectiveOption.scac)}
+                {fact('Total weight', weightDisplay)}
+                {fact('Package count', shipment.stopsData?.summary?.packageCount)}
+                {fact('Freight terms', dash(order?.paymentTerms))}
+                {fact('Offered rate', offeredRate)}
+              </div>
             </div>
-          </SubAccordion>
-        </div>
+          </div>
 
-        <div className={sectionEnterClass} style={{ '--enter-delay': `${4 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Pickup and delivery instructions" defaultExpanded>
-            {allInstructions.length === 0 ? (
-              <p className="text-label-sm-regular tender-review-instructions__empty">No special instructions.</p>
-            ) : (
-              <table className="tender-review-instructions">
+          <div className="tender-review-section">
+            <h2 className="tender-review-h text-label-sm-semibold">Load References</h2>
+            <table className="tender-review-table">
+              <thead>
+                <tr><th>Order Number</th><th>Load ID</th><th>Customer PO Number</th><th>Pickup Number</th></tr>
+              </thead>
+              <tbody>
+                {orders.map((o, i) => (
+                  <tr key={i}>
+                    <td>{dash(o.orderNumber)}</td>
+                    {/* Load ID — source field in Buy Shipment Out still
+                        unidentified (team review 2026-09-30). */}
+                    <td>{dash(o.loadId)}</td>
+                    <td>{dash(o.poNumber)}</td>
+                    <td>{dash(o.pickupNumber)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {lines.length > 0 && (
+            <div className="tender-review-section">
+              <h2 className="tender-review-h text-label-sm-semibold">Line Items</h2>
+              {/* Columns per the paper tender (Line.png, team review 2026-09-30). */}
+              <table className="tender-review-table tender-review-table--lines">
                 <thead>
-                  <tr><th>#</th><th>Instruction Description</th></tr>
+                  <tr>
+                    <th>Item/Description/<br />Hazmat Description</th>
+                    <th className="is-num">Pkg Qty/<br />Hazmat Pkg. Group</th>
+                    <th>Hazmat Code/<br />Hazmat Class</th>
+                    <th>Weight/Volume<br />Dimensions</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {allInstructions.map((instr, i) => (
+                  {lines.map((l, i) => (
                     <tr key={i}>
-                      <td>{i + 1}</td>
-                      <td>{instr.text}</td>
+                      <td>{[l.shipItem, dash(l.description) !== '--' ? l.description : null, l.hazmat ? l.hazmatDescription : null].filter(Boolean).map((t, k) => <div key={k}>{t}</div>)}</td>
+                      <td className="is-num"><div>{l.packageCount}</div>{l.hazmat && <div>{l.hazmatGroup}</div>}</td>
+                      <td>{l.hazmat ? <><div>{l.hazmatUnNumber}</div><div>{l.hazmatClass}</div></> : '--'}</td>
+                      <td><div>{l.grossWeight}</div><div>{l.volume}</div></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
-          </SubAccordion>
-        </div>
+            </div>
+          )}
 
-        <div className={sectionEnterClass} style={{ '--enter-delay': `${5 * ENTER_STEP_MS}ms` }}>
-          <SubAccordion title="Your Response" defaultExpanded>
-            <p className="text-label-sm-regular tender-review-lede">
-              This decision is final and will be sent to {PLANNING_GROUP_MAILBOX} immediately.
-            </p>
-            {responseContent}
-          </SubAccordion>
-        </div>
+          <div className="tender-review-section">
+            <h2 className="tender-review-h text-label-sm-semibold">Pickup & Delivery Instructions</h2>
+            {allInstructions.length === 0 ? (
+              <p className="text-label-sm-regular tender-review-muted">No special instructions.</p>
+            ) : (
+              <ol className="tender-review-instructions text-label-sm-regular">
+                {allInstructions.map((instr, i) => <li key={i}>{instr.text}</li>)}
+              </ol>
+            )}
+          </div>
+        </section>
+
+        <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': `${ENTER_STEP_MS}ms` }}>
+          <h2 className="tender-review-h text-label-sm-semibold">Your Response</h2>
+          <p className="text-label-sm-regular tender-review-lede">
+            This decision is final and will be sent to {PLANNING_GROUP_MAILBOX} immediately.
+          </p>
+          {responseContent}
+        </section>
 
         <p className="tender-review-footer text-label-xs-regular">
           Do not forward this link. It is unique to this tender option.
