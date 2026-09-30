@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ArrowUp, ArrowDown, CalendarDays, ChevronsLeft, ChevronsRight, GripVertical, Info, TriangleAlert } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
-import { Alert, Badge, Button, DatePicker, SubAccordion, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
+import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -13,6 +13,7 @@ import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
 import AddOrdersModal from './AddOrdersModal.jsx'
 import { getSellShipmentDetail } from '../../../api/services/shipmentService'
+import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.jsx'
 import ReviewKpiStrip from './ReviewKpiStrip.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
@@ -572,12 +573,11 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
   return (
     <div className="edit-stops" ref={rootRef}>
-      {/* S164 F2 — the one KPI strip lives here (live values + the collapse
-          state are this component's); the route no longer renders it. */}
+      {/* S164 F2 (revised) — the strip (Distance/Gross Weight/Volume only) lives
+          here: live values + the collapse state are this component's. */}
       <ReviewKpiStrip
         summary={summary}
         changes={consolidation?.summaryChanges}
-        costs={consolidation?.costs}
         priorCollapsed={editing && priorCollapsed}
         live={{
           grossWeight: curTotals.grossWeight,
@@ -591,6 +591,19 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         collapsible={false}
       >
         <div className="edit-stops__head">
+          <div className="edit-stops__metrics">
+            <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
+            <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
+            <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
+            {/* T2 — thousands separator, same formatter as the header KPI (fmtDistance). */}
+            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance == null ? '--' : `${distance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
+            <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
+            <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
+            {/* S164 F2 (revised): plain, from the summary prop. */}
+            <TitleSubtitle subtitle="Accepted Carrier" title={summary?.acceptedCarrier || '--'} />
+            <TitleSubtitle subtitle="Seed Equipment" title={summary?.seedEquipment || '--'} />
+            <TitleSubtitle subtitle="Utilization" title={summary?.utilization || '--'} />
+          </div>
           <div className="edit-stops__head-actions">
             {/* DEC-207 (T2) — View Routing is gone; Evaluate (footer) is the
                 only door into the routing modal now. */}

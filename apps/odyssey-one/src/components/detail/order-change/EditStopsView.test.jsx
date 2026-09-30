@@ -347,7 +347,7 @@ it('Add New Order opens the modal; added orders land in pending with Add; a plac
   fireEvent.click(screen.getByRole('button', { name: 'Add order E' }))            // auto: P1 (X, City)
   save()
   expect(newStop(0).textContent).toContain('E')
-  expect(screen.getByText('17 LB')).toBeTruthy()                                  // 5+5+7 — external order counts in totals
+  expect(screen.getAllByText('17 LB').length).toBeGreaterThan(0)   // header metrics + strip                                  // 5+5+7 — external order counts in totals
   fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
   fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Approve Changes' }))
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
@@ -571,45 +571,46 @@ it('F1: collapsed rail signals Removed (struck) on a set-aside stop', () => {
   expect(prior().querySelector('.edit-stops__badge--removed')).toBeTruthy()
 })
 
-it('F2: collapsed strip = live Gross Weight/Volume/Distance + the three costs; expanded adds carrier/equipment/utilization', () => {
+it('F2: strip = Distance/Gross Weight/Volume only; live while collapsed, no costs or carrier cells', () => {
   setup({ summary: summaryFull })
-  // not editing: Prior open → the full set
-  expect(strip().getByText('Accepted Carrier')).toBeTruthy()
-  edit()
-  expect(strip().queryByText('Accepted Carrier')).toBeNull()
-  expect(strip().queryByText('Utilization')).toBeNull()
-  expect(strip().getByText('Gross Weight')).toBeTruthy()
-  expect(strip().getByText('Volume')).toBeTruthy()
-  expect(strip().getByText('Distance')).toBeTruthy()
-  expect(strip().getByText('Prior Cost')).toBeTruthy()
-  expect(strip().getByText('New Direct Cost')).toBeTruthy()
-  expect(strip().getByText('New Consolidated Cost')).toBeTruthy()
-  expect(strip().getByText('$1,000.00')).toBeTruthy()
+  for (const collapsed of [false, true]) {
+    if (collapsed) edit()
+    for (const t of ['Prior Cost', 'New Direct Cost', 'New Consolidated Cost', 'Accepted Carrier', 'Seed Equipment', 'Utilization']) expect(strip().queryByText(t)).toBeNull()
+    for (const t of ['Distance', 'Gross Weight', 'Volume']) expect(strip().getByText(t)).toBeTruthy()
+  }
   // live: setting an order aside changes the weight (A = 5 LB, of 1,015 LB)
   const before = strip().getByText(/LB$/).textContent
   fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
   expect(strip().getByText(/LB$/).textContent).not.toBe(before)
-  fireEvent.click(screen.getByRole('button', { name: 'Show prior plan' }))
-  expect(strip().getByText('Accepted Carrier')).toBeTruthy()
-  expect(strip().getByText('Seed Equipment')).toBeTruthy()
-  expect(strip().getByText('Utilization')).toBeTruthy()
 })
 
-it('F2: the All Stops header no longer repeats the numbers, and keeps View Planning Dates', () => {
-  setup()
+it('F2: All Stops shows the 9 fields left of View Planning Dates', () => {
+  setup({ summary: summaryFull })
   const head = document.querySelector('.edit-stops__head')
-  expect(head.textContent).toBe('View Planning Dates')
-  expect(head.querySelector('.edit-stops__metrics')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'View Planning Dates' }))
+  const metrics = head.querySelector('.edit-stops__metrics')
+  const link = within(head).getByRole('button', { name: 'View Planning Dates' })
+  for (const t of ['Prior Cost', 'New Direct Cost', 'New Consolidated Cost', 'Distance', 'Gross Weight', 'Volume', 'Accepted Carrier', 'Seed Equipment', 'Utilization']) {
+    expect(within(metrics).getByText(t)).toBeTruthy()
+  }
+  expect(within(metrics).getByText('ACME')).toBeTruthy()
+  // metrics precede the link in DOM order (lead side)
+  expect(metrics.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  fireEvent.click(link)
   expect(screen.getByText('Planned Pickup')).toBeTruthy()
   expect(screen.getByText('Planned Delivery')).toBeTruthy()
 })
 
-it('F2: an expanded changed value shows the Prior/New pair with a live New half', () => {
+it('F2: All Stops shows -- for a missing summary field', () => {
+  setup()
+  const m = within(document.querySelector('.edit-stops__metrics'))
+  expect(m.getByText('Utilization').parentElement.textContent).toContain('--')
+})
+
+it('F2: an expanded changed value shows the Prior/New pair; collapsed shows the current value only', () => {
   setup({ summary: summaryFull, consolidation: { ...noChange, summaryChanges: { grossWeight: { prior: '999 LB', new: '1,015 LB' } } } })
   expect(strip().getByText('999 LB')).toBeTruthy()
   edit()
-  expect(strip().queryByText('999 LB')).toBeNull()   // collapsed: current value only
+  expect(strip().queryByText('999 LB')).toBeNull()
 })
 
 it('F3: one decorative info icon between each pair of stops in New and expanded Prior; none in collapsed Prior', () => {

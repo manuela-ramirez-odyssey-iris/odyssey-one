@@ -1,7 +1,7 @@
 import { Badge, SummaryStrip } from '@odyssey/ui'
 import { TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
 
 // KPI strip (SummaryStrip staging, S79e — Figma `Overview` 4178:8365).
 // Extracted from StopsTab (S143 Task 2b) so the standalone Edit Shipment
@@ -9,10 +9,11 @@ import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.j
 // strip above the editor — StopsTab keeps rendering it unchanged via this
 // import, no markup/behavior change there.
 //
-// S164 F2 (Jana 09-29, user ruling): the Edit Stops editor renders it with the
-// optional `live` / `costs` / `priorCollapsed` props — VALUES only, live off
-// the sandbox. Without them (StopsTab) the output is today's 6 cells.
-export default function ReviewKpiStrip({ summary, changes, live, costs, priorCollapsed }) {
+// S164 F2 (revised, user 2026-09-29): the Edit Stops editor renders it with the
+// optional `live` / `priorCollapsed` props: ONLY Distance, Gross Weight, Volume
+// (costs + carrier/equipment/utilization live in the All Stops header). Without
+// them (StopsTab) the output is today's 6 cells.
+export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed }) {
   // LINX-15435: "Distance, Gross Weight, and Volume shall display Prior and
   // New values when changed. If a value has not changed, only the current
   // value shall be displayed."
@@ -47,18 +48,11 @@ export default function ReviewKpiStrip({ summary, changes, live, costs, priorCol
         ),
       }
     }
+    // StopsTab's order, so the .stops-kpi-strip first-cell width lands on Distance.
     const liveItems = [
+      liveCell('distance', 'Distance'),
       liveCell('grossWeight', 'Gross Weight'),
       liveCell('volume', 'Volume'),
-      liveCell('distance', 'Distance'),
-      { label: 'Prior Cost', value: val(costs?.prior) },
-      { label: 'New Direct Cost', value: val(costs?.newDirect) },
-      { label: 'New Consolidated Cost', value: val(costs?.newConsolidated) },
-      ...(priorCollapsed ? [] : [
-        { label: 'Accepted Carrier', value: summary.acceptedCarrier },
-        { label: 'Seed Equipment', value: summary.seedEquipment },
-        { label: 'Utilization', value: summary.utilization },
-      ]),
     ]
     return <SummaryStrip sticky className="stops-kpi-strip" items={liveItems} aria-label="Shipment KPIs" />
   }
