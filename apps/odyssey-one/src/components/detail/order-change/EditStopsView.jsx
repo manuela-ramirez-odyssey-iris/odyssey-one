@@ -188,20 +188,19 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     ro.observe(strip)
     return () => ro.disconnect()
   }, [])
-  // S164 F8: the ORIGINAL expanded Prior line (pre-Edit, full width) is the
-  // MAXIMUM length of the collapsed rail. Measure only when not editing: in
-  // edit mode expanded Prior sits in a narrow column, its rows wrap and the
-  // rail gets taller than the original. Re-runs after Save/Discard/Reset or a
-  // stops change outside edit mode. Also publishes the average segment so the
-  // CSS can give the collapsed rail a natural (shorter) height.
+  // S164 F8: the ORIGINAL expanded Prior line = first marker centre (P1) to
+  // last marker centre (final D), measured only when not editing: in edit
+  // mode expanded Prior sits in a narrow column and its rows wrap. The
+  // collapsed rail's marker-to-marker length equals this (edit-stops.css).
+  // Re-runs after Save/Discard/Reset or a stops change outside edit mode.
   const priorCardRef = useRef(null)
   useLayoutEffect(() => {
     if (editing) return
-    const rail = priorCardRef.current?.querySelector('.edit-stops__rail')
-    if (!rail) return
-    const h = rail.offsetHeight
-    rootRef.current?.style.setProperty('--edit-stops-prior-rail-h', `${h}px`)
-    rootRef.current?.style.setProperty('--edit-stops-prior-seg-h', `${h / Math.max(sb.prior.length - 1, 1)}px`)
+    const badges = priorCardRef.current?.querySelectorAll('.edit-stops__rail .stop-badge')
+    if (!badges?.length) return
+    const centre = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 }
+    const h = centre(badges[badges.length - 1]) - centre(badges[0])
+    rootRef.current?.style.setProperty('--edit-stops-prior-line-h', `${h}px`)
   })
   const prevTops = useRef(null)
   const [flash, setFlash] = useState([])

@@ -442,8 +442,8 @@
 }
 /* Collapsed (F8): no float — in normal flow like expanded Prior, but it does
    NOT stretch with the row: the rail's max-height is the expanded rail's
-   measured height (--edit-stops-prior-rail-h, set in EditStopsView); height is
-   pinned to it too so the markers have room to spread (space-between). */
+   measured line (--edit-stops-prior-line-h, P1 centre to last D centre, set in
+   EditStopsView); the rail is pinned to that line + half a marker per end. */
 .edit-stops__prior-card--rail {
   flex: 0 0 auto;
   box-sizing: border-box;
@@ -459,12 +459,16 @@
    runs unbroken to the next marker. The row's content becomes a
    pointer-transparent overlay; only the badge-high hit area (20px) is live, so
    the segment below stays free for the leg tooltip (showRailTip). */
-/* Length: the ORIGINAL expanded rail (--edit-stops-prior-rail-h, measured
-   pre-Edit) is a MAXIMUM, never forced. Each segment gets the expanded rail's
-   average segment (--edit-stops-prior-seg-h) but may shrink, so the rail is
-   natural-height and the max-height cap keeps it <= the original line. */
-.edit-stops__rail--markers { flex: 0 1 auto; align-self: center; width: 32px; max-height: var(--edit-stops-prior-rail-h, none); }
-.edit-stops__rail--markers .odyssey-timeline__row { gap: 0; flex: 0 1 var(--edit-stops-prior-seg-h, 0); }
+/* Length: first-to-last marker centre distance = --edit-stops-prior-line-h
+   (the original expanded P1-to-D line). Rail height = line + one marker
+   (20px = half a marker at each end); every non-last row is badge + segment
+   and shares the height equally (equal flex bases), the last row is just the
+   badge, so centre-to-centre sums to the line. Unmeasured (jsdom, loading
+   straight into edit): var is unset, the calc is invalid, height stays auto
+   and each segment takes a compact --spacing-8. */
+.edit-stops__rail--markers { flex: 0 0 auto; align-self: center; width: 32px; height: calc(var(--edit-stops-prior-line-h) + 20px); }
+.edit-stops__rail--markers .odyssey-timeline__row { gap: 0; flex: 1 1 auto; min-height: 0; }
+.edit-stops__rail--markers .odyssey-timeline__segment { flex: 1 1 var(--spacing-8); min-height: 0; }
 .edit-stops__rail--markers .odyssey-timeline__row:last-child { flex: 0 0 auto; }
 .edit-stops__rail--markers .odyssey-timeline__content { position: absolute; inset: 0; pointer-events: none; }
 .edit-stops__rail--markers [data-tooltip-trigger] {

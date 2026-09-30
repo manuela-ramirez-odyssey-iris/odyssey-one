@@ -685,23 +685,27 @@ it('F8: collapsed Prior card is not sticky and has no footer-derived height', ()
   expect(editStopsCss).not.toMatch(/--edit-stops-footer-h|--edit-stops-scroll-h/)
 })
 
-it('F8: only the original (non-editing) expanded rail is measured; Edit never overwrites it; max-height uses the var', () => {
-  const orig = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
-  let railH = 321
-  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.classList.contains('edit-stops__rail') ? railH : 0 } })
+it('F8: prior line = first-to-last marker centre on the ORIGINAL expanded Prior; Edit never overwrites it; rail CSS uses the var', () => {
+  const orig = HTMLElement.prototype.getBoundingClientRect
+  let mid = [100, 340]
+  HTMLElement.prototype.getBoundingClientRect = function () {
+    const badges = this.closest('.edit-stops__prior-card')?.querySelectorAll('.edit-stops__rail .stop-badge')
+    const i = badges ? [...badges].indexOf(this) : -1
+    const c = i === 0 ? mid[0] : i === badges?.length - 1 ? mid[1] : 0
+    return { top: c - 10, height: 20, bottom: c + 10, left: 0, right: 0, width: 0 }
+  }
   try {
     setup()
     const root = document.querySelector('.edit-stops')
-    expect(root.style.getPropertyValue('--edit-stops-prior-rail-h')).toBe('321px')
-    // edit-mode layout wraps rows taller; that must not replace the original
-    railH = 900
+    expect(root.style.getPropertyValue('--edit-stops-prior-line-h')).toBe('240px')
+    mid = [10, 900]
     edit()
-    expect(root.style.getPropertyValue('--edit-stops-prior-rail-h')).toBe('321px')
+    expect(root.style.getPropertyValue('--edit-stops-prior-line-h')).toBe('240px')
   } finally {
-    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', orig)
+    HTMLElement.prototype.getBoundingClientRect = orig
   }
-  expect(editStopsCss).toMatch(/\.edit-stops__rail--markers \{[^}]*max-height:\s*var\(--edit-stops-prior-rail-h/)
-  expect(editStopsCss).not.toMatch(/\.edit-stops__rail--markers \{[^}]*[^-]height:\s*var\(--edit-stops-prior-rail-h/)
+  expect(editStopsCss).toMatch(/\.edit-stops__rail--markers \{[^}]*height:\s*calc\(var\(--edit-stops-prior-line-h\) \+ 20px\)/)
+  expect(editStopsCss).not.toMatch(/prior-rail-h|prior-seg-h/)
 })
 
 it('F7: the info icon is offset to the LEFT of the line (translate -100%, negative left)', () => {
