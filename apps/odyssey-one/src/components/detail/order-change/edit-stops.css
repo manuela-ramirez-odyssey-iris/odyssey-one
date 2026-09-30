@@ -543,25 +543,31 @@
   --edit-stops-tip-inset: calc(var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4) - var(--spacing-8) - var(--spacing-6) - var(--spacing-5) - var(--edit-stops-badge-half));
 }
 /* ONE width for everything but the footer (user 2026-09-30, "strips should be
-   the width of subaccordions"): the summary block, the KPI strip and both panels. */
+   the width of subaccordions"): the summary block, the RESTING KPI strip and both
+   panels. The stuck (Mini) strip is excluded: it keeps SummaryStrip's own behaviour
+   (inline bleed margins, centred, content-hugging cells). */
 .edit-stops--no-prior > .sub-accordion,
 .edit-stops--no-prior > .consolidation-summary,
-.edit-stops--no-prior > .stops-kpi-strip {
+.edit-stops--no-prior > .stops-kpi-strip:not(.summary-strip--mini) {
   max-width: calc(100% - 2 * var(--edit-stops-tip-inset));
   margin-inline: auto;
 }
-/* SummaryStrip's stuck state bleeds to 120% with INLINE negative margins; keep
-   the sticky strip on the same centred width. */
-.edit-stops--no-prior > .stops-kpi-strip { margin-inline: auto !important; }
 /* S11: Selected shipments sits above All Stops in the same centred width, with
    the strip's own gap (.edit-stops__strip-gap, spacing-6) between the two panels. */
 .edit-stops--no-prior > .sub-accordion + .sub-accordion { margin-top: var(--spacing-6); }
 
-/* The metrics strip (both its not-editing and edit-mode contents, and its sticky
-   Mini state - the basis is fixed, so the columns don't move): left-aligned
-   fixed columns of one W, matching the top info strip's grid. */
-.edit-stops--no-prior > .stops-kpi-strip { justify-content: flex-start; }
-.edit-stops--no-prior > .stops-kpi-strip .summary-strip__cell {
+/* The RESTING metrics strip (not-editing metrics and edit-mode Distance / Gross
+   Weight / Volume alike): left-aligned fixed columns of one W, matching the top
+   info strip's grid. Resting only - the Mini (stuck) strip stays centred and
+   content-hugging, as SummaryStrip draws it.
+   Specificity: app/panes/stops.css widens the FIRST cell to 178px for order
+   change's Distance Prior/New pair - `.stops-kpi-strip:not(.summary-strip--mini)
+   > .summary-strip__cell:first-child` = (0,4,0). That would shift every divider
+   18px off the top strip's 2W / 4W, so this cell rule needs more: the doubled
+   `.edit-stops.edit-stops--no-prior` root makes it (0,5,0) and it wins. Order
+   change never has the modifier class, so stops.css still applies there. */
+.edit-stops--no-prior > .stops-kpi-strip:not(.summary-strip--mini) { justify-content: flex-start; }
+.edit-stops.edit-stops--no-prior > .stops-kpi-strip:not(.summary-strip--mini) > .summary-strip__cell {
   box-sizing: border-box;
   flex: 0 0 var(--edit-stops-cell-w);
   max-width: var(--edit-stops-cell-w);
