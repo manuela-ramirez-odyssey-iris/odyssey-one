@@ -187,3 +187,23 @@ Plan: `docs/superpowers/plans/2026-09-29-consolidation-via-order-change.md` (rul
   - check the landing animation and that the Tender tab lists the untendered carriers.
   - **The Apply and the concurrent-tender roll write Neon, so ask before that click.**
 - No reseed. One deploy at the end, on the user's go, bundle-grepped for `Only shipments in Consolidation` and `A consolidation needs at least two orders`.
+
+---
+
+## S11. Addendum (user, 2026-09-30): the old summary and table return, New → "Stops Sequence"
+
+Approved placement (one home per field):
+
+| Place | Fields |
+|---|---|
+| **Consolidation Summary** heading + info strip (top; old page's layout, `SummaryStrip background={false}`) | Customer Name · Selected Shipments (n) as ID chips (**gray**, not purple) |
+| Summary metrics strip (**not editing**) | Total Weight · Weight Utilization · Total Volume · Volume Utilization · Hazmat (negative tone when Yes) |
+| The same slot **in edit mode** | Distance · Gross Weight · Volume (today's live strip) |
+| All Stops row | Consolidated Cost · Seed Equipment, then View Planning Dates. **Utilization leaves the row** (the summary carries Weight and Volume Utilization). |
+| Below All Stops, same centred width | **Selected shipments to consolidate** SubAccordion (not collapsible), "{n} items", read-only DataTable: Odyssey Shipment ID · Customer ID · Shipment Status · Order Count · Order # · Pickup Date (`COLUMN_CONFIG` renderers) |
+| New plan column title | **Stops Sequence** (consolidation only; order change keeps "New") |
+
+- The metrics are **live** from the orders on the stops (Add/Remove move them). Utilization comes from `equipmentCapacity.js` with the anchor's equipment. Hazmat is Yes if any order on the stops is hazmat.
+- The table lists the host's current `rows` (the picked shipments, minus any removed in the tendered modal).
+- The old page's code and CSS are in git at `a9173dc` (`ConsolidationReviewRoute.jsx`, `consolidation-review.css`, `proposal.js`). Reuse its markup and values, don't re-invent them.
+- Order change: pixel-identical.
