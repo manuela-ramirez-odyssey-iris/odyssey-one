@@ -3,6 +3,9 @@ import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import EditStopsView, { zoneOn } from './EditStopsView'
 import { legDistances } from './stopsSandbox.js'
+import { readFileSync } from 'node:fs'
+// vitest stubs CSS imports (?raw comes back empty), so read the file directly
+const editStopsCss = readFileSync('src/components/detail/order-change/edit-stops.css', 'utf8') // vitest runs from apps/odyssey-one
 
 vi.mock('./AddOrdersModal', () => ({
   default: ({ onAdd }) => <button onClick={() => onAdd([{ orderNumber: 'E', sourceSellShipment: '77' }])}>mock-add</button>,
@@ -627,15 +630,61 @@ it('F2: an expanded changed value shows the Prior/New pair; collapsed shows the 
   expect(strip().queryByText('999 LB')).toBeNull()
 })
 
-it('F3: one decorative info icon between each pair of stops in New and expanded Prior; none in collapsed Prior', () => {
+it('F3/F7: one decorative info icon per segment in New, expanded Prior and collapsed Prior, beside (not on) the rail', () => {
   setup()
   const icons = (root) => root.querySelectorAll('.edit-stops__leg-icon')
   expect(icons(prior())).toHaveLength(2)
   expect(icons(screen.getByRole('region', { name: 'New plan' }))).toHaveLength(2)
   expect(icons(prior())[0].getAttribute('aria-hidden')).toBe('true')
   edit()
-  expect(icons(prior())).toHaveLength(0)
+  expect(icons(prior())).toHaveLength(2)
   expect(icons(screen.getByRole('region', { name: 'New plan' }))).toHaveLength(2)
+  // never inside the rail element that draws the line
+  document.querySelectorAll('.edit-stops__leg-icon').forEach((i) => expect(i.closest('.odyssey-timeline__rail')).toBeNull())
+})
+
+it('F7: a gap element sits between the KPI strip and the All Stops panel', () => {
+  setup()
+  const gap = document.querySelector('.edit-stops__strip-gap')
+  expect(gap).toBeTruthy()
+  expect(gap.nextElementSibling.textContent).toContain('All Stops')
+})
+
+it('F7: collapsed Prior: Maximize2 expand icon, same header font as expanded, leg tooltip on a segment', () => {
+  setup()
+  const titleOf = () => within(prior()).getByRole('heading', { name: 'Prior' })
+  const expandedClass = titleOf().className
+  edit()
+  expect(titleOf().className).toBe(expandedClass)
+  expect(titleOf().className).toContain('text-label-base-semibold')
+  const show = within(prior()).getByRole('button', { name: 'Show prior plan' })
+  expect(show.querySelector('.lucide-maximize-2')).toBeTruthy()
+  // hovering the first segment shows Prior's leg distance (existing showRailTip)
+  const seg = prior().querySelector('.odyssey-timeline__rail')
+  fireEvent.mouseMove(seg, { clientY: 100 })
+  expect(screen.getByRole('tooltip').textContent).toContain('Distance from P1 to P2')
+  fireEvent.mouseLeave(prior())
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  // the last marker has no segment, so no tooltip
+  const rails = prior().querySelectorAll('.odyssey-timeline__rail')
+  fireEvent.mouseMove(rails[rails.length - 1])
+  expect(screen.queryByRole('tooltip')).toBeNull()
+})
+
+it('F7: the info icon is offset to the LEFT of the line (translate -100%, negative left)', () => {
+  const rule = editStopsCss.match(/\.edit-stops__leg-icon \{[^}]*\}/)[0]
+  expect(rule).toMatch(/left: calc\(-1 \*/)
+  expect(rule).toMatch(/translate\(-100%/)
+  expect(rule).toMatch(/var\(--text-placeholder\)/)
+  setup()
+  expect(document.querySelector('.edit-stops__leg-icon svg').getAttribute('width')).toBe('16')   // ICON_MD
+})
+
+it('F7: Prior\'s collapse motion is switched off under prefers-reduced-motion', () => {
+  // the media block holds two rules, so match through its closing "}\n}"
+  const block = editStopsCss.match(/@media \(prefers-reduced-motion: reduce\) \{\s*\.edit-stops__plan--prior[\s\S]*?\n\}/)
+  expect(block?.[0]).toMatch(/transition: none/)
+  expect(block?.[0]).toMatch(/animation: none/)
 })
 
 it('F4: the move arrows render in edit mode without any hover, disabled ones included', () => {

@@ -374,44 +374,105 @@
   .edit-stops [data-flash] { animation: none; }
 }
 
-/* S164 F3 — decorative info cue over the rail segment between two stops.
-   The rail is 32px wide + the row's spacing-3 gap, so its centre sits
-   (spacing-3 + 16px) left of the content edge; bottom spacing-2 = the
-   segment's end (the rail's own bottom padding). The surface background
-   hides the line behind it. Absolute + pointer-events none: no layout shift,
-   and the rail still owns the hover that shows the leg tooltip. */
+/* S164 F3/F7 — decorative info cue BESIDE the rail (the line stays unbroken),
+   centred on the segment between two stops. Positioned against the stop's
+   (or the collapsed row's) box: the segment runs from the 20px badge to the
+   row's bottom minus the rail's own bottom padding (--leg-rail-pad), so its
+   centre is 50% + (badge - pad) / 2. x (user 2026-09-29: LEFT of the line):
+   the line is (spacing-3 + 16px) left of the stop content; the icon's right
+   edge sits spacing-1 (+ the line's 1px half-width) left of it (translate -100%), inside the card's own
+   spacing-5 padding, clear of the markers (they only occupy the segment's
+   ends) and of the card edge. Pointer-events
+   none: no layout shift, and the rail still owns the hover that shows the leg
+   tooltip. 20px badge / 16px rail half = component-internal geometry. */
 .edit-stops__leg-icon {
+  --leg-rail-pad: 0px;
   position: absolute;
-  left: calc(-1 * (var(--spacing-3) + 16px));
-  bottom: var(--spacing-2);
-  transform: translateX(-50%);
+  top: calc(50% + (20px - var(--leg-rail-pad)) / 2);
+  left: calc(-1 * (var(--spacing-3) + 16px) - 1px - var(--spacing-1));
+  transform: translate(-100%, -50%);
   display: flex;
-  background: var(--bg-primary);
-  color: var(--text-tertiary);
+  width: var(--icon-size-md); /* 16px, pinned so nothing inherits it larger */
+  color: var(--text-placeholder); /* neutral-400 — lighter than the text-tertiary it had */
   pointer-events: none;
 }
+.edit-stops__rail--detached .edit-stops__leg-icon { --leg-rail-pad: var(--spacing-2); }
+/* Collapsed rail: the overlay starts at the rail (no content gap), so the line is 16px in. */
+.edit-stops__rail--markers .edit-stops__leg-icon { left: calc(16px - 1px - var(--spacing-1)); }
 
-/* S164 F1 — Prior collapsed to a rail. 56px = the 32px Timeline rail +
-   spacing-3 padding each side (component-internal geometry, no token).
-   Animates like the pending slot; reduced motion snaps. */
-.edit-stops__plan--prior { transition: flex-basis var(--transition-panel), padding var(--transition-panel); }
-.edit-stops__plan--prior.edit-stops__plan--collapsed {
-  flex: 0 0 56px;
-  box-sizing: border-box;
-  padding: var(--spacing-5) var(--spacing-3);
-  align-items: center;
+/* S164 F7 — gap between the KPI strip and the All Stops panel (page section rhythm). */
+.edit-stops__strip-gap { height: var(--spacing-6); }
+
+/* S164 F1/F7 — Prior. The <section> is the SLOT: its width animates (flex
+   1→0 + basis 0→rail, the flex-derived width can't transition as `width`),
+   like the pending slot; the card inside fades + slides in from the LEFT
+   (the pending panel slides from the right). Reduced motion turns both off.
+   Transparent: the card carries the panel look. stretch (not flex-start) so
+   the sticky collapsed card has the body's full height to float in. */
+.edit-stops__plan--prior {
+  --edit-stops-prior-rail-w: 80px; /* 32px rail centred, the icon's 16px + spacing-1 to its left, spacing-3 padding each side (component-internal geometry) */
+  display: block;
+  align-self: stretch;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: clip;
+  transition: flex var(--transition-panel);
+}
+.edit-stops__plan--prior.edit-stops__plan--collapsed { flex: 0 0 var(--edit-stops-prior-rail-w); }
+.edit-stops__plan--motion > .edit-stops__prior-card { animation: edit-stops-prior-in var(--transition-panel); }
+@keyframes edit-stops-prior-in {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--spacing-4))); }
 }
 @media (prefers-reduced-motion: reduce) {
   .edit-stops__plan--prior { transition: none; }
+  .edit-stops__plan--motion > .edit-stops__prior-card { animation: none; }
+}
+.edit-stops__prior-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-5);
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+/* Collapsed: a floating card like the pending panel (same sticky top), stretched
+   down to the sticky footer. Height = the scroller's visible height minus the
+   footer and the strip: top is (strip - spacing-8 + spacing-4) and the card
+   stops spacing-4 above the footer, so the spacing terms cancel.
+   --edit-stops-scroll-h / -footer-h / -strip-h are measured in EditStopsView. */
+.edit-stops__prior-card--rail {
+  position: sticky;
+  top: calc(-1 * var(--spacing-8) + var(--edit-stops-strip-h, var(--spacing-8)) + var(--spacing-4));
+  box-sizing: border-box;
+  width: var(--edit-stops-prior-rail-w);
+  height: calc(var(--edit-stops-scroll-h, 100vh) - var(--edit-stops-footer-h, 0px) - var(--edit-stops-strip-h, var(--spacing-8)));
+  padding: var(--spacing-5) var(--spacing-3);
+  align-items: center;
 }
 .edit-stops__prior-head { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
-.edit-stops__plan-label { margin: 0; color: var(--text-primary); }
-/* Expanded Prior in edit mode: title left, hide chevron right. */
+/* Expanded Prior in edit mode: title left, hide button right. */
 .edit-stops__plan--prior .edit-stops__plan-head { flex-wrap: nowrap; }
-/* Marker-only rail: the (empty) content slot becomes a focusable hit area
-   laid over the whole row, carrying the tooltip. */
-.edit-stops__rail--markers .odyssey-timeline__content { position: absolute; inset: 0; }
-.edit-stops__rail--markers [data-tooltip-trigger] { width: 100%; height: 100%; }
+/* Marker rail: fills the card's height. Every row but the last grows equally,
+   so the P/D markers spread top to bottom (space-between) while each line
+   runs unbroken to the next marker. The row's content becomes a
+   pointer-transparent overlay; only the badge-high hit area (20px) is live, so
+   the segment below stays free for the leg tooltip (showRailTip). */
+.edit-stops__rail--markers { flex: 1 1 auto; align-self: center; width: 32px; }
+.edit-stops__rail--markers .odyssey-timeline__row { gap: 0; flex: 1 1 0; }
+.edit-stops__rail--markers .odyssey-timeline__row:last-child { flex: 0 0 auto; }
+.edit-stops__rail--markers .odyssey-timeline__content { position: absolute; inset: 0; pointer-events: none; }
+.edit-stops__rail--markers [data-tooltip-trigger] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 20px; /* the badge's height */
+  pointer-events: auto;
+}
 .edit-stops__mark {
   position: relative;
   width: 100%;

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, ArrowDown, CalendarDays, ChevronsLeft, ChevronsRight, GripVertical, Info, TriangleAlert } from 'lucide-react'
+import { ArrowUp, ArrowDown, CalendarDays, ChevronsLeft, GripVertical, Info, Maximize2, TriangleAlert } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
@@ -157,6 +157,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // S164 F1 (Jana 09-29 @03:30): Edit collapses Prior to a marker rail so the
   // planner gets the room; leaving edit mode (Save/Discard/Reset) re-expands.
   const [priorCollapsed, setPriorCollapsed] = useState(false)
+  // S164 F7: the enter motion runs only once the planner has toggled Prior
+  // (not on first paint), so the page doesn't fade Prior in on load.
+  const [priorMotion, setPriorMotion] = useState(false)
+  const setPrior = (v) => { setPriorMotion(true); setPriorCollapsed(v) }
 
   const initialTotals = useMemo(() => totals(initial, orders), [initial, orders])
   const curTotals = totals(sb, allOrders)
@@ -179,8 +183,20 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   useEffect(() => {
     const strip = rootRef.current?.closest('.order-change')?.querySelector('.summary-strip--sticky')
     if (!strip || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => rootRef.current?.style.setProperty('--edit-stops-strip-h', `${strip.offsetHeight}px`))
-    ro.observe(strip)
+    // S164 F7: the floating collapsed Prior card stretches down to the sticky
+    // footer — it needs the footer's height and the scroller's visible height
+    // (the page scrolls inside <main>, not the window).
+    const footer = rootRef.current.querySelector('.edit-stops__footer')
+    let scroller = rootRef.current.parentElement
+    while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement
+    const set = (k, v) => rootRef.current?.style.setProperty(k, `${v}px`)
+    const measure = () => {
+      set('--edit-stops-strip-h', strip.offsetHeight)
+      if (footer) set('--edit-stops-footer-h', footer.offsetHeight)
+      if (scroller) set('--edit-stops-scroll-h', scroller.clientHeight)
+    }
+    const ro = new ResizeObserver(measure)
+    ;[strip, footer, scroller].forEach((el) => el && ro.observe(el))
     return () => ro.disconnect()
   }, [])
   const prevTops = useRef(null)
@@ -269,12 +285,12 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const startEditing = () => { setErrorMsg(null); setSnapshot(sb); setEditing(true); setPriorCollapsed(true) }
+  const startEditing = () => { setErrorMsg(null); setSnapshot(sb); setEditing(true); setPrior(true) }
   const leaveEditing = (next) => {
     if (next) setSb(next)
     setErrorMsg(null)
     setEditing(false)
-    setPriorCollapsed(false)
+    setPrior(false)
     setSnapshot(null)
     setStopsPrompt(null)
   }
@@ -535,9 +551,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               })}
             </div>
             {/* S164 F3 (Jana 09-29 @04:54): a DECORATIVE cue that the leg
-                below this stop carries a distance. It sits over the rail's
-                segment (pointer-events none, so the rail still owns the hover
-                and showRailTip / the tooltip are untouched). */}
+                below this stop carries a distance. F7: it sits BESIDE the
+                rail (the line stays unbroken), centred on the segment;
+                pointer-events none, so the rail still owns the hover and
+                showRailTip / the tooltip are untouched. */}
             {i < list.length - 1 && <span className="edit-stops__leg-icon" aria-hidden="true"><Info {...ICON_MD} /></span>}
           </Row>
         ),
@@ -554,18 +571,28 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       const removed = diff.removedStopKeys.includes(s.key)
       const moved = !removed && diff.movedStopKeys.includes(s.key)
       const state = removed ? 'Removed' : moved ? 'Moved' : null
+      // F7: the collapsed rail shows the same leg tooltip as expanded Prior —
+      // same legTips entry, same showRailTip; data-leg-tip darkens the segment.
+      const last = i === sb.prior.length - 1
+      const leg = priorLegs.legs[i + 1]
+      if (!last) legTips.prior[s.key] = { next: sb.prior[i + 1].key, subtitle: `Distance from ${labels[i]} to ${labels[i + 1]}`, content: leg == null ? '--' : `${leg.toFixed(2)} mi` }
+      const legOn = tip?.key === `prior:${s.key}`
+      const legEnd = tip?.key.startsWith('prior:') && tip.next === s.key
       return {
         key: s.key,
         label: labels[i],
         status: 'completed',
         showStatusBadge: false,
-        badgeClassName: removed ? 'edit-stops__badge--removed' : undefined,
+        badgeClassName: [removed && 'edit-stops__badge--removed', (legOn || legEnd) && 'edit-stops__badge--leg'].filter(Boolean).join(' ') || undefined,
         content: (
-          <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `${labels[i]}${state ? ` · ${state}` : ''}`, content: `${s.location || '--'} · ${s.date || '--'}` }] }}>
-            <button type="button" className="edit-stops__mark" aria-label={`${labels[i]}, ${s.location || '--'}, ${s.date || '--'}${state ? `, ${state}` : ''}`}>
-              {moved && <span className="edit-stops__mark-dot" aria-hidden="true" />}
-            </button>
-          </TooltipTrigger>
+          <>
+            <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `${labels[i]}${state ? ` · ${state}` : ''}`, content: `${s.location || '--'} · ${s.date || '--'}` }] }}>
+              <button type="button" className="edit-stops__mark" data-stop-key={s.key} data-leg-tip={legOn || undefined} aria-label={`${labels[i]}, ${s.location || '--'}, ${s.date || '--'}${state ? `, ${state}` : ''}`}>
+                {moved && <span className="edit-stops__mark-dot" aria-hidden="true" />}
+              </button>
+            </TooltipTrigger>
+            {!last && <span className="edit-stops__leg-icon" aria-hidden="true"><Info {...ICON_MD} /></span>}
+          </>
         ),
       }
     })
@@ -588,6 +615,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           changed: { grossWeight: weightChanged, volume: volumeChanged, distance: distanceChanged },
         }}
       />
+      {/* S164 F7: air between the strip and the All Stops panel. */}
+      <div className="edit-stops__strip-gap" />
       <SubAccordion
         title="All Stops"
         collapsible={false}
@@ -613,23 +642,25 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         <Alert variant={alertVariant} showClose={false}>{alertText}</Alert>
 
         <div className="edit-stops__body">
-          <section className={`edit-stops__plan edit-stops__plan--prior${editing && priorCollapsed ? ' edit-stops__plan--collapsed' : ''}`} aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
+          {/* S164 F7: the section is the SLOT (its width animates, like the
+              pending slot); the card inside floats when collapsed. */}
+          <section className={`edit-stops__plan edit-stops__plan--prior${editing && priorCollapsed ? ' edit-stops__plan--collapsed' : ''}${priorMotion ? ' edit-stops__plan--motion' : ''}`} aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
             {editing && priorCollapsed ? (
-              <>
+              <div className="edit-stops__prior-card edit-stops__prior-card--rail" key="rail">
                 <div className="edit-stops__prior-head">
-                  <h3 className="text-label-sm-medium edit-stops__plan-label">Prior</h3>
-                  <Button variant="icon" icon={<ChevronsRight {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPriorCollapsed(false)} />
+                  <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
+                  <Button variant="icon" icon={<Maximize2 {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPrior(false)} />
                 </div>
                 <Timeline items={priorMarkers()} className="edit-stops__rail edit-stops__rail--markers" aria-label="Prior stops" />
-              </>
+              </div>
             ) : (
-              <>
+              <div className="edit-stops__prior-card" key="full">
                 <div className="edit-stops__plan-head">
                   <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
-                  {editing && <Button variant="icon" icon={<ChevronsLeft {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPriorCollapsed(true)} />}
+                  {editing && <Button variant="icon" icon={<ChevronsLeft {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPrior(true)} />}
                 </div>
                 <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
-              </>
+              </div>
             )}
           </section>
           <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef} onMouseMove={(e) => showRailTip(e, 'new')} onMouseLeave={() => setTip(null)}>

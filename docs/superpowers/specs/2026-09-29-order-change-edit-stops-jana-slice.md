@@ -74,6 +74,26 @@ Today (`OrderCompareModal.jsx`) the modal stacks an "Order Number: …" HeaderSt
 - **Bands:** check `OrderChangeTenderDetails bare` for its Changed/Unchanged bands. If they render as HeaderStrips, leave them as they are (they're shared with the Direct review) and note it in the report.
 - **Decision log:** DEC-196 amended (layout only: per line is kept, blocks become tabs).
 
+## F7 — Visual pass after the first look (user 2026-09-29, confirmed "Yes")
+1. **Spacing:** add a gap between the Edit Stops strip and the All Stops SubAccordion (spacing token; match the page's section rhythm, e.g. `--spacing-6`).
+2. **Info icon off the line:** the F3 `Info` icon moves to the **left side** of the rail (not on it; user 2026-09-29: "place icons left side of the line"), vertically centred on its segment. It is **16px** (`--icon-size-md`), **lighter** (`--text-placeholder`), and **close to the line** (about a `--spacing-1` gap) (user 2026-09-29). The rail line runs unbroken and is centred in its marker column. This applies to New, expanded Prior and collapsed Prior. The hover tooltip mechanics stay as they are (F3).
+3. **Collapse/expand motion = Orders Pending To Assign's** (`.edit-stops__pending-slot`, `edit-stops.css:283-312`): the width animates via `--transition-panel`, and the content fades and slides (opacity + translateX, from the left for Prior). Reduced motion turns it off. Replace F1's `flex-basis`/`padding` transition with this pattern.
+4. **Collapsed Prior is a floating card:**
+   - **Header:** "Prior" keeps the **same header font as expanded** (`text-label-base-semibold edit-stops__plan-title`), not the smaller label.
+   - **Expand button:** icon is lucide **`Maximize2`** (was `ChevronsRight`); `aria-label="Show prior plan"`, `aria-expanded="false"`. The collapse button in expanded Prior is unchanged.
+   - **Card:** it floats like the pending panel: `position: sticky`, the same `top` calculation (`--edit-stops-strip-h`), `--bg-primary`, 1px `--border-subtle`, `--radius-2xl`, no shadow.
+   - **Height:** it stretches down to the `StepperButtonsFooter`. Size its height to the viewport space between the sticky strip and the sticky footer; measure the footer's height the way `--edit-stops-strip-h` is measured, if needed.
+   - **Rail:** the P/D markers spread along the full height (flex column, `justify-content: space-between`), with a longer line between them.
+   - **Distance on the collapsed rail:** it now shows the `Info` icon beside each segment, and hovering a segment shows the same leg-distance tooltip (*"Distance from P1 to P2"*, `x.xx mi`) from Prior's `legTips`. Use the existing tooltip mechanism, and add no new tooltip type. This supersedes F3's "collapsed Prior shows no icons".
+- **Tests:**
+  - a gap class or structure between strip and All Stops;
+  - the icon is outside the rail line element;
+  - the expand button uses `Maximize2` (`data-testid` or the lucide class `lucide-maximize-2`);
+  - the collapsed header has `text-label-base-semibold`;
+  - collapsed Prior renders one info icon per segment and shows the leg tooltip on hover;
+  - reduced-motion CSS exists (a smoke test is enough).
+  - Layout (height, float) is jsdom-invisible, so report it for a browser check.
+
 ## Tests (vitest)
 - **F1:** Edit collapses Prior. The collapsed rail shows markers only, with no order ids or addresses. The chevron expands and collapses it, with the right aria-expanded. Save, Discard and Reset re-expand it. The Moved/Removed signals render.
 - **F2 (revised ×2):** the strip has exactly Distance, Gross Weight, Volume, Prior Cost and New Direct Cost (new values while collapsed; pairs for the first three when expanded). The All Stops header has exactly New Consolidated Cost, Accepted Carrier, Seed Equipment and Utilization, then View Planning Dates. No label appears in both. The StopsTab strip is unchanged.
