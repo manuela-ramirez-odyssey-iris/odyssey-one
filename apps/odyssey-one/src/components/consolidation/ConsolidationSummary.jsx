@@ -4,7 +4,9 @@ import './consolidation-summary.css'
 // The old Review page's summary top block (S11), heading dropped (user 2026-09-30): the
 // backgroundless Customer Name / Selected Shipments info strip. The metrics
 // strip beneath it is EditStopsView's own (it owns the live totals and edit
-// mode). Chips are gray: purple is reserved for an external change (2026-09-30).
+// mode). The shipment ID chips are PURPLE as on the old page - the
+// user's one exception (2026-09-30) to "no purple in a consolidation" (purple is
+// otherwise reserved for an external change).
 export default function ConsolidationSummary({ customerName, customerId, rows }) {
   return (
     <div className="consolidation-summary">
@@ -18,7 +20,7 @@ export default function ConsolidationSummary({ customerName, customerId, rows })
             label: `Selected Shipments (${rows.length})`,
             value: (
               <div className="consolidation-summary__chips">
-                {rows.map((r) => <Badge key={r.id} variant="gray">{r.odysseyShipmentIdentifier || r.buyShipment || r.sellShipment}</Badge>)}
+                {rows.map((r) => <Badge key={r.id} variant="purple">{r.odysseyShipmentIdentifier || r.buyShipment || r.sellShipment}</Badge>)}
               </div>
             ),
           },

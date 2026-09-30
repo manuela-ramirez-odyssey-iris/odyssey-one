@@ -102,7 +102,7 @@ describe('ConsolidateStopsRoute', () => {
     expect(document.querySelectorAll('[data-stop-key]')).toHaveLength(3)
   })
 
-  test('S11: the summary strip, the selected-shipments table, and no purple anywhere', async () => {
+  test('S11: the summary strip, the selected-shipments table, and no purple outside the ID chips', async () => {
     renderRoute([row('111'), row('222')])
     await screen.findByText('Selected Shipments (2)')
     expect(screen.getByText('Valtris')).toBeTruthy()
@@ -116,7 +116,10 @@ describe('ConsolidateStopsRoute', () => {
     expect(before(screen.getByText('Selected Shipments (2)'), document.querySelector('.stops-kpi-strip'))).toBeTruthy()
     expect(before(document.querySelector('.stops-kpi-strip'), table)).toBeTruthy()
     expect(before(table, screen.getByText('All Stops'))).toBeTruthy()
-    expect(document.body.innerHTML).not.toMatch(/purple/)
+    // User exception (2026-09-30): the shipment ID chips are purple; nothing else is.
+    const purple = [...document.querySelectorAll('[style*="purple"]')]
+    expect(purple.length).toBe(2)
+    for (const el of purple) expect(el.closest('.consolidation-summary__chips')).toBeTruthy()
     expect(document.querySelector('.stop-badge--changed')).toBeNull()
   })
 
