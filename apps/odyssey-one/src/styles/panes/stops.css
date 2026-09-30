@@ -139,51 +139,31 @@
   width: auto;
 }
 
-/* Per-stop review card: fields | 227px Affected Orders aside */
+/* Per-stop review row (F9, user 2026-09-29): the Edit Stops light-row
+   anatomy (edit-stops.css .edit-stops__stop — mirrored, not imported): no
+   card frame; location + type badge head, compact field grid, then the
+   inline Affected Orders line. */
 .stops-timeline--review .stops-item {
-  display: grid;
-  grid-template-columns: 1fr 227px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.stops-timeline--review .stops-item__main {
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-2);
+  padding-bottom: var(--spacing-5);
 }
-/* Field grid itself (display/columns/gap) is the shared plain-mode rule
-   above — review only adds the card's inner padding. */
-.stops-timeline--review .stops-item__fields {
-  padding: var(--spacing-4);
-}
-.stops-timeline--review .stops-item__affected {
+.stops-item__head {
   display: flex;
-  flex-direction: column;
-  border-left: 1px solid var(--border-subtle);
-}
-.stops-timeline--review .stops-item__order-list {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-1);
-}
-.stops-timeline--review .stops-item__affected-row {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2);
-  height: 48px;
-  padding: 0 var(--spacing-4);
-  width: 100%;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--border-subtle);
 }
-.stops-timeline--review .stops-item__affected-row:last-child {
-  border-bottom: none;
+.stops-item__location { min-width: 0; color: var(--text-primary); }
+.stops-item__affected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-3);
 }
-.stops-timeline--review .stops-item__affected-empty {
-  padding: var(--spacing-4);
-  color: var(--text-tertiary);
-}
+.stops-item__affected-label { color: var(--text-secondary); }
+.stops-item__affected-empty { color: var(--text-tertiary); }
 
 /* LINX-15438 View Routing modal — space the three stacked GroupTables. */
 .view-routing-modal .odyssey-group-table + .odyssey-group-table {

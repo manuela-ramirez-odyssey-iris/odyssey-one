@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useSheet from '../../routes/useSheet'
 import { useApproveOrderChange } from '../../routes/shipments/useApproveOrderChange.js'
 import { TriangleAlert, ArrowRight, CalendarDays } from 'lucide-react'
-import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
+import { Badge, Button, Timeline, TitleSubtitle } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
@@ -107,8 +107,9 @@ function StopContent({ stop }) {
   )
 }
 
-// ── Per-stop content block — review mode: stop card + 227px "Affected
-// Orders" aside (LINX-15435/15436). ───────────────────────────────────────
+// ── Per-stop content block — review mode: the Edit Stops light-row anatomy
+// (F9, user 2026-09-29): location + type badge head, the fields below, and an
+// inline Affected Orders line on pickups. No HeaderStrips, no aside. ───────
 function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
   const isPickup = stop.type === 'pickup'
   const fields = stopChange?.fields || {}
@@ -116,8 +117,16 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
   const affected = (stop.orderIds || []).filter((id) => changedIds.includes(id))
 
   return (
-    <div className="stops-item">
-      <div className="stops-item__main">
+    <div className="stops-item stops-item--review">
+      <div className="stops-item__head">
+        {/* C13 (LINX-15436) — every 15436 stop field can badge. Location's one
+            badge carries Site ID, City, State, Zip and Country together: the
+            stop shows a single Location field (our presentation, recorded in
+            the canon). Address 2–3 aren't displayed anywhere, so nothing to badge.
+            It now lives in the row head, so it is not repeated in the grid. */}
+        <span className="text-label-sm-medium stops-item__location">
+          {fields.location ? <Changed>{fields.location.new}</Changed> : (stop.location || '--')}
+        </span>
         {/* User ruling 2026-09-09: purple here (not green) — this surface
             already carries purple change badges (Changed/OrderField above),
             so the stop-type badge picks up the same color. Canon reserves
@@ -125,42 +134,30 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
             (vault/10-domains/shipments/order-change.md §10.3, DEC-136); the
             type badge is not a change signal, so this is a deliberate,
             user-ruled reuse of the color — do not "fix" it back to the
-            canon mapping. Plain mode below stays green: no purple badges
+            canon mapping. Plain mode above stays green: no purple badges
             exist there, so purple would falsely imply a change. */}
-        <HeaderStrip title={`Stop ${stop.stopNumber}`} badge={<Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
-        {/* C13 (LINX-15436) — every 15436 stop field can badge. Location's one
-            badge carries Site ID, City, State, Zip and Country together: the
-            stop shows a single Location field (our presentation, recorded in
-            the canon). Address 2–3 aren't displayed anywhere, so nothing to badge. */}
-        <div className="stops-item__fields">
-          <ReviewField label="Location"      value={stop.location} change={fields.location} />
-          <ReviewField label="Date"          value={stop.date} change={fields.date} />
-          <ReviewField label="Appointment"   value={stop.appointment} change={fields.appointment} />
-          <OrderField orderIds={stop.orderIds} changedIds={changedIds} />
-          <ReviewField label="Address"       value={stop.address} change={fields.address} />
-          <ReviewField label="Weight"        value={stop.weight} change={fields.weight} />
-          <ReviewField label="Volume"        value={stop.volume} change={fields.volume} />
-          <ReviewField label="Package Count" value={stop.packageCount} change={fields.packageCount} />
-          {isPickup && <ReviewField label="PickUp no." value={stop.pickupNo} />}
-        </div>
+        <Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+      </div>
+      <div className="stops-item__fields">
+        <ReviewField label="Date"          value={stop.date} change={fields.date} />
+        <ReviewField label="Appointment"   value={stop.appointment} change={fields.appointment} />
+        <OrderField orderIds={stop.orderIds} changedIds={changedIds} />
+        <ReviewField label="Address"       value={stop.address} change={fields.address} />
+        <ReviewField label="Weight"        value={stop.weight} change={fields.weight} />
+        <ReviewField label="Volume"        value={stop.volume} change={fields.volume} />
+        <ReviewField label="Package Count" value={stop.packageCount} change={fields.packageCount} />
+        {isPickup && <ReviewField label="PickUp no." value={stop.pickupNo} />}
       </div>
       {/* DEC-191 (Jana 2026-09-24): pickup stops only — everything picked up
-          is delivered, so delivery repeats it. The empty aside keeps the
-          stop cards the same width. */}
-      <div className="stops-item__affected">
-        {isPickup && <HeaderStrip title="Affected Orders" />}
-        {!isPickup ? null : affected.length > 0 ? (
-          <div className="stops-item__order-list">
-            {affected.map((id) => (
-              <div className="stops-item__affected-row" key={id}>
-                <Button variant="link" iconRight={<ArrowRight {...ICON_MD} />} onClick={() => onOpenOrder(id)}>{id}</Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <span className="stops-item__affected-empty">--</span>
-        )}
-      </div>
+          is delivered, so delivery repeats it. */}
+      {isPickup && (
+        <div className="stops-item__affected">
+          <span className="text-label-sm-medium stops-item__affected-label">Affected Orders</span>
+          {affected.length > 0 ? affected.map((id) => (
+            <Button key={id} variant="link" iconRight={<ArrowRight {...ICON_MD} />} onClick={() => onOpenOrder(id)}>{id}</Button>
+          )) : <span className="stops-item__affected-empty">--</span>}
+        </div>
+      )}
     </div>
   )
 }
