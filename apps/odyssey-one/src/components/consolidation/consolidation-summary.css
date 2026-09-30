@@ -2,7 +2,19 @@
    editor (S11); values recovered from the retired consolidation-review.css. */
 .consolidation-summary { display: flex; flex-direction: column; gap: var(--spacing-4); margin-bottom: var(--spacing-4); }
 .consolidation-summary__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
-/* The two cells fill the row (the ID chips need the width): lift the strip's
-   growth ceiling for this one strip only (S155, user 2026-09-21). */
-.consolidation-summary__info-strip .summary-strip__cell { max-width: none; }
+/* ONE column grid with the metrics strip below (user 2026-09-30, "both strips
+   aligned left, top cells x2"). SummaryStrip sizes cells `flex: 1 1 152px`,
+   max 160px, band padding 0 48px, centred, and a 1px right border ON each cell.
+   Here every cell is a fixed column: a metrics cell is W (--edit-stops-cell-w,
+   set on .edit-stops--no-prior in edit-stops.css, = SummaryStrip's own 160px
+   ceiling), a top-strip cell is exactly 2W. Both strips share the band padding
+   and container width and start flush left, so the top strip's dividers (2W, 4W)
+   fall on the metrics strip's. Border-box: each cell's border is inside its width.
+   A long chip list wraps inside its 2W cell. */
+.consolidation-summary__info-strip { justify-content: flex-start; }
+.consolidation-summary__info-strip .summary-strip__cell {
+  box-sizing: border-box;
+  flex: 0 0 calc(2 * var(--edit-stops-cell-w, 160px));
+  max-width: calc(2 * var(--edit-stops-cell-w, 160px));
+}
 .consolidation-summary__table-count { color: var(--text-tertiary); padding-bottom: var(--spacing-3); }

@@ -534,6 +534,9 @@
      inset   288 - 92                                                = 196 */
 .edit-stops--no-prior {
   /* = .tooltip's max-width in components.css (no token exists) */
+  /* One SummaryStrip column: SummaryStrip's own cell ceiling (max-width 160px,
+     components.css .summary-strip__cell). See consolidation-summary.css. */
+  --edit-stops-cell-w: 160px;
   --edit-stops-tip-w: 264px;
   --edit-stops-tip-gap: 8px; /* showRailTip's offset from the rail */
   --edit-stops-badge-half: 16px; /* .stop-badge min-width is 32px (components.css) */
@@ -553,3 +556,13 @@
 /* S11: Selected shipments sits above All Stops in the same centred width, with
    the strip's own gap (.edit-stops__strip-gap, spacing-6) between the two panels. */
 .edit-stops--no-prior > .sub-accordion + .sub-accordion { margin-top: var(--spacing-6); }
+
+/* The metrics strip (both its not-editing and edit-mode contents, and its sticky
+   Mini state - the basis is fixed, so the columns don't move): left-aligned
+   fixed columns of one W, matching the top info strip's grid. */
+.edit-stops--no-prior > .stops-kpi-strip { justify-content: flex-start; }
+.edit-stops--no-prior > .stops-kpi-strip .summary-strip__cell {
+  box-sizing: border-box;
+  flex: 0 0 var(--edit-stops-cell-w);
+  max-width: var(--edit-stops-cell-w);
+}
