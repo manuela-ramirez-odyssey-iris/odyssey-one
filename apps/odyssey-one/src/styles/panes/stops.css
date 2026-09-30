@@ -155,24 +155,28 @@
   display: grid;
   grid-template-columns: 1fr 227px;
 }
+/* Review stop content mirrors plain StopContent: no card insets, so the header
+   and field grid share plain mode's left edge; main's gap is the content
+   column's header-to-fields gap (plain gets it from .odyssey-timeline__content).
+   padding-right keeps the fields off the vertical divider. */
 .stops-timeline--review .stops-item__main {
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-4);
+  padding-right: var(--spacing-4);
 }
-/* F9 — headers sit directly on the card (no strip): same inset as the
-   fields; min-height keeps the aside label level with the badge'd stop header. */
+/* min-height keeps the aside label level with the badge'd stop header. */
 .stops-timeline--review .stops-item__header {
-  padding: var(--spacing-4) var(--spacing-4) 0;
   min-height: var(--spacing-6);
 }
-/* Field grid itself (display/columns/gap) is the shared plain-mode rule
-   above — review only adds the card's inner padding. */
-.stops-timeline--review .stops-item__fields {
-  padding: var(--spacing-4);
+/* Aside header needs its own gap from the vertical divider (rows/empty carry theirs). */
+.stops-timeline--review .stops-item__affected .stops-item__header {
+  padding-left: var(--spacing-4);
 }
 .stops-timeline--review .stops-item__affected {
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-4);
   border-left: 1px solid var(--border-subtle);
 }
 .stops-timeline--review .stops-item__order-list {
