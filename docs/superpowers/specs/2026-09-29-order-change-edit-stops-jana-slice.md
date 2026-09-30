@@ -106,22 +106,6 @@ Today (`OrderCompareModal.jsx`) the modal stacks an "Order Number: …" HeaderSt
   - the collapsed rail gets a `max-height` from the measured var (mock the measurement in jsdom).
   - The visual length is for a browser check.
 
-## F9 — Stops tab (review mode) takes the Edit Stops anatomy (user 2026-09-29, chose the preview)
-`src/components/detail/StopsTab.jsx` `ReviewStopContent` (~lines 111-165) wraps each stop in a `HeaderStrip` ("Stop N" + purple type badge), a 3-col field grid, and a 227px "Affected Orders" aside with its own `HeaderStrip`. The user: *"make it look more like the edit shipment stops, less use of HeaderStrip… preserve the data as is."*
-- **Each review stop is a light row on the Timeline rail**, like Edit Stops' stop rows (`EditStopsView.jsx` `edit-stops__stop` anatomy: no card frame, no HeaderStrip, no "Stop N"; the rail's P1/D1 marker carries position).
-  - **Row head:** the location (`text-label-sm-medium`) with the Pickup/Delivery badge beside it. Keep the purple type badge per the 2026-09-09 ruling, and keep its comment. Location's change badge (C13) stays on the location.
-  - **Fields below, unchanged in content, order and change badges:** Date, Appointment, Order (OrderField), Address, Weight, Volume, Package Count, PickUp no. (pickup only). Keep them as the existing `ReviewField` / `OrderField` components in a compact grid. Location moves up into the row head, so it isn't repeated in the grid.
-  - **Affected Orders** (pickup stops only, DEC-191): a plain inline label (`text-label-sm-medium`, secondary colour, like Edit Stops' labels) followed by the order links (`Button variant="link"` + ArrowRight, same `onOpenOrder`). The empty case shows `--`. No HeaderStrip and no separate aside column. Delivery stops show nothing.
-- **Plain (non-review) mode is unchanged**: `StopContent` and its green badge.
-- **The KPI strip, the All Stops pane-card header, the review actions (Edit Shipment Stops / Evaluate), the costs row and View Planning Dates are unchanged.** Only the per-stop content changes.
-- The Timeline `status`/labels are as today, or match Edit Stops' marker look if trivially the same component props; don't redesign the rail.
-- **CSS:** `src/styles/panes/stops.css`. Remove the now-unused `.stops-item__main/__affected/…` rules only if nothing else uses them (grep).
-- **Tests (`StopsTab.test.jsx`):**
-  - every field label and value still renders, with its change badge;
-  - no `HeaderStrip` in review stop content (no "Stop 1" strip, no "Affected Orders" strip element);
-  - the Affected Orders label and links render on pickups only and open the Order Changes modal;
-  - plain mode is unchanged.
-
 ## Tests (vitest)
 - **F1:** Edit collapses Prior. The collapsed rail shows markers only, with no order ids or addresses. The chevron expands and collapses it, with the right aria-expanded. Save, Discard and Reset re-expand it. The Moved/Removed signals render.
 - **F2 (revised ×2):** the strip has exactly Distance, Gross Weight, Volume, Prior Cost and New Direct Cost (new values while collapsed; pairs for the first three when expanded). The All Stops header has exactly New Consolidated Cost, Accepted Carrier, Seed Equipment and Utilization, then View Planning Dates. No label appears in both. The StopsTab strip is unchanged.

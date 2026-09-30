@@ -137,7 +137,7 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     expect(newDate.closest('.text-badge')).toBeTruthy()
     expect(screen.getByText('34,000 LB').closest('.text-badge')).toBeTruthy()
     expect(screen.getByText('June 6, 2026 03:00 PDT').closest('.text-badge')).toBeNull()
-    const stop1 = screen.getByText('COLUMBUS PL, Kansas City').closest('.odyssey-timeline__row')
+    const stop1 = screen.getByText('Stop 1').closest('.odyssey-timeline__row')
     const orderCell = within(stop1).getByText('Order').parentElement
     expect(within(orderCell).getByText('B').closest('.text-badge')).toBeTruthy()
     expect(within(orderCell).getByText('A').closest('.text-badge')).toBeNull()
@@ -151,7 +151,7 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
   })
   it('lists affected orders per stop and opens the compare modal', () => {
     renderReview()
-    const stop1 = screen.getByText('COLUMBUS PL, Kansas City').closest('.odyssey-timeline__row')
+    const stop1 = screen.getByText('Stop 1').closest('.odyssey-timeline__row')
     expect(within(stop1).getByText('Affected Orders')).toBeTruthy()
     const link = within(stop1).getByRole('button', { name: /B/ })
     fireEvent.click(link)
@@ -162,32 +162,6 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     const rows = [...document.querySelectorAll('.odyssey-timeline__row')]
     const delivery = rows.find((r) => r.textContent.includes('Delivery'))
     expect(within(delivery).queryByText('Affected Orders')).toBeNull()
-    expect(screen.getAllByText('Affected Orders')).toHaveLength(1)
-  })
-  // F9 — light-row anatomy: no HeaderStrips, no "Stop N", location in the head.
-  it('review stops use the Edit Stops row: no HeaderStrip, no "Stop N", every field still renders', () => {
-    renderReview()
-    expect(document.querySelector('.header-strip')).toBeNull()
-    expect(screen.queryByText('Stop 1')).toBeNull()
-    const stop1 = screen.getByText('COLUMBUS PL, Kansas City').closest('.odyssey-timeline__row')
-    expect(stop1.querySelector('.stops-item__head')).toBeTruthy()
-    for (const l of ['Date', 'Appointment', 'Order', 'Address', 'Weight', 'Volume', 'Package Count', 'PickUp no.']) {
-      expect(within(stop1).getByText(l)).toBeTruthy()
-    }
-    expect(within(stop1).queryByText('Location')).toBeNull()
-    expect(within(stop1).getByText('PU-1')).toBeTruthy()
-    expect(within(stop1).getByText('831 8th Street')).toBeTruthy()
-  })
-  it('badges a changed Location in the row head', () => {
-    const fields = { ...consolidation.stopChanges['1'].fields, location: { prior: 'COLUMBUS PL, Kansas City', new: 'NEW DC, Topeka' } }
-    renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, stopChanges: { '1': { ...consolidation.stopChanges['1'], fields } } } } })
-    expect(screen.getByText('NEW DC, Topeka').closest('.text-badge')).toBeTruthy()
-  })
-  it('shows -- when a pickup has no affected orders', () => {
-    const sc = { '1': { ...consolidation.stopChanges['1'], changedOrderIds: [] } }
-    renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, stopChanges: sc } } })
-    const stop1 = screen.getByText('COLUMBUS PL, Kansas City').closest('.odyssey-timeline__row')
-    expect(within(stop1).getByText('Affected Orders').nextSibling.textContent).toBe('--')
   })
   it('wraps New Consolidated Cost with a tooltip explaining the N/A when a location changed', () => {
     renderReview({ orderChange: { ...oc, consolidation: { ...consolidation, locationChange: true, costs: { ...consolidation.costs, newConsolidated: null } } } })
@@ -217,7 +191,7 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
   // customer-change color mapping — a deliberate reuse here).
   it('makes the stop type badge purple in review mode', () => {
     renderReview()
-    const stop1 = screen.getByText('COLUMBUS PL, Kansas City').closest('.odyssey-timeline__row')
+    const stop1 = screen.getByText('Stop 1').closest('.odyssey-timeline__row')
     expect(within(stop1).getByText('Pickup').style.background).toContain('badge-purple-bg')
   })
 })
