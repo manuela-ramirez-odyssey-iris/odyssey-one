@@ -1,0 +1,26 @@
+/* Apply Consolidation modal (confirm <-> Tendered Shipment Detected), moved out
+   of the retired Review & Apply page (CNS-19, S6.1). Tokens only. */
+.consolidation-apply__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
+
+/* B3 — Tendered Shipment Detected modal's radio cards. Local markup (see the
+   component comment): Figma's cards (2808:53668 / 2808:58194) are detached
+   frames, so this isn't promoted to @odyssey/ui yet. */
+.consolidation-apply__radio-cards { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.consolidation-apply__radio-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  width: 100%;
+}
+.consolidation-apply__radio-card[data-selected] {
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
+}
+
+/* Tendered Shipment Detected: a tendered row is the error — its cell text
+   reads red (user, 2026-09-27; replaces a light-red row background). */
+.consolidation-apply__tendered-table tbody tr:has([data-tendered]) td { color: var(--text-error); }

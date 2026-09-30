@@ -163,31 +163,53 @@ export function firstSequenceViolation(stops) {
 // widen if an order can ever sit on two pickup stops.
 const validSequence = (stops) => firstSequenceViolation(stops) == null
 
+// One VM stop → one sandbox stop (initSandbox and initFromSources map alike).
+const toSandboxStop = (s, key) => ({
+  key,
+  type: s.type,
+  orderIds: [...s.orderIds],
+  siteKey: s.siteKey ?? '',
+  location: s.location,
+  address: s.address,
+  date: s.date,
+  weight: s.weight,
+  volume: s.volume,
+  packageCount: s.packageCount,
+  pickupNo: s.pickupNo,
+  // B2/A6 (DEC-198) — read by legDistances below. Absent on a P?/D? stop
+  // created in THIS session (placeOrder has no coordinate source for a
+  // brand-new site) — legMiles skips a leg it can't compute rather than
+  // treating it as zero.
+  lat: s.lat,
+  lng: s.lng,
+  unsequenced: false,
+  // T1.3 — a pre-existing stop's date is the shipment's real record, never
+  // recomputed by placeOrder's joint-default logic.
+  dateEdited: true,
+})
+
+// CNS-19 (consolidation on the order-change editor) — a NEW C has no Prior, so
+// the sandbox is built from N selected source shipments: every pickup in
+// selection order, then every delivery (CNS-11, Dave 09-17), stops of the same
+// type at the same site folded into the first (placeOrder's sameSite rule).
+// `sources` = [{ row, detail }], detail = the mapped getSellShipmentDetail VM.
+// Keys are `src:<sellShipment>:<stopNumber>` so toDto can name the source.
+export function initFromSources(sources) {
+  const all = sources.flatMap(({ row, detail }) => detail.stopsData.stops.map((s) => toSandboxStop(s, `src:${row.sellShipment}:${s.stopNumber}`)))
+  const stops = []
+  for (const type of ['pickup', 'delivery']) {
+    for (const s of all.filter((x) => x.type === type)) {
+      const into = stops.find((x) => x.type === type && sameSite(x, s))
+      if (into) into.orderIds = [...new Set([...into.orderIds, ...s.orderIds])]
+      else stops.push(s)
+    }
+  }
+  return { stops, pending: [], prior: [], arrival: stops.map((s) => ({ ...s, orderIds: [...s.orderIds] })), dirty: false, seq: 0 }
+}
+
 // LINX-15668: on open, relocate every order whose location changed.
 export function initSandbox({ stops, consolidation, orders }) {
-  const sbStops = stops.map((s) => ({
-    key: `s${s.stopNumber}`,
-    type: s.type,
-    orderIds: [...s.orderIds],
-    siteKey: s.siteKey ?? '',
-    location: s.location,
-    address: s.address,
-    date: s.date,
-    weight: s.weight,
-    volume: s.volume,
-    packageCount: s.packageCount,
-    pickupNo: s.pickupNo,
-    // B2/A6 (DEC-198) — read by legDistances below. Absent on a P?/D? stop
-    // created in THIS session (placeOrder has no coordinate source for a
-    // brand-new site) — legMiles skips a leg it can't compute rather than
-    // treating it as zero.
-    lat: s.lat,
-    lng: s.lng,
-    unsequenced: false,
-    // T1.3 — a pre-existing stop's date is the shipment's real record, never
-    // recomputed by placeOrder's joint-default logic.
-    dateEdited: true,
-  }))
+  const sbStops = stops.map((s) => toSandboxStop(s, `s${s.stopNumber}`))
   // T1.1 (user default, 2026-09-25) — a Prior that is really prior: snapshot
   // BEFORE the relocation loop below moves anything, empties dropped (same
   // drop rule as `arrival`, for a fixture that somehow arrives pre-emptied).
@@ -398,8 +420,11 @@ export function toDto(sb) {
     // as `new:<type>:<n>`. The server (mergeStops) needs the ORIGINAL sequence
     // to pull region/postal/timezone etc. off detail.shipmentStopList — this
     // client-only sandbox never carries those fields at all.
+    // S2.2 — a consolidation source key `src:<sell>:<n>` also names its shipment.
     const m = /^s(\d+)$/.exec(s.key)
-    const sourceStopSequence = m ? Number(m[1]) : null
+    const c = /^src:(\d+):(\d+)$/.exec(s.key)
+    const sourceStopSequence = m ? Number(m[1]) : c ? Number(c[2]) : null
+    const sourceSellShipment = c ? c[1] : null
     return {
       stopSequence: i + 1,
       stopType: s.type,
@@ -417,6 +442,7 @@ export function toDto(sb) {
       lng: s.lng,
       timeZone: s.site?.timeZone,
       sourceStopSequence,
+      sourceSellShipment,
     }
   })
 }

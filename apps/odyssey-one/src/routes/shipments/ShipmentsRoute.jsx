@@ -51,9 +51,9 @@ function ShipmentsRoute() {
   const { openSheet } = useSheet()
   // Consolidate mode (S154, spec §3). `null` = normal Shipments. In mode,
   // `rows` is the selection: Map<sellShipment, row VM> — the row snapshot
-  // rides with the id so the review renders without a refetch and a row paged
-  // or filtered away stays selected. Re-entered from the review screen's
-  // "Modify Selection" via location.state.consolidate.rows (an array).
+  // rides with the id so the stops editor renders without a refetch and a row
+  // paged or filtered away stays selected. Re-entered from the editor's
+  // Cancel / first crumb via location.state.consolidate.rows (an array).
   const [consolidate, setConsolidate] = useState(() => (
     location.state?.consolidate
       ? { rows: new Map((location.state.consolidate.rows ?? []).map((r) => [r.id, r])) }
@@ -117,8 +117,9 @@ function ShipmentsRoute() {
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
   const [requestedTab, setRequestedTab] = useState(location.state?.requestedTab ?? null)
-  const [activePanel, setActivePanel] = useState(() => location.state?.panel ?? 'exceptions')
-  const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
+  // CNS-18: a fresh mount already in consolidate mode starts on the pool.
+  const [activePanel, setActivePanel] = useState(() => location.state?.panel ?? (location.state?.consolidate ? 'monitoring' : 'exceptions'))
+  const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? (location.state?.consolidate ? 'consolidation' : 'all'))
   // S149: Orders → "See in Shipments" arrives with `state.orderNumber`; it
   // becomes a committed Order # chip via the search bar's `seedChips`. Built
   // once — a new array each render would re-trigger the bar's mount effect.
@@ -263,7 +264,7 @@ function ShipmentsRoute() {
   // Consolidate mode lists ONLY Direct shipments (user, 2026-09-20: "C
   // shipments can appear only in non consol mode"). Ineligible rows used to
   // stay listed behind a disabled checkbox, and re-entering the mode from the
-  // review screen (location.state.consolidate) had no sort reseed at all, so
+  // stops editor (location.state.consolidate) had no sort reseed at all, so
   // Consolidation rows surfaced anyway. This is a MODE RULE, structural like
   // hiding the PGI/PGR tab — and deliberately NOT a visible chip, unlike the
   // CNS-10 customer lock (which IS one, because the planner chose it by
@@ -363,11 +364,18 @@ function ShipmentsRoute() {
   // has done its job and must not outlive the query it was pinned into. Skips
   // the first run: `listParams` is a fresh object on mount and would otherwise
   // clear the pin before it ever rendered.
+  // CNS-20 (S8): compared by CONTENT, and baselined on the render the pin
+  // arrives in. The pin now arrives on a return-intent (a mounted ShipmentsRoute
+  // exiting the mode changes listParams in the same batch), and the search
+  // bar's lock release recommits an equal criteria object — identity would
+  // clear the pin the moment it was set.
   const pinnedParamsRef = useRef(null)
+  const listSig = useMemo(() => JSON.stringify(listParams), [listParams])
   useEffect(() => {
-    if (pinnedParamsRef.current === null) { pinnedParamsRef.current = listParams; return }
-    if (pinnedParamsRef.current !== listParams) setCreated(null)
-  }, [listParams])
+    if (!created) { pinnedParamsRef.current = null; return }
+    if (pinnedParamsRef.current === null) { pinnedParamsRef.current = listSig; return }
+    if (pinnedParamsRef.current !== listSig) setCreated(null)
+  }, [listSig, created])
 
   // Selection id = sellShipment (the contract detail-link key). The raw row for
   // BottomBar (buy label + summary) comes from the LIVE page rows first (S93:
@@ -456,15 +464,19 @@ function ShipmentsRoute() {
   // filter. PGI/PGR holds no shipments (its panel is a "Coming soon"
   // placeholder; its counts come from PGIPGR_DEMO_COUNTS) and can never offer a
   // consolidation candidate, so the tab is noise for the DURATION of the mode
-  // only — it returns the moment the planner leaves.
+  // only — it returns the moment the planner leaves. CNS-18 narrows it further:
+  // Monitoring's Consolidation category is the only place candidates live.
   const visiblePanels = useMemo(
-    () => (inMode ? Object.keys(PANEL_CONFIG).filter((k) => k !== 'pgipgr') : Object.keys(PANEL_CONFIG)),
+    // CNS-18: the mode lists the Consolidation pool only (Jana 2026-09-29), so
+    // the panel switcher narrows to the one panel that holds it.
+    () => (inMode ? ['monitoring'] : Object.keys(PANEL_CONFIG)),
     [inMode],
   )
 
   // A hidden category pill can still be the selected one — fall back to All.
   // Adjusted during render (same pattern as the page reset above).
-  if (searchActive && activeTab !== 'all') {
+  // Not in the mode: it is pinned to the Consolidation category (CNS-18).
+  if (searchActive && activeTab !== 'all' && !inMode) {
     const activeCat = (PANEL_CONFIG[activePanel]?.categories ?? []).find(c => c.key === activeTab)
     if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
   }
@@ -598,52 +610,38 @@ function ShipmentsRoute() {
     if (tab) setRequestedTab({ key: tab, expandGeneral: !!expandGeneral })
   }, [])
 
-  // `seedRow` — the row the planner is EDITING (the actions-menu "Edit" on a
-  // Consolidation row, S155). It starts in the selection, so the anchor (and
-  // with it the customer lock) exists from the first render; `priorCriteria`
-  // is snapshotted here for exactly the reason `handleSelectionChange` takes
-  // it on the first check — the lock is about to narrow the bar and exiting
-  // must give the planner their own filter back.
-  //
-  // The seeded C row is NOT listed in the table (effectiveCriteria above lists
-  // Direct only) and eligibility would refuse its checkbox anyway — it lives
-  // purely in the selection Map, the header count and the review screen. The
-  // review's post-apply "Edit Consolidated Shipment" already re-enters this
-  // way through location.state.consolidate.rows, so it needs no change.
-  const enterConsolidate = useCallback((seedRow) => {
-    // Snapshot the UI state this mode overwrites below, so exiting restores
-    // what the planner actually had instead of a hardcoded default. Includes
-    // the panel/category tab (S154) — the planner may be ON PGI/PGR (hidden
-    // for the duration of the mode, see visiblePanels above) when they press
-    // Consolidate, and `handleSelectionChange`'s `{ ...prev, rows: next }`
-    // spread below carries these fields through the first checkbox click
-    // unchanged, same as priorViewMode.
+  // Snapshot the UI state this mode overwrites below, so exiting restores what
+  // the planner actually had instead of a hardcoded default. Includes the
+  // panel/category tab (S154). `handleSelectionChange`'s `{ ...prev, rows: next }`
+  // spread below carries these fields through the first checkbox click
+  // unchanged, same as priorViewMode.
+  const enterConsolidate = useCallback(() => {
     setConsolidate({
-      rows: seedRow ? new Map([[seedRow.id, seedRow]]) : new Map(),
-      ...(seedRow ? { priorCriteria: searchCriteria } : {}),
+      rows: new Map(),
       priorViewMode: viewMode,
       priorPanel: activePanel,
       priorTab: activeTab,
     })
     setSelectedShipmentId(null)   // the detail bar is hidden in mode; nothing stays "open"
     setViewMode('pills')          // the widgets toggle is hidden; pills are the mode's face
-    // No sort reseed: the mode used to force `shipmentType desc` purely to
-    // float Direct rows above Consolidation ones. The mode now LISTS only
-    // Direct rows (effectiveCriteria above), so there is nothing to float and
-    // the planner's own sort survives the round trip untouched.
+    // No sort reseed: the mode LISTS only Direct rows (effectiveCriteria
+    // above), so the planner's own sort survives the round trip untouched.
     //
-    // Land on the normal landing panel (same target/reset handlePanelSelect
-    // uses) — PGI/PGR just vanished from the tab row and can hold no
-    // consolidation candidate, so staying on it would strand the planner on
-    // a tab that no longer renders.
-    setActivePanel('exceptions')
-    setActiveTab('all')
-  }, [searchCriteria, viewMode, activePanel, activeTab])
-  // Stable identity — ShipmentTable's column defs memo on it; an inline arrow
-  // would rebuild every column on every render.
-  const handleEditConsolidation = useCallback((row) => enterConsolidate(row), [enterConsolidate])
+    // CNS-18 (Jana 2026-09-29: "you just have to be in consolidation state"):
+    // the mode lands on Monitoring > Consolidation and stays there — the panel
+    // switcher and the other category tabs are hidden for its whole duration
+    // (visiblePanels / onlyCategory below).
+    setActivePanel('monitoring')
+    setActiveTab('consolidation')
+  }, [viewMode, activePanel, activeTab])
+  // S1.5 (CNS-19): the row menu's Edit on a Consolidation row opens the stops
+  // editor directly with that C as its only source — no mode. Stable identity —
+  // ShipmentTable's column defs memo on it.
+  const handleEditConsolidation = useCallback((row) => {
+    openSheet('/shipments/consolidate/stops', { state: { rows: [row] } })
+  }, [openSheet])
   const exitConsolidate = useCallback(() => {
-    // Restore the snapshot taken on entry. Re-entering via "Modify Selection"
+    // Restore the snapshot taken on entry. A mount that starts inside the mode
     // (the lazy useState initialiser above) creates `{ rows }` with no
     // snapshot — there is nothing prior to restore, so leave viewMode/panel
     // as they are; the optional chaining below no-ops in that case.
@@ -665,7 +663,7 @@ function ShipmentsRoute() {
   }, [consolidate])
 
   // Return-intent re-application (S158 plan §4). This page now stays MOUNTED
-  // under every Shipments sheet (consolidation review, the two order-change
+  // under every Shipments sheet (the consolidation stops editor, the two order-change
   // routes) instead of unmounting — the lazy useState initialisers above
   // still cover the FIRST mount (location.state read once), but a planner
   // closing a sheet back onto an already-mounted ShipmentsRoute needs the
@@ -676,7 +674,9 @@ function ShipmentsRoute() {
     if (!state) return
     if (state.consolidateExit) exitConsolidate()
     else if (state.consolidate) {
-      setConsolidate({ rows: new Map((state.consolidate.rows ?? []).map((r) => [r.id, r])) })
+      // Keep the entry snapshot (prior panel/view/criteria) across the editor
+      // round trip so a later exit still restores what the planner had.
+      setConsolidate((prev) => ({ ...prev, rows: new Map((state.consolidate.rows ?? []).map((r) => [r.id, r])) }))
     }
     if (state.createdShipment) setCreated(state.createdShipment)
     if (state.selectedShipmentId !== undefined) setSelectedShipmentId(state.selectedShipmentId)
@@ -748,8 +748,10 @@ function ShipmentsRoute() {
     })
   }, [])
   const eligibility = useCallback((row) => consolidationEligibility(row, anchorCustomerId), [anchorCustomerId])
-  const proceedToReview = useCallback(() => {
-    openSheet('/shipments/consolidate/review', { state: { rows: [...selection.values()] } })
+  // S1.4: the CTA opens the order-change-style stops editor with the selection
+  // in selection order (Map insertion order).
+  const proceedToStops = useCallback(() => {
+    openSheet('/shipments/consolidate/stops', { state: { rows: [...selection.values()] } })
   }, [openSheet, selection])
 
   return (
@@ -828,7 +830,7 @@ function ShipmentsRoute() {
           variant="primary"
           icon={inMode ? <Combine size={20} /> : <Boxes size={20} />}
           disabled={inMode && selection.size < 2}
-          onClick={inMode ? proceedToReview : () => enterConsolidate()}
+          onClick={inMode ? proceedToStops : enterConsolidate}
         >
           {/* S154 (user, 2026-09-20): the primary reads "Select to Consolidate"
               at zero — "Consolidate 0 Shipments" implied a valid action —
@@ -862,6 +864,7 @@ function ShipmentsRoute() {
         visiblePanels={visiblePanels}
         hideZeroCategories={searchActive}
         hideViewToggle={inMode}
+        onlyCategory={inMode ? 'consolidation' : null}
       />
       {/* PGI/PGR has its own single action row per card (PgipgrPanel →
           PgipgrTable, matching Figma nodes 2554:58830 / 2561:62292 exactly:

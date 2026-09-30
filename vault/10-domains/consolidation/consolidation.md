@@ -2,7 +2,7 @@
 domain: consolidation
 type: canon
 tags: [consolidation, manual-consolidation, workbench, optimizer, linx-15786, linx-15787, linx-15788]
-date: 2026-09-15
+date: 2026-09-29
 status: active
 ---
 
@@ -20,6 +20,10 @@ is physically two decks in one file. Raw archived at
 > Slide 8 is a whole slide reading **"INTEGRATION WITH OPTIMIZER IS NOT IN SCOPE FOR OCT
 > MVP"**. The optimizer half is recorded here as future scope and shape-of-things, not as
 > build material. Do not plan Oct work against §6.
+
+> **2026-09-29 — the flow was rebuilt (§11).** §3's "pick from anywhere" and all of §4's
+> Review & Apply page are superseded: picking happens only in the Consolidation pool, and
+> the planner then works in the order-change Edit Stops screen from New. Read §11 first.
 
 ## 1. What consolidation is
 
@@ -345,6 +349,35 @@ Answered by Doug (TMS): Q-CNS-1 partly (a C is routed at creation; pool vs windo
 6. Does anything change on the order when its load is keyed to a C?
 7. Beyond "picks before drops, dates in order", are there sequence or date rules the save enforces?
 8. **For Dave/Jana specifically:** do we keep TMS's keep-and-lock model for the single-order shipments, or LINX's mark-deleted? Planners' mental model argues for keep-and-lock.
+
+## 11. The rebuild — Jana, 2026-09-29 (S164)
+
+Source: `vault/00-inbox/Order Change Sync.vtt` `@24:40–35:11`. Decisions CNS-18 … CNS-20.
+Spec: `docs/superpowers/specs/2026-09-29-consolidation-via-order-change.md`.
+
+**Why the pool.** The optimizer evaluates every new shipment. An optimizable one goes into the
+**Consolidation** pool, to wait for time-to-tender or further consolidation; one that isn't goes
+to Hold or out as a Direct. With no optimizer integration for Oct (§6), the planner does the
+optimizer's job by hand, so they only work on the pool (*"you don't need to see all… only
+consolidation"*). Hold is out because it already failed Allow Optimization.
+
+**The flow.**
+1. **Pick:** consolidate mode opens on Monitoring › Consolidation, with the other panels hidden. Only single-order shipments of one customer can be checked (CNS-10). Jana: *"the first step is good."*
+2. **Plan:** the order-change **Edit Shipment Stops** screen, reused but not order change itself. It starts from **New**, with **no Prior**, because the result is a new C.
+   - Stops come pickups first, then deliveries, and same-site stops merge.
+   - Move, Remove and Add Orders work as in order change. Add is a what-if over any of the customer's shipments, blocked at Apply if the source is tendered.
+   - A move that breaks pickup-before-delivery is **refused** (LINX-15669), with no allow-then-fix.
+   - Evaluate shows the carrier list re-costed for the new stops; there is no prior tender, just a routing list.
+3. **Apply:** the Tendered Shipment Detected modal (Remove / Discard / Cancel tender) if any source or added order's shipment is tendered, else a confirm.
+4. **Result:** a new **C**, treated like any new O. It is filed to the pool or Hold, untendered, and carries the evaluated carrier list. The planner lands on the list, where the row is animated in.
+
+**Editing a C** (row menu on a pool C) opens the same screen with its stops, and the C keeps its
+number (CNS-14). An order removed from it becomes its own Direct.
+
+**Superseded here:** §3's pick-from-anywhere scope (CNS-08's panel scope), and §4 entirely. The
+Review & Apply page (LINX-15787 as mocked, VD 2249:46444) and its Planned Stops edit mode
+(DEC-219) are deleted. §5 (audit trail) is untouched; the move/audit history is still on hold
+for design (C18).
 
 ## Related
 

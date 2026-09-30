@@ -19,7 +19,11 @@ const overlayDetails = new Map()
 const removedSellShipments = new Set()
 
 export function getAllShipments() {
-  const rows = overlayRows.length ? [...overlayRows, ...shipments] : shipments
+  // An overlay row REPLACES its seeded twin (a seeded shipment edited this
+  // session, e.g. a consolidation pulling an order out of it) — never both.
+  const rows = overlayRows.length
+    ? [...overlayRows, ...shipments.filter((r) => !overlayDetails.has(r.sellShipment))]
+    : shipments
   // Tombstones are filtered from BOTH halves: a consolidation can consume a
   // shipment this session created as easily as a seeded one.
   return removedSellShipments.size ? rows.filter((r) => !removedSellShipments.has(r.sellShipment)) : rows

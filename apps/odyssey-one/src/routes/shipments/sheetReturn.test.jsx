@@ -2,15 +2,16 @@
 // S158 plan Part 1 §4 — ShipmentsRoute's return-intent re-application. Same
 // harness idea as App.sheets.test.jsx (a base/layer split, minus the
 // animation/retention machinery already covered there) but with the REAL
-// ShipmentsRoute + ConsolidationReviewRoute, so the base page genuinely never
+// ShipmentsRoute + ConsolidateStopsRoute, so the base page genuinely never
 // unmounts across the round trip — the thing the old sibling-route design
 // couldn't do at all.
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import useSheet from '../useSheet'
 import ShipmentsRoute from './ShipmentsRoute.jsx'
-import ConsolidationReviewRoute from './ConsolidationReviewRoute.jsx'
+import ConsolidateStopsRoute from './ConsolidateStopsRoute.jsx'
 import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
 import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
 import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
@@ -22,6 +23,21 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }))
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+
+// Stands in for a successful Apply: the exact state ConsolidateStopsRoute returns with (S8.1).
+const CREATED = {
+  id: 'C70000001', sellShipment: 'C70000001', buyShipment: 'b1', odysseyShipmentIdentifier: 'C70000001',
+  orders: [], pickupNumbers: [], poNumbers: [], customerId: 'VALTRIS_01', customerName: 'Valtris',
+  shipmentType: 'Consolidation', tenderStatus: '', shipmentStatus: '', category: 'consolidation', grossWeight: '100',
+}
+function OpenFake() {
+  const { openSheet } = useSheet()
+  return <button onClick={() => openSheet('/shipments/fake-applied')}>open fake sheet</button>
+}
+function FakeApplied() {
+  const { closeSheet } = useSheet()
+  return <button onClick={() => closeSheet('/shipments', { state: { consolidateExit: true, createdShipment: CREATED, panel: 'monitoring', tab: 'consolidation' } })}>fake apply</button>
+}
 
 // Minimal stand-in for App.jsx's base/layer split (S158 §1): base is
 // stack[0] ?? location, layers are stack.slice(1) + location — enough to
@@ -35,12 +51,14 @@ function SheetHarness() {
   const layers = stack.length ? [...stack.slice(1), location] : []
   const routes = (loc, key) => (
     <Routes key={key} location={loc}>
-      <Route path="/shipments/consolidate/review" element={<ConsolidationReviewRoute />} />
+      <Route path="/shipments/consolidate/stops" element={<ConsolidateStopsRoute />} />
+      <Route path="/shipments/fake-applied" element={<FakeApplied />} />
       <Route path="/shipments/*" element={<ShipmentsRoute />} />
     </Routes>
   )
   return (
     <>
+      <OpenFake />
       {routes(base, 'base')}
       {layers.map((loc) => routes(loc, loc.key))}
     </>
@@ -79,27 +97,30 @@ async function enterModeAndSelectTwo() {
   await screen.findByRole('button', { name: 'Consolidate 2 Shipments' })
 }
 
+// CNS-19 — the mode's CTA opens the stops editor; its first crumb (through the
+// editor's dirty check) returns to the mode with the selection kept.
+const backToMode = async () => {
+  await screen.findByRole('navigation', { name: 'Breadcrumb' })
+  fireEvent.click(screen.getByText('Shipments Consolidation', { selector: '.order-change__crumbs *' }))
+}
+
 describe('ShipmentsRoute — return-intent re-application (S158 plan §4)', () => {
-  // S161 (B1) — the review's rows ARE the consolidation now (no more
-  // include/exclude checkboxes); the only way back to change the set is
-  // Edit Consolidation, which carries every row it had back into mode.
-  test('Edit Consolidation re-applies rows on the STILL-MOUNTED page (no remount)', async () => {
+  test('the editor\'s first crumb re-applies rows on the STILL-MOUNTED page (no remount)', async () => {
     renderApp()
     const heading = await screen.findByRole('heading', { name: 'Shipments' })
     await enterModeAndSelectTwo()
     fireEvent.click(screen.getByRole('button', { name: 'Consolidate 2 Shipments' }))
-    await screen.findByRole('heading', { name: 'Review & Apply Manual Consolidation' })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Consolidation' }))
+    await backToMode()
 
     // Lands back on Shipments Consolidation with both rows still selected —
     // and the SAME "Shipments" heading node never unmounted in between.
     await screen.findByRole('heading', { name: 'Shipments Consolidation' })
+    expect(screen.getByRole('button', { name: 'Consolidate 2 Shipments' })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Shipments' })).toBeNull() // swapped by consolidate mode, not gone via remount
     expect(document.body.contains(heading)).toBe(true) // the ORIGINAL DOM node is still attached, just re-rendered
   })
 
-  test('post-apply close (consolidateExit) restores the prior panel', async () => {
+  test('exiting the mode after the editor round trip still restores the prior panel', async () => {
     renderApp()
     await screen.findByRole('heading', { name: 'Shipments' })
     // Switch to Monitoring before entering the mode.
@@ -108,12 +129,10 @@ describe('ShipmentsRoute — return-intent re-application (S158 plan §4)', () =
 
     await enterModeAndSelectTwo()
     fireEvent.click(await screen.findByRole('button', { name: /^Consolidate \d Shipment/ }))
-    await screen.findByRole('heading', { name: 'Review & Apply Manual Consolidation' })
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
+    await backToMode()
+    await screen.findByRole('heading', { name: 'Shipments Consolidation' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    // Back on Shipments, out of consolidate mode, Monitoring restored — not
-    // the 'exceptions' mount default a remount used to silently reset to.
     await screen.findByRole('heading', { name: 'Shipments' })
     expect(screen.getByRole('button', { name: /^Monitoring/ }).getAttribute('aria-pressed')).toBe('true')
   })
@@ -134,11 +153,31 @@ describe('ShipmentsRoute — return-intent re-application (S158 plan §4)', () =
 
     await enterModeAndSelectTwo()
     fireEvent.click(screen.getByRole('button', { name: 'Consolidate 2 Shipments' }))
-    await screen.findByRole('heading', { name: 'Review & Apply Manual Consolidation' })
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel Consolidation' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, Cancel' }))
+    await backToMode()
+    await screen.findByRole('heading', { name: 'Shipments Consolidation' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     await screen.findByRole('heading', { name: 'Shipments' })
 
     expect(normalModeCalls()).toBe(callsBeforeMode)
+  })
+
+  // S8.1 - the return-intent lands on the tab the C was filed under and the S155
+  // pin survives the mode exit (it used to be cleared by the same render's listParams change).
+  test('a successful Apply returns to Monitoring > Consolidation with the created C pinned and highlighted', async () => {
+    renderApp()
+    await screen.findByRole('heading', { name: 'Shipments' })
+    await enterModeAndSelectTwo()
+    fireEvent.click(screen.getByRole('button', { name: 'open fake sheet' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'fake apply' }))
+
+    await screen.findByRole('heading', { name: 'Shipments' })
+    expect(screen.getByRole('button', { name: /^Monitoring/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: /^Consolidation/ }).getAttribute('aria-pressed')).toBe('true')
+    await waitFor(() => expect(document.querySelectorAll('tbody tr')[0]?.textContent).toContain('C70000001'))
+    await act(async () => { await Promise.resolve() }) // flush the exit's pending effects (lock-release recommit): the pin must survive them
+    const first = document.querySelectorAll('tbody tr')[0]
+    expect(first.textContent).toContain('C70000001')
+    expect(first.getAttribute('data-highlight')).toBe('true')
+    expect(document.querySelector('[data-landing]')).toBeTruthy()
   })
 })

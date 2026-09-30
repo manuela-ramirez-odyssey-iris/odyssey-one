@@ -24,11 +24,14 @@ const oc = {
   droppedCarriers: { prior: [], new: [{ scac: 'JBHT', carrierName: 'J.B. HUNT', reason: 'Missing Transit Time' }] },
 }
 
+// S5.9 — the modal takes plain lists; oc keeps the order-change payload shape.
+const lists = (o) => ({ tenderList: o.newTenderList, priorTenderList: o.priorTenderList, droppedCarriers: o.droppedCarriers?.new })
+
 const orderOf = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
 const tableFor = (title) => screen.getByText(title).closest('.odyssey-group-table')
 
 it('renders New above Prior above Dropped Carriers with the 8 tender columns (LINX-15438)', () => {
-  render(<ViewRoutingModal orderChange={oc} onClose={() => {}} />)
+  render(<ViewRoutingModal {...lists(oc)} onClose={() => {}} />)
   expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   const [n, p, d] = ['New', 'Prior', 'Dropped Carriers'].map((t) => screen.getByText(t))
   expect(orderOf(n, p) && orderOf(p, d)).toBe(true)
@@ -44,7 +47,7 @@ it('renders New above Prior above Dropped Carriers with the 8 tender columns (LI
 })
 
 it('badges an AP cost that differs between New and Prior on BOTH sides; unchanged stays plain; statuses badge', () => {
-  render(<ViewRoutingModal orderChange={oc} onClose={() => {}} />)
+  render(<ViewRoutingModal {...lists(oc)} onClose={() => {}} />)
   // New DDFL: $1,500.00 vs Prior DDFL: $1,445,543.00 — differ, both badge.
   // C23: shown without the $ (the Stops-tab header's format); compared raw.
   expect(screen.getByText('1,500.00').closest('.text-badge')).toBeTruthy()
@@ -61,18 +64,18 @@ it('renders a SCAC present in New but absent from Prior as plain (no match to di
     ...oc,
     newTenderList: [...oc.newTenderList, opt({ scac: 'XPOL', cost: '$2,000.00' })],
   }
-  render(<ViewRoutingModal orderChange={solo} onClose={() => {}} />)
+  render(<ViewRoutingModal {...lists(solo)} onClose={() => {}} />)
   expect(screen.getByText('2,000.00').closest('.text-badge')).toBeNull()
 })
 
 it('shows an empty Dropped Carriers table when nothing was dropped', () => {
-  render(<ViewRoutingModal orderChange={{ ...oc, droppedCarriers: { prior: [], new: [] } }} onClose={() => {}} />)
+  render(<ViewRoutingModal {...lists({ ...oc, droppedCarriers: { prior: [], new: [] } })} onClose={() => {}} />)
   expect(screen.getByText('Dropped Carriers')).toBeTruthy()
 })
 
 it('has no footer; the header close calls onClose (user 2026-09-24)', () => {
   const onClose = vi.fn()
-  render(<ViewRoutingModal orderChange={oc} onClose={onClose} />)
+  render(<ViewRoutingModal {...lists(oc)} onClose={onClose} />)
   expect(screen.queryByText('Go Back')).toBeNull()
   expect(screen.queryByRole('button', { name: 'Keep Editing' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: /close/i }))
@@ -85,7 +88,7 @@ it('renders a footer when secondaryLabel/primaryLabel are passed; secondary and 
   const onPrimary = vi.fn()
   render(
     <ViewRoutingModal
-      orderChange={oc}
+      {...lists(oc)}
       onClose={() => {}}
       secondaryLabel="Keep Editing"
       onSecondary={onSecondary}
@@ -104,7 +107,7 @@ it('primaryLoading swaps the label to Approving… and disables both buttons (re
   const onPrimary = vi.fn()
   render(
     <ViewRoutingModal
-      orderChange={oc}
+      {...lists(oc)}
       onClose={() => {}}
       secondaryLabel="Keep Editing"
       onSecondary={onSecondary}
@@ -124,7 +127,7 @@ it('primaryLoading swaps the label to Approving… and disables both buttons (re
 it('primaryDisabled disables the primary button without changing its label', () => {
   render(
     <ViewRoutingModal
-      orderChange={oc}
+      {...lists(oc)}
       onClose={() => {}}
       secondaryLabel="Keep Editing"
       primaryLabel="Approve Changes"
@@ -135,9 +138,9 @@ it('primaryDisabled disables the primary button without changing its label', () 
 })
 
 it('renders an error Alert above the tables when `error` is set; nothing when not', () => {
-  const { rerender } = render(<ViewRoutingModal orderChange={oc} onClose={() => {}} error="Could not save. Try again." />)
+  const { rerender } = render(<ViewRoutingModal {...lists(oc)} onClose={() => {}} error="Could not save. Try again." />)
   expect(screen.getByText('Could not save. Try again.')).toBeTruthy()
-  rerender(<ViewRoutingModal orderChange={oc} onClose={() => {}} />)
+  rerender(<ViewRoutingModal {...lists(oc)} onClose={() => {}} />)
   expect(screen.queryByText('Could not save. Try again.')).toBeNull()
 })
 
@@ -150,15 +153,22 @@ it('dates the New list from the first pickup / last delivery stop; Prior keeps i
     { type: 'delivery', date: 'March 5, 2026 11:00 MST' },
     { type: 'delivery', date: 'March 7, 2026 12:00 EST' },
   ]
-  render(<ViewRoutingModal orderChange={oc} stops={sandboxStops} onClose={() => {}} />)
+  render(<ViewRoutingModal {...lists(oc)} stops={sandboxStops} onClose={() => {}} />)
   const n = tableFor('New')
   expect(within(n).getAllByText('03/04/2026 10:00 PST')).toHaveLength(2)
   expect(within(n).getAllByText('03/07/2026 12:00 EST')).toHaveLength(2)
   expect(within(tableFor('Prior')).getAllByText('05/23/2026 14:30 CDT')).toHaveLength(4)
 })
 
+// S5.5 - a new C has no Prior: New's cost cells show no diff and there is no Prior table.
+it('showPrior=false: no Prior table and New costs are not badged even when a Prior list differs', () => {
+  render(<ViewRoutingModal {...lists(oc)} showPrior={false} onClose={() => {}} />)
+  expect(screen.queryByText('Prior')).toBeNull()
+  expect(screen.getByText('1,500.00').closest('.text-badge')).toBeNull()
+})
+
 it('an empty New list renders an empty New table (dropped carriers still listed)', () => {
-  render(<ViewRoutingModal orderChange={{ ...oc, newTenderList: [] }} stops={[]} onClose={() => {}} />)
+  render(<ViewRoutingModal {...lists({ ...oc, newTenderList: [] })} stops={[]} onClose={() => {}} />)
   expect(within(tableFor('New')).queryByText('DDFL')).toBeNull()
   expect(screen.getByText('JBHT')).toBeTruthy()
 })

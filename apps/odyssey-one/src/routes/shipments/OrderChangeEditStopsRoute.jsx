@@ -85,8 +85,10 @@ export default function OrderChangeEditStopsRoute() {
   // persisted.
   function handleApprove(stopsDto, externalOrders = []) {
     setSaveError('')
+    // The editor's list also carries consolidation-only source* keys; the wire format stays as it was.
+    const external = externalOrders.map(({ orderNumber, sourceSellShipment }) => ({ orderNumber, sourceSellShipment }))
     resolve.mutate(
-      { sellShipment, action: 'save-stops', stops: stopsDto, externalOrders, priorTenderStatus: tender, cost: null, priorScac: null },
+      { sellShipment, action: 'save-stops', stops: stopsDto, externalOrders: external, priorTenderStatus: tender, cost: null, priorScac: null },
       {
         onSuccess: () => afterApprove(tender),
         onError: (e) => setSaveError(e.message),
@@ -131,7 +133,9 @@ export default function OrderChangeEditStopsRoute() {
               stops={detail.stopsData.stops}
               consolidation={c}
               orders={detail.orderDetails}
-              orderChange={detail.orderChange}
+              tenderList={detail.orderChange.newTenderList}
+              priorTenderList={detail.orderChange.priorTenderList}
+              droppedCarriers={detail.orderChange.droppedCarriers?.new}
               summary={detail.stopsData.summary}
               saving={resolve.isPending}
               saveError={saveError}

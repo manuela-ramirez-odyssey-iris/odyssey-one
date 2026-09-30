@@ -1372,6 +1372,7 @@ The user ruled on N1, N2, N3 and N6 on 2026-09-29, each time taking the recommen
   - An out-of-order pair turns red: red card, red outlined badge, `issue` marker. Only the **delivery** carries the inline *"Stops are out of order"* Alert (VD `x38TOJGsNryYl3LsKhCtSc` 3039:147748). Every other stop and marker drops to 50% opacity, is locked (not draggable) and takes no hover until the pair is fixed. The error modal is gone.
   - One marker/badge colour: green, no blue pickups and no purple "changed". Gray count banners; panel 420px.
 - **Source:** user 2026-09-28/29 (this session) + the Figma frame above. Overrides the S161 rulings on purple / gray-moment / the invalid modal.
+- **Superseded 2026-09-29 (S164) by CNS-19** (consolidation decision log): the Review & Apply page is gone. Consolidation now runs in the order-change Edit Stops screen, where an out-of-order move is refused (LINX-15669) rather than allowed and flagged.
 
 ## Order Change — Jana 09-29 sync, non-design slice (DEC-220 … DEC-224)
 

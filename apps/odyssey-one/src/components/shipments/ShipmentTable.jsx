@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { consolidationEditReason } from '../../consolidation/eligibility'
 import useSheet from '../../routes/useSheet'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
@@ -10,6 +10,7 @@ import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
 import { getErrorDetail } from '../common/errorDetail.js'
 import { SHIPMENT_STATUS_VARIANT } from '../../lib/shipmentStatus'
+import './shipment-landing.css'
 
 /**
  * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
@@ -204,9 +205,10 @@ const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 const columnHelper = createColumnHelper()
 
 // Inert until each wires to its feature (carried verbatim from the old menu),
-// EXCEPT Edit on a Consolidation row: that's the doorway into consolidate mode
-// with this shipment pre-selected (S155). Direct rows keep the stub — editing a
-// direct shipment is a different, unspecced surface.
+// EXCEPT Edit on a Consolidation row: that's the doorway into the consolidation
+// stops editor with this shipment as its only source (S155; CNS-19 S1.5 — it no
+// longer re-enters the mode). Direct rows keep the stub — editing a direct
+// shipment is a different, unspecced surface.
 const shipmentActions = (row, onEditConsolidation) => [
   {
     label: 'Edit',
@@ -247,8 +249,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   // eligible row on the page (header). `eligibility(row)` returns null or the
   // reason shown as the disabled checkbox's tooltip.
   selectable = false, selection, onSelectionChange, eligibility,
-  // S155 — the row-menu "Edit" on a Consolidation row; the host enters
-  // consolidate mode with that shipment already selected.
+  // S155 — the row-menu "Edit" on a Consolidation row; the host opens the
+  // consolidation stops editor on it (CNS-19).
   onEditConsolidation,
   // S155 §4.2 — the row id (= sellShipment) just created elsewhere; DataTable
   // flashes it so the planner sees what they made. Pure pass-through.
@@ -256,6 +258,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
   const { openSheet } = useSheet()
+
+  // S8.2 — a shipment just created lands from above: scroll the table to the
+  // top so the pinned row is in view when its CSS entrance (shipment-landing.css) plays.
+  useEffect(() => {
+    if (highlightId) containerRef.current?.scrollIntoView?.({ block: 'start' })
+  }, [highlightId])
 
   // Stable master column set — select + every possible data column (ALL_COLUMNS) +
   // the sticky-right action column. The SET never changes; the ColumnPanel only
@@ -464,6 +472,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     <div
       ref={containerRef}
       className="shipment-table"
+      data-landing={highlightId ? '' : undefined}
       // DataTable owns its own chrome/scroll — no fixed-height accommodation. Only
       // reserve clearance so the collapsed BottomBar (detail panel) doesn't cover the
       // Paginator.

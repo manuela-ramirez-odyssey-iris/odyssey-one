@@ -42,12 +42,24 @@ const STATUS_VARIANT = { Accepted: 'green', Sent: 'blue', Declined: 'red', Cance
 // the VM carries both as display strings. Rows are the mapped VM, so the AP
 // Cost string is re-derived from the re-routed total (mapRoutingOption's shape).
 // Also read by the Stops-tab header's New Consolidated Cost (DEC-192).
-export function reroutedNewList(oc, stops, summary) {
-  const baseline = parseDollar(oc?.consolidation?.summaryChanges?.distance?.new) ?? parseDollar(summary?.headerDistance)
+// S5.9 — the editor is decoupled from the order-change payload's names: callers
+// hand over the list and the baseline. Order change unpacks its orderChange
+// (baselineMilesOf below); consolidation passes the anchor's list (CNS-19, R1).
+export function baselineMilesOf(consolidation, summary) {
+  return parseDollar(consolidation?.summaryChanges?.distance?.new) ?? parseDollar(summary?.headerDistance)
+}
+
+// The re-routed list in the list's OWN shape (VM or DTO) — what Approve sends.
+export function reroutedList(list, stops, baselineMiles) {
   const routing = (stops ?? []).map((s) => ({ type: s.type, date: s.date, lat: s.lat, lng: s.lng, timeZone: s.site?.timeZone ?? s.timeZone }))
-  return rerouteTenderList(oc?.newTenderList ?? [], routing, baseline).map((o) => (o.totalCostAmount == null
+  return rerouteTenderList(list ?? [], routing, baselineMiles)
+}
+
+export function reroutedNewList(list, stops, baselineMiles) {
+  return reroutedList(list, stops, baselineMiles).map((o) => (o.totalCostAmount == null
     ? o
-    : { ...o, cost: `${fmtDollar(o.totalCostAmount)} USD`, rate: fmtDollar(o.rateAmount) }))
+    // equipment: a DTO-shaped list (consolidation) carries equipmentCode.
+    : { ...o, equipment: o.equipment ?? o.equipmentCode, cost: `${fmtDollar(o.totalCostAmount)} USD`, rate: fmtDollar(o.rateAmount) }))
 }
 
 const costByScac = (rows) => Object.fromEntries(rows.map((o) => [o.scac, o.cost]))
@@ -79,14 +91,14 @@ function TenderTable({ title, rows, otherCostByScac }) {
 // Approve Changes footer, and StopsTab.jsx (T3) passes its own Keep Reviewing /
 // Approve Plan pair the same way.
 export default function ViewRoutingModal({
-  orderChange: oc, stops, summary, onClose,
+  tenderList, priorTenderList = [], droppedCarriers = [], baselineMiles, showPrior = true, stops, onClose,
   secondaryLabel, onSecondary, primaryLabel, onPrimary, primaryLoading = false, primaryDisabled = false,
   error,
 }) {
-  const priorList = oc?.priorTenderList ?? []
+  const priorList = priorTenderList
   // The Prior list is history — shown as it was.
-  const newList = reroutedNewList(oc, stops, summary)
-  const dropped = oc?.droppedCarriers?.new ?? []
+  const newList = reroutedNewList(tenderList, stops, baselineMiles)
+  const dropped = droppedCarriers
   const hasFooter = !!(secondaryLabel || primaryLabel)
 
   // Portalled to document.body — the bottom bar's own box clips this modal
@@ -121,8 +133,9 @@ export default function ViewRoutingModal({
       {/* LINX-15872 — a failed Approve keeps this modal open with the error
           shown here, not on the (unmounted-on-success) route behind it. */}
       {error && <Alert variant="error" showClose={false}>{error}</Alert>}
-      <TenderTable title="New" rows={newList} otherCostByScac={costByScac(priorList)} />
-      <TenderTable title="Prior" rows={priorList} otherCostByScac={costByScac(newList)} />
+      {/* S5.5 — a new C has no Prior: no Prior table, no cost diff on New. */}
+      <TenderTable title="New" rows={newList} otherCostByScac={showPrior ? costByScac(priorList) : {}} />
+      {showPrior && <TenderTable title="Prior" rows={priorList} otherCostByScac={costByScac(newList)} />}
       <GroupTable
         flat
         header={{ title: 'Dropped Carriers' }}

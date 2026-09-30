@@ -9,7 +9,7 @@ import TooltipTrigger from '../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import { DiffValue, val } from '../shipments/order-change/comparisonHelpers.jsx'
 import PlanningDatesModal from './order-change/PlanningDatesModal.jsx'
-import ViewRoutingModal, { reroutedNewList } from './order-change/ViewRoutingModal.jsx'
+import ViewRoutingModal, { reroutedNewList, baselineMilesOf } from './order-change/ViewRoutingModal.jsx'
 import OrderCompareModal from './order-change/OrderCompareModal.jsx'
 import KpiStrip from './order-change/ReviewKpiStrip.jsx'
 import { consolidatedReviewPending } from '../../lib/orderChangeDoorway.js'
@@ -205,7 +205,7 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
   // the list is empty. A pending location change keeps the seeded (null)
   // value its tooltip explains.
   const rank1Cost = review && !c.locationChange
-    ? reroutedNewList(orderChange, stops, summary).find((o) => o.rank === 1)?.totalCostAmount
+    ? reroutedNewList(orderChange?.newTenderList, stops, baselineMilesOf(orderChange?.consolidation, summary)).find((o) => o.rank === 1)?.totalCostAmount
     : undefined
   const newConsolidatedCost = rank1Cost != null
     ? `${rank1Cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
@@ -311,9 +311,11 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
       {modal === 'planning' && <PlanningDatesModal orders={orderDetails} onClose={() => setModal(null)} />}
       {modal === 'routing' && (
         <ViewRoutingModal
-          orderChange={orderChange}
+          tenderList={orderChange?.newTenderList}
+          priorTenderList={orderChange?.priorTenderList}
+          droppedCarriers={orderChange?.droppedCarriers?.new}
+          baselineMiles={baselineMilesOf(orderChange?.consolidation, summary)}
           stops={stops}
-          summary={summary}
           onClose={() => setModal(null)}
           secondaryLabel="Keep Reviewing"
           onSecondary={() => setModal(null)}

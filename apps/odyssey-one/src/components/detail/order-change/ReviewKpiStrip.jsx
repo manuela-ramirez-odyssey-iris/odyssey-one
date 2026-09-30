@@ -14,7 +14,10 @@ import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
 // Prior Cost, New Direct Cost (the rest lives in the All Stops header; no label
 // in both). Without
 // them (StopsTab) the output is today's 6 cells.
-export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed }) {
+//
+// S5.2 (CNS-19): `showPrior={false}` (a new C, nothing to compare) keeps only
+// Distance, Gross Weight, Volume as live values — no pair, no changed icon.
+export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed, showPrior = true }) {
   // LINX-15435: "Distance, Gross Weight, and Volume shall display Prior and
   // New values when changed. If a value has not changed, only the current
   // value shall be displayed."
@@ -30,6 +33,11 @@ export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed 
         </span>
       ),
     }
+  }
+  if (live && !showPrior) {
+    const plain = (label, value) => ({ label, value })
+    const items = [plain('Distance', live.distance), plain('Gross Weight', live.grossWeight), plain('Volume', live.volume)]
+    return <SummaryStrip sticky className="stops-kpi-strip" items={items} aria-label="Shipment KPIs" />
   }
   if (live) {
     // Live current value; a changed one keeps the DiffValue signal (as the

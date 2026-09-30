@@ -162,3 +162,40 @@ Decisions about the *identifier* itself live in
 - **Rationale:** 00:21:23–00:22:xx, 00:38–00:46.
 - **Source:** `vault-sources/10-domains/consolidation/sources/doug-consolidation-questions-2026-09-21.vtt` 00:38–00:46.
 - **Affects:** None for the build; canon §6 stands.
+
+## The 2026-09-29 rebuild — Jana's order-change sync (CNS-18 … CNS-20)
+
+### CNS-18 — Manual consolidation picks only from the Consolidation pool
+- **Decided:** 2026-09-29 (S164)
+- **Previous state:** CNS-08 (Dave Schultz 2026-09-17): any Direct shipment with no active tender could be picked, from any panel. Exceptions were irrelevant and Hold was fine. Consolidate mode landed on Exceptions › All. Ramesh's pool gates (Allow Optimization, `Shipment Status = Consolidation`, LINX-15786 BR I) were deliberately not applied.
+- **Decision:** entering consolidate mode lands on **Monitoring › Consolidation**, and every other panel and tab is hidden for the rest of the mode. Only single-order (Direct) shipments in the pool can be checked. The customer lock (CNS-10) and the guards (CNS-12) are unchanged. The server refuses any source outside `category = 'consolidation'`.
+- **Rationale:** Jana, 09-29 `@27:13–33:59`: *"you just have to be in consolidation state… you will see only 159 shipments"*. The pool holds exactly the shipments the optimizer should have consolidated and didn't. Hold already failed Allow Optimization (`@33:01`). Single-order only: Manuela *"shipments that have one order only, right?"*, Jana *"Correct, correct"* (`@29:14`). This effectively applies Ramesh's pool gates, which CNS-08 had set aside. It conflicts with Dave's 09-17 position; the user ruled for Jana's scope, and Dave's view is kept here as the previous state.
+- **Source:** `vault/00-inbox/Order Change Sync.vtt` (2026-09-29); user 2026-09-29; spec `docs/superpowers/specs/2026-09-29-consolidation-via-order-change.md` S1.
+- **Affects:** supersedes CNS-08's panel scope (its Direct + one-customer rules survive). `ShipmentsRoute.jsx`, `consolidations.mjs`.
+
+### CNS-19 — Consolidation runs in the order-change Edit Stops screen, from New, with no Prior
+- **Decided:** 2026-09-29 (S164)
+- **Previous state:** the S161 **Review & Apply Manual Consolidation** page (LINX-15787, VD 2249:46444) had Planned Stops with an edit mode and allow-then-fix validation (DEC-219), a summary, the selected-shipments table and Apply.
+- **Decision:**
+  - After picking, the planner works in the order-change **Edit Shipment Stops** screen, reused and **not** order change itself: no order-change record, no order-change API.
+  - No Prior anywhere, because the result is a new C. The strip shows Distance, Gross Weight and Volume, live. The All Stops row shows Consolidated Cost, Seed Equipment and Utilization.
+  - Stops start pickups first, then deliveries, in selection order. Same-site stops of the same type merge.
+  - Move, Remove, Add Orders (any of the customer's shipments, as a what-if), dates and Evaluate work as they do in order change. At least 2 orders must stay.
+  - **Stop sequence follows order change's LINX-15669 rule:** a move that puts a delivery above its pickup is refused. DEC-219's allow-then-fix validation is retired, since it solved the same rule a different way (user: *"the way it is in order change is better, not allowing the user from the beginning"*).
+  - The **Tendered Shipment Detected** modal (Remove / Discard / Cancel tender) is kept on Apply. It now also checks the shipments that added orders came from.
+  - The Review & Apply page is deleted.
+- **Rationale:** Jana `@24:43–35:07`: *"you can use exactly the same order change consolidation process to do the manual consolidation… directly you start from new… rest of the page exactly remains the same… you don't have to reinvent anything."* `@35:07`: *"the first step is good."* The 09-28 design review `@06:06` backs the what-if Add: *"you can do the what-if scenario, you cannot finalize it."* The stories (Ramesh) never described this flow.
+- **Source:** as CNS-18; 09-28 `Consolidated Order Change Process - Design Review.vtt`; user rulings 2026-09-29 (R3, R4, R5, R7 in the plan).
+- **Affects:** supersedes the S161 review page and DEC-219 (shipments log). `ConsolidateStopsRoute.jsx` (new), `EditStopsView.jsx` (`showPrior`, `minOrders`, `confirmApprove`, plain `tenderList` props), `stopsSandbox.js` (`initFromSources`), `ConsolidationApplyModal.jsx` (extracted).
+
+### CNS-20 — A created C is treated like any new O shipment
+- **Decided:** 2026-09-29 (S164)
+- **Previous state:** CNS-11: the C was born in Monitoring › Consolidation with no carrier list (`shippingOptionList: []`). Afterwards the Review page showed a read-only preview with a success banner.
+- **Decision:**
+  - The C is filed by the same rule as a new O (`planShipment`): the Consolidation pool if every order is consolidatable, else Hold. It is untendered, with its status from `shipmentStatus.js`.
+  - It carries the carrier list the planner evaluated, untendered (adopts CNS-16). That list is the first selected shipment's list, re-costed by the new stops' miles, as a stand-in for the routing call the prototype lacks.
+  - The planner lands on the Shipments list, on the C's tab, where the row is pinned and animated in (reduced motion: highlight only).
+  - Editing a pool C reuses its ids (CNS-11/14). An order left pending on it becomes its own Direct shipment.
+- **Rationale:** user 2026-09-29: *"a C shipment is treated as any other O shipment after its creation"*; the landing animation was the user's idea. The 09-23 call `@43:41–44:16` (Jana): a new shipment re-runs the optimization condition and either enters the pool or gets a new list.
+- **Source:** user 2026-09-29; `vault/00-inbox/Consoloidation Questions 2.vtt` (2026-09-23).
+- **Affects:** `consolidateShipments.mjs`, `consolidations.mjs`, `consolidationService.ts`, `ShipmentsRoute.jsx`.

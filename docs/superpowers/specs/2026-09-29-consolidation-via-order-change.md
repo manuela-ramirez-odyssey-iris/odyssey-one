@@ -22,7 +22,7 @@ Plan: `docs/superpowers/plans/2026-09-29-consolidation-via-order-change.md` (rul
 - **S1.2** While `inMode`, the panel switcher and every category tab except Consolidation are hidden. Use the same mechanism that hides PGI/PGR (`visiblePanels`).
 - **S1.3** Unchanged: the `shipment-type: Direct` mode chip (single-order shipments only; Jana `@29:22`), the customer lock (CNS-10), the guards (CNS-12), show-selected-on-top, and the exit restore.
 - **S1.4** The mode's primary CTA opens `/shipments/consolidate/stops` via `openSheet`, with `state: { rows: [...selection] }` in selection order. It is enabled at ≥2 rows, as today.
-- **S1.5** Row menu **Edit** on a Consolidation-type row (`consolidationEditReason` still gates it) opens `/shipments/consolidate/stops` directly with `state: { rows: [row] }`. It no longer re-enters the mode.
+- **S1.5** Row menu **Edit** on a Consolidation-type row **in the pool** (`consolidationEditReason` gates it, and now also refuses `category !== 'consolidation'`) opens `/shipments/consolidate/stops` directly with `state: { rows: [row] }`. It no longer re-enters the mode.
 
 ## S2. Sandbox from N sources (`src/components/detail/order-change/stopsSandbox.js`)
 
@@ -61,7 +61,7 @@ Plan: `docs/superpowers/plans/2026-09-29-consolidation-via-order-change.md` (rul
 - **S5.1** `showPrior` (default true). With it false:
   - no Prior `<section>`, no collapse buttons, and no `priorCollapsed`/`priorMotion`/prior-line measuring effects run;
   - New takes the width;
-  - `priorDiff`-driven badges never show (`prior` is empty anyway).
+  - Prior-column badges never show. `priorDiff` diffs against `arrival`, so a reordered New stop still gets its Moved dot (review finding, kept).
 - **S5.2** The strip with `showPrior={false}` holds only **Distance, Gross Weight, Volume**, as live values, with no changed icons (nothing to compare against). `ReviewKpiStrip` gets a `fields` override, or a `mode="new"`; pick whichever is the smaller diff.
 - **S5.3** The All Stops row with `showPrior={false}` holds **Consolidated Cost** (label with no "New"), **Seed Equipment** and **Utilization**, then View Planning Dates. There is no Accepted Carrier.
 - **S5.4** `minOrders` (default 1). Remove is disabled with a tooltip while the orders on stops number `<= minOrders`. Consol copy: `A consolidation needs at least two orders.`; order change keeps `LAST_ORDER_TOOLTIP`.
@@ -83,7 +83,7 @@ Plan: `docs/superpowers/plans/2026-09-29-consolidation-via-order-change.md` (rul
   - Its CSS moves to `consolidation-apply.css`.
 - **S6.2** The rows checked are the **selected sources**, plus one row per **external order's source shipment** (from `sourceTenderStatus`, with `odysseyShipmentIdentifier` and `orders` from the candidate row). A row counts as tendered on the existing `ACTIVE_TENDER`.
 - **S6.3** Outcomes, now expressed on the sandbox:
-  - **Remove:** the tendered rows' orders go back to pending (`moveToPending` per order; external ones are dropped from `extraOrders`), and the modal returns to confirm with the removed Alert. It is offered when ≥2 source shipments remain; otherwise **Discard**.
+  - **Remove:** the tendered rows' orders leave the consolidation entirely: off every stop and **not** into Pending, so they can't be re-added past the re-verify (final review; matches the retired page). External ones are dropped from `extraOrders`. The modal returns to confirm with the removed Alert. It is offered when ≥2 source shipments remain; otherwise **Discard**.
   - **Discard:** back to the mode with the selection minus the tendered rows.
   - **Cancel tender:** as today; the rows stay.
   - The editor exposes an imperative `removeOrders(ids)` through the same `cancelRef`-style ref (`actionsRef`) so the host can do Remove.

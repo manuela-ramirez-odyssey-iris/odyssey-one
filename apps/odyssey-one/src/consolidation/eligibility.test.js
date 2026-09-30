@@ -42,8 +42,11 @@ describe('CONSOLIDATION_ATTRIBUTE_KEYS', () => {
 describe('consolidationEditReason (S155)', () => {
   it('a tendered consolidation is not editable; an untendered one is; a Direct row is not applicable', async () => {
     const { consolidationEditReason } = await import('./eligibility')
-    expect(consolidationEditReason({ shipmentType: 'Consolidation', tenderStatus: 'Accepted' })).toMatch(/Tendered/)
-    expect(consolidationEditReason({ shipmentType: 'Consolidation', tenderStatus: '' })).toBeNull()
+    const inPool = { shipmentType: 'Consolidation', category: 'consolidation' }
+    expect(consolidationEditReason({ ...inPool, tenderStatus: 'Accepted' })).toMatch(/Tendered/)
+    expect(consolidationEditReason({ ...inPool, tenderStatus: '' })).toBeNull()
+    // CNS-18: a C outside the pool (Hold, Sent…) is refused at the door, as the server would.
+    expect(consolidationEditReason({ ...inPool, category: 'hold', tenderStatus: '' })).toMatch(/Only shipments in Consolidation/)
     expect(consolidationEditReason({ shipmentType: 'Direct', tenderStatus: '' })).toMatch(/consolidated/)
   })
 })

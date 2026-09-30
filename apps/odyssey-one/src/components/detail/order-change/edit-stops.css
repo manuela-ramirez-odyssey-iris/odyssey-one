@@ -46,7 +46,7 @@
 
 /* User 2026-09-28 (round 2): Prior / New / Pending read like the
    Consolidation "Proposed Stop Count & Sequence" panel (VD 3039:147748,
-   built in routes/shipments/consolidation-review.css — values copied, not
+   built in the retired consolidation-review.css (deleted, CNS-19) — values copied, not
    imported, so that route's CSS stays its own): a white shadow-sm panel,
    plain-text title, and stops as light rows on the Timeline rail — no
    HeaderStrips, no per-stop boxes. Supersedes round 1's framed "Stops-tab"
@@ -86,7 +86,7 @@
 }
 
 /* New's rail (user 2026-09-28): each segment stops short of the next
-   marker, like consolidation-review.css's --editing timeline (which uses a
+   marker, like the retired Review & Apply page's --editing timeline (which uses a
    margin-bottom on the segment; padding on the rail column is the same gap
    without a margin). */
 .edit-stops__rail--detached .odyssey-timeline__rail { padding-bottom: var(--spacing-2); }
@@ -118,7 +118,7 @@
   background: var(--deep-sea-neutral-700);
 }
 
-/* A stop row (consolidation-review.css .consolidation-review__stop /
+/* A stop row (the retired consolidation-review.css .consolidation-review__stop /
    __stop-inner): the air between stops is padding INSIDE the content, so
    the row grows and the rail segment stretches through it unbroken. */
 .edit-stops__stop {
@@ -165,7 +165,7 @@
 /* Secondary lines — Consolidation's "Scheduled: …" / "Shipment: …". */
 .edit-stops__stop-meta { color: var(--text-secondary-soft); }
 
-/* Hover (consolidation-review.css, the editable-stop tint): New rows only —
+/* Hover (the retired consolidation-review.css, the editable-stop tint): New rows only —
    Prior is read-only, like Consolidation's non-editing stops. User
    2026-09-28: the tint spans the WHOLE stop — its rail badge + line too,
    they're part of it — drawn on the Timeline row, but only while the stop's
@@ -187,7 +187,7 @@
 }
 .edit-stops__plan:not(:has([data-dragging])) .edit-stops__stop--editable:hover .edit-stops__stop-meta { color: var(--text-secondary); }
 
-/* Collapsed-mode drag (user 2026-09-28) — consolidation-review.css's
+/* Collapsed-mode drag (user 2026-09-28) — the retired consolidation-review.css's
    sortable stop: grab cursor (dnd-kit's attributes carry
    aria-roledescription="sortable"), grabbing + a DSN/200 tint while held,
    drawn above the rows it passes; no hover tint anywhere mid-drag (above). */

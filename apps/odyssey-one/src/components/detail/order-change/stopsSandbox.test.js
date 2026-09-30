@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances } from './stopsSandbox'
+import { initSandbox, initFromSources, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -499,4 +499,45 @@ it('F5: plannedDates maps each order to its New pickup/delivery stop dates', () 
     B: { pickup: 'June 4, 2026 08:00 CDT' },
   })
   expect(plannedDates(sb).Z).toBeUndefined()   // pending / unknown → '--' in the modal
+})
+
+// CNS-19 — a new C's sandbox from N selected sources (no Prior).
+describe('initFromSources', () => {
+  const src = (sell, list) => ({ row: { sellShipment: sell }, detail: { stopsData: { stops: list } } })
+  const a = src('111', [
+    stop({ stopNumber: 1, orderIds: ['A'], siteKey: 'S1', location: 'X, City' }),
+    stop({ type: 'delivery', stopNumber: 2, orderIds: ['A'], siteKey: 'S9', location: 'Z, Ville' }),
+  ])
+  const b = src('222', [
+    stop({ stopNumber: 1, orderIds: ['B'], siteKey: 'S1', location: 'X, City' }),
+    stop({ type: 'delivery', stopNumber: 2, orderIds: ['B'], siteKey: 'S8', location: 'W, Burg' }),
+  ])
+
+  it('lists every pickup then every delivery in selection order, keyed src:<sell>:<n>, with no Prior', () => {
+    const s = initFromSources([a, b])
+    expect(s.stops.map((x) => x.type)).toEqual(['pickup', 'delivery', 'delivery'])
+    expect(s.stops.map((x) => x.key)).toEqual(['src:111:1', 'src:111:2', 'src:222:2'])
+    expect(s.prior).toEqual([])
+    expect(s.arrival).toEqual(s.stops)
+    expect(s).toMatchObject({ pending: [], dirty: false, seq: 0 })
+    expect(s.stops.every((x) => !x.unsequenced && x.dateEdited)).toBe(true)
+  })
+  it('folds a same-type same-site stop into the first, unioning orders', () => {
+    const s = initFromSources([a, b])
+    expect(s.stops[0]).toMatchObject({ key: 'src:111:1', orderIds: ['A', 'B'] })
+  })
+  it('does not fold a pickup into a delivery at the same site', () => {
+    const c = src('333', [stop({ type: 'delivery', stopNumber: 1, orderIds: ['C'], siteKey: 'S1', location: 'X, City' })])
+    expect(initFromSources([a, c]).stops.map((x) => x.type)).toEqual(['pickup', 'delivery', 'delivery'])
+  })
+  it('toDto emits sourceSellShipment + sourceStopSequence for src keys; s<n> keys emit null shipment', () => {
+    const dto = toDto(initFromSources([a, b]))
+    expect(dto[0]).toMatchObject({ orderIds: ['A', 'B'], sourceSellShipment: '111', sourceStopSequence: 1 })
+    expect(dto[2]).toMatchObject({ sourceSellShipment: '222', sourceStopSequence: 2 })
+    expect(toDto(initSandbox({ stops, consolidation: noChange, orders }))[0]).toMatchObject({ sourceSellShipment: null, sourceStopSequence: 1 })
+  })
+  it('a delivery moved above its pickup is refused (order-change rule, S3)', () => {
+    const s = initFromSources([a, b])
+    expect(canReorderStop(s, 0, 2).ok).toBe(false)
+  })
 })

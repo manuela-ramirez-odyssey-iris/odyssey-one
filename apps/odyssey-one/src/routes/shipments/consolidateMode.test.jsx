@@ -21,9 +21,9 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
-function ReviewProbe() {
+function StopsProbe() {
   const { state } = useLocation()
-  return <div data-testid="review-probe">{JSON.stringify(state?.rows?.map((r) => r.id) ?? null)}</div>
+  return <div data-testid="stops-probe">{JSON.stringify(state?.rows?.map((r) => r.id) ?? null)}</div>
 }
 
 function renderRoute(state) {
@@ -33,7 +33,7 @@ function renderRoute(state) {
       <MemoryRouter initialEntries={[{ pathname: '/shipments', state }]}>
         <CustomersProvider><EditModeProvider><CreateOrderModeProvider>
           <Routes>
-            <Route path="/shipments/consolidate/review" element={<ReviewProbe />} />
+            <Route path="/shipments/consolidate/stops" element={<StopsProbe />} />
             <Route path="/shipments/*" element={<ShipmentsRoute />} />
           </Routes>
         </CreateOrderModeProvider></EditModeProvider></CustomersProvider>
@@ -84,7 +84,7 @@ describe('consolidate mode', () => {
     expect(screen.getByPlaceholderText('Search in Shipments')).toBeTruthy()
   })
 
-  test('two selected enables the primary; proceeding hands the rows to the review route', async () => {
+  test('two selected enables the primary; proceeding hands the rows to the stops editor route', async () => {
     renderRoute()
     await enterMode()
     await waitFor(() => expect(enabledRowBoxes().length).toBeGreaterThan(1))
@@ -95,7 +95,7 @@ describe('consolidate mode', () => {
     const go = await screen.findByRole('button', { name: 'Consolidate 2 Shipments' })
     expect(go.disabled).toBe(false)
     fireEvent.click(go)
-    const probe = await screen.findByTestId('review-probe')
+    const probe = await screen.findByTestId('stops-probe')
     expect(JSON.parse(probe.textContent)).toHaveLength(2)
   })
 
@@ -186,24 +186,32 @@ describe('consolidate mode', () => {
 // mode only — the S104 ruling that panel tabs never vanish for a SEARCH still
 // stands; this is a distinct page stage, not a filter.
 describe('consolidate mode — PGI/PGR is hidden (S154)', () => {
-  test('in consolidate mode the PGI/PGR tab is gone; the other two panel tabs remain', async () => {
+  // CNS-18 (Jana 2026-09-29): the mode is scoped to the Consolidation pool —
+  // it lands on Monitoring > Consolidation and every other panel / category
+  // tab is hidden for its whole duration.
+  test('entering lands on Monitoring > Consolidation; the other panels and category tabs are hidden', async () => {
     renderRoute()
     await enterMode()
-    expect(screen.getByRole('button', { name: /^Shipment Exceptions/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /^Monitoring/ })).toBeTruthy()
+    // No panel switcher row at all: not even a lone Monitoring tab.
+    expect(screen.queryByRole('button', { name: /^Monitoring/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /^Consolidation/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByRole('button', { name: /^Shipment Exceptions/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^PGI\/PGR/ })).toBeNull()
+    for (const hidden of [/^All/, /^Hold/, /^Sent/, /^Approved/]) expect(screen.queryByRole('button', { name: hidden })).toBeNull()
+    await waitFor(() => expect(rowBoxes().length).toBeGreaterThan(0))
   })
 
-  test('leaving the mode brings PGI/PGR back', async () => {
+  test('leaving the mode brings the panels back', async () => {
     renderRoute()
     await enterMode()
     expect(screen.queryByRole('button', { name: /^PGI\/PGR/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     await screen.findByRole('heading', { name: 'Shipments' })
     expect(screen.getByRole('button', { name: /^PGI\/PGR/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Shipment Exceptions/ })).toBeTruthy()
   })
 
-  test('entering the mode from the PGI/PGR panel lands the planner on Shipment Exceptions with the table visible', async () => {
+  test('entering the mode from the PGI/PGR panel lands the planner on the Monitoring pool with the table visible', async () => {
     renderRoute({ panel: 'pgipgr' })
     await screen.findByRole('heading', { name: 'Shipments' })
     expect(screen.getByText('Executed Shipment Overview')).toBeTruthy()
@@ -571,7 +579,7 @@ describe('consolidate mode — only Direct shipments are listed (S155)', () => {
     expect(itemCount()).toBeLessThan(before)
   })
 
-  test('re-entering from the review screen lists only Direct rows too', async () => {
+  test('re-entering from the stops editor lists only Direct rows too', async () => {
     // The old shipmentType sort reseed only ran in enterConsolidate, so this
     // path (location.state.consolidate) surfaced Consolidation rows.
     const rows = [
@@ -588,10 +596,10 @@ describe('consolidate mode — only Direct shipments are listed (S155)', () => {
 // S155 — editing an existing consolidation starts from the row's actions
 // menu. The seeded C row is not LISTED in the mode (above) and eligibility
 // would refuse its checkbox; it lives in the selection, the header count and
-// the review screen only.
-describe('consolidate mode — Edit on a Consolidation row (S155)', () => {
-  test('the Edit action enters the mode with that shipment selected and the customer locked', async () => {
-    renderRoute()
+// the stops editor only.
+describe('consolidate mode — Edit on a Consolidation row (S155, CNS-19 S1.5)', () => {
+  test('the Edit action opens the stops editor with that C as the only source — no mode', async () => {
+    renderRoute({ panel: 'monitoring', tab: 'consolidation' }) // Edit is gated to pool Cs (CNS-18)
     await screen.findByRole('heading', { name: 'Shipments' })
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Shipment actions' }).length).toBeGreaterThan(0))
     // Page 1, default sort: "C…" sorts before "O…", so the first row is a
@@ -600,9 +608,8 @@ describe('consolidate mode — Edit on a Consolidation row (S155)', () => {
     expect([...firstRow.querySelectorAll('td')].some((td) => /^C\d+$/.test(td.textContent.trim()))).toBe(true)
     fireEvent.click(within(firstRow).getByRole('button', { name: 'Shipment actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }))
-    expect(await screen.findByRole('heading', { name: 'Shipments Consolidation' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Consolidate 1 Shipment' })).toBeTruthy()
-    expect(screen.getByText('Selected Customer:')).toBeTruthy()
+    const probe = await screen.findByTestId('stops-probe')
+    expect(JSON.parse(probe.textContent)).toHaveLength(1)
   })
 })
 

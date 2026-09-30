@@ -6,7 +6,7 @@ import { getSellShipmentDetail } from '../services/shipmentService'
 export const shipmentDetailQueryKeyPrefix = ['shipment', 'detail'] as const
 
 /** The one cache key for a shipment's detail. Shared so the detail bar and the
- *  consolidation review screen hit the SAME entry instead of double-fetching. */
+ *  consolidation stops editor hit the SAME entry instead of double-fetching. */
 export const shipmentDetailQueryKey = (id: string) => [...shipmentDetailQueryKeyPrefix, id] as const
 
 // Server-state for one shipment's detail. Replaces the manual fetch + detailsCache

@@ -1,0 +1,237 @@
+// @vitest-environment jsdom
+import { describe, test, expect, vi, afterEach, beforeEach } from 'vitest'
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import ConsolidateStopsRoute from './ConsolidateStopsRoute.jsx'
+import { getSellShipmentDetail, saveTenderOption } from '../../api/services/shipmentService'
+import { applyConsolidation } from '../../api/services/consolidationService'
+import { CustomersProvider } from '../../contexts/CustomersContext.jsx'
+import { EditModeProvider } from '../../contexts/EditModeContext.jsx'
+import { CreateOrderModeProvider } from '../../contexts/CreateOrderModeContext.jsx'
+
+// CNS-19 — manual consolidation on the order-change editor (no Prior).
+
+vi.mock('../../components/detail/order-change/AddOrdersModal', () => ({
+  // An order from shipment 77 whose tender is Accepted: the Tendered Shipment Detected trigger.
+  default: ({ onAdd }) => (
+    <button onClick={() => onAdd([{ orderNumber: 'E', sourceSellShipment: '77', tenderStatus: 'Accepted', ordersInShipment: ['E'], shipDate: '06/04/2026' }])}>mock-add</button>
+  ),
+}))
+vi.mock('../../api/services/consolidationService', () => ({
+  applyConsolidation: vi.fn(async ({ sellShipments }) => ({
+    row: { id: '27000001', sellShipment: '27000001', odysseyShipmentIdentifier: 'C70000001', category: 'consolidation', orders: sellShipments },
+    detail: {},
+  })),
+}))
+vi.mock('../../api/services/shipmentService', () => ({
+  getSellShipmentDetail: vi.fn(),
+  saveTenderOption: vi.fn(async () => {}),
+}))
+
+const stopOf = (over) => ({
+  type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', siteKey: 'S1',
+  date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over,
+})
+const option = { rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'ODFL', equipment: 'TL', rate: '$100.00', cost: '$100.00 USD', transit: '1 Days', distance: '100.00 mi', status: null, pickupDateTime: null, deliveryDateTime: null, rateDetails: { baseRate: 100, additionalCharges: [], currency: 'USD', markup: 0, apTotal: 100, arTotal: 100 } }
+const detailOf = (order, dropLoc) => ({
+  odysseyShipmentIdentifier: `O-${order}`, customerId: 'VALTRIS_01', customerName: 'Valtris',
+  stopsData: {
+    summary: { headerDistance: '100.00 mi', seedEquipment: 'TL' },
+    stops: [stopOf({ orderIds: [order] }), stopOf({ type: 'delivery', stopNumber: 2, orderIds: [order], location: dropLoc, siteKey: `D-${order}`, date: 'June 6, 2026 08:00 CDT' })],
+  },
+  orderDetails: [{ orderNumber: order, shipFrom: { location: 'X, City' }, shipTo: { location: dropLoc }, grossWeight: '5 LB', totalVolume: '1 cuft' }],
+  routingData: { options: [option] },
+})
+const details = { 111: detailOf('A', 'Z, Ville'), 222: detailOf('B', 'W, Burg'), 333: detailOf('C', 'V, Town'), 77: { ...detailOf('E', 'Z, Ville'), odysseyShipmentIdentifier: 'O-77' } }
+
+// sell ids are numeric on the wire (toDto's src:<sell>:<n> key)
+const row = (id, over) => ({ id, sellShipment: id, odysseyShipmentIdentifier: `O-${id}`, customerId: 'VALTRIS_01', equipmentCode: 'TL', shipmentType: 'Direct', tenderStatus: '', orders: [{ 111: 'A', 222: 'B', 333: 'C' }[id]], pickupDate: '06/04/2026', ...over })
+
+function Probe() {
+  const { pathname, state } = useLocation()
+  return <div data-testid="probe">{JSON.stringify({ pathname, state })}</div>
+}
+const probe = async () => JSON.parse((await screen.findByTestId('probe')).textContent)
+
+function renderRoute(rows) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[{ pathname: '/shipments/consolidate/stops', state: { rows } }]}>
+        <CustomersProvider><EditModeProvider><CreateOrderModeProvider>
+          <Routes>
+            <Route path="/shipments/consolidate/stops" element={<ConsolidateStopsRoute />} />
+            <Route path="/shipments/*" element={<Probe />} />
+          </Routes>
+        </CreateOrderModeProvider></EditModeProvider></CustomersProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+beforeEach(() => {
+  // The concurrent-tender roll is a coin flip on the first Apply; pin it off.
+  vi.spyOn(Math, 'random').mockReturnValue(0.9)
+  vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => details[id])
+  vi.mocked(saveTenderOption).mockReset().mockResolvedValue(undefined)
+})
+afterEach(() => { cleanup(); vi.mocked(applyConsolidation).mockClear(); vi.restoreAllMocks() })
+
+const evaluate = async () => fireEvent.click(await screen.findByRole('button', { name: 'Evaluate' }))
+const routingApply = () => fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Apply Consolidation' }))
+const modalApply = () => {
+  const btns = screen.getAllByRole('button', { name: 'Apply Consolidation' })
+  fireEvent.click(btns[btns.length - 1])
+}
+
+describe('ConsolidateStopsRoute', () => {
+  test('no rows: empty state with Back to Shipments', async () => {
+    renderRoute([])
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to Shipments' }))
+    expect((await probe()).state).toEqual({ consolidateExit: true })
+  })
+
+  test('opens New Consolidated Shipment on the merged stops, with no Prior', async () => {
+    renderRoute([row('111'), row('222')])
+    expect(await screen.findByRole('heading', { name: 'New Consolidated Shipment' })).toBeTruthy()
+    expect(screen.getByText('Edit Shipment Stops', { selector: '.order-change__crumbs *' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Prior plan' })).toBeNull()
+    // The shared pickup site folded into one stop: 1 pickup + 2 deliveries.
+    expect(document.querySelectorAll('[data-stop-key]')).toHaveLength(3)
+  })
+
+  test('Approve -> Apply -> lands on /shipments with the created C and its panel/tab (S8.1)', async () => {
+    renderRoute([row('111'), row('222')])
+    await evaluate()
+    routingApply()
+    await screen.findByText('Are you sure you want to apply the proposed consolidation?')
+    modalApply()
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    const body = vi.mocked(applyConsolidation).mock.calls[0][0]
+    expect(body.sellShipments).toEqual(['111', '222'])
+    expect(body.stops.map((s) => s.sourceSellShipment)).toEqual(['111', '111', '222'])
+    expect(body.externalOrders).toEqual([])
+    expect(body.tenderList[0]).toMatchObject({ scac: 'ODFL', status: '' })
+    const { pathname, state } = await probe()
+    expect(pathname).toBe('/shipments')
+    expect(state).toMatchObject({ consolidateExit: true, panel: 'monitoring', tab: 'consolidation', createdShipment: { odysseyShipmentIdentifier: 'C70000001' } })
+  })
+
+  // S6.2/S6.3 — an external order from an Accepted shipment trips the check.
+  async function addTenderedExternal() {
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add New Order' }))
+    fireEvent.click(screen.getByRole('button', { name: 'mock-add' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add order E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+  }
+
+  test('the routing Apply is disabled while the async tender check runs (no double roll)', async () => {
+      vi.mocked(saveTenderOption).mockImplementation(() => new Promise(() => {})) // the simulated concurrent tender never settles
+    Math.random.mockReturnValue(0.1)
+    renderRoute([row('111'), row('222')])
+    await evaluate()
+    routingApply()
+    await waitFor(() => expect(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: /Apply|Approving/ }).disabled).toBe(true))
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+  })
+
+  test('an external order from an Accepted shipment opens Tendered Shipment Detected; Remove sends it back and the write omits it', async () => {
+    renderRoute([row('111'), row('222')])
+    await addTenderedExternal()
+    await evaluate()
+    routingApply()
+    await screen.findByText('Tendered Shipment Detected')
+    expect(screen.getByText(/Shipment O-77 has been tendered and cannot be consolidated\./)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Solution' })) // default action: Remove
+    await screen.findByText('Tendered shipment O-77 removed from the consolidation.')
+    modalApply()
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    const body = vi.mocked(applyConsolidation).mock.calls[0][0]
+    expect(body.externalOrders).toEqual([])
+    expect(body.stops.flatMap((s) => s.orderIds)).not.toContain('E')
+  })
+
+  test('a tendered SOURCE with fewer than two others left offers Discard, which returns to the mode without it', async () => {
+    renderRoute([row('111'), row('222', { tenderStatus: 'Accepted' })])
+    await evaluate()
+    routingApply()
+    await screen.findByText('Tendered Shipment Detected')
+    expect(screen.getByText(/Consolidation requires at least 2 shipments/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Solution' }))
+    const { state } = await probe()
+    expect(state.consolidate.rows.map((r) => r.id)).toEqual(['111'])
+    expect(applyConsolidation).not.toHaveBeenCalled()
+  })
+
+  test('a Consolidation row opened from the row menu leaves without re-entering the mode (S1.5)', async () => {
+    renderRoute([row('333', { shipmentType: 'Consolidation' })])
+    await screen.findByRole('heading', { name: /^Shipment O-C$/ })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect((await probe()).state ?? null).toBeNull()
+  })
+
+  // ── B3/B4 tender flow, ported from the retired Review & Apply page (S6.1) ──
+  const three = () => [row('111'), row('222'), row('333')]
+  const activeDetail = { ...details[222], routingData: { options: [{ ...option, status: 'Accepted' }] } }
+  const openApplyModal = async () => { await evaluate(); routingApply() }
+
+  test('cancel tender runs the Tender tab save path, keeps the rows and returns to confirm', async () => {
+    vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => (id === '222' ? activeDetail : details[id]))
+    renderRoute([row('111'), row('222', { tenderStatus: 'Accepted' }), row('333')])
+    await openApplyModal()
+    await screen.findByText('Tendered Shipment Detected')
+    fireEvent.click(screen.getByText(/Cancel tender on the accepted shipments/))
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Solution' }))
+    await screen.findByText('Tender cancelled on shipment O-222.')
+    expect(saveTenderOption).toHaveBeenCalledWith('222', expect.objectContaining({ status: 'Cancelled' }))
+    modalApply()
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(applyConsolidation).mock.calls[0][0].sellShipments).toEqual(['111', '222', '333'])
+  })
+
+  test('Nevermind closes the error modal without changing anything', async () => {
+    renderRoute([row('111'), row('222', { tenderStatus: 'Accepted' }), row('333')])
+    await openApplyModal()
+    await screen.findByText('Tendered Shipment Detected')
+    fireEvent.click(screen.getByRole('button', { name: 'Nevermind' }))
+    expect(screen.queryByText('Tendered Shipment Detected')).toBeNull()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    expect(applyConsolidation).not.toHaveBeenCalled()
+  })
+
+  test('the first-open 50/50 hit tenders a source under the planner and lands in the error phase', async () => {
+    Math.random.mockReturnValue(0.1) // < 0.5: the roll hits; floor(0.1 * 3) = row 0
+    renderRoute(three())
+    await openApplyModal()
+    await screen.findByText('Tendered Shipment Detected')
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    expect(saveTenderOption).toHaveBeenCalledWith('111', expect.objectContaining({ status: 'Accepted' }))
+    expect(screen.getByText(/Shipment O-111 has been tendered/)).toBeTruthy()
+  })
+
+  test('confirm within 5s does not re-roll; after 5s it rolls again and can trip the check', async () => {
+    renderRoute(three())
+    await openApplyModal() // random 0.9: the first-open roll misses
+    await screen.findByText('Are you sure you want to apply the proposed consolidation?')
+    Math.random.mockReturnValue(0.1)
+    modalApply() // <5s in Confirm: no re-roll, the write goes through
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    cleanup()
+
+    applyConsolidation.mockClear()
+    Math.random.mockReturnValue(0.9)
+    renderRoute(three())
+    await openApplyModal()
+    await screen.findByText('Are you sure you want to apply the proposed consolidation?')
+    Math.random.mockReturnValue(0.1)
+    const real = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(real + 6000) // >5s in Confirm: re-arms the roll
+    modalApply()
+    await screen.findByText('Tendered Shipment Detected')
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    expect(applyConsolidation).not.toHaveBeenCalled()
+  })
+})

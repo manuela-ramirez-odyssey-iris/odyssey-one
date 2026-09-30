@@ -42,11 +42,11 @@ function FakeShipments() {
   return (
     <div>
       <input data-testid="shipments-input" />
-      <button onClick={() => openSheet('/shipments/consolidate/review', { state: { rows: [] } })}>open review</button>
+      <button onClick={() => openSheet('/shipments/consolidate/stops', { state: { rows: [] } })}>open review</button>
     </div>
   )
 }
-function FakeConsolidationReview() {
+function FakeConsolidateStops() {
   const { closeSheet } = useSheet()
   const navigate = useNavigate()
   return (
@@ -60,7 +60,7 @@ function FakeConsolidationReview() {
   )
 }
 vi.mock('./routes/shipments/ShipmentsRoute.jsx', () => ({ default: () => <FakeShipments /> }))
-vi.mock('./routes/shipments/ConsolidationReviewRoute.jsx', () => ({ default: () => <FakeConsolidationReview /> }))
+vi.mock('./routes/shipments/ConsolidateStopsRoute.jsx', () => ({ default: () => <FakeConsolidateStops /> }))
 
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
@@ -123,7 +123,7 @@ describe('App — sheet stack (S158 Part 1)', () => {
   })
 
   test('direct URL load renders a sheet route as the base — full page, no layer', () => {
-    renderApp(['/shipments/consolidate/review'])
+    renderApp(['/shipments/consolidate/stops'])
     expect(screen.getByRole('button', { name: 'close review' })).toBeTruthy()
     expect(document.querySelector('.sheet-layer')).toBeNull()
   })
@@ -131,7 +131,7 @@ describe('App — sheet stack (S158 Part 1)', () => {
   test('closeSheet with no matching layer in the stack falls back to a plain navigate', () => {
     // No stack at all (direct URL) — closeSheet('/shipments') can't find a
     // match, so it's a plain navigate: /shipments becomes the new base.
-    renderApp(['/shipments/consolidate/review'])
+    renderApp(['/shipments/consolidate/stops'])
     fireEvent.click(screen.getByRole('button', { name: 'close review' }))
     expect(screen.getByTestId('shipments-input')).toBeTruthy()
     expect(document.querySelector('.sheet-layer')).toBeNull()

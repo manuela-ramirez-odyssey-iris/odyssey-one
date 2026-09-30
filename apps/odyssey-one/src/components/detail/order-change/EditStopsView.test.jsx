@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
+import { act } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import EditStopsView, { zoneOn } from './EditStopsView'
-import { legDistances } from './stopsSandbox.js'
+import { legDistances, initFromSources } from './stopsSandbox.js'
 import { readFileSync } from 'node:fs'
 // vitest stubs CSS imports (?raw comes back empty), so read the file directly
 const editStopsCss = readFileSync('src/components/detail/order-change/edit-stops.css', 'utf8') // vitest runs from apps/odyssey-one
 
+// jsdom can't drag: capture onDragEnd and invoke it with the event a real drop produces.
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, DndContext: (props) => { window.__dragEnd = props.onDragEnd; return <actual.DndContext {...props} /> } }
+})
 vi.mock('./AddOrdersModal', () => ({
   default: ({ onAdd }) => <button onClick={() => onAdd([{ orderNumber: 'E', sourceSellShipment: '77' }])}>mock-add</button>,
 }))
@@ -829,5 +835,108 @@ describe('audit gaps (S164)', () => {
     const hide = within(prior()).getByRole('button', { name: 'Hide prior plan' })
     expect(hide.className).toMatch(/btn--secondary/)
     expect(hide.className).toMatch(/btn--sm/)
+  })
+})
+
+// CNS-19 — consolidation hosts the same editor from New, with no Prior (S5).
+describe('EditStopsView — consolidation props (no Prior)', () => {
+  const src = (sell, list) => ({ row: { sellShipment: sell }, detail: { stopsData: { stops: list } } })
+  const sources = [
+    src('111', [stop({ stopNumber: 1, orderIds: ['A'], siteKey: 'S1' }), stop({ type: 'delivery', stopNumber: 2, orderIds: ['A'], siteKey: 'S9', location: 'Z, Ville', date: 'June 6, 2026 08:00 CDT' })]),
+    src('222', [stop({ stopNumber: 1, orderIds: ['B'], siteKey: 'S1' }), stop({ type: 'delivery', stopNumber: 2, orderIds: ['B'], siteKey: 'S8', location: 'W, Burg', date: 'June 7, 2026 08:00 CDT' })]),
+  ]
+  const tenderList = [{ rank: 1, scac: 'ODFL', status: '', pickupDateTime: '', rateDetails: { baseRate: 100, additionalCharges: [], currency: 'USD' } }]
+  const consol = (over = {}) => {
+    const onApprove = vi.fn()
+    render(
+      <EditStopsView
+        initial={initFromSources(sources)}
+        orders={orders.slice(0, 2)}
+        tenderList={tenderList}
+        summary={{ headerDistance: '100.00 mi', seedEquipment: 'TL' }}
+        equipmentCode="TL"
+        showPrior={false}
+        minOrders={2}
+        confirmApprove={false}
+        approveLabel="Apply Consolidation"
+        onApprove={onApprove}
+        onCancel={() => {}}
+        sellShipment="111"
+        {...over}
+      />,
+    )
+    return { onApprove }
+  }
+
+  it('has no Prior panel, and Edit shows no prior-collapse controls', () => {
+    consol()
+    expect(screen.queryByRole('region', { name: 'Prior plan' })).toBeNull()
+    edit()
+    expect(screen.queryByRole('button', { name: /prior plan/i })).toBeNull()
+    expect(screen.getByRole('region', { name: 'New plan' })).toBeTruthy()
+  })
+
+  it('the strip holds Distance, Gross Weight, Volume only; the All Stops row holds Consolidated Cost, Seed Equipment, Utilization', () => {
+    consol()
+    const strip = document.querySelector('.stops-kpi-strip')
+    for (const l of ['Distance', 'Gross Weight', 'Volume']) expect(within(strip).getByText(l)).toBeTruthy()
+    for (const l of ['Prior Cost', 'New Direct Cost', 'Accepted Carrier', 'New Consolidated Cost']) expect(screen.queryByText(l)).toBeNull()
+    expect(within(strip).queryAllByText('Prior')).toHaveLength(0)
+    for (const l of ['Consolidated Cost', 'Seed Equipment', 'Utilization']) expect(screen.getByText(l)).toBeTruthy()
+    expect(screen.getByText(/% weight/)).toBeTruthy()
+  })
+
+  it('the merged pickup carries both orders; a move that would put a delivery above its pickup is refused (arrow disabled, LINX-15669)', () => {
+    consol()
+    edit()
+    expect(newStop(0).textContent).toMatch(/A.*B|B.*A/)
+    // P[A,B] moved down would sit below D(A) — refused, same rule as order change.
+    expect(screen.getAllByRole('button', { name: 'Move stop down' })[0].disabled).toBe(true)
+  })
+
+  it('a dragged pickup dropped below its delivery is refused with the LINX-15669 message', () => {
+    consol()
+    act(() => window.__dragEnd({ active: { id: 'src:111:1' }, over: { id: 'src:222:2' } }))
+    expect(screen.getByText('An order must be picked up before it can be delivered.')).toBeTruthy()
+  })
+
+  it('Remove is blocked at two orders', () => {
+    consol()
+    edit()
+    const removes = nw().getAllByRole('button', { name: 'Remove' })
+    expect(removes.length).toBeGreaterThan(0)
+    for (const b of removes) expect(b.disabled).toBe(true)
+  })
+
+  it('the routing primary calls onApprove(dto, external, reroutedList) directly - no ConfirmDialog', () => {
+    const { onApprove } = consol()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Apply Consolidation' }))
+    expect(screen.queryByText('Approve Shipment Change')).toBeNull()
+    expect(onApprove).toHaveBeenCalledTimes(1)
+    const [dto, external, list] = onApprove.mock.calls[0]
+    expect(dto.map((d) => d.sourceSellShipment)).toEqual(['111', '111', '222'])
+    expect(external).toEqual([])
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ scac: 'ODFL', status: '' })
+    expect(list[0].totalCostAmount).toBeGreaterThan(0)
+  })
+
+  it('the View Routing modal has no Prior table', () => {
+    consol()
+    fireEvent.click(screen.getByRole('button', { name: 'Evaluate' }))
+    const modal = screen.getByRole('dialog', { name: 'View Routing' })
+    expect(within(modal).getByText('New')).toBeTruthy()
+    expect(within(modal).queryByText('Prior')).toBeNull()
+  })
+
+  it('actionsRef.removeOrders takes orders out of the consolidation (no stop, not in Pending); payload() reads the latest sandbox', () => {
+    const actionsRef = { current: null }
+    consol({ actionsRef })
+    expect(actionsRef.current.payload().stops.flatMap((d) => d.orderIds).sort()).toEqual(['A', 'A', 'B', 'B'])
+    act(() => actionsRef.current.removeOrders(['B']))
+    expect(actionsRef.current.payload().stops.flatMap((d) => d.orderIds)).toEqual(['A', 'A'])
+    edit()
+    expect(screen.queryByRole('button', { name: 'Add order B' })).toBeNull()
   })
 })

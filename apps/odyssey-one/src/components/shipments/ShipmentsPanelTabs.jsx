@@ -37,6 +37,9 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   visiblePanels = null,
   hideZeroCategories = false,
   hideViewToggle = false,
+  // CNS-18: consolidate mode lists the Consolidation pool only — every other
+  // category tab (and "All") is hidden for the duration of the mode.
+  onlyCategory = null,
 }) {
   const counts = metrics || {}
   const panelTotal = (key) =>
@@ -52,13 +55,16 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   const rows = [
     { key: 'all', label: 'All', count: total },
     ...categories.map(c => ({ key: c.key, label: c.label, count: counts[c.badgeKey] ?? 0 })),
-  ].filter(row => !hideZeroCategories || row.key === 'all' || row.count > 0)
+  ].filter(row => (onlyCategory ? row.key === onlyCategory : !hideZeroCategories || row.key === 'all' || row.count > 0))
 
   return (
     <div>
       {/* PGI/PGR gets more room under the tab underline before "Executed
           Shipment Overview" (~40px in Figma — --spacing-9/36px is the
           nearest token; every other panel keeps the original 16px). */}
+      {/* Consolidate mode leaves one panel: no switcher row at all (Jana 2026-09-29,
+          "you don't need shipment exceptions and monitoring"). */}
+      {(panelEntries.length > 1 || !hideViewToggle) && (
       <div className="flex items-center justify-between" style={{ marginBottom: activePanel === 'pgipgr' ? 'var(--spacing-9)' : 'var(--spacing-4)' }}>
         <div className="flex items-center" style={{ gap: 'var(--spacing-6)' }}>
           {panelEntries.map(([key, panel]) => (
@@ -82,6 +88,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
           />
         )}
       </div>
+      )}
       {/* Section header above the 4 category cards — screenshot-confirmed on
           every PGI/PGR variant (Figma node 2554:58830 et al). */}
       {activePanel === 'pgipgr' && (

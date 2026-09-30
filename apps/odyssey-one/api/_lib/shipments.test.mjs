@@ -1387,6 +1387,16 @@ describe('mergeStops', () => {
     ],
   }
 
+  it('S7.3: an optional stop lookup replaces the own-detail lookup (consolidation: multi-source)', () => {
+    const other = { stopSequence: 1, facilityName: 'Elsewhere', region: 'TX', postal: '77001' }
+    const [merged] = mergeStops(detail, [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['A'], sourceSellShipment: 'X', sourceStopSequence: 1 },
+    ], (row) => (row.sourceSellShipment === 'X' ? other : undefined))
+    assert.equal(merged.facilityName, 'Elsewhere')
+    assert.equal(merged.region, 'TX')
+    assert.equal(merged.grossWeightValue, 500)   // totals still recomputed from the orders
+  })
+
   it('an existing stop keeps region/postal/timezone from the base row and gets recomputed totals', () => {
     const [merged] = mergeStops(detail, [
       { stopSequence: 1, stopType: 'pickup', orderIds: ['A', 'B'], sourceStopSequence: 1 },

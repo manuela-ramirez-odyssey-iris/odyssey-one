@@ -1,0 +1,26 @@
+/* S8.2 (CNS-20) — a shipment just created (consolidation Apply) enters from
+   slightly above, then the existing S155 row highlight pulse runs
+   (components.css, `tr[data-highlight] td`). CSS keyframes only; scoped by the
+   table container's [data-landing] so it wins on specificity without touching
+   the shared rule. */
+@keyframes shipment-land {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: none; }
+}
+[data-landing] .odyssey-table tbody tr[data-highlight] {
+  animation: shipment-land 400ms ease-out both;
+}
+/* Pulse starts after the entrance lands. */
+[data-landing] .odyssey-table tbody tr[data-highlight] td {
+  animation-delay: 400ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No motion. components.css drops the pulse under reduced motion too, so a
+     static fill keeps the "here it is" cue (cleared with the pin). */
+  [data-landing] .odyssey-table tbody tr[data-highlight] {
+    animation: none;
+  }
+  [data-landing] .odyssey-table tbody tr[data-highlight] td {
+    background: var(--carolina-blue-100);
+  }
+}

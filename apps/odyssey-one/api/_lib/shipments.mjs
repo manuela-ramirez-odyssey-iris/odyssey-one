@@ -369,15 +369,19 @@ const OC_OUTCOMES = {
 // those from and recompute totals against. Pure/testable: no DB access.
 // Order identity varies by source (seed orderId vs. live orderNumber) — one
 // helper, used everywhere an order record needs to be matched by id.
-const idOf = (o) => o.orderId ?? o.orderNumber
+export const idOf = (o) => o.orderId ?? o.orderNumber
 
-export function mergeStops(detail, rows) {
+// `findBase(row)` (optional) is the stop lookup: which existing stop a DTO row
+// pulls its full fields from. Default = this detail's own stop at
+// sourceStopSequence (order change); consolidation passes a multi-source one
+// keyed on (sourceSellShipment, sourceStopSequence) (S7.3).
+export function mergeStops(detail, rows, findBase) {
   const orderList = detail.orderList ?? []
   const stopList = detail.shipmentStopList ?? []
   return rows.map((row) => {
-    const base = row.sourceStopSequence != null
-      ? (stopList.find((s) => s.stopSequence === row.sourceStopSequence) ?? {})
-      : {}
+    const base = (findBase
+      ? findBase(row)
+      : row.sourceStopSequence != null ? stopList.find((s) => s.stopSequence === row.sourceStopSequence) : undefined) ?? {}
     const orderIds = row.orderIds ?? []
     const stopOrders = orderList.filter((o) => orderIds.includes(idOf(o)))
     // I5 (generate.mjs) — a stop's totals are always the sum of its orders;
@@ -465,12 +469,22 @@ export function buildSourceShipmentsQuery(sellShipments) {
 // Revalidates every external order against its source shipment's current
 // status; any single failure blocks the WHOLE save (nothing written) — runs
 // BEFORE the transaction so a validation failure never opens one.
-async function pullExternalOrders(db, externalOrders) {
+export async function pullExternalOrders(db, externalOrders) {
   if (!externalOrders?.length) return { records: [], sources: [] }
   // ponytail: dedupe by orderNumber — a repeated Add New Order pick (or a
   // retried client) shouldn't double-count the same order into orderList.
   const deduped = [...new Map(externalOrders.map((e) => [e.orderNumber, e])).values()]
   const { rows } = await db.query(buildSourceShipmentsQuery([...new Set(deduped.map((e) => e.sourceSellShipment))]))
+  return pickExternalOrders(rows, deduped)
+}
+
+// The pure half (also the mock's: it builds `rows` from its store). `rows` are
+// the sources in buildSourceShipmentsQuery's shape.
+export function pickExternalOrders(rows, externalOrders) {
+  if (!externalOrders?.length) return { records: [], sources: [] }
+  // ponytail: dedupe by orderNumber — a repeated Add New Order pick (or a
+  // retried client) shouldn't double-count the same order into orderList.
+  const deduped = [...new Map(externalOrders.map((e) => [e.orderNumber, e])).values()]
   const bySell = new Map(rows.map((r) => [r.sellShipment, r]))
   const blocked = []
   const picks = []   // survivors of the status check, still keyed to their source
@@ -652,6 +666,54 @@ export function buildSplitShipment({ source, orderRec, orderSerialId, now = new 
   return { row, detail, pickupTs: fromStops.pickupTs, deliveryTs: fromStops.deliveryTs }
 }
 
+// order_number → orders.id for the C3 splits; a gap throws (before BEGIN, the
+// callers read this first). Shared with consolidations.mjs.
+export async function serialIdsFor(db, orderRecs) {
+  if (!orderRecs.length) return new Map()
+  const { rows } = await db.query({
+    text: 'SELECT id, order_number AS "orderNumber" FROM orders WHERE order_number = ANY($1)',
+    values: [orderRecs.map(idOf)],
+  })
+  const serial = new Map(rows.map((r) => [r.orderNumber, Number(r.id)]))
+  const gap = orderRecs.find((o) => !serial.has(idOf(o)))
+  if (gap) throw new Error(`No orders row for order ${idOf(gap)}`)
+  return serial
+}
+
+// LINX-15872 "Source Shipment Update" for every source an order was pulled
+// from (shared by save-stops and a consolidation): the moved orders leave,
+// totals recompute; an emptied source stays as an order_count '0' shell.
+export async function writeSourceUpdates(client, sources, externalOrders) {
+  for (const src of sources) {
+    const movedIds = (externalOrders ?? [])
+      .filter((e) => e.sourceSellShipment === src.sellShipment)
+      .map((e) => e.orderNumber)
+    const next = removeOrdersFromSource(src.detail, movedIds)
+    await client.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, {
+      resetChanges: false, patch: recomputeReviewTotals(src.detail, next.orderList, next.stops),
+    }))
+  }
+}
+
+// C3: write each built split as a shipment of its own.
+export async function writeSplits(client, splits) {
+  for (const split of splits) {
+    const sell = split.row.sellShipment
+    // idsFor is keyed by orders.id, so an order split twice mints the same
+    // sell id. The earlier row can only be an emptied shell (its order has
+    // since moved on) — clear it and its search rows (tenders cascade).
+    // A NON-empty row holding the id makes the INSERT below violate the
+    // PK and roll back the whole save — acceptable: nothing is half-written.
+    // order_count is text (001_schema.sql:34), written as String(n).
+    await client.query({ text: `DELETE FROM search_index WHERE domain = 'shipments' AND entity_id = $1`, values: [sell] })
+    await client.query({ text: `DELETE FROM shipments WHERE sell_shipment = $1 AND order_count = '0'`, values: [sell] })
+    await client.query(buildInsertShipmentQuery(split))
+    // Also flips order_status to 'Planned Shipment'.
+    await client.query(buildLinkOrderQuery(split.row.orders[0], sell))
+    await client.query(buildSearchIndexQuery(split.row))
+  }
+}
+
 // Pre-transaction reads for the C3 split: the target's own list columns and
 // each pending order's serial id. Any gap throws here, before BEGIN.
 async function planSplits(db, sellShipment, detail, pending) {
@@ -661,16 +723,10 @@ async function planSplits(db, sellShipment, detail, pending) {
            FROM shipments WHERE sell_shipment = $1`,
     values: [sellShipment],
   })
-  const { rows: idRows } = await db.query({
-    text: 'SELECT id, order_number AS "orderNumber" FROM orders WHERE order_number = ANY($1)',
-    values: [pending.map(idOf)],
-  })
-  const serial = new Map(idRows.map((r) => [r.orderNumber, Number(r.id)]))
+  const serial = await serialIdsFor(db, pending)
   const now = new Date()
   return pending.map((orderRec) => {
-    const orderSerialId = serial.get(idOf(orderRec))
-    if (orderSerialId == null) throw new Error(`No orders row for order ${idOf(orderRec)}`)
-    return buildSplitShipment({ source: { row, detail }, orderRec, orderSerialId, now })
+    return buildSplitShipment({ source: { row, detail }, orderRec, orderSerialId: serial.get(idOf(orderRec)), now })
   })
 }
 
@@ -1095,30 +1151,8 @@ export async function resolveOrderChange({ params, body, db }) {
           values: [sellShipment, movedOrderNumbers],
         })
       }
-      for (const src of sources) {
-        const movedIds = (body.externalOrders ?? [])
-          .filter((e) => e.sourceSellShipment === src.sellShipment)
-          .map((e) => e.orderNumber)
-        const next = removeOrdersFromSource(src.detail, movedIds)
-        await client.query(buildSaveStopsQuery(src.sellShipment, next.stops, next.orderList, {
-          resetChanges: false, patch: recomputeReviewTotals(src.detail, next.orderList, next.stops),
-        }))
-      }
-      for (const split of splits) {
-        const sell = split.row.sellShipment
-        // idsFor is keyed by orders.id, so an order split twice mints the same
-        // sell id. The earlier row can only be an emptied shell (its order has
-        // since moved on) — clear it and its search rows (tenders cascade).
-        // A NON-empty row holding the id makes the INSERT below violate the
-        // PK and roll back the whole save — acceptable: nothing is half-written.
-        // order_count is text (001_schema.sql:34), written as String(n).
-        await client.query({ text: `DELETE FROM search_index WHERE domain = 'shipments' AND entity_id = $1`, values: [sell] })
-        await client.query({ text: `DELETE FROM shipments WHERE sell_shipment = $1 AND order_count = '0'`, values: [sell] })
-        await client.query(buildInsertShipmentQuery(split))
-        // Also flips order_status to 'Planned Shipment'.
-        await client.query(buildLinkOrderQuery(split.row.orders[0], sell))
-        await client.query(buildSearchIndexQuery(split.row))
-      }
+      await writeSourceUpdates(client, sources, body.externalOrders)
+      await writeSplits(client, splits)
       // Scenario A (active tender) writes nothing further: the row is already
       // exceptions/order-change at this tender status (that's what "active"
       // means), and orderChange.resolution stays untouched — the tender

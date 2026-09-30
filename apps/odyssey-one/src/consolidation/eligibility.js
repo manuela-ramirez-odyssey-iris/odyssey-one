@@ -6,7 +6,7 @@
 // Exceptions are irrelevant (Dave 00:09:06); Hold is fine. Ramesh's pool gates
 // (Allow Optimization, OCM 97–101, status = Consolidation) are backend pool
 // membership and are NOT applied to the checkbox. Spec §2.
-const ACTIVE_TENDER = new Set(['To Be Tendered', 'Sent', 'Accepted']) // LINX-15872's active tender
+export const ACTIVE_TENDER = new Set(['To Be Tendered', 'Sent', 'Accepted']) // LINX-15872's active tender
 
 /** @returns {string|null} null = eligible; otherwise the reason shown in the checkbox tooltip */
 export function consolidationEligibility(row, anchorCustomerId = null) {
@@ -21,13 +21,15 @@ export function consolidationEligibility(row, anchorCustomerId = null) {
 // adapter (narrowSuggestionSections), so progression.js and the Cognizant
 // progression sheets are untouched.
 /**
- * Row-menu "Edit" on a Consolidation row re-enters consolidate mode with it as
- * the anchor (S155). Same tender rule as the checkbox: a tendered consolidation
- * is not editable — cancel the tender first.
+ * Row-menu "Edit" on a Consolidation row opens the consolidation stops editor
+ * with it as the only source (S155, CNS-19 S1.5). Gated at the door to match
+ * the server: only shipments in the Consolidation pool (CNS-18), and the same
+ * tender rule as the checkbox — a tendered consolidation is not editable.
  * @returns {string|null} null = editable; otherwise the reason
  */
 export function consolidationEditReason(row) {
   if (row.shipmentType !== 'Consolidation') return 'Only consolidated shipments can be edited here'
+  if (row.category !== 'consolidation') return 'Only shipments in Consolidation can be edited here'
   if (ACTIVE_TENDER.has(row.tenderStatus)) return 'Tendered — cancel the tender first'
   return null
 }

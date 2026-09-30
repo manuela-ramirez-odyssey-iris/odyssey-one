@@ -10,10 +10,12 @@ import ConfirmDialog from '../../common/ConfirmDialog.jsx'
 import TimezoneSelect from '../../orders/create/fields/TimezoneSelect'
 import { tzAbbrev } from '../../../data/master-data'
 import PlanningDatesModal from './PlanningDatesModal.jsx'
-import ViewRoutingModal from './ViewRoutingModal.jsx'
+import ViewRoutingModal, { baselineMilesOf, reroutedList, reroutedNewList } from './ViewRoutingModal.jsx'
 import AddOrdersModal from './AddOrdersModal.jsx'
 import { getSellShipmentDetail } from '../../../api/services/shipmentService'
 import { val } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { parseDollar } from '../../../utils/money.js'
+import { capacityFor, utilizationPct } from '../../../consolidation/equipmentCapacity.js'
 import ReviewKpiStrip from './ReviewKpiStrip.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
@@ -35,6 +37,8 @@ const EDITING_TOOLTIP = 'Save or discard your stop edits first'
 // state — reference inequality would count a move-and-move-back as a change.
 const sigOf = (sb) => JSON.stringify([sb.stops, sb.pending])
 const LAST_ORDER_TOOLTIP = 'The last remaining order cannot be removed from the shipment.'
+// CNS-14 / S5.4 — a consolidation's floor is two orders, not one.
+const MIN_TWO_TOOLTIP = 'A consolidation needs at least two orders.'
 // DEC-207 (T2) — Evaluate's disabled tooltip, keyed off routeBlocker's reason.
 // C7's 'sequence' names the order, so it's built at the call site.
 const BLOCKER_TOOLTIP = {
@@ -127,13 +131,25 @@ function SortableStop({ id, className, children, ...rest }) {
   )
 }
 
-export default function EditStopsView({ stops, consolidation, orders, orderChange, summary, saving, saveError, onApprove, onCancel, cancelRef, sellShipment, customerId, customerName }) {
+// CNS-19 — the same editor also hosts a NEW consolidation (ConsolidateStopsRoute):
+//   initial        a ready sandbox (initFromSources) replacing initSandbox
+//   showPrior      false = no Prior anything (a new C has nothing to compare)
+//   minOrders      Remove is blocked at this many orders on stops
+//   confirmApprove false = the routing primary calls onApprove(dto, external, list) itself
+//   equipmentCode  drives the live Utilization cell
+//   actionsRef     exposes { removeOrders(ids), payload() } to the host (tendered-shipment Remove, the write)
+// Order change passes none of these and renders as before. tenderList /
+// priorTenderList / droppedCarriers are plain props (S5.9), not read off orderChange.
+export default function EditStopsView({
+  stops, consolidation, orders, tenderList, priorTenderList, droppedCarriers, summary, saving, saveError, onApprove, onCancel, cancelRef, sellShipment, customerId, customerName,
+  initial: initialProp, showPrior = true, minOrders = 1, confirmApprove = true, approveLabel = 'Approve Changes', equipmentCode, actionsRef,
+}) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
   // (OrderChangeEditStopsRoute.jsx) mounts this with `key={sellShipment}`,
   // so a new shipment gets a fresh instance (and a fresh sandbox) instead of
   // this one re-initializing mid-life.
-  const [initial] = useState(() => initSandbox({ stops, consolidation, orders }))
+  const [initial] = useState(() => initialProp ?? initSandbox({ stops, consolidation, orders }))
   // D7 — orders pulled in via Add New Order (OrderDetailVM + sourceSellShipment,
   // read off the SOURCE shipment's own detail so they carry the same shape
   // as this shipment's own orders).
@@ -160,7 +176,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // S164 F7: the enter motion runs only once the planner has toggled Prior
   // (not on first paint), so the page doesn't fade Prior in on load.
   const [priorMotion, setPriorMotion] = useState(false)
-  const setPrior = (v) => { setPriorMotion(true); setPriorCollapsed(v) }
+  const setPrior = (v) => { if (!showPrior) return; setPriorMotion(true); setPriorCollapsed(v) }
 
   const initialTotals = useMemo(() => totals(initial, orders), [initial, orders])
   const curTotals = totals(sb, allOrders)
@@ -168,7 +184,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
   const allOrderIds = new Set()
   sb.stops.forEach((s) => s.orderIds.forEach((id) => allOrderIds.add(id)))
-  const singleOrderLeft = allOrderIds.size <= 1
+  const singleOrderLeft = allOrderIds.size <= minOrders
+  const minOrdersTooltip = minOrders > 1 ? MIN_TWO_TOOLTIP : LAST_ORDER_TOOLTIP
 
   // Motion (user 2026-09-24: "otherwise user don't realize what happened").
   // A moved stop SLIDES from where it was (FLIP over the New plan's rows,
@@ -195,7 +212,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // Re-runs after Save/Discard/Reset or a stops change outside edit mode.
   const priorCardRef = useRef(null)
   useLayoutEffect(() => {
-    if (editing) return
+    if (editing || !showPrior) return
     const badges = priorCardRef.current?.querySelectorAll('.edit-stops__rail .stop-badge')
     if (!badges?.length) return
     const centre = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 }
@@ -362,7 +379,17 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       const fetched = await Promise.all(rows.map(async (r) => {
         const d = await getSellShipmentDetail(r.sourceSellShipment)
         const vm = d.orderDetails.find((o) => o.orderNumber === r.orderNumber)
-        return vm ? { ...vm, sourceSellShipment: r.sourceSellShipment } : null
+        // S5.7 — the source shipment's tender status + identity ride along for
+        // the consolidation Tendered Shipment Detected check.
+        return vm ? {
+          ...vm,
+          sourceSellShipment: r.sourceSellShipment,
+          sourceTenderStatus: r.tenderStatus,
+          sourceIdentifier: d.odysseyShipmentIdentifier,
+          sourceOrders: r.ordersInShipment,
+          sourceCustomerId: d.customerId,
+          sourcePickupDate: r.shipDate,
+        } : null
       }))
       const recs = fetched.filter(Boolean)
       setExtraOrders((prev) => [...prev, ...recs.filter((r) => !prev.some((p) => p.orderNumber === r.orderNumber))])
@@ -376,8 +403,29 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // to Save; ones left pending are dropped by the confirm's promise (D2).
   const externalOrdersOnStops = extraOrders
     .filter((r) => liveOrderIds.has(r.orderNumber))
-    .map((r) => ({ orderNumber: r.orderNumber, sourceSellShipment: r.sourceSellShipment }))
+    .map((r) => ({
+      orderNumber: r.orderNumber,
+      sourceSellShipment: r.sourceSellShipment,
+      sourceTenderStatus: r.sourceTenderStatus,
+      sourceIdentifier: r.sourceIdentifier,
+      sourceOrders: r.sourceOrders,
+      sourceCustomerId: r.sourceCustomerId,
+      sourcePickupDate: r.sourcePickupDate,
+    }))
 
+  // S6.3 — Remove for the host's Tendered Shipment Detected modal: the orders
+  // leave the consolidation entirely: moveToPending takes them off the stops,
+  // then they are dropped from Pending too (as the retired Review page did) so
+  // they can't be re-added past the tender re-verify. External ones were never
+  // this shipment's.
+  const removeOrders = (ids) => {
+    snapshotTops()
+    setSb((s) => {
+      const moved = ids.reduce((acc, id) => moveToPending(acc, id), s)
+      return { ...moved, pending: moved.pending.filter((p) => !ids.includes(p)) }
+    })
+    setExtraOrders((prev) => prev.filter((o) => !ids.includes(o.orderNumber)))
+  }
   // A6/B2 (DEC-198) — live legs recomputed from sb.stops' own coordinates on
   // every move/place, via the SAME legMiles the seed used (so the initial
   // render always agrees with the seeded header). Replaces the static
@@ -389,6 +437,30 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const distanceChanged = newLegs.total !== initialLegs.total
   const weightChanged = curTotals.grossWeight !== initialTotals.grossWeight
   const volumeChanged = curTotals.volume !== initialTotals.volume
+
+  // Re-routed list over the LIVE stops (C4/C12): View Routing shows it, the
+  // consolidation's Consolidated Cost is its rank 1 (DEC-192: header = routing),
+  // and Approve sends it.
+  const baselineMiles = baselineMilesOf(consolidation, summary)
+  // Only the consolidation row shows it; order change never reroutes for it.
+  const rank1Cost = showPrior ? null : reroutedNewList(tenderList, sb.stops, baselineMiles).find((o) => o.rank === 1)?.totalCostAmount
+  const newConsolidatedCost = rank1Cost != null
+    ? `${rank1Cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+    : '--'
+  // S5.3 — placeholder capacities (equipmentCapacity.js ponytail); '--' with no equipment.
+  const cap = capacityFor(equipmentCode)
+  const weightPct = utilizationPct(parseDollar(curTotals.grossWeight) ?? 0, cap.weightLb)
+  const volumePct = utilizationPct(parseDollar(curTotals.volume) ?? 0, cap.volumeCuft)
+  const utilization = equipmentCode ? `${weightPct ?? '--'}% weight · ${volumePct ?? '--'}% volume` : '--'
+
+  // payload(): the latest Approve payload, read at click time — after a Remove
+  // the sandbox changed, so a payload captured at Approve would be stale.
+  if (actionsRef) {
+    actionsRef.current = {
+      removeOrders,
+      payload: () => ({ stops: toDto(sb), externalOrders: externalOrdersOnStops, tenderList: reroutedList(tenderList, sb.stops, baselineMiles) }),
+    }
+  }
 
   const violations = windowViolations(sb.stops, allOrders)
   const violationOf = (stopKey, id) => violations.find((v) => v.stopKey === stopKey && v.orderId === id)
@@ -441,8 +513,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         // User 2026-09-28: both ends of the tipped leg read bolder.
         badgeClassName: tip && (tip.key === `${isPrior ? 'prior' : 'new'}:${s.key}` || (tip.key.startsWith(isPrior ? 'prior:' : 'new:') && tip.next === s.key)) ? 'edit-stops__badge--leg' : undefined,
         // User 2026-09-28 (round 2): a stop is a light row in the
-        // Consolidation Planned Stops anatomy (ConsolidationReviewRoute
-        // StopContent, VD 3039:147748) — no HeaderStrip, no card frame, no
+        // Consolidation Planned Stops anatomy (the retired Review & Apply
+        // page's StopContent, VD 3039:147748) — no HeaderStrip, no card frame, no
         // "Stop N": the rail's P1/D1 badge and the row order carry position.
         content: (
           <Row {...rowProps} className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
@@ -539,7 +611,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                       })()}
                     </div>
                     {readOnly ? null : singleOrderLeft ? (
-                      <TooltipTrigger tooltipProps={{ groups: [{ content: LAST_ORDER_TOOLTIP }] }}>
+                      <TooltipTrigger tooltipProps={{ groups: [{ content: minOrdersTooltip }] }}>
                         <Button variant="secondary" size="sm" disabled>Remove</Button>
                       </TooltipTrigger>
                     ) : (
@@ -612,6 +684,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         summary={summary}
         changes={consolidation?.summaryChanges}
         priorCollapsed={editing && priorCollapsed}
+        showPrior={showPrior}
         live={{
           grossWeight: curTotals.grossWeight,
           volume: curTotals.volume,
@@ -629,11 +702,22 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       >
         <div className="edit-stops__head">
           <div className="edit-stops__metrics">
-            <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
-            {/* S164 F2 (revised): plain, from the summary prop. */}
-            <TitleSubtitle subtitle="Accepted Carrier" title={summary?.acceptedCarrier || '--'} />
-            <TitleSubtitle subtitle="Seed Equipment" title={summary?.seedEquipment || '--'} />
-            <TitleSubtitle subtitle="Utilization" title={summary?.utilization || '--'} />
+            {showPrior ? (
+              <>
+                <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
+                {/* S164 F2 (revised): plain, from the summary prop. */}
+                <TitleSubtitle subtitle="Accepted Carrier" title={summary?.acceptedCarrier || '--'} />
+                <TitleSubtitle subtitle="Seed Equipment" title={summary?.seedEquipment || '--'} />
+                <TitleSubtitle subtitle="Utilization" title={summary?.utilization || '--'} />
+              </>
+            ) : (
+              // S5.3 — a new C: no "New", no Accepted Carrier; cost + utilization are live.
+              <>
+                <TitleSubtitle subtitle="Consolidated Cost" title={newConsolidatedCost} />
+                <TitleSubtitle subtitle="Seed Equipment" title={summary?.seedEquipment || '--'} />
+                <TitleSubtitle subtitle="Utilization" title={utilization} />
+              </>
+            )}
           </div>
           <div className="edit-stops__head-actions">
             {/* DEC-207 (T2) — View Routing is gone; Evaluate (footer) is the
@@ -650,7 +734,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         <div className="edit-stops__body">
           {/* S164 F7: the section is the SLOT (its width animates, like the
               pending slot); the collapsed card sits in normal flow (F8). */}
-          <section className={`edit-stops__plan edit-stops__plan--prior${editing && priorCollapsed ? ' edit-stops__plan--collapsed' : ''}${priorMotion ? ' edit-stops__plan--motion' : ''}`} aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
+          {showPrior && <section className={`edit-stops__plan edit-stops__plan--prior${editing && priorCollapsed ? ' edit-stops__plan--collapsed' : ''}${priorMotion ? ' edit-stops__plan--motion' : ''}`} aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
             {editing && priorCollapsed ? (
               <div className="edit-stops__prior-card edit-stops__prior-card--rail" key="rail">
                 <div className="edit-stops__prior-head">
@@ -668,7 +752,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
               </div>
             )}
-          </section>
+          </section>}
           <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef} onMouseMove={(e) => showRailTip(e, 'new')} onMouseLeave={() => setTip(null)}>
             <div className="edit-stops__plan-head">
               {/* User 2026-09-28: sm buttons; Reset sits beside the "New"
@@ -758,14 +842,20 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       {modal === 'planning' && <PlanningDatesModal orders={planningOrders} violations={violations} planned={plannedDates(sb.stops)} onClose={() => setModal(null)} />}
       {modal === 'routing' && (
         <ViewRoutingModal
-          orderChange={orderChange}
+          tenderList={tenderList}
+          priorTenderList={priorTenderList}
+          droppedCarriers={droppedCarriers}
+          baselineMiles={baselineMiles}
+          showPrior={showPrior}
           stops={sb.stops}
-          summary={summary}
           onClose={() => setModal(null)}
           secondaryLabel="Keep Editing"
           onSecondary={() => setModal(null)}
-          primaryLabel="Approve Changes"
-          onPrimary={() => setConfirmOpen(true)}
+          primaryLabel={approveLabel}
+          // S5.6 — consolidation confirms in its own modal, so no ConfirmDialog here.
+          onPrimary={confirmApprove
+            ? () => setConfirmOpen(true)
+            : () => onApprove?.(toDto(sb), externalOrdersOnStops, reroutedList(tenderList, sb.stops, baselineMiles))}
           primaryLoading={saving}
           primaryDisabled={saving}
           error={saveError}

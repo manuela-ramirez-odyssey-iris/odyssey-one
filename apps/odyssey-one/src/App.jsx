@@ -18,7 +18,7 @@ import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
 import ExecutedShipmentDetailsRoute from './routes/shipments/ExecutedShipmentDetailsRoute.jsx'
 import OrderChangeReviewRoute from './routes/shipments/OrderChangeReviewRoute.jsx'
 import OrderChangeEditStopsRoute from './routes/shipments/OrderChangeEditStopsRoute.jsx'
-import ConsolidationReviewRoute from './routes/shipments/ConsolidationReviewRoute.jsx'
+import ConsolidateStopsRoute from './routes/shipments/ConsolidateStopsRoute.jsx'
 import SpotBidRoute from './routes/spotbid/SpotBidRoute.jsx'
 import SpotBidDetailRoute from './routes/spotbid/SpotBidDetailRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
@@ -78,7 +78,7 @@ function AppRoutes({ location, showHome, showLogin, phase, onLogin }) {
       <Route path="/shipments/executed/:id" element={<ExecutedShipmentDetailsRoute />} />
       <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
       <Route path="/shipments/order-change/:sellShipment/stops" element={<OrderChangeEditStopsRoute />} />
-      <Route path="/shipments/consolidate/review" element={<ConsolidationReviewRoute />} />
+      <Route path="/shipments/consolidate/stops" element={<ConsolidateStopsRoute />} />
       <Route path="/shipments/*" element={<ShipmentsRoute />} />
       <Route path="/spotbid" element={<SpotBidRoute />} />
       <Route path="/spotbid/:quoteId" element={<SpotBidDetailRoute />} />

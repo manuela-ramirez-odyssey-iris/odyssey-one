@@ -5,7 +5,8 @@ import { mapShipmentErrorRow } from '../mappers/mapShipmentErrorRow'
 import { getRawSellShipmentOut } from './shipmentService'
 import { clearShipmentSearchIndex } from '../../search/shipments/searchIndex'
 import { addShipment, getAllShipments, removeShipments } from '../../data'
-import { buildConsolidatedShipment } from '../../../api/_lib/consolidateShipments.mjs'
+import { buildConsolidatedShipment, checkConsolidation } from '../../../api/_lib/consolidateShipments.mjs'
+import { buildSplitShipment, computeListAggregates, pickExternalOrders, removeOrdersFromSource, rowFromStops } from '../../../api/_lib/shipments.mjs'
 import type { ShipmentErrorRow } from '../types/shipmentErrorList'
 import type { ShipmentRowVM } from '../types/shipmentRowVm'
 import type { SellShipmentOut } from '../types/sellShipmentOut'
@@ -18,6 +19,19 @@ import type { SellShipmentOut } from '../types/sellShipmentOut'
  * POST /shipment-service/v1/consolidation, mock via the shipments overlay —
  * so the created row is identical either way.
  */
+/**
+ * S7.1 body. `stops` is the editor's StopDto[] (stopsSandbox toDto): a stop
+ * built from a source stop names it by (sourceSellShipment, sourceStopSequence),
+ * a created one has both null. `tenderList` is the evaluated carrier options
+ * (DTO-shaped like `detail.shippingOptionList`).
+ */
+export interface ApplyConsolidationBody {
+  sellShipments: string[]
+  stops: Array<Record<string, unknown>>
+  externalOrders: Array<{ orderNumber: string; sourceSellShipment: string }>
+  tenderList: Array<Record<string, unknown>>
+}
+
 export interface ApplyConsolidationResult {
   row: ShipmentRowVM
   detail: SellShipmentOut
@@ -26,19 +40,22 @@ export interface ApplyConsolidationResult {
 // Mock-only consolidation counter, the sibling of orderService's `createSeq`.
 // Live derives its seq from a COUNT over the 27xxxxxx band.
 let consolidateSeq = 0
+let splitSeq = 0
 
 /** Test hook — resets the mock consolidation counter. */
 export function __resetConsolidationSeq(): void {
   consolidateSeq = 0
+  splitSeq = 0
 }
 
 export async function applyConsolidation(
-  { sellShipments, stopOrder }: { sellShipments: string[]; stopOrder?: string[] },
+  { sellShipments, stops, externalOrders = [], tenderList = [] }: ApplyConsolidationBody,
 ): Promise<ApplyConsolidationResult> {
   if (getApiMode() === 'live') {
     // userId: same identity pattern as createOrder/preferenceService.
     const res = await apiPost<{ data: { row: ShipmentErrorRow; detail: SellShipmentOut } }>(
-      '/shipment-service/v1/consolidation', { sellShipments, stopOrder, userId: currentUser.id },
+      '/shipment-service/v1/consolidation',
+      { sellShipments, stops, externalOrders, tenderList, userId: currentUser.id },
     )
     return { row: mapShipmentErrorRow(res.data.row), detail: res.data.detail }
   }
@@ -54,20 +71,79 @@ export async function applyConsolidation(
     row: byId.get(id) as ShipmentErrorRow,
     detail: await getRawSellShipmentOut(id),
   })))
+  // Same as the live handler: an order the planner "pulled" from a SELECTED
+  // source is already in its roster.
+  const pulled = externalOrders.filter((e) => !sellShipments.includes(e.sourceSellShipment))
+  // The SAME guards as the live handler (S7.2) — one function, both runtimes.
+  checkConsolidation({ sources, stops, externalOrders: pulled })
+
+  // The external records come off their source's blob through the SAME pure
+  // LINX-15872 check live runs (pickExternalOrders). Mock rows carry the
+  // store's category / tenderStatus; live also reads the tenders table.
+  const externalSources = new Map<string, { row: ShipmentErrorRow; detail: SellShipmentOut }>()
+  for (const { sourceSellShipment } of pulled) {
+    const row = byId.get(sourceSellShipment) as ShipmentErrorRow | undefined
+    if (row && !externalSources.has(sourceSellShipment)) {
+      externalSources.set(sourceSellShipment, { row, detail: await getRawSellShipmentOut(sourceSellShipment) })
+    }
+  }
+  const { records: externals } = pickExternalOrders(
+    [...externalSources].map(([sellShipment, { row, detail }]) => ({
+      sellShipment, category: row.category, tenderStatus: row.tenderStatus, activeTender: false, detail,
+    })),
+    pulled,
+  ) as { records: Array<Record<string, unknown>> }
 
   consolidateSeq += 1
   // The builder is plain JS shared with the live handler; its JSDoc types are
   // deliberately loose (`object`), so the shapes are named here.
-  const built = buildConsolidatedShipment({ sources, seq: consolidateSeq, now: new Date(), stopOrder }) as {
+  const built = buildConsolidatedShipment({ sources, stops, externals, tenderList, seq: consolidateSeq, now: new Date() }) as {
     row: ShipmentErrorRow
     detail: SellShipmentOut
     removedSellShipments: string[]
+    splitOrders: { source: { row: ShipmentErrorRow; detail: SellShipmentOut }; orderRec: Record<string, unknown> }[]
   }
   // Remove BEFORE add: a reused C… id is both a source and the result, and
   // `addShipment` un-tombstones what it registers (same net effect as the live
   // DELETE-then-INSERT on that PK).
   removeShipments(built.removedSellShipments)
   addShipment(built.row, built.detail)
+  // C3 — orders a C source lost become Directs of their own. ponytail: the
+  // mock has no orders.id to key idsFor on; a counter stands in, minting
+  // sell 34000001+ / O68000001+ / buy 908000001+ (orders.id 8,000,001+). The
+  // ceiling is a real orders.id reaching 8,000,000 — seeded ids are in the
+  // thousands, so widen the offset if that ever changes.
+  for (const { source, orderRec } of built.splitOrders) {
+    splitSeq += 1
+    const split = buildSplitShipment({ source, orderRec, orderSerialId: 8_000_000 + splitSeq }) as unknown as {
+      row: ShipmentErrorRow; detail: SellShipmentOut
+    }
+    addShipment(split.row, split.detail)
+  }
+  // LINX-15872 "Source Shipment Update": pulled orders leave their source. An
+  // emptied source is hidden here (live leaves an order_count '0' shell that
+  // every list filters out — same visible result).
+  for (const [id, src] of externalSources) {
+    const moved = pulled.filter((e) => e.sourceSellShipment === id).map((e) => e.orderNumber)
+    const next = removeOrdersFromSource(src.detail, moved) as { orderList: Array<Record<string, unknown>>; stops: SellShipmentOut['shipmentStopList'] }
+    if (next.orderList.length === 0) { removeShipments([id]); continue }
+    // The list columns follow the remaining roster and stops, recomputed the
+    // way live does (buildSaveStopsQuery: aggregates + rowFromStops).
+    const agg = computeListAggregates(next.orderList) as Record<string, unknown>
+    const lane = (rowFromStops(next.stops) ?? {}) as Record<string, unknown>
+    delete lane.pickupTs
+    delete lane.deliveryTs
+    addShipment(
+      {
+        ...src.row, ...lane,
+        orders: next.orderList.map((o) => String(o.orderNumber ?? o.orderId)),
+        orderCount: String(next.orderList.length),
+        grossWeight: agg.grossWeight, loadCount: agg.loadCount,
+        poNumbers: agg.poNumbers, pickupNumbers: agg.pickupNumbers, shipmentType: agg.shipmentType,
+      } as ShipmentErrorRow,
+      { ...src.detail, orderList: next.orderList, shipmentStopList: next.stops, shipmentType: agg.shipmentType } as unknown as SellShipmentOut,
+    )
+  }
   // The mock search index is a memoized projection of the whole corpus — a row
   // added AND rows removed both invalidate it (orderService does the same).
   clearShipmentSearchIndex()
