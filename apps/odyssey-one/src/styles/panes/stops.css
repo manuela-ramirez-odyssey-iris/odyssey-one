@@ -139,12 +139,9 @@
   width: auto;
 }
 
-/* User 2026-09-29: no hairline between review stops (plain mode's border-top
-   on the content column above), and the rail line is dashed like Edit Stops'
-   New rail (edit-stops.css) — same 4px/4px gradient + neutral-400 token. */
-.stops-timeline--review .odyssey-timeline__row:not(:first-child) .odyssey-timeline__content {
-  border-top: 0;
-}
+/* User 2026-09-29: review keeps plain mode's hairline between stops (the
+   border-top on the content column above), and the rail line is dashed like
+   Edit Stops' New rail (edit-stops.css) — same 4px/4px gradient + neutral-400. */
 .stops-timeline--review .odyssey-timeline__segment,
 .stops-timeline--review .odyssey-timeline__segment-fill {
   /* the fill (reached legs) is a solid neutral-400 bar that would mask the
@@ -152,13 +149,11 @@
   background: repeating-linear-gradient(to bottom, var(--deep-sea-neutral-400) 0 4px, transparent 4px 8px);
 }
 
-/* Per-stop review card: fields | 227px Affected Orders aside */
+/* Per-stop review row: fields | 227px Affected Orders aside. No outer box
+   (user 2026-09-29); the aside's border-left is the vertical separator. */
 .stops-timeline--review .stops-item {
   display: grid;
   grid-template-columns: 1fr 227px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
 }
 .stops-timeline--review .stops-item__main {
   display: flex;
