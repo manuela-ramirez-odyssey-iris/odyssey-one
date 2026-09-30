@@ -65,15 +65,13 @@
 .tender-review-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tender-review-fact > :first-child { color: var(--text-tertiary); }
 .tender-review-fact > :last-child { color: var(--text-primary); overflow-wrap: anywhere; }
-.tender-review-split { display: grid; grid-template-columns: 1fr 2fr; gap: var(--spacing-6); }
-.tender-review-split > div { display: flex; flex-direction: column; gap: var(--spacing-3); }
 .tender-review-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
 .tender-review-table th, .tender-review-table td { text-align: left; vertical-align: top; padding: var(--spacing-2); border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
 .tender-review-table th { color: var(--text-tertiary); font-weight: var(--font-weight-medium); }
 .tender-review-table .is-num { text-align: right; }
 .tender-review-instructions { margin: 0; padding-left: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-2); color: var(--text-primary); }
 @media (max-width: 639px) {
-  .tender-review-facts--summary, .tender-review-split { grid-template-columns: 1fr; }
+  .tender-review-facts--summary { grid-template-columns: 1fr; }
   .tender-review-table { display: block; overflow-x: auto; }
 }
 

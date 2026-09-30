@@ -353,29 +353,24 @@ export default function TenderReview() {
                 <span className="text-label-sm-regular">{`Delivery: ${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`}</span>
               </div>
             </div>
+            {/* Distance sits under the lane band, same as the tender emails (user, S159). */}
+            <div className="tender-review-facts tender-review-facts--summary">
+              {fact('Distance', distanceDisplay)}
+            </div>
           </div>
 
-          <div className="tender-review-section tender-review-split">
-            <div>
-              <h2 className="tender-review-h text-label-sm-semibold">Schedule & Distance</h2>
-              <div className="tender-review-facts">
-                {fact('Requested delivery', `${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`)}
-                {fact('Distance', distanceDisplay)}
-              </div>
-            </div>
-            <div>
-              <h2 className="tender-review-h text-label-sm-semibold">Equipment & Freight</h2>
-              <div className="tender-review-facts">
-                {/* Mode: no field on the detail VM yet (shipmentMode is DASH) —
-                    the planner's override is the only source today. */}
-                {fact('Mode', dash(shipment.overrides?.mode))}
-                {fact('Equipment', effectiveOption.equipment)}
-                {fact('Carrier ID', effectiveOption.scac)}
-                {fact('Total weight', weightDisplay)}
-                {fact('Package count', shipment.stopsData?.summary?.packageCount)}
-                {fact('Freight terms', dash(order?.paymentTerms))}
-                {fact('Offered rate', offeredRate)}
-              </div>
+          <div className="tender-review-section">
+            <h2 className="tender-review-h text-label-sm-semibold">Equipment & Freight</h2>
+            <div className="tender-review-facts tender-review-facts--summary">
+              {/* Mode: no field on the detail VM yet (shipmentMode is DASH) —
+                  the planner's override is the only source today. */}
+              {fact('Mode', dash(shipment.overrides?.mode))}
+              {fact('Equipment', effectiveOption.equipment)}
+              {fact('Carrier ID', effectiveOption.scac)}
+              {fact('Total weight', weightDisplay)}
+              {fact('Package count', shipment.stopsData?.summary?.packageCount)}
+              {fact('Freight terms', dash(order?.paymentTerms))}
+              {fact('Offered rate', offeredRate)}
             </div>
           </div>
 
