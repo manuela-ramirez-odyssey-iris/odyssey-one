@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { buildDataset, VALIDATION_MESSAGES, DROP_REASONS } from './generate.mjs'
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, shipFromSites, PRODUCT_CLASSES } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
+import { stopDateToDisplay } from '../src/lib/orderChangeRouting.js'
 import { totalMiles } from '../src/utils/legMiles.js'
 import { windowViolations, parseStamp, initSandbox } from '../src/components/detail/order-change/stopsSandbox.js'
 
@@ -17,6 +18,11 @@ import { windowViolations, parseStamp, initSandbox } from '../src/components/det
 // "CDT"/"MDT"/… to their REAL UTC offsets and so disagrees with these
 // Dates' fake, always-local construction whenever the test runner's own
 // zone isn't already UTC-5).
+// S164 R3 / DEC-221: the never-tendered DIRECT order-change rows — tenderStatus
+// '' with prior.tenderStatus null. The only rows exempt from the tender-status
+// and Tender Sent checks; nothing else is loosened.
+const neverTendered = (s, d) => s.tenderStatus === '' && s.category === 'order-change' && d?.orderChange?.prior?.tenderStatus === null
+
 const localStamp = (str) => { const p = parseStamp(str); return p ? new Date(p.y, p.mo, p.d, p.h, p.mi).getTime() : null }
 
 test('buildDataset returns a coherent scaled dataset', () => {
@@ -981,6 +987,7 @@ test('Routing/Optimization/Auto-Tender failures are TRANSIENT only — every shi
     // Narrowed rather than dropped: every ACTUALLY-tendered shipment still
     // must show the entry.
     if (s.tenderStatus === '' && s.panel === 'monitoring') continue
+    if (neverTendered(s, d)) continue // R3 (DEC-221): never tendered, no Tender Sent
     // D1 (DEC-209): a To Be Tendered row has tender rows but was never sent.
     if (s.tenderStatus !== 'To Be Tendered') assert.ok(d.historyList.some((h) => h.action === 'Tender Sent'), `shipment ${s.buyShipment} has tender rows but no "Tender Sent" history entry`)
     for (const action of TRANSIENT_ONLY_ACTIONS) {
@@ -1237,6 +1244,7 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
   // meant Package Count/Volume could never surface at all, changed or not.
   const scenarioCounts = { returned: 0, 'not-returned': 0 }
   const seenComparisonFields = new Set()
+  let neverCount = 0
   for (const s of ocRows) {
     assert.equal(s.panel, 'exceptions')
     assert.equal(s.category, 'order-change')
@@ -1252,9 +1260,12 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     // diverted in with NO active tender at all (a real terminal Declined/
     // Cancelled status) — so the set of valid statuses is the active ones
     // PLUS the real terminal ones, never anything fabricated.
-    assert.ok(['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(s.tenderStatus),
+    const never = neverTendered(s, detail) // R3 (DEC-221)
+    if (never) neverCount++
+    assert.ok(never || ['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(s.tenderStatus),
       `${s.sellShipment} order-change row has an unexpected tender status ${s.tenderStatus}`)
-    assert.equal(s.tenderStatus, oc.prior.tenderStatus,
+    if (never) assert.ok(!detail.historyList.some((h) => h.action === 'Tender Sent'), `${s.sellShipment} never tendered but has Tender Sent`)
+    assert.equal(s.tenderStatus === '' ? null : s.tenderStatus, oc.prior.tenderStatus,
       `${s.sellShipment} row tenderStatus disagrees with payload prior.tenderStatus`)
     // LINX-8284: order change on a live tender moves the shipment to Review
     assert.equal(s.shipmentStatus, 'Review', `${s.sellShipment} shipmentStatus should be Review`)
@@ -1269,7 +1280,7 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     assert.equal(priorEntry?.status, oc.prior.tenderStatus,
       `${s.sellShipment} priorTenderList entry status disagrees with prior.tenderStatus`)
     assert.ok(['returned', 'not-returned'].includes(oc.scenario), `${s.sellShipment} unexpected scenario ${oc.scenario}`)
-    assert.ok(['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(oc.prior.tenderStatus))
+    assert.ok(never || ['Sent', 'Accepted', 'To Be Tendered', 'Declined', 'Cancelled'].includes(oc.prior.tenderStatus))
     // LINX-14511: comparison = prior list vs new list, each a routing-option-shaped array
     assert.ok(Array.isArray(oc.priorTenderList) && oc.priorTenderList.length > 0)
     // C22 (S163): a consolidated Scenario B row may re-route to NO carrier
@@ -1295,7 +1306,15 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
     const deliveryRow = oc.comparison.find(f => f.field === 'Delivery Date')
     if (deliveryRow) assert.equal(deliveryRow.new, oc.newOption.deliveryDateTime, `${s.sellShipment} delivery date disagrees between comparison and newOption`)
     // LINX-14512: changed fields exist and are flagged
-    assert.ok(oc.comparison.some(f => f.changed), `${s.sellShipment} no comparison row flagged changed`)
+    // DEC-222/B3: a consolidated change's re-dated new dates equal the stop dates, so its
+    // real change lives in the order data (orderComparisons) / stop fields, not the tender comparison.
+    const cons = oc.consolidation
+    if (!cons) assert.ok(oc.comparison.some(f => f.changed), `${s.sellShipment} no comparison row flagged changed`)
+    else assert.ok(
+      oc.comparison.some(f => f.changed)
+        || Object.values(cons.orderComparisons).some(rows => rows.some(r => r.changed))
+        || Object.values(cons.stopChanges).some(sc => Object.keys(sc.fields).length > 0),
+      `${s.sellShipment} consolidated: no changed comparison row, order row or stop field`)
     assert.ok(oc.comparison.every(f => 'field' in f && 'prior' in f && 'new' in f && 'source' in f), `${s.sellShipment} comparison row missing a required key`)
     // Package Count / Volume "prior" must be THIS shipment's real total, not
     // a shared constant — cross-checked against the same roll-ups the app
@@ -1312,6 +1331,7 @@ test('order-change shipments carry a coherent detail.orderChange payload', () =>
   }
   assert.ok(scenarioCounts.returned > 0 && scenarioCounts['not-returned'] > 0,
     `both scenario values must occur across the order-change population, got ${JSON.stringify(scenarioCounts)}`)
+  assert.ok(neverCount >= 1, 'no never-tendered Direct order-change row (R3, DEC-221)')
   for (const f of ['Pickup Date/Time', 'Delivery Date', 'Gross Weight', 'Package Count', 'Volume']) {
     assert.ok(seenComparisonFields.has(f), `comparison field "${f}" never appears in any order-change row's comparison`)
   }
@@ -1321,6 +1341,30 @@ test('non order-change shipments have no orderChange key', () => {
   const ds = buildDataset()
   const other = ds.shipments.find(s => s.category !== 'order-change')
   assert.equal(ds.details.get(other.sellShipment)?.orderChange, undefined)
+})
+
+// B3 (S164, DEC-206): a consolidated order change's new-side dates ARE the
+// stops' — first pickup / last delivery, in applyStopDates' short form.
+test('B3: consolidated order changes carry the first-pickup / last-delivery stop dates on the new side', () => {
+  const ds = buildDataset()
+  let checked = 0
+  for (const s of ds.shipments.filter((r) => r.category === 'order-change')) {
+    const d = ds.details.get(s.sellShipment)
+    if (d.orderList.length < 2) continue
+    const oc = d.orderChange
+    const pu = d.shipmentStopList.find((st) => st.stopType === 'pickup')
+    const del = d.shipmentStopList.findLast((st) => st.stopType === 'delivery')
+    const wantPu = stopDateToDisplay(pu.scheduledDateTime)
+    const wantDel = stopDateToDisplay(del.scheduledDateTime)
+    assert.equal(oc.newOption.pickupDateTime, wantPu, `${s.sellShipment} newOption pickup ≠ first pickup stop`)
+    assert.equal(oc.newOption.deliveryDateTime, wantDel, `${s.sellShipment} newOption delivery ≠ last delivery stop`)
+    const puRow = oc.comparison.find((f) => f.field === 'Pickup Date/Time')
+    const delRow = oc.comparison.find((f) => f.field === 'Delivery Date')
+    if (puRow) assert.equal(puRow.new, wantPu, `${s.sellShipment} compare pickup new ≠ first pickup stop`)
+    if (delRow) assert.equal(delRow.new, wantDel, `${s.sellShipment} compare delivery new ≠ last delivery stop`)
+    checked++
+  }
+  assert.ok(checked >= 20, `only ${checked} consolidated order changes checked`)
 })
 
 test('multi-order order-change shipments carry a coherent orderChange.consolidation payload', () => {
@@ -1878,6 +1922,8 @@ test('history ends at Optimization Evaluation for a pre-tender shipment, and nam
       if (s.category === 'consolidation') { assert.match(opt.details, /moved to Consolidation/); seenPool++ }
       if (s.category === 'hold')          { assert.match(opt.details, /moved to Hold/); seenHold++ }
       assert.equal(d.acceptedCarrierLabel, null, `${id} pre-tender but shows an accepted carrier`)
+    } else if (neverTendered(s, d)) {
+      assert.ok(!actions.includes('Tender Sent'), `${id} never tendered but has Tender Sent`) // R3 (DEC-221)
     } else if (s.tenderStatus === 'To Be Tendered') {
       assert.ok(!actions.includes('Tender Sent'), `${id} To Be Tendered but has Tender Sent`) // D1
     } else {
