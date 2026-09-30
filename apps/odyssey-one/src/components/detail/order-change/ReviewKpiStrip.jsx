@@ -17,7 +17,9 @@ import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
 //
 // S5.2 (CNS-19): `showPrior={false}` (a new C, nothing to compare) keeps only
 // Distance, Gross Weight, Volume as live values — no pair, no changed icon.
-export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed, showPrior = true }) {
+export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed, showPrior = true, metrics }) {
+  // S11: a consolidation's not-editing summary metrics replace the strip's cells.
+  if (metrics) return <SummaryStrip sticky className="stops-kpi-strip" items={metrics} aria-label="Shipment KPIs" />
   // LINX-15435: "Distance, Gross Weight, and Volume shall display Prior and
   // New values when changed. If a value has not changed, only the current
   // value shall be displayed."

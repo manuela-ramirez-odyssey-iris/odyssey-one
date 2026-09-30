@@ -136,13 +136,15 @@ function SortableStop({ id, className, children, ...rest }) {
 //   showPrior      false = no Prior anything (a new C has nothing to compare)
 //   minOrders      Remove is blocked at this many orders on stops
 //   confirmApprove false = the routing primary calls onApprove(dto, external, list) itself
-//   equipmentCode  drives the live Utilization cell
+//   equipmentCode  drives the summary's live Weight / Volume Utilization
+//   summaryTop     node above the KPI strip (the Consolidation Summary info strip, S11)
+//   afterStrip     node between the KPI strip and the All Stops panel (the Selected shipments table, S11)
 //   actionsRef     exposes { removeOrders(ids), payload() } to the host (tendered-shipment Remove, the write)
 // Order change passes none of these and renders as before. tenderList /
 // priorTenderList / droppedCarriers are plain props (S5.9), not read off orderChange.
 export default function EditStopsView({
   stops, consolidation, orders, tenderList, priorTenderList, droppedCarriers, summary, saving, saveError, onApprove, onCancel, cancelRef, sellShipment, customerId, customerName,
-  initial: initialProp, showPrior = true, minOrders = 1, confirmApprove = true, approveLabel = 'Approve Changes', equipmentCode, actionsRef,
+  summaryTop, afterStrip, initial: initialProp, showPrior = true, minOrders = 1, confirmApprove = true, approveLabel = 'Approve Changes', equipmentCode, actionsRef,
 }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
@@ -451,7 +453,16 @@ export default function EditStopsView({
   const cap = capacityFor(equipmentCode)
   const weightPct = utilizationPct(parseDollar(curTotals.grossWeight) ?? 0, cap.weightLb)
   const volumePct = utilizationPct(parseDollar(curTotals.volume) ?? 0, cap.volumeCuft)
-  const utilization = equipmentCode ? `${weightPct ?? '--'}% weight · ${volumePct ?? '--'}% volume` : '--'
+  // S11: the Summary's metrics (not editing) - live from the orders on the stops.
+  const fmtPct = (n) => (n == null || !equipmentCode ? '--' : `${n}%`)
+  const hazmat = planningOrders.some((o) => o.hazmat === 'Yes')
+  const summaryMetrics = [
+    { label: 'Total Weight', value: curTotals.grossWeight },
+    { label: 'Weight Utilization', value: fmtPct(weightPct) },
+    { label: 'Total Volume', value: curTotals.volume },
+    { label: 'Volume Utilization', value: fmtPct(volumePct) },
+    { label: 'Hazmat', value: hazmat ? 'Yes' : 'No', tone: hazmat ? 'negative' : undefined },
+  ]
 
   // payload(): the latest Approve payload, read at click time — after a Remove
   // the sandbox changed, so a payload captured at Approve would be stale.
@@ -687,7 +698,9 @@ export default function EditStopsView({
     <div className={`edit-stops${showPrior ? '' : ' edit-stops--no-prior'}`} ref={rootRef}>
       {/* S164 F2 (revised) — the strip (Distance/Gross Weight/Volume/Prior Cost/New Direct Cost) lives
           here: live values + the collapse state are this component's. */}
+      {summaryTop}
       <ReviewKpiStrip
+        metrics={!showPrior && !editing ? summaryMetrics : undefined}
         summary={summary}
         changes={consolidation?.summaryChanges}
         priorCollapsed={editing && priorCollapsed}
@@ -703,6 +716,7 @@ export default function EditStopsView({
       />
       {/* S164 F7: air between the strip and the All Stops panel. */}
       <div className="edit-stops__strip-gap" />
+      {afterStrip}
       <SubAccordion
         title="All Stops"
         collapsible={false}
@@ -722,7 +736,6 @@ export default function EditStopsView({
               <>
                 <TitleSubtitle subtitle="Consolidated Cost" title={newConsolidatedCost} />
                 <TitleSubtitle subtitle="Seed Equipment" title={summary?.seedEquipment || '--'} />
-                <TitleSubtitle subtitle="Utilization" title={utilization} />
               </>
             )}
           </div>
@@ -760,12 +773,12 @@ export default function EditStopsView({
               </div>
             )}
           </section>}
-          <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef} onMouseMove={(e) => showRailTip(e, 'new')} onMouseLeave={() => setTip(null)}>
+          <section className="edit-stops__plan" aria-label={showPrior ? 'New plan' : 'Stops Sequence'} ref={newPlanRef} onMouseMove={(e) => showRailTip(e, 'new')} onMouseLeave={() => setTip(null)}>
             <div className="edit-stops__plan-head">
               {/* User 2026-09-28: sm buttons; Reset sits beside the "New"
                   title, Discard + Save on the trail. */}
               <span className="edit-stops__plan-lead">
-                <h3 className="text-label-base-semibold edit-stops__plan-title">New</h3>
+                <h3 className="text-label-base-semibold edit-stops__plan-title">{showPrior ? 'New' : 'Stops Sequence'}</h3>
                 {editing && <Button variant="secondary" size="sm" disabled={!canReset} onClick={() => setStopsPrompt('reset')}>Reset</Button>}
               </span>
               <span className="edit-stops__plan-actions">

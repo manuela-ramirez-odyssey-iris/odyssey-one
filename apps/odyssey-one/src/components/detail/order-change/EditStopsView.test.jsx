@@ -77,9 +77,11 @@ const setup = (over = {}) => {
 
 // Prior and New render the same stops side by side (DEC-197) — scope stop
 // queries to the editable New plan.
-const nw = () => within(screen.getByRole('region', { name: 'New plan' }))
+// (a consolidation's region is named 'Stops Sequence')
+const newPlanRegion = () => screen.getByRole('region', { name: /^(New plan|Stops Sequence)$/ })
+const nw = () => within(newPlanRegion())
 // The nth stop row (0-based) in the New plan — rows carry data-stop-key.
-const newStop = (n) => screen.getByRole('region', { name: 'New plan' }).querySelectorAll('[data-stop-key]')[n]
+const newStop = (n) => newPlanRegion().querySelectorAll('[data-stop-key]')[n]
 // User 2026-09-28: New opens collapsed (drag); arrows, pickers and Remove
 // live in edit mode behind its Edit button.
 const edit = () => fireEvent.click(nw().getByRole('button', { name: 'Edit' }))
@@ -878,7 +880,7 @@ describe('EditStopsView — consolidation props (no Prior)', () => {
 
   it('no purple in a consolidation: green type badges and rail markers; order change keeps purple', () => {
     consol()
-    const plan = screen.getByRole('region', { name: 'New plan' })
+    const plan = screen.getByRole('region', { name: 'Stops Sequence' })
     expect(plan.querySelector('.stop-badge--changed')).toBeNull()
     expect(plan.querySelector('.stop-badge--completed')).toBeTruthy()
     for (const b of within(plan).getAllByText('Pickup')) expect(b.style.background).toContain('badge-green-bg')
@@ -890,22 +892,71 @@ describe('EditStopsView — consolidation props (no Prior)', () => {
     expect(within(oc).getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
   })
 
+  // jsdom applies no layout/paint, so this pins the structure only: the dashed
+  // lines live in edit-stops.css under .edit-stops--no-prior, on the reached-line fills.
+  it('consolidation rails are green with segment fills for the dashed line to style', () => {
+    consol()
+    const plan = screen.getByRole('region', { name: 'Stops Sequence' })
+    expect(plan.querySelector('.stop-badge--changed')).toBeNull()
+    expect(plan.querySelectorAll('.odyssey-timeline__segment--full .odyssey-timeline__segment-fill').length).toBeGreaterThan(0)
+    expect(document.querySelector('.edit-stops--no-prior')).toBeTruthy()
+    expect(editStopsCss).toMatch(/\.edit-stops--no-prior \.edit-stops__rail \.odyssey-timeline__segment-fill/)
+  })
+
   it('has no Prior panel, and Edit shows no prior-collapse controls', () => {
     consol()
     expect(screen.queryByRole('region', { name: 'Prior plan' })).toBeNull()
     edit()
     expect(screen.queryByRole('button', { name: /prior plan/i })).toBeNull()
-    expect(screen.getByRole('region', { name: 'New plan' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Stops Sequence' })).toBeTruthy()
   })
 
-  it('the strip holds Distance, Gross Weight, Volume only; the All Stops row holds Consolidated Cost, Seed Equipment, Utilization', () => {
+  it('S11: not editing the strip carries the five summary metrics; editing swaps to Distance / Gross Weight / Volume', () => {
     consol()
+    const strip = () => document.querySelector('.stops-kpi-strip')
+    for (const l of ['Total Weight', 'Weight Utilization', 'Total Volume', 'Volume Utilization', 'Hazmat']) expect(within(strip()).getByText(l)).toBeTruthy()
+    expect(within(strip()).getByText('No')).toBeTruthy() // Hazmat
+    expect(within(strip()).queryByText('Distance')).toBeNull()
+    edit()
+    for (const l of ['Distance', 'Gross Weight', 'Volume']) expect(within(strip()).getByText(l)).toBeTruthy()
+    expect(within(strip()).queryByText('Total Weight')).toBeNull()
+  })
+
+  it('S11: the summary metrics are live - a Remove changes Total Weight', () => {
+    const actionsRef = { current: null }
+    consol({ actionsRef })
+    const strip = document.querySelector('.stops-kpi-strip')
+    expect(within(strip).getByText('10 LB')).toBeTruthy()
+    act(() => actionsRef.current.removeOrders(['B']))
+    expect(within(strip).getByText('5 LB')).toBeTruthy()
+  })
+
+  it('S11: the New column reads "Stops Sequence" in a consolidation and "New" in order change', () => {
+    consol()
+    expect(nw().getByRole('heading', { name: 'Stops Sequence' })).toBeTruthy()
+    cleanup()
+    setup()
+    expect(nw().getByRole('heading', { name: 'New' })).toBeTruthy()
+    expect(nw().queryByRole('heading', { name: 'Stops Sequence' })).toBeNull()
+  })
+
+  it('S11: summaryTop / afterStrip render above All Stops, in that order; Utilization is not in the All Stops row', () => {
+    consol({ summaryTop: <div>TOP</div>, afterStrip: <div>TABLE</div> })
+    expect(screen.getByText('TOP').compareDocumentPosition(screen.getByText('All Stops')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const after = (a, b) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+    expect(after(document.querySelector('.stops-kpi-strip'), screen.getByText('TABLE'))).toBeTruthy()
+    expect(after(screen.getByText('TABLE'), screen.getByText('All Stops'))).toBeTruthy()
+    expect(document.querySelector('.edit-stops__metrics').textContent).not.toMatch(/Utilization/)
+  })
+
+  it('the strip holds Distance, Gross Weight, Volume only; the All Stops row holds Consolidated Cost, Seed Equipment', () => {
+    consol()
+    edit()
     const strip = document.querySelector('.stops-kpi-strip')
     for (const l of ['Distance', 'Gross Weight', 'Volume']) expect(within(strip).getByText(l)).toBeTruthy()
     for (const l of ['Prior Cost', 'New Direct Cost', 'Accepted Carrier', 'New Consolidated Cost']) expect(screen.queryByText(l)).toBeNull()
     expect(within(strip).queryAllByText('Prior')).toHaveLength(0)
-    for (const l of ['Consolidated Cost', 'Seed Equipment', 'Utilization']) expect(screen.getByText(l)).toBeTruthy()
-    expect(screen.getByText(/% weight/)).toBeTruthy()
+    for (const l of ['Consolidated Cost', 'Seed Equipment']) expect(screen.getByText(l)).toBeTruthy()
   })
 
   it('the merged pickup carries both orders; a move that would put a delivery above its pickup is refused (arrow disabled, LINX-15669)', () => {

@@ -6,6 +6,8 @@ import { Breadcrumb, Button, EmptyState, PageHeader, Spinner } from '@odyssey/ui
 import AppShell from '../../components/layout/AppShell'
 import EditStopsView from '../../components/detail/order-change/EditStopsView.jsx'
 import { initFromSources } from '../../components/detail/order-change/stopsSandbox.js'
+import ConsolidationSummary from '../../components/consolidation/ConsolidationSummary.jsx'
+import SelectedShipmentsTable from '../../components/consolidation/SelectedShipmentsTable.jsx'
 import ConsolidationApplyModal from '../../components/consolidation/ConsolidationApplyModal.jsx'
 import { useTenderedCheck } from '../../components/consolidation/useTenderedCheck.js'
 import { getSellShipmentDetail } from '../../api/services/shipmentService'
@@ -112,7 +114,7 @@ export default function ConsolidateStopsRoute() {
     )
   }
 
-  const headerTitle = editingC && anchor?.odysseyShipmentIdentifier ? `Shipment ${anchor.odysseyShipmentIdentifier}` : 'New Consolidated Shipment'
+  const headerTitle = editingC && anchor?.odysseyShipmentIdentifier ? `Shipment ${anchor.odysseyShipmentIdentifier}` : 'Review & Apply Manual Consolidation'
 
   return shell(
     <>
@@ -132,6 +134,8 @@ export default function ConsolidateStopsRoute() {
           <PageHeader title={headerTitle} />
           <EditStopsView
             initial={initial}
+            summaryTop={<ConsolidationSummary customerName={anchor.customerName} customerId={anchor.customerId} rows={rows} />}
+            afterStrip={<SelectedShipmentsTable rows={rows} />}
             // Disabled while the async tender check or the write runs (S6.1: the old page's checkingApply).
             saving={check.checking || apply.isPending}
             orders={orders}

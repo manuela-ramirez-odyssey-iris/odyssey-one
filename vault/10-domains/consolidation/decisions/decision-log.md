@@ -199,3 +199,13 @@ Decisions about the *identifier* itself live in
 - **Rationale:** user 2026-09-29: *"a C shipment is treated as any other O shipment after its creation"*; the landing animation was the user's idea. The 09-23 call `@43:41–44:16` (Jana): a new shipment re-runs the optimization condition and either enters the pool or gets a new list.
 - **Source:** user 2026-09-29; `vault/00-inbox/Consoloidation Questions 2.vtt` (2026-09-23).
 - **Affects:** `consolidateShipments.mjs`, `consolidations.mjs`, `consolidationService.ts`, `ShipmentsRoute.jsx`.
+
+**Refined 2026-09-30 (S164, user):**
+- **Color:** no purple anywhere in consolidation. Purple means an external (customer) change, and a consolidation isn't one, so stops, markers and chips are green or gray.
+- **Summary:** the retired page's summary strip returns at the top, without its "Consolidation Summary" heading:
+  - Customer Name and Selected Shipments chips;
+  - the metrics Total Weight, Weight Utilization, Total Volume, Volume Utilization and Hazmat, live from the orders on the stops.
+  - In edit mode, the metrics slot shows Distance, Gross Weight and Volume instead.
+- **Table:** **Selected shipments to consolidate** returns *above* All Stops, collapsible.
+- **Rail:** the rail lines are dashed, because the stop order is a proposed sequence.
+- **Width and titles:** the summary, strips and panels share one centred width that leaves room for the leg-distance tooltip. The New column reads **Stops Sequence**, and the page header reads **Review & Apply Manual Consolidation**. Utilization leaves the All Stops row, so no field appears twice.

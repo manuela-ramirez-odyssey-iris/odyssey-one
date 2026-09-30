@@ -94,7 +94,11 @@
    line tone — the Timeline's bare track (DSN/100) matched the hover tint and
    vanished. Green rails keep their solid line. 4px dash / 4px gap (tiny
    component geometry, raw px). */
-.edit-stops__rail .odyssey-timeline__rail:has(> .stop-badge--changed) .odyssey-timeline__segment {
+.edit-stops__rail .odyssey-timeline__rail:has(> .stop-badge--changed) .odyssey-timeline__segment,
+/* CNS-19: a consolidation's sequence is PROPOSED, so its (green-marker) lines
+   are dashed too. Reached markers draw a full FILL over the segment, so the dash
+   goes on the fill. */
+.edit-stops--no-prior .edit-stops__rail .odyssey-timeline__segment-fill {
   background: repeating-linear-gradient(to bottom, var(--deep-sea-neutral-400) 0 4px, transparent 4px 8px);
 }
 /* Both ends of the tipped leg: the rail badges' labels go bolder. */
@@ -105,7 +109,9 @@
 .edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail .odyssey-timeline__segment {
   background: var(--deep-sea-neutral-400);
 }
-.edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail:has(> .stop-badge--changed) .odyssey-timeline__segment {
+.edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail:has(> .stop-badge--changed) .odyssey-timeline__segment,
+/* --full: outranks the Prior neutral-700 solid-fill rule below (same specificity otherwise). */
+.edit-stops--no-prior .edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail .odyssey-timeline__segment--full .odyssey-timeline__segment-fill {
   background: repeating-linear-gradient(to bottom, var(--deep-sea-neutral-700) 0 4px, transparent 4px 8px);
 }
 /* Prior (user 2026-09-29): its stops are 'completed', so the segment is already
@@ -533,7 +539,17 @@
   --edit-stops-badge-half: 16px; /* .stop-badge min-width is 32px (components.css) */
   --edit-stops-tip-inset: calc(var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4) - var(--spacing-8) - var(--spacing-6) - var(--spacing-5) - var(--edit-stops-badge-half));
 }
-.edit-stops--no-prior > .sub-accordion {
+/* ONE width for everything but the footer (user 2026-09-30, "strips should be
+   the width of subaccordions"): the summary block, the KPI strip and both panels. */
+.edit-stops--no-prior > .sub-accordion,
+.edit-stops--no-prior > .consolidation-summary,
+.edit-stops--no-prior > .stops-kpi-strip {
   max-width: calc(100% - 2 * var(--edit-stops-tip-inset));
   margin-inline: auto;
 }
+/* SummaryStrip's stuck state bleeds to 120% with INLINE negative margins; keep
+   the sticky strip on the same centred width. */
+.edit-stops--no-prior > .stops-kpi-strip { margin-inline: auto !important; }
+/* S11: Selected shipments sits above All Stops in the same centred width, with
+   the strip's own gap (.edit-stops__strip-gap, spacing-6) between the two panels. */
+.edit-stops--no-prior > .sub-accordion + .sub-accordion { margin-top: var(--spacing-6); }

@@ -1,0 +1,8 @@
+/* Consolidation Summary + Selected shipments table, brought back on the stops
+   editor (S11); values recovered from the retired consolidation-review.css. */
+.consolidation-summary { display: flex; flex-direction: column; gap: var(--spacing-4); margin-bottom: var(--spacing-4); }
+.consolidation-summary__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
+/* The two cells fill the row (the ID chips need the width): lift the strip's
+   growth ceiling for this one strip only (S155, user 2026-09-21). */
+.consolidation-summary__info-strip .summary-strip__cell { max-width: none; }
+.consolidation-summary__table-count { color: var(--text-tertiary); padding-bottom: var(--spacing-3); }

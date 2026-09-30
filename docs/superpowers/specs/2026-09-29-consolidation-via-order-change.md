@@ -43,7 +43,7 @@ Plan: `docs/superpowers/plans/2026-09-29-consolidation-via-order-change.md` (rul
 - **S4.1** Route `/shipments/consolidate/stops`, reading `location.state.rows`. `useQueries` fetches each source's detail, the same way `ConsolidationReviewRoute` does. It shows a spinner until all have loaded and an error + Retry if any fails. No rows → an EmptyState with a **Back to Shipments** button (exits the mode).
 - **S4.2** Shell: `AppShell` with `sidebarHidden`, and `titleMode.title = 'Manual Consolidation'`.
   - Crumbs: **Shipments Consolidation** (back to the mode) › **Edit Shipment Stops** (current).
-  - `PageHeader`: `New Consolidated Shipment`, or `Shipment {C id}` when the single source is a C (S1.5).
+  - `PageHeader`: `Review & Apply Manual Consolidation` (user 2026-09-30), or `Shipment {C id}` when the single source is a C (S1.5).
 - **S4.3** Props for `EditStopsView`:
   - `initial` = `initFromSources(sources)`. New prop: when it's given, it replaces the `initSandbox` call.
   - `orders` = the union of every source's `orderDetails`.
@@ -196,14 +196,15 @@ Approved placement (one home per field):
 
 | Place | Fields |
 |---|---|
-| **Consolidation Summary** heading + info strip (top; old page's layout, `SummaryStrip background={false}`) | Customer Name · Selected Shipments (n) as ID chips (**gray**, not purple) |
+| Info strip (top; old page's layout, `SummaryStrip background={false}`; **no "Consolidation Summary" heading**, user 2026-09-30) | Customer Name · Selected Shipments (n) as ID chips (**gray**, not purple) |
 | Summary metrics strip (**not editing**) | Total Weight · Weight Utilization · Total Volume · Volume Utilization · Hazmat (negative tone when Yes) |
 | The same slot **in edit mode** | Distance · Gross Weight · Volume (today's live strip) |
 | All Stops row | Consolidated Cost · Seed Equipment, then View Planning Dates. **Utilization leaves the row** (the summary carries Weight and Volume Utilization). |
-| Below All Stops, same centred width | **Selected shipments to consolidate** SubAccordion (not collapsible), "{n} items", read-only DataTable: Odyssey Shipment ID · Customer ID · Shipment Status · Order Count · Order # · Pickup Date (`COLUMN_CONFIG` renderers) |
+| **Between the summary and All Stops** (user 2026-09-30: "on top"), same centred width | **Selected shipments to consolidate** SubAccordion (**collapsible**, open by default, user 2026-09-30), "{n} items", read-only DataTable: Odyssey Shipment ID · Customer ID · Shipment Status · Order Count · Order # · Pickup Date (`COLUMN_CONFIG` renderers) |
 | New plan column title | **Stops Sequence** (consolidation only; order change keeps "New") |
 
 - The metrics are **live** from the orders on the stops (Add/Remove move them). Utilization comes from `equipmentCapacity.js` with the anchor's equipment. Hazmat is Yes if any order on the stops is hazmat.
 - The table lists the host's current `rows` (the picked shipments, minus any removed in the tendered modal).
 - The old page's code and CSS are in git at `a9173dc` (`ConsolidationReviewRoute.jsx`, `consolidation-review.css`, `proposal.js`). Reuse its markup and values, don't re-invent them.
 - Order change: pixel-identical.
+- The consolidation rail's lines are **dashed** (it's a proposed sequence, user 2026-09-30), with green markers.

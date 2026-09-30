@@ -80,6 +80,7 @@ afterEach(() => { cleanup(); vi.mocked(applyConsolidation).mockClear(); vi.resto
 
 const evaluate = async () => fireEvent.click(await screen.findByRole('button', { name: 'Evaluate' }))
 const routingApply = () => fireEvent.click(within(screen.getByRole('dialog', { name: 'View Routing' })).getByRole('button', { name: 'Apply Consolidation' }))
+const openApplyModalEarly = async () => { await evaluate(); routingApply() }
 const modalApply = () => {
   const btns = screen.getAllByRole('button', { name: 'Apply Consolidation' })
   fireEvent.click(btns[btns.length - 1])
@@ -92,13 +93,43 @@ describe('ConsolidateStopsRoute', () => {
     expect((await probe()).state).toEqual({ consolidateExit: true })
   })
 
-  test('opens New Consolidated Shipment on the merged stops, with no Prior', async () => {
+  test('opens Review & Apply Manual Consolidation on the merged stops, with no Prior', async () => {
     renderRoute([row('111'), row('222')])
-    expect(await screen.findByRole('heading', { name: 'New Consolidated Shipment' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Review & Apply Manual Consolidation' })).toBeTruthy()
     expect(screen.getByText('Edit Shipment Stops', { selector: '.order-change__crumbs *' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Prior plan' })).toBeNull()
     // The shared pickup site folded into one stop: 1 pickup + 2 deliveries.
     expect(document.querySelectorAll('[data-stop-key]')).toHaveLength(3)
+  })
+
+  test('S11: the summary strip, the selected-shipments table, and no purple anywhere', async () => {
+    renderRoute([row('111'), row('222')])
+    await screen.findByText('Selected Shipments (2)')
+    expect(screen.getByText('Valtris')).toBeTruthy()
+    expect(screen.getByText('Selected Shipments (2)')).toBeTruthy()
+    const table = await screen.findByRole('table', { name: 'Selected shipments to consolidate' })
+    expect(within(table).getByText('O-111')).toBeTruthy()
+    expect(within(table).getByText('O-222')).toBeTruthy()
+    expect(screen.getByText('2 items')).toBeTruthy()
+    // Order (S11): summary -> strip -> selected shipments -> All Stops.
+    const before = (a, b) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+    expect(before(screen.getByText('Selected Shipments (2)'), document.querySelector('.stops-kpi-strip'))).toBeTruthy()
+    expect(before(document.querySelector('.stops-kpi-strip'), table)).toBeTruthy()
+    expect(before(table, screen.getByText('All Stops'))).toBeTruthy()
+    expect(document.body.innerHTML).not.toMatch(/purple/)
+    expect(document.querySelector('.stop-badge--changed')).toBeNull()
+  })
+
+  test('S11: a tendered source removed in the modal drops out of the table and the chips', async () => {
+    renderRoute([row('111'), row('222', { tenderStatus: 'Accepted' }), row('333')])
+    await openApplyModalEarly()
+    await screen.findByText('Tendered Shipment Detected')
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Solution' })) // Remove
+    await screen.findByText('Tendered shipment O-222 removed from the consolidation.')
+    const table = screen.getByRole('table', { name: 'Selected shipments to consolidate' })
+    expect(within(table).queryByText('O-222')).toBeNull()
+    expect(within(table).getByText('O-111')).toBeTruthy()
+    expect(screen.getByText('Selected Shipments (2)')).toBeTruthy()
   })
 
   test('Approve -> Apply -> lands on /shipments with the created C and its panel/tab (S8.1)', async () => {
