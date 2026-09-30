@@ -876,6 +876,20 @@ describe('EditStopsView — consolidation props (no Prior)', () => {
     expect(document.querySelector('.edit-stops').classList.contains('edit-stops--no-prior')).toBe(false)
   })
 
+  it('no purple in a consolidation: green type badges and rail markers; order change keeps purple', () => {
+    consol()
+    const plan = screen.getByRole('region', { name: 'New plan' })
+    expect(plan.querySelector('.stop-badge--changed')).toBeNull()
+    expect(plan.querySelector('.stop-badge--completed')).toBeTruthy()
+    for (const b of within(plan).getAllByText('Pickup')) expect(b.style.background).toContain('badge-green-bg')
+    expect(document.querySelector('.stops-kpi-strip .badge, .stops-kpi__pair')).toBeNull()
+    cleanup()
+    setup()
+    const oc = screen.getByRole('region', { name: 'New plan' })
+    expect(oc.querySelector('.stop-badge--changed')).toBeTruthy()
+    expect(within(oc).getAllByText('Pickup')[0].style.background).toContain('badge-purple-bg')
+  })
+
   it('has no Prior panel, and Edit shows no prior-collapse controls', () => {
     consol()
     expect(screen.queryByRole('region', { name: 'Prior plan' })).toBeNull()

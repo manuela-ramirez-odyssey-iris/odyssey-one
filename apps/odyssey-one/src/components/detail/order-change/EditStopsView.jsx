@@ -472,6 +472,9 @@ export default function EditStopsView({
   // always visible — no toggle. DEC-225 amends it: Prior collapses to a
   // rail while the New plan is in edit mode. One builder renders
   // both; Prior is read-only and carries the planner-edit badges.
+  // One place: New's tone. Order change = purple ('changed'); a new C is not an
+  // external change, so it is green.
+  const newTone = showPrior ? { status: 'changed', badge: 'purple' } : { status: 'completed', badge: 'green' }
   const buildItems = (list, isPrior) => {
     const labels = labelsOf({ stops: list })
     return list.map((s, i) => {
@@ -501,12 +504,14 @@ export default function EditStopsView({
       return {
         key: s.key,
         label,
+        // Consolidation (no Prior): green like the plain Stops tab — purple is
+        // reserved for an EXTERNAL (customer) change (user 2026-09-30).
         // User ruling 2026-09-09: purple ('changed'), not the plain green rail —
         // this editor already reads P/D badges as change markers alongside the
         // amber Removed/Moved badges above, so the rail follows suit.
         // User 2026-09-24: Prior's P/D markers are green like the plain
         // Stops tab ('completed'); purple stays on New only.
-        status: isPrior ? 'completed' : 'changed',
+        status: isPrior ? 'completed' : newTone.status,
         // Consolidation's Planned Stops (user, 2026-09-28): no mini status
         // icons on the rail — tracking language, not planning.
         showStatusBadge: false,
@@ -546,8 +551,10 @@ export default function EditStopsView({
                   changed" (§10.3/DEC-136) is stale for this surface pending
                   a docs pass. */}
               {/* User 2026-09-28: Prior's type badge is green, like its rail
-                  markers and the plain Stops tab; New stays purple. */}
-              <Badge variant={isPrior ? 'green' : 'purple'}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+                  markers and the plain Stops tab; New stays purple — except in a
+                  consolidation (no Prior), which is green: purple is reserved for
+                  an external (customer) change (user 2026-09-30). */}
+              <Badge variant={isPrior ? 'green' : newTone.badge}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
               {removed && <Badge variant="gray">Removed</Badge>}
               {moved && <Badge variant="gray">Moved</Badge>}
                     </span>
