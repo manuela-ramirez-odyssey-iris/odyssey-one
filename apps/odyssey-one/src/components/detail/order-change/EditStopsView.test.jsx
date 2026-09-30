@@ -643,6 +643,23 @@ it('F3/F7: one decorative info icon per segment in New, expanded Prior and colla
   document.querySelectorAll('.edit-stops__leg-icon').forEach((i) => expect(i.closest('.odyssey-timeline__rail')).toBeNull())
 })
 
+it('hovering a leg Info icon shows that leg\'s distance tooltip; its icon hides, the tooltip carries the info badge, leave restores (user 2026-09-29)', () => {
+  const located = baseStops.map((s, i) => ({ ...s, lat: 40 + i, lng: -90 }))
+  setup({ stops: located })
+  const newPlan = screen.getByRole('region', { name: 'New plan' })
+  const icons = () => [...newPlan.querySelectorAll('.edit-stops__leg-icon')]
+  fireEvent.mouseMove(icons()[0], { clientY: 120 })
+  const tip = screen.getByRole('tooltip')
+  expect(tip.textContent).toContain('Distance from P1 to P2')
+  expect(tip.querySelector('svg')).toBeTruthy()                       // info badge icon
+  expect(icons()[0].hasAttribute('data-tipped')).toBe(true)
+  expect(icons()[1].hasAttribute('data-tipped')).toBe(false)
+  expect(icons()[0].getAttribute('aria-hidden')).toBe('true')
+  fireEvent.mouseLeave(newPlan)
+  expect(screen.queryByRole('tooltip')).toBeNull()
+  expect(icons()[0].hasAttribute('data-tipped')).toBe(false)
+})
+
 it('F7: a gap element sits between the KPI strip and the All Stops panel', () => {
   setup()
   const gap = document.querySelector('.edit-stops__strip-gap')

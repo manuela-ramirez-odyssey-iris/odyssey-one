@@ -247,8 +247,10 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   // legTips (filled by buildItems).
   const legTips = { prior: {}, new: {} }
   const showRailTip = (e, panel) => {
-    const rail = dragging.current ? null : e.target.closest?.('.odyssey-timeline__rail')
-    const row = rail?.closest('.odyssey-timeline__row')
+    // The leg Info icon (beside the rail, same row) routes into this same tip.
+    const hit = dragging.current ? null : e.target.closest?.('.odyssey-timeline__rail, .edit-stops__leg-icon')
+    const row = hit?.closest('.odyssey-timeline__row')
+    const rail = row?.querySelector('.odyssey-timeline__rail')
     const key = row?.querySelector('[data-stop-key]')?.dataset.stopKey
     const info = key && legTips[panel][key]
     if (!info) { setTip(null); return }
@@ -556,9 +558,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
             {/* S164 F3 (Jana 09-29 @04:54): a DECORATIVE cue that the leg
                 below this stop carries a distance. F7: it sits BESIDE the
                 rail (the line stays unbroken), centred on the segment;
-                pointer-events none, so the rail still owns the hover and
-                showRailTip / the tooltip are untouched. */}
-            {i < list.length - 1 && <span className="edit-stops__leg-icon" aria-hidden="true"><Info {...ICON_MD} /></span>}
+                It takes hover into the same showRailTip (user 2026-09-29) and
+                hides while its tip is up — the tooltip header carries the icon. */}
+            {i < list.length - 1 && <span className="edit-stops__leg-icon" data-tipped={tip?.key === `${isPrior ? 'prior' : 'new'}:${s.key}` || undefined} aria-hidden="true"><Info {...ICON_MD} /></span>}
           </Row>
         ),
       }
@@ -594,7 +596,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 {moved && <span className="edit-stops__mark-dot" aria-hidden="true" />}
               </button>
             </TooltipTrigger>
-            {!last && <span className="edit-stops__leg-icon" aria-hidden="true"><Info {...ICON_MD} /></span>}
+            {!last && <span className="edit-stops__leg-icon" data-tipped={legOn || undefined} aria-hidden="true"><Info {...ICON_MD} /></span>}
           </>
         ),
       }
@@ -652,7 +654,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               <div className="edit-stops__prior-card edit-stops__prior-card--rail" key="rail">
                 <div className="edit-stops__prior-head">
                   <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
-                  <Button variant="icon" icon={<UnfoldHorizontal {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPrior(false)} />
+                  <Button variant="secondary" size="sm" icon={<UnfoldHorizontal {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPrior(false)} />
                 </div>
                 <Timeline items={priorMarkers()} className="edit-stops__rail edit-stops__rail--markers" aria-label="Prior stops" />
               </div>
@@ -660,7 +662,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
               <div className="edit-stops__prior-card" key="full" ref={priorCardRef}>
                 <div className="edit-stops__plan-head">
                   <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
-                  {editing && <Button variant="icon" icon={<FoldHorizontal {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPrior(true)} />}
+                  {editing && <Button variant="secondary" size="sm" icon={<FoldHorizontal {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPrior(true)} />}
                 </div>
                 <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
               </div>
@@ -748,7 +750,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
       {tip && createPortal(
         <div style={{ position: 'fixed', left: tip.x, top: tip.y, transform: 'translate(-100%, -50%)', width: 'max-content', zIndex: 9999, pointerEvents: 'none' }}>
-          <Tooltip groups={[{ subtitle: tip.subtitle, content: tip.content }]} />
+          <Tooltip badgeVariant="info" groups={[{ subtitle: tip.subtitle, content: tip.content }]} />
         </div>,
         document.body,
       )}

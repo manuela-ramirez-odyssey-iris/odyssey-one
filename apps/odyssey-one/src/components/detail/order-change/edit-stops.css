@@ -382,9 +382,8 @@
    the line is (spacing-3 + 16px) left of the stop content; the icon's right
    edge sits spacing-1 (+ the line's 1px half-width) left of it (translate -100%), inside the card's own
    spacing-5 padding, clear of the markers (they only occupy the segment's
-   ends) and of the card edge. Pointer-events
-   none: no layout shift, and the rail still owns the hover that shows the leg
-   tooltip. 20px badge / 16px rail half = component-internal geometry. */
+   ends) and of the card edge. It takes
+   hover (routed into the rail's leg tooltip, user 2026-09-29). 20px badge / 16px rail half = component-internal geometry. */
 .edit-stops__leg-icon {
   --leg-rail-pad: 0px;
   position: absolute;
@@ -394,8 +393,10 @@
   display: flex;
   width: var(--icon-size-md); /* 16px, pinned so nothing inherits it larger */
   color: var(--deep-sea-neutral-300); /* one tone lighter than --text-placeholder (user 2026-09-29); no semantic icon token at neutral-300 yet */
-  pointer-events: none;
 }
+/* While its leg tooltip is up the icon lives in the tooltip header instead.
+   opacity, not visibility: a hidden element drops the hover and the tip would flicker. */
+.edit-stops__leg-icon[data-tipped] { opacity: 0; }
 .edit-stops__rail--detached .edit-stops__leg-icon { --leg-rail-pad: var(--spacing-2); }
 /* Collapsed rail: the overlay starts at the rail (no content gap), so the line is 16px in. */
 .edit-stops__rail--markers .edit-stops__leg-icon { left: calc(16px - 1px - var(--spacing-1)); }
