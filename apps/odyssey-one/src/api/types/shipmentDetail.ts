@@ -1,6 +1,6 @@
 // The detail view-model the existing tabs consume. The mapper outputs this.
 
-import type { ShipmentOverridesDTO, StopChangeField } from './sellShipmentOut'
+import type { LineageNode, ShipmentOverridesDTO, StopChangeField } from './sellShipmentOut'
 
 
 export interface AddressVM {
@@ -481,6 +481,8 @@ export interface ShipmentDetailVM {
   documentsData: { documents: unknown[] }
   notesData: { notes: unknown[] }
   historyData: { entries: unknown[] }
+  /** S164 — consolidation ancestry; null when absent (every Direct shipment). */
+  lineage: { sources: LineageNode[] } | null
   /** Shipment-stage field edits, passed through untouched. Absent = none. */
   overrides?: ShipmentOverridesDTO
 }

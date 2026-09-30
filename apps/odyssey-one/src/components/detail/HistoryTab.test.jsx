@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import HistoryTab from './HistoryTab'
+import { getSellShipmentDetail } from '../../api/services/shipmentService'
+
+vi.mock('../../api/services/shipmentService', () => ({ getSellShipmentDetail: vi.fn() }))
 
 afterEach(cleanup)
 
@@ -292,5 +296,109 @@ describe('HistoryTab', () => {
     }
     render(<HistoryTab data={data} />)
     expect(screen.getByText('Optimization Evaluation')).toBeTruthy()
+  })
+})
+
+// ── S164 / CNS-22: consolidation lineage ────────────────────────────────────
+// Fixture matches spec §1's node shape exactly. C100 <- [C201 (hidden, 2 sources), O202 (hidden leaf)]
+const leaf = (id, extra = {}) => ({ sellShipment: `s${id}`, odysseyShipmentIdentifier: id, origin: 'Dallas, TX', destination: 'Reno, NV', orders: ['L1'], hidden: true, sources: [], ...extra })
+const lineage = {
+  sources: [
+    leaf('C201', { sources: [leaf('O301'), leaf('O302')] }),
+    leaf('O202'),
+  ],
+}
+const shipment = { sellShipment: 's100', odysseyShipmentIdentifier: 'C100', origin: 'Dallas, TX', destination: 'Reno, NV', customerId: 'USALCO' }
+const data = { entries: [{ user: 'A', timestamp: '2026-06-02T14:05:00.000Z', action: 'Order Created', category: 'create', details: 'live-trail' }] }
+
+function renderLineage() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <HistoryTab data={data} lineage={lineage} shipment={shipment} />
+    </QueryClientProvider>,
+  )
+}
+const btn = (name) => screen.getByRole('button', { name })
+// A tab and its tree row share a name; tabs come first in the DOM, tree rows live in .lineage-tree.
+const row = (name) => within(document.querySelector('.lineage-tree')).getByRole('button', { name })
+const tab = (name) => screen.getAllByRole('button', { name })[0]
+
+describe('HistoryTab — lineage', () => {
+  it('without lineage renders no tabs and no summary', () => {
+    const { container } = render(<HistoryTab data={data} lineage={null} shipment={shipment} />)
+    expect(screen.queryByText('Lineage Tree')).toBeNull()
+    expect(container.querySelector('.history-summary')).toBeNull()
+    expect(screen.getByText('Shipment History')).toBeTruthy()
+  })
+
+  it('shows both tabs and the summary with direct-source chips', () => {
+    renderLineage()
+    expect(screen.getByRole('button', { name: 'Shipment History' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Lineage Tree' })).toBeTruthy()
+    expect(screen.getByText('CONSOLIDATED SHIPMENT', { exact: false })).toBeTruthy()
+    expect(screen.getByText('USALCO')).toBeTruthy()
+    expect(screen.getByText('Merged from:')).toBeTruthy()
+    expect(btn('C201')).toBeTruthy()
+    expect(btn('O202')).toBeTruthy()
+    expect(screen.getByText('1 events')).toBeTruthy()
+    expect(screen.getByText('live-trail')).toBeTruthy()
+  })
+
+  it('tree: root starts collapsed, expand shows Sources of, Expand/Collapse All', () => {
+    renderLineage()
+    fireEvent.click(btn('Lineage Tree'))
+    expect(screen.getByText('5 shipments')).toBeTruthy()
+    expect(screen.queryByText(/Sources of/)).toBeNull()
+    fireEvent.click(btn('Expand C100'))
+    expect(screen.getByText('Sources of C100')).toBeTruthy()
+    expect(screen.queryByText('Sources of C201')).toBeNull()
+    fireEvent.click(btn('Expand All'))
+    expect(screen.getByText('Sources of C201')).toBeTruthy()
+    fireEvent.click(btn('Collapse All'))
+    expect(screen.queryByText(/Sources of/)).toBeNull()
+  })
+
+  it('Preview only appears on hidden rows only', () => {
+    renderLineage()
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(btn('Expand All'))
+    // C201, O301, O302, O202 are hidden; the live root is not
+    expect(screen.getAllByText('Preview only')).toHaveLength(4)
+  })
+
+  it('id click opens a closable tab: focuses without duplicating, close falls back left', () => {
+    getSellShipmentDetail.mockResolvedValue({ historyData: { entries: [] } })
+    renderLineage()
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(btn('Expand C100'))
+    fireEvent.click(row('C201'))
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(row('C201')) // second click — same tab
+    expect(screen.getAllByRole('button', { name: 'Close C201' })).toHaveLength(1)
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(row('O202'))
+    expect(screen.getAllByRole('button', { name: /^Close / })).toHaveLength(2)
+    fireEvent.click(btn('Close O202'))
+    // fell back to the tab on its left (C201)
+    expect(tab('C201').getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(btn('Close C201'))
+    expect(btn('Lineage Tree').getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('preview shows the ancestry path and that shipment\'s own trail', async () => {
+    getSellShipmentDetail.mockResolvedValue({
+      historyData: { entries: [{ user: 'S', source: 'OdysseyONE', timestamp: '2026-05-01T10:00:00.000Z', action: 'Consolidation Completed', outcome: 'update', details: 'hidden-trail' }] },
+    })
+    renderLineage()
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(btn('Expand All'))
+    fireEvent.click(row('O301'))
+    expect(await screen.findByText('hidden-trail')).toBeTruthy()
+    expect(getSellShipmentDetail).toHaveBeenCalledWith('sO301')
+    expect(screen.getByText('Merged from:').parentElement.textContent).toMatch(/C100C201O301/)
+    // the root chip goes back to Shipment History
+    fireEvent.click(screen.getAllByRole('button', { name: 'C100' })[0])
+    expect(screen.getByText('live-trail')).toBeTruthy()
   })
 })

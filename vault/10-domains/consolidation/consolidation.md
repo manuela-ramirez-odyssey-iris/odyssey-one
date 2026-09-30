@@ -379,6 +379,15 @@ Review & Apply page (LINX-15787 as mocked, VD 2249:46444) and its Planned Stops 
 (DEC-219) are deleted. §5 (audit trail) is untouched; the move/audit history is still on hold
 for design (C18).
 
+## 12. Hidden sources and the lineage — the 2026-09-23 call, built S164
+
+The §10 tension closes on **soft-deleted and linked** ([[decisions/decision-log|CNS-21, CNS-22]]).
+- Consolidating hides the sources as emptied shells, with their trail kept and a final "moved to C…" event. The new C carries a link to each one.
+- A load pulled out of a C gets a new O linked to both the C and its original shipment.
+- Each shipment keeps its own trail. A hidden one is reached only through the links: from the History tab's **Lineage Tree**, or the **Merged from** chips, into a read-only preview tab.
+- The call was Manuela, Thomas, Doug, Steve, Jana, Soni and Saikat. Thomas and Doug carried it; Jana held it wasn't MVP.
+- Open: the order-side trail of moves (Jana/Soni); tender history on hidden sources; the one-load-C rule (DEC-216 vs Thomas/Doug on this call).
+
 ## Related
 
 - [[_moc|Consolidation MOC]] · [[decisions/decision-log|Consolidation decision log]]

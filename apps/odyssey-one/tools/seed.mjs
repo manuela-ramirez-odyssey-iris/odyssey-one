@@ -114,13 +114,15 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
      'gross_weight','load','load_count','order_count','ap_freight_cost','pickup_numbers','detail',
      'shipment_type','planning_type','po_numbers','leg_type','sequence_leg','next_shipment_id',
      'odyssey_shipment_id'],
-    ds.shipments.map((s) => [
+    // S164: the lineage's hidden sources ride along as emptied shells (orders [], order_count '0';
+    // NOT_EMPTIED keeps them out of list/counts/search). No orders/tenders/search_index rows for them.
+    [...ds.shipments, ...ds.hiddenShipments].map((s) => [
       s.sellShipment, s.buyShipment, s.orders, s.pro, s.customerId, s.customerName, s.consignor, s.consignee,
       s.origin, s.destination, s.pickupDate, s.deliveryDate, parseDisplayDate(s.pickupDate), parseDisplayDate(s.deliveryDate),
       s.mode, s.equipmentCode, s.equipment, s.seal, s.scac, s.tenderStatus, s.shipmentStatus, s.panel, s.category,
       s.validationMessage, s.grossWeight, s.load, s.loadCount, s.orderCount, s.apFreightCost,
       s.pickupNumbers ?? [],
-      JSON.stringify(ds.details.get(s.sellShipment)),
+      JSON.stringify(ds.details.get(s.sellShipment) ?? ds.hiddenDetails.get(s.sellShipment)),
       s.shipmentType ?? null, s.planningType ?? null, s.poNumbers ?? [],
       // Multi-leg linkage triplet (007_multileg_chains.sql) — null on every
       // single-leg shipment (the vast majority); see generate.mjs buildChainLegs.
@@ -174,6 +176,10 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
       // history entry: action/details/user/timestamp (not type/message/actor/date)
       eventRows.push([sellId, ev.action ?? null, ev.details ?? null, ev.user ?? null, ev.timestamp ?? null, JSON.stringify(ev)])
   }
+  // The hidden sources keep their trail (events) only — their stops/tenders stay in the frozen blob.
+  for (const [sellId, d] of ds.hiddenDetails)
+    for (const ev of d.historyList ?? [])
+      eventRows.push([sellId, ev.action ?? null, ev.details ?? null, ev.user ?? null, ev.timestamp ?? null, JSON.stringify(ev)])
   await insertRows(client, 'stops', ['shipment_sell_id','sequence','stop_type','location_id','scheduled_datetime','data'], stopRows)
   await insertRows(client, 'tenders', ['shipment_sell_id','scac','carrier_name','status','route_group','rank','rate_amount','option'], tenderRows)
   await insertRows(client, 'events', ['shipment_sell_id','type','message','actor','occurred_at','data'], eventRows)
@@ -196,7 +202,7 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
   await insertRows(client, 'search_index', ['domain','entity_id','attr','value','display'],
     projectionRows.map((r) => [r.domain, r.entity_id, r.attr, r.value, r.display]))
 
-  return { shipments: ds.shipments.length, orders: ds.orders.length, stops: stopRows.length, tenders: tenderRows.length, events: eventRows.length, search_index: projectionRows.length }
+  return { shipments: ds.shipments.length, hidden_shipments: ds.hiddenShipments.length, orders: ds.orders.length, stops: stopRows.length, tenders: tenderRows.length, events: eventRows.length, search_index: projectionRows.length }
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {

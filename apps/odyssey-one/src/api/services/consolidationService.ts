@@ -6,7 +6,7 @@ import { getRawSellShipmentOut } from './shipmentService'
 import { clearShipmentSearchIndex } from '../../search/shipments/searchIndex'
 import { addShipment, getAllShipments, removeShipments } from '../../data'
 import { buildConsolidatedShipment, checkConsolidation } from '../../../api/_lib/consolidateShipments.mjs'
-import { buildSplitShipment, computeListAggregates, pickExternalOrders, removeOrdersFromSource, rowFromStops } from '../../../api/_lib/shipments.mjs'
+import { buildSplitShipment, computeListAggregates, dormancyEvent, pickExternalOrders, removeOrdersFromSource, rowFromStops } from '../../../api/_lib/shipments.mjs'
 import type { ShipmentErrorRow } from '../types/shipmentErrorList'
 import type { ShipmentRowVM } from '../types/shipmentRowVm'
 import type { SellShipmentOut } from '../types/sellShipmentOut'
@@ -95,17 +95,35 @@ export async function applyConsolidation(
   ) as { records: Array<Record<string, unknown>> }
 
   consolidateSeq += 1
+  const now = new Date()
   // The builder is plain JS shared with the live handler; its JSDoc types are
   // deliberately loose (`object`), so the shapes are named here.
-  const built = buildConsolidatedShipment({ sources, stops, externals, tenderList, seq: consolidateSeq, now: new Date() }) as {
+  const built = buildConsolidatedShipment({
+    sources, stops, externals, externalOrders: pulled, tenderList,
+    externalSources: [...externalSources].map(([sellShipment, { row, detail }]) => ({ sellShipment, row, detail })), seq: consolidateSeq, now,
+  }) as {
     row: ShipmentErrorRow
     detail: SellShipmentOut
     removedSellShipments: string[]
-    splitOrders: { source: { row: ShipmentErrorRow; detail: SellShipmentOut }; orderRec: Record<string, unknown> }[]
+    splitOrders: { source: { row: ShipmentErrorRow; detail: SellShipmentOut }; orderRec: Record<string, unknown>; sourceHidden: boolean }[]
   }
   // Remove BEFORE add: a reused C… id is both a source and the result, and
   // `addShipment` un-tombstones what it registers (same net effect as the live
   // DELETE-then-INSERT on that PK).
+  // S164 §2 — a tombstoned source keeps its blob readable (the lineage tree
+  // previews it) and gains the dormancy event. addShipment un-tombstones, so
+  // the overlay write goes first and the tombstone after. ponytail: a source
+  // the id-reuse keeps is the result, never dormant; externals emptied by a
+  // pull get no event (live writeSourceUpdates doesn't append one either).
+  for (const src of sources) {
+    const id = src.row.sellShipment
+    if (!built.removedSellShipments.includes(id) || id === built.row.sellShipment) continue
+    const held = (src.detail.orderList ?? []).map((o) => String(o.orderNumber ?? o.orderId))
+    addShipment(src.row, {
+      ...src.detail,
+      historyList: [...(src.detail.historyList ?? []), dormancyEvent(held, built.row.odysseyShipmentIdentifier, now)],
+    })
+  }
   removeShipments(built.removedSellShipments)
   addShipment(built.row, built.detail)
   // C3 — orders a C source lost become Directs of their own. ponytail: the
@@ -113,9 +131,9 @@ export async function applyConsolidation(
   // sell 34000001+ / O68000001+ / buy 908000001+ (orders.id 8,000,001+). The
   // ceiling is a real orders.id reaching 8,000,000 — seeded ids are in the
   // thousands, so widen the offset if that ever changes.
-  for (const { source, orderRec } of built.splitOrders) {
+  for (const { source, orderRec, sourceHidden } of built.splitOrders) {
     splitSeq += 1
-    const split = buildSplitShipment({ source, orderRec, orderSerialId: 8_000_000 + splitSeq }) as unknown as {
+    const split = buildSplitShipment({ source, orderRec, orderSerialId: 8_000_000 + splitSeq, sourceHidden }) as unknown as {
       row: ShipmentErrorRow; detail: SellShipmentOut
     }
     addShipment(split.row, split.detail)

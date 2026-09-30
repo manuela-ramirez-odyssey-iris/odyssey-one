@@ -1,8 +1,11 @@
 import React from 'react'
-import { Badge, SubAccordion } from '@odyssey/ui'
+import { Badge, SubAccordion, Tab, TitleSubtitle } from '@odyssey/ui'
+import { ArrowRight } from 'lucide-react'
 import { formatDateTimeMDYHM } from '../../lib/dates'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger'
+import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
+import { DepthDot, LineageTab, LineageTree, findPath, labelOf } from './LineageTree'
 
 // Shipment History = an audit trail ("who changed what and when", Jana Mar 25
 // — vault/10-domains/shipments/domain-analysis.md §9), rendered as an entry
@@ -113,12 +116,73 @@ export function orderNewestFirst(entries = []) {
   return [...entries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 }
 
-const HistoryTab = React.memo(function HistoryTab({ data }) {
+// The entry-row renderer — extracted so the lineage preview tab reuses it
+// (S164); the DEC comments below travel with the markup unchanged. Sorts here
+// (newest first, 2026-08-17) so every caller gets the same reading order.
+function HistoryEntries({ entries }) {
+  return (
+    <div className="history-list">
+      {orderNewestFirst(entries).map((entry, i) => (
+        <div className="history-entry" key={i}>
+          <div className="history-dot" style={{ background: getDotColor(entry.outcome) }} />
+          <div className="history-content">
+            <div className="history-row1">
+              {/* DEC-70 introduced a "System" badge beside the actor; user removed
+                  it 2026-08-10 — `entry.source`'s muted actor styling already said
+                  "not a human". Row order is `badge · author ———— date`, the user's
+                  verbatim 2026-08-12 spec. Two earlier passes got it wrong and are
+                  recorded so nobody re-tries them: (1) author pinned far right next
+                  to the timestamp — rejected, a long name/email was cramped there;
+                  (2) author leading with the badge second — also rejected, the badge
+                  leads. The stable part across all three: the author sits BESIDE the
+                  badge with room to fill, and the timestamp keeps margin-left:auto so
+                  it pins hard right on its own. */}
+              <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>
+                {ACTION_LABELS[entry.action] ?? entry.action}
+              </Badge>
+              <HistoryAuthor entry={entry} />
+              {/* UTC, labelled (user ruling 2026-08-12). The trail is an
+                  audit log read by people in different zones — rendering
+                  it in each viewer's local clock means two of them
+                  disagree about when the same event happened. The `UTC`
+                  suffix is deliberate and matches how the rest of the app
+                  stamps a zone (`04/15/2026 09:00 CDT` on the stops); an
+                  unlabelled UTC time is indistinguishable from a local
+                  one, which is the failure this ruling exists to fix. */}
+              <span className="history-timestamp">
+                {formatDateTimeMDYHM(new Date(entry.timestamp), { utc: true })} UTC
+              </span>
+            </div>
+
+            <div className="history-details">{entry.details}</div>
+
+            {entry.field && (
+              <div className="history-diff">
+                <span className="history-diff-field">{entry.field}:</span>
+                <span className="history-diff-old">{entry.oldValue}</span>
+                <span className="history-diff-arrow">&rarr;</span>
+                <span className="history-diff-new">{entry.newValue}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// `lineage` (S164 / CNS-22) is the detail's consolidation ancestry and `shipment`
+// the list row; both optional. No lineage = today's static card, unchanged.
+const HistoryTab = React.memo(function HistoryTab({ data, lineage, shipment }) {
   const raw = data?.entries
   if (!raw || raw.length === 0) {
     return <PaneEmpty message="No history available." />
   }
-  const entries = orderNewestFirst(raw)
+
+  if (lineage?.sources?.length && shipment) {
+    // key = reset tab state when the shipment changes (spec §4)
+    return <LineageHistory key={shipment.sellShipment} entries={raw} lineage={lineage} shipment={shipment} />
+  }
 
   return (
     <div className="pane-canvas">
@@ -126,59 +190,158 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
         {/* Static SubAccordion card — no disclosure, no info icon (Figma
             State=Static, same idiom as DocumentsTab's "All Documents" card) */}
         <SubAccordion title="Shipment History" collapsible={false}>
-          <div className="history-list">
-            {entries.map((entry, i) => (
-              <div className="history-entry" key={i}>
-                <div className="history-dot" style={{ background: getDotColor(entry.outcome) }} />
-                <div className="history-content">
-                  <div className="history-row1">
-                    {/* DEC-70 introduced a "System" badge beside the actor; user removed
-                        it 2026-08-10 — `entry.source`'s muted actor styling already said
-                        "not a human". Row order is `badge · author ———— date`, the user's
-                        verbatim 2026-08-12 spec. Two earlier passes got it wrong and are
-                        recorded so nobody re-tries them: (1) author pinned far right next
-                        to the timestamp — rejected, a long name/email was cramped there;
-                        (2) author leading with the badge second — also rejected, the badge
-                        leads. The stable part across all three: the author sits BESIDE the
-                        badge with room to fill, and the timestamp keeps margin-left:auto so
-                        it pins hard right on its own. */}
-                    <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>
-                      {ACTION_LABELS[entry.action] ?? entry.action}
-                    </Badge>
-                    <HistoryAuthor entry={entry} />
-                    {/* UTC, labelled (user ruling 2026-08-12). The trail is an
-                        audit log read by people in different zones — rendering
-                        it in each viewer's local clock means two of them
-                        disagree about when the same event happened. The `UTC`
-                        suffix is deliberate and matches how the rest of the app
-                        stamps a zone (`04/15/2026 09:00 CDT` on the stops); an
-                        unlabelled UTC time is indistinguishable from a local
-                        one, which is the failure this ruling exists to fix. */}
-                    <span className="history-timestamp">
-                      {formatDateTimeMDYHM(new Date(entry.timestamp), { utc: true })} UTC
-                    </span>
-                  </div>
-
-                  <div className="history-details">{entry.details}</div>
-
-                  {entry.field && (
-                    <div className="history-diff">
-                      <span className="history-diff-field">{entry.field}:</span>
-                      <span className="history-diff-old">{entry.oldValue}</span>
-                      <span className="history-diff-arrow">&rarr;</span>
-                      <span className="history-diff-new">{entry.newValue}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <HistoryEntries entries={raw} />
         </SubAccordion>
       </div>
     </div>
   )
 })
 export default HistoryTab
+
+// --- Lineage view (S164 / CNS-22) ---
+
+// Odyssey ids carry the prefix (S148): C = consolidated, O = one order.
+const kickerOf = (n) => (/^C/.test(labelOf(n)) ? 'Consolidated Shipment' : 'Shipment')
+const PREVIEW_TAB = (sell) => `preview:${sell}`
+
+// Summary card + "Merged from" band + event history. `path` is the chip row:
+// direct sources on the live shipment, the ancestry path on a preview.
+function HistoryPanel({ node, customer, path, arrows, onOpen, entries, status }) {
+  return (
+    <div className="history-panel">
+      <div className="history-summary">
+        <div className="history-summary__main">
+          <div className="history-summary__kicker text-label-xs-medium">
+            {kickerOf(node)}
+          </div>
+          <div className="history-summary__id text-heading-lg-semibold">{labelOf(node)}</div>
+        </div>
+        <div className="history-summary__cells">
+          <TitleSubtitle subtitle="Customer" title={customer || '—'} />
+          <TitleSubtitle subtitle="Origin" title={node.origin || '—'} />
+          <TitleSubtitle subtitle="Destination" title={node.destination || '—'} />
+        </div>
+        <div className="history-band">
+          <span className="history-band__label">Merged from:</span>
+          {path.map((p, i) => (
+            <React.Fragment key={`${p.node.sellShipment}-${i}`}>
+              {i > 0 && (arrows
+                ? <ArrowRight size={16} className="history-band__sep" aria-hidden="true" />
+                : <span className="history-band__sep" aria-hidden="true">·</span>)}
+              <button type="button" className="history-chip" onClick={() => onOpen(p.node, p.depth === 0)}>
+                <DepthDot depth={p.depth} />
+                {labelOf(p.node)}
+              </button>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+      <div className="history-events__head">
+        <span className="history-events__title text-label-xs-medium">Event History</span>
+        {entries && <span className="history-events__count">{entries.length} events</span>}
+      </div>
+      {status ? <p className="history-empty">{status}</p> : <HistoryEntries entries={entries} />}
+    </div>
+  )
+}
+
+// A hidden shipment's own trail, fetched by sell id (works for hidden shells in
+// both mock and live — spec §4). keepPreviousData would otherwise show the
+// PREVIOUS shipment's trail while this one loads, so placeholder = loading.
+function PreviewPanel({ tab, customer, onOpen }) {
+  const { data, isPending, isPlaceholderData, isError } = useShipmentDetail(tab.node.sellShipment)
+  const entries = data?.historyData?.entries
+  const status = isError ? 'Could not load this shipment’s history.'
+    : isPending || isPlaceholderData ? 'Loading history…'
+    : !entries?.length ? 'No history available.' : null
+  const path = tab.path.map((n, i) => ({ node: n, depth: i }))
+  return (
+    <HistoryPanel
+      node={tab.node}
+      customer={customer} path={path} arrows onOpen={onOpen}
+      entries={status ? null : entries} status={status}
+    />
+  )
+}
+
+function LineageHistory({ entries, lineage, shipment }) {
+  const root = {
+    sellShipment: shipment.sellShipment,
+    odysseyShipmentIdentifier: shipment.odysseyShipmentIdentifier,
+    origin: shipment.origin,
+    destination: shipment.destination,
+    hidden: false,
+    sources: lineage.sources,
+  }
+  const [previews, setPreviews] = React.useState([]) // { node, path }
+  const [active, setActive] = React.useState('history') // 'history' | 'tree' | preview id
+  const [expanded, setExpanded] = React.useState(() => new Set()) // root starts collapsed (VD 3113)
+
+  const open = (node, isRoot) => {
+    if (isRoot) return setActive('history')
+    const id = PREVIEW_TAB(node.sellShipment)
+    // already open → focus it, never a duplicate
+    setPreviews((prev) => prev.some((t) => t.id === id) ? prev : [...prev, { id, node, path: findPath(root, node.sellShipment) ?? [root, node] }])
+    setActive(id)
+  }
+  const close = (id) => {
+    const order = ['history', 'tree', ...previews.map((t) => t.id)]
+    const at = order.indexOf(id)
+    setPreviews((prev) => prev.filter((t) => t.id !== id))
+    // closing the current tab falls back to the one on its left
+    if (active === id) setActive(order[at - 1])
+  }
+  const toggle = (key) => setExpanded((prev) => {
+    const next = new Set(prev)
+    next.has(key) ? next.delete(key) : next.add(key)
+    return next
+  })
+  const toggleAll = (open, keys) => setExpanded(open ? new Set(keys) : new Set())
+
+  // The list row carries the name (ROW_COLUMNS customerName); a hidden source
+  // always shares the root's customer, so previews reuse it.
+  const customer = shipment.customerName ?? shipment.customerId
+  const activePreview = previews.find((t) => t.id === active)
+
+  return (
+    <div className="pane-canvas">
+      <div className="pane-col pane-col--narrow">
+        <section className="history-card">
+          <div className="tab-group history-card__tabs">
+            <Tab label="Shipment History" current={active === 'history'} onClick={() => setActive('history')} />
+            <Tab label="Lineage Tree" current={active === 'tree'} onClick={() => setActive('tree')} />
+            {previews.map((t) => (
+              <LineageTab
+                key={t.id}
+                label={labelOf(t.node)}
+                current={active === t.id}
+                onSelect={() => setActive(t.id)}
+                onClose={() => close(t.id)}
+              />
+            ))}
+          </div>
+          <div className="history-card__body">
+            {active === 'history' && (
+              <HistoryPanel
+                node={root}
+                customer={customer}
+                path={lineage.sources.map((n) => ({ node: n, depth: 1 }))}
+                onOpen={open}
+                entries={entries}
+              />
+            )}
+            {active === 'tree' && (
+              <LineageTree root={root} expanded={expanded} onToggle={toggle} onToggleAll={toggleAll} onOpen={open} />
+            )}
+            {activePreview && (
+              <PreviewPanel key={activePreview.id} tab={activePreview} customer={customer} onOpen={open} />
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
 
 // --- Helpers ---
 

@@ -4,7 +4,7 @@ vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
 
 import { applyConsolidation, __resetConsolidationSeq } from './consolidationService'
 import { addShipment, getAllShipments, __resetShipmentWriteState } from '../../data'
-import { getSellShipmentDetail } from './shipmentService'
+import { getRawSellShipmentOut, getSellShipmentDetail } from './shipmentService'
 
 // The editor's StopDto[] for the sources n… (pickups, then deliveries), and the S7.1 body.
 const stopsFor = (...ns: number[]) => [
@@ -195,5 +195,16 @@ describe('applyConsolidation (mock)', () => {
     const split = getAllShipments().find((r: { orders: string[] }) => r.orders.length === 1 && r.orders[0] === 'ORD-3')
     expect(split).toMatchObject({ shipmentType: 'Direct', category: 'consolidation', panel: 'monitoring' })
     expect(split.sellShipment).toBe('34000001')                   // the mock split-id band
+  })
+
+  it('S164: the C links to each source; a tombstoned source stays readable and ends with the dormancy event', async () => {
+    const { detail: blob } = await applyConsolidation(body(1, 2))
+    const nodes = (blob as unknown as { lineage: { sources: Array<{ sellShipment: string; hidden: boolean; orders: string[] }> } }).lineage.sources
+    expect(nodes.map((n) => [n.sellShipment, n.hidden, n.orders])).toEqual([['26090001', true, ['ORD-1']], ['26090002', true, ['ORD-2']]])
+    expect(getAllShipments().some((r: { sellShipment: string }) => r.sellShipment === '26090001')).toBe(false)
+    const hidden = await getRawSellShipmentOut('26090001')
+    const last = hidden.historyList?.at(-1) as { action: string }
+    expect(last.action).toBe('Consolidation Completed')
+    expect(JSON.stringify(last)).toContain('no longer active')
   })
 })

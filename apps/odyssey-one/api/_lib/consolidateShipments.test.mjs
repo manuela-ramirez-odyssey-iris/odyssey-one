@@ -293,3 +293,66 @@ test('an emptied source shell is not "consumed" (nothing to move, nothing to rem
   const shell = src(3, {}, { orderList: [] })
   assert.deepEqual(build([src(1), src(2), shell], { stops: dtoFor(1, 2) }).removedSellShipments, ['26000001', '26000002'])
 })
+
+// ── S164 §1: detail.lineage ────────────────────────────────────────────────
+test('lineage: one hidden node per consumed source, in the contract shape', () => {
+  const { detail } = build([src(1, { origin: 'A TX US 1', destination: 'B TX US 2' }), src(2)])
+  assert.deepEqual(detail.lineage.sources[0], {
+    sellShipment: '26000001', odysseyShipmentIdentifier: 'O60000001', origin: 'A TX US 1', destination: 'B TX US 2',
+    orders: ['ORD-1'], hidden: true, sources: [],
+  })
+  assert.deepEqual(detail.lineage.sources.map((n) => n.sellShipment), ['26000001', '26000002'])
+})
+
+test('lineage: a source that is itself a C carries its own subtree', () => {
+  const inner = { sellShipment: '24000001', odysseyShipmentIdentifier: 'O1', origin: '', destination: '', orders: ['ORD-1'], hidden: true, sources: [] }
+  const a = src(1, { shipmentType: 'Consolidation', sellShipment: '27000001', odysseyShipmentIdentifier: 'C70000001' }, { lineage: { sources: [inner] } })
+  const b = src(2, { shipmentType: 'Consolidation', sellShipment: '27000002', odysseyShipmentIdentifier: 'C70000002' })
+  const { detail } = buildConsolidatedShipment({
+    sources: [a, b], stops: dtoFor(1, 2).map((s) => ({ ...s, sourceSellShipment: `2700000${s.orderIds[0].slice(-1)}` })), seq: 9, now: new Date(),
+  })
+  assert.deepEqual(detail.lineage.sources[0].sources, [inner])
+  assert.deepEqual(detail.lineage.sources[1].sources, [])
+})
+
+test('lineage: a Direct left pending is not a source; no sources consumed = no lineage key', () => {
+  const { detail } = build([src(1), src(2), src(3)], { stops: dtoFor(1, 2) })
+  assert.deepEqual(detail.lineage.sources.map((n) => n.sellShipment), ['26000001', '26000002'])
+  const one = buildConsolidatedShipment({ sources: [src(1, {}, { orderList: [order(1), order(2)] })], stops: dtoFor(1), seq: 1, now: new Date() })
+  assert.ok(!('lineage' in one.detail))
+})
+
+test('lineage: id reuse — the reused C is the result, its lineage carries over, the other source is a node', () => {
+  const inner = { sellShipment: '24000001', odysseyShipmentIdentifier: 'O1', origin: '', destination: '', orders: ['ORD-9'], hidden: true, sources: [] }
+  const existing = src(9, { shipmentType: 'Consolidation', odysseyShipmentIdentifier: 'C70000003', sellShipment: '27000003' }, { lineage: { sources: [inner] } })
+  const { detail, splitOrders } = build([existing, src(2)], { stops: dtoFor(2) }, 77)
+  assert.deepEqual(detail.lineage.sources.map((n) => n.sellShipment), ['24000001', '26000002'])
+  assert.ok(splitOrders.every((p) => p.sourceHidden === false))
+})
+
+test('lineage: an external source the move EMPTIED is a hidden node; a partial one is not', () => {
+  const emptied = { sellShipment: '26000007', detail: { shipmentId: '26000007', odysseyShipmentIdentifier: 'O60000007', orderList: [order(7)], shipmentStopList: [stop(1, 'pickup', 'X', 7), stop(2, 'delivery', 'Y', 7)] } }
+  const partial = { sellShipment: '26000008', detail: { shipmentId: '26000008', orderList: [order(8), order(6)], shipmentStopList: [] } }
+  const stops = [...dtoFor(1, 2).slice(0, 2), { stopSequence: 3, stopType: 'pickup', orderIds: ['ORD-7', 'ORD-8'], sourceSellShipment: null, sourceStopSequence: null },
+    ...dtoFor(1, 2).slice(2).map((s, i) => ({ ...s, stopSequence: 4 + i })), { stopSequence: 6, stopType: 'delivery', orderIds: ['ORD-7', 'ORD-8'], sourceSellShipment: null, sourceStopSequence: null }]
+  const { detail } = build([src(1), src(2)], {
+    stops, externals: [order(7), order(8)], externalSources: [emptied, partial],
+    externalOrders: [{ orderNumber: 'ORD-7', sourceSellShipment: '26000007' }, { orderNumber: 'ORD-8', sourceSellShipment: '26000008' }],
+  })
+  assert.deepEqual(detail.lineage.sources.map((n) => n.sellShipment), ['26000001', '26000002', '26000007'])
+  assert.equal(detail.lineage.sources[2].hidden, true)
+})
+
+test('lineage: a C source that lost an order hands the split a hidden source node', () => {
+  const c = src(5, { shipmentType: 'Consolidation', sellShipment: '27000005', odysseyShipmentIdentifier: 'C70000005' }, {
+    orderList: [order(1), order(2), order(3)],
+    shipmentStopList: [stop(1, 'pickup', 'P1', 1), stop(2, 'pickup', 'P2', 2), stop(3, 'delivery', 'D1', 1), stop(4, 'delivery', 'D2', 2)],
+  })
+  const other = src(6, { shipmentType: 'Consolidation', sellShipment: '27000006', odysseyShipmentIdentifier: 'C70000006' })
+  const stops = [
+    { stopSequence: 1, stopType: 'pickup', orderIds: ['ORD-1', 'ORD-2', 'ORD-6'], sourceSellShipment: null, sourceStopSequence: null },
+    { stopSequence: 2, stopType: 'delivery', orderIds: ['ORD-1', 'ORD-2', 'ORD-6'], sourceSellShipment: null, sourceStopSequence: null },
+  ]
+  const b = buildConsolidatedShipment({ sources: [c, other], stops, seq: 1, now: new Date() })
+  assert.deepEqual(b.splitOrders.map((p) => [p.orderRec.orderNumber, p.sourceHidden]), [['ORD-3', true]])
+})

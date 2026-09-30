@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseDisplayDate, chunk, insertRows } from './seed.mjs'
+import { parseDisplayDate, chunk, insertRows, seed } from './seed.mjs'
 
 test('parseDisplayDate converts MM/DD/YYYY HH:MM <TZ> to ISO', () => {
   assert.equal(parseDisplayDate('04/18/2026 10:30 CST'), '2026-04-18T10:30:00-06:00')
@@ -34,4 +34,22 @@ test('insertRows rejects rows that do not line up with the column list', async (
   assert.equal(client.calls.length, 1)
   assert.match(client.calls[0][0], /INSERT INTO orders \(a,b\) VALUES \(\$1,\$2\),\(\$3,\$4\)/)
   assert.deepEqual(client.calls[0][1], [1, 2, 3, 4])
+})
+
+test('seed: lineage shells land in shipments (empty) and events only — no orders/tenders/stops/search_index rows (S164 §3)', async () => {
+  const calls = []
+  const client = { query: async (text, params = []) => { calls.push({ text, params }) } }
+  const counts = await seed(client, { totalShipments: 300 })
+  assert.ok(counts.hidden_shipments > 0)
+  const into = (table) => calls.filter((c) => c.text.startsWith(`INSERT INTO ${table} `))
+  const cols = /\(([^)]*)\) VALUES/.exec(into('shipments')[0].text)[1].split(',')
+  const rows = into('shipments').flatMap((c) => chunk(c.params, cols.length))
+  const hidden = rows.filter((r) => /^24\d{6}$/.test(r[0]))
+  const hiddenSells = hidden.map((r) => r[0])
+  assert.equal(hidden.length, counts.hidden_shipments)
+  assert.ok(hidden.every((r) => r[cols.indexOf('order_count')] === '0' && r[cols.indexOf('orders')].length === 0))
+  for (const t of ['orders', 'tenders', 'stops', 'search_index']) {
+    assert.ok(!into(t).flatMap((c) => c.params).some((p) => typeof p === 'string' && hiddenSells.includes(p)), `${t} must not carry a hidden id`)
+  }
+  assert.ok(into('events').flatMap((c) => c.params).some((p) => hiddenSells.includes(p)))
 })

@@ -16,7 +16,7 @@ import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 // (no pg), and mergeStops/computeListAggregates/rowFromStops are the ONE
 // implementation of stop + list-column derivation the order-change save
 // already trusts. Split them into their own module if the bundle ever matters.
-import { computeListAggregates, idOf, mergeStops, rowFromStops } from './shipments.mjs'
+import { computeListAggregates, idOf, lineageNode, mergeStops, rowFromStops } from './shipments.mjs'
 
 // Identifier bands, disjoint from the seed (sell 25xxxxxx / odyssey seq
 // 50,000,000) and from planShipment (sell 26xxxxxx / odyssey 60,000,000 /
@@ -97,12 +97,14 @@ export function checkConsolidation({ sources, stops, externalOrders = [] }) {
  * @param {{ row: object, detail: object }[]} a.sources  grid rows + raw SellShipmentOut, in the planner's selection order (1..n; a C being edited is 1)
  * @param {object[]} a.stops  the editor's StopDto[] (stopsSandbox toDto): a stop copies its full fields from the source stop at (sourceSellShipment, sourceStopSequence); a created stop (both null) keeps its DTO fields (C9)
  * @param {object[]} [a.externals]  order records pulled from other shipments (shipments.mjs pullExternalOrders)
+ * @param {{ sellShipment?: string, row?: object, detail: object }[]} [a.externalSources]  the shipments those records came from; one emptied by the move becomes a hidden lineage node (S164 §1)
+ * @param {{ orderNumber: string, sourceSellShipment: string }[]} [a.externalOrders]  the body's pulls (which orders left which source)
  * @param {object[]} [a.tenderList]  the evaluated carrier options, DTO-shaped (S7.7)
  * @param {number} a.seq   consolidation sequence (drives the C…/sell/buy ids)
  * @param {Date}   a.now   creation instant (history timestamps)
  * @returns {{ row: object, detail: object, pickupTs: string|null, deliveryTs: string|null, removedSellShipments: string[], splitOrders: { source: object, orderRec: object }[] }}
  */
-export function buildConsolidatedShipment({ sources, stops: dto, externals = [], tenderList = [], seq, now = new Date() }) {
+export function buildConsolidatedShipment({ sources, stops: dto, externals = [], externalSources = [], externalOrders = [], tenderList = [], seq, now = new Date() }) {
   if (!Array.isArray(sources) || sources.length < 1) throw new Error('a consolidation needs at least one source shipment')
   const rows = sources.map((s) => s.row)
   const details = sources.map((s) => s.detail ?? {})
@@ -188,6 +190,22 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
     apFreightCost: '',                    // not rated
   }
 
+  // S164 §1 — one hidden node per consumed source (an id-reused C is the
+  // result, not a source: its own lineage carries over), plus any external
+  // contributor the move emptied. A partial contributor that stays live is
+  // not a source — the order's own trail covers that move.
+  const carried = existing.length === 1 ? (details[rows.indexOf(existing[0])].lineage?.sources ?? []) : []
+  const emptiedExternals = externalSources.filter((src) => {
+    const moved = new Set(externalOrders.filter((e) => e.sourceSellShipment === (src.sellShipment ?? src.row?.sellShipment)).map((e) => e.orderNumber))
+    const held = (src.detail?.orderList ?? []).map(idOf)
+    return held.length > 0 && held.every((id) => moved.has(id))
+  })
+  const lineageSources = [
+    ...carried,
+    ...consumed.filter((s) => s.row.sellShipment !== ids.sellShipment).map((s) => lineageNode(s, true)),
+    ...emptiedExternals.map((s) => lineageNode(s, true)),
+  ]
+
   const t0 = new Date(now)
   const t1 = new Date(t0.getTime() + 30_000)
   const author = { name: 'OdysseyONE', kind: 'system' }
@@ -229,6 +247,7 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
     droppedCarrierList: [],
     documentList: [],
     noteList: [],
+    ...(lineageSources.length ? { lineage: { sources: lineageSources } } : {}),
     historyList,
   }
 
@@ -238,6 +257,7 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
     pickupTs: lane.pickupTs ?? null,
     deliveryTs: lane.deliveryTs ?? null,
     removedSellShipments: consumed.map((s) => s.row.sellShipment),
-    splitOrders,
+    // sourceHidden (S164 §2): a C source empties unless it is the id-reused result.
+    splitOrders: splitOrders.map((p) => ({ ...p, sourceHidden: p.source.row.sellShipment !== ids.sellShipment })),
   }
 }

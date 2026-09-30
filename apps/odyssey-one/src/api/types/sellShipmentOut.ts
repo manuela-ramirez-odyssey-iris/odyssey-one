@@ -483,6 +483,21 @@ export interface SellShipmentTenderOptionVersion {
   droppedCarrierList: SellShipmentDroppedCarrier[]
 }
 
+/** S164 consolidation lineage node — a snapshot of a source shipment's subtree,
+    copied when the child is written (spec 2026-09-30-consolidation-lineage-history §1).
+    ponytail: snapshot, not a link table — no forward "merged into" query; a link
+    table + migration is the upgrade if one is ever needed. */
+export interface LineageNode {
+  sellShipment: string
+  odysseyShipmentIdentifier: string
+  origin: string
+  destination: string
+  orders: string[]
+  /** true = soft-deleted shell → "Preview only" */
+  hidden: boolean
+  sources: LineageNode[]
+}
+
 export interface SellShipmentOut {
   shipmentId: string
   /** S148 — the shipment's displayed name (prefix `O`/`C` + sequence), distinct
@@ -521,5 +536,7 @@ export interface SellShipmentOut {
   documentList?: unknown[]
   noteList?: unknown[]
   historyList?: unknown[]
+  /** S164 — absent on shipments with no consolidation ancestry. */
+  lineage?: { sources: LineageNode[] }
   overrides?: ShipmentOverridesDTO
 }

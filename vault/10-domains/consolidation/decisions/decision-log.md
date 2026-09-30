@@ -209,3 +209,40 @@ Decisions about the *identifier* itself live in
 - **Table:** **Selected shipments to consolidate** returns *above* All Stops, collapsible.
 - **Rail:** the rail lines are dashed, because the stop order is a proposed sequence.
 - **Width and titles:** the summary, strips and panels share one centred width that leaves room for the leg-distance tooltip. The New column reads **Stops Sequence**, and the page header reads **Review & Apply Manual Consolidation**. Utilization leaves the All Stops row, so no field appears twice.
+
+### CNS-21 — Sources are soft-deleted and linked from the C; a load pulled out gets a new O linked to both
+- **Decided:** 2026-09-23 call; built 2026-09-30 (S164)
+- **Previous state:** CNS-11 / S155 — Apply hard-`DELETE`d the sources (`consolidations.mjs`), and the mock tombstoned them. §10 recorded four positions on the shells (Dave soft-delete, LINX soft-delete, Doug keep-and-lock, ours delete) without resolving them.
+- **Decision:**
+  - A consolidated source becomes a hidden shell: emptied, with its row and trail kept as they were, plus one final "moved to consolidated shipment C…" event. It is the C5 emptied-shell rule (DEC-202), so the list, counts and search already hide it, and it stays readable by id.
+  - The new C carries a **link** to each hidden source (`detail.lineage.sources`, a nested snapshot).
+  - A load pulled out of a C gets a new O linked to both the C and the load's original shipment.
+  - Every shipment keeps its own trail. A hidden shipment's history is reached **only through the links**.
+- **Rationale:**
+  - Thomas: *"We're not deleting anything"* (`@00:09:20`).
+  - Doug: *"You need the audit… you have to be able to get to it"* (`@00:16:43`); Melody *"not gonna write SQL"* (`@00:35:01`).
+  - Thomas: *"the question is whether you can search and find it in the UI"* (`@00:29:11`).
+  - The model was drawn live by Manuela (`@00:36:29`). Thomas: *"it has a link to both of the consolidated and the original"* (`@00:38:46`) and *"I agree with you. That's how it should be"* (`@00:40:01`).
+  - Jana held the UI view was not MVP; the call went the other way.
+- **Source:** `vault/00-inbox/Consoloidation Questions 2.vtt` (2026-09-23); spec `docs/superpowers/specs/2026-09-30-consolidation-lineage-history.md`.
+- **Affects:** `consolidateShipments.mjs`, `consolidations.mjs`, `shipments.mjs` (split), `consolidationService.ts`, `tools/generate.mjs`, `tools/seed.mjs`.
+- **Ceilings (`ponytail:`):**
+  - The link is a snapshot in the detail blob, not a table, so there is no cross-shipment "merged into" query. The upgrade path is a link table.
+  - Seeded hidden ids come from separate bands, so a source can carry a higher id than its C.
+
+### CNS-22 — The History tab shows the lineage: Shipment History · Lineage Tree · preview tabs
+- **Decided:** 2026-09-30 (S164, user)
+- **Previous state:** the History tab was one static "Shipment History" card (DEC-70/80/81/87).
+- **Decision:**
+  - A shipment with lineage gets tabs: **Shipment History**, **Lineage Tree**, and a closable tab per hidden shipment opened. A shipment without lineage looks the same as before.
+  - **Shipment History:** a summary card (Customer / Origin / Destination, **Merged from:** its direct sources) above the unchanged trail.
+  - **Lineage Tree:** a nested "Sources of X" tree with a "Preview only" lock badge on hidden rows, plus Expand All.
+  - **Preview tab:** the hidden shipment's summary, with Merged from as the **ancestry path** (root → … → this), above its own trail.
+  - The dot colour marks depth (blue root, green level 1, yellow deeper).
+- **User rulings (2026-09-30):**
+  - Merged from = ancestry path.
+  - Keep our trail rows (the VD's tracking-style rows are not adopted).
+  - The closable tab is app-local and logged ad-hoc for a D session.
+  - The VDs set the look only; their ids and data are placeholder.
+- **Source:** Figma `x38TOJGsNryYl3LsKhCtSc` 2671:81594, 3113:19333, 3121:60581, 3126:19659, 3127:20032; spec above.
+- **Affects:** `HistoryTab.jsx`, `LineageTree.jsx`, `panes/history.css`, `mapSellShipmentOutToDetail.ts`.

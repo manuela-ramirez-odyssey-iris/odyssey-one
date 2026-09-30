@@ -552,6 +552,50 @@ const routingStopsOf = (stops) => (stops ?? []).map((s) => ({
 }))
 const baselineMilesOf = (detail) => detail?.orderChange?.consolidation?.summaryChanges?.distance?.new ?? detail?.distanceMiles
 
+// S164 §1/§2 — the lineage link. A hidden shipment is a C5 emptied shell whose
+// detail stays frozen; the one event below marks it dormant (reusing the
+// existing action name, DEC-80) and is what writeSplits looks for.
+// ponytail: a SNAPSHOT of each source's subtree is copied into the child's
+// detail (renders from one blob, mock = live). A forward "where did X go"
+// query needs a link table + migration.
+export const DORMANT_MARK = 'This shipment is no longer active.'
+const orderNumberOf = (o) => o.orderNumber ?? String(o.orderId)
+
+export function dormancyEvent(orders, intoId, now = new Date()) {
+  return {
+    action: 'Consolidation Completed', outcome: 'update', author: { name: 'OdysseyONE', kind: 'system' },
+    source: 'OdysseyONE', user: 'OdysseyONE', category: 'update', timestamp: new Date(now).toISOString(),
+    details: `Orders ${orders.join(', ')} moved to consolidated shipment ${intoId}. ${DORMANT_MARK}`,
+  }
+}
+
+// { sellShipment, odysseyShipmentIdentifier, origin, destination, orders, hidden, sources }
+// `src` = { row?, detail, sellShipment? }: a live split's row carries only the
+// customer columns, so ids/lane fall back to the blob and its stops.
+export function lineageNode(src, hidden) {
+  const { row = {}, detail } = src
+  const lane = row.origin != null ? row : (rowFromStops(detail.shipmentStopList ?? []) ?? {})
+  return {
+    sellShipment: String(row.sellShipment ?? src.sellShipment ?? detail.shipmentId),
+    odysseyShipmentIdentifier: row.odysseyShipmentIdentifier ?? detail.odysseyShipmentIdentifier ?? '',
+    origin: lane.origin ?? '', destination: lane.destination ?? '',
+    orders: (detail.orderList ?? []).map(orderNumberOf),
+    hidden,
+    sources: detail.lineage?.sources ?? [],
+  }
+}
+
+// The hidden leaf that once held this order (Thomas's "links to both").
+const findLeaf = (nodes, orderNumber) => {
+  for (const n of nodes ?? []) {
+    if (!n.orders.includes(orderNumber)) continue
+    if (!n.sources.length) return n
+    const deeper = findLeaf(n.sources, orderNumber)
+    if (deeper) return deeper
+  }
+  return null
+}
+
 // C3 / DEC-205 / ruling N3 (S163) — an order left in Orders Pending To Assign
 // at a save-stops becomes its OWN Direct shipment, same shape as
 // planShipment's buildDirectShipment (so the same INSERT / link / search-index
@@ -564,7 +608,8 @@ const baselineMilesOf = (detail) => detail?.orderChange?.consolidation?.summaryC
 // there would be a cycle dragging the whole SQL layer client-side.
 //   source        { row, detail } — row = customer/planning/equipment/mode columns
 //   orderSerialId orders.id (drives idsFor, same band as a created order)
-export function buildSplitShipment({ source, orderRec, orderSerialId, now = new Date() }) {
+//   sourceHidden  the source empties with this split (§2) — its lineage node is a Preview-only shell
+export function buildSplitShipment({ source, orderRec, orderSerialId, sourceHidden = false, now = new Date() }) {
   const ids = idsFor(orderSerialId)
   const id = idOf(orderRec)
   const orderNumber = orderRec.orderNumber ?? String(orderRec.orderId)
@@ -653,6 +698,7 @@ export function buildSplitShipment({ source, orderRec, orderSerialId, now = new 
     droppedCarrierList: [],
     documentList: [],
     noteList: [],
+    lineage: { sources: [lineageNode(source, sourceHidden), findLeaf(source.detail.lineage?.sources, orderNumber)].filter(Boolean) },
     historyList: [
       { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t0.toISOString(), action: 'Shipment Created', category: 'create', outcome: 'update', author,
         details: `Buy Shipment ${ids.buyShipment} and Sell Shipment ${ids.sellShipment} created successfully for Order ${orderNumber}, removed from shipment ${source.detail.odysseyShipmentIdentifier ?? source.detail.shipmentId} during order change review.` },
@@ -704,9 +750,13 @@ export async function writeSplits(client, splits) {
     // since moved on) — clear it and its search rows (tenders cascade).
     // A NON-empty row holding the id makes the INSERT below violate the
     // PK and roll back the whole save — acceptable: nothing is half-written.
+    // S164 §2: an emptied row carrying the dormancy event is a lineage shell
+    // other shipments point to — never erase it; the INSERT PK-fails loudly.
+    // ponytail: only bites on a second pull-out of the same order (rare);
+    // upgrade path is a split sequence instead of idsFor(orders.id).
     // order_count is text (001_schema.sql:34), written as String(n).
     await client.query({ text: `DELETE FROM search_index WHERE domain = 'shipments' AND entity_id = $1`, values: [sell] })
-    await client.query({ text: `DELETE FROM shipments WHERE sell_shipment = $1 AND order_count = '0'`, values: [sell] })
+    await client.query({ text: `DELETE FROM shipments WHERE sell_shipment = $1 AND order_count = '0' AND detail::text NOT LIKE $2`, values: [sell, `%${DORMANT_MARK}%`] })
     await client.query(buildInsertShipmentQuery(split))
     // Also flips order_status to 'Planned Shipment'.
     await client.query(buildLinkOrderQuery(split.row.orders[0], sell))
@@ -716,7 +766,7 @@ export async function writeSplits(client, splits) {
 
 // Pre-transaction reads for the C3 split: the target's own list columns and
 // each pending order's serial id. Any gap throws here, before BEGIN.
-async function planSplits(db, sellShipment, detail, pending) {
+async function planSplits(db, sellShipment, detail, pending, sourceHidden = false) {
   const { rows: [row] } = await db.query({
     text: `SELECT customer_id AS "customerId", customer_name AS "customerName", planning_type AS "planningType",
              equipment_code AS "equipmentCode", mode
@@ -726,7 +776,7 @@ async function planSplits(db, sellShipment, detail, pending) {
   const serial = await serialIdsFor(db, pending)
   const now = new Date()
   return pending.map((orderRec) => {
-    return buildSplitShipment({ source: { row, detail }, orderRec, orderSerialId: serial.get(idOf(orderRec)), now })
+    return buildSplitShipment({ source: { row, detail }, orderRec, orderSerialId: serial.get(idOf(orderRec)), sourceHidden, now })
   })
 }
 
@@ -1112,7 +1162,7 @@ export async function resolveOrderChange({ params, body, db }) {
     // C3 / DEC-205 — ...and each becomes a shipment of its own. Built (and
     // its reads done) before BEGIN; zero pending = zero extra queries.
     const pending = (detail.orderList ?? []).filter((o) => !onStops.has(idOf(o)))
-    const splits = pending.length ? await planSplits(db, sellShipment, detail, pending) : []
+    const splits = pending.length ? await planSplits(db, sellShipment, detail, pending, orderList.length === 0) : []
     // C4/C12 (DEC-206, DEC-215) — the new list re-routed ONCE over the saved
     // stops: the target's review keeps it (Scenario A's Direct review shows
     // it) and Scenario B adopts it below. A Direct order change has no

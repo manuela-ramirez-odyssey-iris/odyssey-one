@@ -865,6 +865,7 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     documentsData: { documents: dto.documentList ?? [] },
     notesData: { notes: dto.noteList ?? [] },
     historyData: { entries: dto.historyList ?? [] },
+    lineage: dto.lineage ?? null,
     overrides: dto.overrides,
   }
 }

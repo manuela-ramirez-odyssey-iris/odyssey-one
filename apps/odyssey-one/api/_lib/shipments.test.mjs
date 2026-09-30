@@ -1341,7 +1341,9 @@ describe('save-stops splits pending orders into their own shipments (C3)', () =>
     const at = (re) => t.findIndex((x) => re.test(x))
     const shell = calls[at(/DELETE FROM shipments/)]
     assert.match(shell.text, /WHERE sell_shipment = \$1 AND order_count = '0'/)
-    assert.deepEqual(shell.values, ['26000007'])
+    // S164 §2: a shell carrying the dormancy event is a lineage link — never erased
+    assert.match(shell.text, /detail::text NOT LIKE \$2/)
+    assert.deepEqual(shell.values, ['26000007', '%This shipment is no longer active.%'])
     assert.ok(at(/BEGIN/) < at(/DELETE FROM search_index/))
     assert.ok(at(/DELETE FROM search_index/) < at(/^INSERT INTO shipments/))
     assert.ok(at(/DELETE FROM shipments/) < at(/^INSERT INTO shipments/))
@@ -1354,6 +1356,30 @@ describe('save-stops splits pending orders into their own shipments (C3)', () =>
     const t = texts()
     assert.equal(t[t.length - 1], 'ROLLBACK')
     assert.ok(!t.includes('COMMIT'))
+  })
+
+  const leaf = { sellShipment: '24000009', odysseyShipmentIdentifier: 'O9', origin: '', destination: '', orders: ['B'], hidden: true, sources: [] }
+  const inner = { sellShipment: '24000008', odysseyShipmentIdentifier: 'C8', origin: '', destination: '', orders: ['A', 'B'], hidden: true, sources: [leaf] }
+  const srcWith = (lineage) => ({
+    row: { sellShipment: '27000001', odysseyShipmentIdentifier: 'C70000001', origin: 'O', destination: 'D', customerId: 'C1', customerName: 'Cust', mode: 'TL' },
+    detail: { ...target, lineage },
+  })
+  const orderRec = () => target.orderList[1]
+
+  it('links to the shipment it left AND the original O that held the order', () => {
+    const rec = { ...orderRec(), orderNumber: 'B' }
+    const { detail } = buildSplitShipment({ source: srcWith({ sources: [inner] }), orderRec: rec, orderSerialId: 7, sourceHidden: true })
+    assert.equal(detail.lineage.sources.length, 2)
+    assert.equal(detail.lineage.sources[0].sellShipment, '27000001')
+    assert.equal(detail.lineage.sources[0].hidden, true)
+    assert.deepEqual(detail.lineage.sources[0].sources, [inner])
+    assert.deepEqual(detail.lineage.sources[1], leaf)
+  })
+
+  it('a source that stays live is hidden:false; no original leaf = one node', () => {
+    const { detail } = buildSplitShipment({ source: srcWith(undefined), orderRec: orderRec(), orderSerialId: 7 })
+    assert.equal(detail.lineage.sources.length, 1)
+    assert.equal(detail.lineage.sources[0].hidden, false)
   })
 
   it('buildSplitShipment: stops keep the source sites (coords + zone), totals are the order\'s own, row dates in the seeded shape', () => {

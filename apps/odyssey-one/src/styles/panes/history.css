@@ -130,3 +130,230 @@
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
+
+/* ── Consolidation lineage (S164 / CNS-22) ─────────────────────────────────
+   History card with a tab row, summary card, "Merged from" band and the
+   lineage tree. Look from Figma VDs 2671:81594 / 3113:19333 / 3121:60581 /
+   3126:19659 / 3127:20032 (look only — ids/counts/copy are our model's).
+   Card surface = SubAccordion's (it can't host a tab row in its header, so
+   its surface values are reused here, tokens only). */
+.history-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-5);
+}
+.history-card__tabs {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.history-card__body {
+  padding-top: var(--spacing-6);
+}
+
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.history-summary {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding-top: var(--spacing-4);
+}
+.history-summary__main,
+.history-summary__cells {
+  padding-inline: var(--spacing-4);
+}
+.history-summary__kicker {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+.history-summary__id {
+  color: var(--text-primary);
+}
+.history-summary__cells {
+  display: flex;
+  gap: var(--spacing-6);
+}
+.history-band {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-secondary);
+  font-size: var(--font-size-sm);
+}
+.history-band__label {
+  color: var(--text-tertiary);
+}
+.history-band__sep {
+  color: var(--text-tertiary);
+}
+
+/* Chip = depth dot + link-coloured semibold id; a button (opens the preview). */
+.history-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-link);
+}
+.history-chip:focus-visible,
+.lineage-id:focus-visible,
+.lineage-chevron:focus-visible,
+.lineage-tab__close:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.history-events__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.history-events__title {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+.history-events__count {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.history-empty {
+  margin: 0;
+  color: var(--text-placeholder);
+  font-size: var(--font-size-sm);
+}
+
+/* Depth dot (6px — component-internal geometry, untokenized like .history-dot).
+   Decorative; colours = badge text tokens, shared by tree rows and chips. */
+.lineage-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+.lineage-dot--0 { background: var(--badge-blue-text); }
+.lineage-dot--1 { background: var(--badge-green-text); }
+.lineage-dot--2 { background: var(--badge-yellow-text); }
+
+.lineage-tree {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.lineage-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.lineage-header__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.lineage-header__id {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.lineage-header__toggle {
+  margin-left: auto;
+}
+
+/* 41px rows (40 + the 1px subtle rule); indent is set inline per depth. */
+.lineage-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  height: 41px;
+  box-sizing: border-box;
+  padding-right: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.lineage-chevron {
+  flex: none;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+/* A leaf keeps the chevron's width so its dot stays aligned. */
+.lineage-chevron--leaf {
+  cursor: default;
+}
+.lineage-id {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-link);
+}
+.lineage-route {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.lineage-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding-block: var(--spacing-2);
+  padding-right: var(--spacing-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.6px; /* VD value; no letter-spacing token exists */
+  color: var(--text-tertiary);
+}
+
+/* Closable tab — the x sits over padding reserved on the Tab's label (app-local,
+   ad-hoc: playground/normalization-tracker.md). */
+.lineage-tab {
+  position: relative;
+  display: inline-flex;
+}
+.lineage-tab__label .tab__content {
+  padding-right: calc(16px + var(--spacing-1));
+}
+.lineage-tab__close {
+  position: absolute;
+  right: 0;
+  top: 2px;
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.lineage-tab__close:hover {
+  color: var(--text-primary);
+}

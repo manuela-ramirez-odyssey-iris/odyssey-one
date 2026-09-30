@@ -5,7 +5,7 @@
 // buildInsertShipmentQuery / buildSearchIndexQuery), so a consolidation is
 // byte-identical in the two runtimes.
 import {
-  ROW_COLUMNS, buildSplitShipment, buildTenderInsertQuery, idOf, pullExternalOrders, serialIdsFor,
+  ROW_COLUMNS, buildSplitShipment, buildTenderInsertQuery, dormancyEvent, idOf, pullExternalOrders, serialIdsFor,
   writeSourceUpdates, writeSplits,
 } from './shipments.mjs'
 import { buildInsertShipmentQuery, buildSearchIndexQuery } from './planShipment.mjs'
@@ -63,14 +63,14 @@ export async function applyConsolidation({ body, db }) {
   const now = new Date()
   const { rows: seqRows } = await db.query(SEQ_QUERY)
   const built = buildConsolidatedShipment({
-    sources, stops: body.stops, externals: external, tenderList: body.tenderList ?? [],
+    sources, stops: body.stops, externals: external, externalSources, externalOrders, tenderList: body.tenderList ?? [],
     seq: (seqRows[0]?.n ?? 0) + 1, now,
   })
   // C3 / DEC-205 — an order a C source lost becomes a Direct of its own. The
   // serial ids are read here, before any write (a gap throws with nothing done).
   const serial = await serialIdsFor(db, built.splitOrders.map((p) => p.orderRec))
-  const splits = built.splitOrders.map(({ source, orderRec }) =>
-    buildSplitShipment({ source, orderRec, orderSerialId: serial.get(idOf(orderRec)), now }))
+  const splits = built.splitOrders.map(({ source, orderRec, sourceHidden }) =>
+    buildSplitShipment({ source, orderRec, orderSerialId: serial.get(idOf(orderRec)), sourceHidden, now }))
   const newId = built.row.sellShipment
   const gone = built.removedSellShipments.filter((id) => id !== newId)
 
@@ -104,8 +104,17 @@ export async function applyConsolidation({ body, db }) {
     })
     await writeSourceUpdates(client, externalSources, externalOrders)
     await writeSplits(client, splits)
-    if (gone.length) {
-      await client.query({ text: `DELETE FROM shipments WHERE sell_shipment = ANY($1)`, values: [gone] })
+    // S164 §2 / CNS-21 — sources are soft-deleted, not DELETEd: emptied to a
+    // C5 shell (NOT_EMPTIED hides it from list/counts/search, DEC-202) with its
+    // detail frozen, plus one dormancy event. The C's detail.lineage points here.
+    for (const id of gone) {
+      const held = sources.find((s) => s.row.sellShipment === id).detail.orderList ?? []
+      await client.query({
+        text: `UPDATE shipments SET orders = '{}', order_count = '0',
+                 detail = jsonb_set(detail, '{historyList}', COALESCE(detail->'historyList', '[]'::jsonb) || $2::jsonb)
+               WHERE sell_shipment = $1`,
+        values: [id, JSON.stringify([dormancyEvent(held.map((o) => o.orderNumber ?? String(o.orderId)), built.row.odysseyShipmentIdentifier, now)])],
+      })
     }
     await client.query(buildSearchIndexQuery(built.row))
     await client.query('COMMIT')

@@ -118,14 +118,23 @@ test('happy path: statements in the order that keeps the sources readable until 
   const at = (re) => t.findIndex((x) => re.test(x))
   assert.ok(at(/DELETE FROM search_index/) < at(/INSERT INTO shipments/))
   assert.ok(at(/INSERT INTO shipments/) < at(/UPDATE orders SET shipment_sell_id/))
-  assert.ok(at(/UPDATE orders SET shipment_sell_id/) < at(/DELETE FROM shipments WHERE sell_shipment = ANY/))
-  assert.ok(at(/DELETE FROM shipments WHERE sell_shipment = ANY/) < at(/INSERT INTO search_index/))
+  assert.ok(at(/UPDATE orders SET shipment_sell_id/) < at(/UPDATE shipments SET orders = '\{\}'/))
+  assert.ok(at(/UPDATE shipments SET orders = '\{\}'/) < at(/INSERT INTO search_index/))
   // seq 3 + 1 → C70000004 / sell 27000004
   const insert = calls.find((c) => /INSERT INTO shipments/.test(c.text))
   assert.equal(insert.values[0], '27000004')
-  // the emptied shells are deleted, the new row is not
-  const del = calls.find((c) => /DELETE FROM shipments WHERE sell_shipment = ANY/.test(c.text))
-  assert.deepEqual(del.values, [['26000001', '26000002']])
+  // S164 §2 / CNS-21: the sources are soft-deleted (emptied + dormancy event), never DELETEd
+  assert.ok(!calls.some((c) => /DELETE FROM shipments/.test(c.text)))
+  const shells = calls.filter((c) => /UPDATE shipments SET orders = '\{\}'/.test(c.text))
+  assert.deepEqual(shells.map((c) => c.values[0]), ['26000001', '26000002'])
+  assert.match(shells[0].text, /order_count = '0'/)
+  assert.match(shells[0].text, /jsonb_set\(detail, '\{historyList\}'/)
+  const ev = JSON.parse(shells[0].values[1])[0]
+  assert.equal(ev.action, 'Consolidation Completed')
+  assert.equal(ev.details, 'Orders ORD-1 moved to consolidated shipment C70000004. This shipment is no longer active.')
+  // the C links to each hidden source (detail.lineage)
+  const lineage = inserted(calls).lineage
+  assert.deepEqual(lineage.sources.map((n) => [n.sellShipment, n.hidden, n.orders]), [['26000001', true, ['ORD-1']], ['26000002', true, ['ORD-2']]])
   // orders repoint by ORDER NUMBER (the union), not by the old shipment ids
   const upd = calls.find((c) => /UPDATE orders SET shipment_sell_id/.test(c.text))
   assert.deepEqual(upd.values, ['27000004', ['ORD-1', 'ORD-2']])
@@ -156,11 +165,13 @@ test('re-applying onto an existing consolidation frees and drops the old C row b
   const at = (re) => t.findIndex((x) => re.test(x))
   assert.ok(at(/UPDATE orders SET shipment_sell_id = NULL/) < at(/DELETE FROM shipments WHERE sell_shipment = \$1/))
   assert.ok(at(/DELETE FROM shipments WHERE sell_shipment = \$1/) < at(/INSERT INTO shipments/))
-  // the id is REUSED, so only the OTHER source is deleted at the end
+  // the id is REUSED, so only the OTHER source is emptied at the end
   const insert = calls.find((c) => /INSERT INTO shipments/.test(c.text))
   assert.equal(insert.values[0], '27000004')
-  const del = calls.find((c) => /DELETE FROM shipments WHERE sell_shipment = ANY/.test(c.text))
-  assert.deepEqual(del.values, [['26000002']])
+  const shells = calls.filter((c) => /UPDATE shipments SET orders = '\{\}'/.test(c.text))
+  assert.deepEqual(shells.map((c) => c.values[0]), ['26000002'])
+  // the reused C is the result, not a node: only the other source is linked
+  assert.deepEqual(inserted(calls).lineage.sources.map((n) => n.sellShipment), ['26000002'])
 })
 
 test('a failing shipment INSERT never repoints the orders', async () => {
@@ -258,11 +269,12 @@ test('an order that is not consolidatable files the C in Hold (S7.6)', async () 
   assert.ok(!insert.values.includes('consolidation'))
 })
 
-test('a Direct source whose order was left pending stays in the pool (not deleted)', async () => {
+test('a Direct source whose order was left pending stays in the pool (not emptied)', async () => {
   const { db, calls } = fakeDb([dbRow(1), dbRow(2), dbRow(3)])
   await applyConsolidation({ body: { ...body(1, 2, 3), stops: stopsFor(1, 2) }, db })
-  const del = calls.find((c) => /DELETE FROM shipments WHERE sell_shipment = ANY/.test(c.text))
-  assert.deepEqual(del.values, [['26000001', '26000002']])
+  const shells = calls.filter((c) => /UPDATE shipments SET orders = '\{\}'/.test(c.text))
+  assert.deepEqual(shells.map((c) => c.values[0]), ['26000001', '26000002'])
+  assert.ok(!calls.some((c) => /DELETE FROM shipments WHERE sell_shipment = ANY/.test(c.text)))
 })
 
 test('a C edit reuses its ids and splits an order left pending into its own Direct', async () => {
