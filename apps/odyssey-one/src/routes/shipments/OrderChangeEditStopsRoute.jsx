@@ -4,7 +4,6 @@ import { Inbox } from 'lucide-react'
 import { Breadcrumb, Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import EditStopsView from '../../components/detail/order-change/EditStopsView.jsx'
-import ReviewKpiStrip from '../../components/detail/order-change/ReviewKpiStrip.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useResolveOrderChange } from '../../api/queries/useResolveOrderChange'
 import { useApproveOrderChange } from './useApproveOrderChange.js'
@@ -122,8 +121,6 @@ export default function OrderChangeEditStopsRoute() {
         ) : (
           <div className="order-change__content">
             <PageHeader title={headerTitle} />
-
-            <ReviewKpiStrip summary={detail.stopsData.summary} changes={c.summaryChanges} />
 
             {/* DEC-207/LINX-15872 (T2) — a failed Approve is shown INSIDE the
                 routing modal (EditStopsView passes it to ViewRoutingModal's

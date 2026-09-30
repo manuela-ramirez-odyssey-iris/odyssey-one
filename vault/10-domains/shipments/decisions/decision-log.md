@@ -1220,7 +1220,7 @@ Jana walked the shipped consolidated review on 2026-09-24. His layout ideas are 
 
 ### DEC-196: Per-order compare = the Direct field set, line-level fields per order line
 - **Previous:** 7 tender rows, no line-level fields (OC-open-12).
-- **Decision:** the Direct review's full field set with Changed / Unchanged bands; line-level fields render once per order line, grouped *Line 1, Line 2…*, each with its own changed marker.
+- **Decision:** the Direct review's full field set with Changed / Unchanged bands; line-level fields render once per order line, grouped *Line 1, Line 2…*, each with its own changed marker.  **Layout amended by DEC-228 (2026-09-29): tabs.**
 - **Source:** Jana walkthrough 2026-09-24 (`vault-sources/10-domains/shipments/sources/jana-order-change-consol-walkthrough-2026-09-24.vtt`) `@00:00:48`, `@00:02:18`; user 2026-09-24.
 
 ### DEC-197: Prior plan side by side with the new plan, not collapsible — AMENDED by DEC-212 (pending column edit-mode only)
@@ -1402,10 +1402,38 @@ Spec: `docs/superpowers/specs/2026-09-29-order-change-jana-sync-slice.md`.
 - **Decision:** X and crumbs go through the same confirm as Cancel. The crumb matches its doorway (*Review Consolidated Change*). The origin is threaded, so X returns to the shipment. A resolved review redirects to its landing, and the API refuses a second resolve with a 409. No Back button (user).
 - **Source:** user 2026-09-29 (*"no back button just make sure the x and breadcrumb makes sense"*), after Jana `@22:09`.
 
+## Order Change — Edit Stops, Jana 09-29 layout slice (DEC-225 … DEC-228)
+
+Spec: `docs/superpowers/specs/2026-09-29-order-change-edit-stops-jana-slice.md`. Every item was ruled by the user in chat (S164).
+
+### DEC-225: Prior collapses on Edit; the KPI strip shows New's values, and Prior's only when Prior is open
+- **Previous:** Prior was always full width beside New. The page-level KPI strip always showed the Prior/New pairs plus Accepted Carrier, Seed Equipment and Utilization, and the All Stops header repeated costs, distance, weight and volume.
+- **Decision:** Edit collapses Prior to a ~56px marker rail: the P/D markers, a gray dot for Moved, a struck marker for Removed, and a tooltip per marker. A chevron expands it, and leaving edit mode re-expands it.
+  - The strip renders inside Edit Stops and is live. **Collapsed:** Gross Weight, Volume, Distance and the three costs. **Expanded:** it adds the Prior/New pairs and Accepted Carrier, Seed Equipment and Utilization.
+  - The All Stops header keeps only View Planning Dates. The Stops tab's strip is unchanged.
+  - LINX-15435's pairs are one click away.
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@03:30`, `@04:08`, `@16:01`–`@18:53`; user 2026-09-29 (*"show those while the prior is collapsed, and when expanded show prior too"*).
+
+### DEC-226: A decorative info icon marks the leg distance; the move arrows are always visible in edit mode
+- **Previous:** the leg-distance tooltip had no visible cue (Jana couldn't find it), and the move arrows appeared only on hover.
+- **Decision:** an `Info` icon (aria-hidden, no handler) sits on the rail between each pair of stops. The hover tooltip itself is unchanged (user: *"leave hover alone"*). The arrows always show in edit mode.
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@04:54`, `@05:33`; user 2026-09-29.
+
+### DEC-227: Planning Dates shows each order's planned pickup and delivery from New
+- **Previous:** the modal listed only the order's window, so the stop date that broke it had to be found outside the modal.
+- **Decision:** **Planned Pickup** and **Planned Delivery** columns show the current New stop date (the same `date` `windowViolations` compares), or `--` while the order is pending. The window stays the order's current values.
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@10:36`–`@12:16`, `@02:53`; user 2026-09-29.
+
+### DEC-228: Order Changes modal: the number in the title, lines in tabs, no HeaderStrips
+- **Previous:** DEC-196 layout: an "Order Number:" HeaderStrip, then one HeaderStrip + table per line, stacked (too long to scroll).
+- **Decision:** the title is *Order Changes {number}*. The tabs are **Order** plus one **Line {n}** per line, each with a changed-field count, and the modal opens on the first changed tab. Each tab holds one Field | Prior | New table. Amends DEC-196 (layout only).
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@00:20`, `@01:16`; user 2026-09-29 (*"we are overusing HeaderStrips"*).
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Sep 29, 2026 | **DEC-225 through DEC-228** (Jana 09-29 Edit Stops layout): Prior collapses on Edit + a strip that shows New's values (Prior's when open); decorative leg-distance icon + always-visible arrows; Planned Pickup/Delivery in Planning Dates; Order Changes modal tabs (amends DEC-196). **Previous state:** full-width Prior, fixed strip + duplicated All Stops metrics, hover-only arrows, window-only Planning Dates, stacked line blocks |
 | Sep 29, 2026 | **DEC-220 through DEC-224** (Jana 09-29 sync, non-design slice): land on the Tender screen after Bypass/Re-Tender; no active prior tender (incl. To Be Tendered) → Approve Changes → manual tender; tender resolution carries the plan's dates; *Set Aside* → *Remove* (amends DEC-194); X/crumbs keep edits and block re-resolving. **Previous state:** S135 landing, Bypass on any prior, seeded routing dates on `newOption`, DEC-194 label |
 | Sep 29, 2026 | **DEC-215 through DEC-218**: the user's rulings on the S163 audit. Evaluate re-routes from the edited stops (prototype recompute); a one-order result flips to Direct in place (09-23 hide rule not applied); a removed order's new shipment has no carrier list until planned; order-change Save is live-only. N4 provisionally dropped, N5 closed. **Previous state:** seeded list, row/detail mismatch, unspecified list, mock no-op |
 | Sep 29, 2026 | **DEC-212 through DEC-214**: shipped without an entry, recorded after the S163 audit. The Edit Stops redesign (Prior \| New, compact drag state vs edit mode, pending column in edit mode only, rail distance tooltip; amends DEC-197/198/137); *Keep here* (deviates from 15668 §5); a created stop's joint default date (deviates from 15871's blank). DEC-200 marked amended by DEC-207; DEC-207 caveat: the routing modal still shows the seeded list. **Previous state:** built S160/S162, untraced |

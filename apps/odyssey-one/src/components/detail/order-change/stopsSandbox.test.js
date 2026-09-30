@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, legDistances } from './stopsSandbox'
+import { initSandbox, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -487,4 +487,16 @@ describe('toDto carries lat/lng/timeZone (C9)', () => {
     const created = toDto(addToStop(addPending(s, ['E']), 'E', [...orders, e])).find((d) => d.sourceStopSequence == null)
     expect(created).toMatchObject({ lat: 33.45, lng: -112.07, timeZone: 'America/Phoenix' })
   })
+})
+
+it('F5: plannedDates maps each order to its New pickup/delivery stop dates', () => {
+  const sb = [
+    { type: 'pickup', orderIds: ['A', 'B'], date: 'June 4, 2026 08:00 CDT' },
+    { type: 'delivery', orderIds: ['A'], date: 'June 6, 2026 08:00 CDT' },
+  ]
+  expect(plannedDates(sb)).toEqual({
+    A: { pickup: 'June 4, 2026 08:00 CDT', delivery: 'June 6, 2026 08:00 CDT' },
+    B: { pickup: 'June 4, 2026 08:00 CDT' },
+  })
+  expect(plannedDates(sb).Z).toBeUndefined()   // pending / unknown → '--' in the modal
 })

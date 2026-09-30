@@ -16,15 +16,19 @@ const COLUMNS = [
   { key: 'planningType', label: 'Planning Type' },
   { key: 'earliestShip', label: 'Earliest Ship' },
   { key: 'latestShip', label: 'Latest Ship' },
+  { key: 'plannedPickup', label: 'Planned Pickup' },
   { key: 'earliestDelivery', label: 'Earliest Delivery' },
   { key: 'latestDelivery', label: 'Latest Delivery' },
+  { key: 'plannedDelivery', label: 'Planned Delivery' },
 ]
 
 // DEC-199: the bound a stop date misses is badged (never edited — the
 // order's window is the customer's reference).
 const MISSED = { 'pickup:early': 'earliestShip', 'pickup:late': 'latestShip', 'delivery:early': 'earliestDelivery', 'delivery:late': 'latestDelivery' }
 
-export default function PlanningDatesModal({ orders = [], violations = [], onClose }) {
+// S164 F5 (Jana 09-29): `planned` = plannedDates(sb.stops) — each order's
+// CURRENT New stop dates, the same s.date the badge compares.
+export default function PlanningDatesModal({ orders = [], violations = [], planned = {}, onClose }) {
   const missed = new Set(violations.map((v) => `${v.orderId}:${MISSED[`${v.type}:${v.side}`]}`))
   const rows = orders.map((o) => ({
     order: o.orderNumber,
@@ -33,6 +37,8 @@ export default function PlanningDatesModal({ orders = [], violations = [], onClo
     latestShip: o.latestPickup,
     earliestDelivery: o.earliestDelivery,
     latestDelivery: o.latestDelivery,
+    plannedPickup: planned[o.orderNumber]?.pickup,
+    plannedDelivery: planned[o.orderNumber]?.delivery,
   }))
   // Portalled to document.body — the bottom bar's own box clips this modal
   // when the bar is partially open (user, 2026-09-09).

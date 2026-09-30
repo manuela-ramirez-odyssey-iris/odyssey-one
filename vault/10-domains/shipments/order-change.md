@@ -306,7 +306,7 @@ Source: `vault/00-inbox/Order Change Sync.vtt`. Jana: the flow is "95%". Built i
 - **Set Aside → Remove** (DEC-223, `@06:06`).
 - **X / breadcrumbs**: no Back button (user). X and crumbs confirm before dropping edits, and a resolved review can't be resolved again (DEC-224).
 - Confirmed as built: auto-placement with *D?* for a new location plus *Keep here*; *Outside planning window*; adding several orders to refill a freed truck; planning dates show the order as it is now, with no prior/new tracking.
-- **Waiting for Figma (design):** collapse Prior in edit mode; regroup the summary blocks (distance, weight and volume prior→new, carrier, equipment and utilization go under **Prior**; all stops, costs, distance, weight, volume and planning dates under **New**); a distance info icon between stop markers; always-visible move buttons; line items compared line by line (tabs); the stop's pickup date in the planning-dates view.
+- **Built in S164 (DEC-225…228, ruled in chat, no Figma pass):** Prior collapses on Edit to a marker rail, and the KPI strip shows New's values (Prior's when open); a decorative leg-distance icon; always-visible move arrows; Planned Pickup/Delivery in Planning Dates; Order Changes modal in tabs.
 - **Consolidation (next spec):** the workbench lists only Consolidation-state shipments (the optimizer's leftovers; no Hold, no exceptions). After choosing, it's this same flow starting at **New**, with no Prior and a routing list but no prior tender (`@27:13`–`@35:07`). Open: add orders from the consolidation pool only (`@34:32`) or any order for a what-if (`@28:23`).
 
 ## 11. Build-delta — shipped (S134–S137) vs sources

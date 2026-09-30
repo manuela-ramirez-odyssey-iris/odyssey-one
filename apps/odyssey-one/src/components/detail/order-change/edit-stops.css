@@ -9,25 +9,6 @@
   padding-bottom: var(--spacing-4);
 }
 
-.edit-stops__metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-6);
-}
-/* User ruling 2026-09-09: "New Consolidated Cost" was wrapping to two lines.
-   Root cause: TitleSubtitle is `width:100%; min-width:0` with
-   `overflow-wrap:anywhere` on the subtitle (components.css ~2267-2291) — as
-   flex items here it shrinks to fit the row and the longest label wraps.
-   Size each item to its content instead of forcing nowrap, so a genuinely
-   long value can still wrap; flex-wrap above (already present) drops a
-   field to the next line on a narrow pane rather than overflowing.
-   // ponytail: app-level override, not a packages/ui fix — the eventual DSM
-   fix is a nowrap/auto-width variant on TitleSubtitle itself. */
-.edit-stops__metrics > * {
-  flex: 0 0 auto;
-  width: auto;
-}
-
 .edit-stops__head-actions {
   display: flex;
   gap: var(--spacing-3);
@@ -207,13 +188,9 @@
 .edit-stops__plan-lead { display: flex; align-items: center; gap: var(--spacing-3); }
 .edit-stops__plan-actions { flex: 1 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-2); }
 
-/* New's arrows (edit mode) exist only while their stop is hovered or holds
-   keyboard focus — display:none otherwise, so the address takes the space
-   by default (user 2026-09-28). Touch screens have no hover: always shown. */
-.edit-stops__stop-arrows { display: none; gap: var(--spacing-1); }
-.edit-stops__stop--editable:hover .edit-stops__stop-arrows,
-.edit-stops__stop--editable:focus-within .edit-stops__stop-arrows { display: inline-flex; }
-@media (hover: none) { .edit-stops__stop-arrows { display: inline-flex; } }
+/* New's arrows (edit mode) are always visible (S164 F4, Jana 09-29 @05:33 —
+   hover-only hid them from the planner); a blocked move stays disabled. */
+.edit-stops__stop-arrows { display: inline-flex; gap: var(--spacing-1); }
 
 /* New's date + time + zone, as compact as the pickers allow (they take no
    size prop, so only the row layout is ours): one row when the column has
@@ -377,3 +354,65 @@
 @media (prefers-reduced-motion: reduce) {
   .edit-stops [data-flash] { animation: none; }
 }
+
+/* S164 F3 — decorative info cue over the rail segment between two stops.
+   The rail is 32px wide + the row's spacing-3 gap, so its centre sits
+   (spacing-3 + 16px) left of the content edge; bottom spacing-2 = the
+   segment's end (the rail's own bottom padding). The surface background
+   hides the line behind it. Absolute + pointer-events none: no layout shift,
+   and the rail still owns the hover that shows the leg tooltip. */
+.edit-stops__leg-icon {
+  position: absolute;
+  left: calc(-1 * (var(--spacing-3) + 16px));
+  bottom: var(--spacing-2);
+  transform: translateX(-50%);
+  display: flex;
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* S164 F1 — Prior collapsed to a rail. 56px = the 32px Timeline rail +
+   spacing-3 padding each side (component-internal geometry, no token).
+   Animates like the pending slot; reduced motion snaps. */
+.edit-stops__plan--prior { transition: flex-basis var(--transition-panel), padding var(--transition-panel); }
+.edit-stops__plan--prior.edit-stops__plan--collapsed {
+  flex: 0 0 56px;
+  box-sizing: border-box;
+  padding: var(--spacing-5) var(--spacing-3);
+  align-items: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .edit-stops__plan--prior { transition: none; }
+}
+.edit-stops__prior-head { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-1); }
+.edit-stops__plan-label { margin: 0; color: var(--text-primary); }
+/* Expanded Prior in edit mode: title left, hide chevron right. */
+.edit-stops__plan--prior .edit-stops__plan-head { flex-wrap: nowrap; }
+/* Marker-only rail: the (empty) content slot becomes a focusable hit area
+   laid over the whole row, carrying the tooltip. */
+.edit-stops__rail--markers .odyssey-timeline__content { position: absolute; inset: 0; }
+.edit-stops__rail--markers [data-tooltip-trigger] { width: 100%; height: 100%; }
+.edit-stops__mark {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: var(--radius-md);
+  cursor: default;
+}
+/* Moved: a small gray dot beside the marker (8px = spacing-2). */
+.edit-stops__mark-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+  border-radius: var(--radius-full);
+  background: var(--deep-sea-neutral-400);
+}
+/* Removed: dimmed with a strike through the label. */
+.edit-stops .edit-stops__badge--removed { opacity: var(--opacity-muted); }
+.edit-stops .edit-stops__badge--removed .stop-badge__label { text-decoration: line-through; }

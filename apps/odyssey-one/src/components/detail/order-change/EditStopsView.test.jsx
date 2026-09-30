@@ -101,6 +101,8 @@ it('renders the head, hint alert, stop cards with labels P1 P2 D1, order rows, a
   // View Planning Dates is a link with a leading calendar icon.
   expect(screen.getByRole('button', { name: 'View Planning Dates' }).className).toMatch(/btn--link.*btn--has-icon/)
   // User 2026-09-28: Prior's type badge is green (was gray, 2026-09-24).
+  // S164 F1: Prior collapsed on Edit — reopen it to read its badges.
+  fireEvent.click(screen.getByRole('button', { name: 'Show prior plan' }))
   expect(screen.getAllByText('Pickup')[0].style.background).toContain('badge-green-bg')
 })
 
@@ -288,6 +290,7 @@ it('Prior and New render side by side; Prior is read-only and badges the planner
   // Stop 2 (P2) holds only order C — setting it aside empties and removes the stop.
   edit()
   fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Remove' })[2])
+  fireEvent.click(screen.getByRole('button', { name: 'Show prior plan' }))   // S164 F1
   expect(within(prior).getByText('Removed').style.background).toContain('badge-gray-bg')
 })
 
@@ -519,4 +522,118 @@ it('the leg distance shows only over a stop\'s rail (badge + line), for the line
   const priorRow = screen.getByRole('region', { name: 'Prior plan' }).querySelectorAll('[data-stop-key]')[1]
   fireEvent.mouseMove(railOf(priorRow))
   expect(screen.getByRole('tooltip').textContent).toContain('Distance from')
+})
+
+// ── S164 (Jana 09-29 layout slice) ───────────────────────────────────────
+const prior = () => screen.getByRole('region', { name: 'Prior plan' })
+const strip = () => within(document.querySelector('.stops-kpi-strip'))
+const summaryFull = { distance: '364.14 mi', grossWeight: '1,015 LB', volume: '3 cuft', acceptedCarrier: 'ACME', seedEquipment: 'Dry Van', utilization: '80%' }
+
+it('F1: Edit collapses Prior to a marker rail; the chevron toggles it; Save re-expands', () => {
+  setup()
+  expect(prior().querySelector('.edit-stops__plan--collapsed')).toBeNull()
+  expect(within(prior()).queryByRole('button', { name: 'Hide prior plan' })).toBeNull()   // not editing: always open
+  edit()
+  expect(prior().className).toContain('edit-stops__plan--collapsed')
+  const show = within(prior()).getByRole('button', { name: 'Show prior plan' })
+  expect(show.getAttribute('aria-expanded')).toBe('false')
+  // markers only: no addresses, order ids, or dates
+  expect(within(prior()).getAllByLabelText(/^[PD]\d — completed$/)).toHaveLength(3)
+  expect(within(prior()).queryByText('Orders:')).toBeNull()
+  expect(prior().querySelector('.edit-stops__stop-location')).toBeNull()
+  fireEvent.click(show)
+  const hide = within(prior()).getByRole('button', { name: 'Hide prior plan' })
+  expect(hide.getAttribute('aria-expanded')).toBe('true')
+  expect(within(prior()).getAllByText('Orders:')).toHaveLength(3)
+  fireEvent.click(hide)
+  expect(prior().className).toContain('edit-stops__plan--collapsed')
+  save()
+  expect(prior().className).not.toContain('edit-stops__plan--collapsed')
+})
+
+it('F1: Discard and Reset re-expand Prior', () => {
+  setup()
+  edit()
+  fireEvent.click(nw().getByRole('button', { name: 'Discard' }))   // clean: leaves directly
+  expect(prior().className).not.toContain('edit-stops__plan--collapsed')
+  edit()
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+  fireEvent.click(nw().getByRole('button', { name: 'Reset' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Yes, Reset' }))
+  expect(prior().className).not.toContain('edit-stops__plan--collapsed')
+})
+
+it('F1: collapsed rail signals Removed (struck) on a set-aside stop', () => {
+  setup()
+  edit()
+  fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Remove' })[2])
+  expect(within(prior()).getByLabelText('P2, Y, Town, June 4, 2026 08:00 CDT, Removed')).toBeTruthy()
+  expect(prior().querySelector('.edit-stops__badge--removed')).toBeTruthy()
+})
+
+it('F2: collapsed strip = live Gross Weight/Volume/Distance + the three costs; expanded adds carrier/equipment/utilization', () => {
+  setup({ summary: summaryFull })
+  // not editing: Prior open → the full set
+  expect(strip().getByText('Accepted Carrier')).toBeTruthy()
+  edit()
+  expect(strip().queryByText('Accepted Carrier')).toBeNull()
+  expect(strip().queryByText('Utilization')).toBeNull()
+  expect(strip().getByText('Gross Weight')).toBeTruthy()
+  expect(strip().getByText('Volume')).toBeTruthy()
+  expect(strip().getByText('Distance')).toBeTruthy()
+  expect(strip().getByText('Prior Cost')).toBeTruthy()
+  expect(strip().getByText('New Direct Cost')).toBeTruthy()
+  expect(strip().getByText('New Consolidated Cost')).toBeTruthy()
+  expect(strip().getByText('$1,000.00')).toBeTruthy()
+  // live: setting an order aside changes the weight (A = 5 LB, of 1,015 LB)
+  const before = strip().getByText(/LB$/).textContent
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+  expect(strip().getByText(/LB$/).textContent).not.toBe(before)
+  fireEvent.click(screen.getByRole('button', { name: 'Show prior plan' }))
+  expect(strip().getByText('Accepted Carrier')).toBeTruthy()
+  expect(strip().getByText('Seed Equipment')).toBeTruthy()
+  expect(strip().getByText('Utilization')).toBeTruthy()
+})
+
+it('F2: the All Stops header no longer repeats the numbers, and keeps View Planning Dates', () => {
+  setup()
+  const head = document.querySelector('.edit-stops__head')
+  expect(head.textContent).toBe('View Planning Dates')
+  expect(head.querySelector('.edit-stops__metrics')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'View Planning Dates' }))
+  expect(screen.getByText('Planned Pickup')).toBeTruthy()
+  expect(screen.getByText('Planned Delivery')).toBeTruthy()
+})
+
+it('F2: an expanded changed value shows the Prior/New pair with a live New half', () => {
+  setup({ summary: summaryFull, consolidation: { ...noChange, summaryChanges: { grossWeight: { prior: '999 LB', new: '1,015 LB' } } } })
+  expect(strip().getByText('999 LB')).toBeTruthy()
+  edit()
+  expect(strip().queryByText('999 LB')).toBeNull()   // collapsed: current value only
+})
+
+it('F3: one decorative info icon between each pair of stops in New and expanded Prior; none in collapsed Prior', () => {
+  setup()
+  const icons = (root) => root.querySelectorAll('.edit-stops__leg-icon')
+  expect(icons(prior())).toHaveLength(2)
+  expect(icons(screen.getByRole('region', { name: 'New plan' }))).toHaveLength(2)
+  expect(icons(prior())[0].getAttribute('aria-hidden')).toBe('true')
+  edit()
+  expect(icons(prior())).toHaveLength(0)
+  expect(icons(screen.getByRole('region', { name: 'New plan' }))).toHaveLength(2)
+})
+
+it('F4: the move arrows render in edit mode without any hover, disabled ones included', () => {
+  setup()
+  edit()
+  expect(nw().getAllByRole('button', { name: 'Move stop up' })).toHaveLength(3)
+  expect(nw().getAllByRole('button', { name: 'Move stop down' })).toHaveLength(3)
+  expect(nw().getAllByRole('button', { name: 'Move stop up' })[0].disabled).toBe(true)
+})
+
+it('F5: the Planning Dates modal shows the planned pickup and delivery dates', () => {
+  setup()
+  fireEvent.click(screen.getByRole('button', { name: 'View Planning Dates' }))
+  expect(screen.getAllByText('June 4, 2026 08:00 CDT').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('June 6, 2026 08:00 CDT').length).toBeGreaterThan(0)
 })

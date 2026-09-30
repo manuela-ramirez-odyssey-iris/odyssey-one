@@ -477,3 +477,14 @@ export function windowViolations(stops, orders) {
   }
   return out
 }
+
+// S164 F5 — where each order sits NOW: the date of the New stop of each type
+// holding it (the same s.date windowViolations compares, so the modal column
+// and the missed-bound badge can't disagree). An order on no stop is absent.
+export function plannedDates(stops) {
+  const out = {}
+  for (const s of stops) {
+    for (const id of s.orderIds) (out[id] ??= {})[s.type === 'pickup' ? 'pickup' : 'delivery'] = s.date
+  }
+  return out
+}

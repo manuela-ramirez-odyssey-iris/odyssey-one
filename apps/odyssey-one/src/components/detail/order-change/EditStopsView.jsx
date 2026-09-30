@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, ArrowDown, CalendarDays, GripVertical, TriangleAlert } from 'lucide-react'
+import { ArrowUp, ArrowDown, CalendarDays, ChevronsLeft, ChevronsRight, GripVertical, Info, TriangleAlert } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
-import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
+import { Alert, Badge, Button, DatePicker, SubAccordion, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import ConfirmDialog from '../../common/ConfirmDialog.jsx'
@@ -13,12 +13,12 @@ import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
 import AddOrdersModal from './AddOrdersModal.jsx'
 import { getSellShipmentDetail } from '../../../api/services/shipmentService'
-import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.jsx'
+import ReviewKpiStrip from './ReviewKpiStrip.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, canReorderStop, reorderStop, moveToPending, addToStop, addPending,
   isRoutable, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto,
-  parseStamp, formatStopDate, setStopDate, windowViolations, legDistances,
+  parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
 
@@ -153,6 +153,9 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const [editing, setEditing] = useState(false)
   const [snapshot, setSnapshot] = useState(null)
   const [stopsPrompt, setStopsPrompt] = useState(null) // 'discard' | 'reset'
+  // S164 F1 (Jana 09-29 @03:30): Edit collapses Prior to a marker rail so the
+  // planner gets the room; leaving edit mode (Save/Discard/Reset) re-expands.
+  const [priorCollapsed, setPriorCollapsed] = useState(false)
 
   const initialTotals = useMemo(() => totals(initial, orders), [initial, orders])
   const curTotals = totals(sb, allOrders)
@@ -265,11 +268,12 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const startEditing = () => { setErrorMsg(null); setSnapshot(sb); setEditing(true) }
+  const startEditing = () => { setErrorMsg(null); setSnapshot(sb); setEditing(true); setPriorCollapsed(true) }
   const leaveEditing = (next) => {
     if (next) setSb(next)
     setErrorMsg(null)
     setEditing(false)
+    setPriorCollapsed(false)
     setSnapshot(null)
     setStopsPrompt(null)
   }
@@ -464,8 +468,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                     <Button variant="secondary" size="sm" onClick={() => handleKeepHere(s.key)}>Keep here</Button>
                   )}
                   {editing ? (
-                    // User 2026-09-28: icon Buttons, shown only while the stop
-                    // is hovered (or holds keyboard focus; always on touch).
+                    // User 2026-09-28: icon Buttons. S164 F4 (Jana 09-29 @05:33):
+                    // always visible in edit mode; a blocked move stays disabled.
                     <span className="edit-stops__stop-arrows">
                       <Button variant="icon" icon={<ArrowUp {...ICON_MD} />} aria-label="Move stop up" disabled={upDisabled} onClick={() => handleMove(i, 'up')} />
                       <Button variant="icon" icon={<ArrowDown {...ICON_MD} />} aria-label="Move stop down" disabled={downDisabled} onClick={() => handleMove(i, 'down')} />
@@ -529,7 +533,38 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
                 )
               })}
             </div>
+            {/* S164 F3 (Jana 09-29 @04:54): a DECORATIVE cue that the leg
+                below this stop carries a distance. It sits over the rail's
+                segment (pointer-events none, so the rail still owns the hover
+                and showRailTip / the tooltip are untouched). */}
+            {i < list.length - 1 && <span className="edit-stops__leg-icon" aria-hidden="true"><Info {...ICON_MD} /></span>}
           </Row>
+        ),
+      }
+    })
+  }
+
+  // S164 F1 — collapsed Prior: markers only (no content but a focusable hit
+  // area carrying the tooltip). Moved = gray dot, Removed = struck + dimmed,
+  // from the same diff the expanded badges read.
+  const priorMarkers = () => {
+    const labels = labelsOf({ stops: sb.prior })
+    return sb.prior.map((s, i) => {
+      const removed = diff.removedStopKeys.includes(s.key)
+      const moved = !removed && diff.movedStopKeys.includes(s.key)
+      const state = removed ? 'Removed' : moved ? 'Moved' : null
+      return {
+        key: s.key,
+        label: labels[i],
+        status: 'completed',
+        showStatusBadge: false,
+        badgeClassName: removed ? 'edit-stops__badge--removed' : undefined,
+        content: (
+          <TooltipTrigger tooltipProps={{ groups: [{ subtitle: `${labels[i]}${state ? ` · ${state}` : ''}`, content: `${s.location || '--'} · ${s.date || '--'}` }] }}>
+            <button type="button" className="edit-stops__mark" aria-label={`${labels[i]}, ${s.location || '--'}, ${s.date || '--'}${state ? `, ${state}` : ''}`}>
+              {moved && <span className="edit-stops__mark-dot" aria-hidden="true" />}
+            </button>
+          </TooltipTrigger>
         ),
       }
     })
@@ -537,20 +572,25 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
   return (
     <div className="edit-stops" ref={rootRef}>
+      {/* S164 F2 — the one KPI strip lives here (live values + the collapse
+          state are this component's); the route no longer renders it. */}
+      <ReviewKpiStrip
+        summary={summary}
+        changes={consolidation?.summaryChanges}
+        costs={consolidation?.costs}
+        priorCollapsed={editing && priorCollapsed}
+        live={{
+          grossWeight: curTotals.grossWeight,
+          volume: curTotals.volume,
+          distance: distance == null ? '--' : `${distance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`,
+          changed: { grossWeight: weightChanged, volume: volumeChanged, distance: distanceChanged },
+        }}
+      />
       <SubAccordion
         title="All Stops"
         collapsible={false}
       >
         <div className="edit-stops__head">
-          <div className="edit-stops__metrics">
-            <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
-            <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
-            <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
-            {/* T2 — thousands separator, same formatter as the header KPI (fmtDistance). */}
-            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance == null ? '--' : `${distance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
-            <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
-            <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
-          </div>
           <div className="edit-stops__head-actions">
             {/* DEC-207 (T2) — View Routing is gone; Evaluate (footer) is the
                 only door into the routing modal now. */}
@@ -564,9 +604,24 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         <Alert variant={alertVariant} showClose={false}>{alertText}</Alert>
 
         <div className="edit-stops__body">
-          <section className="edit-stops__plan edit-stops__plan--prior" aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
-            <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
-            <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
+          <section className={`edit-stops__plan edit-stops__plan--prior${editing && priorCollapsed ? ' edit-stops__plan--collapsed' : ''}`} aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
+            {editing && priorCollapsed ? (
+              <>
+                <div className="edit-stops__prior-head">
+                  <h3 className="text-label-sm-medium edit-stops__plan-label">Prior</h3>
+                  <Button variant="icon" icon={<ChevronsRight {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPriorCollapsed(false)} />
+                </div>
+                <Timeline items={priorMarkers()} className="edit-stops__rail edit-stops__rail--markers" aria-label="Prior stops" />
+              </>
+            ) : (
+              <>
+                <div className="edit-stops__plan-head">
+                  <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
+                  {editing && <Button variant="icon" icon={<ChevronsLeft {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPriorCollapsed(true)} />}
+                </div>
+                <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
+              </>
+            )}
           </section>
           <section className="edit-stops__plan" aria-label="New plan" ref={newPlanRef} onMouseMove={(e) => showRailTip(e, 'new')} onMouseLeave={() => setTip(null)}>
             <div className="edit-stops__plan-head">
@@ -654,7 +709,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
         </div>,
         document.body,
       )}
-      {modal === 'planning' && <PlanningDatesModal orders={planningOrders} violations={violations} onClose={() => setModal(null)} />}
+      {modal === 'planning' && <PlanningDatesModal orders={planningOrders} violations={violations} planned={plannedDates(sb.stops)} onClose={() => setModal(null)} />}
       {modal === 'routing' && (
         <ViewRoutingModal
           orderChange={orderChange}

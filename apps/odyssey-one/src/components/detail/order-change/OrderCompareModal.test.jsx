@@ -9,8 +9,8 @@ const rows = [
 ]
 it('titles the dialog, names the order, and lists changed rows before unchanged (LINX-15437 → 14512)', () => {
   render(<OrderCompareModal orderId="000000004852" rows={rows} onClose={() => {}} />)
-  expect(screen.getByRole('dialog', { name: 'Order Changes' })).toBeTruthy()
-  expect(screen.getByText('Order Number: 000000004852')).toBeTruthy()
+  expect(screen.getByRole('dialog', { name: 'Order Changes 000000004852' })).toBeTruthy()
+  expect(screen.queryByText(/Order Number:/)).toBeNull()
   const gw = screen.getByText('Gross Weight'), inc = screen.getByText('Incoterm Info')
   expect(!!(gw.compareDocumentPosition(inc) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true)
   expect(screen.getByText('120 LB').closest('.text-badge')).toBeTruthy()
@@ -24,15 +24,28 @@ it('Go Back closes; empty rows render both bands without crashing', () => {
   fireEvent.click(screen.getByText('Go Back'))
   expect(onClose).toHaveBeenCalled()
 })
-it('renders one block per order line with line-level fields; a changed line is badged (DEC-196)', () => {
+it('lines are tabs with changed counts; opens on the first changed tab, else Order; switching swaps the table (DEC-196 amended)', () => {
   const l1 = { lineNumber: '001', shipItem: '100034', hazmatUnNumber: 'UN1830', flashPoint: '106 F' }
   const l2 = { lineNumber: '002', shipItem: '100035', hazmatUnNumber: 'UN1830', flashPoint: '90 F' }
-  const { unmount } = render(<OrderCompareModal orderId="1" rows={rows} lines={[l1, l2]} onClose={() => {}} />)
-  expect(screen.getByRole('region', { name: 'Line 001' })).toBeTruthy()
-  expect(screen.getByRole('region', { name: 'Line 002' })).toBeTruthy()
-  expect(screen.queryByText('Changed')).toBeNull()                       // prior = new from the order record
+  const { unmount } = render(<OrderCompareModal orderId="1" rows={[rows[0]]} lines={[l1, l2]} onClose={() => {}} />)
+  expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Order', 'Line 001', 'Line 002'])   // no changes → no counts
+  expect(screen.getByRole('tab', { name: 'Order' }).getAttribute('aria-selected')).toBe('true')
+  fireEvent.click(screen.getByRole('tab', { name: 'Line 002' }))
+  expect(screen.getByRole('tabpanel').textContent).toContain('90 F')
+  expect(screen.queryByText('Incoterm Info')).toBeNull()
+  expect(screen.queryByText('Changed')).toBeNull()
   unmount()
-  render(<OrderCompareModal orderId="1" rows={rows} linePairs={[{ prior: l2, new: { ...l2, flashPoint: '95 F' } }]} onClose={() => {}} />)
-  expect(screen.getByText('Changed')).toBeTruthy()
+  render(<OrderCompareModal orderId="1" rows={rows} linePairs={[{ prior: l1, new: l1 }, { prior: l2, new: { ...l2, flashPoint: '95 F' } }]} onClose={() => {}} />)
+  const tabs = screen.getAllByRole('tab')
+  expect(tabs.map((t) => t.textContent)).toEqual(['Order1', 'Line 001', 'Line 0021'])
+  expect(tabs[0].getAttribute('aria-selected')).toBe('true')            // Order has a change → first
+  fireEvent.keyDown(tabs[0].parentElement, { key: 'ArrowRight' })
+  fireEvent.keyDown(tabs[1].parentElement, { key: 'ArrowRight' })
+  expect(screen.getByRole('tab', { name: /Line 002/ }).getAttribute('aria-selected')).toBe('true')
   expect(screen.getByText('95 F').closest('.text-badge')).toBeTruthy()
+})
+it('opens on the first line tab with a change when the Order tab has none', () => {
+  const l = { lineNumber: '001', flashPoint: '90 F' }
+  render(<OrderCompareModal orderId="1" rows={[rows[0]]} linePairs={[{ prior: l, new: { ...l, flashPoint: '95 F' } }]} onClose={() => {}} />)
+  expect(screen.getByRole('tab', { name: /Line 001/ }).getAttribute('aria-selected')).toBe('true')
 })
