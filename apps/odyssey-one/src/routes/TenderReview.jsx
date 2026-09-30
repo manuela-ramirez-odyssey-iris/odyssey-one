@@ -305,8 +305,8 @@ export default function TenderReview() {
   const dash = (v) => (v && v !== '--' ? v : '--')
   const fact = (label, value) => (
     <div className="tender-review-fact">
-      <span className="text-label-xs-regular">{label}</span>
-      <span className="text-label-sm-medium">{value || '--'}</span>
+      <span className="tr-label text-label-xs-semibold">{label}</span>
+      <span className="text-label-base-medium">{value || '--'}</span>
     </div>
   )
 
@@ -319,55 +319,60 @@ export default function TenderReview() {
       {navbar}
 
       <main className="carrier-bid-page__main">
+        {/* Mirrors the tender email (TE-1) top to bottom — eyebrow, headline,
+            notice band, two-column facts, route band, Ship From/To pair,
+            distance — then the page-only sections in the same label style
+            (user, S159: "should look somewhat similar to tender-emails"). */}
         <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': '0ms' }}>
           <header className="tender-review-head">
-            <div className="tender-review-subline text-label-sm-regular">
-              {firstPickup?.location ?? '--'} → {lastDelivery?.location ?? '--'}
-            </div>
-            <Badge variant="blue">{`Tendered ${effectiveOption.notifyDateTime}`}</Badge>
+            <span className="tr-eyebrow text-label-xs-semibold">Tender Notification</span>
+            <h1 className="text-heading-lg-semibold">{`${effectiveOption.scac} — Shipment ${shipment.odysseyShipmentIdentifier}`}</h1>
+            <div className="tr-notice text-label-sm-regular">{`Tendered ${effectiveOption.notifyDateTime}`}</div>
           </header>
 
-          <div className="tender-review-facts tender-review-facts--summary">
-            {fact('Shipper', shipment.customerName)}
-            {fact('Carrier', `${effectiveOption.scac} - ${effectiveOption.carrierName}`)}
-            {fact('Shipment ID', shipment.odysseyShipmentIdentifier)}
-            {fact('Equipment', effectiveOption.equipment)}
-            {fact('Weight', weightDisplay)}
-            {fact('Hazmat', order?.hazmat)}
-          </div>
-
-          <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Lane</h2>
-            <div className="tender-review-lane">
-              <div className="tender-review-lane__stop">
-                <span className="text-label-xs-regular tender-review-muted">Ship From</span>
-                <span className="text-label-sm-medium">{firstPickup?.location ?? '--'}</span>
-                <span className="text-label-sm-regular">{firstPickup?.address ?? '--'}</span>
-                <span className="text-label-sm-regular">{`Pickup: ${effectiveOption.pickupDateTime ?? '--'} (${effectiveOption.pickupTZ})`}</span>
-              </div>
-              <span className="tender-review-lane__arrow" aria-hidden="true">→</span>
-              <div className="tender-review-lane__stop">
-                <span className="text-label-xs-regular tender-review-muted">Ship To</span>
-                <span className="text-label-sm-medium">{lastDelivery?.location ?? '--'}</span>
-                <span className="text-label-sm-regular">{lastDelivery?.address ?? '--'}</span>
-                <span className="text-label-sm-regular">{`Delivery: ${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`}</span>
-              </div>
+          <div className="tr-columns">
+            <div className="tr-stack">
+              {fact('Shipper', shipment.customerName)}
+              {fact('Carrier', `${effectiveOption.scac} - ${effectiveOption.carrierName}`)}
             </div>
-            {/* Distance sits under the lane band, same as the tender emails (user, S159). */}
-            <div className="tender-review-facts tender-review-facts--summary">
-              {fact('Distance', distanceDisplay)}
+            <div className="tr-stack">
+              {fact('Shipment ID', shipment.odysseyShipmentIdentifier)}
+              {fact('Equipment', effectiveOption.equipment)}
+              {fact('Weight', weightDisplay)}
+              {fact('Hazmat', order?.hazmat)}
             </div>
           </div>
 
+          <div className="tr-route text-label-base-semibold">
+            <span>{firstPickup?.location ?? '--'}</span>
+            <span className="tr-route__arrow" aria-hidden="true">→</span>
+            <span>{lastDelivery?.location ?? '--'}</span>
+          </div>
+
+          <div className="tr-pair">
+            <div className="tr-pair__cell">
+              <span className="tr-label text-label-xs-semibold">Ship From</span>
+              <span className="text-label-sm-regular">{firstPickup?.location ?? '--'}</span>
+              <span className="text-label-sm-regular">{firstPickup?.address ?? '--'}</span>
+              <div className="tr-pair__foot">{fact('Pickup', `${effectiveOption.pickupDateTime ?? '--'} (${effectiveOption.pickupTZ})`)}</div>
+            </div>
+            <div className="tr-pair__cell">
+              <span className="tr-label text-label-xs-semibold">Ship To</span>
+              <span className="text-label-sm-regular">{lastDelivery?.location ?? '--'}</span>
+              <span className="text-label-sm-regular">{lastDelivery?.address ?? '--'}</span>
+              <div className="tr-pair__foot">{fact('Deliver', `${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`)}</div>
+            </div>
+          </div>
+
+          <div className="tr-center">{fact('Distance', distanceDisplay)}</div>
+
           <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Equipment & Freight</h2>
-            <div className="tender-review-facts tender-review-facts--summary">
+            <h2 className="tr-eyebrow text-label-xs-semibold">Equipment & Freight</h2>
+            <div className="tr-grid">
               {/* Mode: no field on the detail VM yet (shipmentMode is DASH) —
                   the planner's override is the only source today. */}
               {fact('Mode', dash(shipment.overrides?.mode))}
-              {fact('Equipment', effectiveOption.equipment)}
               {fact('Carrier ID', effectiveOption.scac)}
-              {fact('Total weight', weightDisplay)}
               {fact('Package count', shipment.stopsData?.summary?.packageCount)}
               {fact('Freight terms', dash(order?.paymentTerms))}
               {fact('Offered rate', offeredRate)}
@@ -375,7 +380,7 @@ export default function TenderReview() {
           </div>
 
           <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Load References</h2>
+            <h2 className="tr-eyebrow text-label-xs-semibold">Load References</h2>
             <table className="tender-review-table">
               <thead>
                 <tr><th>Order Number</th><th>Load ID</th><th>Customer PO Number</th><th>Pickup Number</th></tr>
@@ -397,9 +402,9 @@ export default function TenderReview() {
 
           {lines.length > 0 && (
             <div className="tender-review-section">
-              <h2 className="tender-review-h text-label-sm-semibold">Line Items</h2>
+              <h2 className="tr-eyebrow text-label-xs-semibold">Line Items</h2>
               {/* Columns per the paper tender (Line.png, team review 2026-09-30). */}
-              <table className="tender-review-table tender-review-table--lines">
+              <table className="tender-review-table">
                 <thead>
                   <tr>
                     <th>Item/Description/<br />Hazmat Description</th>
@@ -423,9 +428,9 @@ export default function TenderReview() {
           )}
 
           <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Pickup & Delivery Instructions</h2>
+            <h2 className="tr-eyebrow text-label-xs-semibold">Pickup & Delivery Instructions</h2>
             {allInstructions.length === 0 ? (
-              <p className="text-label-sm-regular tender-review-muted">No special instructions.</p>
+              <p className="text-label-sm-regular tender-review-muted tr-center">No special instructions.</p>
             ) : (
               <ol className="tender-review-instructions text-label-sm-regular">
                 {allInstructions.map((instr, i) => <li key={i}>{instr.text}</li>)}
@@ -435,7 +440,7 @@ export default function TenderReview() {
         </section>
 
         <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': `${ENTER_STEP_MS}ms` }}>
-          <h2 className="tender-review-h text-label-sm-semibold">Your Response</h2>
+          <h2 className="tr-eyebrow text-label-xs-semibold">Your Response</h2>
           <p className="text-label-sm-regular tender-review-lede">
             This decision is final and will be sent to {PLANNING_GROUP_MAILBOX} immediately.
           </p>
