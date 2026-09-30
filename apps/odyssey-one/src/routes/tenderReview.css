@@ -12,51 +12,52 @@
 
 
 
-/* S159 — one details card styled after the tender email (TE-1): centered
-   kicker/headline, gray notice band, uppercase 11px labels over values, a
-   tinted route band, Ship From/To split by a hairline. */
+/* S159 — one details card, app-native (no tinted bands); the lane keeps the
+   tender email's placement: pickup | distance + stops | delivery. */
 .tender-review-card {
   width: 100%;
-  max-width: 760px;
+  max-width: 920px;
   margin: 0 auto;
   background: var(--bg-primary);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
-  padding: var(--spacing-8) var(--spacing-6);
+  padding: var(--spacing-5) var(--spacing-6) var(--spacing-6);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-5);
 }
-.tender-review-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--spacing-2); }
-.tender-review-head h1 { margin: 0; color: var(--text-primary); }
-.tr-eyebrow { margin: 0; text-align: center; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); }
-.tr-notice { align-self: stretch; text-align: center; color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-subtle); padding: var(--spacing-3) var(--spacing-4); }
-.tr-label { text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+.tender-review-top { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); }
+.tender-review-h { margin: 0; color: var(--text-primary); }
 .tender-review-muted { color: var(--text-tertiary); }
-.tender-review-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tender-review-fact > :last-child { color: var(--text-primary); overflow-wrap: anywhere; }
-.tr-columns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4); padding: 0 var(--spacing-2); }
-.tr-stack { display: flex; flex-direction: column; gap: var(--spacing-2); }
-.tr-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; gap: var(--spacing-3); padding: var(--spacing-3) var(--spacing-2); background: var(--bg-secondary); border: 1px solid var(--border-subtle); color: var(--text-primary); }
-.tr-route__arrow { color: var(--text-tertiary); }
-.tr-pair { display: grid; grid-template-columns: 1fr 1fr; }
-.tr-pair__cell { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding: 0 var(--spacing-3); color: var(--text-primary); }
-.tr-pair__cell + .tr-pair__cell { border-left: 1px solid var(--border-subtle); }
-.tr-pair__foot { margin-top: var(--spacing-3); }
-.tr-pair__foot .tender-review-fact, .tr-center .tender-review-fact { align-items: center; text-align: center; }
-.tr-center { display: flex; justify-content: center; text-align: center; }
-.tender-review-section { display: flex; flex-direction: column; gap: var(--spacing-3); padding-top: var(--spacing-5); margin-top: var(--spacing-1); border-top: 1px solid var(--border-subtle); }
-.tr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-3) var(--spacing-4); }
-.tr-grid .tender-review-fact { align-items: center; text-align: center; }
+.tender-review-section { display: flex; flex-direction: column; gap: var(--spacing-4); padding-top: var(--spacing-5); border-top: 1px solid var(--border-subtle); }
+.tender-review-facts { align-self: stretch; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-4) var(--spacing-6); }
+
+/* Lane: ends hug the sides, the middle carries distance, a rule and stops. */
+.tender-lane { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--spacing-6); align-items: start; }
+.tender-lane__end { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-1); color: var(--text-primary); }
+.tender-lane__end .title-subtitle { margin-top: var(--spacing-2); }
+.tender-lane__end--to { align-items: flex-end; text-align: right; }
+.tender-lane__end--to .title-subtitle { text-align: right; }
+.tender-lane__middle { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-2); padding-top: var(--spacing-1); color: var(--text-primary); }
+.tender-lane__line { align-self: stretch; position: relative; border-top: 1px dashed var(--border-strong, var(--border-subtle)); margin: var(--spacing-1) 0; }
+.tender-lane__line::after { content: ''; position: absolute; right: -1px; top: -4px; border: 4px solid transparent; border-left: 6px solid var(--border-strong, var(--border-subtle)); border-right: 0; }
+.tender-lane__stops { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2); align-self: stretch; }
+.tender-lane__stops li { display: flex; align-items: flex-start; gap: var(--spacing-2); }
+.tender-lane__stop-text { display: flex; flex-direction: column; min-width: 0; }
+
 .tender-review-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
 .tender-review-table th, .tender-review-table td { text-align: left; vertical-align: top; padding: var(--spacing-2); border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
 .tender-review-table th { color: var(--text-tertiary); font-weight: var(--font-weight-medium); }
 .tender-review-table .is-num { text-align: right; }
 .tender-review-instructions { margin: 0; padding-left: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-2); color: var(--text-primary); }
+
 @media (max-width: 639px) {
-  .tr-columns, .tr-pair { grid-template-columns: 1fr; }
-  .tr-pair__cell + .tr-pair__cell { border-left: none; border-top: 1px solid var(--border-subtle); padding-top: var(--spacing-3); }
-  .tr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tender-review-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tender-lane { grid-template-columns: 1fr; gap: var(--spacing-4); }
+  .tender-lane__end--to { align-items: flex-start; text-align: left; }
+  .tender-lane__end--to .title-subtitle { text-align: left; }
+  .tender-lane__middle { align-items: flex-start; }
+  .tender-lane__line { display: none; }
   .tender-review-table { display: block; overflow-x: auto; }
 }
 
@@ -74,3 +75,9 @@
   max-width: 720px;
   width: 100%;
 }
+
+/* Navbar title: "Request For Tender" pretitle stacked over the tender name
+   (S159). Kept apart from the card rules above so a rewrite of those can't
+   drop it again. */
+.tender-review-navtitle { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.15; }
+.tender-review-navtitle__pre { color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; }

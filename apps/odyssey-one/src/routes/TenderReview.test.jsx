@@ -272,3 +272,13 @@ describe('TenderReview layout (S159 — team review 2026-09-30)', () => {
     expect(cells).toEqual(['SO-990001', '--', 'PO-4421', 'PU-8891'])
   })
 })
+
+describe('TenderReview navbar title (S159)', () => {
+  it('stacks the "Request For Tender" pretitle over "{CARRIER} - Tender {id}"', async () => {
+    renderAt(`/tender-review/${TOKEN}`)
+    const pre = await screen.findByText('Request For Tender')
+    const title = pre.parentElement
+    expect(title.className).toContain('tender-review-navtitle')
+    expect(title.lastElementChild.textContent).toBe('OLD DOMINION - Tender ODY-25690001')
+  })
+})

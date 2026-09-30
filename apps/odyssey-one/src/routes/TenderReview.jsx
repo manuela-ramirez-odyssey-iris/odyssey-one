@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Alert, Badge, Button, Dropdown, TextArea } from '@odyssey/ui'
+import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Alert, Badge, Button, Dropdown, TextArea, TitleSubtitle, StopBadge } from '@odyssey/ui'
 import { decodeToken } from '../spotboard/token.js'
 import { useShipmentDetail } from '../api/queries/useShipmentDetail'
 import { saveTenderOption } from '../api/services/shipmentService'
 import { routingOptionVmToDto } from '../api/mappers/mapSellShipmentOutToDetail'
 import { formatDateTimeMDYHM } from '../lib/dates.js'
 import { isEmailNotify } from '../tender/email/tenderEmail.js'
-import { toEmailFor } from '../tender/email/tenderEmailContext.js'
+import { buildTenderEmailContext, toEmailFor } from '../tender/email/tenderEmailContext.js'
 import { PLANNING_GROUP_MAILBOX } from '../spotboard/email/emailContext.js'
 import { HeroBackground, carrierInitials } from './externalPageChrome.jsx'
 import { HERO_IMAGES_LAND } from '../heroImages'
@@ -303,12 +303,16 @@ export default function TenderReview() {
   const productOrders = shipment.productData?.orders ?? []
   const lines = productOrders.flatMap((o) => o.lines ?? [])
   const dash = (v) => (v && v !== '--' ? v : '--')
-  const fact = (label, value) => (
-    <div className="tender-review-fact">
-      <span className="tr-label text-label-xs-semibold">{label}</span>
-      <span className="text-label-base-medium">{value || '--'}</span>
-    </div>
-  )
+  // Same first/middle/last split the tender email uses — one source, so the
+  // page and TE-1 never disagree on the lane.
+  const laneCtx = buildTenderEmailContext({ shipment, option: effectiveOption })
+  const middleStops = stops.filter((st) => st !== firstPickup && st !== lastDelivery)
+  // P1/P2… for pickups, D1/D2… for deliveries, in stop order.
+  const stopLabels = new Map()
+  let pCount = 0
+  let dCount = 0
+  for (const st of stops) stopLabels.set(st, st.type === 'pickup' ? `P${++pCount}` : `D${++dCount}`)
+  const stopLabel = (st) => stopLabels.get(st) ?? '--'
 
   // S159 (team review 2026-09-30, Papu's Tender Review Page PDF): ONE details
   // card with plain section headings — no SubAccordion per section — and a
@@ -319,68 +323,76 @@ export default function TenderReview() {
       {navbar}
 
       <main className="carrier-bid-page__main">
-        {/* Mirrors the tender email (TE-1) top to bottom — eyebrow, headline,
-            notice band, two-column facts, route band, Ship From/To pair,
-            distance — then the page-only sections in the same label style
-            (user, S159: "should look somewhat similar to tender-emails"). */}
+        {/* One card, app-native look (TitleSubtitle facts, no tinted bands).
+            Keeps the tender email's PLACEMENT idea — lane with pickup and
+            delivery on either side and the stops in the middle (user, S159). */}
         <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': '0ms' }}>
-          <header className="tender-review-head">
-            <span className="tr-eyebrow text-label-xs-semibold">Tender Notification</span>
-            <h1 className="text-heading-lg-semibold">{`${effectiveOption.scac} — Shipment ${shipment.odysseyShipmentIdentifier}`}</h1>
-            <div className="tr-notice text-label-sm-regular">{`Tendered ${effectiveOption.notifyDateTime}`}</div>
-          </header>
-
-          <div className="tr-columns">
-            <div className="tr-stack">
-              {fact('Shipper', shipment.customerName)}
-              {fact('Carrier', `${effectiveOption.scac} - ${effectiveOption.carrierName}`)}
-            </div>
-            <div className="tr-stack">
-              {fact('Shipment ID', shipment.odysseyShipmentIdentifier)}
-              {fact('Equipment', effectiveOption.equipment)}
-              {fact('Weight', weightDisplay)}
-              {fact('Hazmat', order?.hazmat)}
+          <div className="tender-review-top">
+            <Badge variant="blue">{`Tendered ${effectiveOption.notifyDateTime}`}</Badge>
+            <div className="tender-review-facts">
+              <TitleSubtitle subtitle="Shipper" title={shipment.customerName || '--'} />
+              <TitleSubtitle subtitle="Carrier" title={`${effectiveOption.scac} - ${effectiveOption.carrierName}`} />
+              <TitleSubtitle subtitle="Shipment ID" title={shipment.odysseyShipmentIdentifier || '--'} />
+              <TitleSubtitle subtitle="Equipment" title={effectiveOption.equipment || '--'} />
+              <TitleSubtitle subtitle="Weight" title={weightDisplay} />
+              <TitleSubtitle subtitle="Hazmat" title={order?.hazmat || '--'} />
             </div>
           </div>
-
-          <div className="tr-route text-label-base-semibold">
-            <span>{firstPickup?.location ?? '--'}</span>
-            <span className="tr-route__arrow" aria-hidden="true">→</span>
-            <span>{lastDelivery?.location ?? '--'}</span>
-          </div>
-
-          <div className="tr-pair">
-            <div className="tr-pair__cell">
-              <span className="tr-label text-label-xs-semibold">Ship From</span>
-              <span className="text-label-sm-regular">{firstPickup?.location ?? '--'}</span>
-              <span className="text-label-sm-regular">{firstPickup?.address ?? '--'}</span>
-              <div className="tr-pair__foot">{fact('Pickup', `${effectiveOption.pickupDateTime ?? '--'} (${effectiveOption.pickupTZ})`)}</div>
-            </div>
-            <div className="tr-pair__cell">
-              <span className="tr-label text-label-xs-semibold">Ship To</span>
-              <span className="text-label-sm-regular">{lastDelivery?.location ?? '--'}</span>
-              <span className="text-label-sm-regular">{lastDelivery?.address ?? '--'}</span>
-              <div className="tr-pair__foot">{fact('Deliver', `${effectiveOption.deliveryDateTime ?? '--'} (${effectiveOption.deliveryTZ})`)}</div>
-            </div>
-          </div>
-
-          <div className="tr-center">{fact('Distance', distanceDisplay)}</div>
 
           <div className="tender-review-section">
-            <h2 className="tr-eyebrow text-label-xs-semibold">Equipment & Freight</h2>
-            <div className="tr-grid">
+            <h2 className="tender-review-h text-label-sm-semibold">Lane</h2>
+            <div className="tender-lane">
+              <div className="tender-lane__end">
+                <StopBadge label={stopLabel(firstPickup)} status="pending" />
+                <span className="text-label-sm-semibold">{firstPickup?.location ?? '--'}</span>
+                <span className="text-label-sm-regular tender-review-muted">{firstPickup?.address ?? '--'}</span>
+                <TitleSubtitle subtitle="Pickup" title={laneCtx.pickupLine || '--'} />
+              </div>
+
+              <div className="tender-lane__middle">
+                <span className="text-label-sm-medium">{distanceDisplay}</span>
+                <div className="tender-lane__line" aria-hidden="true" />
+                {middleStops.length === 0 ? (
+                  <span className="text-label-xs-regular tender-review-muted">No intermediate stops</span>
+                ) : (
+                  <ul className="tender-lane__stops">
+                    {middleStops.map((st, i) => (
+                      <li key={i}>
+                        <StopBadge label={stopLabel(st)} status="pending" />
+                        <span className="tender-lane__stop-text">
+                          <span className="text-label-xs-medium">{st.location}</span>
+                          <span className="text-label-xs-regular tender-review-muted">{`${st.type === 'pickup' ? 'Pickup' : 'Drop-off'}: ${st.date ?? '--'}`}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="tender-lane__end tender-lane__end--to">
+                <StopBadge label={stopLabel(lastDelivery)} status="pending" />
+                <span className="text-label-sm-semibold">{lastDelivery?.location ?? '--'}</span>
+                <span className="text-label-sm-regular tender-review-muted">{lastDelivery?.address ?? '--'}</span>
+                <TitleSubtitle subtitle="Deliver" title={laneCtx.deliverLine || '--'} />
+              </div>
+            </div>
+          </div>
+
+          <div className="tender-review-section">
+            <h2 className="tender-review-h text-label-sm-semibold">Equipment & Freight</h2>
+            <div className="tender-review-facts">
               {/* Mode: no field on the detail VM yet (shipmentMode is DASH) —
                   the planner's override is the only source today. */}
-              {fact('Mode', dash(shipment.overrides?.mode))}
-              {fact('Carrier ID', effectiveOption.scac)}
-              {fact('Package count', shipment.stopsData?.summary?.packageCount)}
-              {fact('Freight terms', dash(order?.paymentTerms))}
-              {fact('Offered rate', offeredRate)}
+              <TitleSubtitle subtitle="Mode" title={dash(shipment.overrides?.mode)} />
+              <TitleSubtitle subtitle="Carrier ID" title={effectiveOption.scac || '--'} />
+              <TitleSubtitle subtitle="Package count" title={dash(shipment.stopsData?.summary?.packageCount)} />
+              <TitleSubtitle subtitle="Freight terms" title={dash(order?.paymentTerms)} />
+              <TitleSubtitle subtitle="Offered rate" title={offeredRate || '--'} />
             </div>
           </div>
 
           <div className="tender-review-section">
-            <h2 className="tr-eyebrow text-label-xs-semibold">Load References</h2>
+            <h2 className="tender-review-h text-label-sm-semibold">Load References</h2>
             <table className="tender-review-table">
               <thead>
                 <tr><th>Order Number</th><th>Load ID</th><th>Customer PO Number</th><th>Pickup Number</th></tr>
@@ -402,7 +414,7 @@ export default function TenderReview() {
 
           {lines.length > 0 && (
             <div className="tender-review-section">
-              <h2 className="tr-eyebrow text-label-xs-semibold">Line Items</h2>
+              <h2 className="tender-review-h text-label-sm-semibold">Line Items</h2>
               {/* Columns per the paper tender (Line.png, team review 2026-09-30). */}
               <table className="tender-review-table">
                 <thead>
@@ -428,9 +440,9 @@ export default function TenderReview() {
           )}
 
           <div className="tender-review-section">
-            <h2 className="tr-eyebrow text-label-xs-semibold">Pickup & Delivery Instructions</h2>
+            <h2 className="tender-review-h text-label-sm-semibold">Pickup & Delivery Instructions</h2>
             {allInstructions.length === 0 ? (
-              <p className="text-label-sm-regular tender-review-muted tr-center">No special instructions.</p>
+              <p className="text-label-sm-regular tender-review-muted">No special instructions.</p>
             ) : (
               <ol className="tender-review-instructions text-label-sm-regular">
                 {allInstructions.map((instr, i) => <li key={i}>{instr.text}</li>)}
@@ -440,7 +452,7 @@ export default function TenderReview() {
         </section>
 
         <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': `${ENTER_STEP_MS}ms` }}>
-          <h2 className="tr-eyebrow text-label-xs-semibold">Your Response</h2>
+          <h2 className="tender-review-h text-label-sm-semibold">Your Response</h2>
           <p className="text-label-sm-regular tender-review-lede">
             This decision is final and will be sent to {PLANNING_GROUP_MAILBOX} immediately.
           </p>
