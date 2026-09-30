@@ -139,6 +139,19 @@
   width: auto;
 }
 
+/* User 2026-09-29: no hairline between review stops (plain mode's border-top
+   on the content column above), and the rail line is dashed like Edit Stops'
+   New rail (edit-stops.css) — same 4px/4px gradient + neutral-400 token. */
+.stops-timeline--review .odyssey-timeline__row:not(:first-child) .odyssey-timeline__content {
+  border-top: 0;
+}
+.stops-timeline--review .odyssey-timeline__segment,
+.stops-timeline--review .odyssey-timeline__segment-fill {
+  /* the fill (reached legs) is a solid neutral-400 bar that would mask the
+     track's dashes, so it takes the same gradient */
+  background: repeating-linear-gradient(to bottom, var(--deep-sea-neutral-400) 0 4px, transparent 4px 8px);
+}
+
 /* Per-stop review card: fields | 227px Affected Orders aside */
 .stops-timeline--review .stops-item {
   display: grid;
