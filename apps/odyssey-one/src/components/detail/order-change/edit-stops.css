@@ -518,14 +518,16 @@
 
 /* CNS-19: a new C has no Prior, so the New rail sits at the All Stops panel's
    left edge and the leg-distance tooltip (which opens to the LEFT of the rail,
-   showRailTip: rail centre - 8px) clipped at the viewport. Inset ONLY that
-   panel by the tooltip's room; the KPI strip above keeps its width. Order
-   change never gets the modifier class, so it is unaffected. */
+   showRailTip: rail centre - 8px) clipped at the viewport. Narrow ONLY that
+   panel and centre it: equal room on both sides, so the left side fits the
+   tooltip. The KPI strip above keeps its width. Order change never gets the
+   modifier class, so it is unaffected. */
 .edit-stops--no-prior {
   /* = .tooltip's max-width in components.css (no token exists) */
   --edit-stops-tip-w: 264px;
   --edit-stops-tip-gap: 8px; /* showRailTip's offset from the rail */
 }
 .edit-stops--no-prior > .sub-accordion {
-  margin-inline-start: calc(var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4));
+  max-width: calc(100% - 2 * (var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4)));
+  margin-inline: auto;
 }
