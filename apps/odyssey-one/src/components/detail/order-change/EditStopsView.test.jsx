@@ -688,6 +688,32 @@ it('F7/F8: collapsed Prior: UnfoldHorizontal expand icon, same header font as ex
   expect(screen.queryByRole('tooltip')).toBeNull()
 })
 
+it('F7: Prior line darkens while its leg tooltip shows — expanded and collapsed, segment or Info icon', () => {
+  setup()
+  const tipped = () => [...prior().querySelectorAll('[data-leg-tip]')]
+  const check = () => {
+    expect(tipped()).toHaveLength(0)
+    fireEvent.mouseMove(prior().querySelector('.odyssey-timeline__rail'), { clientY: 100 })
+    expect(tipped()).toHaveLength(1)
+    // the tipped element sits in the row whose own segment the rule darkens
+    expect(tipped()[0].closest('.odyssey-timeline__row').querySelector('.odyssey-timeline__segment--full')).toBeTruthy()
+    fireEvent.mouseLeave(prior())
+    expect(tipped()).toHaveLength(0)
+    // opened via the leg Info icon instead
+    fireEvent.mouseMove(prior().querySelector('.edit-stops__leg-icon'), { clientY: 100 })
+    expect(tipped()).toHaveLength(1)
+    fireEvent.mouseLeave(prior())
+    expect(tipped()).toHaveLength(0)
+  }
+  check() // expanded
+  edit()
+  expect(prior().querySelector('.edit-stops__rail--markers')).toBeTruthy()
+  check() // collapsed
+  // Prior's segment is covered by the completed FILL, so the rule targets the fill, in neutral-700 (New's tipped tone)
+  const rule = editStopsCss.match(/:has\(\[data-leg-tip\]\) > \.odyssey-timeline__rail \.odyssey-timeline__segment--full \.odyssey-timeline__segment-fill \{[^}]*\}/)[0]
+  expect(rule).toContain('var(--deep-sea-neutral-700)')
+})
+
 it('F8: expanded Prior collapse button is FoldHorizontal', () => {
   setup()
   edit()

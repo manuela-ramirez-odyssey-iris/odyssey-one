@@ -108,6 +108,15 @@
 .edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail:has(> .stop-badge--changed) .odyssey-timeline__segment {
   background: repeating-linear-gradient(to bottom, var(--deep-sea-neutral-700) 0 4px, transparent 4px 8px);
 }
+/* Prior (user 2026-09-29): its stops are 'completed', so the segment is already
+   covered by the Timeline's neutral-400 FILL and the 400 rule above shows
+   nothing. Darken the fill itself to the same neutral-700 New's dashed line
+   goes to. One rule for expanded Prior and the collapsed marker rail
+   (--markers has the same row > rail > segment structure; its data-leg-tip
+   sits on the marker button inside the row content). */
+.edit-stops__rail .odyssey-timeline__row:has([data-leg-tip]) > .odyssey-timeline__rail .odyssey-timeline__segment--full .odyssey-timeline__segment-fill {
+  background: var(--deep-sea-neutral-700);
+}
 
 /* A stop row (consolidation-review.css .consolidation-review__stop /
    __stop-inner): the air between stops is padding INSIDE the content, so
