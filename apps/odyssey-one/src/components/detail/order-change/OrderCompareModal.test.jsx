@@ -17,11 +17,12 @@ it('titles the dialog, names the order, and lists changed rows before unchanged 
   expect(screen.getAllByText('FOB')[0].closest('.text-badge')).toBeNull()
   expect(screen.queryByText('Preview Tender Details')).toBeNull()
 })
-it('Go Back closes; empty rows render both bands without crashing', () => {
+it('no footer (user 2026-09-29); Esc closes; empty rows render both bands without crashing', () => {
   const onClose = vi.fn()
   render(<OrderCompareModal orderId="1" rows={[]} onClose={onClose} />)
   expect(screen.getAllByText('(No Differences)')).toHaveLength(2)
-  fireEvent.click(screen.getByText('Go Back'))
+  expect(screen.queryByText('Go Back')).toBeNull()
+  fireEvent.keyDown(document, { key: 'Escape' })
   expect(onClose).toHaveBeenCalled()
 })
 it('lines are tabs with changed counts; opens on the first changed tab, else Order; switching swaps the table (DEC-196 amended)', () => {

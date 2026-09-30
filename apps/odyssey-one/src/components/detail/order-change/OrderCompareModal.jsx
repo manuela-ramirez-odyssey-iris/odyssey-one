@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Button, GroupTable, ModalMedium, Tab } from '@odyssey/ui'
+import { GroupTable, ModalMedium, Tab } from '@odyssey/ui'
 import OrderChangeTenderDetails from '../../shipments/order-change/OrderChangeTenderDetails.jsx'
 import { DiffValue, rowsToFlatGroups } from '../../shipments/order-change/comparisonHelpers.jsx'
 import '../../shipments/order-change/order-change.css'
@@ -89,7 +89,6 @@ export default function OrderCompareModal({ orderId, rows = [], lines = [], line
       ariaLabel={title}
       onClose={onClose}
       scrollableContent
-      footer={<Button variant="secondary" onClick={onClose}>Go Back</Button>}
     >
       <div className="tab-group" role="tablist" aria-label="Order Changes sections" onKeyDown={onKeyDown}>
         {tabs.map((t, i) => (

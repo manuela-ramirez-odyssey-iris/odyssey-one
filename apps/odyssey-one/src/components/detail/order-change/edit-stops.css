@@ -369,8 +369,11 @@
    table only, not packages/ui. */
 .add-orders .odyssey-group-table__row td { color: var(--text-primary); }
 /* The sticky footer sits flush on <main>'s bottom edge — drop the page's own
-   bottom padding (same as .consolidation-review). */
-.order-change--edit-stops { padding-bottom: 0; }
+   bottom padding (same as .consolidation-review). Doubled class: this file is
+   imported BEFORE order-change.css (route imports EditStopsView first), so a
+   single class tied `.order-change`'s padding-bottom and lost on source order —
+   the 32px reappeared as a gap under the footer at the end of the scroll. */
+.order-change.order-change--edit-stops { padding-bottom: 0; }
 
 /* Motion (user 2026-09-24): whatever an action touched pulses once where it
    landed — the table's odyssey-row-highlight (components.css), so a moved
