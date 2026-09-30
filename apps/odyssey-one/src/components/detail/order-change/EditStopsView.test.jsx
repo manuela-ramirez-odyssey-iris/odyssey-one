@@ -571,27 +571,41 @@ it('F1: collapsed rail signals Removed (struck) on a set-aside stop', () => {
   expect(prior().querySelector('.edit-stops__badge--removed')).toBeTruthy()
 })
 
-it('F2: strip = Distance/Gross Weight/Volume only; live while collapsed, no costs or carrier cells', () => {
+const STRIP = ['Distance', 'Gross Weight', 'Volume', 'Prior Cost', 'New Direct Cost']
+const HEAD = ['New Consolidated Cost', 'Accepted Carrier', 'Seed Equipment', 'Utilization']
+
+it('F2: strip = exactly Distance/Gross Weight/Volume/Prior Cost/New Direct Cost, in order, in both states; costs identical', () => {
   setup({ summary: summaryFull })
+  const region = () => screen.getByLabelText('Shipment KPIs')
+  const costs = []
   for (const collapsed of [false, true]) {
     if (collapsed) edit()
-    for (const t of ['Prior Cost', 'New Direct Cost', 'New Consolidated Cost', 'Accepted Carrier', 'Seed Equipment', 'Utilization']) expect(strip().queryByText(t)).toBeNull()
-    for (const t of ['Distance', 'Gross Weight', 'Volume']) expect(strip().getByText(t)).toBeTruthy()
+    const txt = region().textContent
+    const idx = STRIP.map((t) => txt.indexOf(t))
+    expect(idx.every((i) => i >= 0)).toBe(true)
+    expect([...idx].sort((x, y) => x - y)).toEqual(idx)
+    for (const t of HEAD) expect(strip().queryByText(t)).toBeNull()
+    expect(strip().getByText('$1,000.00')).toBeTruthy()
+    expect(strip().getByText('$1,100.00')).toBeTruthy()
+    costs.push(strip().getByText('$1,000.00').closest('div').textContent)
   }
+  expect(costs[0]).toBe(costs[1])
   // live: setting an order aside changes the weight (A = 5 LB, of 1,015 LB)
   const before = strip().getByText(/LB$/).textContent
   fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
   expect(strip().getByText(/LB$/).textContent).not.toBe(before)
 })
 
-it('F2: All Stops shows the 9 fields left of View Planning Dates', () => {
+it('F2: All Stops shows exactly the 4 fields left of View Planning Dates, none of the strip\'s; no label in both', () => {
   setup({ summary: summaryFull })
   const head = document.querySelector('.edit-stops__head')
   const metrics = head.querySelector('.edit-stops__metrics')
   const link = within(head).getByRole('button', { name: 'View Planning Dates' })
-  for (const t of ['Prior Cost', 'New Direct Cost', 'New Consolidated Cost', 'Distance', 'Gross Weight', 'Volume', 'Accepted Carrier', 'Seed Equipment', 'Utilization']) {
-    expect(within(metrics).getByText(t)).toBeTruthy()
-  }
+  for (const t of HEAD) expect(within(metrics).getByText(t)).toBeTruthy()
+  for (const t of STRIP) expect(within(metrics).queryByText(t)).toBeNull()
+  expect(metrics.children).toHaveLength(4)
+  for (const t of STRIP) expect(screen.getAllByText(t)).toHaveLength(1)   // strip only
+  for (const t of HEAD) expect(screen.getAllByText(t)).toHaveLength(1)    // header only
   expect(within(metrics).getByText('ACME')).toBeTruthy()
   // metrics precede the link in DOM order (lead side)
   expect(metrics.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

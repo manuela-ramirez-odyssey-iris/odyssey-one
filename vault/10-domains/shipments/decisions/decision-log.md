@@ -1406,14 +1406,15 @@ Spec: `docs/superpowers/specs/2026-09-29-order-change-jana-sync-slice.md`.
 
 Spec: `docs/superpowers/specs/2026-09-29-order-change-edit-stops-jana-slice.md`. Every item was ruled by the user in chat (S164).
 
-### DEC-225: Prior collapses on Edit; the strip shows Distance / Weight / Volume, new values while collapsed, pairs when open
-- **Previous:** Prior was always full width beside New, and the page-level KPI strip always showed the Prior/New pairs plus Accepted Carrier, Seed Equipment and Utilization.
-- **Decision:** Edit collapses Prior to a ~56px marker rail: the P/D markers, a gray dot for Moved, a struck marker for Removed, and a tooltip per marker. A chevron expands it, and leaving edit mode re-expands it.
-  - The Edit Stops strip is live and holds only **Distance, Gross Weight and Volume**: new values while Prior is collapsed, Prior/New pairs when it's open.
-  - The All Stops header keeps its six metrics (the three costs, distance, weight, volume) and gains **Accepted Carrier, Seed Equipment and Utilization**, all on the lead side of View Planning Dates.
-  - The Stops tab's strip is unchanged.
-- **Revised the same day:** the first build (`c18ece0`) put the costs in the strip and removed the All Stops metrics. The user corrected both.
-- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@03:30`, `@04:08`, `@16:01`–`@18:53`; user 2026-09-29 (*"place them lead side of view planning dates, all stops used to have fields lead side of planning dates"*).
+### DEC-225: Prior collapses on Edit; a five-field strip, with nothing repeated in the All Stops row
+- **Previous:** Prior was always full width beside New. The page-level KPI strip showed the Prior/New pairs plus Accepted Carrier, Seed Equipment and Utilization, and the All Stops header repeated the costs, distance, weight and volume.
+- **Decision:**
+  - **Prior collapse.** Edit collapses Prior to a ~56px marker rail: the P/D markers, a gray dot for Moved, a struck marker for Removed, and a tooltip per marker. A chevron expands it, and leaving edit mode re-expands it.
+  - **The Edit Stops strip** (live) holds **Distance, Gross Weight, Volume, Prior Cost, New Direct Cost**. With Prior collapsed it shows the new values; with Prior open, the first three show their Prior/New pairs.
+  - **The All Stops row** holds **New Consolidated Cost, Accepted Carrier, Seed Equipment, Utilization**, then View Planning Dates. No field appears in both places.
+  - **The Stops tab's strip** is unchanged.
+- **Revised twice the same day:** `c18ece0` put every cost in the strip and emptied the All Stops row. `8711828` repeated the values in both places. The user's final ruling is above.
+- **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@03:30`, `@04:08`, `@16:01`–`@18:53`; user 2026-09-29 (*"if we have fields in the strip we don't need them repeated in all stops row"*; *"yes no repeated"*).
 
 ### DEC-226: A decorative info icon marks the leg distance; the move arrows are always visible in edit mode
 - **Previous:** the leg-distance tooltip had no visible cue (Jana couldn't find it), and the move arrows appeared only on hover.
@@ -1434,7 +1435,7 @@ Spec: `docs/superpowers/specs/2026-09-29-order-change-edit-stops-jana-slice.md`.
 
 | Date | Decisions added |
 |---|---|
-| Sep 29, 2026 | **DEC-225 through DEC-228** (Jana 09-29 Edit Stops layout): Prior collapses on Edit + strip = Distance/Weight/Volume (new while collapsed, pairs when open), carrier/equipment/utilization join the All Stops header; decorative leg-distance icon + always-visible arrows; Planned Pickup/Delivery in Planning Dates; Order Changes modal tabs (amends DEC-196). **Previous state:** full-width Prior, fixed strip + duplicated All Stops metrics, hover-only arrows, window-only Planning Dates, stacked line blocks |
+| Sep 29, 2026 | **DEC-225 through DEC-228** (Jana 09-29 Edit Stops layout): Prior collapses on Edit + 5-field strip (Distance, Gross Weight, Volume, Prior Cost, New Direct Cost) + All Stops row (New Consolidated Cost, Accepted Carrier, Seed Equipment, Utilization), nothing repeated; decorative leg-distance icon + always-visible arrows; Planned Pickup/Delivery in Planning Dates; Order Changes modal tabs (amends DEC-196). **Previous state:** full-width Prior, fixed strip + duplicated All Stops metrics, hover-only arrows, window-only Planning Dates, stacked line blocks |
 | Sep 29, 2026 | **DEC-220 through DEC-224** (Jana 09-29 sync, non-design slice): land on the Tender screen after Bypass/Re-Tender; no active prior tender (incl. To Be Tendered) → Approve Changes → manual tender; tender resolution carries the plan's dates; *Set Aside* → *Remove* (amends DEC-194); X/crumbs keep edits and block re-resolving. **Previous state:** S135 landing, Bypass on any prior, seeded routing dates on `newOption`, DEC-194 label |
 | Sep 29, 2026 | **DEC-215 through DEC-218**: the user's rulings on the S163 audit. Evaluate re-routes from the edited stops (prototype recompute); a one-order result flips to Direct in place (09-23 hide rule not applied); a removed order's new shipment has no carrier list until planned; order-change Save is live-only. N4 provisionally dropped, N5 closed. **Previous state:** seeded list, row/detail mismatch, unspecified list, mock no-op |
 | Sep 29, 2026 | **DEC-212 through DEC-214**: shipped without an entry, recorded after the S163 audit. The Edit Stops redesign (Prior \| New, compact drag state vs edit mode, pending column in edit mode only, rail distance tooltip; amends DEC-197/198/137); *Keep here* (deviates from 15668 §5); a created stop's joint default date (deviates from 15871's blank). DEC-200 marked amended by DEC-207; DEC-207 caveat: the routing modal still shows the seeded list. **Previous state:** built S160/S162, untraced |

@@ -10,8 +10,9 @@ import { DiffValue } from '../../shipments/order-change/comparisonHelpers.jsx'
 // import, no markup/behavior change there.
 //
 // S164 F2 (revised, user 2026-09-29): the Edit Stops editor renders it with the
-// optional `live` / `priorCollapsed` props: ONLY Distance, Gross Weight, Volume
-// (costs + carrier/equipment/utilization live in the All Stops header). Without
+// optional `live` / `priorCollapsed` props: exactly Distance, Gross Weight, Volume,
+// Prior Cost, New Direct Cost (the rest lives in the All Stops header; no label
+// in both). Without
 // them (StopsTab) the output is today's 6 cells.
 export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed }) {
   // LINX-15435: "Distance, Gross Weight, and Volume shall display Prior and
@@ -53,6 +54,9 @@ export default function ReviewKpiStrip({ summary, changes, live, priorCollapsed 
       liveCell('distance', 'Distance'),
       liveCell('grossWeight', 'Gross Weight'),
       liveCell('volume', 'Volume'),
+      // Same in both states: no pair, no changed signal.
+      { label: 'Prior Cost', value: live.priorCost },
+      { label: 'New Direct Cost', value: live.newDirectCost },
     ]
     return <SummaryStrip sticky className="stops-kpi-strip" items={liveItems} aria-label="Shipment KPIs" />
   }

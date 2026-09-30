@@ -573,7 +573,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
   return (
     <div className="edit-stops" ref={rootRef}>
-      {/* S164 F2 (revised) — the strip (Distance/Gross Weight/Volume only) lives
+      {/* S164 F2 (revised) — the strip (Distance/Gross Weight/Volume/Prior Cost/New Direct Cost) lives
           here: live values + the collapse state are this component's. */}
       <ReviewKpiStrip
         summary={summary}
@@ -583,6 +583,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
           grossWeight: curTotals.grossWeight,
           volume: curTotals.volume,
           distance: distance == null ? '--' : `${distance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`,
+          priorCost: val(consolidation?.costs?.prior),
+          newDirectCost: val(consolidation?.costs?.newDirect),
           changed: { grossWeight: weightChanged, volume: volumeChanged, distance: distanceChanged },
         }}
       />
@@ -592,13 +594,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       >
         <div className="edit-stops__head">
           <div className="edit-stops__metrics">
-            <TitleSubtitle subtitle="Prior Cost" title={val(consolidation?.costs?.prior)} />
-            <TitleSubtitle subtitle="New Direct Cost" title={val(consolidation?.costs?.newDirect)} />
             <TitleSubtitle subtitle="New Consolidated Cost" title={val(consolidation?.costs?.newConsolidated)} />
-            {/* T2 — thousands separator, same formatter as the header KPI (fmtDistance). */}
-            <TitleSubtitle subtitle="Distance" title={<DiffValue value={distance == null ? '--' : `${distance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`} changed={distanceChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
-            <TitleSubtitle subtitle="Gross Weight" title={<DiffValue value={curTotals.grossWeight} changed={weightChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
-            <TitleSubtitle subtitle="Volume" title={<DiffValue value={curTotals.volume} changed={volumeChanged} leftIcon={<TriangleAlert {...ICON_MD} aria-hidden="true" />} />} />
             {/* S164 F2 (revised): plain, from the summary prop. */}
             <TitleSubtitle subtitle="Accepted Carrier" title={summary?.acceptedCarrier || '--'} />
             <TitleSubtitle subtitle="Seed Equipment" title={summary?.seedEquipment || '--'} />

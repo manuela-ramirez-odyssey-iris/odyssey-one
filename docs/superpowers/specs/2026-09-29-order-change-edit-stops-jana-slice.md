@@ -24,15 +24,21 @@ Jana: *"once they click on the edit… collapse the prior… put it as an arrow 
 - **Motion:** the width change animates the way the pending column's slot already does (`edit-stops__pending-slot--open`). Honour `prefers-reduced-motion`.
 - The collapsed rail is `inert`-free: it is a real, focusable control.
 
-## F2 — KPI strip: Distance / Gross Weight / Volume only (REVISED, user 2026-09-29 after the first build `c18ece0`)
-The first build misread the ruling: it put the costs into the strip and deleted the All Stops metrics. User: *"why you are putting new consolidated cost there, same for accepted carrier, seed equipment, utilization… you removed those fields from all stops which I didn't say to do"*; *"place them lead side of view planning dates, all stops used to have fields lead side of planning dates."*
-- **Strip (inside Edit Stops, sticky, live):** only **Distance, Gross Weight, Volume**.
-  - **Prior collapsed:** their current (new) values, live, with the changed signal (`DiffValue` + `TriangleAlert`).
-  - **Prior expanded:** the Prior / New pairs when changed (today's `cell`), else the current value.
-  - **No costs, no Accepted Carrier / Seed Equipment / Utilization** in the Edit Stops strip.
-- **All Stops header, restored:** the metrics row sits on the **lead (left) side of View Planning Dates**, exactly as before `c18ece0`: Prior Cost, New Direct Cost, New Consolidated Cost, Distance, Gross Weight, Volume (same `TitleSubtitle` + `DiffValue` markup and the `.edit-stops__metrics` CSS). Then **Accepted Carrier, Seed Equipment and Utilization** are added after Volume, as plain `TitleSubtitle`s from `summary`. View Planning Dates stays on the trail.
-- **`StopsTab`'s strip is unchanged**: today's six cells, with the optional props absent.
-- LINX-15435's Prior/New pairs are still one click away (expand Prior).
+## F2 — KPI strip: five fields, nothing repeated (REVISED ×2, user 2026-09-29)
+History: `c18ece0` put all the costs in the strip and deleted the All Stops metrics. `8711828` then made the strip Distance/Weight/Volume only and restored the All Stops metrics, which left the values repeated. Final ruling (user): *"if we have fields in the strip we don't need them repeated in all stops row"*; the strip is the agreed **five fields**, New Consolidated Cost is not one of them, *"yes no repeated"*.
+
+| Edit Stops strip (sticky, live) | All Stops header row, lead side of View Planning Dates |
+|---|---|
+| Distance | New Consolidated Cost |
+| Gross Weight | Accepted Carrier |
+| Volume | Seed Equipment |
+| Prior Cost | Utilization |
+| New Direct Cost | |
+
+- **Strip, Prior collapsed:** the current (new) values; Distance, Gross Weight and Volume are live with the changed signal (`DiffValue` + `TriangleAlert`). **Prior expanded:** Distance, Gross Weight and Volume show the Prior / New pairs when changed (today's `cell`). The two costs render the same in both states.
+- **All Stops header:** only the four fields above, as `TitleSubtitle`s in `.edit-stops__metrics`, then View Planning Dates on the trail. **No field appears in both places.**
+- `StopsTab`'s strip is unchanged: today's six cells, with the optional props absent.
+- LINX-15435's pairs are one click away (expand Prior).
 
 ## F3 — Distance info icon between stops (Jana `@04:54`)
 Jana: *"put an indicator… information symbol in between P1 and P2… user hovers on top, it shows the distance."* The leg-distance tooltip already exists (hover the rail near a marker: `showRailTip`, `legTips`, `EditStopsView.jsx:224-230,397`). He just didn't know it was there.
@@ -70,7 +76,7 @@ Today (`OrderCompareModal.jsx`) the modal stacks an "Order Number: …" HeaderSt
 
 ## Tests (vitest)
 - **F1:** Edit collapses Prior. The collapsed rail shows markers only, with no order ids or addresses. The chevron expands and collapses it, with the right aria-expanded. Save, Discard and Reset re-expand it. The Moved/Removed signals render.
-- **F2 (revised):** the Edit Stops strip has exactly Distance, Gross Weight and Volume: new values while collapsed, pairs when expanded, and no costs or carrier/equipment/utilization cells. The All Stops header shows the six restored metrics plus Accepted Carrier, Seed Equipment and Utilization, left of View Planning Dates. The StopsTab strip is unchanged.
+- **F2 (revised ×2):** the strip has exactly Distance, Gross Weight, Volume, Prior Cost and New Direct Cost (new values while collapsed; pairs for the first three when expanded). The All Stops header has exactly New Consolidated Cost, Accepted Carrier, Seed Equipment and Utilization, then View Planning Dates. No label appears in both. The StopsTab strip is unchanged.
 - **F3:** one decorative info icon between each pair of stops in New (none in collapsed Prior), and the existing leg-tooltip tests still pass unchanged.
 - **F4:** arrows render without hover in edit mode.
 - **F5:** the helper returns each order's pickup/delivery stop dates from New, and `--` for a pending order. The modal renders both columns, and a move changes the value.
