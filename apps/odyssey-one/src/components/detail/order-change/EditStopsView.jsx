@@ -188,13 +188,20 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
     ro.observe(strip)
     return () => ro.disconnect()
   }, [])
-  // S164 F8: the collapsed Prior rail is never shorter than the expanded one.
-  // Prior is expanded before Edit, so re-measure its rail whenever it renders
-  // expanded and leave the last value in place while collapsed.
+  // S164 F8: the ORIGINAL expanded Prior line (pre-Edit, full width) is the
+  // MAXIMUM length of the collapsed rail. Measure only when not editing: in
+  // edit mode expanded Prior sits in a narrow column, its rows wrap and the
+  // rail gets taller than the original. Re-runs after Save/Discard/Reset or a
+  // stops change outside edit mode. Also publishes the average segment so the
+  // CSS can give the collapsed rail a natural (shorter) height.
   const priorCardRef = useRef(null)
   useLayoutEffect(() => {
+    if (editing) return
     const rail = priorCardRef.current?.querySelector('.edit-stops__rail')
-    if (rail) rootRef.current?.style.setProperty('--edit-stops-prior-rail-h', `${rail.offsetHeight}px`)
+    if (!rail) return
+    const h = rail.offsetHeight
+    rootRef.current?.style.setProperty('--edit-stops-prior-rail-h', `${h}px`)
+    rootRef.current?.style.setProperty('--edit-stops-prior-seg-h', `${h / Math.max(sb.prior.length - 1, 1)}px`)
   })
   const prevTops = useRef(null)
   const [flash, setFlash] = useState([])

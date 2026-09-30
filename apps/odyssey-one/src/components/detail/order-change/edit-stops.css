@@ -459,8 +459,12 @@
    runs unbroken to the next marker. The row's content becomes a
    pointer-transparent overlay; only the badge-high hit area (20px) is live, so
    the segment below stays free for the leg tooltip (showRailTip). */
-.edit-stops__rail--markers { flex: 1 1 auto; align-self: center; width: 32px; height: var(--edit-stops-prior-rail-h, auto); max-height: var(--edit-stops-prior-rail-h, none); }
-.edit-stops__rail--markers .odyssey-timeline__row { gap: 0; flex: 1 1 0; }
+/* Length: the ORIGINAL expanded rail (--edit-stops-prior-rail-h, measured
+   pre-Edit) is a MAXIMUM, never forced. Each segment gets the expanded rail's
+   average segment (--edit-stops-prior-seg-h) but may shrink, so the rail is
+   natural-height and the max-height cap keeps it <= the original line. */
+.edit-stops__rail--markers { flex: 0 1 auto; align-self: center; width: 32px; max-height: var(--edit-stops-prior-rail-h, none); }
+.edit-stops__rail--markers .odyssey-timeline__row { gap: 0; flex: 0 1 var(--edit-stops-prior-seg-h, 0); }
 .edit-stops__rail--markers .odyssey-timeline__row:last-child { flex: 0 0 auto; }
 .edit-stops__rail--markers .odyssey-timeline__content { position: absolute; inset: 0; pointer-events: none; }
 .edit-stops__rail--markers [data-tooltip-trigger] {

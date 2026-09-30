@@ -685,20 +685,23 @@ it('F8: collapsed Prior card is not sticky and has no footer-derived height', ()
   expect(editStopsCss).not.toMatch(/--edit-stops-footer-h|--edit-stops-scroll-h/)
 })
 
-it('F8: the measured expanded rail height becomes the collapsed rail max-height var', () => {
+it('F8: only the original (non-editing) expanded rail is measured; Edit never overwrites it; max-height uses the var', () => {
   const orig = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
-  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.classList.contains('edit-stops__rail') ? 321 : 0 } })
+  let railH = 321
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.classList.contains('edit-stops__rail') ? railH : 0 } })
   try {
     setup()
     const root = document.querySelector('.edit-stops')
     expect(root.style.getPropertyValue('--edit-stops-prior-rail-h')).toBe('321px')
+    // edit-mode layout wraps rows taller; that must not replace the original
+    railH = 900
     edit()
-    // kept while collapsed, and the CSS rail rule consumes it as max-height
     expect(root.style.getPropertyValue('--edit-stops-prior-rail-h')).toBe('321px')
   } finally {
     Object.defineProperty(HTMLElement.prototype, 'offsetHeight', orig)
   }
   expect(editStopsCss).toMatch(/\.edit-stops__rail--markers \{[^}]*max-height:\s*var\(--edit-stops-prior-rail-h/)
+  expect(editStopsCss).not.toMatch(/\.edit-stops__rail--markers \{[^}]*[^-]height:\s*var\(--edit-stops-prior-rail-h/)
 })
 
 it('F7: the info icon is offset to the LEFT of the line (translate -100%, negative left)', () => {
