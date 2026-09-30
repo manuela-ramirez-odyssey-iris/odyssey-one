@@ -55,7 +55,8 @@
   gap: var(--spacing-6);
 }
 .tender-review-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-1); }
-.tender-review-head h1 { margin: 0; color: var(--text-primary); }
+.tender-review-navtitle { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.tender-review-navtitle__pre { color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; }
 .tender-review-muted { color: var(--text-tertiary); }
 .tender-review-section { display: flex; flex-direction: column; gap: var(--spacing-3); padding-top: var(--spacing-6); border-top: 1px solid var(--border-subtle); }
 .tender-review-h { margin: 0; color: var(--text-primary); }

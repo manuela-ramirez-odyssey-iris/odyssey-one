@@ -130,12 +130,25 @@ export default function TenderReview() {
     </>
   )
 
+  // S159 (user): the bar names the tender, with a "Request For Tender"
+  // pretitle — passed as a node since GlobalSearch's title mode has no
+  // pretitle prop (kept app-local, the normalized component is untouched).
+  const tenderTitle = effectiveOption && shipment
+    ? `${String(effectiveOption.carrierName ?? scac).toUpperCase()} - Tender ${shipment.odysseyShipmentIdentifier}`
+    : null
+  const navTitle = tenderTitle ? (
+    <span className="tender-review-navtitle">
+      <span className="tender-review-navtitle__pre text-label-xs-medium">Request For Tender</span>
+      <span>{tenderTitle}</span>
+    </span>
+  ) : 'Carrier Portal'
+
   const navbar = (
     <div className="carrier-bid-navbar-wrap">
       <Navbar
         context="external"
         lead={<LeadNav showMenu={false} logo={<OdysseyLogo variant="dark" />} />}
-        search={<GlobalSearch mode="title" title="Carrier Portal" />}
+        search={<GlobalSearch mode="title" title={navTitle} />}
         trailRef={profileDropdownRef}
         trail={trailContent}
       />
@@ -308,7 +321,6 @@ export default function TenderReview() {
       <main className="carrier-bid-page__main">
         <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': '0ms' }}>
           <header className="tender-review-head">
-            <h1 className="text-heading-lg-semibold">{`${effectiveOption.carrierName} — Tender ${shipment.odysseyShipmentIdentifier}`}</h1>
             <div className="tender-review-subline text-label-sm-regular">
               {firstPickup?.location ?? '--'} → {lastDelivery?.location ?? '--'}
             </div>
