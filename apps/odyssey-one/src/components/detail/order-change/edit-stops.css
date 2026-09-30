@@ -516,18 +516,24 @@
 .edit-stops .edit-stops__badge--removed { opacity: var(--opacity-muted); }
 .edit-stops .edit-stops__badge--removed .stop-badge__label { text-decoration: line-through; }
 
-/* CNS-19: a new C has no Prior, so the New rail sits at the All Stops panel's
-   left edge and the leg-distance tooltip (which opens to the LEFT of the rail,
-   showRailTip: rail centre - 8px) clipped at the viewport. Narrow ONLY that
-   panel and centre it: equal room on both sides, so the left side fits the
-   tooltip. The KPI strip above keeps its width. Order change never gets the
-   modifier class, so it is unaffected. */
+/* CNS-19: a new C has no Prior, so the New rail sits near the left edge and the
+   leg-distance tooltip (opens to the LEFT of the rail centre, showRailTip: -8px)
+   clipped at the viewport. Narrow ONLY the All Stops panel and centre it; the
+   KPI strip above keeps its width. Order change never gets this class.
+   Per-side inset = the room the tooltip needs left of the rail centre, minus
+   the room that already exists there:
+     needs   264 (tooltip) + 8 (offset) + 16 (air)                  = 288
+     exists  32 (main padding) + 24 (.sub-accordion) + 20 (.edit-stops__plan)
+             + 16 (half the 32px .stop-badge, rail centre)           =  92
+     inset   288 - 92                                                = 196 */
 .edit-stops--no-prior {
   /* = .tooltip's max-width in components.css (no token exists) */
   --edit-stops-tip-w: 264px;
   --edit-stops-tip-gap: 8px; /* showRailTip's offset from the rail */
+  --edit-stops-badge-half: 16px; /* .stop-badge min-width is 32px (components.css) */
+  --edit-stops-tip-inset: calc(var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4) - var(--spacing-8) - var(--spacing-6) - var(--spacing-5) - var(--edit-stops-badge-half));
 }
 .edit-stops--no-prior > .sub-accordion {
-  max-width: calc(100% - 2 * (var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4)));
+  max-width: calc(100% - 2 * var(--edit-stops-tip-inset));
   margin-inline: auto;
 }
