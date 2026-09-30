@@ -1,6 +1,6 @@
 /* Consolidation Summary + Selected shipments table, brought back on the stops
    editor (S11); values recovered from the retired consolidation-review.css. */
-.consolidation-summary { display: flex; flex-direction: column; gap: var(--spacing-4); margin-bottom: var(--spacing-4); }
+.consolidation-summary { display: flex; flex-direction: column; } /* single child, sits directly on the metrics strip (user 2026-09-30) */
 .consolidation-summary__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
 /* ONE column grid with the metrics strip below (user 2026-09-30, "both strips
    aligned left, top cells x2"). SummaryStrip sizes cells `flex: 1 1 152px`,
