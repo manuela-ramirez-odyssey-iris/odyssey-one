@@ -677,7 +677,7 @@ export default function EditStopsView({
   }
 
   return (
-    <div className="edit-stops" ref={rootRef}>
+    <div className={`edit-stops${showPrior ? '' : ' edit-stops--no-prior'}`} ref={rootRef}>
       {/* S164 F2 (revised) — the strip (Distance/Gross Weight/Volume/Prior Cost/New Direct Cost) lives
           here: live values + the collapse state are this component's. */}
       <ReviewKpiStrip

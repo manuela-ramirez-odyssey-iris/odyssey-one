@@ -868,6 +868,14 @@ describe('EditStopsView — consolidation props (no Prior)', () => {
     return { onApprove }
   }
 
+  it('carries the no-prior modifier (room for the leg tooltip); order change does not', () => {
+    consol()
+    expect(document.querySelector('.edit-stops').classList.contains('edit-stops--no-prior')).toBe(true)
+    cleanup()
+    setup()
+    expect(document.querySelector('.edit-stops').classList.contains('edit-stops--no-prior')).toBe(false)
+  })
+
   it('has no Prior panel, and Edit shows no prior-collapse controls', () => {
     consol()
     expect(screen.queryByRole('region', { name: 'Prior plan' })).toBeNull()

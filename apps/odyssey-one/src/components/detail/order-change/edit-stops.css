@@ -515,3 +515,17 @@
 /* Removed: dimmed with a strike through the label. */
 .edit-stops .edit-stops__badge--removed { opacity: var(--opacity-muted); }
 .edit-stops .edit-stops__badge--removed .stop-badge__label { text-decoration: line-through; }
+
+/* CNS-19: a new C has no Prior, so the New rail sits at the All Stops panel's
+   left edge and the leg-distance tooltip (which opens to the LEFT of the rail,
+   showRailTip: rail centre - 8px) clipped at the viewport. Inset ONLY that
+   panel by the tooltip's room; the KPI strip above keeps its width. Order
+   change never gets the modifier class, so it is unaffected. */
+.edit-stops--no-prior {
+  /* = .tooltip's max-width in components.css (no token exists) */
+  --edit-stops-tip-w: 264px;
+  --edit-stops-tip-gap: 8px; /* showRailTip's offset from the rail */
+}
+.edit-stops--no-prior > .sub-accordion {
+  margin-inline-start: calc(var(--edit-stops-tip-w) + var(--edit-stops-tip-gap) + var(--spacing-4));
+}
