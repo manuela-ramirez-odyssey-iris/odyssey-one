@@ -393,7 +393,7 @@
   transform: translate(-100%, -50%);
   display: flex;
   width: var(--icon-size-md); /* 16px, pinned so nothing inherits it larger */
-  color: var(--text-placeholder); /* neutral-400 — lighter than the text-tertiary it had */
+  color: var(--deep-sea-neutral-300); /* one tone lighter than --text-placeholder (user 2026-09-29); no semantic icon token at neutral-300 yet */
   pointer-events: none;
 }
 .edit-stops__rail--detached .edit-stops__leg-icon { --leg-rail-pad: var(--spacing-2); }
@@ -407,11 +407,12 @@
    1→0 + basis 0→rail, the flex-derived width can't transition as `width`),
    like the pending slot; the card inside fades + slides in from the LEFT
    (the pending panel slides from the right). Reduced motion turns both off.
-   Transparent: the card carries the panel look. stretch (not flex-start) so
-   the sticky collapsed card has the body's full height to float in. */
+   Transparent: the card carries the panel look. Flex column + stretch so the
+   collapsed card can fill the row's height (F8). */
 .edit-stops__plan--prior {
   --edit-stops-prior-rail-w: 80px; /* 32px rail centred, the icon's 16px + spacing-1 to its left, spacing-3 padding each side (component-internal geometry) */
-  display: block;
+  display: flex;
+  flex-direction: column;
   align-self: stretch;
   padding: 0;
   background: none;
@@ -439,17 +440,14 @@
   border: 1px solid var(--border-subtle);
   box-shadow: none;
 }
-/* Collapsed: a floating card like the pending panel (same sticky top), stretched
-   down to the sticky footer. Height = the scroller's visible height minus the
-   footer and the strip: top is (strip - spacing-8 + spacing-4) and the card
-   stops spacing-4 above the footer, so the spacing terms cancel.
-   --edit-stops-scroll-h / -footer-h / -strip-h are measured in EditStopsView. */
+/* Collapsed (F8): no float — in normal flow like expanded Prior, but it does
+   NOT stretch with the row: the rail's max-height is the expanded rail's
+   measured height (--edit-stops-prior-rail-h, set in EditStopsView); height is
+   pinned to it too so the markers have room to spread (space-between). */
 .edit-stops__prior-card--rail {
-  position: sticky;
-  top: calc(-1 * var(--spacing-8) + var(--edit-stops-strip-h, var(--spacing-8)) + var(--spacing-4));
+  flex: 0 0 auto;
   box-sizing: border-box;
   width: var(--edit-stops-prior-rail-w);
-  height: calc(var(--edit-stops-scroll-h, 100vh) - var(--edit-stops-footer-h, 0px) - var(--edit-stops-strip-h, var(--spacing-8)));
   padding: var(--spacing-5) var(--spacing-3);
   align-items: center;
 }
@@ -461,7 +459,7 @@
    runs unbroken to the next marker. The row's content becomes a
    pointer-transparent overlay; only the badge-high hit area (20px) is live, so
    the segment below stays free for the leg tooltip (showRailTip). */
-.edit-stops__rail--markers { flex: 1 1 auto; align-self: center; width: 32px; }
+.edit-stops__rail--markers { flex: 1 1 auto; align-self: center; width: 32px; height: var(--edit-stops-prior-rail-h, auto); max-height: var(--edit-stops-prior-rail-h, none); }
 .edit-stops__rail--markers .odyssey-timeline__row { gap: 0; flex: 1 1 0; }
 .edit-stops__rail--markers .odyssey-timeline__row:last-child { flex: 0 0 auto; }
 .edit-stops__rail--markers .odyssey-timeline__content { position: absolute; inset: 0; pointer-events: none; }

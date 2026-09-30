@@ -650,7 +650,7 @@ it('F7: a gap element sits between the KPI strip and the All Stops panel', () =>
   expect(gap.nextElementSibling.textContent).toContain('All Stops')
 })
 
-it('F7: collapsed Prior: Maximize2 expand icon, same header font as expanded, leg tooltip on a segment', () => {
+it('F7/F8: collapsed Prior: UnfoldHorizontal expand icon, same header font as expanded, leg tooltip on a segment', () => {
   setup()
   const titleOf = () => within(prior()).getByRole('heading', { name: 'Prior' })
   const expandedClass = titleOf().className
@@ -658,7 +658,7 @@ it('F7: collapsed Prior: Maximize2 expand icon, same header font as expanded, le
   expect(titleOf().className).toBe(expandedClass)
   expect(titleOf().className).toContain('text-label-base-semibold')
   const show = within(prior()).getByRole('button', { name: 'Show prior plan' })
-  expect(show.querySelector('.lucide-maximize-2')).toBeTruthy()
+  expect(show.querySelector('.lucide-unfold-horizontal')).toBeTruthy()
   // hovering the first segment shows Prior's leg distance (existing showRailTip)
   const seg = prior().querySelector('.odyssey-timeline__rail')
   fireEvent.mouseMove(seg, { clientY: 100 })
@@ -671,11 +671,41 @@ it('F7: collapsed Prior: Maximize2 expand icon, same header font as expanded, le
   expect(screen.queryByRole('tooltip')).toBeNull()
 })
 
+it('F8: expanded Prior collapse button is FoldHorizontal', () => {
+  setup()
+  edit()
+  fireEvent.click(within(prior()).getByRole('button', { name: 'Show prior plan' }))
+  const hide = within(prior()).getByRole('button', { name: 'Hide prior plan' })
+  expect(hide.querySelector('.lucide-fold-horizontal')).toBeTruthy()
+})
+
+it('F8: collapsed Prior card is not sticky and has no footer-derived height', () => {
+  const rule = editStopsCss.match(/\.edit-stops__prior-card--rail \{[^}]*\}/)[0]
+  expect(rule).not.toMatch(/sticky|height:\s*calc|footer-h|scroll-h/)
+  expect(editStopsCss).not.toMatch(/--edit-stops-footer-h|--edit-stops-scroll-h/)
+})
+
+it('F8: the measured expanded rail height becomes the collapsed rail max-height var', () => {
+  const orig = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.classList.contains('edit-stops__rail') ? 321 : 0 } })
+  try {
+    setup()
+    const root = document.querySelector('.edit-stops')
+    expect(root.style.getPropertyValue('--edit-stops-prior-rail-h')).toBe('321px')
+    edit()
+    // kept while collapsed, and the CSS rail rule consumes it as max-height
+    expect(root.style.getPropertyValue('--edit-stops-prior-rail-h')).toBe('321px')
+  } finally {
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', orig)
+  }
+  expect(editStopsCss).toMatch(/\.edit-stops__rail--markers \{[^}]*max-height:\s*var\(--edit-stops-prior-rail-h/)
+})
+
 it('F7: the info icon is offset to the LEFT of the line (translate -100%, negative left)', () => {
   const rule = editStopsCss.match(/\.edit-stops__leg-icon \{[^}]*\}/)[0]
   expect(rule).toMatch(/left: calc\(-1 \*/)
   expect(rule).toMatch(/translate\(-100%/)
-  expect(rule).toMatch(/var\(--text-placeholder\)/)
+  expect(rule).toMatch(/var\(--deep-sea-neutral-300\)/)
   setup()
   expect(document.querySelector('.edit-stops__leg-icon svg').getAttribute('width')).toBe('16')   // ICON_MD
 })

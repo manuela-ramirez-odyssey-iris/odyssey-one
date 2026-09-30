@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, ArrowDown, CalendarDays, ChevronsLeft, GripVertical, Info, Maximize2, TriangleAlert } from 'lucide-react'
+import { ArrowUp, ArrowDown, CalendarDays, FoldHorizontal, GripVertical, Info, TriangleAlert, UnfoldHorizontal } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { Alert, Badge, Button, DatePicker, SubAccordion, TitleSubtitle, Timeline, TimePicker, StepperButtonsFooter, Tooltip } from '@odyssey/ui'
@@ -183,22 +183,19 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   useEffect(() => {
     const strip = rootRef.current?.closest('.order-change')?.querySelector('.summary-strip--sticky')
     if (!strip || typeof ResizeObserver === 'undefined') return
-    // S164 F7: the floating collapsed Prior card stretches down to the sticky
-    // footer — it needs the footer's height and the scroller's visible height
-    // (the page scrolls inside <main>, not the window).
-    const footer = rootRef.current.querySelector('.edit-stops__footer')
-    let scroller = rootRef.current.parentElement
-    while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement
-    const set = (k, v) => rootRef.current?.style.setProperty(k, `${v}px`)
-    const measure = () => {
-      set('--edit-stops-strip-h', strip.offsetHeight)
-      if (footer) set('--edit-stops-footer-h', footer.offsetHeight)
-      if (scroller) set('--edit-stops-scroll-h', scroller.clientHeight)
-    }
+    const measure = () => rootRef.current?.style.setProperty('--edit-stops-strip-h', `${strip.offsetHeight}px`)
     const ro = new ResizeObserver(measure)
-    ;[strip, footer, scroller].forEach((el) => el && ro.observe(el))
+    ro.observe(strip)
     return () => ro.disconnect()
   }, [])
+  // S164 F8: the collapsed Prior rail is never shorter than the expanded one.
+  // Prior is expanded before Edit, so re-measure its rail whenever it renders
+  // expanded and leave the last value in place while collapsed.
+  const priorCardRef = useRef(null)
+  useLayoutEffect(() => {
+    const rail = priorCardRef.current?.querySelector('.edit-stops__rail')
+    if (rail) rootRef.current?.style.setProperty('--edit-stops-prior-rail-h', `${rail.offsetHeight}px`)
+  })
   const prevTops = useRef(null)
   const [flash, setFlash] = useState([])
   const flashTimer = useRef(null)
@@ -643,21 +640,21 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
 
         <div className="edit-stops__body">
           {/* S164 F7: the section is the SLOT (its width animates, like the
-              pending slot); the card inside floats when collapsed. */}
+              pending slot); the collapsed card sits in normal flow (F8). */}
           <section className={`edit-stops__plan edit-stops__plan--prior${editing && priorCollapsed ? ' edit-stops__plan--collapsed' : ''}${priorMotion ? ' edit-stops__plan--motion' : ''}`} aria-label="Prior plan" onMouseMove={(e) => showRailTip(e, 'prior')} onMouseLeave={() => setTip(null)}>
             {editing && priorCollapsed ? (
               <div className="edit-stops__prior-card edit-stops__prior-card--rail" key="rail">
                 <div className="edit-stops__prior-head">
                   <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
-                  <Button variant="icon" icon={<Maximize2 {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPrior(false)} />
+                  <Button variant="icon" icon={<UnfoldHorizontal {...ICON_MD} />} aria-label="Show prior plan" aria-expanded="false" onClick={() => setPrior(false)} />
                 </div>
                 <Timeline items={priorMarkers()} className="edit-stops__rail edit-stops__rail--markers" aria-label="Prior stops" />
               </div>
             ) : (
-              <div className="edit-stops__prior-card" key="full">
+              <div className="edit-stops__prior-card" key="full" ref={priorCardRef}>
                 <div className="edit-stops__plan-head">
                   <h3 className="text-label-base-semibold edit-stops__plan-title">Prior</h3>
-                  {editing && <Button variant="icon" icon={<ChevronsLeft {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPrior(true)} />}
+                  {editing && <Button variant="icon" icon={<FoldHorizontal {...ICON_MD} />} aria-label="Hide prior plan" aria-expanded="true" onClick={() => setPrior(true)} />}
                 </div>
                 <Timeline items={buildItems(sb.prior, true)} className="edit-stops__rail" aria-label="Prior stops" />
               </div>

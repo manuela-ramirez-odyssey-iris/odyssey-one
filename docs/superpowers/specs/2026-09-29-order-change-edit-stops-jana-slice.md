@@ -94,6 +94,18 @@ Today (`OrderCompareModal.jsx`) the modal stacks an "Order Number: …" HeaderSt
   - reduced-motion CSS exists (a smoke test is enough).
   - Layout (height, float) is jsdom-invisible, so report it for a browser check.
 
+## F8 — Collapsed Prior revised (user 2026-09-29, after F7)
+- **Icons:** the expand button (collapsed Prior) uses lucide **`UnfoldHorizontal`**, and the collapse button (expanded Prior, edit mode) uses **`FoldHorizontal`**. Aria labels and `aria-expanded` are unchanged. This supersedes F7's `Maximize2` and F1's `ChevronsLeft`.
+- **No float:** collapsed Prior is **not** sticky and gets no viewport/footer-derived height. Remove `--edit-stops-footer-h` / `--edit-stops-scroll-h` if nothing else uses them. It sits in normal flow in the plans row, as expanded Prior does. It keeps the F7 outline (bg, border, radius); the user asked only that it stop floating.
+- **Line length (corrected by the user: maximum, not minimum):** the collapsed rail's **maximum length = the expanded Prior's rail length**. Measure the expanded Prior timeline's height into a CSS var and give the collapsed rail `max-height` from it. The collapsed rail is never longer than expanded, and doesn't stretch with the row past it. The markers keep F7's spread within that height.
+- **Info icon colour:** one tone lighter, `--deep-sea-neutral-300` (primitive: no semantic icon token exists at 300; user 2026-09-29).
+- F7's info icons (left of the line), the leg tooltips and the slot motion all stay.
+- **Tests:**
+  - icons (`.lucide-unfold-horizontal` on expand, `.lucide-fold-horizontal` on collapse);
+  - no `position: sticky` on the collapsed card (CSS read);
+  - the collapsed rail gets a `max-height` from the measured var (mock the measurement in jsdom).
+  - The visual length is for a browser check.
+
 ## Tests (vitest)
 - **F1:** Edit collapses Prior. The collapsed rail shows markers only, with no order ids or addresses. The chevron expands and collapses it, with the right aria-expanded. Save, Discard and Reset re-expand it. The Moved/Removed signals render.
 - **F2 (revised ×2):** the strip has exactly Distance, Gross Weight, Volume, Prior Cost and New Direct Cost (new values while collapsed; pairs for the first three when expanded). The All Stops header has exactly New Consolidated Cost, Accepted Carrier, Seed Equipment and Utilization, then View Planning Dates. No label appears in both. The StopsTab strip is unchanged.
