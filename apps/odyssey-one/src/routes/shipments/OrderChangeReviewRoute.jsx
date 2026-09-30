@@ -19,10 +19,9 @@ import '../../components/shipments/order-change/order-change.css'
 // category only (ShipmentTable.jsx: "Review Order Change" action, gated on
 // row.original.category === 'order-change'). Figma 1794-5544.
 //
-// Shell only (Task 8): breadcrumb + header + data/resolution wiring. The
-// actions card (Task 9) and the three preview sections (Task 10) are still
-// `return null` stubs — this route already passes them the real `oc` payload
-// so wiring them up later is additive, not a rewrite.
+// Breadcrumb + header + data/resolution wiring; the actions card and the
+// preview sections it renders are all built (OrderChangeActionsCard et al.)
+// and receive the real `oc` payload from here.
 //
 // S148 — the detail DTO/VM now carries `odysseyShipmentIdentifier`, the
 // shipment's displayed name (mapSellShipmentOutToDetail). The header prefers
@@ -97,6 +96,8 @@ function confirmCopy(action, cost, scac) {
  *   › Sent; bypass → Approved if the prior was Accepted, else Sent.
  * - approve-plan (D1, no active prior tender) — same as cancel: Tender Review,
  *   Tender screen open, the planner tenders manually.
+ * - save-stops (Scenario-B Edit Stops save, api/_lib/shipments.mjs) — filed in
+ *   Exceptions › Tender Review too, so it lands like approve-plan.
  *
  * `outcome` is the resolve PATCH's { panel, category }; the rule above is the
  * fallback for mock mode / an older API that doesn't return it, so it lives
@@ -105,10 +106,12 @@ function confirmCopy(action, cost, scac) {
 export function landingFor(action, sellShipment, priorStatus, outcome) {
   const open = { selectedShipmentId: sellShipment, requestedTab: { key: 'routing' } }
   if (outcome?.panel && outcome?.category) return { panel: outcome.panel, tab: outcome.category, ...open }
-  if (action === 'cancel' || action === 'approve-plan') {
+  if (action === 'cancel' || action === 'approve-plan' || action === 'save-stops') {
     return { panel: 'exceptions', tab: 'tender-review', ...open }
   }
   if (action === 'retender') return { panel: 'monitoring', tab: 'sent', ...open }
+  // ponytail: bypass from a 'To Be Tendered' / null prior is refused by the API
+  // (409), so only Sent/Accepted reach here; kept total for mock mode.
   return { panel: 'monitoring', tab: priorStatus === 'Accepted' ? 'approved' : 'sent', ...open }
 }
 

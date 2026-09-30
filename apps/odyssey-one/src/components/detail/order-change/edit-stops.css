@@ -283,7 +283,7 @@
 .edit-stops .btn--link.edit-stops__order-link { text-decoration: none; }
 
 /* Right column — Orders Pending To Assign. 391px per the VD, narrowed to
-   300px to make room for the Prior plan (DEC-197, user 2026-09-24). */
+   --edit-stops-pending-w (240px) to make room for the Prior plan (DEC-197, user 2026-09-24). */
 .edit-stops__pending {
   width: var(--edit-stops-pending-w);
   box-sizing: border-box;
@@ -337,7 +337,7 @@
 
 /* Native `disabled` suppresses mouse events on the button itself, so a
    hover never reaches TooltipTrigger's wrapper div (mouseenter fires on the
-   wrapper, not the button) — the View Routing / Move To Pending / Add New
+   wrapper, not the button) — the View Routing / Remove / Add New
    Order tooltips would never show. Same construction as
    stops.css's .stops-review__actions .btn:disabled. */
 .edit-stops .btn:disabled {
@@ -377,7 +377,7 @@
 
 /* Motion (user 2026-09-24): whatever an action touched pulses once where it
    landed — the table's odyssey-row-highlight (components.css), so a moved
-   stop, a set-aside order and an added order read the same way. */
+   stop, a removed order and an added order read the same way. */
 .edit-stops [data-flash] {
   animation: odyssey-row-highlight 1.2s ease-in-out 2;
   border-radius: var(--radius-md);

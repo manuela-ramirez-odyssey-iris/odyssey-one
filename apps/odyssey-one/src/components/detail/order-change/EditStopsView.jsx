@@ -13,7 +13,7 @@ import PlanningDatesModal from './PlanningDatesModal.jsx'
 import ViewRoutingModal from './ViewRoutingModal.jsx'
 import AddOrdersModal from './AddOrdersModal.jsx'
 import { getSellShipmentDetail } from '../../../api/services/shipmentService'
-import { DiffValue, val } from '../../shipments/order-change/comparisonHelpers.jsx'
+import { val } from '../../shipments/order-change/comparisonHelpers.jsx'
 import ReviewKpiStrip from './ReviewKpiStrip.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
@@ -24,11 +24,11 @@ import {
 import './edit-stops.css'
 
 // User 2026-09-28: the New plan has a collapsed (drag) mode and an edit
-// (arrows, dates, set-aside) mode — same Edit → Reset/Discard/Save pattern
+// (arrows, dates, remove) mode — same Edit → Reset/Discard/Save pattern
 // as Consolidation's Planned Stops.
 const HINT = {
-  collapsed: 'Drag a stop to move it with all its orders. Select Edit to change dates or set orders aside.',
-  editing: "Use the arrows to move a stop with all its orders, set dates, or set orders aside. Save when you're done.",
+  collapsed: 'Drag a stop to move it with all its orders. Select Edit to change dates or remove orders.',
+  editing: "Use the arrows to move a stop with all its orders, set dates, or remove orders. Save when you're done.",
 }
 const EDITING_TOOLTIP = 'Save or discard your stop edits first'
 // Structural compare for Discard's "anything changed?" and Reset's disabled
@@ -397,7 +397,8 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
   const alertText = errorMsg || (editing ? HINT.editing : HINT.collapsed)
 
   // DEC-197 (Jana 2026-09-24, user ruling): Prior and New side by side, both
-  // always visible — no toggle, nothing collapsible. One builder renders
+  // always visible — no toggle. DEC-225 amends it: Prior collapses to a
+  // rail while the New plan is in edit mode. One builder renders
   // both; Prior is read-only and carries the planner-edit badges.
   const buildItems = (list, isPrior) => {
     const labels = labelsOf({ stops: list })
@@ -807,7 +808,7 @@ export default function EditStopsView({ stops, consolidation, orders, orderChang
       {stopsPrompt === 'reset' && (
         <ConfirmDialog
           title="Reset Stop Sequence"
-          message="Are you sure you want to reset the stops? Every change on this page, saved or not (moves, dates, set-aside and added orders), will be undone and the stops will return to how they were when you opened it."
+          message="Are you sure you want to reset the stops? Every change on this page, saved or not (moves, dates, removed and added orders), will be undone and the stops will return to how they were when you opened it."
           confirmLabel="Yes, Reset"
           cancelLabel="No"
           onConfirm={() => leaveEditing(initial)}

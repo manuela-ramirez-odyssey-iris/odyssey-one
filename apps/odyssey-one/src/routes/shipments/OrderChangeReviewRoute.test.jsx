@@ -101,7 +101,7 @@ const NOT_RETURNED_DETAIL = {
 // Defaults to the plain marker the existing tests already assert on;
 // `shipmentsElement` lets a navigation test swap in a location probe instead
 // of mocking useNavigate, per the task brief's preferred idiom.
-function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment, shipmentsElement } = {}) {
+function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment, shipmentsElement, from } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
@@ -110,7 +110,7 @@ function renderRoute(sellShipment = SELL_SHIPMENT, { buyShipment, shipmentsEleme
           <CustomersProvider>
             <MemoryRouter initialEntries={[{
               pathname: `/shipments/order-change/${sellShipment}`,
-              state: buyShipment ? { buyShipment } : undefined,
+              state: buyShipment || from ? { buyShipment, from } : undefined,
             }]}>
               <Routes>
                 <Route path="/shipments/order-change/:sellShipment" element={<OrderChangeReviewRoute />} />
@@ -507,6 +507,20 @@ describe('OrderChangeReviewRoute — action confirmations', () => {
 
 // S135 — the three actions no longer share one landing. Unit-tested directly
 // so the rule is pinned without driving the whole screen three more times.
+// E3 — Scenario A's approve from the Stops tab opens this review with
+// from:'stops'; the title-bar X returns to that shipment's Stops tab.
+describe('OrderChangeReviewRoute close (E3)', () => {
+  test("X after arriving from 'stops' returns to the shipment's Stops tab", async () => {
+    getSellShipmentDetail.mockResolvedValue(ORDER_CHANGE_DETAIL)
+    renderRoute(SELL_SHIPMENT, { from: 'stops', shipmentsElement: <LocationProbe /> })
+    fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
+    const probe = await screen.findByText(/landed with state/)
+    expect(probe.textContent).toContain(`"selectedShipmentId":"${SELL_SHIPMENT}"`)
+    expect(probe.textContent).toContain('"requestedTab":{"key":"stops"}')
+    expect(probe.textContent).toContain('"tab":"order-change"')
+  })
+})
+
 describe('landingFor', () => {
   test('cancel goes to Tender Review with the shipment open on its Tender screen (LINX-14514)', () => {
     expect(landingFor('cancel', '123')).toEqual({
@@ -528,11 +542,19 @@ describe('landingFor', () => {
 
   test('bypass lands on Approved when the prior was Accepted, else Sent', () => {
     expect(landingFor('bypass', '123', 'Accepted').tab).toBe('approved')
-    for (const prior of ['Sent', 'To Be Tendered', null]) expect(landingFor('bypass', '123', prior).tab).toBe('sent')
+    // 'To Be Tendered' / null priors are refused by the API (409), so no case here.
+    expect(landingFor('bypass', '123', 'Sent').tab).toBe('sent')
   })
 
   test('approve-plan (no active prior tender) lands on Tender Review like Cancel', () => {
     expect(landingFor('approve-plan', '123', null)).toEqual(landingFor('cancel', '123'))
+  })
+
+  test('save-stops (Scenario-B Edit Stops save) lands on Tender Review like approve-plan', () => {
+    expect(landingFor('save-stops', '123', null)).toEqual(landingFor('approve-plan', '123', null))
+    expect(landingFor('save-stops', '123', null)).toEqual({
+      panel: 'exceptions', tab: 'tender-review', selectedShipmentId: '123', requestedTab: { key: 'routing' },
+    })
   })
 
   test("the server's outcome wins over the client rule when present", () => {

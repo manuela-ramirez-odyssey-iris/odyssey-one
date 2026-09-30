@@ -333,6 +333,8 @@ const OC_OUTCOMES = {
   // bypass sends nothing, so whatever status the tender already had stands.
   bypass: (prior) => prior === 'Accepted'
     ? { tenderStatus: 'Accepted', panel: 'monitoring', category: 'approved', validationMessage: null }
+    // `prior ?? 'Sent'` is a defensive fallback only: the route refuses bypass
+    // from a To Be Tendered / null prior (409) before this runs.
     : { tenderStatus: prior ?? 'Sent', panel: 'monitoring', category: 'sent', validationMessage: null },
   // cancel alone re-parks on exceptions/tender-review, where every
   // naturally-seeded row carries a real validation_message — leaving this

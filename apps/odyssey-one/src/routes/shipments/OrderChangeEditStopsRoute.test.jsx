@@ -167,6 +167,30 @@ describe('OrderChangeEditStopsRoute', () => {
     expect(probe.textContent).not.toContain('selectedShipmentId')
   })
 
+  // E1 — the title-bar X (AppShell titleMode → TrailNav's "Close") shares
+  // `leave` with the crumbs, so it asks before dropping unsaved edits too.
+  test('the title-bar X with unsaved edits opens the discard confirm; with none it leaves straight away', async () => {
+    getSellShipmentDetail.mockResolvedValue(makeDetail())
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'Evaluate' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(await screen.findByText('Discard changes?')).toBeTruthy()
+    expect(screen.queryByText(/landed at/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(screen.queryByText(/landed at/)).toBeNull()
+
+    cleanup()
+    getSellShipmentDetail.mockResolvedValue(makeDetail())
+    renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })
+    await screen.findByRole('button', { name: 'Evaluate' })
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    const probe = await screen.findByText(/landed at \/shipments with state/)
+    expect(probe.textContent).toContain('"key":"stops"')
+  })
+
   test('a crumb with no edits leaves straight away', async () => {
     getSellShipmentDetail.mockResolvedValue(makeDetail())
     renderRoute(SELL_SHIPMENT, { buyShipment: BUY_SHIPMENT })

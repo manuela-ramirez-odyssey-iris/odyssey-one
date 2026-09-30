@@ -41,3 +41,14 @@ it('badges only the bound a stop date missed (DEC-199)', () => {
   expect(screen.getByText('06/02/2026').closest('.text-badge, [class*="badge"]')).toBeTruthy()
   expect(screen.getByText('06/01/2026').closest('.text-badge, [class*="badge"]')).toBeNull()
 })
+
+// S164 F5: a pending order sits on no stop, so plannedDates has no entry for
+// it — both planned columns read `--`, not blank.
+it('shows -- in Planned Pickup / Planned Delivery for a pending order with no planned dates', () => {
+  const planned = { '000000004850': { pickup: 'June 4, 2026 08:00 CDT', delivery: 'June 6, 2026 08:00 CDT' } }
+  render(<PlanningDatesModal orders={orders} planned={planned} onClose={() => {}} />)
+  const placed = within(screen.getByText('000000004850').closest('tr') || screen.getByText('000000004850').closest('[role="row"]'))
+  expect(placed.getByText('June 4, 2026 08:00 CDT')).toBeTruthy()
+  const pending = within(screen.getByText('000000004852').closest('tr') || screen.getByText('000000004852').closest('[role="row"]'))
+  expect(pending.getAllByText('--')).toHaveLength(2)
+})

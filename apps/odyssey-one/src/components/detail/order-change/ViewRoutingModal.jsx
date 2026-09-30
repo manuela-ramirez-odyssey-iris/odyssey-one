@@ -73,12 +73,11 @@ function TenderTable({ title, rows, otherCostByScac }) {
   return <GroupTable flat header={{ title }} columns={COLS} groups={rowsToFlatGroups(rows, COLS, cell)} />
 }
 
-// DEC-207 (T2) — the Stops-tab read-only use (StopsTab.jsx) passes none of
-// the footer props below and stays byte-identical (no footer — the header
-// close is its only exit, per the 2026-09-24 ruling this comment used to
-// live under). Edit Shipment Stops (EditStopsView.jsx) is the first caller
-// to pass them, for its Keep Editing / Approve Changes footer (T3 gives
-// StopsTab its own Keep Reviewing / Approve Plan pair the same way).
+// DEC-207 (T2) — the footer props below are optional: with none the modal has
+// no footer (the header close is its only exit, per the 2026-09-24 ruling).
+// Edit Shipment Stops (EditStopsView.jsx) passes them for its Keep Editing /
+// Approve Changes footer, and StopsTab.jsx (T3) passes its own Keep Reviewing /
+// Approve Plan pair the same way.
 export default function ViewRoutingModal({
   orderChange: oc, stops, summary, onClose,
   secondaryLabel, onSecondary, primaryLabel, onPrimary, primaryLoading = false, primaryDisabled = false,

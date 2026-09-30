@@ -432,7 +432,7 @@ it('marks what an action touched so it pulses where it landed — but a moved st
 })
 
 describe('New plan modes (user 2026-09-28)', () => {
-  it('collapsed: grip + read-only dates, no arrows / pickers / Remove; Edit swaps in Reset / Discard / Save and hover-revealed icon-Button arrows', () => {
+  it('collapsed: grip + read-only dates, no arrows / pickers / Remove; Edit swaps in Reset / Discard / Save and icon-Button arrows', () => {
     setup()
     expect(nw().queryByRole('button', { name: 'Move stop up' })).toBeNull()
     expect(nw().queryByRole('button', { name: 'Remove' })).toBeNull()
@@ -448,11 +448,11 @@ describe('New plan modes (user 2026-09-28)', () => {
     expect(nw().getByRole('button', { name: 'Save' })).toBeTruthy()
     const up = nw().getAllByRole('button', { name: 'Move stop up' })[0]
     expect(up.className).toContain('btn--icon')
-    expect(up.closest('.edit-stops__stop-arrows')).toBeTruthy()   // CSS reveals it on stop hover / focus
+    expect(up.closest('.edit-stops__stop-arrows')).toBeTruthy()   // F4: always visible in edit mode, no hover needed
     expect(newStop(0).getAttribute('aria-roledescription')).toBeNull()      // no drag in edit mode
     expect(newStop(0).querySelector('.edit-stops__stop-grip')).toBeNull()
     expect(document.getElementById('stop-s1-date')).toBeTruthy()
-    expect(screen.getByText(/^Use the arrows to move a stop/)).toBeTruthy()
+    expect(screen.getByText(/^Use the arrows to move a stop with all its orders, set dates, or remove orders\./)).toBeTruthy()
   })
 
   it('Evaluate is disabled while editing, with the "Save or discard" tooltip; Save re-enables it and keeps the edit', () => {
@@ -566,7 +566,7 @@ it('F1: Discard and Reset re-expand Prior', () => {
   expect(prior().className).not.toContain('edit-stops__plan--collapsed')
 })
 
-it('F1: collapsed rail signals Removed (struck) on a set-aside stop', () => {
+it('F1: collapsed rail signals Removed (struck) on a removed stop', () => {
   setup()
   edit()
   fireEvent.click(within(screen.getByRole('region', { name: 'New plan' })).getAllByRole('button', { name: 'Remove' })[2])
@@ -593,7 +593,7 @@ it('F2: strip = exactly Distance/Gross Weight/Volume/Prior Cost/New Direct Cost,
     costs.push(strip().getByText('$1,000.00').closest('div').textContent)
   }
   expect(costs[0]).toBe(costs[1])
-  // live: setting an order aside changes the weight (A = 5 LB, of 1,015 LB)
+  // live: removing an order changes the weight (A = 5 LB, of 1,015 LB)
   const before = strip().getByText(/LB$/).textContent
   fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
   expect(strip().getByText(/LB$/).textContent).not.toBe(before)
@@ -780,4 +780,54 @@ it('F5: the Planning Dates modal shows the planned pickup and delivery dates', (
   fireEvent.click(screen.getByRole('button', { name: 'View Planning Dates' }))
   expect(screen.getAllByText('June 4, 2026 08:00 CDT').length).toBeGreaterThan(0)
   expect(screen.getAllByText('June 6, 2026 08:00 CDT').length).toBeGreaterThan(0)
+})
+
+describe('audit gaps (S164)', () => {
+  const markOf = (label) => prior().querySelector(`.edit-stops__mark[aria-label^="${label},"]`)
+
+  it('F1: collapsed Prior marks a MOVED stop with the gray dot; the marker tooltip reads location · date · Moved', () => {
+    setup()
+    edit()
+    fireEvent.click(nw().getAllByRole('button', { name: 'Move stop up' })[1]) // P2 over P1
+    expect(prior().querySelectorAll('.edit-stops__mark-dot').length).toBeGreaterThan(0)
+    const moved = prior().querySelector('.edit-stops__mark:has(.edit-stops__mark-dot)')
+    expect(moved.getAttribute('aria-label')).toMatch(/, Moved$/)
+    fireEvent.mouseEnter(moved.closest('[data-tooltip-trigger]'))
+    const tip = screen.getByRole('tooltip').textContent
+    expect(tip).toContain('Moved')
+    expect(tip).toContain(' · June 4, 2026 08:00 CDT')
+  })
+
+  it('F1: the marker tooltip on a removed stop reads Removed', () => {
+    setup()
+    edit()
+    fireEvent.click(nw().getAllByRole('button', { name: 'Remove' })[2])
+    const removed = markOf('P2')
+    fireEvent.mouseEnter(removed.closest('[data-tooltip-trigger]'))
+    const tip = screen.getByRole('tooltip').textContent
+    expect(tip).toContain('P2 · Removed')
+    expect(tip).toContain('Y, Town · June 4, 2026 08:00 CDT')
+  })
+
+  it('the last remaining order cannot be removed: disabled Remove carries the tooltip copy', () => {
+    const one = [stop({ orderIds: ['A'] }), stop({ type: 'delivery', stopNumber: 2, orderIds: ['A'], location: 'Z, Ville', date: 'June 6, 2026 08:00 CDT' })]
+    setup({ stops: one, orders: [orders[0]] })
+    edit()
+    const btn = nw().getAllByRole('button', { name: 'Remove' })[0]
+    expect(btn.disabled).toBe(true)
+    fireEvent.mouseEnter(btn.closest('[data-tooltip-trigger]'))
+    expect(screen.getByRole('tooltip').textContent).toContain('The last remaining order cannot be removed from the shipment.')
+  })
+
+  it('the fold / unfold buttons are secondary + sm', () => {
+    setup()
+    edit() // Prior collapses on Edit (DEC-225)
+    const show = within(prior()).getByRole('button', { name: 'Show prior plan' })
+    expect(show.className).toMatch(/btn--secondary/)
+    expect(show.className).toMatch(/btn--sm/)
+    fireEvent.click(show)
+    const hide = within(prior()).getByRole('button', { name: 'Hide prior plan' })
+    expect(hide.className).toMatch(/btn--secondary/)
+    expect(hide.className).toMatch(/btn--sm/)
+  })
 })
