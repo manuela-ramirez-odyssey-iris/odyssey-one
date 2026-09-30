@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useSheet from '../../routes/useSheet'
 import { useApproveOrderChange } from '../../routes/shipments/useApproveOrderChange.js'
 import { TriangleAlert, ArrowRight, CalendarDays } from 'lucide-react'
-import { Badge, Button, HeaderStrip, Timeline, TitleSubtitle } from '@odyssey/ui'
+import { Badge, Button, Timeline, TitleSubtitle } from '@odyssey/ui'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
@@ -127,7 +127,11 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
             user-ruled reuse of the color — do not "fix" it back to the
             canon mapping. Plain mode below stays green: no purple badges
             exist there, so purple would falsely imply a change. */}
-        <HeaderStrip title={`Stop ${stop.stopNumber}`} badge={<Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>} />
+        {/* F9 — plain header (plain mode's markup), no HeaderStrip band. */}
+        <div className="stops-item__header">
+          <span className="stops-item__stop-label">Stop {stop.stopNumber}</span>
+          <Badge variant="purple">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+        </div>
         {/* C13 (LINX-15436) — every 15436 stop field can badge. Location's one
             badge carries Site ID, City, State, Zip and Country together: the
             stop shows a single Location field (our presentation, recorded in
@@ -148,7 +152,11 @@ function ReviewStopContent({ stop, stopChange, onOpenOrder }) {
           is delivered, so delivery repeats it. The empty aside keeps the
           stop cards the same width. */}
       <div className="stops-item__affected">
-        {isPickup && <HeaderStrip title="Affected Orders" />}
+        {isPickup && (
+          <div className="stops-item__header">
+            <span className="stops-item__stop-label">Affected Orders</span>
+          </div>
+        )}
         {!isPickup ? null : affected.length > 0 ? (
           <div className="stops-item__order-list">
             {affected.map((id) => (

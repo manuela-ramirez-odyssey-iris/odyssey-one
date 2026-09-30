@@ -106,6 +106,17 @@ Today (`OrderCompareModal.jsx`) the modal stacks an "Order Number: …" HeaderSt
   - the collapsed rail gets a `max-height` from the measured var (mock the measurement in jsdom).
   - The visual length is for a browser check.
 
+## F9 — Stops tab (review mode): same layout, HeaderStrips removed (user 2026-09-29)
+The first attempt (Edit Stops row anatomy, `6d2dd2b`) was reverted (`d36ad24`). User: *"put it as before, just remove the HeaderStrips, make it cleaner."*
+- `src/components/detail/StopsTab.jsx` `ReviewStopContent`: **keep today's layout exactly**: the stop card, the 3-col field grid, and the Affected Orders aside column with its width. Keep every field, change badge and link.
+- **Replace the two `HeaderStrip`s with plain headers:**
+  - **Stop header:** reuse plain mode's header markup (`stops-item__header`: "Stop N" label + type Badge), keeping the **purple** badge in review (the 2026-09-09 ruling).
+  - **Aside header:** a plain "Affected Orders" label in the same text style as the stop label. Pickups only, as today.
+- **Cleaner:** no strip background or band. The headers sit directly above their content with the same tokens plain mode uses. Keep alignment: the aside label lines up with the stop header.
+- **Unchanged:** plain mode, the KPI strip, the pane-card header, the actions, the costs row and View Planning Dates.
+- **CSS:** `src/styles/panes/stops.css`, tokens only.
+- **Tests:** no `.header-strip` in review stop content; "Stop N" + purple badge and the "Affected Orders" label render (pickups only); every field and badge is still present; plain mode is unchanged.
+
 ## Tests (vitest)
 - **F1:** Edit collapses Prior. The collapsed rail shows markers only, with no order ids or addresses. The chevron expands and collapses it, with the right aria-expanded. Save, Discard and Reset re-expand it. The Moved/Removed signals render.
 - **F2 (revised ×2):** the strip has exactly Distance, Gross Weight, Volume, Prior Cost and New Direct Cost (new values while collapsed; pairs for the first three when expanded). The All Stops header has exactly New Consolidated Cost, Accepted Carrier, Seed Equipment and Utilization, then View Planning Dates. No label appears in both. The StopsTab strip is unchanged.

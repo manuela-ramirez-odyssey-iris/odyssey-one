@@ -157,6 +157,15 @@ describe('StopsTab — consolidated order-change review (LINX-15435/15436)', () 
     fireEvent.click(link)
     expect(screen.getByRole('dialog', { name: 'Order Changes B' })).toBeTruthy()
   })
+  // F9 — plain headers, no HeaderStrip band.
+  it('review stop content has no header-strip; Stop N + purple badge and Affected Orders render plain', () => {
+    renderReview()
+    const stop1 = screen.getByText('Stop 1').closest('.odyssey-timeline__row')
+    expect(stop1.querySelector('.header-strip')).toBeNull()
+    expect(screen.getByText('Stop 1').closest('.stops-item__header')).toBeTruthy()
+    expect(within(stop1).getByText('Pickup').closest('.text-badge').getAttribute('style')).toContain('badge-purple')
+    expect(within(stop1).getByText('Affected Orders').closest('.stops-item__header')).toBeTruthy()
+  })
   it('shows Affected Orders on pickup stops only (DEC-191)', () => {
     renderReview()
     const rows = [...document.querySelectorAll('.odyssey-timeline__row')]
