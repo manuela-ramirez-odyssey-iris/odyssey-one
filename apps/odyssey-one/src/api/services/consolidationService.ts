@@ -75,7 +75,7 @@ export async function applyConsolidation(
   // source is already in its roster.
   const pulled = externalOrders.filter((e) => !sellShipments.includes(e.sourceSellShipment))
   // The SAME guards as the live handler (S7.2) — one function, both runtimes.
-  checkConsolidation({ sources, stops, externalOrders: pulled })
+  checkConsolidation({ sources, stops, externalOrders: pulled, externalRows: pulled.map((e) => byId.get(e.sourceSellShipment)).filter((r): r is ShipmentErrorRow => !!r) })
 
   // The external records come off their source's blob through the SAME pure
   // LINX-15872 check live runs (pickExternalOrders). Mock rows carry the

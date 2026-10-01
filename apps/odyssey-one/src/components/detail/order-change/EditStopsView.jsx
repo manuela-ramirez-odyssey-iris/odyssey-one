@@ -139,12 +139,13 @@ function SortableStop({ id, className, children, ...rest }) {
 //   equipmentCode  drives the summary's live Weight / Volume Utilization
 //   summaryTop     node above the KPI strip (the Consolidation Summary info strip, S11)
 //   afterStrip     node between the KPI strip and the All Stops panel (the Selected shipments table, S11)
+//   blockCRows     Add Orders disables orders on a C shipment (the consolidation already includes a C, S164)
 //   actionsRef     exposes { removeOrders(ids), payload() } to the host (tendered-shipment Remove, the write)
 // Order change passes none of these and renders as before. tenderList /
 // priorTenderList / droppedCarriers are plain props (S5.9), not read off orderChange.
 export default function EditStopsView({
   stops, consolidation, orders, tenderList, priorTenderList, droppedCarriers, summary, saving, saveError, onApprove, onCancel, cancelRef, sellShipment, customerId, customerName,
-  summaryTop, afterStrip, initial: initialProp, showPrior = true, minOrders = 1, confirmApprove = true, approveLabel = 'Approve Changes', equipmentCode, actionsRef,
+  summaryTop, afterStrip, initial: initialProp, showPrior = true, minOrders = 1, confirmApprove = true, approveLabel = 'Approve Changes', equipmentCode, actionsRef, blockCRows = false,
 }) {
   // A useState initializer only runs once for a given component INSTANCE —
   // it never reruns on a re-render with new `stops`. The route
@@ -901,6 +902,7 @@ export default function EditStopsView({
           customerId={customerId}
           customerName={customerName}
           excludeOrderIds={[...liveOrderIds, ...sb.pending]}
+          blockCRows={blockCRows}
           onAdd={handleAddOrders}
           onClose={() => setModal(null)}
         />

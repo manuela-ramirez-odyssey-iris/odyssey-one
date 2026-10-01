@@ -97,3 +97,19 @@ it('a row that is its shipment\'s only order is a normal, selectable row', () =>
   const boxes = screen.getAllByRole('checkbox').slice(1)
   expect(boxes[7].disabled).toBe(false)   // O8, appended after the 7 base rows
 })
+
+// S164 (extends CNS-21): with a C in the consolidation, orders on another C are disabled.
+it('blockCRows disables rows whose source is a C; without it they stay selectable', () => {
+  const cRow = { ...rows[0], orderNumber: 'OC', sourceSellShipment: 'SC', shipmentType: 'Consolidation', ordersInShipment: ['OC'] }
+  useCandidateOrders.mockImplementation(() => ({ data: [...rows, cRow], isPending: false, isError: false }))
+  const render1 = (blockCRows) => {
+    render(<AddOrdersModal sellShipment="9" customerId="ERCO" customerName="Erco" excludeOrderIds={[]} blockCRows={blockCRows} onAdd={vi.fn()} onClose={vi.fn()} />)
+    return screen.getAllByRole('checkbox').slice(1)
+  }
+  let boxes = render1(true)
+  expect(boxes[7].disabled).toBe(true)    // OC
+  expect(boxes[0].disabled).toBe(false)   // a Direct
+  cleanup()
+  boxes = render1(false)
+  expect(boxes[7].disabled).toBe(false)
+})

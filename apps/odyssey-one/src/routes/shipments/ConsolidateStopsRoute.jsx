@@ -151,6 +151,7 @@ export default function ConsolidateStopsRoute() {
             onCancel={backToMode}
             cancelRef={cancelRef}
             actionsRef={actionsRef}
+            blockCRows
             sellShipment={initialRows[0].sellShipment}
             customerId={anchor.customerId}
             customerName={anchor.customerName}

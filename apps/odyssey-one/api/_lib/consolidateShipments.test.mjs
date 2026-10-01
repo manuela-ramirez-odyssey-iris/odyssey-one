@@ -275,6 +275,18 @@ test('guard: at most one C source (S164, CNS-14/CNS-09)', () => {
   assert.doesNotThrow(() => check({ sources: [c(1), src(2)] }))
 })
 
+test('guard: an order pulled off any C is refused, with or without a C source (S164)', () => {
+  const ext = [{ orderNumber: 'ORD-2', sourceSellShipment: '26000009' }]
+  const c1 = src(1, { odysseyShipmentIdentifier: 'C70000001' })
+  const fromC = [{ sellShipment: '26000009', odysseyShipmentIdentifier: 'C70000009' }]
+  assert.throws(() => check({ sources: [c1, src(3)], externalOrders: ext, externalRows: fromC }),
+    (e) => e.status === 400 && e.message === "Orders on another consolidated (C) shipment can't be added to this consolidation.")
+  // no C source: still refused — emptied, that C would be a hidden source of the new C
+  assert.throws(() => check({ externalOrders: ext, externalRows: fromC }), /another consolidated \(C\) shipment/)
+  // a non-C external source: fine
+  assert.doesNotThrow(() => check({ sources: [c1, src(3)], externalOrders: ext, externalRows: [{ sellShipment: '26000009', odysseyShipmentIdentifier: 'O60000009' }] }))
+})
+
 test('guard: a delivery above its pickup is refused', () => {
   const stops = dtoFor(1, 2).map((s, i, a) => ({ ...s, stopSequence: a.length - i })) // fully reversed
   assert.throws(() => check({ stops }), (e) => e.status === 400 && e.message === 'Stops are out of order.')

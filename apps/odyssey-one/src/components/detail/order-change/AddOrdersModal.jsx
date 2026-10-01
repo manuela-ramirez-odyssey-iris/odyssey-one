@@ -4,6 +4,7 @@ import { Alert, Button, ComboBox, DatePicker, Dropdown, FormField, GroupTable, M
 import { EMPTY_FILTERS, SHIPMENT_STATUSES, TENDER_STATUSES, filterCandidates } from '../../../../api/_lib/candidateOrders.mjs'
 import { rowsToFlatGroups } from '../../shipments/order-change/comparisonHelpers.jsx'
 import { useCandidateOrders } from '../../../api/queries/useCandidateOrders'
+import TooltipTrigger from '../../ui/TooltipTrigger.jsx'
 import './edit-stops.css'
 
 // LINX-15870 Search & Add Orders — VD 2137-59231 (grid) + the inner Filters
@@ -20,14 +21,23 @@ const COLUMNS = [
 // OC-open-11's 2026-09-09 grey-at-add ruling was REVERSED 2026-09-25
 // (LINX-15870/15872 + Jana): every candidate row is a normal, selectable
 // row — the block happens only at Save (shipments.mjs pullExternalOrders).
-const cell = (r, c) => (c.key === 'ordersInShipment' ? r.ordersInShipment.join(' - ') : (r[c.key] || '--'))
+// EXCEPT, in a consolidation that already includes a C (`blockCRows`, S164
+// ruling extending CNS-21): an order on another C is disabled, so an emptied C
+// can never become a hidden source of another C. Order change never sets it.
+const C_BLOCK_MSG = "Orders on another consolidated (C) shipment can't be added to this consolidation."
+const isC = (r) => r.shipmentType === 'Consolidation'
+const cell = (r, c, blockC) => {
+  if (c.key === 'ordersInShipment') return r.ordersInShipment.join(' - ')
+  if (blockC && c.key === 'orderNumber' && isC(r)) return <TooltipTrigger asSpan tooltipProps={{ label: C_BLOCK_MSG }}>{r.orderNumber}</TooltipTrigger>
+  return r[c.key] || '--'
+}
 const opts = (list) => [{ value: '', label: 'Any' }, ...list.map((v) => ({ value: v, label: v }))]
 
 // DatePicker range value is { start, end }: Date|null; filters store 'YYYY-MM-DD' strings.
 const isoToDate = (iso) => (iso ? new Date(`${iso}T00:00:00`) : null)
 const dateToIso = (d) => (d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '')
 
-export default function AddOrdersModal({ sellShipment, customerId, customerName, excludeOrderIds, onAdd, onClose }) {
+export default function AddOrdersModal({ sellShipment, customerId, customerName, excludeOrderIds, blockCRows = false, onAdd, onClose }) {
   const { data, isPending, isError } = useCandidateOrders(sellShipment, customerId, excludeOrderIds)
   const [q, setQ] = useState('')
   const [filters, setFilters] = useState(EMPTY_FILTERS)
@@ -48,7 +58,8 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
   // Header checkbox: every row when it fits, else the first five (and say so).
   const selectAll = (next) => {
     if (!next) { setSelected([]); setCapped(false); return }
-    setSelected(rows.slice(0, MAX).map((r) => r.orderNumber)); setCapped(rows.length > MAX)
+    const open = rows.filter((r) => !(blockCRows && isC(r)))
+    setSelected(open.slice(0, MAX).map((r) => r.orderNumber)); setCapped(open.length > MAX)
   }
   const clearAll = () => { setQ(''); setFilters(EMPTY_FILTERS); setDraft(EMPTY_FILTERS); setSelected([]); setCapped(false) }
   const openFilters = () => { setDraft(filters); setFiltersOpen(true) }
@@ -76,7 +87,7 @@ export default function AddOrdersModal({ sellShipment, customerId, customerName,
         {capped && <Alert variant="warning" onClose={() => setCapped(false)}>{CAP_MSG}</Alert>}
         {isPending ? <div className="add-orders__spinner"><Spinner size={24} /></div> : isError ? <Alert variant="error" showClose={false}>Could not load orders.</Alert> : (
           <GroupTable flat selectable header={{ title: `Results (${rows.length})` }} columns={COLUMNS}
-            groups={rowsToFlatGroups(rows, COLUMNS, cell).map((g, i) => ({ ...g, id: rows[i].orderNumber }))}
+            groups={rowsToFlatGroups(rows, COLUMNS, (r, c) => cell(r, c, blockCRows)).map((g, i) => ({ ...g, id: rows[i].orderNumber, selectDisabled: blockCRows && isC(rows[i]) }))}
             selectedIds={selected} onSelect={select} onSelectAll={selectAll} selectLabel={(g) => `Select order ${g.id}`} />
         )}
       </ModalMedium>

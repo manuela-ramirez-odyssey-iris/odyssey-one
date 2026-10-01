@@ -49,6 +49,15 @@ beforeEach(() => {
 })
 
 describe('applyConsolidation (mock)', () => {
+  it('refuses a C source plus an external order from another C (S164)', async () => {
+    addShipment(row(3, { odysseyShipmentIdentifier: 'C70000090', shipmentType: 'Consolidation' }), detail(3))
+    addShipment(row(4, { odysseyShipmentIdentifier: 'C70000091', shipmentType: 'Consolidation' }), detail(4))
+    const b = body(3, 1)
+    b.externalOrders = [{ orderNumber: 'ORD-4', sourceSellShipment: '26090004' }] as never
+    b.stops = [...stopsFor(3, 1), ...stopsFor(4).map((s, i) => ({ ...s, stopSequence: 5 + i }))]
+    await expect(applyConsolidation(b)).rejects.toThrow('another consolidated (C) shipment')
+  })
+
   it('creates the C… row with an `id` the grid can key on, and returns its detail', async () => {
     const { row: created, detail: blob } = await applyConsolidation(body(1, 2))
     expect(created.odysseyShipmentIdentifier).toBe('C70000001')

@@ -62,8 +62,10 @@ const bad = (message) => Object.assign(new Error(message), { status: 400 })
 // handler and the mock service both call this before building. Order matters
 // only for which message wins. `externalOrders` is the body's records, used to
 // tell a placed external order from an unplaced one (C8, as save-stops does).
-/** @param {{ sources: { row: object, detail: object }[], stops: object[], externalOrders?: { orderNumber: string }[] }} a */
-export function checkConsolidation({ sources, stops, externalOrders = [] }) {
+// `externalRows` are the grid rows of the shipments those orders come from
+// (the body carries only their sell ids); needed only to spot a C among them.
+/** @param {{ sources: { row: object, detail: object }[], stops: object[], externalOrders?: { orderNumber: string, sourceSellShipment?: string }[], externalRows?: { sellShipment: string, odysseyShipmentIdentifier?: string }[] }} a */
+export function checkConsolidation({ sources, stops, externalOrders = [], externalRows = [] }) {
   const rows = sources.map((s) => s.row)
   const notPool = rows.filter((r) => r.category !== 'consolidation').map((r) => r.sellShipment)
   if (notPool.length) throw bad(`Only shipments in Consolidation can be consolidated: ${notPool.join(', ')}`)
@@ -72,7 +74,14 @@ export function checkConsolidation({ sources, stops, externalOrders = [] }) {
   if (customers.size > 1) throw bad(`A consolidation cannot span customers: ${[...customers].join(', ')}`)
   // At most one C per consolidation (S164 ruling, CNS-14/CNS-09): a C keeps its
   // id through every edit, so a second C would be a "C merged from C".
-  if (rows.filter((r) => String(r.odysseyShipmentIdentifier).startsWith('C')).length > 1) throw bad('A consolidation can include only one consolidated (C) shipment.')
+  // An order pulled off ANY other C is refused too, with or without a C source:
+  // emptied, that C would become a hidden source of this one (Add Orders blocks
+  // it in the UI; the client is not a trust boundary).
+  const isC = (r) => String(r.odysseyShipmentIdentifier).startsWith('C')
+  const fromC = new Set(externalRows.filter(isC).map((r) => r.sellShipment))
+  const cCount = rows.filter(isC).length
+  if (cCount > 1) throw bad('A consolidation can include only one consolidated (C) shipment.')
+  if (externalOrders.some((e) => fromC.has(String(e.sourceSellShipment)))) throw bad("Orders on another consolidated (C) shipment can't be added to this consolidation.")
   const onStops = new Set(stops.flatMap((s) => s.orderIds ?? []))
   if (onStops.size < 2) throw bad('A consolidation needs at least two orders.') // CNS-14
   const unplaced = externalOrders.map((e) => e.orderNumber).filter((id) => !onStops.has(id))

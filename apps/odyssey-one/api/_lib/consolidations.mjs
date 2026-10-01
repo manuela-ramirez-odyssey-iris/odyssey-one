@@ -55,7 +55,10 @@ export async function applyConsolidation({ body, db }) {
   // are pulled from other shipments.
   const externalOrders = (Array.isArray(body.externalOrders) ? body.externalOrders : [])
     .filter((e) => !ids.includes(String(e.sourceSellShipment)))
-  checkConsolidation({ sources, stops: body.stops, externalOrders })
+  // An order pulled off ANY C is refused (CNS-14: a C is never emptied into another C).
+  const extIds = [...new Set(externalOrders.map((e) => String(e.sourceSellShipment)))]
+  const externalRows = extIds.length ? (await db.query(buildSourceRowsQuery(extIds))).rows : []
+  checkConsolidation({ sources, stops: body.stops, externalOrders, externalRows })
 
   // Revalidated BEFORE any write — a source that went Accepted/Sent since the
   // search 400s here (LINX-15872), exactly as save-stops does.
