@@ -70,6 +70,9 @@ export function checkConsolidation({ sources, stops, externalOrders = [] }) {
   // One customer per consolidation (CNS-10) — the client is not a trust boundary.
   const customers = new Set(rows.map((r) => r.customerId))
   if (customers.size > 1) throw bad(`A consolidation cannot span customers: ${[...customers].join(', ')}`)
+  // At most one C per consolidation (S164 ruling, CNS-14/CNS-09): a C keeps its
+  // id through every edit, so a second C would be a "C merged from C".
+  if (rows.filter((r) => String(r.odysseyShipmentIdentifier).startsWith('C')).length > 1) throw bad('A consolidation can include only one consolidated (C) shipment.')
   const onStops = new Set(stops.flatMap((s) => s.orderIds ?? []))
   if (onStops.size < 2) throw bad('A consolidation needs at least two orders.') // CNS-14
   const unplaced = externalOrders.map((e) => e.orderNumber).filter((id) => !onStops.has(id))
@@ -128,7 +131,7 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
   // Editing a consolidation keeps its Consolidation ID (CNS-09): re-applying
   // with exactly one existing C… source reuses that shipment's three ids, so
   // the planner's consolidation does not get renamed under them. Two C sources
-  // is a genuine merge — neither id wins, a new one is minted.
+  // is refused by checkConsolidation (S164); the mint branch stays for direct callers.
   const existing = rows.filter(isC)
   const ids = existing.length === 1
     ? {

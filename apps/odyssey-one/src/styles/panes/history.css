@@ -1,6 +1,6 @@
 /* history pane — S107 rebuild. Timeline-with-dots anatomy kept deliberately
    (NOT a table — that shape is order-domain precedent only, LINX-8091; see
-   HistoryTab.jsx header comment). Follows the docs-*/panes/documents.css
+   HistoryTab.jsx header comment). Follows the docs-* (panes/documents.css)
    convention: tab-local classes, every value through a token except
    component-internal geometry (dot size, line offsets — untokenized in
    Figma too). */
@@ -32,17 +32,14 @@
   background: var(--border-subtle);
 }
 
-/* Outcome dot — color set inline per entry (DEC-81, 2026-08-10: keyed on
-   entry.outcome — failure/success/update — not category; maps to the
-   matching Badge text token, no dedicated dot token exists). */
+/* Outcome dot — `TimelineDot` (normalized 2026-09-30; the component owns size,
+   ring and shadow). Color = the row's Badge variant (DEC-81: keyed on
+   entry.outcome, not category). Positioning only; 10px dot re-centered on the
+   point the old 7px one sat on. */
 .history-dot {
   position: absolute;
-  left: -21px;
-  top: 6px;
-  width: 7px;
-  height: 7px;
-  border-radius: var(--radius-full);
-  box-shadow: 0 0 0 3px var(--bg-primary);
+  left: -23px;
+  top: 4px;
 }
 
 .history-content {
@@ -132,21 +129,18 @@
 }
 
 /* ── Consolidation lineage (S164 / CNS-22) ─────────────────────────────────
-   History card with a tab row, summary card, "Merged from" band and the
-   lineage tree. Look from Figma VDs 2671:81594 / 3113:19333 / 3121:60581 /
-   3126:19659 / 3127:20032 (look only — ids/counts/copy are our model's).
-   Card surface = SubAccordion's (it can't host a tab row in its header, so
-   its surface values are reused here, tokens only). */
-.history-card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-sm);
-  padding: var(--spacing-4) var(--spacing-6) var(--spacing-5);
-}
-.history-card__tabs {
+   Card = a headerless SubAccordion (HistoryTab.jsx); this file styles what sits
+   in it. Geometry from Figma VDs 2675:83625 (panel), 2677:84049 (tab row),
+   3159:21323 (closable tab), 3113:19368 / 3121:60616 / 3126:19694 (tree) —
+   look only, ids/counts/copy are our model's. Type comes from the .text-*
+   utilities on the elements. */
+.history-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-3); /* 12, not .tab-group's 24 (Figma 2677:84049) */
   border-bottom: 1px solid var(--border-subtle);
 }
-.history-card__body {
+.history-tabs__body {
   padding-top: var(--spacing-6);
 }
 
@@ -157,83 +151,89 @@
 }
 
 .history-summary {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: var(--spacing-4);
-  padding-top: var(--spacing-4);
+  overflow: clip;
 }
-.history-summary__main,
-.history-summary__cells {
-  padding-inline: var(--spacing-4);
+.history-summary__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--spacing-4) var(--spacing-5);
+}
+.history-summary__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
 }
 .history-summary__kicker {
   color: var(--text-tertiary);
-  text-transform: uppercase;
 }
 .history-summary__id {
   color: var(--text-primary);
 }
 .history-summary__cells {
   display: flex;
-  gap: var(--spacing-6);
+  gap: calc(var(--spacing-6) + var(--spacing-1)); /* 28 — no token */
 }
 .history-band {
-  grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3) var(--spacing-4);
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-5);
   background: var(--bg-secondary);
-  font-size: var(--font-size-sm);
+  border-top: 1px solid var(--border-subtle);
 }
-.history-band__label {
+.history-band__label,
+.history-band__sep {
   color: var(--text-tertiary);
 }
 .history-band__sep {
-  color: var(--text-tertiary);
+  flex: none;
 }
 
 /* Chip = depth dot + link-coloured semibold id; a button (opens the preview). */
 .history-chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-1);
+  gap: var(--spacing-2);
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  font: inherit;
-  font-weight: var(--font-weight-semibold);
   color: var(--text-link);
 }
 .history-chip:focus-visible,
 .lineage-id:focus-visible,
 .lineage-chevron:focus-visible,
+.lineage-tab__label:focus-visible,
 .lineage-tab__close:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
 
+/* Event History card — the trail rows inside stay as-is (user ruling). */
+.history-events {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-5) var(--spacing-5) var(--spacing-3);
+}
 .history-events__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: var(--spacing-6);
 }
-.history-events__title {
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-}
+.history-events__title,
 .history-events__count {
-  font-size: var(--font-size-xs);
   color: var(--text-tertiary);
 }
 .history-empty {
   margin: 0;
+  padding-bottom: var(--spacing-4);
   color: var(--text-placeholder);
   font-size: var(--font-size-sm);
 }
@@ -253,62 +253,55 @@
 .lineage-tree {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: clip;
 }
 .lineage-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3) var(--spacing-4);
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-5);
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-subtle);
+}
+.lineage-header__group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
 }
 .lineage-header__title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 .lineage-header__id {
-  font-size: var(--font-size-xs);
   color: var(--text-tertiary);
 }
-.lineage-header__toggle {
-  margin-left: auto;
-}
 
-/* 41px rows (40 + the 1px subtle rule); indent is set inline per depth. */
+/* 41px rows (40 + the 1px subtle rule); the last has no rule (the container's
+   border closes it). Indent is set inline per depth (LineageTree.jsx). */
 .lineage-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-3);
   height: 41px;
   box-sizing: border-box;
-  padding-right: var(--spacing-4);
+  padding-right: var(--spacing-5);
   border-bottom: 1px solid var(--border-subtle);
+}
+.lineage-row--last {
+  border-bottom: none;
 }
 .lineage-chevron {
   flex: none;
   display: inline-flex;
-  width: 20px;
-  height: 20px;
   padding: 0;
   border: none;
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
-}
-/* A leaf keeps the chevron's width so its dot stays aligned. */
-.lineage-chevron--leaf {
-  cursor: default;
 }
 .lineage-id {
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
   color: var(--text-link);
 }
 .lineage-route {
@@ -316,43 +309,43 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-xs);
   color: var(--text-tertiary);
 }
+.lineage-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* raw — no 6 token; Badge's own internal geometry is raw too */
+}
+/* "Sources of {id}" strip — no border; padding-left set inline (parent chevron x). */
 .lineage-strip {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding-block: var(--spacing-2);
-  padding-right: var(--spacing-4);
+  gap: var(--spacing-3);
+  height: 32px; /* raw — Figma strip height, no token */
+  box-sizing: border-box;
+  padding: var(--spacing-2) var(--spacing-4);
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.6px; /* VD value; no letter-spacing token exists */
   color: var(--text-tertiary);
 }
+.lineage-strip > svg {
+  flex: none;
+}
 
-/* Closable tab — the x sits over padding reserved on the Tab's label (app-local,
-   ad-hoc: playground/normalization-tracker.md). */
-.lineage-tab {
-  position: relative;
-  display: inline-flex;
-}
-.lineage-tab__label .tab__content {
-  padding-right: calc(16px + var(--spacing-1));
-}
+/* Closable tab — Tab atom anatomy (`.tab` / `.tab__content` / `.tab__underline`
+   rules supply padding, gap 8 and hover/current colours); only the two inner
+   buttons are reset here (app-local, ad-hoc: playground/normalization-tracker.md). */
+.lineage-tab__label,
 .lineage-tab__close {
-  position: absolute;
-  right: 0;
-  top: 2px;
   display: inline-flex;
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--text-tertiary);
+  font: inherit;
+  color: inherit;
   cursor: pointer;
+}
+.lineage-tab__close {
+  color: var(--text-tertiary);
 }
 .lineage-tab__close:hover {
   color: var(--text-primary);

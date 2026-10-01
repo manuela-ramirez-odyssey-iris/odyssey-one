@@ -2447,6 +2447,14 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .sub-accordion__content {
   margin-top: var(--spacing-6);
 }
+/* Headerless static card (S164, Figma "History Subaccordion" 2675:83625):
+   no header row, so 16 top (back from Static's 20) and no header↔content gap. */
+.sub-accordion--headless {
+  padding-top: var(--spacing-4);
+}
+.sub-accordion--headless .sub-accordion__content {
+  margin-top: 0;
+}
 
 /* StepperButtonsFooter — molecule. Full-width page/stepper footer bar: border-top + page
    padding, Cancel (secondary) pushed left and the primary action group pushed right

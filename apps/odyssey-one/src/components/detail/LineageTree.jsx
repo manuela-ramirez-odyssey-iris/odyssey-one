@@ -1,5 +1,6 @@
 import React from 'react'
-import { Badge, Button, Tab } from '@odyssey/ui'
+import { Badge, Button } from '@odyssey/ui'
+import { ICON_MD } from '@odyssey/tokens'
 import { ChevronRight, ChevronDown, Merge, Lock, X, ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 
 // Consolidation lineage — the tree + its closable preview tab (S164 / CNS-22,
@@ -50,78 +51,106 @@ export function LineageTree({ root, expanded, onToggle, onToggleAll, onOpen }) {
   const keys = expandableKeys(root)
   const allExpanded = keys.length > 0 && keys.every((k) => expanded.has(k))
 
-  const renderNode = (node, key, depth) => {
-    const id = labelOf(node)
+  // Indent model (Figma 3121:60616 / 3126:19694): dots must line up across
+  // siblings. A chevron row starts at 16 + 16·d; a leaf has no chevron, so it
+  // adds chevron(16) + gap(12) to land its dot where a sibling's dot lands.
+  const indent = (depth, hasChevron) =>
+    hasChevron || depth === 0
+      ? `calc(var(--spacing-4) * ${depth + 1})`
+      : `calc(var(--spacing-4) * ${depth + 1} + var(--icon-size-md) + var(--spacing-3))`
+
+  // Flatten to rows so the LAST row can drop its border-bottom (the container's
+  // border closes it) — a CSS :last-child can't see through the fragments.
+  const rows = []
+  const walk = (node, key, depth) => {
     const k = node.sources?.length ?? 0
-    const isOpen = expanded.has(key)
-    return (
-      <React.Fragment key={key}>
-        <div className="lineage-row" style={{ paddingLeft: `calc(var(--spacing-4) * ${depth + 1})` }}>
-          {k > 0 ? (
-            <button
-              type="button"
-              className="lineage-chevron"
-              aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${id}`}
-              aria-expanded={isOpen}
-              onClick={() => onToggle(key)}
-            >
-              {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-            </button>
-          ) : (
-            <span className="lineage-chevron lineage-chevron--leaf" aria-hidden="true" />
-          )}
-          <DepthDot depth={depth} />
-          <button type="button" className="lineage-id" onClick={() => onOpen(node, depth === 0)}>{id}</button>
-          <span className="lineage-route">{node.origin} → {node.destination}</span>
-          {node.hidden && <Badge variant="gray" leftIcon={<Lock size={12} />}>Preview only</Badge>}
-          {k > 0 && <Badge variant="blue">{k} {k === 1 ? 'source' : 'sources'}</Badge>}
+    rows.push({ type: 'node', node, key, depth, k })
+    if (k > 0 && expanded.has(key)) {
+      rows.push({ type: 'strip', node, key: `${key}#strip`, depth })
+      node.sources.forEach((s, i) => walk(s, `${key}/${i}`, depth + 1))
+    }
+  }
+  walk(root, 'r', 0)
+
+  const renderRow = (r, last) => {
+    const { node, key, depth } = r
+    const id = labelOf(node)
+    const cls = last ? ' lineage-row--last' : ''
+    if (r.type === 'strip') {
+      // padding-left = the PARENT row's chevron x (root 16, d1 32, d2 48)
+      return (
+        <div key={r.key} className={`lineage-strip text-label-xs-medium-uppercase${cls}`} style={{ paddingLeft: `calc(var(--spacing-4) * ${depth + 1})` }}>
+          <Merge {...ICON_MD} aria-hidden="true" />
+          Sources of {id}
         </div>
-        {isOpen && (
-          <>
-            <div className="lineage-strip" style={{ paddingLeft: `calc(var(--spacing-4) * ${depth + 2})` }}>
-              <Merge size={16} aria-hidden="true" />
-              Sources of {id}
-            </div>
-            {node.sources.map((s, i) => renderNode(s, `${key}/${i}`, depth + 1))}
-          </>
+      )
+    }
+    const isOpen = expanded.has(key)
+    const Chevron = isOpen ? ChevronDown : ChevronRight
+    return (
+      <div key={key} className={`lineage-row${cls}`} style={{ paddingLeft: indent(depth, r.k > 0) }}>
+        {r.k > 0 && (
+          <button
+            type="button"
+            className="lineage-chevron"
+            aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${id}`}
+            aria-expanded={isOpen}
+            onClick={() => onToggle(key)}
+          >
+            <Chevron size={depth === 0 ? 20 : 16} />
+          </button>
         )}
-      </React.Fragment>
+        <DepthDot depth={depth} />
+        <button type="button" className="lineage-id text-label-sm-semibold" onClick={() => onOpen(node, depth === 0)}>{id}</button>
+        <span className="lineage-route text-label-xs-regular">{node.origin} → {node.destination}</span>
+        <span className="lineage-badges">
+          {node.hidden && <Badge variant="gray" leftIcon={<Lock {...ICON_MD} />}>Preview only</Badge>}
+          {r.k > 0 && <Badge variant="blue">{r.k} {r.k === 1 ? 'source' : 'sources'}</Badge>}
+        </span>
+      </div>
     )
   }
 
   return (
     <div className="lineage-tree">
       <div className="lineage-header">
-        <span className="lineage-header__title">Consolidation Lineage</span>
-        <span className="lineage-header__id">{labelOf(root)}</span>
-        <Badge variant="blue">{countShipments(root)} shipments</Badge>
+        <div className="lineage-header__group">
+          <span className="lineage-header__title text-label-sm-semibold">Consolidation Lineage</span>
+          <span className="lineage-header__id text-label-xs-regular">{labelOf(root)}</span>
+          <Badge variant="blue">{countShipments(root)} shipments</Badge>
+        </div>
         {keys.length > 0 && (
           <Button
             variant="link"
-            className="lineage-header__toggle"
-            icon={allExpanded ? <ListChevronsDownUp size={16} /> : <ListChevronsUpDown size={16} />}
+            size="sm"
+            iconRight={allExpanded ? <ListChevronsDownUp {...ICON_MD} /> : <ListChevronsUpDown {...ICON_MD} />}
             onClick={() => onToggleAll(!allExpanded, keys)}
           >
             {allExpanded ? 'Collapse All' : 'Expand All'}
           </Button>
         )}
       </div>
-      {renderNode(root, 'r', 0)}
+      {rows.map((r, i) => renderRow(r, i === rows.length - 1))}
     </div>
   )
 }
 
 // Closable preview tab — APP-LOCAL, logged ad-hoc in playground/normalization-
 // tracker.md (user ruling 2026-09-30): the normalized Tab has no close slot.
-// Tab anatomy + a 16px lucide `x` after the label. The x is a SIBLING button
-// (never nested in the Tab's <button>), laid over the label's reserved padding.
+// Same anatomy as the Tab atom (Figma 3159:21323): `.tab__content` holds the
+// label AND a 16px lucide `x` (gap 8), then the 2px underline; hover/current
+// colours come from the `.tab` rules. The wrapper is a div (no nested buttons):
+// label = select button, x = sibling close button.
 export function LineageTab({ label, current, onSelect, onClose }) {
   return (
-    <span className="lineage-tab">
-      <Tab label={label} current={current} onClick={onSelect} className="lineage-tab__label" />
-      <button type="button" className="lineage-tab__close" aria-label={`Close ${label}`} onClick={onClose}>
-        <X size={16} aria-hidden="true" />
-      </button>
-    </span>
+    <div className={`tab text-label-sm-medium lineage-tab${current ? ' tab--current' : ''}`}>
+      <span className="tab__content">
+        <button type="button" className="lineage-tab__label" aria-pressed={current} onClick={onSelect}>{label}</button>
+        <button type="button" className="lineage-tab__close" aria-label={`Close ${label}`} onClick={onClose}>
+          <X {...ICON_MD} aria-hidden="true" />
+        </button>
+      </span>
+      <span className="tab__underline" aria-hidden="true" />
+    </div>
   )
 }

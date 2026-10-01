@@ -1,6 +1,7 @@
 import React from 'react'
-import { Badge, SubAccordion, Tab, TitleSubtitle } from '@odyssey/ui'
-import { ArrowRight } from 'lucide-react'
+import { Badge, SubAccordion, Tab, TimelineDot, TitleSubtitle } from '@odyssey/ui'
+import { ArrowRight, Merge } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { formatDateTimeMDYHM } from '../../lib/dates'
 import PaneEmpty from './PaneEmpty'
 import TooltipTrigger from '../ui/TooltipTrigger'
@@ -25,7 +26,7 @@ import { DepthDot, LineageTab, LineageTree, findPath, labelOf } from './LineageT
 // data (still used for grouping/labels elsewhere), it just no longer drives
 // color. The generator reseed that back-fills `outcome` onto existing seed
 // rows is separately user-gated and has not run yet — see the missing-outcome
-// fallback on BADGE_VARIANTS/getDotColor below.
+// fallback on BADGE_VARIANTS below.
 //
 // DEC-81 follow-up (2026-08-10, same-day): fourth value `'neutral'` added —
 // the step completed successfully but the business result is unfavourable or
@@ -124,7 +125,7 @@ function HistoryEntries({ entries }) {
     <div className="history-list">
       {orderNewestFirst(entries).map((entry, i) => (
         <div className="history-entry" key={i}>
-          <div className="history-dot" style={{ background: getDotColor(entry.outcome) }} />
+          <TimelineDot className="history-dot" color={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default} />
           <div className="history-content">
             <div className="history-row1">
               {/* DEC-70 introduced a "System" badge beside the actor; user removed
@@ -172,16 +173,21 @@ function HistoryEntries({ entries }) {
 }
 
 // `lineage` (S164 / CNS-22) is the detail's consolidation ancestry and `shipment`
-// the list row; both optional. No lineage = today's static card, unchanged.
+// the list row. User ruling 2026-09-30 (S164): "we should show the summary in
+// all just to make them consistent" — every shipment gets the lineage layout;
+// no sources = band reads "Created as a new shipment" and no Lineage Tree tab.
+// The static card below survives only as a defensive no-`shipment` fallback.
 const HistoryTab = React.memo(function HistoryTab({ data, lineage, shipment }) {
   const raw = data?.entries
-  if (!raw || raw.length === 0) {
-    return <PaneEmpty message="No history available." />
+  const empty = !raw || raw.length === 0
+
+  if (shipment) {
+    // key = reset tab state when the shipment changes (spec §4)
+    return <LineageHistory key={shipment.sellShipment} entries={empty ? null : raw} lineage={lineage} shipment={shipment} />
   }
 
-  if (lineage?.sources?.length && shipment) {
-    // key = reset tab state when the shipment changes (spec §4)
-    return <LineageHistory key={shipment.sellShipment} entries={raw} lineage={lineage} shipment={shipment} />
+  if (empty) {
+    return <PaneEmpty message="No history available." />
   }
 
   return (
@@ -201,46 +207,58 @@ export default HistoryTab
 // --- Lineage view (S164 / CNS-22) ---
 
 // Odyssey ids carry the prefix (S148): C = consolidated, O = one order.
-const kickerOf = (n) => (/^C/.test(labelOf(n)) ? 'Consolidated Shipment' : 'Shipment')
+const isConsolidated = (n) => /^C/.test(labelOf(n))
+const kickerOf = (n) => (isConsolidated(n) ? 'Consolidated Shipment' : 'Shipment')
 const PREVIEW_TAB = (sell) => `preview:${sell}`
 
-// Summary card + "Merged from" band + event history. `path` is the chip row:
-// direct sources on the live shipment, the ancestry path on a preview.
-function HistoryPanel({ node, customer, path, arrows, onOpen, entries, status }) {
+// Summary card + band + event history. The band says how THIS shipment came to
+// be (user 2026-09-30 (S164)), from the shown node's own sources — never the
+// ancestry path: C = "Merged from" its direct sources (Merge separators), O with
+// sources = "Deconsolidated from" original → C (arrows = time), O without = created new.
+// `depth` = the node's depth in the tree; its source chips sit one level below.
+function HistoryPanel({ node, customer, depth, onOpen, entries, status }) {
+  const isC = isConsolidated(node)
+  const sources = node.sources ?? []
+  // timeline order for an O: the original shipment first, then the C it left
+  const chips = !sources.length ? [] : isC ? sources : [...sources.filter((n) => !isConsolidated(n)), ...sources.filter(isConsolidated)]
+  const label = !chips.length ? 'Created as a new shipment' : isC ? 'Merged from:' : 'Deconsolidated from:'
+  const Sep = isC ? Merge : ArrowRight
   return (
     <div className="history-panel">
       <div className="history-summary">
-        <div className="history-summary__main">
-          <div className="history-summary__kicker text-label-xs-medium">
-            {kickerOf(node)}
+        <div className="history-summary__top">
+          <div className="history-summary__main">
+            <div className="history-summary__kicker text-label-xs-medium-uppercase">
+              {kickerOf(node)}
+            </div>
+            <div className="history-summary__id text-heading-lg-semibold">{labelOf(node)}</div>
           </div>
-          <div className="history-summary__id text-heading-lg-semibold">{labelOf(node)}</div>
-        </div>
-        <div className="history-summary__cells">
-          <TitleSubtitle subtitle="Customer" title={customer || '—'} />
-          <TitleSubtitle subtitle="Origin" title={node.origin || '—'} />
-          <TitleSubtitle subtitle="Destination" title={node.destination || '—'} />
+          <div className="history-summary__cells">
+            <TitleSubtitle subtitle="Customer" title={customer || '—'} />
+            <TitleSubtitle subtitle="Origin" title={node.origin || '—'} />
+            <TitleSubtitle subtitle="Destination" title={node.destination || '—'} />
+          </div>
         </div>
         <div className="history-band">
-          <span className="history-band__label">Merged from:</span>
-          {path.map((p, i) => (
-            <React.Fragment key={`${p.node.sellShipment}-${i}`}>
-              {i > 0 && (arrows
-                ? <ArrowRight size={16} className="history-band__sep" aria-hidden="true" />
-                : <span className="history-band__sep" aria-hidden="true">·</span>)}
-              <button type="button" className="history-chip" onClick={() => onOpen(p.node, p.depth === 0)}>
-                <DepthDot depth={p.depth} />
-                {labelOf(p.node)}
+          <span className="history-band__label text-label-xs-regular">{label}</span>
+          {chips.map((n, i) => (
+            <React.Fragment key={`${n.sellShipment}-${i}`}>
+              {i > 0 && <Sep {...ICON_MD} className="history-band__sep" aria-hidden="true" />}
+              <button type="button" className="history-chip text-label-sm-semibold" onClick={() => onOpen(n, false)}>
+                <DepthDot depth={depth + 1} />
+                {labelOf(n)}
               </button>
             </React.Fragment>
           ))}
         </div>
       </div>
-      <div className="history-events__head">
-        <span className="history-events__title text-label-xs-medium">Event History</span>
-        {entries && <span className="history-events__count">{entries.length} events</span>}
+      <div className="history-events">
+        <div className="history-events__head">
+          <span className="history-events__title text-label-xs-medium-uppercase">Event History</span>
+          {entries && <span className="history-events__count text-label-xs-regular">{entries.length} events</span>}
+        </div>
+        {status ? <p className="history-empty">{status}</p> : <HistoryEntries entries={entries} />}
       </div>
-      {status ? <p className="history-empty">{status}</p> : <HistoryEntries entries={entries} />}
     </div>
   )
 }
@@ -254,11 +272,10 @@ function PreviewPanel({ tab, customer, onOpen }) {
   const status = isError ? 'Could not load this shipment’s history.'
     : isPending || isPlaceholderData ? 'Loading history…'
     : !entries?.length ? 'No history available.' : null
-  const path = tab.path.map((n, i) => ({ node: n, depth: i }))
   return (
     <HistoryPanel
       node={tab.node}
-      customer={customer} path={path} arrows onOpen={onOpen}
+      customer={customer} depth={tab.path.length - 1} onOpen={onOpen}
       entries={status ? null : entries} status={status}
     />
   )
@@ -271,8 +288,9 @@ function LineageHistory({ entries, lineage, shipment }) {
     origin: shipment.origin,
     destination: shipment.destination,
     hidden: false,
-    sources: lineage.sources,
+    sources: lineage?.sources ?? [],
   }
+  const hasTree = root.sources.length > 0 // no ancestry → nothing to draw (2026-09-30 ruling)
   const [previews, setPreviews] = React.useState([]) // { node, path }
   const [active, setActive] = React.useState('history') // 'history' | 'tree' | preview id
   const [expanded, setExpanded] = React.useState(() => new Set()) // root starts collapsed (VD 3113)
@@ -285,7 +303,7 @@ function LineageHistory({ entries, lineage, shipment }) {
     setActive(id)
   }
   const close = (id) => {
-    const order = ['history', 'tree', ...previews.map((t) => t.id)]
+    const order = ['history', ...(hasTree ? ['tree'] : []), ...previews.map((t) => t.id)]
     const at = order.indexOf(id)
     setPreviews((prev) => prev.filter((t) => t.id !== id))
     // closing the current tab falls back to the one on its left
@@ -305,11 +323,12 @@ function LineageHistory({ entries, lineage, shipment }) {
 
   return (
     <div className="pane-canvas">
-      <div className="pane-col pane-col--narrow">
-        <section className="history-card">
-          <div className="tab-group history-card__tabs">
+      <div className="pane-col pane-col--medium">
+        {/* Headerless static SubAccordion = the card surface (user, S164) */}
+        <SubAccordion collapsible={false}>
+          <div className="history-tabs">
             <Tab label="Shipment History" current={active === 'history'} onClick={() => setActive('history')} />
-            <Tab label="Lineage Tree" current={active === 'tree'} onClick={() => setActive('tree')} />
+            {hasTree && <Tab label="Lineage Tree" current={active === 'tree'} onClick={() => setActive('tree')} />}
             {previews.map((t) => (
               <LineageTab
                 key={t.id}
@@ -320,14 +339,15 @@ function LineageHistory({ entries, lineage, shipment }) {
               />
             ))}
           </div>
-          <div className="history-card__body">
+          <div className="history-tabs__body">
             {active === 'history' && (
               <HistoryPanel
                 node={root}
                 customer={customer}
-                path={lineage.sources.map((n) => ({ node: n, depth: 1 }))}
+                depth={0}
                 onOpen={open}
                 entries={entries}
+                status={entries ? null : 'No history available.'}
               />
             )}
             {active === 'tree' && (
@@ -337,7 +357,7 @@ function LineageHistory({ entries, lineage, shipment }) {
               <PreviewPanel key={activePreview.id} tab={activePreview} customer={customer} onOpen={open} />
             )}
           </div>
-        </section>
+        </SubAccordion>
       </div>
     </div>
   )
@@ -426,25 +446,4 @@ const BADGE_VARIANTS = {
   neutral: 'amber',
   info: 'gray',
   default: 'gray',
-}
-
-// Timeline dot color — the matching badge TEXT token (no dedicated dot/status
-// tokens exist yet; the badge text shade is the nearest saturated equivalent
-// of the old hardcoded hexes). Keyed on `outcome`, same DEC-81 mapping and
-// same neutral fallback as BADGE_VARIANTS above. `neutral` uses
-// `--badge-yellow-text` since the Badge `amber` variant is itself backed by
-// the yellow token pair (see packages/ui/src/Badge.jsx). `info` (DEC-87,
-// 2026-08-12) uses `--badge-gray-text` — the same token the Badge `gray`
-// variant is backed by — kept distinct from the `default` (missing-outcome)
-// fallback below, which uses `--text-tertiary` rather than the gray badge
-// token itself.
-function getDotColor(outcome) {
-  switch (outcome) {
-    case 'failure': return 'var(--badge-red-text)'
-    case 'success': return 'var(--badge-green-text)'
-    case 'update': return 'var(--badge-blue-text)'
-    case 'neutral': return 'var(--badge-yellow-text)'
-    case 'info': return 'var(--badge-gray-text)'
-    default: return 'var(--text-tertiary)'
-  }
 }

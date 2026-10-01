@@ -2140,16 +2140,16 @@ test('no facility name contains a word from any customer name; names unique', ()
   assert.equal(new Set(LOCATIONS.map((l) => l.facility)).size, LOCATIONS.length)
 })
 
-// ── S164 lineage (spec 2026-09-30-consolidation-lineage-history §3) ──────────
+// ── S164 lineage (spec 2026-09-30-consolidation-lineage-history §3 + CNS-14 ruling: a C is never merged from a C) ──
 const lineageDs = buildDataset()
-const lineageCs = lineageDs.shipments.filter((s) => lineageDs.details.get(s.sellShipment).lineage)
+const withLineage = lineageDs.shipments.filter((s) => lineageDs.details.get(s.sellShipment).lineage)
+const lineageCs = withLineage.filter((s) => s.shipmentType === 'Consolidation')
+const liveOs = withLineage.filter((s) => s.shipmentType !== 'Consolidation')
 const hiddenRowBySell = new Map(lineageDs.hiddenShipments.map((r) => [r.sellShipment, r]))
+const isC = (n) => n.odysseyShipmentIdentifier.startsWith('C')
 // every node below a root, with its parent
 const walk = (nodes, parent, fn) => nodes.forEach((n) => { fn(n, parent); walk(n.sources, n, fn) })
-// the pull-out O (spec §3): one order, two sources — [an older hidden C, its original O]
-const isPullOut = (n) => n.orders.length === 1 && n.sources.length === 2 && n.sources[1].sources.length === 0 && n.sources[0].orders.length > 1
-// leaves that partition the C's orders: a pull-out counts once, via its original O
-const leavesOf = (n) => (isPullOut(n) ? [n.sources[1]] : n.sources.length ? n.sources.flatMap(leavesOf) : [n])
+const srcs = (s) => lineageDs.details.get(s.sellShipment).lineage.sources
 
 test('lineage: exactly the C with >= 2 orders get it, and never a listed shipment id', () => {
   const multi = lineageDs.shipments.filter((s) => s.shipmentType === 'Consolidation' && s.orders.length >= 2)
@@ -2167,8 +2167,8 @@ test('lineage: exactly the C with >= 2 orders get it, and never a listed shipmen
 })
 
 test('lineage: nodes are the contract shape; every hidden node has a details blob and a hiddenShipments row', () => {
-  for (const c of lineageCs) {
-    walk(lineageDs.details.get(c.sellShipment).lineage.sources, null, (n) => {
+  for (const c of withLineage) {
+    walk(srcs(c), null, (n) => {
       assert.deepEqual(Object.keys(n).sort(), ['destination', 'hidden', 'odysseyShipmentIdentifier', 'orders', 'origin', 'sellShipment', 'sources'])
       assert.equal(n.hidden, true)
       assert.ok(lineageDs.hiddenDetails.has(n.sellShipment), `${n.sellShipment} blob`)
@@ -2181,43 +2181,85 @@ test('lineage: nodes are the contract shape; every hidden node has a details blo
   }
 })
 
-test('lineage: orders nest inside the parent (root = the C), and the leaves partition the C exactly', () => {
+test('lineage: a C is never a direct source of a C; a hidden C is only the first source of a pulled-out O, with >= 2 O-leaf sources', () => {
+  for (const c of lineageCs) {
+    for (const s of srcs(c)) assert.ok(!isC(s), `${c.odysseyShipmentIdentifier} has C source ${s.odysseyShipmentIdentifier}`)
+  }
+  for (const c of withLineage) {
+    walk(srcs(c), { sources: c.shipmentType === 'Consolidation' ? [] : srcs(c), orders: c.shipmentType === 'Consolidation' ? [] : c.orders, odysseyShipmentIdentifier: c.odysseyShipmentIdentifier }, (n, parent) => {
+      if (!isC(n)) return
+      assert.ok(parent.sources[0] === n, `${n.odysseyShipmentIdentifier} is a hidden C outside a pulled-out O`)
+      assert.ok(n.sources.length >= 2 && n.sources.every((x) => !isC(x) && x.sources.length === 0))
+    })
+  }
+})
+
+test('lineage: a live C\'s direct sources map 1:1 to its orders; the pulled-out pairs share one oldC snapshot of exactly their orders', () => {
+  let pairs = 0
   for (const c of lineageCs) {
     const d = lineageDs.details.get(c.sellShipment)
     const rootOrders = d.orderList.map((o) => o.orderNumber)
-    walk(d.lineage.sources, { orders: rootOrders, root: true }, (n, parent) => {
-      // the older C inside a pull-out also holds a SIBLING order, so it nests in the root, not in the O
-      const bound = isPullOut(parent) ? rootOrders : parent.orders
-      assert.ok(n.orders.every((o) => bound.includes(o)), `${n.sellShipment} orders outside ${parent.sellShipment ?? 'the C'}`)
-    })
-    const leaves = d.lineage.sources.flatMap(leavesOf).flatMap((n) => n.orders).sort()
-    assert.deepEqual(leaves, [...rootOrders].sort(), `${c.sellShipment} leaves`)
+    assert.deepEqual(srcs(c).flatMap((n) => n.orders).sort(), [...rootOrders].sort(), `${c.sellShipment} 1:1`)
+    assert.ok(srcs(c).every((n) => n.orders.length === 1 && n.hidden))
+    const pulled = srcs(c).filter((n) => n.sources.length)
+    for (const p of pulled) {
+      assert.equal(p.sources.length, 2)
+      const [old, orig] = p.sources
+      assert.ok(isC(old) && !isC(orig) && orig.sources.length === 0 && orig.orders[0] === p.orders[0])
+      assert.ok(old.orders.includes(p.orders[0]) && old.orders.length >= 2)
+      assert.ok(old.orders.every((o) => rootOrders.includes(o)), 'sibling is an order of the same live C')
+      assert.deepEqual(old.sources.flatMap((x) => x.orders).sort(), [...old.orders].sort())
+      const mate = pulled.find((q) => q !== p && q.sources[0] === old)
+      assert.ok(mate, `${p.sellShipment} has a mate under the same oldC`)
+      if (p.sellShipment < mate.sellShipment) pairs += 1
+      assert.deepEqual([...p.orders, ...mate.orders].sort(), [...old.orders].sort())
+    }
   }
+  assert.ok(pairs > 0)
 })
 
-test('lineage: depth <= 3, and the pull-out shape shows up', () => {
-  let depth = 0, pullOuts = 0
-  const down = (nodes, d) => nodes.forEach((n) => { depth = Math.max(depth, d); if (isPullOut(n)) pullOuts += 1; if (!isPullOut(n)) down(n.sources, d + 1) })
-  for (const c of lineageCs) down(lineageDs.details.get(c.sellShipment).lineage.sources, 1)
+test('lineage: live pulled-out O\'s — same-customer pairs, [oldC, originalO], depth <= 3', () => {
+  assert.ok(liveOs.length >= 2 && liveOs.length % 2 === 0)
+  const byOld = new Map()
+  for (const o of liveOs) {
+    assert.equal(o.shipmentType, 'Direct')
+    const s = srcs(o)
+    assert.equal(s.length, 2)
+    assert.ok(isC(s[0]) && !isC(s[1]) && s[1].sources.length === 0)
+    assert.ok(s[0].sources.some((x) => x.sellShipment === s[1].sellShipment))
+    assert.deepEqual(s[1].orders, o.orders.length ? lineageDs.details.get(o.sellShipment).orderList.map((x) => x.orderNumber) : [])
+    byOld.set(s[0].sellShipment, [...(byOld.get(s[0].sellShipment) ?? []), o])
+  }
+  for (const pair of byOld.values()) {
+    assert.equal(pair.length, 2)
+    assert.equal(pair[0].customerId, pair[1].customerId)
+    const old = srcs(pair[0])[0]
+    assert.deepEqual(old.orders.sort(), pair.flatMap((o) => lineageDs.details.get(o.sellShipment).orderList.map((x) => x.orderNumber)).sort())
+  }
+  let depth = 0
+  const down = (nodes, d) => nodes.forEach((n) => { depth = Math.max(depth, d); down(n.sources, d + 1) })
+  for (const c of withLineage) down(srcs(c), 1)
   assert.ok(depth <= 3, `depth ${depth}`)
-  assert.ok(pullOuts > 0)
 })
 
-test('lineage: a hidden blob is a frozen snapshot — its roster and stops are the group\'s, its trail ends dormant before the C began', () => {
-  const c = lineageCs[0]
+test('lineage: a hidden blob is a frozen snapshot — its roster and stops are its group\'s, its trail ends dormant before its parent began', () => {
+  const c = lineageCs.find((x) => srcs(x).some((n) => n.sources.length))
   const cd = lineageDs.details.get(c.sellShipment)
-  for (const n of cd.lineage.sources) {
+  const check = (n, parentFirst) => {
     const h = lineageDs.hiddenDetails.get(n.sellShipment)
     assert.deepEqual(h.orderList.map((o) => o.orderNumber), n.orders)
-    assert.ok(h.shipmentStopList.every((s) => s.orderIds.every((id) => n.orders.includes(id))))
+    assert.ok(h.shipmentStopList.every((s) => s.orderIds.every((id) => h.orderList.some((o) => (o.orderId ?? o.orderNumber) === id))))
     assert.deepEqual(h.historyList.map((e) => e.action), ['Shipment Created', 'Optimization Evaluation', 'Consolidation Completed'])
     assert.match(h.historyList[2].details, /This shipment is no longer active\.$/)
     assert.deepEqual(h.shippingOptionList, [])
-    const last = Date.parse(h.historyList[2].timestamp)
-    assert.ok(last < Date.parse(cd.historyList[0].timestamp))
+    assert.ok(Date.parse(h.historyList[2].timestamp) < parentFirst)
     assert.ok(h.historyList.every((e, i, a) => !i || Date.parse(e.timestamp) > Date.parse(a[i - 1].timestamp)))
     assert.equal(hiddenRowBySell.get(n.sellShipment).origin, n.origin)
+    n.sources.forEach((s) => check(s, Date.parse(h.historyList[0].timestamp)))
   }
+  for (const n of srcs(c)) check(n, Date.parse(cd.historyList[0].timestamp))
+  const old = srcs(c).find((n) => n.sources.length).sources[0]
+  assert.match(lineageDs.hiddenDetails.get(old.sellShipment).historyList[2].details, /^Consolidation dissolved/)
 })
 
 test('lineage: zero new draws — listed rows and order details reproduce the committed seed byte-for-byte', async () => {
@@ -2225,4 +2267,5 @@ test('lineage: zero new draws — listed rows and order details reproduce the co
   const dir = new URL('../src/data/', import.meta.url)
   assert.equal(JSON.stringify(lineageDs.shipments, null, 2), readFileSync(new URL('shipments.json', dir), 'utf8'))
   assert.equal(JSON.stringify(lineageDs.orderDetails), readFileSync(new URL('order-details.json', dir), 'utf8'))
+  assert.equal(JSON.stringify(lineageDs.orders, null, 1), readFileSync(new URL('orders.json', dir), 'utf8'))
 })

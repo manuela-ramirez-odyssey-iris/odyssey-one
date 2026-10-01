@@ -121,3 +121,23 @@ describe('SubAccordion header slots (S152, LINX-15895)', () => {
     expect(container.querySelector('.sub-accordion__title-block').children).toHaveLength(1)
   })
 })
+
+describe('SubAccordion headerless (S164)', () => {
+  afterEach(cleanup)
+
+  test('static + no title/slots renders no header row, keeps the region', () => {
+    const { container } = render(<SubAccordion collapsible={false}>body</SubAccordion>)
+    expect(container.querySelector('.sub-accordion--headless')).toBeTruthy()
+    expect(container.querySelector('.sub-accordion__header-row')).toBeNull()
+    const region = screen.getByRole('region')
+    expect(region.hasAttribute('aria-labelledby')).toBe(false)
+  })
+
+  test('a title or a collapsible card keeps the header', () => {
+    const a = render(<SubAccordion title="T" collapsible={false}>b</SubAccordion>)
+    expect(a.container.querySelector('.sub-accordion__header-row')).toBeTruthy()
+    cleanup()
+    const b = render(<SubAccordion>b</SubAccordion>)
+    expect(b.container.querySelector('.sub-accordion__header-row')).toBeTruthy()
+  })
+})

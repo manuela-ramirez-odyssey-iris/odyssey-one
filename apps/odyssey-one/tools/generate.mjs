@@ -100,7 +100,7 @@ import { shipmentStatusFor } from '../src/lib/shipmentStatus.js'
 import { redateOrderChange, applyStopDates } from '../src/lib/orderChangeRouting.js'
 // S164 — lineage. The same pure helpers the live Apply uses (one rule for a
 // dormant shell's trail, a lineage node, and a roster's stops/lane).
-import { dormancyEvent, lineageNode, removeOrdersFromSource, rowFromStops } from '../api/_lib/shipments.mjs'
+import { DORMANT_MARK, dormancyEvent, lineageNode, removeOrdersFromSource, rowFromStops } from '../api/_lib/shipments.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -3834,132 +3834,164 @@ function buildChainLegs(legCount) {
 // lower) — the price of not renumbering.
 const HIDDEN_SELL_BASE = 24_000_000;
 const HIDDEN_BUY_BASE = 920_000_000;
-const LINEAGE_MAX_DEPTH = 3;
 const PULL_OUT_SHARE = 0.2;
 const HOUR_MS = 3_600_000;
 
-// 2…min(n,4) groups: one order each to start, the rest dealt at random, then
-// put back in roster order so a blob's orderList reads like its C's.
-function lineagePartition(rnd, ids) {
-  const k = 2 + Math.floor(rnd() * (Math.min(ids.length, 4) - 1));
-  const shuffled = rndSample(rnd, ids, ids.length);
-  const groups = shuffled.slice(0, k).map((id) => [id]);
-  for (const id of shuffled.slice(k)) groups[Math.floor(rnd() * k)].push(id);
-  return groups.map((g) => ids.filter((id) => g.includes(id))).sort((a, b) => ids.indexOf(a[0]) - ids.indexOf(b[0]));
-}
+// S164 ruling (CNS-14): a C is never merged from another C. A live C's sources
+// are its orders' O nodes, one per load. ~20% of pairs of its orders are
+// "pulled-out" O's: a hidden old C held both (dropped to one load → dormant,
+// each load got a new O — Thomas 09-23), so each O's sources are
+// [oldC, its original O] and both O's share the ONE oldC snapshot. Depth <= 3:
+// live C → pulled-out O → oldC → original O. Hidden C exists nowhere else.
+const LIVE_PULL_OUT_SHARE = 0.05;    // of live O's, so ~3% end up paired (same-customer leftovers drop out)
 
 function buildLineage(shipments, details) {
   const hiddenShipments = [];
   const hiddenDetails = new Map();
   let n = 0;
 
+  // Identity first: children need their parent's id and clock for their own trail.
+  const alloc = (rnd, orderIds, parent, dissolved = false) => {
+    n += 1;
+    const seq = odysseySeq++;
+    return {
+      orderIds, dissolved,
+      sellShipment: String(HIDDEN_SELL_BASE + n),
+      buyShipment: String(HIDDEN_BUY_BASE + n),
+      odysseyShipmentIdentifier: `${orderIds.length > 1 ? 'C' : 'O'}${seq}`,
+      // Born 2–6h before what it fed, so every trail ends before the live shipment's own first event.
+      createdMs: parent.createdMs - Math.round((2 + rnd() * 4) * HOUR_MS),
+      parent,
+    };
+  };
+
+  // The frozen blob + soft-deleted row for one hidden shipment → its lineage node.
+  // `ctx` = { row, detail, ids }: the live (or synthetic) shipment its orders are cut from.
+  const assemble = (ctx, me, sources) => {
+    const { row: cRow, detail: cDetail, ids } = ctx;
+    const held = new Set(me.orderIds);
+    const { orderList, stops } = removeOrdersFromSource(cDetail, ids.filter((id) => !held.has(id)));
+    const lane = rowFromStops(stops) ?? {};
+    const type = orderList.length > 1 ? 'Consolidation' : 'Direct';
+    const category = 'consolidation';
+    const sourceName = 'Linx';
+    const evt = (ms, action, details) => ({
+      user: sourceName, source: sourceName, timestamp: new Date(ms).toISOString(), action, category: 'update', details,
+      outcome: 'update', author: { name: sourceName, kind: 'system' },
+    });
+    const nums = orderList.map((o) => o.orderNumber ?? String(o.orderId));
+    // §2 dormancy event, straight before its parent's own first event. The old C
+    // wasn't merged into anything — it dissolved — so its text says that (same action, DEC-80).
+    const dormant = dormancyEvent(nums, me.parent.odysseyShipmentIdentifier, new Date(me.parent.createdMs - 60_000));
+    if (me.dissolved) dormant.details = `Consolidation dissolved: orders ${nums.join(', ')} were pulled out into new shipments. ${DORMANT_MARK}`;
+    const historyList = [
+      { ...evt(me.createdMs, 'Shipment Created', `Buy Shipment ${me.buyShipment} and Sell Shipment ${me.sellShipment} created successfully for Order ${orderList[0].orderId}.`), category: 'create', user: 'ERP', source: 'ERP', author: { name: 'ERP', kind: 'system' } },
+      evt(me.createdMs + 20 * 60_000, 'Optimization Evaluation', 'Optimization evaluation completed. Shipment moved to Consolidation.'),
+      dormant,
+    ];
+    const agg = {
+      grossWeight: String(orderList.reduce((t, o) => t + (o.grossWeightValue ?? 0), 0)),
+      loadCount: String(orderList.reduce((t, o) => t + (o.orderLines?.length ?? 0), 0)),
+      poNumbers: [...new Set(orderList.map((o) => o.poNumber).filter(Boolean))],
+      pickupNumbers: [...new Set(orderList.map((o) => o.pickupNumber).filter(Boolean))],
+    };
+    const row = {
+      buyShipment: me.buyShipment, sellShipment: me.sellShipment, odysseyShipmentIdentifier: me.odysseyShipmentIdentifier,
+      orders: [], pickupNumbers: agg.pickupNumbers, poNumbers: agg.poNumbers, shipmentType: type, planningType: cRow.planningType ?? null,
+      legType: null, shipmentSequenceLeg: null, nextShipmentId: null, pro: null,
+      customerId: cRow.customerId, customerName: cRow.customerName,
+      consignor: lane.consignor ?? cRow.consignor, consignee: lane.consignee ?? cRow.consignee,
+      origin: lane.origin ?? cRow.origin, destination: lane.destination ?? cRow.destination,
+      pickupDate: lane.pickupDate ?? cRow.pickupDate, deliveryDate: lane.deliveryDate ?? cRow.deliveryDate,
+      mode: cRow.mode, equipmentCode: cRow.equipmentCode, equipment: '', seal: null, scac: null, tenderStatus: '',
+      shipmentStatus: shipmentStatusFor({ panel: 'monitoring', category }), panel: 'monitoring', category, validationMessage: null,
+      grossWeight: agg.grossWeight, load: '', loadCount: agg.loadCount,
+      orderCount: '0', apFreightCost: '',                 // a C5 emptied shell: NOT_EMPTIED hides it (DEC-202)
+    };
+    const detail = {
+      shipmentId: me.sellShipment, odysseyShipmentIdentifier: me.odysseyShipmentIdentifier, shipmentType: type,
+      customerId: cRow.customerId, customerName: cRow.customerName,
+      shipDirection: cDetail.shipDirection ?? '', freightTerms: cDetail.freightTerms ?? '', incotermInfo: null,
+      numberOfStops: stops.length, pgiFlag: false, ratingStatus: 'Not Rated', trackingUrl: null, distanceMiles: null,
+      totalVolumeValue: orderList.reduce((t, o) => t + (o.volumeValue ?? 0), 0),
+      totalVolumeUomCode: cDetail.totalVolumeUomCode ?? 'cuft',
+      acceptedCarrierLabel: null, seedEquipment: cRow.equipmentCode || null, utilizationPercent: null,
+      orderList, shipmentStopList: stops,
+      shippingOptionList: [],                               // no tender history on a hidden source (spec §3)
+      droppedCarrierList: [], documentList: [], noteList: [],
+      ...(sources.length ? { lineage: { sources } } : {}),
+      historyList,
+    };
+    hiddenShipments.push(row);
+    hiddenDetails.set(me.sellShipment, detail);
+    return lineageNode({ row, detail }, true);
+  };
+
+  // One pulled-out pair: two hidden O's under `rootA`/`rootB` (a live C, or the
+  // live O's themselves) sharing one dissolved-C snapshot of [a, b], each with
+  // its own original hidden O. Returns [[oldC, origA], [oldC, origB]].
+  const pullOutPair = (rnd, ctxOld, [a, b], rootA, ctxA, ctxB) => {
+    const old = alloc(rnd, [a, b], rootA, true);
+    const meA = alloc(rnd, [a], old);
+    const meB = alloc(rnd, [b], old);
+    const leafA = assemble(ctxA, meA, []);
+    const leafB = assemble(ctxB, meB, []);
+    const oldNode = assemble(ctxOld, old, [leafA, leafB]);
+    return [[oldNode, leafA], [oldNode, leafB]];
+  };
+
   for (const cRow of shipments) {
     const cDetail = details.get(cRow.sellShipment);
     const ids = (cDetail?.orderList ?? []).map((o) => o.orderId ?? o.orderNumber);
     if (cRow.shipmentType !== 'Consolidation' || ids.length < 2) continue;
     const rnd = mulberry32(seedFrom(cRow.sellShipment + ':lineage'));
-    const cFirst = new Date(cDetail.historyList[0].timestamp).getTime();
+    const ctx = { row: cRow, detail: cDetail, ids };
+    const root = { createdMs: new Date(cDetail.historyList[0].timestamp).getTime(), odysseyShipmentIdentifier: cDetail.odysseyShipmentIdentifier };
 
-    // Identity first: children need their parent's id and clock for their own trail.
-    const alloc = (orderIds, parent) => {
-      n += 1;
-      const seq = odysseySeq++;
-      return {
-        orderIds,
-        sellShipment: String(HIDDEN_SELL_BASE + n),
-        buyShipment: String(HIDDEN_BUY_BASE + n),
-        odysseyShipmentIdentifier: `${orderIds.length > 1 ? 'C' : 'O'}${seq}`,
-        // Born 2–6h before what it fed, so every trail ends before the C's own first event.
-        createdMs: parent.createdMs - Math.round((2 + rnd() * 4) * HOUR_MS),
-        parent,
-      };
-    };
+    // Consecutive pairs of a shuffle, each pulled out at ~20%; every order gets exactly one direct O.
+    const shuffled = rndSample(rnd, ids, ids.length);
+    const sourceOf = new Map();
+    for (let i = 0; i + 1 < shuffled.length; i += 2) {
+      if (rnd() >= PULL_OUT_SHARE) continue;
+      const [a, b] = [shuffled[i], shuffled[i + 1]];
+      const meA = alloc(rnd, [a], root);
+      const meB = alloc(rnd, [b], root);
+      const [pa, pb] = pullOutPair(rnd, ctx, [a, b], meA, ctx, ctx);
+      sourceOf.set(a, assemble(ctx, meA, pa));
+      sourceOf.set(b, assemble(ctx, meB, pb));
+    }
+    for (const id of ids) if (!sourceOf.has(id)) sourceOf.set(id, assemble(ctx, alloc(rnd, [id], root), []));
+    cDetail.lineage = { sources: ids.map((id) => sourceOf.get(id)) };
+  }
 
-    // The frozen blob + soft-deleted row for one hidden shipment → its lineage node.
-    const assemble = (me, sources) => {
-      const held = new Set(me.orderIds);
-      const { orderList, stops } = removeOrdersFromSource(cDetail, ids.filter((id) => !held.has(id)));
-      const lane = rowFromStops(stops) ?? {};
-      const type = orderList.length > 1 ? 'Consolidation' : 'Direct';
-      const category = 'consolidation';
-      const sourceName = 'Linx';
-      const evt = (ms, action, details) => ({
-        user: sourceName, source: sourceName, timestamp: new Date(ms).toISOString(), action, category: 'update', details,
-        outcome: 'update', author: { name: sourceName, kind: 'system' },
-      });
-      const historyList = [
-        { ...evt(me.createdMs, 'Shipment Created', `Buy Shipment ${me.buyShipment} and Sell Shipment ${me.sellShipment} created successfully for Order ${orderList[0].orderId}.`), category: 'create', user: 'ERP', source: 'ERP', author: { name: 'ERP', kind: 'system' } },
-        evt(me.createdMs + 20 * 60_000, 'Optimization Evaluation', 'Optimization evaluation completed. Shipment moved to Consolidation.'),
-        // §2 dormancy event, straight before its parent's own first event.
-        dormancyEvent(orderList.map((o) => o.orderNumber ?? String(o.orderId)), me.parent.odysseyShipmentIdentifier, new Date(me.parent.createdMs - 60_000)),
-      ];
-      const agg = {
-        grossWeight: String(orderList.reduce((t, o) => t + (o.grossWeightValue ?? 0), 0)),
-        loadCount: String(orderList.reduce((t, o) => t + (o.orderLines?.length ?? 0), 0)),
-        poNumbers: [...new Set(orderList.map((o) => o.poNumber).filter(Boolean))],
-        pickupNumbers: [...new Set(orderList.map((o) => o.pickupNumber).filter(Boolean))],
-      };
-      const row = {
-        buyShipment: me.buyShipment, sellShipment: me.sellShipment, odysseyShipmentIdentifier: me.odysseyShipmentIdentifier,
-        orders: [], pickupNumbers: agg.pickupNumbers, poNumbers: agg.poNumbers, shipmentType: type, planningType: cRow.planningType ?? null,
-        legType: null, shipmentSequenceLeg: null, nextShipmentId: null, pro: null,
-        customerId: cRow.customerId, customerName: cRow.customerName,
-        consignor: lane.consignor ?? cRow.consignor, consignee: lane.consignee ?? cRow.consignee,
-        origin: lane.origin ?? cRow.origin, destination: lane.destination ?? cRow.destination,
-        pickupDate: lane.pickupDate ?? cRow.pickupDate, deliveryDate: lane.deliveryDate ?? cRow.deliveryDate,
-        mode: cRow.mode, equipmentCode: cRow.equipmentCode, equipment: '', seal: null, scac: null, tenderStatus: '',
-        shipmentStatus: shipmentStatusFor({ panel: 'monitoring', category }), panel: 'monitoring', category, validationMessage: null,
-        grossWeight: agg.grossWeight, load: '', loadCount: agg.loadCount,
-        orderCount: '0', apFreightCost: '',                 // a C5 emptied shell: NOT_EMPTIED hides it (DEC-202)
-      };
-      const detail = {
-        shipmentId: me.sellShipment, odysseyShipmentIdentifier: me.odysseyShipmentIdentifier, shipmentType: type,
-        customerId: cRow.customerId, customerName: cRow.customerName,
-        shipDirection: cDetail.shipDirection ?? '', freightTerms: cDetail.freightTerms ?? '', incotermInfo: null,
-        numberOfStops: stops.length, pgiFlag: false, ratingStatus: 'Not Rated', trackingUrl: null, distanceMiles: null,
-        totalVolumeValue: orderList.reduce((t, o) => t + (o.volumeValue ?? 0), 0),
-        totalVolumeUomCode: cDetail.totalVolumeUomCode ?? 'cuft',
-        acceptedCarrierLabel: null, seedEquipment: cRow.equipmentCode || null, utilizationPercent: null,
-        orderList, shipmentStopList: stops,
-        shippingOptionList: [],                               // no tender history on a hidden source (spec §3)
-        droppedCarrierList: [], documentList: [], noteList: [],
-        ...(sources.length ? { lineage: { sources } } : {}),
-        historyList,
-      };
-      hiddenShipments.push(row);
-      hiddenDetails.set(me.sellShipment, detail);
-      return lineageNode({ row, detail }, true);
-    };
-
-    // A group → a hidden node: one order = an O leaf, 2+ = a C that came from
-    // its own partition (depth <= 3; the deepest C stays a leaf).
-    const makeGroup = (group, depth, parent) => {
-      const me = alloc(group, parent);
-      const sources = group.length > 1 && depth < LINEAGE_MAX_DEPTH
-        ? lineagePartition(rnd, group).map((g) => makeGroup(g, depth + 1, me)) : [];
-      return assemble(me, sources);
-    };
-
-    const root = { createdMs: cFirst, odysseyShipmentIdentifier: cDetail.odysseyShipmentIdentifier };
-    const sources = lineagePartition(rnd, ids).map((group) => {
-      // The VD's "O… 2 sources" row: an O pulled OUT of an older hidden C — sources
-      // are that C (holding this order's original O + a sibling order's) and the original O.
-      if (group.length === 1 && rnd() < PULL_OUT_SHARE) {
-        const [a] = group;
-        const b = rndPick(rnd, ids.filter((id) => id !== a));
-        const pulled = alloc(group, root);
-        const older = alloc(ids.filter((id) => id === a || id === b), pulled);
-        const originalA = alloc([a], older);
-        // ponytail: the sibling's original O is minted fresh rather than reusing the
-        // sibling's own group leaf; the two hold the same order under different ids.
-        const originalB = alloc([b], older);
-        const leafA = assemble(originalA, []);
-        const olderNode = assemble(older, [leafA, assemble(originalB, [])]);
-        return assemble(pulled, [olderNode, leafA]);
-      }
-      return makeGroup(group, 1, root);
-    });
-    cDetail.lineage = { sources };
+  // Live pulled-out O's, so "Deconsolidated from:" shows in the list: same-customer
+  // pairs of single-order Directs. Rows untouched; only their detail blobs gain lineage.
+  const pickedByCustomer = new Map();
+  for (const r of shipments) {
+    const d = details.get(r.sellShipment);
+    if (r.shipmentType !== 'Direct' || d?.orderList?.length !== 1 || d.lineage) continue;
+    if (mulberry32(seedFrom(r.sellShipment + ':lineage-live'))() >= LIVE_PULL_OUT_SHARE) continue;
+    if (!pickedByCustomer.has(r.customerId)) pickedByCustomer.set(r.customerId, []);
+    pickedByCustomer.get(r.customerId).push(r);
+  }
+  for (const rows of pickedByCustomer.values()) {
+    for (let i = 0; i + 1 < rows.length; i += 2) {
+      const [rA, rB] = [rows[i], rows[i + 1]];
+      const [dA, dB] = [details.get(rA.sellShipment), details.get(rB.sellShipment)];
+      const rnd = mulberry32(seedFrom(rA.sellShipment + ':lineage-live-pair'));
+      const idOfO = (d) => d.orderList[0].orderId ?? d.orderList[0].orderNumber;
+      const [a, b] = [idOfO(dA), idOfO(dB)];
+      const ctxA = { row: rA, detail: dA, ids: [a] };
+      const ctxB = { row: rB, detail: dB, ids: [b] };
+      // The dissolved C held both: a synthetic roster = both orders' stops, renumbered.
+      const stops = [...dA.shipmentStopList, ...dB.shipmentStopList].map((s, k) => ({ ...s, stopSequence: k + 1 }));
+      const ctxOld = { row: rA, detail: { ...dA, orderList: [...dA.orderList, ...dB.orderList], shipmentStopList: stops }, ids: [a, b] };
+      const first = (d) => new Date(d.historyList[0].timestamp).getTime();
+      const rootA = { createdMs: Math.min(first(dA), first(dB)), odysseyShipmentIdentifier: dA.odysseyShipmentIdentifier };
+      const [pa, pb] = pullOutPair(rnd, ctxOld, [a, b], rootA, ctxA, ctxB);
+      dA.lineage = { sources: pa };
+      dB.lineage = { sources: pb };
+    }
   }
   return { hiddenShipments, hiddenDetails };
 }

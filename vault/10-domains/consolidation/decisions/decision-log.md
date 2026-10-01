@@ -226,6 +226,7 @@ Decisions about the *identifier* itself live in
   - Jana held the UI view was not MVP; the call went the other way.
 - **Source:** `vault/00-inbox/Consoloidation Questions 2.vtt` (2026-09-23); spec `docs/superpowers/specs/2026-09-30-consolidation-lineage-history.md`.
 - **Affects:** `consolidateShipments.mjs`, `consolidations.mjs`, `shipments.mjs` (split), `consolidationService.ts`, `tools/generate.mjs`, `tools/seed.mjs`.
+- **Refined 2026-09-30 (S164, user):** a manual consolidation includes **at most one C shipment**. CNS-14 keeps a C's number through every edit and CNS-09 reuses its id, so a second C would be a "C merged from C". Applies to the sources drawn from the Consolidation pool (CNS-18); `checkConsolidation` refuses it with a 400 (*A consolidation can include only one consolidated (C) shipment.*). Affects: `consolidateShipments.mjs` (shared by `consolidations.mjs` and `consolidationService.ts`), `consolidateShipments.test.mjs`.
 - **Ceilings (`ponytail:`):**
   - The link is a snapshot in the detail blob, not a table, so there is no cross-shipment "merged into" query. The upgrade path is a link table.
   - Seeded hidden ids come from separate bands, so a source can carry a higher id than its C.

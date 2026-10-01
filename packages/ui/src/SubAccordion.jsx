@@ -50,6 +50,12 @@ import Button from './Button.jsx'
  * aria-expanded) and the content is always revealed — for sections that are
  * informational cards rather than disclosures.
  *
+ * HEADERLESS (S164): `title == null`, no badge/meta/trail/buttonToggle/
+ * onToggleAll/action and `collapsible={false}` renders NO header row — a static
+ * card that only frames its content (16/24/20 padding, no top margin on the
+ * content). Figma "History Subaccordion" VD 2675:83625. The Figma master has no
+ * `Show header` property yet → code-only, pending a D session.
+ *
  * Expansion is uncontrolled by default (`defaultExpanded`); pass `expanded`
  * (+ `onToggle`) to control it. The reveal animates via grid-template-rows
  * 0fr→1fr (animates to auto height, no JS measuring), same as Accordion.
@@ -113,12 +119,13 @@ export default function SubAccordion({
   }
 
   const HeaderTag = collapsible ? 'button' : 'div'
+  const headless = title == null && !collapsible && !badge && !meta && !trail && !buttonToggle && !onToggleAll && !action
 
   return (
     <section
-      className={`sub-accordion${isExpanded ? ' sub-accordion--expanded' : ''}${collapsible ? '' : ' sub-accordion--static'}${className ? ` ${className}` : ''}`}
+      className={`sub-accordion${isExpanded ? ' sub-accordion--expanded' : ''}${collapsible ? '' : ' sub-accordion--static'}${headless ? ' sub-accordion--headless' : ''}${className ? ` ${className}` : ''}`}
     >
-      <div className="sub-accordion__header-row">
+      {!headless && <div className="sub-accordion__header-row">
         <HeaderTag
           type={collapsible ? 'button' : undefined}
           className="sub-accordion__header"
@@ -167,12 +174,12 @@ export default function SubAccordion({
           </Button>
         )}
         {!collapsible && action}
-      </div>
+      </div>}
       <div
         className="sub-accordion__reveal"
         role="region"
         id={contentId}
-        aria-labelledby={headerId}
+        aria-labelledby={headless ? undefined : headerId}
         aria-hidden={collapsible ? !isExpanded : undefined}
         inert={collapsible ? !isExpanded : undefined}
       >

@@ -268,6 +268,13 @@ test('guard: fewer than two orders on the stops (CNS-14) — a single source is 
   assert.doesNotThrow(() => checkConsolidation({ sources: [c], stops: dtoFor(1, 2) }))
 })
 
+test('guard: at most one C source (S164, CNS-14/CNS-09)', () => {
+  const c = (n) => src(n, { shipmentType: 'Consolidation', odysseyShipmentIdentifier: `C7000000${n}` })
+  assert.throws(() => check({ sources: [c(1), c(2)] }),
+    (e) => e.status === 400 && e.message === 'A consolidation can include only one consolidated (C) shipment.')
+  assert.doesNotThrow(() => check({ sources: [c(1), src(2)] }))
+})
+
 test('guard: a delivery above its pickup is refused', () => {
   const stops = dtoFor(1, 2).map((s, i, a) => ({ ...s, stopSequence: a.length - i })) // fully reversed
   assert.throws(() => check({ stops }), (e) => e.status === 400 && e.message === 'Stops are out of order.')

@@ -325,11 +325,47 @@ const row = (name) => within(document.querySelector('.lineage-tree')).getByRole(
 const tab = (name) => screen.getAllByRole('button', { name })[0]
 
 describe('HistoryTab — lineage', () => {
-  it('without lineage renders no tabs and no summary', () => {
-    const { container } = render(<HistoryTab data={data} lineage={null} shipment={shipment} />)
-    expect(screen.queryByText('Lineage Tree')).toBeNull()
-    expect(container.querySelector('.history-summary')).toBeNull()
-    expect(screen.getByText('Shipment History')).toBeTruthy()
+  // User ruling 2026-09-30 (S164): summary in all, for consistency.
+  it.each([
+    ['C without sources', 'C100', 'Consolidated Shipment'],
+    ['O', 'O100', 'Shipment'],
+  ])('without lineage (%s) still renders the summary, "Created as a new shipment", one tab', (_n, id, kicker) => {
+    const ship = { ...shipment, odysseyShipmentIdentifier: id, customerName: 'USALCO Inc' }
+    const { container } = render(<HistoryTab data={data} lineage={null} shipment={ship} />)
+    const summary = container.querySelector('.history-summary')
+    expect(summary).toBeTruthy()
+    expect(summary.querySelector('.history-summary__kicker').textContent).toBe(kicker)
+    expect(within(summary).getByText(id)).toBeTruthy()
+    expect(within(summary).getByText('USALCO Inc')).toBeTruthy()
+    expect(within(summary).getAllByText('Dallas, TX')).toHaveLength(1)
+    expect(within(summary).getByText('Reno, NV')).toBeTruthy()
+    expect(screen.getByText('Created as a new shipment')).toBeTruthy()
+    expect(container.querySelectorAll('.history-chip')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Shipment History' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lineage Tree' })).toBeNull()
+    expect(container.querySelector('.sub-accordion--headless')).toBeTruthy()
+  })
+
+  it('without lineage, the trail still renders newest-first with badge, author and UTC stamp', () => {
+    const d = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-01T08:00:00.000Z', action: 'Shipment Created', outcome: 'success', details: 'first' },
+        { user: 'Dana', timestamp: '2026-06-03T08:00:00.000Z', action: 'Carrier Updated', outcome: 'update', details: 'last', author: { name: 'Dana', email: 'd@x.com', kind: 'internal' } },
+      ],
+    }
+    const { container } = render(<HistoryTab data={d} lineage={null} shipment={shipment} />)
+    expect([...container.querySelectorAll('.history-details')].map((e) => e.textContent)).toEqual(['last', 'first'])
+    expect(screen.getByText('2 events')).toBeTruthy()
+    expect(screen.getByText('06/03/2026 08:00 UTC')).toBeTruthy()
+    expect(screen.getByText('Dana').className).toContain('history-actor--hoverable')
+    expect(screen.getByText('Carrier Updated').getAttribute('style')).toContain('--badge-blue-bg')
+  })
+
+  it('without lineage and without entries keeps the summary and shows the empty status in the events card', () => {
+    const { container } = render(<HistoryTab data={{ entries: [] }} lineage={null} shipment={shipment} />)
+    expect(container.querySelector('.history-summary')).toBeTruthy()
+    expect(within(container.querySelector('.history-events')).getByText('No history available.')).toBeTruthy()
+    expect(container.querySelector('.history-list')).toBeNull()
   })
 
   it('shows both tabs and the summary with direct-source chips', () => {
@@ -386,7 +422,7 @@ describe('HistoryTab — lineage', () => {
     expect(btn('Lineage Tree').getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('preview shows the ancestry path and that shipment\'s own trail', async () => {
+  it('preview shows that shipment\'s own trail and how it came to be', async () => {
     getSellShipmentDetail.mockResolvedValue({
       historyData: { entries: [{ user: 'S', source: 'OdysseyONE', timestamp: '2026-05-01T10:00:00.000Z', action: 'Consolidation Completed', outcome: 'update', details: 'hidden-trail' }] },
     })
@@ -396,9 +432,57 @@ describe('HistoryTab — lineage', () => {
     fireEvent.click(row('O301'))
     expect(await screen.findByText('hidden-trail')).toBeTruthy()
     expect(getSellShipmentDetail).toHaveBeenCalledWith('sO301')
-    expect(screen.getByText('Merged from:').parentElement.textContent).toMatch(/C100C201O301/)
-    // the root chip goes back to Shipment History
-    fireEvent.click(screen.getAllByRole('button', { name: 'C100' })[0])
-    expect(screen.getByText('live-trail')).toBeTruthy()
+    // O301 has no sources → created new, no ancestry chips (user 2026-09-30)
+    expect(screen.getByText('Created as a new shipment')).toBeTruthy()
+    expect(document.querySelectorAll('.history-band .history-chip')).toHaveLength(0)
+    expect(screen.queryByText('Merged from:')).toBeNull()
+  })
+
+  it('preview of an O with [C, original] sources: Deconsolidated from original → C', async () => {
+    getSellShipmentDetail.mockResolvedValue({ historyData: { entries: [] } })
+    const lin = { sources: [leaf('O400', { sources: [leaf('C500'), leaf('O600')] })] }
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { container } = render(
+      <QueryClientProvider client={qc}><HistoryTab data={data} lineage={lin} shipment={shipment} /></QueryClientProvider>,
+    )
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(btn('Expand All'))
+    fireEvent.click(row('O400'))
+    const band = container.querySelector('.history-band')
+    expect(within(band).getByText('Deconsolidated from:')).toBeTruthy()
+    expect(Array.from(band.querySelectorAll('.history-chip')).map((c) => c.textContent)).toEqual(['O600', 'C500'])
+    expect(band.querySelectorAll('svg.history-band__sep')).toHaveLength(1)
+  })
+
+  it('card is a headerless SubAccordion; events card + arrow separators render', () => {
+    const { container } = renderLineage()
+    expect(container.querySelector('.sub-accordion--headless')).toBeTruthy()
+    expect(container.querySelector('.sub-accordion__header-row')).toBeNull()
+    expect(container.querySelector('.history-events .history-list')).toBeTruthy()
+    // C root, two source chips → one Merge separator; the `·` separator is gone
+    expect(container.querySelectorAll('.history-band svg.history-band__sep')).toHaveLength(1)
+    expect(container.querySelector('.history-band svg.lucide-merge')).toBeTruthy()
+    expect(container.querySelector('.history-band').textContent).not.toContain('·')
+  })
+
+  it('closable tab keeps the x inside .tab__content, no nested buttons', () => {
+    getSellShipmentDetail.mockResolvedValue({ historyData: { entries: [] } })
+    renderLineage()
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(btn('Expand C100'))
+    fireEvent.click(row('C201'))
+    const close = btn('Close C201')
+    expect(close.closest('.tab__content')).toBeTruthy()
+    expect(close.closest('.tab').tagName).toBe('DIV')
+    expect(close.closest('button:not(.lineage-tab__close)')).toBeNull()
+  })
+
+  it('leaf rows have no chevron placeholder; last row has no rule', () => {
+    const { container } = renderLineage()
+    fireEvent.click(btn('Lineage Tree'))
+    fireEvent.click(btn('Expand All'))
+    expect(container.querySelector('.lineage-chevron--leaf')).toBeNull()
+    const rows = container.querySelectorAll('.lineage-tree > .lineage-row, .lineage-tree > .lineage-strip')
+    expect(rows[rows.length - 1].className).toContain('lineage-row--last')
   })
 })
