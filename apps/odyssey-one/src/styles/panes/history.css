@@ -32,14 +32,17 @@
   background: var(--border-subtle);
 }
 
-/* Outcome dot — `TimelineDot` (normalized 2026-09-30; the component owns size,
-   ring and shadow). Color = the row's Badge variant (DEC-81: keyed on
-   entry.outcome, not category). Positioning only; 10px dot re-centered on the
-   point the old 7px one sat on. */
+/* Outcome dot — color set inline per entry (DEC-81, 2026-08-10: keyed on
+   entry.outcome — failure/success/update — not category; maps to the
+   matching Badge text token, no dedicated dot token exists). */
 .history-dot {
   position: absolute;
-  left: -23px;
-  top: 4px;
+  left: -21px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 3px var(--bg-primary);
 }
 
 .history-content {

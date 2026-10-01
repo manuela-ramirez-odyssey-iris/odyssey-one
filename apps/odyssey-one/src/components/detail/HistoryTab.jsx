@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge, SubAccordion, Tab, TimelineDot, TitleSubtitle } from '@odyssey/ui'
+import { Badge, SubAccordion, Tab, TitleSubtitle } from '@odyssey/ui'
 import { ArrowRight, Merge } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { formatDateTimeMDYHM } from '../../lib/dates'
@@ -26,7 +26,7 @@ import { DepthDot, LineageTab, LineageTree, findPath, labelOf } from './LineageT
 // data (still used for grouping/labels elsewhere), it just no longer drives
 // color. The generator reseed that back-fills `outcome` onto existing seed
 // rows is separately user-gated and has not run yet — see the missing-outcome
-// fallback on BADGE_VARIANTS below.
+// fallback on BADGE_VARIANTS/getDotColor below.
 //
 // DEC-81 follow-up (2026-08-10, same-day): fourth value `'neutral'` added —
 // the step completed successfully but the business result is unfavourable or
@@ -125,7 +125,7 @@ function HistoryEntries({ entries }) {
     <div className="history-list">
       {orderNewestFirst(entries).map((entry, i) => (
         <div className="history-entry" key={i}>
-          <TimelineDot className="history-dot" color={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default} />
+          <div className="history-dot" style={{ background: getDotColor(entry.outcome) }} />
           <div className="history-content">
             <div className="history-row1">
               {/* DEC-70 introduced a "System" badge beside the actor; user removed
@@ -446,4 +446,25 @@ const BADGE_VARIANTS = {
   neutral: 'amber',
   info: 'gray',
   default: 'gray',
+}
+
+// Timeline dot color — the matching badge TEXT token (no dedicated dot/status
+// tokens exist yet; the badge text shade is the nearest saturated equivalent
+// of the old hardcoded hexes). Keyed on `outcome`, same DEC-81 mapping and
+// same neutral fallback as BADGE_VARIANTS above. `neutral` uses
+// `--badge-yellow-text` since the Badge `amber` variant is itself backed by
+// the yellow token pair (see packages/ui/src/Badge.jsx). `info` (DEC-87,
+// 2026-08-12) uses `--badge-gray-text` — the same token the Badge `gray`
+// variant is backed by — kept distinct from the `default` (missing-outcome)
+// fallback below, which uses `--text-tertiary` rather than the gray badge
+// token itself.
+function getDotColor(outcome) {
+  switch (outcome) {
+    case 'failure': return 'var(--badge-red-text)'
+    case 'success': return 'var(--badge-green-text)'
+    case 'update': return 'var(--badge-blue-text)'
+    case 'neutral': return 'var(--badge-yellow-text)'
+    case 'info': return 'var(--badge-gray-text)'
+    default: return 'var(--text-tertiary)'
+  }
 }
