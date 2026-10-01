@@ -2,6 +2,48 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 164 — September 30 – October 1, 2026
+
+**CONSOLIDATION AUDIT TRAIL: HIDDEN SHIPMENTS STAY REACHABLE THROUGH A LINEAGE IN THE HISTORY TAB.** Built the idea you and Thomas settled on the 2026-09-23 call (`vault/00-inbox/Consoloidation Questions 2.vtt` @00:36–00:40), from the VDs (Figma `x38TOJGsNryYl3LsKhCtSc` 2671:81594 / 3113:19333 / 3121:60581 / 3126:19659 / 3127:20032; History layer 2675:83625 / 3113:19368 / 3121:60616 / 3126:19694 / 3127:20067). Spec `docs/superpowers/specs/2026-09-30-consolidation-lineage-history.md`; canon CNS-21 / CNS-22 + `consolidation.md` §12. Models: Opus main thread (spec, review, small fixes), `implementer` agents (Sonnet 5.5) for every slice. Deployed twice, reseeded twice, each on the user's go.
+
+- **Data model (CNS-21).**
+  - Consolidating no longer DELETEs the sources. They become C5 emptied shells, still readable by id, with their detail frozen and one dormancy event ("…moved to consolidated shipment C… This shipment is no longer active.").
+  - The link is `detail.lineage.sources`, a nested snapshot `{ sellShipment, odysseyShipmentIdentifier, origin, destination, orders, hidden, sources }`. There is no migration and no link table (`ponytail:`: no cross-shipment "merged into" query).
+  - A split O links to the C it left and to its original shipment (Thomas's "links to both").
+  - `writeSplits` never deletes a dormant shell.
+- **Rules (user, all 2026-09-30, per CNS-14):**
+  - A C is never merged from another C.
+  - `checkConsolidation` refuses a second C.
+  - Add Order(s) in the consolidation editor always blocks orders on any C shipment (it amends 09-25's "all rows selectable"; order change is unchanged), and the server refuses the same case.
+- **Seed.** A live C's sources are one O per order. Each is either a new O, or one pulled out of a dissolved hidden C with `[oldC, original O]`. 188 live pulled-out O's exist (try O50000034); hidden C's appear only under a pulled-out O. Zero faker draws (`':lineage'` salt); listed data is byte-identical.
+- **History tab (CNS-22).**
+  - The card is a **headerless `SubAccordion`**: a new code-only mode, pending a Figma *Show header* boolean (see `progress-deliverables.md` D23).
+  - Tabs: Shipment History · Lineage Tree (only with sources) · closable preview tabs (app-local, logged ad-hoc).
+  - **Every shipment** gets the summary card. The band reads:
+    - C: "Merged from:" with merge icons.
+    - Pulled-out O: "Deconsolidated from:" original → C.
+    - New O: "Created as a new shipment".
+  - Our trail rows are kept inside an Event History card.
+  - Lineage Tree, per the VD spacing: "Preview only" lock badges, Expand All, indents that align the depth dots.
+  - Medium column width.
+- **Neon (final reseed):** 10,000 shipments + 20,267 hidden sources, 13 users kept, **0 C-merged-from-C** by SELECT. **Live:** `02f2237`, bundle-grepped on both URLs.
+- **Mistake (memory `feedback_shared_file_commit_hunks`).** Committing `HistoryTab.jsx`/`history.css` swept in another session's uncommitted `TimelineDot` hunks. The first deploy's build failed, so nothing broke live. Fixed index-only in `02f2237`; their working copy still has the hunks.
+
+**Parallel S164 session, unlogged here:** ~35 `S164:` commits from `cb00b9f` to `8720094` cover two pieces of work:
+- the order-change Jana 09-29 sync (DEC-220…228: Edit Stops layout, Prior collapse, KPI strip, Stops tab review);
+- manual consolidation rebuilt on the Edit Stops flow (CNS-18…20, spec `2026-09-29-consolidation-via-order-change.md`).
+
+Their entry is owed by that session. Also unlogged: 5 `S159:` Tender Review commits (`64a5b38…c000f63`).
+
+**Still open.**
+- No real Apply has run on live yet, so the soft-delete path is proven only in tests.
+- The 09-23 transcript is still in the inbox; `/analyze` it to file it.
+- Emptied external contributors get a lineage node but no dormancy event (live `writeSourceUpdates`).
+- A second pull-out of the same order PK-fails (`ponytail:`).
+- `toast.test.js` (S159) and another session's `StopDateField.test.jsx` fail.
+
+**What's next (user):** shipment consolidation details, and **edit a consolidated shipment** (new feature).
+
 ## Session 163 — September 29, 2026
 
 **ORDER CHANGE, AUDITED AND FINISHED: FOUR SLICES FROM ONE AUDIT, ALL BUT TWO DESIGN-BOUND ITEMS BUILT.** Picked up S162's "verify consol order change isn't missing anything". Four read-only audits, run in parallel, found the Save path unsafe and the numbers disagreeing:
@@ -130,23 +172,16 @@ The findings became plan items C6–C24, rulings N1–N6 and DEC-212…218. Four
 
 **What's next (user):** validate and QA-test that everything Jana asked for (feature-wise) in order change is there: his 08-14 and 08-29 Direct sessions, the 09-24 walkthrough (DEC-191…199) and the 09-25 design review (DEC-200…207), checked against the build, then decide the deploy.
 
-## Session 161 — September 25–28, 2026 (wrapped twice; second round below)
+## Session 161 — September 25–28, 2026
 
-**CONSOLIDATION, EFRAIN'S PASS — AND A STOP LIST THAT FINALLY SAYS WHICH STOPS BELONG TOGETHER.** Opened on the 2026-09-23 Doug/Jana/Thomas call (read in full, not filed — the user is defining the shell/linkage UX in Figma first), then built Efrain's four Figma frames (`x38TOJGsNryYl3LsKhCtSc` 2796:19146, 2808:53668, 2808:58194, 2808:49810) to a spec (`docs/superpowers/plans/2026-09-25-consolidation-efrain-pass.md`), then ~25 rounds of user-driven refinement on the Planned Stops interaction. 41 commits, all `S161:`. Deployed twice (`vercel --prod`, bundle-grepped each time; consolidation POST answers 400 on an empty body).
+**CONSOLIDATION, EFRAIN'S PASS — condensed.** Built Efrain's four consolidation frames (spec `docs/superpowers/plans/2026-09-25-consolidation-efrain-pass.md`):
+- Consolidate mode got *Show selected on top*.
+- Review & Apply leads with the Odyssey Shipment ID.
+- One Apply modal flips between confirm and the tendered-error state (simulated mid-review accept; `src/lib/tenderAction.js`).
+- Planned Stops was rebuilt on dnd-kit: labels follow the pair, a bad drop turns the pair red and grays the rest, Save/Reset sit in the panel, and Apply sends `stopOrder`.
+- Read the 09-23 Doug/Jana/Thomas call (filed as canon only in S164, CNS-21).
 
-- **The 2026-09-23 call (not yet canon).** Consolidating soft-deletes the single-order shipments (LINX's model — Doug's TMS keep-and-lock is out); a load leaving a C gets a NEW O shipment, never its old one; no single-load C ever — when a C drops to one load it is hidden and the load gets a new O (user, firm); a new C runs the normal rules (carrier list, auto-tender per rules); a load out of a C regenerates its carrier list and restarts at rank 1 (Doug: TMS continues). User rulings after the read: dormant shipments stay reachable through a **linkage** from the loads that passed through them; the consol audit trail shows *"came from X"* via those links; tender history is a log on the shipment's timeline. **Our live Apply still hard-`DELETE`s the sources** (`api/_lib/consolidations.mjs:82`) — the history the links need. Transcript `vault/00-inbox/Consoloidation Questions 2.vtt` stays in the inbox until the Figma UX lands; canon §11 + CNS-18… then.
-- **Consolidate mode:** no pulse on select; **Show selected on top** checkbox by the item counter (off by default — floating fought pagination); the instruction subtitle removed and the customer row renders only once a customer is anchored (pushing the tabs; header→tabs gap = Shipments' 25 otherwise). Tendered directs stay unselectable (CNS-08 unchanged — user overruled my widening).
-- **Review & Apply:** no checkboxes (Edit Consolidation changes the set); table leads with **Odyssey Shipment ID**. Applied state: summary shows Customer / Odyssey Shipment ID / Orders; the table shows the ONE new C row with the list's columns; stops read-only.
-- **One Apply modal, confirm ⇄ tendered-error.** A tender can be accepted mid-review; the prototype **simulates** it (50% on the first Apply, and again if the confirm sat > 5 s — `ponytail:` prototype-only, a real accept through the Tender save path). Error state: red Alert (*"Shipment X has been tendered and cannot be consolidated."*), the row's text red, the Tender table's own **StatusBadge** (Accepted/Sent — exported from RoutingGuideTab), radio cards: remove & proceed / *Cancel tender on the accepted shipment(s)* (reuses the Tender tab's Cancel via a new shared `src/lib/tenderAction.js`) / *Discard consolidation and select different shipments* when < 2 remain. Solutions stay in the modal and flip it to Confirm with a green Alert; every final Apply re-checks. Radio card logged ad-hoc in the normalization tracker for a D session.
-- **Planned Stops, where most of the session went.** Native DnD → FLIP → hysteresis → all thrown away for **Home's metrics-library dnd-kit sortable** (user: "much simpler and clearer"). Rules that stuck: **labels follow the pair** (P1/D1 = shipment 1, they move with the stop); each stop shows **Shipment: <id>**; from the first moved stop down, labels drop their number (P/D) until a successful save, and mid-drag the whole affected range goes number-less (the "gray moment"); moved stops purple until saved. **Final round (2026-09-28):** **Save Changes** back in the stops panel beside **Reset** (Apply disabled while unsaved or invalid); validation moved to **drag release** — a delivery above its own pickup turns that pair red and every OTHER marker + its text goes **gray** until fixed (then colours return); *Invalid Stop Sequence* (LINX-15669's sentence, **Amend / Reset**) opens only on the drop that first breaks the order; **Reset** (was Revert) returns to the original proposal, saved or not; **no StopBadge mini icons** (tracking language, not planning); **pickups forced blue** — Timeline's entry animation ends on green with fill-mode both and had been overriding the pickup tint. **Hover:** the stop gets a background + darker grip; its pair's Shipment IDs go dark + bold and their **Pickup/Delivery badges get a black border** (tried and dropped: row tint, scaled markers, recolour, opacity fade — `--opacity-muted: 0.6` token stays, unused — number-drop, and a badge-coloured dot, kept at `d17887b`); no hover effects at all while dragging. Apply sends `stopOrder` (API change, both runtimes).
-- **Shipments chrome:** StepperButtonsFooter z-index 30 (same fix also landed as D22 `7ac431e` from the parallel session).
-- **Process.** Sonnet agents for the larger slices, direct edits for the small rounds. Two agent overreaches cost rounds: one squeezed the customer row unasked (`840e5ae`, reverted `193d2c1`), one deleted the grab cursor with the native-DnD code.
-
-**Parallel sessions, unlogged here:** **S160** (19 commits — order-change Wave B seed/coordinates, Evaluate → Approve, Jana 09-25 `/analyze` DEC-200…207) has **no `progress.md` entry yet**; **D22** (4 commits — StepperButtonsFooter z-index + primaryTooltip, SummaryStrip sticky fixes) is not in `progress-deliverables.md`. Both rode this deploy (the S160 session confirmed it was safe).
-
-**Still open.** Full suite 3032/3032 but `src/utils/toast.test.js` (S159 — JSX in a `.js` file) fails to compile; a CarrierBid test was flaky once (passes alone). Keep or drop the Invalid Stop Sequence dialog now that red/gray carry the error — unanswered. `--opacity-muted` needs a Figma variable (tokens:audit drift) or removal. Two identically-named **Apply Consolidation** buttons while the modal is open (a11y) — unanswered. Soft-delete + linkage build waits on the Figma UX.
-
-**What's next (user):** the consolidation shell/linkage UX in Figma → then `/analyze` the 09-23 transcript into canon + the soft-delete/linkage build.
+Deployed twice. Full narrative in git (`S161:` commits).
 
 ## Session 160 — September 25–28, 2026
 

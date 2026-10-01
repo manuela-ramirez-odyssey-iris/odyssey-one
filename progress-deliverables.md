@@ -2,6 +2,10 @@
 
 > Parallel to `progress.md` (the product-prototyping build log). This file is the **design-system / dev-tooling thread**: story packs and PM/dev-facing artifacts, dev mode, DSM work, and **normalization cycles** — anything about the design system and its delivery, as opposed to product feature prototyping and domain discoveries. Separate log so the two threads can run as independent agent work streams. Sessions numbered D1, D2, … A session touching both threads logs to both files with a one-line cross-reference.
 
+## Session D23 — September 30, 2026
+
+**SUBACCORDION GAINS A HEADERLESS MODE (product thread: `progress.md` S164).** `@odyssey/ui` SubAccordion with no `title` (and no header slots) on a static card now renders no header row and no header↔content gap (`sub-accordion--headless`, 16/24/20 padding). It hosts the consolidation History tab's tab row (Figma 2675:83625). The change is code-only, with a tracker row: the Figma master needs a *Show header* boolean. **The Angular twin owes the same mode.** No Angular repo change, so no `angular-map.json` regeneration and no publish.
+
 ## Session D22 — September 25–28, 2026
 
 **THREE COMPONENT FIXES OUT OF THE ORDER-CHANGE WORK (product thread: `progress.md` S160).**
