@@ -27,3 +27,19 @@ export function utilizationPct(total, capacity) {
   if (total == null || !capacity) return null
   return Math.round((total / capacity) * 100)
 }
+
+const LB_PER_KG = 2.20462
+
+/**
+ * A grid row's grossWeight as LB, or null. The list column is bare LB
+ * ("32502"); a Shipment Details edit overrides it with MeasureField's
+ * "12,345 LB" / "5,000 KG" (ShipmentDetailsModal joinMeasure). Weight
+ * Utilization % (Ramesh #5, LINX-15786 BR II) divides this by weightLb.
+ */
+export function weightLb(raw) {
+  const m = /^([\d,.]+)\s*(\S+)?$/.exec(String(raw ?? '').trim())
+  if (!m) return null
+  const n = Number(m[1].replace(/,/g, ''))
+  if (!Number.isFinite(n)) return null
+  return /^kg/i.test(m[2] ?? '') ? n * LB_PER_KG : n
+}

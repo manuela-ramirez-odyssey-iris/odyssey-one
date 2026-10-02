@@ -86,7 +86,9 @@ export default function ConsolidationApplyModal({ check, applying = false, apply
       )}
       {check.error && <Alert variant="error" showClose={false}>{check.error}</Alert>}
       {applyError && !error && <Alert variant="error" showClose={false}>{applyError}</Alert>}
-      <TenderedCheckTable rows={checkRows} />
+      {/* LINX-15873 C3 — an edited C isn't in its own check, so with no external
+          orders there is nothing to list. */}
+      {checkRows.length > 0 && <TenderedCheckTable rows={checkRows} />}
       {/* Local markup, not @odyssey/ui — Figma's radio cards (2808:53668 /
           2808:58194) are detached frames, so this is a normalization
           candidate once a real master exists, not a component yet. */}

@@ -44,6 +44,10 @@ const FULL_ROW = {
   legType: 'Pooling',
   shipmentSequenceLeg: 1,
   nextShipmentId: '0000000099999',
+  // Consolidation-mode extras (S165, Ramesh #4/#6) — on the list DTO when asked.
+  totalVolume: 412,
+  originLocationId: 'DP-TX-274',
+  destinationLocationId: 'LCP-LA-101',
 }
 
 // Grid columns the LIST endpoint does not send — they exist in the column picker
@@ -59,6 +63,9 @@ const NOT_IN_LIST_DTO = new Set([
   'netWeight', 'tareWeight', 'pkgCount', 'hazardous',
   'preferredApDirectCost', 'arFreightCost', 'preferredArDirectCost',
   'loadNumber', 'loadStatus',
+  // Computed client-side from grossWeight / totalVolume + equipment capacity
+  // (ShipmentTable, S165 Ramesh #5) — never sent by the list.
+  'weightUtilization', 'volumeUtilization',
 ])
 
 describe('mapShipmentErrorRow preserves every displayable field', () => {

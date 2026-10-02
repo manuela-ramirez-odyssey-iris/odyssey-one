@@ -41,6 +41,13 @@ export const ALL_COLUMNS = [
   { key: 'tenderStatus', label: 'Tender Status' },
   { key: 'shipmentStatus', label: 'Shipment Status' },
   { key: 'grossWeight', label: 'Gross Weight' },
+  // Consolidation workbench only (Ramesh #4/#5, LINX-15786 BR II): the list
+  // fetches volume only in the mode (`extras`), and the two utilizations are
+  // computed client-side from it + grossWeight — so outside the mode they'd be
+  // blank. `consolidationOnly` keeps them out of the picker + All Columns there.
+  { key: 'totalVolume', label: 'Total Volume', consolidationOnly: true },
+  { key: 'weightUtilization', label: 'Weight Utilization %', consolidationOnly: true },
+  { key: 'volumeUtilization', label: 'Volume Utilization %', consolidationOnly: true },
   { key: 'netWeight', label: 'Net Weight' },
   { key: 'tareWeight', label: 'Tare Weight' },
   { key: 'pkgCount', label: 'Pkg Count' },
@@ -81,6 +88,9 @@ export const ALL_COLUMNS = [
 // odysseyShipmentIdentifier is here for the same reason (S149): it shipped as the
 // LEAD default column in S148, but every user with a saved preset — i.e. the only
 // users there are — kept a preset that predates it, so the column was invisible.
+// The catalog the column picker offers outside consolidate mode.
+export const STANDARD_COLUMNS = ALL_COLUMNS.filter((c) => !c.consolidationOnly)
+
 export const LATE_ADDED_COLUMNS = ['pickupNumbers', 'shipmentType', 'planningType', 'odysseyShipmentIdentifier']
 
 /**
@@ -135,6 +145,20 @@ export const MONITORING_DEFAULT_COLUMNS = withLateAdded([
   'grossWeight', 'mode', 'equipmentCode',
 ])
 
+// Consolidate mode's grid (Ramesh's sheet 2026-09-30, LINX-15786 BR II order,
+// restricted to what the list carries today). No tenderStatus — tendering
+// happens after consolidation (Ramesh #8); no pickupNumbers (#11); no
+// shipmentStatus (the whole pool shares one); Planning Type right after the
+// dates (#12); Customer ID AND Name (#3). Deliberately NOT withLateAdded — the
+// story fixes this exact order. Volume + the two utilizations follow Gross
+// Weight in the story's order (Ramesh #4/#5: Weight, Volume, Weight Util %, Volume Util %).
+export const CONSOLIDATION_DEFAULT_COLUMNS = [
+  'odysseyShipmentIdentifier', 'buyShipment', 'shipmentType', 'customerId', 'customerName',
+  'origin', 'destination', 'equipmentCode', 'grossWeight',
+  'totalVolume', 'weightUtilization', 'volumeUtilization',
+  'pickupDate', 'deliveryDate', 'planningType', 'scac',
+]
+
 export const PRESETS = {
   custom: [
     { id: 'default-exceptions', name: 'Default Exceptions', columns: EXCEPTIONS_DEFAULT_COLUMNS },
@@ -151,7 +175,7 @@ export const PRESETS = {
     // column (exactly the failure mode LATE_ADDED_COLUMNS exists to patch up).
     // Named "All Columns" because the GROUP is already "Odyssey" — a preset
     // called "Odyssey" inside "Odyssey Presets" says nothing about what it does.
-    { id: 'all-columns', name: 'All Columns', columns: ALL_COLUMNS.map(c => c.key) },
+    { id: 'all-columns', name: 'All Columns', columns: STANDARD_COLUMNS.map(c => c.key) },
   ],
 }
 
@@ -226,7 +250,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({
   onClose,
   visibleColumns,
   onColumnsChange,
-  allColumns = ALL_COLUMNS,
+  allColumns = STANDARD_COLUMNS,
   presets = PRESETS,
   defaultPresetId = 'default-exceptions',
   // Persistence seam (S101): a previously saved preset-store snapshot to hydrate

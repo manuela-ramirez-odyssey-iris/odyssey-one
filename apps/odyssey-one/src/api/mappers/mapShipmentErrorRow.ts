@@ -50,5 +50,10 @@ export function mapShipmentErrorRow(row: ShipmentErrorRow): ShipmentRowVM {
     legType: row.legType ?? null,
     shipmentSequenceLeg: row.shipmentSequenceLeg ?? null,
     nextShipmentId: row.nextShipmentId ?? null,
+    // Consolidation workbench (Ramesh #4/#6, LINX-15786 BR II) — only the
+    // mode's list sends them; null everywhere else.
+    totalVolume: row.totalVolume ?? null,
+    originLocationId: row.originLocationId ?? null,
+    destinationLocationId: row.destinationLocationId ?? null,
   }
 }

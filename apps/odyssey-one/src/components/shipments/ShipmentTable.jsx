@@ -8,8 +8,10 @@ import { Badge, Button, Checkbox, DataTable, Paginator, ActionMenu } from '@odys
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
+import { SORTABLE_KEYS } from './sortableColumns'
 import { getErrorDetail } from '../common/errorDetail.js'
 import { SHIPMENT_STATUS_VARIANT } from '../../lib/shipmentStatus'
+import { capacityFor, utilizationPct, weightLb } from '../../consolidation/equipmentCapacity'
 import './shipment-landing.css'
 
 /**
@@ -39,6 +41,36 @@ function formatDateOnly(raw) {
 }
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
+
+// Ramesh #6 (user 2026-10-01): Origin/Destination Location ID live INSIDE the
+// address cell as a tooltip, same pattern as Pickup Date — no new columns. Only
+// consolidate mode's list carries the ids, so everywhere else the cell is plain.
+function locationCell(text, id, subtitle) {
+  if (!id) return text ?? '—'
+  return (
+    <TooltipTrigger tooltipProps={{ groups: [{ subtitle, content: id }] }}>
+      <span>{text}</span>
+    </TooltipTrigger>
+  )
+}
+
+// Weight/Volume Utilization % (Ramesh #5, LINX-15786 BR II) — computed here from
+// the row + placeholder capacities (equipmentCapacity.js), so the cell's tooltip
+// says so: there's no header-tooltip mechanism to carry it, and inventing one
+// was out of scope. `--` when there's no total ("may be blank", LINX-15786).
+function utilizationCell(total, capacity, unit, equipmentCode) {
+  const pct = utilizationPct(total, capacity)
+  if (pct == null) return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
+  const fmt = (n) => Math.round(n).toLocaleString('en-US')
+  return (
+    <TooltipTrigger tooltipProps={{
+      label: 'Based on placeholder equipment capacities',
+      groups: [{ content: `${fmt(total)} of ${fmt(capacity)} ${unit} (${equipmentCode || 'default'})` }],
+    }}>
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+    </TooltipTrigger>
+  )
+}
 
 // Orders tooltip: shows all order badges on hover/focus.
 function OrdersTooltip({ orders, children }) {
@@ -139,8 +171,8 @@ export const COLUMN_CONFIG = [
       </TooltipTrigger>
     )
   }},
-  { key: 'origin', label: 'Origin' },
-  { key: 'destination', label: 'Destination' },
+  { key: 'origin', label: 'Origin', render: (s) => locationCell(s.origin, s.originLocationId, 'Origin Location ID') },
+  { key: 'destination', label: 'Destination', render: (s) => locationCell(s.destination, s.destinationLocationId, 'Destination Location ID') },
   {
     key: 'grossWeight',
     label: 'Gross Weight',
@@ -149,6 +181,26 @@ export const COLUMN_CONFIG = [
         {s.grossWeight ? `${Number(s.grossWeight).toLocaleString()} LB` : '--'}
       </span>
     ),
+  },
+  // Consolidation workbench only (ColumnPanel `consolidationOnly`, Ramesh #4/#5).
+  {
+    key: 'totalVolume',
+    label: 'Total Volume',
+    render: (s) => (
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {s.totalVolume != null ? `${Math.round(s.totalVolume).toLocaleString('en-US')} cuft` : '--'}
+      </span>
+    ),
+  },
+  {
+    key: 'weightUtilization',
+    label: 'Weight Utilization %',
+    render: (s) => utilizationCell(weightLb(s.grossWeight), capacityFor(s.equipmentCode).weightLb, 'LB', s.equipmentCode),
+  },
+  {
+    key: 'volumeUtilization',
+    label: 'Volume Utilization %',
+    render: (s) => utilizationCell(s.totalVolume, capacityFor(s.equipmentCode).volumeCuft, 'cuft', s.equipmentCode),
   },
   { key: 'mode', label: 'Mode' },
   { key: 'equipmentCode', label: 'Equipment' },
@@ -254,7 +306,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   onEditConsolidation,
   // S155 §4.2 — the row id (= sellShipment) just created elsewhere; DataTable
   // flashes it so the planner sees what they made. Pure pass-through.
-  highlightId = null }) {
+  highlightId = null,
+  // LINX-15786 Scenario 2: consolidate mode's empty pool has its own copy.
+  emptyMessage = 'No shipments found' }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
   const { openSheet } = useSheet()
@@ -289,6 +343,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       return columnHelper.accessor(col.key, {
         id: col.key,
         header: label,
+        // LINX-15893 BR I: only columns buildListQuery's SORT_MAP really orders by
+        // get a sort button — anything else would fall back to pickup_ts.
+        enableSorting: SORTABLE_KEYS.includes(col.key),
         cell: cfg?.render
           ? ({ row }) => cfg.render(row.original)
           : ({ getValue }) => getValue() ?? '—',
@@ -484,7 +541,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     >
       {shipments.length === 0 && !isLoading && !isError ? (
         <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
-          No shipments found
+          {emptyMessage}
         </div>
       ) : (
         <>
@@ -501,8 +558,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           <DataTable
           table={table}
           // Feature switches: truncationTooltip = Tooltip on >1-word ellipsis.
-          // `sortable` OFF (S85 test) — the sorting plumbing (state → gridService
-          // sortBy/orderBy) stays wired; re-adding the prop turns the buttons back on.
+          // `sortable` back ON grid-wide (LINX-15893 BR I, user 2026-10-01),
+          // reversing the S85 test switch; sorting state → gridService sortBy/orderBy.
+          sortable
           truncationTooltip
           highlightRowId={highlightId ?? undefined}
           // First mount, no data at all yet — whole-table Spinner (no rows).

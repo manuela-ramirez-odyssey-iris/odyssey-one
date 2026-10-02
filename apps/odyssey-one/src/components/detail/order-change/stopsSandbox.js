@@ -352,16 +352,34 @@ export function addPending(sb, ids) {
 // C16 (LINX-15669 §5 / BR-4) — dated means date, time AND time zone.
 export const isStopDated = (s) => !!parseStamp(s.date)?.tz
 
+// DEC-234 / Dave (A1, user R1) — a stop can't be dated earlier than ANY stop
+// above it, whatever the types. Map<stopKey, aboveKey>: aboveKey is the
+// latest-dated stop above (the one the planner has to clear). Undated stops
+// are skipped (C16 blocks them on its own); equal times are fine.
+export function dateSequenceViolations(stops) {
+  const out = new Map()
+  let latest = null // { at, key }
+  for (const s of stops) {
+    const at = stampValue(parseStamp(s.date))
+    if (at == null) continue
+    if (latest && at < latest.at) out.set(s.key, latest.key)
+    else latest = { at, key: s.key }
+  }
+  return out
+}
+
 // Gate for LINX-15670/15869/15871: routable iff no unsequenced stop, every
-// stop is dated (C16), and (C7, LINX-15669) no order is delivered before pickup.
+// stop is dated (C16), (C7, LINX-15669) no order is delivered before pickup,
+// and (DEC-234) no stop is dated before one above it.
 export function isRoutable(sb) {
-  return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && isStopDated(s)) && validSequence(sb.stops)
+  return sb.stops.length > 0 && sb.stops.every((s) => !s.unsequenced && isStopDated(s)) && validSequence(sb.stops) && dateSequenceViolations(sb.stops).size === 0
 }
 
 // T1.5 — isRoutable's reason, for the Evaluate tooltip.
 export function routeBlocker(sb) {
   if (sb.stops.some((s) => s.unsequenced)) return 'unsequenced'
   if (!validSequence(sb.stops)) return 'sequence'
+  if (dateSequenceViolations(sb.stops).size) return 'dates' // DEC-234 (A2)
   if (!sb.stops.every(isStopDated)) return 'undated'
   return null
 }
@@ -466,6 +484,23 @@ export function parseStamp(str) {
 
 const TZ_OFFSET_H = { EST: -5, EDT: -4, CST: -6, CDT: -5, MST: -7, MDT: -6, PST: -8, PDT: -7, AKST: -9, AKDT: -8, HST: -10 }
 export const stampValue = (p) => (p ? Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - (TZ_OFFSET_H[p.tz] ?? 0) * 3600000 : null)
+
+// User 2026-10-01 — each stop is stamped in its own site's zone, so stops in
+// a list read on different clocks. Every stop date also shows its UTC
+// equivalent (one universal clock): 'June 7, 2026 15:00 CDT' → '20:00 UTC';
+// 'June 7, 2026 21:00 CDT' → 'June 8 02:00 UTC'; '' with no known zone.
+export function toUtc(str) {
+  const p = parseStamp(str)
+  if (!p || TZ_OFFSET_H[p.tz] == null) return ''
+  const u = new Date(stampValue(p))
+  const pad = (n) => String(n).padStart(2, '0')
+  const time = `${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())} UTC`
+  // User 2026-10-01 — only the time, unless the day (and/or year) changes.
+  if (u.getUTCFullYear() !== p.y) return `${MONTHS[u.getUTCMonth()]} ${u.getUTCDate()}, ${u.getUTCFullYear()} ${time}`
+  if (u.getUTCMonth() !== p.mo || u.getUTCDate() !== p.d) return `${MONTHS[u.getUTCMonth()]} ${u.getUTCDate()} ${time}`
+  return time
+}
+export const withUtc = (str) => (toUtc(str) ? `${str} (${toUtc(str)})` : str)
 
 // Same long shape the stop cards and save-stops already carry.
 export function formatStopDate({ y, mo, d, h, mi, tz }) {

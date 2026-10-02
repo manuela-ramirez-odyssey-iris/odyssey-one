@@ -54,11 +54,11 @@ function Probe() {
 }
 const probe = async () => JSON.parse((await screen.findByTestId('probe')).textContent)
 
-function renderRoute(rows) {
+function renderRoute(rows, extraState = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[{ pathname: '/shipments/consolidate/stops', state: { rows } }]}>
+      <MemoryRouter initialEntries={[{ pathname: '/shipments/consolidate/stops', state: { rows, ...extraState } }]}>
         <CustomersProvider><EditModeProvider><CreateOrderModeProvider>
           <Routes>
             <Route path="/shipments/consolidate/stops" element={<ConsolidateStopsRoute />} />
@@ -206,6 +206,14 @@ describe('ConsolidateStopsRoute', () => {
     expect((await probe()).state ?? null).toBeNull()
   })
 
+  test('editing a C: nav header reads Edit Consolidation, no selected-shipments table (user 2026-10-01)', async () => {
+    renderRoute([row('333', { shipmentType: 'Consolidation' })])
+    await screen.findByRole('heading', { name: /^Shipment O-C$/ })
+    expect(screen.getByText('Edit Consolidation')).toBeTruthy()
+    expect(screen.queryByText('Manual Consolidation')).toBeNull()
+    expect(screen.queryByRole('table', { name: 'Selected shipments to consolidate' })).toBeNull()
+  })
+
   // ── B3/B4 tender flow, ported from the retired Review & Apply page (S6.1) ──
   const three = () => [row('111'), row('222'), row('333')]
   const activeDetail = { ...details[222], routingData: { options: [{ ...option, status: 'Accepted' }] } }
@@ -267,5 +275,82 @@ describe('ConsolidateStopsRoute', () => {
     await screen.findByText('Tendered Shipment Detected')
     expect(saveTenderOption).toHaveBeenCalledTimes(1)
     expect(applyConsolidation).not.toHaveBeenCalled()
+  })
+})
+
+// LINX-15873 — Edit Shipment Stops on any C, from its Stops tab.
+describe('ConsolidateStopsRoute — editing a C from its Stops tab', () => {
+  const cRow = (over) => row('333', { shipmentType: 'Consolidation', scac: 'ODFL', ...over })
+  const acceptedC = { ...details[333], routingData: { options: [{ ...option, status: 'Accepted' }] } }
+  const filedAs = (category) => vi.mocked(applyConsolidation).mockResolvedValueOnce({ row: { id: '333', sellShipment: '333', category }, detail: {} })
+  const toConfirm = async () => { await screen.findByText('Are you sure you want to apply the proposed consolidation?'); modalApply() }
+
+  test('C2: Cancel goes back to /shipments with the C selected on its Stops tab', async () => {
+    renderRoute([cRow()], { from: 'stops' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect((await probe()).state).toEqual({ selectedShipmentId: '333', requestedTab: { key: 'stops' } })
+  })
+
+  test('C3: an Accepted C asks Active Tender; Yes writes keep and lands on the Tender tab (C4)', async () => {
+    vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => (id === '333' ? acceptedC : details[id]))
+    filedAs('sent')
+    renderRoute([cRow({ tenderStatus: 'Accepted' })], { from: 'stops' })
+    await evaluate()
+    routingApply()
+    const dialog = await screen.findByRole('dialog', { name: 'Active Tender' })
+    expect(dialog.textContent).toContain('This shipment is tendered to ODFL (Accepted). Keep the tender and send the updated shipment to ODFL?')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, send to ODFL' }))
+    // The C is not its own Tendered Shipment Detected.
+    await toConfirm()
+    expect(screen.queryByText('Tendered Shipment Detected')).toBeNull()
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(applyConsolidation).mock.calls[0][0]).toMatchObject({ sellShipments: ['333'], tenderDecision: 'keep' })
+    expect((await probe()).state).toEqual({ selectedShipmentId: '333', requestedTab: { key: 'routing' }, panel: 'monitoring', tab: 'sent' })
+  })
+
+  test('C3: No writes cancel and lands on the Tender tab', async () => {
+    vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => (id === '333' ? acceptedC : details[id]))
+    filedAs('consolidation')
+    renderRoute([cRow({ tenderStatus: 'Accepted' })], { from: 'stops' })
+    await evaluate()
+    routingApply()
+    fireEvent.click(await screen.findByRole('button', { name: 'No, choose another carrier' }))
+    await toConfirm()
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(applyConsolidation).mock.calls[0][0].tenderDecision).toBe('cancel')
+    expect((await probe()).state).toMatchObject({ selectedShipmentId: '333', requestedTab: { key: 'routing' } })
+  })
+
+  test('C3: the X dismisses the question without deciding (No would cancel a live tender)', async () => {
+    vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => (id === '333' ? acceptedC : details[id]))
+    renderRoute([cRow({ tenderStatus: 'Accepted' })], { from: 'stops' })
+    await evaluate()
+    routingApply()
+    const dialog = await screen.findByRole('dialog', { name: 'Active Tender' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Active Tender' })).toBeNull())
+    expect(screen.queryByText('Are you sure you want to apply the proposed consolidation?')).toBeNull()
+    expect(applyConsolidation).not.toHaveBeenCalled()
+  })
+
+  test('C3: the question reads the detail\'s tender options (the server\'s source), not a stale row status; To Be Tendered is not active', async () => {
+    vi.mocked(getSellShipmentDetail).mockImplementation(async (id) => (id === '333' ? { ...details[333], routingData: { options: [{ ...option, status: 'To Be Tendered' }] } } : details[id]))
+    renderRoute([cRow({ tenderStatus: 'Accepted' })], { from: 'stops' })
+    await evaluate()
+    routingApply()
+    await screen.findByText('Are you sure you want to apply the proposed consolidation?')
+    expect(screen.queryByRole('dialog', { name: 'Active Tender' })).toBeNull()
+  })
+
+  test('an untendered C: no question, tenderDecision null, lands on the Stops tab (C4)', async () => {
+    filedAs('consolidation')
+    renderRoute([cRow()], { from: 'stops' })
+    await evaluate()
+    routingApply()
+    await toConfirm()
+    expect(screen.queryByRole('dialog', { name: 'Active Tender' })).toBeNull()
+    await waitFor(() => expect(applyConsolidation).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(applyConsolidation).mock.calls[0][0].tenderDecision).toBeNull()
+    expect((await probe()).state).toEqual({ selectedShipmentId: '333', requestedTab: { key: 'stops' }, panel: 'monitoring', tab: 'consolidation' })
   })
 })

@@ -1,7 +1,8 @@
 // apps/odyssey-one/api/_lib/consolidateShipments.test.mjs
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildConsolidatedShipment, checkConsolidation, idsForConsolidation, tsFromDisplay } from './consolidateShipments.mjs'
+import { buildConsolidatedShipment, checkConsolidation, idsForConsolidation, stopDateViolation, tsFromDisplay } from './consolidateShipments.mjs'
+import { resolveOrderChange } from './shipments.mjs'
 import { buildInsertShipmentQuery, buildSearchIndexQuery } from './planShipment.mjs'
 
 const order = (n, over = {}) => ({
@@ -374,4 +375,119 @@ test('lineage: a C source that lost an order hands the split a hidden source nod
   ]
   const b = buildConsolidatedShipment({ sources: [c, other], stops, seq: 1, now: new Date() })
   assert.deepEqual(b.splitOrders.map((p) => [p.orderRec.orderNumber, p.sourceHidden]), [['ORD-3', true]])
+})
+
+// ── DEC-234 (A5): stop date sequence ─────────────────────────────────────────
+const dated = (...dates) => dates.map((d, i) => ({ stopSequence: i + 1, stopType: i ? 'delivery' : 'pickup', scheduledDateTime: d }))
+
+test('DEC-234: a 3am pickup below a 4am pickup violates, naming the later stop', () => {
+  const stops = [
+    { stopSequence: 1, stopType: 'pickup', scheduledDateTime: 'June 7, 2026 04:00 CDT' },
+    { stopSequence: 2, stopType: 'pickup', scheduledDateTime: 'June 7, 2026 03:00 CDT' },
+  ]
+  assert.equal(stopDateViolation(stops)?.stopSequence, 2)
+})
+
+test('DEC-234: a delivery dated before a pickup above it violates — against the LATEST above, not the nearest', () => {
+  assert.equal(stopDateViolation(dated('06/07/2026 10:00 CST', '06/09/2026 10:00 CST', '06/08/2026 10:00 CST'))?.stopSequence, 3)
+  assert.equal(stopDateViolation(dated('June 9, 2026 10:00 CDT', 'June 8, 2026 10:00 CDT'))?.stopSequence, 2)
+})
+
+test('DEC-234: equal times are fine, undated stops are skipped, zones compare as instants', () => {
+  assert.equal(stopDateViolation(dated('June 7, 2026 04:00 CDT', 'June 7, 2026 04:00 CDT')), null)
+  assert.equal(stopDateViolation(dated('June 7, 2026 04:00 CDT', '--', '', 'June 7, 2026 05:00 CDT')), null)
+  assert.equal(stopDateViolation(dated('June 8, 2026 10:00 CDT', '--', 'June 7, 2026 05:00 CDT'))?.stopSequence, 3)
+  // 08:00 EDT = 07:00 CDT: same instant, so not earlier
+  assert.equal(stopDateViolation(dated('June 7, 2026 08:00 EDT', 'June 7, 2026 07:00 CDT')), null)
+  assert.equal(stopDateViolation(dated('June 7, 2026 08:00 EDT', 'June 7, 2026 06:59 CDT'))?.stopSequence, 2)
+  // ordered by stopSequence, not array order
+  assert.equal(stopDateViolation([{ stopSequence: 2, scheduledDateTime: 'June 8, 2026 10:00 CDT' }, { stopSequence: 1, scheduledDateTime: 'June 7, 2026 10:00 CDT' }]), null)
+})
+
+test('DEC-234: checkConsolidation refuses out-of-sequence dates (400)', () => {
+  const stops = dtoFor(1, 2).map((s) => (s.stopSequence === 2 ? { ...s, scheduledDateTime: 'June 1, 2026 08:00 CST' } : s))
+  assert.throws(() => check({ stops }), (e) => e.status === 400 && e.message === 'Stop dates are out of sequence.')
+})
+
+test('DEC-234: order change save-stops refuses out-of-sequence dates (400) before any read', async () => {
+  const db = { query: async () => { throw new Error('no read expected') }, connect: async () => { throw new Error('no tx expected') } }
+  const stops = [
+    { stopSequence: 1, stopType: 'pickup', orderIds: ['A'], scheduledDateTime: 'June 9, 2026 08:00 CDT' },
+    { stopSequence: 2, stopType: 'delivery', orderIds: ['A'], scheduledDateTime: 'June 8, 2026 08:00 CDT' },
+  ]
+  await assert.rejects(() => resolveOrderChange({ params: ['S1'], body: { action: 'save-stops', stops }, db }),
+    (e) => e.status === 400 && e.message === 'Stop dates are out of sequence.')
+})
+
+// ── LINX-15873 (CNS-23): Edit Shipment Stops on any C ───────────────────────
+// A C holding ORD-1 + ORD-2, as the single source of an edit. `opts` = its tender list.
+const cOf = (over = {}, detailOver = {}) => src(5, {
+  shipmentType: 'Consolidation', odysseyShipmentIdentifier: 'C70000005', sellShipment: '27000005', buyShipment: '910000005', ...over,
+}, {
+  orderList: [order(1), order(2)],
+  shipmentStopList: [stop(1, 'pickup', 'P1', 1), stop(2, 'pickup', 'P2', 2), stop(3, 'delivery', 'D1', 1), stop(4, 'delivery', 'D2', 2)],
+  historyList: [{ action: 'Shipment Created', timestamp: '2026-09-01T00:00:00.000Z' }],
+  ...detailOver,
+})
+const cStops = dtoFor(1, 2).map((s) => ({ ...s, sourceSellShipment: '27000005', sourceStopSequence: s.stopSequence }))
+const accepted = [{ rank: 1, scac: 'KEEP', status: 'Accepted', responseDateTime: 'x', tenderToken: 't', totalCostAmount: 1234.5 }, { rank: 2, scac: 'OTHR', status: '' }]
+const editC = (c, extra = {}) => buildConsolidatedShipment({ sources: [c], stops: cStops, seq: 1, now: new Date('2026-10-01T12:00:00Z'), ...extra })
+
+test('LINX-15873 D2: a single C outside the pool is accepted; a Direct still must be in the pool', () => {
+  assert.doesNotThrow(() => checkConsolidation({ sources: [cOf({ category: 'sent' })], stops: cStops }))
+  assert.throws(() => checkConsolidation({ sources: [cOf(), src(3, { category: 'hold' })], stops: cStops }), /Only shipments in Consolidation can be consolidated: 26000003/)
+})
+
+test('LINX-15873 D2: a C with an open order change is refused; a resolved one is fine', () => {
+  assert.throws(() => checkConsolidation({ sources: [cOf({}, { orderChange: { resolution: null } })], stops: cStops }),
+    (e) => e.status === 400 && e.message === 'Resolve the open order change before editing stops.')
+  assert.doesNotThrow(() => checkConsolidation({ sources: [cOf({}, { orderChange: { resolution: { action: 'retender' } } })], stops: cStops }))
+})
+
+test('LINX-15873 D2: an active (Sent/Accepted) tender with no decision is refused; To Be Tendered asks nothing', () => {
+  const c = cOf({ category: 'approved' }, { shippingOptionList: accepted })
+  assert.throws(() => checkConsolidation({ sources: [c], stops: cStops }),
+    (e) => e.status === 400 && e.message === 'Choose whether to keep the active tender.')
+  assert.doesNotThrow(() => checkConsolidation({ sources: [c], stops: cStops, tenderDecision: 'keep' }))
+  assert.doesNotThrow(() => checkConsolidation({ sources: [cOf({}, { shippingOptionList: [{ rank: 1, scac: 'A', status: 'To Be Tendered' }] })], stops: cStops }))
+})
+
+test('LINX-15873 D3 keep: Sent / Monitoring › Sent, the kept SCAC Sent in the posted list, the rest untendered', () => {
+  const tenderList = [{ rank: 1, scac: 'OTHR', status: '', totalCostAmount: 900 }, { rank: 2, scac: 'KEEP', status: '', totalCostAmount: 1100 }]
+  const { row, detail } = editC(cOf({}, { shippingOptionList: accepted }), { tenderList, tenderDecision: 'keep' })
+  assert.deepEqual([row.tenderStatus, row.panel, row.category, row.shipmentStatus], ['Sent', 'monitoring', 'sent', 'Approved'])
+  assert.deepEqual(detail.shippingOptionList.map((o) => [o.scac, o.status]), [['OTHR', ''], ['KEEP', 'Sent']])
+  assert.equal(row.scac, 'KEEP')
+  assert.equal(row.apFreightCost, '1,100.00')
+})
+
+test('LINX-15873 D3 keep: a kept carrier routing dropped is inserted (prior-carrier insert), dated from the new stops', () => {
+  const { detail } = editC(cOf({}, { shippingOptionList: accepted }), { tenderList: [{ rank: 1, scac: 'OTHR', status: '' }], tenderDecision: 'keep' })
+  assert.deepEqual(detail.shippingOptionList.map((o) => [o.rank, o.scac, o.status]), [[1, 'OTHR', ''], [2, 'KEEP', 'Sent']])
+  const kept = detail.shippingOptionList[1]
+  assert.equal(kept.responseDateTime, undefined) // the old response does not ride along
+  assert.equal(kept.tenderToken, undefined)
+  assert.match(kept.pickupDateTime, /^06\/11\/2026/)
+})
+
+test('LINX-15873 D3 cancel: today\'s filing, every status blank, one Cancel history entry', () => {
+  const { row, detail } = editC(cOf({}, { shippingOptionList: accepted }), { tenderList: accepted, tenderDecision: 'cancel' })
+  assert.deepEqual([row.tenderStatus, row.panel, row.category, row.scac], ['', 'monitoring', 'consolidation', null])
+  assert.ok(detail.shippingOptionList.every((o) => o.status === '')) // LINX-15899: nothing left active
+  const cancel = detail.historyList.at(-1)
+  assert.deepEqual([cancel.action, cancel.category, cancel.scac, cancel.oldValue, cancel.newValue], ['Cancel', 'tender', 'KEEP', 'Accepted', 'Cancelled'])
+})
+
+test('LINX-15873 D3 null: an untendered C files as today', () => {
+  const { row, detail } = editC(cOf({ category: 'consolidation' }), { tenderList: [{ rank: 1, scac: 'OTHR', status: 'Sent' }] })
+  assert.deepEqual([row.tenderStatus, row.category], ['', 'consolidation'])
+  assert.deepEqual(detail.shippingOptionList.map((o) => o.status), [''])
+})
+
+test('LINX-15873 D4: a C edit keeps its history and adds ONE Shipment Stops Edited — no Created / Manual Consolidation', () => {
+  const { row, detail } = editC(cOf())
+  assert.equal(row.sellShipment, '27000005')
+  assert.deepEqual(detail.historyList.map((h) => h.action), ['Shipment Created', 'Shipment Stops Edited'])
+  assert.equal(detail.historyList[1].category, 'update')
+  assert.equal(detail.historyList[1].timestamp, '2026-10-01T12:00:00.000Z')
 })

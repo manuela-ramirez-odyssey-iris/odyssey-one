@@ -5,7 +5,7 @@
 // buildInsertShipmentQuery / buildSearchIndexQuery), so a consolidation is
 // byte-identical in the two runtimes.
 import {
-  ROW_COLUMNS, buildSplitShipment, buildTenderInsertQuery, dormancyEvent, idOf, pullExternalOrders, serialIdsFor,
+  ROW_COLUMNS, buildSplitShipment, buildTenderInsertQuery, buildTendersQuery, dormancyEvent, idOf, pullExternalOrders, serialIdsFor,
   writeSourceUpdates, writeSplits,
 } from './shipments.mjs'
 import { buildInsertShipmentQuery, buildSearchIndexQuery } from './planShipment.mjs'
@@ -38,6 +38,9 @@ export async function applyConsolidation({ body, db }) {
   const ids = sellShipments.map(String)
   if (new Set(ids).size !== ids.length) throw bad('sellShipments contains duplicates')
   if (!Array.isArray(body?.stops) || body.stops.length === 0) throw bad('stops array required')
+  // LINX-15873 D1 — the planner's answer to Active Tender on a C edit.
+  const tenderDecision = body.tenderDecision ?? null
+  if (![null, 'keep', 'cancel'].includes(tenderDecision)) throw bad("tenderDecision must be 'keep', 'cancel' or null")
 
   const { rows } = await db.query(buildSourceRowsQuery(ids))
   const byId = new Map(rows.map((r) => [r.sellShipment, r]))
@@ -50,6 +53,13 @@ export async function applyConsolidation({ body, db }) {
     const { detail, ...row } = byId.get(id)
     return { row, detail }
   })
+  // A C's tender is read off the LIVE tenders table, as sellShipmentDetail
+  // does (C6: Tender-tab actions write only `tenders`), so the D2 guard and
+  // the D3 keep see the tender the planner was asked about.
+  for (const s of sources.filter((x) => String(x.row.odysseyShipmentIdentifier).startsWith('C'))) {
+    const options = (await db.query(buildTendersQuery(s.row.sellShipment))).rows.map((t) => t.option).filter(Boolean)
+    if (options.length) s.detail = { ...s.detail, shippingOptionList: options }
+  }
   // An "external" order that lives on a SELECTED source is already in its
   // roster (Remove → pending → Add Orders can offer it back); only the rest
   // are pulled from other shipments.
@@ -58,7 +68,7 @@ export async function applyConsolidation({ body, db }) {
   // An order pulled off ANY C is refused (CNS-14: a C is never emptied into another C).
   const extIds = [...new Set(externalOrders.map((e) => String(e.sourceSellShipment)))]
   const externalRows = extIds.length ? (await db.query(buildSourceRowsQuery(extIds))).rows : []
-  checkConsolidation({ sources, stops: body.stops, externalOrders, externalRows })
+  checkConsolidation({ sources, stops: body.stops, externalOrders, externalRows, tenderDecision })
 
   // Revalidated BEFORE any write — a source that went Accepted/Sent since the
   // search 400s here (LINX-15872), exactly as save-stops does.
@@ -66,7 +76,7 @@ export async function applyConsolidation({ body, db }) {
   const now = new Date()
   const { rows: seqRows } = await db.query(SEQ_QUERY)
   const built = buildConsolidatedShipment({
-    sources, stops: body.stops, externals: external, externalSources, externalOrders, tenderList: body.tenderList ?? [],
+    sources, stops: body.stops, externals: external, externalSources, externalOrders, tenderList: body.tenderList ?? [], tenderDecision,
     seq: (seqRows[0]?.n ?? 0) + 1, now,
   })
   // C3 / DEC-205 — an order a C source lost becomes a Direct of its own. The

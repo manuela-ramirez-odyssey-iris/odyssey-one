@@ -2,6 +2,44 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 165 — October 1, 2026
+
+**EDIT CONSOLIDATION (LINX-15873), DAVE'S STOP-DATE RULE IN EVERY STOP EDITOR, AND RAMESH'S WORKBENCH CORRECTIONS (COLUMNS, SORTING, VOLUME/UTILIZATION).** Three specs (`docs/superpowers/specs/2026-10-01-edit-consolidated-shipment-stops.md`, `…-consolidation-workbench-easy-fixes.md`, `…-consolidation-workbench-volume-utilization.md`), built by `implementer` agents (two in parallel, then two sequential) with Opus on the specs, review and small fixes. Canon: CNS-23, CNS-24, DEC-234. Deployed once, at the end, **with every other session's uncommitted work** (user: "deploy what the other sessions did too"). Bundle-grepped on `odyssey-one-stage` (the alias 308s to it).
+
+- **Edit Consolidation (LINX-15873, CNS-23).**
+  - **Edit Shipment Stops** sits on any C's Stops tab, greyed out while an order change is open. It opens the consolidation editor on that C: no Prior, the C keeps its ids, and history gets one *Shipment Stops Edited* entry.
+  - **Active Tender question** (Jana's grooming): **Yes** keeps the carrier and re-sends (Monitoring › Sent); **No** cancels the tender and lands on the Tender tab. No Bypass. The server decides "active" from the tender **options** (Sent/Accepted), not the row's `tenderStatus`, and the client reads the same source.
+  - **Server:** a single C may be outside the pool. New 400s for an open order change and for a missing tender decision.
+  - **User 2026-10-01:** the nav header reads **Edit Consolidation**, with no *Selected shipments to consolidate* table.
+- **Stop-date sequence (DEC-234, Dave).**
+  - A stop dated earlier than any stop above it turns red with an inline Alert, and Evaluate is blocked. This applies to order change, new consolidation and Edit Consolidation, and the server backstops both save paths (`Stop dates are out of sequence.`).
+  - **Display, after four rounds:** each stop keeps its site's zone, with its **UTC** time in parentheses. The date appears only if the UTC day or year differs. The error is a short sentence ("…This stop is earlier than P1."), with both dates in its hover tooltip.
+  - **Rejected:** a `(UTC−5)` label, an all-to-Central conversion with a gap, and conversion into the stop's own zone.
+  - **Seed check:** 0 of 2,200 shipments violate the rule. Four test fixtures were re-dated.
+- **Ramesh's workbench sheet (CNS-24).** `Manual Consol_Vercel Vs Jira_29Sept26.xlsx`; its story ids are auto-incremented, and only 15786, 15893 and 15788 are real.
+  - **Mode columns** in LINX-15786's order: Tender Status and Pickup # are dropped, Customer Name is added, and Planning Type sits by the dates.
+  - **New, mode-only:** **Total Volume**, **Weight / Volume Utilization %** (placeholder capacities, noted in the cell tooltip), and **location IDs** as an Origin/Destination hover tooltip. These are fetched only in the mode, over the paged rows (`extras: 'consolidation'`, LATERAL joins). A read-only probe on Neon passed.
+  - **Empty pool:** "No Consolidation Candidates Available" (Scenario 2).
+  - **Sorting is back grid-wide** on the 22 truly sortable columns, with no silent fallback. The mode defaults to Shipment ID descending. Gross Weight is not sortable (edited values carry units).
+  - **Halted (user):** every filter/refresh item. **Answered:** the title stays per CNS-07; the audit trail is the History-tab lineage.
+
+**Live:** this tree, deployed `dpl_5MYVV8YoL7Kdev4Sht6dxRKr9Jp5`, verified for `Edit Consolidation`, `No Consolidation Candidates Available`, `This stop is earlier than`, `Active Tender`, the placeholder note, and the StopsTab tooltip (lazy chunk). **No Apply / C-edit save has run on live yet.** Every Neon write path (keep / cancel / edit) is proven in tests only.
+
+**Other sessions' work, committed and deployed here, NOT logged by this session:** tender actions + decline reasons + tender history (DEC-229…233, LINX-15899/15897, specs `2026-10-01-tender-actions-and-decline-reason.md`, `…-tender-history-tab.md`); Tender Review / tender email fixes (Papu); TimelineDot (spec `2026-09-30-timeline-dot.md`); design-system MD download (`tools/design-system-md.mjs`); Button / SummaryStrip / tokens. Those sessions owe their own entries (product → `progress.md`, DS → `progress-deliverables.md`, which is behind at D23).
+
+**Still open.**
+- **LINX-15873:** keep "Consolidated Cost" in the editor (AC says hide)? Merge the Active Tender + Apply dialogs into one? Confirm with Jana that the tender Yes/No is added to the story.
+- **Ramesh, medium items not built:** the Earliest/Latest windows + Hazmat columns (in the catalog but empty on list rows; the data is in `orders`); SCAC only when order-provided (`customerRequiredCarrier`). Real capacities are owed by Dave (CNS-05). Location IDs are ours, not TMS codes.
+- **Gaps:**
+  - the column picker is unreachable in consolidate mode;
+  - the plain Stops tab has no UTC hint;
+  - a rebuilt C still drops notes/documents/tender versions, and a C+Direct merge replaces the C's history;
+  - `orders.shipment_sell_id` is unindexed (`ponytail:`).
+- `toast.test.js` and `StopDateField.test.jsx` still fail (another session). `tsc` has 2 pre-existing errors (`mapSellShipmentOutToDetail.ts:616`, `consolidationService.ts:103`).
+- The 09-23 / 09-28 / 09-29 transcripts and the Date-issue screenshots are still in the inbox.
+
+**What's next (user):** finish the consolidation bits Ramesh mentioned (the medium list above, filters/refresh only when un-halted). Then a live C-edit click-through: ask before any Neon write.
+
 ## Session 164 — September 30 – October 1, 2026
 
 **CONSOLIDATION AUDIT TRAIL: HIDDEN SHIPMENTS STAY REACHABLE THROUGH A LINEAGE IN THE HISTORY TAB.** Built the idea you and Thomas settled on the 2026-09-23 call (`vault/00-inbox/Consoloidation Questions 2.vtt` @00:36–00:40), from the VDs (Figma `x38TOJGsNryYl3LsKhCtSc` 2671:81594 / 3113:19333 / 3121:60581 / 3126:19659 / 3127:20032; History layer 2675:83625 / 3113:19368 / 3121:60616 / 3126:19694 / 3127:20067). Spec `docs/superpowers/specs/2026-09-30-consolidation-lineage-history.md`; canon CNS-21 / CNS-22 + `consolidation.md` §12. Models: Opus main thread (spec, review, small fixes), `implementer` agents (Sonnet 5.5) for every slice. Deployed twice, reseeded twice, each on the user's go.
@@ -115,62 +153,15 @@ The findings became plan items C6–C24, rulings N1–N6 and DEC-212…218. Four
 
 ## Session 162 — September 28, 2026
 
-**ORDER CHANGE: THREE BUILDS, AN AUDIT THAT FOUND SCENARIO B FILED AS TENDERED, AND EDIT STOPS REDRAWN IN THE PLANNED STOPS LANGUAGE.** Picked up S160's order-change list, shipped three plan items, reseeded Neon twice and deployed once. Then the user asked "are we sure consol order change is properly wired?", and a read-only audit answered no: the approve-with-no-tender path filed shipments under Monitoring › Sent. After that, ~20 rounds of user-driven redesign on Edit Shipment Stops. 24 commits, all `S162:`. Models: Opus (personal account) wrote the small changes directly; Opus agents did the larger slices and the audit.
+**ORDER CHANGE: THREE BUILDS, AN AUDIT, AND EDIT STOPS REDRAWN — condensed.**
+- Select Cost became the AP total (DEC-208).
+- One shipment-status rule, `shipmentStatus.js` (DEC-204).
+- Order change from To Be Tendered (DEC-209).
+- Neutral site names + customer-owned pickups (DEC-210).
+- A read-only audit found the no-tender approve path filing under Monitoring › Sent. It was fixed in S163.
+- About 20 user-driven rounds redesigned Edit Shipment Stops in the Planned Stops language.
 
-- **D3: Select Cost = the AP total (DEC-208, supersedes DEC-125).** Prior/New were the base rate while New Quote was the total, so the preview re-added charges to a quote (counted twice). The API wrote only `rateAmount`, so the Tender tab's AP Cost never moved and the list's AP Freight Cost fell to the base rate. Now all three radios carry `totalCostAmount`. The API writes it and derives the base rate as total − the row's charges, and the list row reads the total. Seed `apCost` reads the total, with zero draws.
-- **S: shipment statuses (DEC-204 built).** One rule, `src/lib/shipmentStatus.js`, maps panel/category to status:
-  - hold → Hold, consolidation → Consolidation, sent → Approved, accepted → Done, every exception and SpotBid → Review.
-  - Shared by the seed (derived from the final panel/category, zero draws) and the three API writers (order-change resolution, plan-shipment, consolidate).
-  - LINX-15872's move block reads the **category** (`MOVE_BLOCKED_CATEGORY`), so SpotBid and Bid Review still block while displaying Review.
-  - Badge colours are ours: Review red, Done green, Approved blue, Consolidation purple, Hold gray.
-  - The progression sheets carry no enum column, so they came out unchanged (audit clean); the shipments progression doc lists the five statuses.
-- **D1: order change from To Be Tendered (DEC-209, LINX-14509, closes OC-open-1).** 40% of the Sent order-change rows seed as To Be Tendered: no notify time, no tender link, Manual channel.
-  - No Tender Sent in history. The MVP catalog has no such event, so nothing replaces it (DEC-80); `buildAuthor` still runs to keep the id stream.
-  - Tender tab: amber badge, and **Tender/Cancel** actions per LINX-8253's transition table.
-  - Consolidation's active-tender check counts To Be Tendered.
-- **Neon reseeded twice + deployed once**, each on the user's go, users preserved, verified by SELECT.
-  - Reseed 1 carried D3/S/D1: 661/661 prior apCost = total; 87 To Be Tendered order changes.
-  - `vercel --prod` shipped D3/S/D1, bundle-grepped for the status list and the To Be Tendered actions.
-  - Reseed 2 carried DEC-210 (sites below). **Everything after the first deploy is committed but NOT deployed.**
-- **Neutral site names + customer-owned pickups (DEC-210).** 300 sites named `<CITY> <KIND>`, with no company names (a seed test enforces it). Each customer owns 4 ship-from sites, none shared.
-  - Every pickup comes from those sites; deliveries never go to them.
-  - faker's `arrayElement` takes one draw for any list of 2+ (verified in the 9.9.0 source), so **0 ids moved**.
-  - The progression example values follow (BASTROP / GREEN RIVER TERMINAL), sheets regenerated.
-- **Audit of consolidated order change** (read-only, per story).
-  - The live payloads are coherent: 357 pending, 0 violations. **0 resolved consolidated order changes exist in Neon**, so nothing after approval has ever run live.
-  - Fixed now (**DEC-211**):
-    - Scenario B / Approve Plan reused Bypass's outcome (Monitoring › Sent, status Approved). It now re-files to **Exceptions › Tender Review, status Review**, and the planner lands there. The tests had asserted the old behaviour.
-    - The row menu and Tender tab chose the review by `shipmentType`, stranding 5 one-load C shipments. It now goes by load count (LINX-8284), so they get the Direct review.
-- **Live detail bar showed the mock's Odyssey ID** (C50001578 vs Neon's C50001579) for off-page selections. Live mode now builds the row from the fresh detail and never reads `shipments.json`.
-- **Edit Shipment Stops redesign (user rulings, many rounds).**
-  - Final shape: **Prior | New**, plus the **Orders Pending To Assign** column. The pending column floats right at 240px, slides open and closed, and appears in edit mode only.
-  - Panels carry Routing History's nested-card outline (1px border-subtle, no shadow, radius-2xl).
-  - Stops are light rows in the Consolidation **Planned Stops** anatomy (Figma 3039:147748). There are no HeaderStrips and no "Stop N".
-  - Badges sit inline after the address, with the last word glued so a badge never wraps alone. Prior's type badges are green. Order ids are shown without underline, inline on read-only rows.
-  - **New is collapsed by default, with dnd-kit drag.** An illegal drop is refused with LINX-15669's message via one shared `canReorderStop`/`reorderStop`.
-  - **Edit** opens Reset / Discard / Save (sm; Reset beside the title) with consolidation's semantics and confirms. Edit mode shows pickers, Set Aside, and icon-Button arrows that exist only while the stop is hovered or focused. There is 24px between the address and the fields, and Evaluate is disabled while editing.
-  - **Distance lives in a tooltip** shown only over a stop's rail: "Distance from X to Y". It opens left of the line, follows the pointer, and bolds both badges and darkens the leg. New's rail is detached.
-  - The hover tint spans the whole stop and drops off while the rail is hovered.
-  - View Planning Dates is a calendar link, and the KPI Distance cell grows to 178px.
-- **Tooling.** `/tmp/pptx_env` had lost its `pyvenv.cfg`/site-packages (macOS `/tmp` cleanup); recreated with markitdown + openpyxl.
-
-**Parallel session, unlogged here:** `51d5f89`, `6f07afc`, `4476d30`, `511002e` are `S159:`-tagged OIF-fault spacing commits made after S159's wrap. They belong to that session and ride this push.
-
-**Still open.**
-- **Deploy owed.** Live runs the morning build against the afternoon's Neon. Not live yet: the Edit Stops redesign, the bar ID fix, the Scenario B and one-load fixes. Site names are data, so they are already live.
-- From the audit, not fixed:
-  - Save flips a one-order C to Direct on the row but not in the detail (Dave's rule).
-  - Volume isn't recomputed after Save.
-  - Stops created in the editor lose coordinates and time zone.
-  - The routing modal and costs never reflect edits (mock).
-  - 15436 highlights only 6 of 14 fields.
-  - 15870 can't search Origin/Destination by site ID or ZIP, and its Tender Status filter lacks To Be Tendered.
-- **C3** (a set-aside order is orphaned at Save) remains the biggest correctness gap. C4, C5 and D2/D4/D5 are still owed.
-- Collapsed-mode pending orders are invisible after Save (no count shown), which is unanswered. The Order create form's ship-from picker lists all 300 sites rather than the customer's own, also unanswered.
-- The order tooltip's 80ms close can briefly overlap the distance tip.
-- `toast.test.js` still fails to parse (S159).
-
-**What's next (user):** validate and QA-test that everything Jana asked for (feature-wise) in order change is there: his 08-14 and 08-29 Direct sessions, the 09-24 walkthrough (DEC-191…199) and the 09-25 design review (DEC-200…207), checked against the build, then decide the deploy.
+Reseeded twice, deployed once, 24 `S162:` commits. Full narrative in git.
 
 ## Session 161 — September 25–28, 2026
 

@@ -7,7 +7,7 @@ import { buildRankedSubquery, resolveNeedles } from './search.mjs'
 import { buildCandidateRows, MOVE_BLOCKED_CATEGORY, MOVE_BLOCKED_TENDER } from './candidateOrders.mjs'
 import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 import { idsFor, buildInsertShipmentQuery, buildLinkOrderQuery, buildSearchIndexQuery } from './planShipment.mjs'
-import { tsFromDisplay } from './consolidateShipments.mjs'
+import { DATES_OUT_OF_SEQUENCE, stopDateViolation, tsFromDisplay } from './consolidateShipments.mjs'
 import { totalMiles } from '../../src/utils/legMiles.js'
 import { applyStopDates, rerouteOrderChange, stopDateToDisplay, withApTotal } from '../../src/lib/orderChangeRouting.js'
 
@@ -54,6 +54,24 @@ const SORT_MAP = {
   pickupDate: 'pickup_ts', deliveryDate: 'delivery_ts', customerName: 'customer_name',
   sellShipment: 'sell_shipment', buyShipment: 'buy_shipment', scac: 'scac', mode: 'mode',
   tenderStatus: 'tender_status', shipmentStatus: 'shipment_status', category: 'category',
+  // LINX-15893 BR I (sorting on, user 2026-10-01): every plain row column the
+  // grid lets you sort (src/components/shipments/sortableColumns.js) — a key
+  // missing here falls back to pickup_ts, i.e. a header that lies.
+  customerId: 'customer_id', origin: 'origin', destination: 'destination', equipmentCode: 'equipment_code',
+  shipmentType: 'shipment_type', planningType: 'planning_type', legType: 'leg_type',
+  consignor: 'consignor', consignee: 'consignee', pro: 'pro',
+  // The counts and the cost are TEXT (001_schema.sql:34-35; cost is "1,234.56"),
+  // so a plain column would sort '10' before '9'. Strip to digits and cast; a
+  // blank/'--' becomes NULL and lands last.
+  orderCount: numericText('order_count'), loadCount: numericText('load_count'),
+  apFreightCost: numericText('ap_freight_cost'),
+  // ponytail: grossWeight stays unsortable — COALESCE(overrides->>'grossWeight', …)
+  // mixes the bare-LB column with the modal's unit-bearing "12,345 KG" strings.
+  // Upgrade path = store the override as { value, uom } and sort on the LB value.
+}
+
+function numericText(col) {
+  return `NULLIF(regexp_replace(${col}, '[^0-9.]', '', 'g'), '')::numeric`
 }
 
 // Filterable columns (exact-equality and substring). Keys are ShipmentErrorRow field names.
@@ -136,7 +154,42 @@ export function buildCountsQuery({ panel, customerIds, searchCriteria } = {}, ne
   }
 }
 
-export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sortBy, orderBy } = {}, needles) {
+// `extras` value the route sends ONLY while consolidate mode is on (Ramesh
+// #4/#5/#6, LINX-15786 BR II) — every other tab's list pays nothing for it.
+export const CONSOLIDATION_EXTRAS = 'consolidation'
+
+// The workbench's extra row fields, joined LATERAL over the ≤ pageSize rows the
+// inner (paged) SELECT already chose — never as SELECT-list subqueries beside
+// count(*) OVER(), which would evaluate them for every matching row.
+//   totalVolume: Σ orders.volume value (seed uom 'cbf' = cuft; the grid shows cuft).
+//   origin/destinationLocationId: first pickup / last delivery stop's location_id
+//   — PREFERRING the stop whose facility is the row's consignor/consignee. The
+//   seed's multi-stop rows carry a consignee/destination that is not always the
+//   last delivery (354/2200 rows, generate.mjs destLoc), and the tooltip must
+//   name the facility the cell shows; on a coherent row the two picks coincide.
+// ponytail: orders.shipment_sell_id has no index (001_schema.sql:52), so each
+// paged row seq-scans orders once (~6k rows × 50). Upgrade path = CREATE INDEX
+// ON orders (shipment_sell_id) if the pool page ever feels slow.
+function withConsolidationExtras(paged) {
+  return `SELECT p.*, v.total AS "totalVolume",
+                 o.location_id AS "originLocationId", d.location_id AS "destinationLocationId"
+          FROM (${paged}) p
+          LEFT JOIN LATERAL (
+            -- ::float8 — pg hands numeric to JS as a string; the row field is a number.
+            SELECT sum(${numericText(`volume->>'value'`)})::float8 AS total
+            FROM orders WHERE orders.shipment_sell_id = p."sellShipment") v ON TRUE
+          LEFT JOIN LATERAL (
+            SELECT location_id FROM stops
+            WHERE stops.shipment_sell_id = p."sellShipment" AND stop_type = 'pickup'
+            ORDER BY (data->>'facilityName' IS NOT DISTINCT FROM p.consignor) DESC, sequence ASC LIMIT 1) o ON TRUE
+          LEFT JOIN LATERAL (
+            SELECT location_id FROM stops
+            WHERE stops.shipment_sell_id = p."sellShipment" AND stop_type = 'delivery'
+            ORDER BY (data->>'facilityName' IS NOT DISTINCT FROM p.consignee) DESC, sequence DESC LIMIT 1) d ON TRUE
+          ORDER BY p."__pos"`
+}
+
+export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sortBy, orderBy, extras } = {}, needles) {
   const values = []
   const where = [NOT_EMPTIED]
   const add = (clause, v) => { values.push(v); where.push(clause.replace('?', `$${values.length}`)) }
@@ -186,13 +239,15 @@ export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sor
   values.push(pageNumber * pageSize); const offsetP = values.length
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
-  return {
-    text: `SELECT ${ROW_COLUMNS}, count(*) OVER()::int AS "__total"
+  // A join doesn't promise to keep the subquery's order, so the extras wrapper
+  // re-sorts on the page position (same ORDER BY → the planner sorts once).
+  const withExtras = extras === CONSOLIDATION_EXTRAS
+  const paged = `SELECT ${ROW_COLUMNS}, count(*) OVER()::int AS "__total"${withExtras ? `,
+           row_number() OVER (ORDER BY ${orderSql}) AS "__pos"` : ''}
            FROM shipments ${join} ${whereSql}
            ORDER BY ${orderSql}
-           LIMIT $${limitP} OFFSET $${offsetP}`,
-    values,
-  }
+           LIMIT $${limitP} OFFSET $${offsetP}`
+  return { text: withExtras ? withConsolidationExtras(paged) : paged, values }
 }
 
 export async function categoryCounts({ query, db }) {
@@ -228,7 +283,7 @@ export async function shipmentErrorList({ body, db }) {
   )
   const { rows } = await db.query(buildListQuery(body ?? {}, needles))
   const totalCount = rows[0]?.__total ?? 0
-  return { pageNumber, pageSize, totalCount, rows: rows.map(({ __total, ...r }) => r) }
+  return { pageNumber, pageSize, totalCount, rows: rows.map(({ __total, __pos, ...r }) => r) }
 }
 
 // Slice 3: full SellShipmentOut detail — stored verbatim as shipments.detail JSONB.
@@ -326,7 +381,7 @@ const SCENARIO_B = () => ({
   validationMessage: 'User to review the current tender options and take appropriate action.',
 })
 
-const OC_OUTCOMES = {
+export const OC_OUTCOMES = {
   // retender re-solicits the carrier regardless of prior status — an
   // Accepted tender goes back to Sent, not back to Accepted (call w/ Jana).
   retender: () => ({ tenderStatus: 'Sent', panel: 'monitoring', category: 'sent', validationMessage: null }),
@@ -1017,7 +1072,7 @@ const fmtCost = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, max
 // (possibly re-costed) row stays the list's answer; cancel/approve-plan/
 // save-stops-B have no carrier being acted on, so the list falls back to the
 // new list's own rank-1 (the option routing now leads with).
-function listCarrierFor(action, rows, orderChange) {
+export function listCarrierFor(action, rows, orderChange) {
   const priorScac = orderChange?.prior?.scac ?? null
   let row = (action === 'retender' || action === 'bypass') && priorScac
     ? rows.find((o) => o.scac === priorScac)
@@ -1141,6 +1196,8 @@ export async function resolveOrderChange({ params, body, db }) {
     if (!Array.isArray(body?.stops) || body.stops.length === 0) {
       const e = new Error('stops array required'); e.status = 400; throw e
     }
+    // DEC-234 (A5) — the editor's date-sequence rule, re-checked on the wire.
+    if (stopDateViolation(body.stops)) { const e = new Error(DATES_OUT_OF_SEQUENCE); e.status = 400; throw e }
     const { rows } = await db.query(buildDetailReadQuery(sellShipment))
     if (rows.length === 0) { const e = new Error(`No shipment: ${sellShipment}`); e.status = 404; throw e }
     const detail = rows[0].detail
@@ -1325,20 +1382,114 @@ export function buildTenderInsertQuery(sellShipment, option) {
   }
 }
 
+// LINX-15899 §3 — the actions each CURRENT status allows ('' = never tendered).
+// ponytail: duplicated from RoutingGuideTab's client map on purpose (the API
+// imports nothing UI-side for this); the two must move together.
+export const TENDER_ACTIONS_BY_STATUS = {
+  '': ['Tender'],
+  Cancelled: ['Tender'],
+  Sent: ['Re-Tender', 'Cancel', 'Accept', 'Decline'],
+  Declined: ['Tender'],
+  'To Be Tendered': ['Tender'],
+  'To Be Cancelled': ['Cancel'],
+  Accepted: ['Re-Tender', 'Cancel', 'Decline'],
+}
+// LINX-15899 §4 — at most one of these per shipment.
+export const ACTIVE_TENDER_STATUSES = ['Sent', 'Accepted', 'To Be Tendered']
+
+// LINX-15899/15897 §6 — one History entry per tender action, in the shape the
+// seed and HistoryTab already use (generate.mjs pushHistory). Shared with the
+// seed so a seeded row and a live one cannot drift. The status pair rides the
+// existing field/oldValue/newValue diff row (HistoryTab), which had no producer.
+// `comm` = 'Success' | 'Failure' | null (Accept sends nothing, A6: never Failure).
+// Accept stays blue, not green: DEC-87 reserves green for three catalog
+// milestones, and a seeded Accept can be followed by a giveback Decline.
+// `user`/`source` = the emitting system as on every other row (DEC-80; 'UI' =
+// recorded through OdysseyONE), `author` = who acted.
+const TENDER_OUTCOMES = { Tender: 'update', 'Re-Tender': 'update', Accept: 'update', Cancel: 'neutral', Decline: 'neutral' }
+export const TENDER_HISTORY_ACTIONS = Object.keys(TENDER_OUTCOMES)
+export function tenderHistoryEntry({ action, option, prevStatus, author, comm, commMessage, now = new Date() }) {
+  const commText = comm ? `${comm}${commMessage ? ` (${commMessage})` : ''}` : '—'
+  const source = author.kind === 'system' ? author.name : 'UI'
+  const entry = {
+    user: source, source, timestamp: new Date(now).toISOString(), action, category: 'tender',
+    outcome: TENDER_OUTCOMES[action] ?? 'update', author,
+    details: `${action} on carrier ${option.scac}. Communication Status: ${commText}.`,
+    field: 'Tender Status', oldValue: prevStatus || '—', newValue: option.status || '—',
+    scac: option.scac, communicationStatus: comm ?? '—',
+  }
+  // LINX-17756 AC-04/06/07 — carrier name + methods, when the option has them.
+  if (option.carrierName) entry.carrierName = option.carrierName
+  if (option.apiSource) entry.notifyMethod = option.apiSource
+  if ((action === 'Accept' || action === 'Decline') && option.responseMethod) entry.responseMethod = option.responseMethod
+  if (commMessage) entry.communicationMessage = commMessage
+  if (action === 'Decline') {
+    entry.optionNote = {
+      code: option.declineReasonCode ?? null, description: option.declineReason ?? null,
+      comment: option.responseComments ?? null, carrierGaveBack: Boolean(option.carrierGaveBack),
+    }
+  }
+  return entry
+}
+
+// §6 actor: the carrier email page writes modifyUser "<SCAC> (email link)"
+// (A3); anything else is the planner — the request's user when the client
+// sends one, else the option's modifyUser. No email on the server, so no tooltip.
+function tenderActor(body, option) {
+  const name = body?.user || option.modifyUser || 'OdysseyONE'
+  return { name, kind: /\(email link\)$/.test(name) ? 'external' : 'internal' }
+}
+
+function conflict(message) { const e = new Error(message); e.status = 409; return e }
+
+export function buildAppendHistoryQuery(sellShipment, entries) {
+  return {
+    text: `UPDATE shipments SET detail = jsonb_set(detail, '{historyList}', COALESCE(detail->'historyList', '[]'::jsonb) || $2::jsonb)
+           WHERE sell_shipment = $1`,
+    values: [sellShipment, JSON.stringify(entries)],
+  }
+}
+
 export async function saveTender({ params, body, db }) {
   const sellShipment = params[0]
-  const option = body?.option
-  if (!option || typeof option !== 'object') {
+  if (!body?.option || typeof body.option !== 'object') {
     const e = new Error('option required'); e.status = 400; throw e
   }
+  // The two contract-only keys are request metadata, never stored on the option.
+  const { tenderAction, tenderCommMessage, ...option } = body.option
   if (option.rank == null) { const e = new Error('option.rank required'); e.status = 400; throw e }
-  const expectStatus = body?.expectStatus
+  let expectStatus = body?.expectStatus
+  let prevStatus = null
+  if (tenderAction) {
+    // §4 guard — only for tender ACTIONS. Quote saves, order-change and
+    // consolidation writes send no tenderAction and stay unguarded.
+    const { rows } = await db.query(buildTendersQuery(sellShipment))
+    const options = rows.map((r) => r.option).filter(Boolean)
+    prevStatus = options.find((o) => o.rank === option.rank)?.status ?? null
+    if (!(TENDER_ACTIONS_BY_STATUS[prevStatus ?? ''] ?? []).includes(tenderAction)) throw conflict('action-not-allowed')
+    if (ACTIVE_TENDER_STATUSES.includes(option.status)
+        && options.some((o) => o.rank !== option.rank && ACTIVE_TENDER_STATUSES.includes(o.status))) {
+      throw conflict('another-tender-active')
+    }
+    // The status just checked is the one the UPDATE must still find, so a
+    // write racing between this read and the UPDATE 409s like expectStatus.
+    if (!expectStatus && prevStatus) expectStatus = prevStatus
+  }
   const updated = await db.query(buildTenderUpdateQuery(sellShipment, option, expectStatus))
   if (updated.rows.length === 0) {
-    if (expectStatus) {
-      const e = new Error('already-processed'); e.status = 409; throw e
-    }
+    if (expectStatus) throw conflict('already-processed')
     await db.query(buildTenderInsertQuery(sellShipment, option))
+  }
+  if (tenderAction) {
+    // ponytail: two statements, no transaction — a crash between them loses
+    // one History row, never the tender write. Wrap in BEGIN/COMMIT if History
+    // becomes an audit of record.
+    const entry = tenderHistoryEntry({
+      action: tenderAction, option, prevStatus, author: tenderActor(body, option),
+      comm: tenderAction === 'Accept' ? null : 'Success',
+      commMessage: tenderAction === 'Decline' ? tenderCommMessage : undefined,
+    })
+    await db.query(buildAppendHistoryQuery(sellShipment, [entry]))
   }
   return { success: true, rank: option.rank }
 }

@@ -248,3 +248,34 @@ Decisions about the *identifier* itself live in
   - The VDs set the look only; their ids and data are placeholder.
 - **Source:** Figma `x38TOJGsNryYl3LsKhCtSc` 2671:81594, 3113:19333, 3121:60581, 3126:19659, 3127:20032; spec above.
 - **Affects:** `HistoryTab.jsx`, `LineageTree.jsx`, `panes/history.css`, `mapSellShipmentOutToDetail.ts`.
+
+### CNS-23 — Any C's stops are editable from its Stops tab; an active tender asks keep-or-replace at the end
+- **Decided:** 2026-10-01 (S165, user approval of the spec)
+- **Previous state:** a C could be edited only from the row menu, only while it sat in the Consolidation pool (S1.5 of the 09-29 spec). The server refused any source outside the pool, and an apply always filed the result untendered.
+- **Decision:**
+  - The Stops tab of **any** Consolidation shipment gets an **Edit Shipment Stops** button outside order-change review. It's greyed out (tooltip) while an order change is open, and opens the consolidation editor on that one C (no Prior, no order-change data, the C keeps its ids).
+  - The AC's hidden items (order-change triangles, Prior / New Direct / New Consolidated cost, OC messages) are already absent in the no-Prior mode.
+  - At Apply, if the C is **Sent** or **Accepted**, an *Active Tender* dialog asks: **Yes** keeps the carrier and re-sends (order change's retender outcome, Monitoring › Sent); **No** cancels the tender and lands on the Tender tab with the re-evaluated, untendered list (CNS-16). There's no Bypass. With no active tender, the planner lands back on the C's Stops tab.
+  - The C itself is excluded from *Tendered Shipment Detected*; external orders' source shipments are still checked.
+  - History records one *Shipment Stops Edited* entry, not *Created* + *Manual Consolidation*.
+  - Editing a C (from the Stops tab or the row menu): the nav header reads **Edit Consolidation**, and the *Selected shipments to consolidate* table is not shown (user 2026-10-01).
+- **Source:** LINX-15873 AC (`customfield_10032`); Jana's grooming, relayed by the user 2026-10-01 ("do you want to keep the tender and send it to the same carrier? If they say no, then it puts them back into the tender screen"); user rulings R3/R4. Spec `docs/superpowers/specs/2026-10-01-edit-consolidated-shipment-stops.md`.
+- **Open:** the tender Yes/No comes from the grooming, not the Jira AC yet. Confirm with Jana that it's added to 15873.
+- **Affects:** `StopsTab.jsx`, `ConsolidateStopsRoute.jsx`, `api/_lib/consolidateShipments.mjs`, `consolidationService.ts`.
+
+### CNS-24 — The workbench grid follows LINX-15786's columns; sorting returns grid-wide; filters and refresh are halted
+- **Decided:** 2026-10-01 (S165, user, on Ramesh's sheet `Manual Consol_Vercel Vs Jira_29Sept26.xlsx`)
+- **Previous state:** consolidate mode showed Monitoring's column set (Tender Status, Shipment Status, Pickup #…). Sorting had been off grid-wide since the S85 test switch. An empty pool read "No shipments found".
+- **Decision:**
+  - **Columns** (mode-only set, in the story's BR II order, and editable in the column panel): Shipment ID, Buy Shipment, Shipment Type, Customer ID, Customer Name, Origin, Destination, Equipment, Gross Weight, Total Volume, Weight Utilization %, Volume Utilization %, Pickup Date, Delivery Date, Planning Type, SCAC.
+    - Tender Status and Pickup # are dropped (tendering happens after consolidation).
+    - Volume and utilization are fetched only in the mode, over the paged rows. Utilization uses **placeholder** equipment capacities (`equipmentCapacity.js`) until Dave gives the real rule (CNS-05).
+    - Origin/Destination location IDs show as a hover tooltip on the address cell, not as columns.
+  - **Empty pool:** "No Consolidation Candidates Available" (LINX-15786 Scenario 2). A search or customer lock that empties the list keeps the generic message.
+  - **Sorting** is back on the whole Shipments grid, only on the 22 columns the server can really sort (no silent fallback). The mode defaults to Shipment ID descending (LINX-15893 BR I). Gross Weight is not sortable, because edited values carry mixed units.
+  - **Halted (user):** every LINX-15893 filter/refresh item: the Hazmat filter, removing the Tender Status filter, the weight/volume comparators, Refresh, and Last Refreshed.
+  - **Not yet:** the Earliest/Latest windows and Hazmat (both are in the column catalog but empty on list rows), and SCAC-from-order.
+  - **Answered, unchanged:** the title stays "Shipments Consolidation". CNS-07 makes this a mode of the Shipments screen, not a standalone "Candidate Workbench". The audit trail is the History-tab lineage (CNS-21/22), not a separate page.
+- **Source:** Ramesh's sheet (2026-09-30), LINX-15786 AC, LINX-15893 AC; user rulings 2026-10-01. Specs `docs/superpowers/specs/2026-10-01-consolidation-workbench-easy-fixes.md`, `…-volume-utilization.md`.
+- **Note:** the sheet's story numbers are auto-incremented (LINX-15787…15797 on the workbench rows). Only 15786, 15893 and 15788 are real here.
+- **Affects:** `ShipmentsRoute.jsx`, `ShipmentTable.jsx`, `ColumnPanel.jsx`, `sortableColumns.js`, `api/_lib/shipments.mjs` (SORT_MAP, list extras), `gridService.ts`.

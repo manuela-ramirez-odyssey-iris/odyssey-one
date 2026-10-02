@@ -38,4 +38,8 @@ export interface ShipmentRowVM {
   legType: string | null
   shipmentSequenceLeg: number | null
   nextShipmentId: string | null
+  // Consolidation workbench (Ramesh #4/#6) — null outside the mode / no data.
+  totalVolume: number | null
+  originLocationId: string | null
+  destinationLocationId: string | null
 }

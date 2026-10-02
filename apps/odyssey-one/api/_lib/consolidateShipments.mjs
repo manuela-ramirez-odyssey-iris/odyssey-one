@@ -16,7 +16,10 @@ import { shipmentStatusFor } from '../../src/lib/shipmentStatus.js'
 // (no pg), and mergeStops/computeListAggregates/rowFromStops are the ONE
 // implementation of stop + list-column derivation the order-change save
 // already trusts. Split them into their own module if the bundle ever matters.
-import { computeListAggregates, idOf, lineageNode, mergeStops, rowFromStops } from './shipments.mjs'
+import {
+  OC_OUTCOMES, adoptNewTenderList, computeListAggregates, idOf, lineageNode, listCarrierFor, mergeStops, rowFromStops, tenderHistoryEntry,
+} from './shipments.mjs'
+import { applyStopDates } from '../../src/lib/orderChangeRouting.js'
 
 // Identifier bands, disjoint from the seed (sell 25xxxxxx / odyssey seq
 // 50,000,000) and from planShipment (sell 26xxxxxx / odyssey 60,000,000 /
@@ -56,6 +59,44 @@ export function tsFromDisplay(s) {
   return `${m[3]}-${m[1]}-${m[2]}T${m[4] ?? '00'}:${m[5] ?? '00'}:00${offset}`
 }
 
+// DEC-234 (Dave + user R1, 2026-10-01) — a stop's date/time may not be earlier
+// than ANY stop above it, whatever the stop type. Both shapes a stop date
+// arrives in ('June 7, 2026 20:00 CDT' / '06/07/2026 20:00 CDT') compare as
+// instants via the zone abbreviation (unknown zone = UTC), exactly as the
+// editor's stopsSandbox.js parseStamp/stampValue do. ponytail: a server copy on
+// purpose — the API imports no editor module; the two must move together.
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+export function stopInstant(str) {
+  let m = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?:\s+([A-Z]{2,4}))?/.exec(String(str ?? ''))
+  let p = m && [+m[3], +m[1] - 1, +m[2], +m[4], +m[5], m[6]]
+  if (!p) {
+    m = /^([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})\s+(\d{1,2}):(\d{2})(?:\s+([A-Z]{2,4}))?/.exec(String(str ?? ''))
+    if (!m || !MONTHS.includes(m[1])) return null
+    p = [+m[3], MONTHS.indexOf(m[1]), +m[2], +m[4], +m[5], m[6]]
+  }
+  return Date.UTC(p[0], p[1], p[2], p[3], p[4]) - parseInt(TZ_OFFSETS[p[5]] ?? '0', 10) * 3_600_000
+}
+
+// The first stop (in stopSequence order) dated before the latest dated stop
+// above it, or null. Undated stops are skipped (C16 blocks them); equal is fine.
+export function stopDateViolation(stops) {
+  let latest = null
+  for (const s of [...stops].sort((a, b) => a.stopSequence - b.stopSequence)) {
+    const at = stopInstant(s.scheduledDateTime)
+    if (at == null) continue
+    if (latest != null && at < latest) return s
+    if (latest == null || at > latest) latest = at
+  }
+  return null
+}
+export const DATES_OUT_OF_SEQUENCE = 'Stop dates are out of sequence.'
+
+// LINX-15873 / CNS-23 — a C's tender counts as active only when it was SENT
+// (useApproveOrderChange hasActivePriorTender; To Be Tendered sent nothing).
+// Read off the options, which the live handler overlays from the tenders table.
+const KEEPABLE_TENDER = ['Sent', 'Accepted']
+const activeTenderOf = (detail) => (detail?.shippingOptionList ?? []).find((o) => KEEPABLE_TENDER.includes(o.status)) ?? null
+
 const bad = (message) => Object.assign(new Error(message), { status: 400 })
 
 // The guards every caller of a consolidation goes through (S7.2): the live
@@ -64,10 +105,16 @@ const bad = (message) => Object.assign(new Error(message), { status: 400 })
 // tell a placed external order from an unplaced one (C8, as save-stops does).
 // `externalRows` are the grid rows of the shipments those orders come from
 // (the body carries only their sell ids); needed only to spot a C among them.
-/** @param {{ sources: { row: object, detail: object }[], stops: object[], externalOrders?: { orderNumber: string, sourceSellShipment?: string }[], externalRows?: { sellShipment: string, odysseyShipmentIdentifier?: string }[] }} a */
-export function checkConsolidation({ sources, stops, externalOrders = [], externalRows = [] }) {
+// `tenderDecision` (LINX-15873 D1) is the planner's answer to Active Tender on
+// a C edit: 'keep' | 'cancel' | null.
+/** @param {{ sources: { row: object, detail: object }[], stops: object[], externalOrders?: { orderNumber: string, sourceSellShipment?: string }[], externalRows?: { sellShipment: string, odysseyShipmentIdentifier?: string }[], tenderDecision?: 'keep'|'cancel'|null }} a */
+export function checkConsolidation({ sources, stops, externalOrders = [], externalRows = [], tenderDecision = null }) {
   const rows = sources.map((s) => s.row)
-  const notPool = rows.filter((r) => r.category !== 'consolidation').map((r) => r.sellShipment)
+  const isC = (r) => String(r.odysseyShipmentIdentifier).startsWith('C')
+  // LINX-15873 D2 — Edit Shipment Stops opens ANY C (CNS-23), filed wherever
+  // its tender put it; Directs still must come from the pool (CNS-18).
+  const editingC = rows.length === 1 && isC(rows[0])
+  const notPool = editingC ? [] : rows.filter((r) => r.category !== 'consolidation').map((r) => r.sellShipment)
   if (notPool.length) throw bad(`Only shipments in Consolidation can be consolidated: ${notPool.join(', ')}`)
   // One customer per consolidation (CNS-10) — the client is not a trust boundary.
   const customers = new Set(rows.map((r) => r.customerId))
@@ -77,10 +124,14 @@ export function checkConsolidation({ sources, stops, externalOrders = [], extern
   // An order pulled off ANY other C is refused too, with or without a C source:
   // emptied, that C would become a hidden source of this one (Add Orders blocks
   // it in the UI; the client is not a trust boundary).
-  const isC = (r) => String(r.odysseyShipmentIdentifier).startsWith('C')
   const fromC = new Set(externalRows.filter(isC).map((r) => r.sellShipment))
   const cCount = rows.filter(isC).length
   if (cCount > 1) throw bad('A consolidation can include only one consolidated (C) shipment.')
+  // LINX-15873 D2 — the button is greyed out while an order change is open
+  // (AC), and the C's tender question must have been answered (Jana grooming).
+  const cSources = sources.filter((s) => isC(s.row))
+  if (cSources.some((s) => s.detail?.orderChange && !s.detail.orderChange.resolution)) throw bad('Resolve the open order change before editing stops.')
+  if (!tenderDecision && cSources.some((s) => activeTenderOf(s.detail))) throw bad('Choose whether to keep the active tender.')
   if (externalOrders.some((e) => fromC.has(String(e.sourceSellShipment)))) throw bad("Orders on another consolidated (C) shipment can't be added to this consolidation.")
   const onStops = new Set(stops.flatMap((s) => s.orderIds ?? []))
   if (onStops.size < 2) throw bad('A consolidation needs at least two orders.') // CNS-14
@@ -102,6 +153,7 @@ export function checkConsolidation({ sources, stops, externalOrders = [], extern
   // ...and so is an order with a pickup but no delivery.
   const outOfOrder = [...onStops].some((id) => !delivered.has(id)) || ordered.some((s, i) => s.stopType === 'delivery' && (s.orderIds ?? []).some((id) => !(pickedAt.get(id) < i)))
   if (outOfOrder) throw bad('Stops are out of order.')
+  if (stopDateViolation(stops)) throw bad(DATES_OUT_OF_SEQUENCE) // DEC-234 backstop (A5)
 }
 
 /**
@@ -112,11 +164,12 @@ export function checkConsolidation({ sources, stops, externalOrders = [], extern
  * @param {{ sellShipment?: string, row?: object, detail: object }[]} [a.externalSources]  the shipments those records came from; one emptied by the move becomes a hidden lineage node (S164 §1)
  * @param {{ orderNumber: string, sourceSellShipment: string }[]} [a.externalOrders]  the body's pulls (which orders left which source)
  * @param {object[]} [a.tenderList]  the evaluated carrier options, DTO-shaped (S7.7)
+ * @param {'keep'|'cancel'|null} [a.tenderDecision]  a C edit's answer to Active Tender (LINX-15873 D3)
  * @param {number} a.seq   consolidation sequence (drives the C…/sell/buy ids)
  * @param {Date}   a.now   creation instant (history timestamps)
  * @returns {{ row: object, detail: object, pickupTs: string|null, deliveryTs: string|null, removedSellShipments: string[], splitOrders: { source: object, orderRec: object }[] }}
  */
-export function buildConsolidatedShipment({ sources, stops: dto, externals = [], externalSources = [], externalOrders = [], tenderList = [], seq, now = new Date() }) {
+export function buildConsolidatedShipment({ sources, stops: dto, externals = [], externalSources = [], externalOrders = [], tenderList = [], tenderDecision = null, seq, now = new Date() }) {
   if (!Array.isArray(sources) || sources.length < 1) throw new Error('a consolidation needs at least one source shipment')
   const rows = sources.map((s) => s.row)
   const details = sources.map((s) => s.detail ?? {})
@@ -150,6 +203,13 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
     }
     : idsForConsolidation(seq)
 
+  // LINX-15873 D3 / CNS-23 — the id-reused C's tender. `keep` files it as
+  // order change's retender does (Sent, Monitoring › Sent) on the kept carrier;
+  // `cancel` and null are today's filing (pool/Hold, untendered).
+  const cDetail = existing.length === 1 ? details[rows.indexOf(existing[0])] : null
+  const active = tenderDecision ? activeTenderOf(cDetail) : null
+  const keep = tenderDecision === 'keep' && active
+
   // S7.3: the stop's full fields come from the source stop it was built from.
   const bySell = new Map(rows.map((r, i) => [String(r.sellShipment), details[i]]))
   const shipmentStopList = mergeStops({ orderList }, dto, (row) =>
@@ -162,6 +222,23 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
   // R1 ruling: filed like a new O (planShipment.mjs:162) — the pool if every
   // order is consolidatable (a missing flag is Y), else Hold.
   const category = orderList.every((o) => o.consolidatable !== false) ? 'consolidation' : 'hold'
+  const filing = keep ? OC_OUTCOMES.retender() : { tenderStatus: '', panel: 'monitoring', category }
+
+  // S7.7 / CNS-16: the evaluated list, every option untendered — no status and
+  // no notify/response fields, so the Tender tab lists them as never sent.
+  const untendered = ({ notifyDateTime, responseMethod, responseDateTime, responseUser, responseComments, declineReason, tenderToken, ...o }) => ({ ...o, status: '' })
+  let shippingOptionList = tenderList.map(untendered)
+  let carrier = { scac: null, apFreightCost: '' }
+  if (keep) {
+    // `keep` (D3): the kept carrier's row is 'Sent', inserted through order
+    // change's prior-carrier insert when routing dropped it (LINX-14513
+    // Scenario 2) and then dated from the new stops, as resolveOrderChange
+    // dates its inserted prior.
+    const stopDates = shipmentStopList.map((s) => ({ type: s.stopType, date: s.scheduledDateTime, timeZone: s.timeZone }))
+    const oc = { prior: { scac: active.scac }, newTenderList: shippingOptionList, priorTenderList: applyStopDates([untendered(active)], stopDates) }
+    shippingOptionList = adoptNewTenderList('retender', oc, null, filing)
+    carrier = listCarrierFor('retender', shippingOptionList, oc)
+  }
 
   const row = {
     odysseyShipmentIdentifier: ids.odysseyShipmentIdentifier,
@@ -186,11 +263,11 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
     equipmentCode: anchor.equipmentCode ?? '',
     equipment: '',                        // equipment NUMBER is assigned by the carrier
     seal: null,
-    scac: null,
-    tenderStatus: '',                     // a consolidation is born untendered (Dave, 2026-09-17)
-    shipmentStatus: shipmentStatusFor({ panel: 'monitoring', category }), // DEC-204
-    panel: 'monitoring',
-    category,
+    scac: carrier.scac,
+    tenderStatus: filing.tenderStatus,    // a consolidation is born untendered (Dave, 2026-09-17); a kept C edit is Sent
+    shipmentStatus: shipmentStatusFor(filing), // DEC-204
+    panel: filing.panel,
+    category: filing.category,
     validationMessage: null,
     grossWeight: agg.grossWeight,
     // ponytail: `load` is not in ROW_COLUMNS, so consolidate mode's grid rows
@@ -199,7 +276,7 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
     load: consumed.map((s) => s.row.load).filter(Boolean).join(','),
     loadCount: agg.loadCount,
     orderCount: String(orderList.length),
-    apFreightCost: '',                    // not rated
+    apFreightCost: carrier.apFreightCost ?? '', // not rated, unless a kept carrier carries its cost
   }
 
   // S164 §1 — one hidden node per consumed source (an id-reused C is the
@@ -222,16 +299,25 @@ export function buildConsolidatedShipment({ sources, stops: dto, externals = [],
   const t1 = new Date(t0.getTime() + 30_000)
   const author = { name: 'OdysseyONE', kind: 'system' }
   const sourceNames = consumed.map((s) => s.row.odysseyShipmentIdentifier || s.row.sellShipment).join(', ')
-  const historyList = [
-    { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t0.toISOString(), action: 'Shipment Created', category: 'create', outcome: 'update', author,
-      details: `Buy Shipment ${ids.buyShipment} and Sell Shipment ${ids.sellShipment} created successfully.` },
-    { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t1.toISOString(), action: 'Manual Consolidation', category: 'update', outcome: 'update', author,
-      details: `Consolidated from ${sourceNames}.` }, // DEC-87 outcome contract
-  ]
-
-  // S7.7 / CNS-16: the evaluated list, every option untendered — no status and
-  // no notify/response fields, so the Tender tab lists them as never sent.
-  const shippingOptionList = tenderList.map(({ notifyDateTime, responseMethod, responseDateTime, responseUser, responseComments, declineReason, tenderToken, ...o }) => ({ ...o, status: '' }))
+  // LINX-15873 D4 — editing one C is not a creation: its own history carries
+  // over plus ONE 'Shipment Stops Edited' entry (the lineage carries above).
+  const historyList = sources.length === 1 && existing.length === 1
+    ? [...(cDetail.historyList ?? []),
+      { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t0.toISOString(), action: 'Shipment Stops Edited', category: 'update', outcome: 'update', author,
+        details: keep ? `Shipment stops edited. Updated shipment sent to ${active.scac}.` : 'Shipment stops edited.' }]
+    : [
+      { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t0.toISOString(), action: 'Shipment Created', category: 'create', outcome: 'update', author,
+        details: `Buy Shipment ${ids.buyShipment} and Sell Shipment ${ids.sellShipment} created successfully.` },
+      { user: 'OdysseyONE', source: 'OdysseyONE', timestamp: t1.toISOString(), action: 'Manual Consolidation', category: 'update', outcome: 'update', author,
+        details: `Consolidated from ${sourceNames}.` }, // DEC-87 outcome contract
+    ]
+  // D3 `cancel` — recorded as the Tender tab's Cancel records it (saveTender's
+  // tenderHistoryEntry). The list above is all-blank, so no tender stays active
+  // (LINX-15899: at most one active). ponytail: authored by the system, as every
+  // entry here; the builder has no planner identity to put on it.
+  if (tenderDecision === 'cancel' && active) {
+    historyList.push(tenderHistoryEntry({ action: 'Cancel', option: { ...active, status: 'Cancelled' }, prevStatus: active.status, author, comm: 'Success', now: t1 }))
+  }
 
   const detail = {
     shipmentId: ids.sellShipment,

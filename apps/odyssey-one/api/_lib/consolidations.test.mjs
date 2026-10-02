@@ -334,3 +334,72 @@ test('the writes run in one transaction; a failing write ROLLBACKs and never COM
   assert.ok(!pool.some((t) => /INSERT|DELETE|UPDATE/.test(t)), 'no write bypassed the client')
   assert.ok(released)
 })
+
+// ── LINX-15873 (CNS-23): Edit Shipment Stops on any C ───────────────────────
+const cRow = (over = {}) => dbRow(5, {
+  shipmentType: 'Consolidation', odysseyShipmentIdentifier: 'C70000004', sellShipment: '27000004', buyShipment: '910000004',
+  category: 'approved', tenderStatus: 'Accepted',
+  detail: {
+    orderList: [1, 2].flatMap((n) => detailOf(n).orderList),
+    shipmentStopList: [1, 2].flatMap((n) => detailOf(n).shipmentStopList).map((st, i) => ({ ...st, stopSequence: i + 1 })),
+  },
+  ...over,
+})
+const cBody = (extra = {}) => ({
+  sellShipments: ['27000004'], externalOrders: [], tenderList: [{ rank: 1, scac: 'KEEP', status: '' }],
+  stops: [
+    { stopSequence: 1, stopType: 'pickup', orderIds: ['ORD-1', 'ORD-2'], sourceSellShipment: '27000004', sourceStopSequence: 1 },
+    { stopSequence: 2, stopType: 'delivery', orderIds: ['ORD-1', 'ORD-2'], sourceSellShipment: '27000004', sourceStopSequence: 2 },
+  ],
+  ...extra,
+})
+// The C's tenders table answers with an Accepted row (the blob has none).
+const withTenders = (fake, options) => {
+  const q = fake.db.query
+  fake.db.query = async (x) => (/FROM tenders WHERE shipment_sell_id/.test(x.text) ? { rows: options.map((option) => ({ option })) } : q(x))
+  return fake
+}
+
+test('LINX-15873 D2: a C outside the pool is accepted; an Accepted tender read from the tenders table needs a decision', async () => {
+  const { db, calls } = withTenders(fakeDb([cRow()]), [{ rank: 1, scac: 'KEEP', status: 'Accepted' }])
+  await assert.rejects(() => applyConsolidation({ body: cBody(), db }),
+    (e) => e.status === 400 && e.message === 'Choose whether to keep the active tender.')
+  assert.ok(!texts(calls).some((t) => /INSERT|DELETE|UPDATE/.test(t)))
+})
+
+test('LINX-15873 D2: a C with an open order change → 400', async () => {
+  const c = cRow({ detail: { ...cRow().detail, orderChange: { resolution: null } } })
+  await assert.rejects(() => applyConsolidation({ body: cBody(), db: fakeDb([c]).db }),
+    (e) => e.status === 400 && e.message === 'Resolve the open order change before editing stops.')
+})
+
+test('LINX-15873 D1: an unknown tenderDecision → 400 before any read', async () => {
+  const { db, calls } = fakeDb([cRow()])
+  await assert.rejects(() => applyConsolidation({ body: cBody({ tenderDecision: 'maybe' }), db }), { status: 400 })
+  assert.equal(calls.length, 0)
+})
+
+test('LINX-15873 D3 keep: the C files Sent and the kept SCAC lands in the tenders table as Sent', async () => {
+  const { db, calls } = withTenders(fakeDb([cRow()]), [{ rank: 1, scac: 'KEEP', status: 'Accepted' }])
+  await applyConsolidation({ body: cBody({ tenderDecision: 'keep' }), db })
+  const built = inserted(calls)
+  assert.deepEqual(built.shippingOptionList.map((o) => [o.scac, o.status]), [['KEEP', 'Sent']])
+  assert.deepEqual(calls.filter((c) => /INSERT INTO tenders/.test(c.text)).map((c) => c.values[3]), ['Sent'])
+  assert.deepEqual(built.historyList.map((h) => h.action), ['Shipment Stops Edited'])
+})
+
+test('LINX-15873 D3 cancel: every tender row blank, the cancel recorded in History', async () => {
+  const { db, calls } = withTenders(fakeDb([cRow()]), [{ rank: 1, scac: 'KEEP', status: 'Accepted' }])
+  await applyConsolidation({ body: cBody({ tenderDecision: 'cancel' }), db })
+  assert.deepEqual(calls.filter((c) => /INSERT INTO tenders/.test(c.text)).map((c) => c.values[3]), [''])
+  assert.deepEqual(inserted(calls).historyList.map((h) => h.action), ['Shipment Stops Edited', 'Cancel'])
+})
+
+test('DEC-234: out-of-sequence stop dates → 400, nothing written', async () => {
+  const { db, calls } = fakeDb([cRow({ category: 'consolidation', tenderStatus: '' })])
+  const b = cBody()
+  b.stops[0].scheduledDateTime = 'June 12, 2026 08:00 CST'
+  b.stops[1].scheduledDateTime = 'June 11, 2026 08:00 CST'
+  await assert.rejects(() => applyConsolidation({ body: b, db }), (e) => e.status === 400 && e.message === 'Stop dates are out of sequence.')
+  assert.ok(!texts(calls).some((t) => /INSERT|DELETE|UPDATE/.test(t)))
+})

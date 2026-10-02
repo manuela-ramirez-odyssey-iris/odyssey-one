@@ -418,7 +418,8 @@ it('the New plan edits a stop date; a date outside an order window flags that or
   expect(within(screen.getByRole('region', { name: 'Prior plan' })).queryByLabelText('Pickup Date')).toBeNull() // Prior read-only
   edit()
   const input = document.getElementById('stop-s1-time')
-  fireEvent.change(input, { target: { value: '11:30' } })
+  // DEC-234 — early, not late: a later P1 would sit after P2's 08:00 and block on date order.
+  fireEvent.change(input, { target: { value: '05:30' } })
   fireEvent.blur(input)
   expect(nw().getAllByText('Outside planning window').length).toBe(2)               // A and B on stop 1
   save()
@@ -1011,5 +1012,77 @@ describe('EditStopsView — consolidation props (no Prior)', () => {
     expect(actionsRef.current.payload().stops.flatMap((d) => d.orderIds)).toEqual(['A', 'A'])
     edit()
     expect(screen.queryByRole('button', { name: 'Add order B' })).toBeNull()
+  })
+})
+
+// DEC-234 / Dave (A3, user R2) — a stop dated before one above it goes red with
+// DEC-219's inline Alert and holds Evaluate; the others stay as they are.
+describe('stop date sequence (DEC-234)', () => {
+  // The offending row: red card, red type badge, 'issue' rail marker, the Alert.
+  const expectRed = (row, aboveText) => {
+    expect(row.classList.contains('edit-stops__stop--error')).toBe(true)
+    expect(row.closest('.odyssey-timeline__row').querySelector('.stop-badge--issue')).toBeTruthy()
+    expect(within(row).getByText(/^(Pickup|Delivery)$/).style.background).toContain('badge-red-bg')
+    expect(within(row).getByRole('alert').textContent).toBe(`Stops are out of order. This stop is earlier than ${aboveText}.`)
+  }
+  const expectEvaluateTip = (text) => {
+    const evaluateBtn = screen.getByRole('button', { name: 'Evaluate' })
+    expect(evaluateBtn.disabled).toBe(true)
+    fireEvent.mouseEnter(evaluateBtn.closest('[data-tooltip-trigger]'))
+    // The error's own hover tooltip may still be fading out — match by text.
+    expect(screen.getAllByRole('tooltip').some((t) => t.textContent.includes(text))).toBe(true)
+  }
+  const setTime = (key, t) => {
+    const input = document.getElementById(`stop-${key}-time`)
+    fireEvent.change(input, { target: { value: t } })
+    fireEvent.blur(input)
+  }
+
+  it('order change: P2 at 07:00 below P1 at 08:00 is red, blocks Evaluate; re-timing it clears both', () => {
+    setup({ stops: [baseStops[0], stop({ stopNumber: 2, orderIds: ['C'], location: 'Y, Town', date: 'June 4, 2026 07:00 CDT' }), baseStops[2]] })
+    expectRed(newStop(1), 'P1')
+    // User 2026-10-01 — the dates live in the error's hover tooltip, UTC alongside.
+    const errTrigger = within(newStop(1)).getByRole('alert').querySelector('[data-tooltip-trigger]')
+    fireEvent.mouseEnter(errTrigger)
+    expect(screen.getByRole('tooltip').textContent).toContain('June 4, 2026 08:00 CDT (13:00 UTC)')
+    expect(newStop(0).classList.contains('edit-stops__stop--error')).toBe(false) // not dimmed/locked either (R2)
+    expect(newStop(2).classList.contains('edit-stops__stop--error')).toBe(false)
+    // New only — the Prior record is never flagged.
+    expect(screen.getByRole('region', { name: 'Prior plan' }).querySelector('.edit-stops__stop--error')).toBeNull()
+    expectEvaluateTip('Stop P2 is dated before P1. Change its date or move it.')
+    edit()
+    setTime('s2', '09:00')
+    save()
+    expect(document.querySelector('.edit-stops__stop--error')).toBeNull()
+    expect(screen.queryByText(/Stops are out of order/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
+  })
+
+  it('consolidation: a delivery dated before the delivery above it is red, blocks Evaluate; re-timing it clears both', () => {
+    const src = (sell, list) => ({ row: { sellShipment: sell }, detail: { stopsData: { stops: list } } })
+    const sources = [
+      src('111', [stop({ stopNumber: 1, orderIds: ['A'], siteKey: 'S1' }), stop({ type: 'delivery', stopNumber: 2, orderIds: ['A'], siteKey: 'S9', location: 'Z, Ville', date: 'June 6, 2026 08:00 CDT' })]),
+      src('222', [stop({ stopNumber: 1, orderIds: ['B'], siteKey: 'S1' }), stop({ type: 'delivery', stopNumber: 2, orderIds: ['B'], siteKey: 'S8', location: 'W, Burg', date: 'June 6, 2026 07:00 CDT' })]),
+    ]
+    render(
+      <EditStopsView
+        initial={initFromSources(sources)}
+        orders={orders.slice(0, 2)}
+        tenderList={[]}
+        summary={{ headerDistance: '100.00 mi', seedEquipment: 'TL' }}
+        showPrior={false}
+        minOrders={2}
+        confirmApprove={false}
+        onApprove={() => {}}
+        onCancel={() => {}}
+      />,
+    )
+    expectRed(newStop(2), 'D1')
+    expectEvaluateTip('Stop D2 is dated before D1. Change its date or move it.')
+    edit()
+    setTime('src:222:2', '09:00')
+    save()
+    expect(document.querySelector('.edit-stops__stop--error')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Evaluate' }).disabled).toBe(false)
   })
 })

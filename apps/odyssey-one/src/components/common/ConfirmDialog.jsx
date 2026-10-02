@@ -11,17 +11,19 @@ import { Button, ModalMedium } from '@odyssey/ui'
  * `cancelLabel` is optional — omit it for a single-button (OK-only) notice
  * like LINX-13895's dates-unavailable message, which has nothing to cancel
  * out of. ModalMedium routes the header X, overlay click and Escape to
- * `onCancel`, so the safe exit is always the same action.
+ * `onCancel`, so the safe exit is always the same action — unless `onClose`
+ * is given, for a dialog whose cancel button is itself an action (LINX-15873
+ * Active Tender: "No" cancels the tender, so X must only dismiss).
  *
  * `message` may be a node (S155 §2.5: a sentence + a wrapped Badge list) —
  * it is then rendered as-is and owns its own markup; a string keeps the
  * `<p class="text-label-sm-regular">` wrapper.
  */
-export default function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', onConfirm, onCancel }) {
+export default function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', onConfirm, onCancel, onClose = onCancel }) {
   return createPortal(
     <ModalMedium
       title={title}
-      onClose={onCancel}
+      onClose={onClose}
       ariaLabel={title}
       className="confirm-dialog"
       footer={

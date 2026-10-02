@@ -1,6 +1,7 @@
 import { getApiMode } from '../config'
 import { apiGet, apiPost } from '../client'
 import { getAllShipments } from '../../data'
+import { getAllOrders } from '../../data/orders'
 // Shared chip+text matcher — the SAME predicate the GlobalSearch glimpse uses
 // (adapter.searchShipments), so criteria-filtered panel totals always sum to the
 // glimpse total (S79c decision 7).
@@ -21,6 +22,10 @@ import type {
   CategoryCount,
   SearchCriteria,
 } from '../types/shipmentErrorList'
+
+// Text columns the server casts to numeric before sorting (api/_lib/shipments.mjs
+// SORT_MAP numericText) — the mock must order them the same way.
+const NUMERIC_SORT_KEYS = new Set<keyof ShipmentErrorRow>(['orderCount', 'loadCount', 'apFreightCost'])
 
 interface CategoryCountParams {
   panel: string
@@ -131,6 +136,7 @@ export async function getShipmentErrorList(
         },
         sortBy: params.sortBy,
         orderBy: params.orderBy,
+        extras: params.extras,
       },
     )
     // normalize the (TBD) row-array name to `rows`
@@ -200,11 +206,24 @@ export async function getShipmentErrorList(
   // optional sort — numeric-aware ('10' sorts after '2', not before: orderCount etc.
   // are numeric strings). ponytail: date columns sort lexically (values are display
   // strings) — parse to Date here if that ever matters for the prototype.
+  // LINX-15893 BR I: mirrors buildListQuery's SORT_MAP — blanks last in BOTH
+  // directions (NULLS LAST), the count/cost text compared as numbers (SQL casts
+  // them), and the shipment id prefix-blind (SQL sorts substr(id, 2)::bigint).
   if (params.sortBy && params.sortBy !== RELEVANCE_SORT) {
     const key = params.sortBy as keyof ShipmentErrorRow
     const dir = params.orderBy === 'desc' ? -1 : 1
-    rows = [...rows].sort((a, b) =>
-      String(a[key] ?? '').localeCompare(String(b[key] ?? ''), undefined, { numeric: true }) * dir)
+    const numeric = NUMERIC_SORT_KEYS.has(key)
+    const val = (r: ShipmentErrorRow) => {
+      const s = String(r[key] ?? '')
+      if (s === '' || s === '--') return null
+      if (key === 'odysseyShipmentIdentifier') return Number(s.slice(1))
+      return numeric ? Number(s.replace(/[^0-9.]/g, '')) : s
+    }
+    rows = [...rows].sort((a, b) => {
+      const x = val(a), y = val(b)
+      if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1
+      return (typeof x === 'number' ? x - (y as number) : x.localeCompare(y as string, undefined, { numeric: true })) * dir
+    })
   } else if (hasCriteria(params.searchCriteria)) {
     // Rows arrived from a search and no COLUMN sort is driving → order them
     // exactly as the results preview did, so "Show all results" lands on the
@@ -220,10 +239,33 @@ export async function getShipmentErrorList(
 
   const totalCount = rows.length
   const start = params.pageNumber * params.pageSize
+  const page = rows.slice(start, start + params.pageSize)
   return {
     pageNumber: params.pageNumber,
     pageSize: params.pageSize,
     totalCount,
-    rows: rows.slice(start, start + params.pageSize),
+    rows: params.extras === 'consolidation' ? page.map(withConsolidationExtras) : page,
+  }
+}
+
+// Mock twin of buildListQuery's consolidation extras (Ramesh #4/#6, LINX-15786
+// BR II) — the same SEMANTICS, from what the mock has: Σ the row's orders'
+// volume (orders.json, uom 'cbf' = cuft), and the location id of the order
+// facility the row names as consignor/consignee. Order locationIds are the same
+// ids the seed stamps on stops (tools/seed.mjs LOCATION_ID_BY_KEY), and the
+// server prefers the stop at that facility, so the two agree on coherent rows.
+// Values may still differ from Neon (project_orders_seed_vs_neon_drift).
+// ponytail: session-created orders (orderService overlay) aren't in orders.json,
+// so a shipment made of them reads null — acceptable for a stand-in.
+let ordersByNumber: Map<string, ReturnType<typeof getAllOrders>[number]> | null = null
+function withConsolidationExtras(row: ShipmentErrorRow): ShipmentErrorRow {
+  ordersByNumber ??= new Map(getAllOrders().map((o) => [o.orderNumber, o]))
+  const orders = (row.orders ?? []).map((n) => ordersByNumber!.get(n)).filter((o) => o != null)
+  const volumes = orders.map((o) => o.volume?.value).filter((v): v is number => typeof v === 'number')
+  return {
+    ...row,
+    totalVolume: volumes.length ? volumes.reduce((t, v) => t + v, 0) : null,
+    originLocationId: orders.find((o) => o.consignor?.name === row.consignor)?.consignor.locationId ?? null,
+    destinationLocationId: orders.find((o) => o.consignee?.name === row.consignee)?.consignee.locationId ?? null,
   }
 }

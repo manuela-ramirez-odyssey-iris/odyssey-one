@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initSandbox, initFromSources, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances } from './stopsSandbox'
+import { initSandbox, initFromSources, moveStop, canMoveStop, reorderStop, canReorderStop, moveToPending, addToStop, addPending, labelsOf, isRoutable, isStopDated, routeBlocker, firstSequenceViolation, dateSequenceViolations, confirmStop, totals, priorDiff, toDto, parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances, toUtc, withUtc } from './stopsSandbox'
 
 const stop = (over) => ({ type: 'pickup', stopNumber: 1, orderIds: ['A'], location: 'X, City', address: '1 St', date: 'June 4, 2026 08:00 CDT', weight: '10 LB', volume: '1 cuft', packageCount: '1', pickupNo: '', ...over })
 const stops = [
@@ -72,14 +72,15 @@ describe('initSandbox', () => {
 describe('created-stop defaults (S143 — order window date/address)', () => {
   const ordersWithWindow = orders.map((o) => (o.orderNumber !== 'C' ? o : {
     ...o,
-    earliestPickup: 'June 5, 2026 09:00 CDT',
+    // DEC-234 — before P1's 08:00, since the P? is moved above P1 below.
+    earliestPickup: 'June 4, 2026 07:00 CDT',
     earliestDelivery: 'June 7, 2026 09:00 CDT',
     shipFrom: { ...o.shipFrom, address: '123 Main St', location: 'Q, Burg', stopLocation: 'Q, Burg' },
     shipTo: { ...o.shipTo, address: '456 Oak St' },
   }))
   it("a location-change created P? takes the order's earliest pickup date/address; sandbox is routable once placed", () => {
     let s = initSandbox({ stops, consolidation: locChange, orders: ordersWithWindow })
-    expect(s.stops[1]).toMatchObject({ date: 'June 5, 2026 09:00 CDT', address: '123 Main St' })
+    expect(s.stops[1]).toMatchObject({ date: 'June 4, 2026 07:00 CDT', address: '123 Main St' })
     s = moveStop(s, 1, 'up') // sequences the P? into place, same as the moveStop suite below
     expect(isRoutable(s)).toBe(true)
   })
@@ -247,7 +248,7 @@ describe('gate, totals, prior diff, dto', () => {
     expect(routeBlocker(s)).toBe('unsequenced')                       // the created P? is unsequenced
     s = moveStop(s, 1, 'up')                                          // sequences it, but it has no date yet
     expect(routeBlocker(s)).toBe('undated')
-    s = setStopDate(s, s.stops[0].key, 'June 5, 2026 09:00 CDT')
+    s = setStopDate(s, s.stops[0].key, 'June 4, 2026 07:00 CDT')    // DEC-234: not after P1 below it
     expect(routeBlocker(s)).toBeNull()
     expect(isRoutable(s)).toBe(true)
   })
@@ -443,7 +444,8 @@ describe('delivery-before-pickup gate (C7)', () => {
   const seqStops = [
     { type: 'pickup', stopNumber: 1, orderIds: ['O1'], siteKey: 'P1|0', location: 'P1, Town', date: 'June 4, 2026 08:00 CDT' },
     { type: 'delivery', stopNumber: 2, orderIds: ['O1'], siteKey: 'D1|0', location: 'D1, Town', date: 'June 5, 2026 08:00 CDT' },
-    { type: 'pickup', stopNumber: 3, orderIds: ['O2'], siteKey: 'P2|0', location: 'P2, Town', date: 'June 5, 2026 10:00 CDT' },
+    // DEC-234 — P2 shares D1's time, so the repair move (P2 above D1) stays in date order.
+    { type: 'pickup', stopNumber: 3, orderIds: ['O2'], siteKey: 'P2|0', location: 'P2, Town', date: 'June 5, 2026 08:00 CDT' },
     { type: 'delivery', stopNumber: 4, orderIds: ['O2'], siteKey: 'D2|0', location: 'D2, Town', date: 'June 6, 2026 08:00 CDT' },
   ]
   const o3 = { orderNumber: 'O3', shipFrom: site('P2'), shipTo: site('D1') }
@@ -539,5 +541,55 @@ describe('initFromSources', () => {
   it('a delivery moved above its pickup is refused (order-change rule, S3)', () => {
     const s = initFromSources([a, b])
     expect(canReorderStop(s, 0, 2).ok).toBe(false)
+  })
+})
+
+// DEC-234 / Dave (A1–A2, user R1) — no stop dated before any stop above it.
+describe('dateSequenceViolations', () => {
+  const at = (key, type, date) => ({ key, type, orderIds: ['A'], date })
+  it('a 3am pickup below a 4am pickup violates, naming the stop above', () => {
+    const v = dateSequenceViolations([at('s1', 'pickup', 'June 4, 2026 04:00 CDT'), at('s2', 'pickup', 'June 4, 2026 03:00 CDT')])
+    expect([...v]).toEqual([['s2', 's1']])
+  })
+  it('a delivery dated before a pickup above it violates; aboveKey is the LATEST stop above', () => {
+    const v = dateSequenceViolations([
+      at('s1', 'pickup', 'June 4, 2026 08:00 CDT'),
+      at('s2', 'pickup', 'June 5, 2026 08:00 CDT'),
+      at('s3', 'delivery', 'June 4, 2026 09:00 CDT'),
+    ])
+    expect([...v]).toEqual([['s3', 's2']])
+  })
+  it('compares across zones (09:00 EST is 08:00 CST)', () => {
+    expect(dateSequenceViolations([at('s1', 'pickup', 'June 4, 2026 09:00 CDT'), at('s2', 'pickup', 'June 4, 2026 09:30 EDT')]).size).toBe(1)
+  })
+  it('equal times are fine, undated stops are skipped', () => {
+    expect(dateSequenceViolations([
+      at('s1', 'pickup', 'June 4, 2026 08:00 CDT'),
+      at('s2', 'pickup', 'June 4, 2026 08:00 CDT'),
+      at('s3', 'pickup', ''),
+      at('s4', 'delivery', 'June 6, 2026 08:00 CDT'),
+    ]).size).toBe(0)
+  })
+  it("routeBlocker reads 'dates' after 'sequence' and before 'undated'; isRoutable is false", () => {
+    let s = initSandbox({ stops, consolidation: noChange, orders })
+    s = setStopDate(s, 's2', 'June 3, 2026 08:00 CDT')
+    expect(routeBlocker(s)).toBe('dates')
+    expect(isRoutable(s)).toBe(false)
+    expect(routeBlocker(setStopDate(s, 's3', 'June 6'))).toBe('dates') // checked before 'undated'
+    expect(routeBlocker(setStopDate(s, 's2', 'June 4, 2026 08:00 CDT'))).toBeNull()
+  })
+})
+
+// User 2026-10-01 — stops read on their own zones; the UI shows the offset and
+// the date-sequence error converts both to Central.
+describe('zone display helpers', () => {
+  it('toUtc / withUtc put every stop on one clock (15:00 CDT is LATER than 10:00 EDT)', () => {
+    expect(toUtc('June 7, 2026 15:00 CDT')).toBe('20:00 UTC')
+    expect(toUtc('June 7, 2026 10:00 EDT')).toBe('14:00 UTC')
+    expect(toUtc('June 7, 2026 21:00 CDT')).toBe('June 8 02:00 UTC')
+    expect(toUtc('December 31, 2026 22:00 CST')).toBe('January 1, 2027 04:00 UTC')
+    expect(toUtc('June 7, 2026 10:00')).toBe('')
+    expect(withUtc('May 27, 2026 10:00 EDT')).toBe('May 27, 2026 10:00 EDT (14:00 UTC)')
+    expect(dateSequenceViolations([{ key: 'a', date: 'June 7, 2026 10:00 EDT' }, { key: 'b', date: 'June 7, 2026 15:00 CDT' }]).size).toBe(0)
   })
 })

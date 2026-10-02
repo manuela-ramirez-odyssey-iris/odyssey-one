@@ -1149,7 +1149,7 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision:** Direct: `Tender Notification to <SCAC> of Shipment ID:<OdysseyShipmentIdentifier>, for <Customer> delivery:<OrderNo>`; consolidation replaces the delivery section with `, multiple deliveries`. `<Customer>` = `customerName` with a leading `*` stripped and everything from `_SYS` on removed — Dave's own *"I think"* reading of TMS's `org_short_name` manipulation, implemented as one regex (`customerForSubject`) and a no-op on our already-clean names. Flagged as his guess, not a rule.
 - **Source:** LINX-15795 BR-5, Dave over email, verbatim.
 
-### DEC-182: decline reasons are the VD's five values, comments optional at 200 characters — pending Dave
+### DEC-182: decline reasons are the VD's five values, comments optional at 200 characters — pending Dave — **SUPERSEDED by DEC-230**
 - **Previous:** LINX-15796 BR-06 gives *examples* (Capacity unavailable / Equipment unavailable / Pricing issue / Unable to meet schedule / Other) and says *"allow or require entry of a decline reason based on configured business rules"*; Pappu's questions to Dave (mandatory? which code table?) are unanswered since 2026-09-02.
 - **Decision:** build the VD's list — *No capacity available · Rate too low · Lane not served · Cannot meet pickup or delivery window · Other* — reason **required** to confirm, comments optional (`n/200`). Stored as `declineReason` + `responseComments` on the option. Both the list and the mandatory rule are placeholders until Dave answers.
 - **Source:** VD `2525:41993`; LINX-15796 BR-06 (open).
@@ -1159,7 +1159,7 @@ Rulings from S134–S137 recorded at the 2026-09-02 `/analyze order-change` cycl
 - **Decision:** same stand-in convention SpotBoard's `carrierList.js` uses; `From` = the planning-group mailbox (SPB-77). `ponytail:` comment in `tenderEmailContext.js` cites the real function. No CC.
 - **Source:** ours; LINX-15795 BR-3.
 
-### DEC-184: a carrier-side Decline does NOT auto-tender the next carrier
+### DEC-184: a carrier-side Decline does NOT auto-tender the next carrier — **CLOSED by DEC-229** (cascade removed)
 - **Previous:** the Tender tab's planner Decline/Cancel cascades to the next null-status carrier (Fix 4, S114 — DEC-73).
 - **Decision:** the review page records the Decline and stops. That cascade is planner-side UI; LINX-15796 FR-08 routes the carrier's response *"through the common Tender Response workflow"*, which would own any follow-on tender. **Ask Dave/Jana** whether an emailed Decline should cascade like a planner Decline.
 - **Source:** ours, 2026-09-22.
@@ -1432,10 +1432,44 @@ Spec: `docs/superpowers/specs/2026-09-29-order-change-edit-stops-jana-slice.md`.
 - **Decision:** the title is *Order Changes {number}*. The tabs are **Order** plus one **Line {n}** per line, each with a changed-field count, and the modal opens on the first changed tab. Each tab holds one Field | Prior | New table. Amends DEC-196 (layout only).
 - **Source:** Jana ↔ Manuela order-change sync 2026-09-29 (`vault/00-inbox/Order Change Sync.vtt`) `@00:20`, `@01:16`; user 2026-09-29 (*"we are overusing HeaderStrips"*).
 
+### DEC-229: Tender actions per option follow LINX-15899; one active tender at a time; no auto-tender cascade
+- **Previous:** per-status menus differed from the story (Cancelled/Declined → Re-Tender; Sent lacked Re-Tender; Accepted → Cancel only; To Be Tendered → Tender + Cancel per DEC-209/LINX-8253); no lock between options; manual comm still produced Sent; planner Decline/Cancel auto-tendered the next carrier (DEC-73).
+- **Decision:** the 15899 matrix as written (spec §3), incl. **To Be Tendered → Tender only** (amends DEC-209's action list; entry rules unchanged) and a new **To Be Cancelled → Cancel**. Active = Sent / Accepted / To Be Tendered; other options' menus are disabled and the server refuses (409). Manual comm → To Be Tendered. The cascade is **removed** (A1), which makes **DEC-184 moot — closed**. Closes **Q-RH-11** (`routing-history.md`) and updates DEC-175: 15899 confirms Re-Tender / Cancel / Decline on Accepted.
+- **Source:** LINX-15899 AC (fetched 2026-10-01); spec `docs/superpowers/specs/2026-10-01-tender-actions-and-decline-reason.md` A1/A2, approved by the user 2026-10-01.
+
+### DEC-230: Decline reasons are LINX-15897's 20 codes, on both the planner and carrier side
+- **Previous:** DEC-182 — five VD placeholder labels, stored as text, carrier page only.
+- **Decision:** a shared `src/data/declineReasons.js` (code + description); a searchable picker (code or description); stored as `declineReasonCode` + `declineReason` (description). The planner's Decline (Sent or Accepted) opens a dialog: reason required, comment optional, the two verbatim validation messages. **Supersedes DEC-182**; the S156 plan's D-5 list is stale.
+- **Source:** LINX-15897 AC; spec A3, approved 2026-10-01.
+
+### DEC-231: "Carrier Gave Back the Load" only on an Accepted decline; flagged on the SCAC
+- **Previous:** not modelled.
+- **Decision:** the checkbox shows only when declining an **Accepted** option (a Sent option was never accepted — our reading, A5); checked → comment required. `carrierGaveBack` persists on the option, survives Re-Tender, and shows as a red "Gave back" badge in the Tender tab and Routing History.
+- **Source:** LINX-15897 AC; spec A4/A5, approved 2026-10-01. Visual treatment is a prototype default until the VD.
+
+### DEC-232: Every tender action writes a history entry; carrier responses are attributed "<SCAC> (email link)"
+- **Previous:** `saveTender` wrote the `tenders` row only; tender history existed only in the seed (DEC-80 renders backend events).
+- **Decision:** one entry per Tender / Re-Tender / Cancel / Accept / Decline: actor, time, action, SCAC, previous → new status, communication status (`Success`, TE-4 named on Decline; `—` on Accept; never Failure in the prototype, A6), and for Decline the Option Note (code - description, comment, giveback). Carrier-page responses are attributed to `modifyUser` "<SCAC> (email link)"; `responseUser` stays null per DEC-186.
+- **Source:** LINX-15899 Audit & History; LINX-15897 history clause; spec A3/A6, approved 2026-10-01.
+
+### DEC-233: Papu's VD-review fixes to the tender email and review page (2026-10-01)
+- **Previous:** "Tendered <notify>" notice (DEC-178); CTAs "Review & Respond" / "Review Tender"; hardcoded Charlotte footer; TE-3 Accepted email in the gallery and "A confirmation has been emailed…" on the Accepted banner; one Load References table + one combined Line Items table.
+- **Decision:** "Tender Expires <date>" on both methods and on the review page badge — **value is a placeholder** (notify + 24h, `TENDER_EXPIRY_HOURS`, display only, never enforced) because no tender expiry exists in the stories (DEC-178's question to Dave/Jana stays open). CTAs "Review & respond" (Email) / "Tender review" (Email & EDI). Footer from `officeFor(planning mailbox)` — only the HQ office is known; real office list owed by Papu/Dave. TE-3 hidden; Accepted/Declined stay on-page only. One Load References section per order with its own Line Items. Supersedes DEC-178's badge wording.
+- **Source:** Papu email after the 2026-09-30 VD review (`vault/00-inbox/Tender email & Landing.png`, `… 2.png`); user 2026-10-01 ("data only, not design").
+
+### DEC-234: Stop dates must run in sequence; an earlier-dated stop below a later one is flagged red and blocks Evaluate
+- **Previous:** neither stop editor compared one stop's date with another's. The checks were: an order's delivery can't sit above its pickup (LINX-15669, move refused), every stop dated (C16), and the order planning windows (amber flag, never blocks — Jana 2026-09-24). DEC-219's red pair was for the pickup/delivery rule and was superseded by CNS-19.
+- **Decision:** In both editors (order change and consolidation), a stop dated earlier than any stop above it, whatever its type, violates. The stop is red (card, badge, `issue` marker), with an inline error Alert naming the stop above it. Evaluate is disabled with a tooltip. The move or date edit is **not** refused, because a date edit is what causes the error, so it's fixed in place. Other stops aren't dimmed or locked (DEC-219's lock isn't revived). Equal times are fine and undated stops are skipped. The server re-checks with `Stop dates are out of sequence.` on save-stops and on consolidation apply.
+- **Display (user 2026-10-01, third pass):** every stop keeps its own site's zone, and every stop date also shows its **UTC** equivalent in parentheses as the one shared clock: read-only `15:00 CDT (20:00 UTC)`; only the time unless the UTC day changes (`June 8 02:00 UTC`) or the year changes too (`January 1, 2027 04:00 UTC`), and a line under the editable date. The error is one short sentence (`Stops are out of order. This stop is earlier than P1.`); hovering it shows both stops' dates, each with its UTC (user: dates in the sentence read as a time comparison when the days differ, e.g. 20:00 UTC vs 14:00 UTC across April 9 / May 27), and the Evaluate tooltip stays short. Rejected along the way: a `(UTC−5)` offset label, an all-to-Central conversion with the gap, and a conversion into the stop's own zone (all hard to read).
+- **Source:** Dave Schultz, LINX-15873 grooming ("stop #2 is happening before stop #1 … that you can validate"); user rulings 2026-10-01 (whole sequence: "a pickup at 3am cannot be after another that says 4am"; red stop + Alert, block). Spec `docs/superpowers/specs/2026-10-01-edit-consolidated-shipment-stops.md` §A.
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Oct 1, 2026 | **DEC-234** — stop dates must run in sequence (Dave): red stop + Alert, Evaluate blocked, server 400, both editors. **Previous state:** no stop-to-stop date check (windows flagged only) |
+| Oct 1, 2026 | **DEC-233** — Papu's tender email / review page fixes: Tender Expires (placeholder value), CTA names, office-driven footer, TE-3 hidden, per-order load sections. **Previous state:** DEC-178 Tendered badge, old CTAs, static footer, TE-3 shown, combined tables |
+| Oct 1, 2026 | **DEC-229 through DEC-232** (LINX-15899 + 15897 spec, user-approved): 15899 action matrix + single active tender + cascade removed (amends DEC-209, closes DEC-184 and Q-RH-11); 20 coded decline reasons (supersedes DEC-182); giveback on Accepted declines; tender history per action. **Previous state:** divergent menus, no lock, cascade, 5 placeholder reasons, seed-only history |
 | Sep 29, 2026 | **DEC-225 through DEC-228** (Jana 09-29 Edit Stops layout): Prior collapses on Edit + 5-field strip (Distance, Gross Weight, Volume, Prior Cost, New Direct Cost) + All Stops row (New Consolidated Cost, Accepted Carrier, Seed Equipment, Utilization), nothing repeated; decorative leg-distance icon + always-visible arrows; Planned Pickup/Delivery in Planning Dates; Order Changes modal tabs (amends DEC-196). **Previous state:** full-width Prior, fixed strip + duplicated All Stops metrics, hover-only arrows, window-only Planning Dates, stacked line blocks |
 | Sep 29, 2026 | **DEC-220 through DEC-224** (Jana 09-29 sync, non-design slice): land on the Tender screen after Bypass/Re-Tender; no active prior tender (incl. To Be Tendered) → Approve Changes → manual tender; tender resolution carries the plan's dates; *Set Aside* → *Remove* (amends DEC-194); X/crumbs keep edits and block re-resolving. **Previous state:** S135 landing, Bypass on any prior, seeded routing dates on `newOption`, DEC-194 label |
 | Sep 29, 2026 | **DEC-215 through DEC-218**: the user's rulings on the S163 audit. Evaluate re-routes from the edited stops (prototype recompute); a one-order result flips to Direct in place (09-23 hide rule not applied); a removed order's new shipment has no carrier list until planned; order-change Save is live-only. N4 provisionally dropped, N5 closed. **Previous state:** seeded list, row/detail mismatch, unspecified list, mock no-op |

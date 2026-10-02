@@ -30,6 +30,8 @@ export interface ApplyConsolidationBody {
   stops: Array<Record<string, unknown>>
   externalOrders: Array<{ orderNumber: string; sourceSellShipment: string }>
   tenderList: Array<Record<string, unknown>>
+  /** LINX-15873 D1 — a C edit's answer to Active Tender; null when there was no question. */
+  tenderDecision?: 'keep' | 'cancel' | null
 }
 
 export interface ApplyConsolidationResult {
@@ -49,13 +51,13 @@ export function __resetConsolidationSeq(): void {
 }
 
 export async function applyConsolidation(
-  { sellShipments, stops, externalOrders = [], tenderList = [] }: ApplyConsolidationBody,
+  { sellShipments, stops, externalOrders = [], tenderList = [], tenderDecision = null }: ApplyConsolidationBody,
 ): Promise<ApplyConsolidationResult> {
   if (getApiMode() === 'live') {
     // userId: same identity pattern as createOrder/preferenceService.
     const res = await apiPost<{ data: { row: ShipmentErrorRow; detail: SellShipmentOut } }>(
       '/shipment-service/v1/consolidation',
-      { sellShipments, stops, externalOrders, tenderList, userId: currentUser.id },
+      { sellShipments, stops, externalOrders, tenderList, tenderDecision, userId: currentUser.id },
     )
     return { row: mapShipmentErrorRow(res.data.row), detail: res.data.detail }
   }
@@ -75,7 +77,7 @@ export async function applyConsolidation(
   // source is already in its roster.
   const pulled = externalOrders.filter((e) => !sellShipments.includes(e.sourceSellShipment))
   // The SAME guards as the live handler (S7.2) — one function, both runtimes.
-  checkConsolidation({ sources, stops, externalOrders: pulled, externalRows: pulled.map((e) => byId.get(e.sourceSellShipment)).filter((r): r is ShipmentErrorRow => !!r) })
+  checkConsolidation({ sources, stops, externalOrders: pulled, externalRows: pulled.map((e) => byId.get(e.sourceSellShipment)).filter((r): r is ShipmentErrorRow => !!r), tenderDecision })
 
   // The external records come off their source's blob through the SAME pure
   // LINX-15872 check live runs (pickExternalOrders). Mock rows carry the
@@ -99,7 +101,7 @@ export async function applyConsolidation(
   // The builder is plain JS shared with the live handler; its JSDoc types are
   // deliberately loose (`object`), so the shapes are named here.
   const built = buildConsolidatedShipment({
-    sources, stops, externals, externalOrders: pulled, tenderList,
+    sources, stops, externals, externalOrders: pulled, tenderList, tenderDecision,
     externalSources: [...externalSources].map(([sellShipment, { row, detail }]) => ({ sellShipment, row, detail })), seq: consolidateSeq, now,
   }) as {
     row: ShipmentErrorRow

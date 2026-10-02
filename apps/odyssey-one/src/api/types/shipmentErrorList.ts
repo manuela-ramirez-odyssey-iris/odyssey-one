@@ -42,6 +42,14 @@ export interface ShipmentErrorRow {
   loadCount: string
   orderCount: string
   apFreightCost: string
+  /**
+   * Consolidation workbench only (Ramesh #4/#6, LINX-15786 BR II) — sent when
+   * the request carries `extras: 'consolidation'`, absent otherwise. Σ the
+   * orders' volume (cuft); first-pickup / last-delivery stop location ids.
+   */
+  totalVolume?: number | null
+  originLocationId?: string | null
+  destinationLocationId?: string | null
 }
 
 // Paginated envelope (consistent across services). Real row-array name is TBD;
@@ -123,4 +131,7 @@ export interface ShipmentErrorListParams {
   }
   sortBy?: string
   orderBy?: 'asc' | 'desc'
+  // 'consolidation' = also return the workbench fields (totalVolume + location
+  // ids). The route sends it only while consolidate mode is on.
+  extras?: 'consolidation'
 }

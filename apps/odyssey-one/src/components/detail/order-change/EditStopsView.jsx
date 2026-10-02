@@ -20,8 +20,8 @@ import ReviewKpiStrip from './ReviewKpiStrip.jsx'
 import { orderTooltipProps } from './orderTooltip.js'
 import {
   initSandbox, labelsOf, canMoveStop, moveStop, canReorderStop, reorderStop, moveToPending, addToStop, addPending,
-  isRoutable, routeBlocker, firstSequenceViolation, confirmStop, totals, priorDiff, toDto,
-  parseStamp, formatStopDate, setStopDate, windowViolations, plannedDates, legDistances,
+  isRoutable, routeBlocker, firstSequenceViolation, dateSequenceViolations, confirmStop, totals, priorDiff, toDto,
+  parseStamp, formatStopDate, setStopDate, toUtc, withUtc, windowViolations, plannedDates, legDistances,
 } from './stopsSandbox.js'
 import './edit-stops.css'
 
@@ -342,9 +342,17 @@ export default function EditStopsView({
   // DEC-207 (T2) — the footer's Evaluate opens the routing modal directly;
   // there is no separate View Routing button any more.
   const blocker = routeBlocker(sb)
+  // DEC-234 (A3) — a stop dated before one above it: red row + inline Alert
+  // in the New plan, and Evaluate names the first one (built here, like C7's).
+  const dateViolations = dateSequenceViolations(sb.stops)
+  const newLabels = labelsOf(sb)
+  const labelOfKey = (key) => newLabels[sb.stops.findIndex((x) => x.key === key)]
+  const firstDateViolation = dateViolations.entries().next().value
   const blockerTooltip = blocker === 'sequence'
     ? `Order ${firstSequenceViolation(sb.stops)} is delivered before it is picked up. Move its pickup stop above its delivery stop.`
-    : BLOCKER_TOOLTIP[blocker]
+    : blocker === 'dates'
+      ? `Stop ${labelOfKey(firstDateViolation[0])} is dated before ${labelOfKey(firstDateViolation[1])}. Change its date or move it.`
+      : BLOCKER_TOOLTIP[blocker]
   const evaluateDisabled = !isRoutable(sb) || saving || editing
 
   // T1.2 — "Keep here" (a P?/D? stop's own row action): sequences it in
@@ -494,6 +502,9 @@ export default function EditStopsView({
       const isPickup = s.type === 'pickup'
       const removed = isPrior && diff.removedStopKeys.includes(s.key)
       const moved = isPrior && !removed && diff.movedStopKeys.includes(s.key)
+      // DEC-234 (A3, user R2) — New only; the other stops are NOT dimmed or locked.
+      const aboveKey = isPrior ? undefined : dateViolations.get(s.key)
+      const above = aboveKey && sb.stops.find((x) => x.key === aboveKey)
       // User 2026-09-24: an arrow is disabled whenever that move can't happen —
       // edges AND sequencing (LINX-15669), via the same canMoveStop the move uses.
       const upDisabled = !canMoveStop(sb, i, 'up').ok
@@ -523,7 +534,7 @@ export default function EditStopsView({
         // amber Removed/Moved badges above, so the rail follows suit.
         // User 2026-09-24: Prior's P/D markers are green like the plain
         // Stops tab ('completed'); purple stays on New only.
-        status: isPrior ? 'completed' : newTone.status,
+        status: isPrior ? 'completed' : above ? 'issue' : newTone.status,
         // Consolidation's Planned Stops (user, 2026-09-28): no mini status
         // icons on the rail — tracking language, not planning.
         showStatusBadge: false,
@@ -534,7 +545,7 @@ export default function EditStopsView({
         // page's StopContent, VD 3039:147748) — no HeaderStrip, no card frame, no
         // "Stop N": the rail's P1/D1 badge and the row order carry position.
         content: (
-          <Row {...rowProps} className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
+          <Row {...rowProps} className={`edit-stops__stop${isPrior ? '' : ' edit-stops__stop--editable'}${above ? ' edit-stops__stop--error' : ''}`} data-stop-key={s.key} data-flash={isPrior ? undefined : flashes(`stop:${s.key}`)}>
             <div className="edit-stops__stop-head">
               <span className="edit-stops__stop-lead">
               {/* User 2026-09-28: the badges stay beside the address text. The
@@ -566,7 +577,7 @@ export default function EditStopsView({
                   markers and the plain Stops tab; New stays purple — except in a
                   consolidation (no Prior), which is green: purple is reserved for
                   an external (customer) change (user 2026-09-30). */}
-              <Badge variant={isPrior ? 'green' : newTone.badge}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+              <Badge variant={isPrior ? 'green' : above ? 'red' : newTone.badge}>{isPickup ? 'Pickup' : 'Delivery'}</Badge>
               {removed && <Badge variant="gray">Removed</Badge>}
               {moved && <Badge variant="gray">Moved</Badge>}
                     </span>
@@ -599,8 +610,23 @@ export default function EditStopsView({
             {/* DEC-195: a stop shows only its own date. DEC-199: editable
                 in the New plan; Prior stays the record of what was. */}
             {readOnly
-              ? <span className="text-label-xs-regular edit-stops__stop-meta">{isPickup ? 'Pickup Date' : 'Delivery Date'}: {s.date || '--'}</span>
+              ? <span className="text-label-xs-regular edit-stops__stop-meta">{isPickup ? 'Pickup Date' : 'Delivery Date'}: {s.date ? withUtc(s.date) : '--'}</span>
               : <StopDateField id={`stop-${s.key}`} label={isPickup ? 'Pickup Date' : 'Delivery Date'} value={s.date} onChange={(d) => handleStopDate(s.key, d)} />}
+            {/* User 2026-10-01 — the editable date's universal (UTC) equivalent. */}
+            {!readOnly && toUtc(s.date) && <span className="text-label-xs-regular edit-stops__stop-meta">({toUtc(s.date)})</span>}
+            {/* DEC-234 (A3) — DEC-219's inline Alert, on the offending stop only. */}
+            {above && (
+              <Alert variant="error" showClose={false} className="edit-stops__stop-alert">
+                {/* User 2026-10-01 — no dates in the sentence; hover it to compare
+                    both stops (each in its own zone, UTC in parentheses). */}
+                <TooltipTrigger tooltipProps={{ groups: [
+                  { subtitle: 'This stop', content: withUtc(s.date) },
+                  { subtitle: labelOfKey(aboveKey), content: withUtc(above.date) },
+                ] }}>
+                  <span className="edit-stops__stop-alert-text">{`Stops are out of order. This stop is earlier than ${labelOfKey(aboveKey)}.`}</span>
+                </TooltipTrigger>
+              </Alert>
+            )}
             {/* User 2026-09-28: read-only rows (Prior, collapsed New) list
                 their orders inline; edit mode keeps one row per order for
                 its Remove button. */}

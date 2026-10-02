@@ -504,7 +504,8 @@ describe('consolidate mode — "Show selected on top" (Part 3 S158, revised S161
     fireEvent.click(second)
     await waitFor(() => {
       const top = rowIds().slice(0, 2)
-      expect(top).toEqual([...top].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })))
+      // The mode's default sort is Shipment ID DESCENDING (LINX-15893 BR I).
+      expect(top).toEqual([...top].sort((a, b) => b.localeCompare(a, undefined, { numeric: true })))
       expect(top).toContain(firstId)
       expect(top).toContain(secondId)
     })
@@ -602,10 +603,12 @@ describe('consolidate mode — Edit on a Consolidation row (S155, CNS-19 S1.5)',
     renderRoute({ panel: 'monitoring', tab: 'consolidation' }) // Edit is gated to pool Cs (CNS-18)
     await screen.findByRole('heading', { name: 'Shipments' })
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Shipment actions' }).length).toBeGreaterThan(0))
-    // Page 1, default sort: "C…" sorts before "O…", so the first row is a
-    // Consolidation one.
-    const firstRow = document.querySelectorAll('tbody tr')[0]
-    expect([...firstRow.querySelectorAll('td')].some((td) => /^C\d+$/.test(td.textContent.trim()))).toBe(true)
+    // A Consolidation row on page 1. (It used to be row 0 because the mock
+    // sorted "C…" before "O…"; the mock is prefix-blind now, like the server's
+    // substr(id, 2)::bigint — LINX-15893 BR I parity.)
+    const firstRow = [...document.querySelectorAll('tbody tr')]
+      .find((tr) => [...tr.querySelectorAll('td')].some((td) => /^C\d+$/.test(td.textContent.trim())))
+    expect(firstRow).toBeTruthy()
     fireEvent.click(within(firstRow).getByRole('button', { name: 'Shipment actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }))
     const probe = await screen.findByTestId('stops-probe')

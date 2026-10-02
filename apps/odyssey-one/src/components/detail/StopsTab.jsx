@@ -197,6 +197,10 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
   // there never was one, the tab is the plain read-only pane.
   const review = consolidatedReviewPending(orderChange)
   const routingBlocked = review && c.locationChange // LINX-15438
+  // LINX-15873 B1/B2 — any C, outside review mode, edits its stops in the
+  // consolidation editor; greyed out while an order change is still open.
+  const editC = !review && shipment?.shipmentType === 'Consolidation'
+  const ocOpen = !!orderChange && orderChange.resolution == null
   // Same source the Direct route / Edit Shipment Stops read for their own
   // resolution payload (useApproveOrderChange's Scenario A/B gate).
   const tenderStatus = orderChange?.prior?.tenderStatus ?? null
@@ -278,6 +282,21 @@ const StopsTab = React.memo(function StopsTab({ data, orderChange, orderDetails 
                   </TooltipTrigger>
                 ) : (
                   <Button variant="primary" onClick={() => setModal('routing')}>Evaluate</Button>
+                )}
+              </div>
+            )}
+            {editC && (
+              <div className="stops-review__actions">
+                {/* B3 — the grid row already carries what the route reads
+                    (sellShipment, shipmentType, equipmentCode, customerId, category). */}
+                {ocOpen ? (
+                  <TooltipTrigger tooltipProps={{ groups: [{ content: 'Resolve the open order change first' }] }}>
+                    <Button variant="secondary" disabled>Edit Shipment Stops</Button>
+                  </TooltipTrigger>
+                ) : (
+                  <Button variant="secondary" onClick={() => openSheet('/shipments/consolidate/stops', { state: { rows: [shipment], from: 'stops' } })}>
+                    Edit Shipment Stops
+                  </Button>
                 )}
               </div>
             )}

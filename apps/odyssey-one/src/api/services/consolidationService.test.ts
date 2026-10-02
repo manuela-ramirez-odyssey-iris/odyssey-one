@@ -217,3 +217,56 @@ describe('applyConsolidation (mock)', () => {
     expect(JSON.stringify(last)).toContain('no longer active')
   })
 })
+
+// LINX-15873 (CNS-23) — Edit Shipment Stops on any C: the mock runs the SAME
+// checkConsolidation / builder as live, so the guards and filing match.
+describe('applyConsolidation (mock) — C edit (LINX-15873)', () => {
+  const cId = '26090009'
+  const addC = (detailOver: Record<string, unknown> = {}) => {
+    const d = detail(9)
+    addShipment(
+      row(9, { odysseyShipmentIdentifier: 'C70000099', shipmentType: 'Consolidation', category: 'approved', tenderStatus: 'Accepted' }),
+      {
+        ...d, odysseyShipmentIdentifier: 'C70000099', shipmentType: 'Consolidation',
+        orderList: [...d.orderList, ...detail(1).orderList],
+        shipmentStopList: [
+          { stopSequence: 1, stopType: 'pickup', facilityName: 'P9', city: 'P9', orderIds: ['ORD-9', 'ORD-1'] },
+          { stopSequence: 2, stopType: 'delivery', facilityName: 'D9', city: 'D9', orderIds: ['ORD-9', 'ORD-1'] },
+        ],
+        shippingOptionList: [{ rank: 1, scac: 'KEEP', status: 'Accepted' }],
+        historyList: [{ action: 'Shipment Created' }],
+        ...detailOver,
+      },
+    )
+  }
+  const cBody = (tenderDecision: 'keep' | 'cancel' | null) => ({
+    sellShipments: [cId], externalOrders: [], tenderList: [{ rank: 1, scac: 'KEEP', status: '' }], tenderDecision,
+    stops: [
+      { stopSequence: 1, stopType: 'pickup', orderIds: ['ORD-9', 'ORD-1'], sourceSellShipment: cId, sourceStopSequence: 1 },
+      { stopSequence: 2, stopType: 'delivery', orderIds: ['ORD-9', 'ORD-1'], sourceSellShipment: cId, sourceStopSequence: 2 },
+    ],
+  })
+
+  it('refuses an active tender with no decision, and an open order change', async () => {
+    addC()
+    await expect(applyConsolidation(cBody(null))).rejects.toThrow('Choose whether to keep the active tender.')
+    addC({ orderChange: { resolution: null } })
+    await expect(applyConsolidation(cBody('keep'))).rejects.toThrow('Resolve the open order change before editing stops.')
+  })
+
+  it('keep: the C keeps its id and files Sent, its carrier Sent, one Shipment Stops Edited entry', async () => {
+    addC()
+    const { row: r, detail: d } = await applyConsolidation(cBody('keep'))
+    expect([r.odysseyShipmentIdentifier, r.tenderStatus, r.category]).toEqual(['C70000099', 'Sent', 'sent'])
+    expect(d.shippingOptionList?.map((o) => o.status)).toEqual(['Sent'])
+    expect(d.historyList?.map((h) => (h as { action: string }).action)).toEqual(['Shipment Created', 'Shipment Stops Edited'])
+  })
+
+  it('refuses out-of-sequence stop dates (DEC-234)', async () => {
+    addC({ shippingOptionList: [] })
+    const b = cBody(null)
+    b.stops[0] = { ...b.stops[0], scheduledDateTime: 'June 12, 2026 08:00 CST' } as never
+    b.stops[1] = { ...b.stops[1], scheduledDateTime: 'June 11, 2026 08:00 CST' } as never
+    await expect(applyConsolidation(b)).rejects.toThrow('Stop dates are out of sequence.')
+  })
+})

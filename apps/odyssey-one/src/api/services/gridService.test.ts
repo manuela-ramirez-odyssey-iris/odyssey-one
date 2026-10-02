@@ -106,6 +106,27 @@ describe('gridService.getShipmentErrorList (mock)', () => {
     const res = await getShipmentErrorList({ panel: 'exceptions', pageNumber: 0, pageSize: 25, sortBy: 'scac', orderBy: 'asc' })
     expect(res.rows.map(r => r.scac)).toEqual(['ABFS', 'ODFL', 'XPOL'])
   })
+
+  // LINX-15893 BR I — the mock orders like buildListQuery's SORT_MAP: cast
+  // count/cost text, prefix-blind ids, case-insensitive text, blanks LAST both ways.
+  it('sorts the way the server does (numeric text, prefix-blind id, blanks last)', async () => {
+    const rows = [
+      mk('S1', 'sorttest', 'x', { apFreightCost: '987.00', odysseyShipmentIdentifier: 'O00000009', origin: 'dallas' }),
+      mk('S2', 'sorttest', 'x', { apFreightCost: '1,234.56', odysseyShipmentIdentifier: 'C00000010', origin: 'Austin' }),
+      mk('S3', 'sorttest', 'x', { apFreightCost: '', odysseyShipmentIdentifier: 'O00000002', origin: '--' }),
+    ]
+    STORE.push(...rows)
+    try {
+      const order = async (sortBy: string, orderBy: 'asc' | 'desc') =>
+        (await getShipmentErrorList({ panel: 'sorttest', pageNumber: 0, pageSize: 25, sortBy, orderBy })).rows.map(r => r.sellShipment)
+      expect(await order('apFreightCost', 'asc')).toEqual(['S1', 'S2', 'S3'])
+      expect(await order('apFreightCost', 'desc')).toEqual(['S2', 'S1', 'S3'])
+      expect(await order('odysseyShipmentIdentifier', 'desc')).toEqual(['S2', 'S1', 'S3'])
+      expect(await order('origin', 'asc')).toEqual(['S2', 'S1', 'S3'])
+    } finally {
+      STORE.splice(STORE.length - rows.length, rows.length)
+    }
+  })
 })
 
 // ── S79c decision 7: committed GlobalSearch criteria ({ chips, text }) ──

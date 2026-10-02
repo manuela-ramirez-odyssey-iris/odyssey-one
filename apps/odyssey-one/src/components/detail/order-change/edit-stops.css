@@ -193,6 +193,20 @@
 }
 .edit-stops__plan:not(:has([data-dragging])) .edit-stops__stop--editable:hover .edit-stops__stop-meta { color: var(--text-secondary); }
 
+/* DEC-234 (A3) — a stop dated before one above it: DEC-219's red card (the
+   retired consolidation-review.css __stop--invalid, VD 3039:147748). The tint
+   is padded by a box-shadow so the row doesn't shift; the 20px air between
+   stops moves from padding to margin so it stays untinted. */
+.edit-stops__stop--error {
+  background: var(--badge-red-bg);
+  box-shadow: 0 0 0 var(--spacing-2) var(--badge-red-bg);
+  border-radius: var(--radius-md);
+  padding-bottom: 0;
+  margin-bottom: var(--spacing-5);
+}
+.edit-stops__stop--error .edit-stops__stop-glue > .text-badge { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.edit-stops__stop-alert { margin-top: var(--spacing-1); }
+
 /* Collapsed-mode drag (user 2026-09-28) — the retired consolidation-review.css's
    sortable stop: grab cursor (dnd-kit's attributes carry
    aria-roledescription="sortable"), grabbing + a DSN/200 tint while held,

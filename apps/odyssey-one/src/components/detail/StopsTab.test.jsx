@@ -324,3 +324,38 @@ describe('StopsTab — re-routed New list (C4/C12)', () => {
     expect(screen.getByRole('dialog', { name: 'View Routing' })).toBeTruthy()
   })
 })
+
+// LINX-15873 B — any C's Stops tab opens the consolidation stop editor.
+describe('StopsTab — Edit Shipment Stops on a Consolidation (LINX-15873)', () => {
+  const cRow = { id: '27000001', sellShipment: '27000001', odysseyShipmentIdentifier: 'C70000001', shipmentType: 'Consolidation', category: 'sent', equipmentCode: 'TL', customerId: 'VALTRIS_01' }
+
+  it('appears on a C outside review mode and opens the editor with the row, from: stops', () => {
+    renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={null} shipment={cRow} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Shipment Stops' }))
+    const probe = screen.getByTestId('nav-probe').textContent
+    expect(probe).toContain('/shipments/consolidate/stops')
+    expect(probe).toContain('"from":"stops"')
+    expect(probe).toContain('"sellShipment":"27000001"')
+  })
+
+  it('is disabled with the tooltip while an order change is open', () => {
+    // Saved stops = not review mode, but the order change is still unresolved.
+    const open = { ...oc, consolidation: { ...consolidation, stopsSaved: true } }
+    renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={open} shipment={cRow} />)
+    const btn = screen.getByRole('button', { name: 'Edit Shipment Stops' })
+    expect(btn.disabled).toBe(true)
+    fireEvent.mouseEnter(btn.closest('[data-tooltip-trigger]'))
+    expect(screen.getByRole('tooltip').textContent).toContain('Resolve the open order change first')
+  })
+
+  it('is enabled once the order change is resolved', () => {
+    const done = { ...oc, resolution: { action: 'approve-plan', cost: null, resolvedAt: '' } }
+    renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={done} shipment={cRow} />)
+    expect(screen.getByRole('button', { name: 'Edit Shipment Stops' }).disabled).toBe(false)
+  })
+
+  it('is absent on a Direct', () => {
+    renderWithRouter(<StopsTab data={{ summary, stops }} orderChange={null} shipment={{ ...cRow, shipmentType: 'Direct' }} />)
+    expect(screen.queryByRole('button', { name: 'Edit Shipment Stops' })).toBeNull()
+  })
+})

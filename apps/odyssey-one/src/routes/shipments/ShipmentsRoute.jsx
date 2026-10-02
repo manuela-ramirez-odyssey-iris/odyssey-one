@@ -6,7 +6,7 @@ import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
 import BottomBar, { DEFAULT_TAB_ORDER, mergeTabOrder } from '../../components/detail/BottomBar'
-import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS, mergeLateAddedColumns } from '../../components/detail/ColumnPanel'
+import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, CONSOLIDATION_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS, mergeLateAddedColumns } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { Boxes, Combine } from 'lucide-react'
@@ -33,6 +33,8 @@ const EMPTY_SELECTION = new Map()
 // The table is never unsorted — this is the column that drives until a search
 // commits (relevance) or the user picks another.
 const DEFAULT_SORTING = [{ id: 'odysseyShipmentIdentifier', desc: false }]
+// Consolidate mode opens on the newest shipments first (LINX-15893 BR I).
+const CONSOLIDATION_SORTING = [{ id: 'odysseyShipmentIdentifier', desc: true }]
 
 function ShipmentsRoute() {
   // Customer scoping (S79c decision 10) — the FIRST-order data filter. The
@@ -139,7 +141,9 @@ function ShipmentsRoute() {
   // Column sorting (S85) — one column always drives (DataTable flips asc↔desc, never
   // unsorted). Default driver: the first default-visible column. Server-side: mapped
   // to gridService sortBy/orderBy below (full dataset, before pagination).
-  const [sorting, setSorting] = useState(DEFAULT_SORTING)
+  // A mount already inside the mode (location.state.consolidate) starts on its
+  // default too — enterConsolidate below only covers the button path.
+  const [sorting, setSorting] = useState(() => (location.state?.consolidate ? CONSOLIDATION_SORTING : DEFAULT_SORTING))
   // Set at commit time from the search preview (GS-18); consumed by the
   // render-time panel jump below. State, not a ref: it is READ during render,
   // and the commit that sets it also sets searchCriteria, so the two land in the
@@ -151,11 +155,16 @@ function ShipmentsRoute() {
   const [columnsByPanel, setColumnsByPanel] = useState({
     exceptions: EXCEPTIONS_DEFAULT_COLUMNS,
     monitoring: MONITORING_DEFAULT_COLUMNS,
+    // Consolidate mode's own set (Ramesh #2/3/8/9/11/12, LINX-15786 BR II) —
+    // a key like any panel's, so the ColumnPanel edits it while in mode and
+    // leaving the mode shows Monitoring's set untouched.
+    consolidation: CONSOLIDATION_DEFAULT_COLUMNS,
   })
-  const visibleColumns = columnsByPanel[activePanel] || EXCEPTIONS_DEFAULT_COLUMNS
+  const columnsKey = inMode ? 'consolidation' : activePanel
+  const visibleColumns = columnsByPanel[columnsKey] || EXCEPTIONS_DEFAULT_COLUMNS
   const setVisibleColumns = useCallback((newCols) => {
-    setColumnsByPanel(prev => ({ ...prev, [activePanel]: newCols }))
-  }, [activePanel])
+    setColumnsByPanel(prev => ({ ...prev, [columnsKey]: newCols }))
+  }, [columnsKey])
 
   // Ordered visible ShipmentsBar tab keys (hidden = absent; Orders pinned
   // first). Fix D (LINX-11786, 2026-08-10): was route-state-lifespan-only
@@ -228,7 +237,11 @@ function ShipmentsRoute() {
     // after the user last saved would never appear for them — which is exactly
     // what happened to Pickup #, Shipment Type and Planning Type. Merge those
     // in on hydrate; nothing else is added and nothing is removed.
-    if (cols?.length) setVisibleColumns(mergeLateAddedColumns(cols))
+    // Into the PANEL's set, never the consolidation one: a mount inside the mode
+    // would otherwise replace the mode's columns with the saved preset. (The
+    // same one-shot setState the setVisibleColumns call here always was.)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (cols?.length) setColumnsByPanel(prev => ({ ...prev, [activePanel]: mergeLateAddedColumns(cols) }))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once, on load
   }, [presetPref])
 
@@ -315,6 +328,9 @@ function ShipmentsRoute() {
     // stay in their normal page position, so nothing is excluded — the
     // selected row IS its own page entry.
     ...(inMode && showSelectedOnTop && selection.size ? { filter: { excludeIds: [...selection.keys()] } } : {}),
+    // Workbench fields (Total Volume + location ids, Ramesh #4/#6) — computed
+    // server-side over the page only, and only when asked; no other tab pays.
+    ...(inMode ? { extras: 'consolidation' } : {}),
   }), [activePanel, activeTab, pageNumber, pageSize, effectiveCriteria, selectedDataIds, sorting, inMode, showSelectedOnTop, selection])
 
   const {
@@ -621,11 +637,14 @@ function ShipmentsRoute() {
       priorViewMode: viewMode,
       priorPanel: activePanel,
       priorTab: activeTab,
+      priorSorting: sorting,
     })
     setSelectedShipmentId(null)   // the detail bar is hidden in mode; nothing stays "open"
     setViewMode('pills')          // the widgets toggle is hidden; pills are the mode's face
-    // No sort reseed: the mode LISTS only Direct rows (effectiveCriteria
-    // above), so the planner's own sort survives the round trip untouched.
+    // LINX-15893 BR I: the mode opens on Shipment ID descending; exit restores
+    // the planner's own sort (priorSorting). handleCommitQuery leaves sorting
+    // alone while inMode, so the customer lock's recommit can't undo this.
+    setSorting(CONSOLIDATION_SORTING)
     //
     // CNS-18 (Jana 2026-09-29: "you just have to be in consolidation state"):
     // the mode lands on Monitoring > Consolidation and stays there — the panel
@@ -633,7 +652,7 @@ function ShipmentsRoute() {
     // (visiblePanels / onlyCategory below).
     setActivePanel('monitoring')
     setActiveTab('consolidation')
-  }, [viewMode, activePanel, activeTab])
+  }, [viewMode, activePanel, activeTab, sorting])
   // S1.5 (CNS-19): the row menu's Edit on a Consolidation row opens the stops
   // editor directly with that C as its only source — no mode. Stable identity —
   // ShipmentTable's column defs memo on it.
@@ -658,6 +677,7 @@ function ShipmentsRoute() {
     // genuinely no prior filter" (a real `null` snapshot) — re-entry via
     // "Modify Selection" never took a snapshot, so this correctly no-ops.
     if (consolidate && 'priorCriteria' in consolidate) setSearchCriteria(consolidate.priorCriteria ?? null)
+    setSorting(consolidate?.priorSorting ?? DEFAULT_SORTING)
     setConsolidate(null)
     setShowSelectedOnTop(false) // S161 spec A2: the toggle resets, it isn't a sticky preference
   }, [consolidate])
@@ -800,6 +820,9 @@ function ShipmentsRoute() {
             onClose={() => setColumnPanelOpen(false)}
             visibleColumns={visibleColumns}
             onColumnsChange={handleColumnsChange}
+            // consolidationOnly columns (Ramesh #4/#5) are offered only in the
+            // mode — their data is fetched only there. undefined = the default catalog.
+            allColumns={inMode ? ALL_COLUMNS : undefined}
             initialPresetState={presetPref ?? undefined}
             onPresetStateChange={savePresetPref}
           />
@@ -923,6 +946,9 @@ function ShipmentsRoute() {
           onPageSizeChange={(n) => { setPageSize(n); setPageNumber(0) }}
           sorting={sorting}
           onSortingChange={setSorting}
+          // LINX-15786 Scenario 2 (exact copy): only an empty POOL says so — with
+          // a search or the customer lock on, the filter is empty, not the pool.
+          emptyMessage={inMode && !searchCriteria && !lockedChip ? 'No Consolidation Candidates Available' : undefined}
           isLoading={listLoading}
           isFetchingRows={listStale}
           isError={listError}
