@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDataset, VALIDATION_MESSAGES, DROP_REASONS } from './generate.mjs'
+import { TENDER_HISTORY_ACTIONS } from '../api/_lib/shipments.mjs'
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, shipFromSites, PRODUCT_CLASSES } from './data-pools.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 import { stopDateToDisplay } from '../src/lib/orderChangeRouting.js'
@@ -160,6 +161,9 @@ test('history entries: every entry carries an author with a kind; human authors 
         assert.equal(entry.author.name, entry.source, 'system author name reuses source verbatim')
       } else {
         humanCount++
+        // LINX-15899 §6 tender actions: the API knows the planner's name only,
+        // and a carrier is "<SCAC> (email link)" — no email to show.
+        if (TENDER_HISTORY_ACTIONS.includes(entry.action)) continue
         assert.ok(entry.author.email, 'human author has an email')
         if (entry.author.kind === 'internal') {
           assert.ok(entry.author.email.endsWith('@odysseylogistics.com'), `internal email ${entry.author.email}`)
@@ -187,7 +191,9 @@ test('history authors: only `Shipment Updated` may be human-authored; every mach
     for (const entry of d.historyList) {
       if (entry.author.kind === 'system') continue
       humanCount++
-      assert.equal(entry.action, 'Shipment Updated', `machine event "${entry.action}" drew a human author`)
+      // + the LINX-15899 tender actions (spec 2026-10-01 §6): a planner or a carrier acts
+      assert.ok(entry.action === 'Shipment Updated' || TENDER_HISTORY_ACTIONS.includes(entry.action),
+        `machine event "${entry.action}" drew a human author`)
     }
   }
   assert.ok(humanCount > 0, 'human authorship is still reachable after the gate')
@@ -726,9 +732,11 @@ const PIPELINE_ORDER = [
   'Post PGI Rating Completed', 'Shipment Updated', 'Shipment Update Notification',
 ]
 
+// The catalog + the five LINX-15899 tender actions (spec 2026-10-01 §8: "DEC-80
+// event list extended").
 test('history events are limited to the MVP catalog vocabulary — no user-centric leftovers, no Quote Entered', () => {
   const ds = buildDataset({ totalShipments: 300 })
-  const allowed = new Set(PIPELINE_ORDER)
+  const allowed = new Set([...PIPELINE_ORDER, ...TENDER_HISTORY_ACTIONS])
   let checked = 0
   for (const d of ds.details.values()) {
     for (const h of d.historyList) {
@@ -749,7 +757,8 @@ test('history entries are strictly time-ordered and follow the catalog pipeline 
     for (const h of d.historyList) {
       const ts = new Date(h.timestamp).getTime()
       assert.ok(ts > prevTs, `entry "${h.action}" timestamp did not strictly increase`)
-      const rank = PIPELINE_ORDER.indexOf(h.action)
+      // tender actions on earlier ranks sit between Auto Tender Validation and Tender Sent
+      const rank = TENDER_HISTORY_ACTIONS.includes(h.action) ? PIPELINE_ORDER.indexOf('Auto Tender Validation') : PIPELINE_ORDER.indexOf(h.action)
       assert.ok(rank >= prevRank, `"${h.action}" (rank ${rank}) appears out of pipeline order after rank ${prevRank}`)
       prevTs = ts
       prevRank = rank
@@ -2017,9 +2026,15 @@ test('a tender response is internally coherent (LINX-15895)', () => {
           assert.ok(['Manual Update', 'Automatic Update'].includes(o.responseMethod),
             `a cancelled tender was recorded by '${o.responseMethod}' — the carrier's feed`)
         }
-        // A carrier that said no said why; a cancellation records why we pulled it.
-        if (o.status !== 'Accepted') {
+        // A cancellation records why we pulled it. A carrier that said no says
+        // why with a CODE (LINX-15897); Comments are optional — required only
+        // with the giveback flag.
+        if (o.status === 'Cancelled') {
           assert.ok(o.responseComments, `${o.scac} '${o.status}' carries no comment`)
+        }
+        if (o.status === 'Declined') {
+          assert.ok(o.declineReasonCode && o.declineReason, `${o.scac} Declined with no reason code`)
+          if (o.carrierGaveBack) assert.ok(o.responseComments, `${o.scac} gave back with no comment`)
         }
       } else {
         unanswered++
@@ -2268,4 +2283,32 @@ test('lineage: zero new draws — listed rows and order details reproduce the co
   assert.equal(JSON.stringify(lineageDs.shipments, null, 2), readFileSync(new URL('shipments.json', dir), 'utf8'))
   assert.equal(JSON.stringify(lineageDs.orderDetails), readFileSync(new URL('order-details.json', dir), 'utf8'))
   assert.equal(JSON.stringify(lineageDs.orders, null, 1), readFileSync(new URL('orders.json', dir), 'utf8'))
+})
+
+// LINX-15899/15897 §8 — every Declined/Cancelled option other than the
+// History focus has a tender-action trail consistent with its final status,
+// and a giveback reads Tender → Accept → Decline with the flag in the note.
+test('tender-action history matches each option\'s status path (LINX-15899/15897)', () => {
+  const ds = buildDataset()
+  let gave = 0, trails = 0
+  for (const d of ds.details.values()) {
+    for (const o of d.shippingOptionList ?? []) {
+      const trail = d.historyList.filter((h) => TENDER_HISTORY_ACTIONS.includes(h.action) && h.scac === o.scac)
+      if (!trail.length) continue
+      trails++
+      const path = trail.map((h) => `${h.action}:${h.oldValue}>${h.newValue}`)
+      if (o.status === 'Cancelled') assert.deepEqual(path, ['Tender:—>Sent', 'Cancel:Sent>Cancelled'])
+      else if (o.carrierGaveBack) {
+        gave++
+        assert.deepEqual(path, ['Tender:—>Sent', 'Accept:Sent>Accepted', 'Decline:Accepted>Declined'])
+        assert.equal(trail[2].optionNote.carrierGaveBack, true)
+      } else {
+        assert.equal(o.status, 'Declined')
+        assert.deepEqual(path, ['Tender:—>Sent', 'Decline:Sent>Declined'])
+        assert.equal(trail[1].optionNote.code, o.declineReasonCode)
+      }
+    }
+  }
+  assert.ok(trails > 500, `only ${trails} tender-action trails`)
+  assert.ok(gave > 10, `only ${gave} givebacks`)
 })

@@ -1,7 +1,7 @@
 import React from 'react'
 
 /**
- * Button — atom (6 variants × 3 sizes, plus disabled).
+ * Button — atom (7 variants × 3 sizes, plus disabled).
  *
  * Variants and where to use them:
  * - `primary`   — main CTA. Dark fill, works on light surfaces.
@@ -11,6 +11,8 @@ import React from 'react'
  * - `ghost`     — like outline but no border at idle. Quiet action on dark surfaces.
  * - `error`     — soft destructive action on light surfaces. Light-red fill (Bittersweet/100) + red
  *                text (Bittersweet/600); hover/pressed deepen via the Bittersweet ladder.
+ * - `purple`    — external (customer) change action, e.g. Review Order Change. Same ladder as
+ *                `error` in Purple (100 → 200 fill, 800 → 900 label). Figma ships md only.
  * - `link`      — text-only affordance (no bg, no border, no shadow). Carolina-blue text. Used for
  *                "Go to X" jump links and similar tertiary actions on light surfaces.
  * - `icon`      — icon-only button (sm), Secondary visual treatment. Pass `icon` and no children;

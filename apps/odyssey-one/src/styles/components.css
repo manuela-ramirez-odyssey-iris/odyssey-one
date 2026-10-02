@@ -1865,6 +1865,23 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--bittersweet-800);
   box-shadow: none;
 }
+/* Purple — the Error ladder in Purple, for external (customer) change actions
+   only (e.g. Review Order Change). Figma ships md only (user, S164); sm/lg
+   still render via the size classes. Disabled = the shared opacity rule. */
+.btn--purple {
+  background: var(--purple-100);
+  color: var(--purple-800);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
+.btn--purple:hover:not(:disabled) {
+  background: var(--purple-200);
+}
+.btn--purple:active:not(:disabled) {
+  background: var(--purple-200);
+  color: var(--purple-900);
+  box-shadow: none;
+}
 /* Link — text-only tertiary action on light surfaces. No bg / border / shadow at any state.
    Ladder inverts the icon-button pattern: hover LIGHTENS (Carolina Blue 400),
    press DARKENS to DSN/900 (the "committed action" feel).
@@ -6706,7 +6723,7 @@ button.breadcrumb__label:focus-visible {
    Tracking Link URL) stays visible. The <bdi> keeps punctuation from
    reordering under rtl. */
 /* size="mini" (Figma `Size=Mini`, 4254:904, D22) — cells hug content, label BESIDE value
-   (8px gap; briefly stacked, reverted — user, D22), 8/12 padding, value label/sm. Cells hug content (no
+   (8px gap; briefly stacked, reverted — user, D22), 8/12 padding, value label/sm MEDIUM, labels Title Case (no uppercase). Cells hug content (no
    grow, no 160px ceiling); it's the whole BAND that sticky widens by 20%,
    clamped to the window — cells stay centered in it. */
 .summary-strip--sticky {
@@ -6725,9 +6742,13 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-2);
   padding: var(--spacing-2) var(--spacing-3);
 }
+.summary-strip--mini .summary-strip__label {
+  text-transform: none;                /* Title Case as passed (consumers pass natural case) — no shouting caps in the pinned band (user, D22) */
+}
 .summary-strip--mini .summary-strip__value {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium); /* lighter than Default's semibold — less noise in the pinned band (user, D22) */
 }
 @media (prefers-reduced-motion: reduce) {
   .summary-strip--sticky { transition: none; }
@@ -6819,6 +6840,27 @@ button.breadcrumb__label:focus-visible {
    that on a saturated pill; on a pale one only the dark ink can. */
 .stop-badge--changed   .stop-badge__status { background: var(--purple-100); color: var(--purple-800); border-color: var(--purple-800); }
 /* pending renders no status circle (not reached yet — Figma Pending variant) */
+
+/* TimelineDot (Figma 6945:301) — 10px disc, 2px inside White ring (6px of color).
+   Raw 10/2px = component geometry (strategic-tokens). Shades are one step
+   brighter than --badge-*-text: a 6px dot in the badge-text shade reads black. */
+.odyssey-timeline-dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--white);
+  box-sizing: border-box;
+  box-shadow: var(--shadow-base);
+}
+.odyssey-timeline-dot--amber  { background: var(--sunrise-yellow-300); }
+.odyssey-timeline-dot--blue   { background: var(--ice-blue-600); }
+.odyssey-timeline-dot--green  { background: var(--caribbean-green-600); }
+.odyssey-timeline-dot--red    { background: var(--bittersweet-600); }
+.odyssey-timeline-dot--purple { background: var(--purple-800); }
+.odyssey-timeline-dot--gray   { background: var(--deep-sea-neutral-400); }
+.odyssey-timeline-dot--info   { background: var(--carolina-blue-400); }
 
 .odyssey-timeline {
   display: flex;

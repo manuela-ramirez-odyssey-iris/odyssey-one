@@ -87,9 +87,9 @@ describe('HistoryTab', () => {
     const data = {
       entries: [
         { user: 'A', timestamp: '2026-06-02T14:05:00.000Z', action: 'Delivery Failed', category: 'create', outcome: 'failure', details: 'd1' },
-        { user: 'B', timestamp: '2026-06-02T14:05:00.000Z', action: 'Message Sent', category: 'tender', outcome: 'success', details: 'd2' },
+        { user: 'B', timestamp: '2026-06-02T14:05:00.000Z', action: 'Message Sent', category: 'completion', outcome: 'success', details: 'd2' },
         { user: 'C', timestamp: '2026-06-02T14:05:00.000Z', action: 'Carrier Updated', category: 'completion', outcome: 'update', details: 'd3' },
-        { user: 'D', timestamp: '2026-06-02T14:05:00.000Z', action: 'Tender Response Received', category: 'tender', outcome: 'neutral', details: 'd4' },
+        { user: 'D', timestamp: '2026-06-02T14:05:00.000Z', action: 'Tender Response Received', category: 'completion', outcome: 'neutral', details: 'd4' },
         { user: 'E', timestamp: '2026-06-02T14:05:00.000Z', action: 'Planned Shipment Sent', category: 'completion', outcome: 'info', details: 'd5' },
       ],
     }
@@ -165,7 +165,7 @@ describe('HistoryTab', () => {
       entries: [
         {
           user: 'Net Native', source: 'Net Native', timestamp: '2026-06-02T14:05:00.000Z', action: 'Tender Sent',
-          category: 'tender', outcome: 'update', details: 'd1',
+          category: 'completion', outcome: 'update', details: 'd1',
           author: { name: 'Net Native', kind: 'system' },
         },
         {
@@ -484,5 +484,18 @@ describe('HistoryTab — lineage', () => {
     expect(container.querySelector('.lineage-chevron--leaf')).toBeNull()
     const rows = container.querySelectorAll('.lineage-tree > .lineage-row, .lineage-tree > .lineage-strip')
     expect(rows[rows.length - 1].className).toContain('lineage-row--last')
+  })
+})
+
+// LINX-17756 — tender entries (incl. LINX-15899/15897 §6 action rows) render
+// in TenderHistoryTab (TenderHistoryTab.test.jsx), NOT in Shipment History.
+describe('HistoryTab — tender events are excluded (LINX-17756 AC-02)', () => {
+  it('drops category tender entries and keeps the rest', () => {
+    render(<HistoryTab data={{ entries: [
+      { user: 'ERP', source: 'ERP', timestamp: '2026-10-01T10:00:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'success', details: 'created row' },
+      { user: 'Net Native', source: 'Net Native', timestamp: '2026-10-01T11:00:00.000Z', action: 'Tender Sent', category: 'tender', outcome: 'update', details: 'tender row' },
+    ] }} />)
+    expect(screen.getByText('created row')).toBeTruthy()
+    expect(screen.queryByText('tender row')).toBe(null)
   })
 })

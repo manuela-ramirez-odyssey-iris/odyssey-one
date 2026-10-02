@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Alert, Badge, Button, Dropdown, TextArea, TitleSubtitle, StopBadge } from '@odyssey/ui'
+import { createPortal } from 'react-dom'
+import { Info } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Alert, Badge, Button, Dropdown, TextArea, TitleSubtitle, SubAccordion, Timeline, Tooltip } from '@odyssey/ui'
 import { decodeToken } from '../spotboard/token.js'
 import { useShipmentDetail } from '../api/queries/useShipmentDetail'
 import { saveTenderOption } from '../api/services/shipmentService'
 import { routingOptionVmToDto } from '../api/mappers/mapSellShipmentOutToDetail'
 import { formatDateTimeMDYHM } from '../lib/dates.js'
+import { legMiles } from '../utils/legMiles.js'
 import { isEmailNotify } from '../tender/email/tenderEmail.js'
-import { buildTenderEmailContext, toEmailFor } from '../tender/email/tenderEmailContext.js'
+import { tenderExpiry } from '../tender/email/tenderEmailContext.js'
 import { PLANNING_GROUP_MAILBOX } from '../spotboard/email/emailContext.js'
 import { HeroBackground, carrierInitials } from './externalPageChrome.jsx'
 import { HERO_IMAGES_LAND } from '../heroImages'
 import { useHeroRotation } from '../hooks/useHeroRotation'
+import { DECLINE_REASONS as REASON_CODES } from '../data/declineReasons.js'
+import { tenderWriteExtras } from '../lib/tenderAction.js'
 import './carrierBid.css'
 import './tenderReview.css'
 
@@ -22,18 +28,45 @@ const HERO_INITIAL_INDEX = 0
 const HERO_SRC = HERO_IMAGES_LAND[HERO_INITIAL_INDEX]
 const ENTER_STEP_MS = 90
 
-const DECLINE_REASONS = [
-  'No capacity available',
-  'Rate too low',
-  'Lane not served',
-  'Cannot meet pickup or delivery window',
-  'Other',
-].map((r) => ({ value: r, label: r }))
+// LINX-15897 (A3) — the same 20 coded reasons as the planner's Decline dialog,
+// replacing DEC-182's 5 placeholders. value = code; the description is what
+// `declineReason` keeps.
+const DECLINE_REASONS = REASON_CODES.map((r) => ({ value: r.code, label: `${r.code} — ${r.description}` }))
 
 const COMMENTS_MAX = 200
 
+// One stop in the Stops tab's markup, carrying only Papu's PDF fields.
+function TenderStop({ stop, index, hasLeg, tipped }) {
+  const isPickup = stop.type === 'pickup'
+  const field = (label, value) => (
+    <div className="stops-field">
+      <span className="stops-field__label">{label}:</span>
+      <span className="stops-field__value">{value || '--'}</span>
+    </div>
+  )
+  return (
+    <div className="tender-stop" data-stop-index={index}>
+      <div className="stops-item__header">
+        <span className="stops-item__stop-label">stop {stop.stopNumber}</span>
+        <Badge variant="green">{isPickup ? 'Pickup' : 'Delivery'}</Badge>
+      </div>
+      <div className="stops-item__fields">
+        {field('Location', stop.location)}
+        {field('Address', stop.address)}
+        {field(isPickup ? 'Pickup' : 'Deliver', stop.date)}
+      </div>
+      {/* Order change's leg cue (DEC-226): a decorative Info icon beside the
+          line to the next stop; hovering it or the line shows the distance. */}
+      {hasLeg && <span className="tender-stop__leg-icon" data-tipped={tipped || undefined} aria-hidden="true"><Info {...ICON_MD} /></span>}
+    </div>
+  )
+}
+
 export default function TenderReview() {
   const { token } = useParams()
+  // ?demo=1 (the /tender-emails gallery's links; Adam, 2026-10-01): the answer
+  // shows on the page but is never written, so the link never stops being open.
+  const demo = useSearchParams()[0].get('demo') === '1'
   const decoded = useMemo(() => decodeToken(token), [token])
   const shipmentId = decoded?.shipmentId ?? null
   const scac = decoded?.scac ?? null
@@ -51,6 +84,9 @@ export default function TenderReview() {
   const [declineReason, setDeclineReason] = useState('')
   const [comments, setComments] = useState('')
   const [saving, setSaving] = useState(false)
+  // Leg-distance tooltip — EditStopsView's showRailTip, minus drag/panels:
+  // body portal, fixed, no pointer events; opens left of the line.
+  const [legTip, setLegTip] = useState(null)
 
   const effectiveOption = localOption ?? option
 
@@ -156,7 +192,7 @@ export default function TenderReview() {
   )
 
   // ── Accept / Decline write (spec §4) ────────────────────────────────────
-  async function respond(patch) {
+  async function respond(patch, action) {
     if (!option || !shipmentId) return
     setSaving(true)
     const now = formatDateTimeMDYHM(new Date())
@@ -170,7 +206,9 @@ export default function TenderReview() {
       modifyDate: now,
     }
     try {
-      await saveTenderOption(shipmentId, routingOptionVmToDto(updated), { expectStatus: 'Sent' })
+      // tenderAction (+ TE-4 on Decline) rides the payload for saveTender's
+      // guard + history entry (LINX-15899 spec §6).
+      if (!demo) await saveTenderOption(shipmentId, { ...routingOptionVmToDto(updated), ...tenderWriteExtras(updated, action) }, { expectStatus: 'Sent' })
       setLocalOption(updated)
       setDeclining(false)
     } catch (err) {
@@ -183,12 +221,14 @@ export default function TenderReview() {
     }
   }
 
-  const handleAccept = () => respond({ status: 'Accepted' })
+  const handleAccept = () => respond({ status: 'Accepted' }, 'Accept')
+  // `declineReason` state holds the CODE (the Dropdown's value).
   const handleDeclineConfirm = () => respond({
     status: 'Declined',
-    declineReason,
+    declineReasonCode: declineReason,
+    declineReason: REASON_CODES.find((r) => r.code === declineReason)?.description ?? null,
     responseComments: comments.trim() ? comments.trim() : null,
-  })
+  }, 'Decline')
   const handleDeclineCancel = () => {
     setDeclining(false)
     setDeclineReason('')
@@ -244,7 +284,6 @@ export default function TenderReview() {
     responseContent = (
       <Alert variant="success" showClose={false}>
         {`Tender accepted – Recorded on ${effectiveOption.responseDateTime}. Reference ${shipment.odysseyShipmentIdentifier}.`}
-        {!isEmailEdi && <><br />{`A confirmation has been emailed to ${toEmailFor(effectiveOption.scac)}.`}</>}
       </Alert>
     )
   } else if (effectiveOption.status === 'Declined') {
@@ -301,34 +340,51 @@ export default function TenderReview() {
 
   const orders = shipment.orderDetails ?? []
   const productOrders = shipment.productData?.orders ?? []
-  const lines = productOrders.flatMap((o) => o.lines ?? [])
   const dash = (v) => (v && v !== '--' ? v : '--')
-  // Same first/middle/last split the tender email uses — one source, so the
-  // page and TE-1 never disagree on the lane.
-  const laneCtx = buildTenderEmailContext({ shipment, option: effectiveOption })
-  const middleStops = stops.filter((st) => st !== firstPickup && st !== lastDelivery)
+  // City, state, postal of a stop — its location minus the facility name.
+  const cityOf = (st) => (st?.location ?? '--').split(', ').slice(1).join(', ') || '--'
   // P1/P2… for pickups, D1/D2… for deliveries, in stop order.
   const stopLabels = new Map()
   let pCount = 0
   let dCount = 0
   for (const st of stops) stopLabels.set(st, st.type === 'pickup' ? `P${++pCount}` : `D${++dCount}`)
   const stopLabel = (st) => stopLabels.get(st) ?? '--'
+  const showLegTip = (e) => {
+    const hit = e.target.closest?.('.odyssey-timeline__rail, .tender-stop__leg-icon')
+    const row = hit?.closest('.odyssey-timeline__row')
+    const i = Number(row?.querySelector('[data-stop-index]')?.dataset.stopIndex)
+    if (!row || !(i < stops.length - 1)) { setLegTip(null); return }
+    const rr = row.querySelector('.odyssey-timeline__rail').getBoundingClientRect()
+    const r = row.getBoundingClientRect()
+    const miles = legMiles(stops[i], stops[i + 1])
+    setLegTip({
+      index: i,
+      x: rr.left + rr.width / 2 - 8,
+      y: Math.min(Math.max(e.clientY, r.top), r.bottom),
+      subtitle: `Distance from ${stopLabel(stops[i])} to ${stopLabel(stops[i + 1])}`,
+      content: miles == null ? '--' : `${miles.toFixed(2)} mi`,
+    })
+  }
 
-  // S159 (team review 2026-09-30, Papu's Tender Review Page PDF): ONE details
-  // card with plain section headings — no SubAccordion per section — and a
-  // separate response card. Load References = four separate fields per order.
+  // Four collapsible SubAccordions (user, 2026-10-01) — supersedes S159's
+  // one-card-with-plain-headings layout. Only one rule: summary facts / stops.
+  // Load References = four separate fields per order.
+  const block = (i, title, extra, body) => (
+    <div className={`tender-review-block ${sectionEnterClass}`} style={{ '--enter-delay': `${i * ENTER_STEP_MS}ms` }}>
+      <SubAccordion title={title} defaultExpanded {...extra}>
+        <div className="tender-review-body">{body}</div>
+      </SubAccordion>
+    </div>
+  )
+
   return (
     <div className="carrier-bid-page">
       <HeroBackground heroIndex={heroIndex} />
       {navbar}
 
       <main className="carrier-bid-page__main">
-        {/* One card, app-native look (TitleSubtitle facts, no tinted bands).
-            Keeps the tender email's PLACEMENT idea — lane with pickup and
-            delivery on either side and the stops in the middle (user, S159). */}
-        <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': '0ms' }}>
-          <div className="tender-review-top">
-            <Badge variant="blue">{`Tendered ${effectiveOption.notifyDateTime}`}</Badge>
+        {block(0, 'Summary', { badge: <Badge variant="blue">{`Tender Expires ${tenderExpiry(effectiveOption.notifyDateTime) || '--'}`}</Badge> }, (
+          <>
             <div className="tender-review-facts">
               <TitleSubtitle subtitle="Shipper" title={shipment.customerName || '--'} />
               <TitleSubtitle subtitle="Carrier" title={`${effectiveOption.scac} - ${effectiveOption.carrierName}`} />
@@ -337,110 +393,100 @@ export default function TenderReview() {
               <TitleSubtitle subtitle="Weight" title={weightDisplay} />
               <TitleSubtitle subtitle="Hazmat" title={order?.hazmat || '--'} />
             </div>
-          </div>
-
-          <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Lane</h2>
-            <div className="tender-lane">
-              <div className="tender-lane__end">
-                <StopBadge label={stopLabel(firstPickup)} status="pending" />
-                <span className="text-label-sm-semibold">{firstPickup?.location ?? '--'}</span>
-                <span className="text-label-sm-regular tender-review-muted">{firstPickup?.address ?? '--'}</span>
-                <TitleSubtitle subtitle="Pickup" title={laneCtx.pickupLine || '--'} />
+            {/* The Stops tab's LOOK and arrival animation (shared Timeline +
+                its stops-item classes), but only the PDF's per-stop data:
+                location, address, pickup/deliver date (user, 2026-10-01).
+                Keyed on the entrance class so it remounts — and animates —
+                once the page is actually visible. */}
+            <div className="tender-review-stops" onMouseMove={showLegTip} onMouseLeave={() => setLegTip(null)}>
+              <p className="tender-review-route text-label-base-semibold">
+                {`${cityOf(firstPickup)} → ${cityOf(lastDelivery)}`}
+              </p>
+              <div className="tender-review-facts">
+                <TitleSubtitle subtitle="Distance" title={distanceDisplay} />
+                {/* ponytail: first order's requestedDeliveryDate (mapped to
+                    latestDelivery); a consolidation shows its first order's. */}
+                <TitleSubtitle subtitle="Requested delivery" title={dash(order?.latestDelivery)} />
               </div>
-
-              <div className="tender-lane__middle">
-                <span className="text-label-sm-medium">{distanceDisplay}</span>
-                <div className="tender-lane__line" aria-hidden="true" />
-                {middleStops.length === 0 ? (
-                  <span className="text-label-xs-regular tender-review-muted">No intermediate stops</span>
-                ) : (
-                  <ul className="tender-lane__stops">
-                    {middleStops.map((st, i) => (
-                      <li key={i}>
-                        <StopBadge label={stopLabel(st)} status="pending" />
-                        <span className="tender-lane__stop-text">
-                          <span className="text-label-xs-medium">{st.location}</span>
-                          <span className="text-label-xs-regular tender-review-muted">{`${st.type === 'pickup' ? 'Pickup' : 'Drop-off'}: ${st.date ?? '--'}`}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="tender-lane__end tender-lane__end--to">
-                <StopBadge label={stopLabel(lastDelivery)} status="pending" />
-                <span className="text-label-sm-semibold">{lastDelivery?.location ?? '--'}</span>
-                <span className="text-label-sm-regular tender-review-muted">{lastDelivery?.address ?? '--'}</span>
-                <TitleSubtitle subtitle="Deliver" title={laneCtx.deliverLine || '--'} />
-              </div>
+              <Timeline
+                key={sectionEnterClass}
+                animate={bgLoaded}
+                className="stops-timeline"
+                aria-label="All stops"
+                items={stops.map((st, i) => ({
+                  key: st.stopNumber ?? i,
+                  label: stopLabel(st),
+                  status: st.status || 'completed',
+                  content: <TenderStop stop={st} index={i} hasLeg={i < stops.length - 1} tipped={legTip?.index === i} />,
+                }))}
+              />
             </div>
-          </div>
+          </>
+        ))}
 
-          <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Equipment & Freight</h2>
+        {/* Field order per Papu's Tender Review Page PDF (vault/00-inbox). */}
+        {block(1, 'Equipment & Freight', null, (
+          <>
             <div className="tender-review-facts">
               {/* Mode: no field on the detail VM yet (shipmentMode is DASH) —
                   the planner's override is the only source today. */}
               <TitleSubtitle subtitle="Mode" title={dash(shipment.overrides?.mode)} />
+              <TitleSubtitle subtitle="Equipment" title={effectiveOption.equipment || '--'} />
               <TitleSubtitle subtitle="Carrier ID" title={effectiveOption.scac || '--'} />
+              <TitleSubtitle subtitle="Total weight" title={weightDisplay} />
               <TitleSubtitle subtitle="Package count" title={dash(shipment.stopsData?.summary?.packageCount)} />
               <TitleSubtitle subtitle="Freight terms" title={dash(order?.paymentTerms)} />
               <TitleSubtitle subtitle="Offered rate" title={offeredRate || '--'} />
             </div>
-          </div>
+            {/* Papu 2026-10-01: one Load References section per load/order, its
+                own line items under it. Product orders come from the same
+                orderList as orderDetails, so they pair by index. */}
+            {orders.map((o, oi) => (
+              <div key={oi} className="tender-review-load">
+                <h3 className="tender-review-h text-heading-lg-semibold">
+                  {orders.length > 1 ? `Load References · ${oi + 1} of ${orders.length}` : 'Load References'}
+                </h3>
+                <div className="tender-review-facts tender-review-facts--4">
+                  <TitleSubtitle subtitle="Order Number" title={dash(o.orderNumber)} />
+                  {/* Load ID — source field in Buy Shipment Out still
+                      unidentified (team review 2026-09-30). */}
+                  <TitleSubtitle subtitle="Load ID" title={dash(o.loadId)} />
+                  <TitleSubtitle subtitle="Customer PO Number" title={dash(o.poNumber)} />
+                  <TitleSubtitle subtitle="Pickup Number" title={dash(o.pickupNumber)} />
+                </div>
+                {(productOrders[oi]?.lines ?? []).length > 0 && (
+                  <>
+                    <h3 className="tender-review-h text-heading-lg-semibold">Line Items</h3>
+                    {/* Columns per the paper tender (Line.png, team review 2026-09-30). */}
+                    <table className="tender-review-table">
+                      <thead>
+                        <tr>
+                          <th>Item/Description/<br />Hazmat Description</th>
+                          <th>Pkg Qty/<br />Hazmat Pkg. Group</th>
+                          <th>Hazmat Code/<br />Hazmat Class</th>
+                          <th>Weight/Volume<br />Dimensions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(productOrders[oi]?.lines ?? []).map((l, i) => (
+                          <tr key={i}>
+                            <td>{[l.shipItem, dash(l.description) !== '--' ? l.description : null, l.hazmat ? l.hazmatDescription : null].filter(Boolean).map((t, k) => <div key={k}>{t}</div>)}</td>
+                            <td><div>{l.packageCount}</div>{l.hazmat && <div>{l.hazmatGroup}</div>}</td>
+                            <td>{l.hazmat ? <><div>{l.hazmatUnNumber}</div><div>{l.hazmatClass}</div></> : '--'}</td>
+                            <td><div>{l.grossWeight}</div><div>{l.volume}</div></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </div>
+            ))}
+          </>
+        ))}
 
-          <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Load References</h2>
-            <table className="tender-review-table">
-              <thead>
-                <tr><th>Order Number</th><th>Load ID</th><th>Customer PO Number</th><th>Pickup Number</th></tr>
-              </thead>
-              <tbody>
-                {orders.map((o, i) => (
-                  <tr key={i}>
-                    <td>{dash(o.orderNumber)}</td>
-                    {/* Load ID — source field in Buy Shipment Out still
-                        unidentified (team review 2026-09-30). */}
-                    <td>{dash(o.loadId)}</td>
-                    <td>{dash(o.poNumber)}</td>
-                    <td>{dash(o.pickupNumber)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {lines.length > 0 && (
-            <div className="tender-review-section">
-              <h2 className="tender-review-h text-label-sm-semibold">Line Items</h2>
-              {/* Columns per the paper tender (Line.png, team review 2026-09-30). */}
-              <table className="tender-review-table">
-                <thead>
-                  <tr>
-                    <th>Item/Description/<br />Hazmat Description</th>
-                    <th className="is-num">Pkg Qty/<br />Hazmat Pkg. Group</th>
-                    <th>Hazmat Code/<br />Hazmat Class</th>
-                    <th>Weight/Volume<br />Dimensions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l, i) => (
-                    <tr key={i}>
-                      <td>{[l.shipItem, dash(l.description) !== '--' ? l.description : null, l.hazmat ? l.hazmatDescription : null].filter(Boolean).map((t, k) => <div key={k}>{t}</div>)}</td>
-                      <td className="is-num"><div>{l.packageCount}</div>{l.hazmat && <div>{l.hazmatGroup}</div>}</td>
-                      <td>{l.hazmat ? <><div>{l.hazmatUnNumber}</div><div>{l.hazmatClass}</div></> : '--'}</td>
-                      <td><div>{l.grossWeight}</div><div>{l.volume}</div></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <div className="tender-review-section">
-            <h2 className="tender-review-h text-label-sm-semibold">Pickup & Delivery Instructions</h2>
+        {block(2, 'Pickup & Delivery Instructions', null, (
+          <>
             {allInstructions.length === 0 ? (
               <p className="text-label-sm-regular tender-review-muted">No special instructions.</p>
             ) : (
@@ -448,16 +494,24 @@ export default function TenderReview() {
                 {allInstructions.map((instr, i) => <li key={i}>{instr.text}</li>)}
               </ol>
             )}
-          </div>
-        </section>
+          </>
+        ))}
 
-        <section className={`tender-review-card ${sectionEnterClass}`} style={{ '--enter-delay': `${ENTER_STEP_MS}ms` }}>
-          <h2 className="tender-review-h text-label-sm-semibold">Your Response</h2>
-          <p className="text-label-sm-regular tender-review-lede">
-            This decision is final and will be sent to {PLANNING_GROUP_MAILBOX} immediately.
-          </p>
-          {responseContent}
-        </section>
+        {block(3, 'Your Response', null, (
+          <>
+            <p className="text-label-sm-regular tender-review-lede">
+              This decision is final and will be sent to {PLANNING_GROUP_MAILBOX} immediately.
+            </p>
+            {responseContent}
+          </>
+        ))}
+
+        {legTip && createPortal(
+          <div style={{ position: 'fixed', left: legTip.x, top: legTip.y, transform: 'translate(-100%, -50%)', width: 'max-content', zIndex: 9999, pointerEvents: 'none' }}>
+            <Tooltip badgeVariant="info" groups={[{ subtitle: legTip.subtitle, content: legTip.content }]} />
+          </div>,
+          document.body,
+        )}
 
         <p className="tender-review-footer text-label-xs-regular">
           Do not forward this link. It is unique to this tender option.

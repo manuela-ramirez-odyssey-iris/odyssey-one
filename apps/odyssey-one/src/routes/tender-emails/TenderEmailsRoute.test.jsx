@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, cleanup, fireEvent } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import TenderEmailsRoute from './TenderEmailsRoute.jsx'
+import { emailsForScenario } from './fixture.js'
+
+const render = (ui) => rtlRender(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 
 afterEach(cleanup)
 
@@ -33,15 +37,9 @@ describe('TenderEmailsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: /Consolidation tender/ }))
     expect(screen.getAllByText(/multiple deliveries/).length).toBeGreaterThan(0)
   })
-  it('the accepted scenario previews TE-3 — acceptance subject, big check, no CTA or rate', () => {
+  it('hides the TE-3 accepted email (Papu 2026-10-01)', () => {
     render(<TenderEmailsRoute />)
-    fireEvent.click(screen.getByRole('button', { name: /Tender accepted \(confirmation\)/ }))
-    expect(screen.getByText('TE-3')).toBeTruthy()
-    const frame = screen.getByTitle('Email preview')
-    expect(frame.getAttribute('srcdoc')).toContain('Tender Acceptance Confirmation to')
-    expect(frame.getAttribute('srcdoc')).toContain('check-success.png')
-    expect(frame.getAttribute('srcdoc')).not.toContain('View Tender')
-    expect(frame.getAttribute('srcdoc')).not.toContain('Rate')
+    expect(screen.queryByRole('button', { name: /Tender accepted/ })).toBe(null)
   })
   it('the canceled scenario previews TE-4 — cancellation subject, no review link', () => {
     render(<TenderEmailsRoute />)
@@ -51,5 +49,11 @@ describe('TenderEmailsRoute', () => {
     expect(doc).toContain('Tender Cancellation to')
     expect(doc).toContain('x-error.png')
     expect(doc).not.toContain('/tender-review/')
+  })
+  it('a fetched real shipment drives the email, so Review links to its real token', () => {
+    const shipment = { odysseyShipmentIdentifier: 'O1', customerName: 'X', orderDetails: [], stopsData: { stops: [] },
+      routingData: { options: [{ scac: 'SNLU', carrierName: 'S', api: 'Email', tenderToken: 'real-tok' }] } }
+    const [email] = emailsForScenario('sent-email', { 'sent-email': shipment })
+    expect(email.html).toContain('/tender-review/real-tok?demo=1')
   })
 })

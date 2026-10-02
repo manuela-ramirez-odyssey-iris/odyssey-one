@@ -17,6 +17,8 @@
     "connect:publish": "npm run connect:publish -w @odyssey/ui",
     "connect:parse": "npm run connect:parse -w @odyssey/ui",
     "tokens:audit": "node tools/tokens-audit.mjs",
+    "ds:md": "node tools/design-system-md.mjs",
+    "ds:md:audit": "node tools/design-system-md.mjs --check",
     "domain-usage": "node tools/domain-usage.mjs",
     "progression:sheets": "node tools/progression-sheets.mjs",
     "progression:audit": "node tools/progression-sheets.mjs --check"

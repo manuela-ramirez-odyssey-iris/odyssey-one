@@ -42,10 +42,17 @@ describe('tenderEmail — TE-1 (Email)', () => {
   it('subject: direct shipment format, verbatim', () => {
     expect(m.subject).toBe('Tender Notification to CCNI of Shipment ID:50001096, for USALCO delivery:0000000091142')
   })
-  it('is kind TE-1 with the Review & Respond CTA and the tendered notice', () => {
+  it('is kind TE-1 with the "Review & respond" CTA and the Tender Expires notice (Papu 2026-10-01)', () => {
     expect(m.kind).toBe('TE-1')
-    expect(m.html).toContain('Review &amp; Respond')
-    expect(m.html).toContain('Tendered 09/18/2026 14:12 EDT')
+    expect(m.html).toContain('Review &amp; respond')
+    expect(m.html).toContain('Tender Expires 09/19/2026 14:12 EDT')
+    expect(m.html).not.toContain('Tendered 09/18/2026')
+  })
+  it('the footer carries the issuing office, not a hardcoded line', () => {
+    expect(m.html).toContain('3545 Whitehall Park Drive, Charlotte NC 28273')
+    const other = tenderEmail({ ...ctx, office: { name: 'Odyssey Test Office', address: '1 Test St, Houston TX 77001', phone: '000-000-0000' } })
+    expect(other.html).toContain('1 Test St, Houston TX 77001')
+    expect(other.html).not.toContain('Whitehall Park')
   })
   it('CTA href carries the token', () => {
     expect(m.html).toContain(`/tender-review/${ctx.token}`)
@@ -68,11 +75,11 @@ describe('tenderEmail — TE-1 (Email)', () => {
 describe('tenderEmail — TE-2 (Email & EDI)', () => {
   const ctx = buildTenderEmailContext({ shipment, option: { ...option, api: 'Email & EDI' } })
   const m = tenderEmail(ctx)
-  it('is kind TE-2 with the Review Tender CTA and the EDI notice, no Tendered notice', () => {
+  it('is kind TE-2 with the "Tender review" CTA, the EDI note, and the SAME Tender Expires notice (Papu 2026-10-01)', () => {
     expect(m.kind).toBe('TE-2')
-    expect(m.html).toContain('Review Tender')
+    expect(m.html).toContain('Tender review')
     expect(m.html).toContain('also sent to you by EDI')
-    expect(m.html).not.toContain('Tendered 09/18/2026')
+    expect(m.html).toContain('Tender Expires 09/19/2026 14:12 EDT')
   })
   it('contains no Accept/Decline wording anywhere in html or text', () => {
     expect(m.html).not.toMatch(/accept|decline/i)

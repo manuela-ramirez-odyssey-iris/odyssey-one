@@ -116,12 +116,14 @@ Unified neutral scale. Consolidated from DS-Gray-Neutral, Gray/*, gray/*, neutra
 | 100 | #D0F1FF | `bay-of-many/100` |
 | 950 | #063A83 | `bay-of-many/950` |
 
-#### Purple (2 tokens) — Purple Badges
+#### Purple (4 tokens) — Purple Badges + Button `purple`
 
 | Step | Hex | Figma Token |
 |------|-----|-------------|
 | 100 | #EDE9FE | `purple/100` |
+| 200 | #DDD6FE | `purple/200` |
 | 800 | #5B21B6 | `purple/800` |
+| 900 | #4C1D95 | `purple/900` |
 
 ### Semantic Tokens
 

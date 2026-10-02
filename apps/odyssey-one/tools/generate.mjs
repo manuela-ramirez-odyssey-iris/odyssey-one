@@ -84,7 +84,11 @@ import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 import { classCapacity } from '../src/components/orders/resolve/interfaceErrors.js'
 // LINX-15895 — shared with src/data/routingHistory.js so the seeded comment and
 // the one a derived historical version shows come from ONE table.
-import { responseCommentFor } from '../src/data/responseComments.js'
+import { responseCommentFor, GAVE_BACK_BY_CODE } from '../src/data/responseComments.js'
+import { DECLINE_REASONS } from '../src/data/declineReasons.js'
+// LINX-15897 — share of (non-failed-lifecycle) Declined options seeded as
+// "carrier accepted, then gave the load back" (spec 2026-10-01 §8: "a few").
+const GAVE_BACK_SHARE = 0.08;
 // Plan B2 (DEC-198) — single distance function shared with the Edit Stops
 // sandbox (stopsSandbox.js), so the seed and the live UI can't disagree.
 import { totalMiles } from '../src/utils/legMiles.js'
@@ -100,7 +104,7 @@ import { shipmentStatusFor } from '../src/lib/shipmentStatus.js'
 import { redateOrderChange, applyStopDates } from '../src/lib/orderChangeRouting.js'
 // S164 — lineage. The same pure helpers the live Apply uses (one rule for a
 // dormant shell's trail, a lineage node, and a roster's stops/lane).
-import { DORMANT_MARK, dormancyEvent, lineageNode, removeOrdersFromSource, rowFromStops } from '../api/_lib/shipments.mjs'
+import { DORMANT_MARK, dormancyEvent, lineageNode, removeOrdersFromSource, rowFromStops, tenderHistoryEntry } from '../api/_lib/shipments.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -1297,7 +1301,25 @@ function generateShipment(index, chainOverride) {
       // above; the rest get the same pure expression (genDate/formatDateTime
       // touch no faker), a day after `notifyDateTime`'s genDate(baseDate, -1).
       if (!option.responseDateTime) option.responseDateTime = formatDateTime(genDate(baseDate, 0));
-      option.responseComments = responseCommentFor(status, option.lcePkId);
+      // LINX-15897 (spec 2026-10-01 §8) — a Declined row carries a coded reason
+      // and, sometimes, a giveback: the carrier accepted, then returned the
+      // load. Own salt per (shipment, rank) on the id-keyed PRNG, zero faker
+      // draws. Giveback only off the failed lifecycle: there the first Declined
+      // row is the History focus whose catalog trail reads "Sent → Declined"
+      // with no Accept, so a giveback would contradict it.
+      if (status === 'Declined') {
+        const rndD = mulberry32(seedFrom(`${sellShipment}:decline:${rank}`));
+        option.carrierGaveBack = !tenderFailed && rndD() < GAVE_BACK_SHARE;
+        const giveBackCode = option.carrierGaveBack && rndPick(rndD, Object.keys(GAVE_BACK_BY_CODE));
+        const reason = giveBackCode
+          ? DECLINE_REASONS.find((r) => r.code === giveBackCode)
+          : rndPick(rndD, DECLINE_REASONS);
+        option.declineReasonCode = reason.code;
+        option.declineReason = reason.description;
+      }
+      option.responseComments = option.carrierGaveBack
+        ? GAVE_BACK_BY_CODE[option.declineReasonCode]
+        : responseCommentFor(status, option.lcePkId, option.declineReasonCode);
     }
 
     // LINX-15795/15796 (S156) — a Sent/Accepted/Declined option notified by
@@ -1801,10 +1823,11 @@ function generateShipment(index, chainOverride) {
       : { name, email: `${first}.${last}@${customerEmailDomain(customer)}`, kind: 'external' };
   }
 
-  function pushHistory(action, category, source, details, outcome = 'success') {
+  // `extra` (LINX-17756): structured tender fields — added keys only, no draws.
+  function pushHistory(action, category, source, details, outcome = 'success', extra = {}) {
     const author = buildAuthor(action, source);
     historyEntries.push({
-      user: source, source, timestamp: clock.toISOString(), action, category, details, outcome, author,
+      user: source, source, timestamp: clock.toISOString(), action, category, details, outcome, author, ...extra,
     });
   }
   // Oxford-comma join — Consolidation Completed's template (catalog event
@@ -1953,6 +1976,54 @@ function generateShipment(index, chainOverride) {
       'Auto tender validation passed. Tender initiated.',
       'update'); // DEC-87: advances the lifecycle, not a milestone
 
+    // Hoisted from 8/9 below (pure finds, no draws) — the tender-action block
+    // needs it; see the 8/9 comment for why each fallback.
+    const focusOption = acceptedOption
+      || routingOptions.find(o => o.status === 'Sent' || o.status === 'To Be Tendered')
+      || routingOptions.find(o => o.status === 'Declined')
+      || routingOptions[0];
+
+    // LINX-15899/15897 §6/§8 — the tender ACTIONS on every option tendered
+    // before the focus carrier (the catalog's Tender Sent/Response below tells
+    // the focus option's story; the earlier ranks had none). Same entry builder
+    // as the live saveTender, so seed and live rows cannot drift.
+    // Status paths, each consistent with the option's final status:
+    //   Declined:  Tender (— → Sent) → Decline (Sent → Declined)
+    //   giveback:  Tender → Accept (Sent → Accepted) → Decline (Accepted → Declined)
+    //   Cancelled: Tender → Cancel (Sent → Cancelled)
+    // Zero faker draws: times off an id-keyed PRNG, actors off fields already
+    // on the option. `clock` is moved past them (a plain assignment, no draw),
+    // so the focus's Tender Sent still follows in time.
+    {
+      const rndH = mulberry32(seedFrom(sellShipment + ':tender-actions'));
+      let t = clock.getTime();
+      const at = (minMin, maxMin) => new Date(t += (minMin + rndH() * (maxMin - minMin)) * 60_000);
+      const planner = (o) => o.modifyUser ? { name: o.modifyUser, kind: 'internal' } : { name: 'OdysseyONE', kind: 'system' };
+      // who recorded a carrier answer (responseMethod semantics, LINX-15895 block above)
+      const responder = (o) => o.responseMethod === 'Manual Update' && o.responseUser ? { name: o.responseUser, kind: 'internal' }
+        : (o.apiSource === 'Email' || o.apiSource === 'Email & EDI') ? { name: `${o.scac} (email link)`, kind: 'external' }
+        : { name: 'Net Native', kind: 'system' };
+      const emailed = (o) => o.apiSource === 'Email' || o.apiSource === 'Email & EDI';
+      const push = (action, o, prevStatus, status, author, comm, commMessage, now) =>
+        historyEntries.push(tenderHistoryEntry({ action, option: { ...o, status }, prevStatus, author, comm, commMessage, now }));
+      for (const o of routingOptions) {
+        if (o === focusOption || (o.status !== 'Declined' && o.status !== 'Cancelled')) continue;
+        push('Tender', o, null, 'Sent', planner(o), 'Success', undefined, at(5, 90));
+        if (o.status === 'Cancelled') {
+          push('Cancel', o, 'Sent', 'Cancelled', o.responseMethod === 'Manual Update' && o.responseUser ? { name: o.responseUser, kind: 'internal' } : { name: 'Net Native', kind: 'system' },
+            'Success', undefined, at(30, 720));
+          continue;
+        }
+        let prev = 'Sent';
+        if (o.carrierGaveBack) {
+          push('Accept', o, 'Sent', 'Accepted', responder(o), null, undefined, at(30, 720));
+          prev = 'Accepted';
+        }
+        push('Decline', o, prev, 'Declined', responder(o), 'Success', emailed(o) ? 'TE-4' : undefined, at(30, 720));
+      }
+      clock = new Date(t);
+    }
+
     // 8/9. Tender Sent + Tender Response Received name the SAME carrier both
     // times — this generator doesn't model re-tender cascades (Sheet3 defers
     // "Manual tendering" from MVP). focusOption is this shipment's real
@@ -1965,25 +2036,27 @@ function generateShipment(index, chainOverride) {
     // back to rank-1) is what keeps the tender-timeout narrative below honest:
     // it only fires when NO option on this shipment shows a real response,
     // never alongside a Declined one.
-    const focusOption = acceptedOption
-      || routingOptions.find(o => o.status === 'Sent' || o.status === 'To Be Tendered')
-      || routingOptions.find(o => o.status === 'Declined')
-      || routingOptions[0];
+    // (focusOption hoisted above the tender-action block, which skips it.)
     advanceClock(0.01, 0.5);
     // D1: a To Be Tendered row was never sent, and the MVP catalog has no
     // event for it (DEC-80: the trail renders catalog events, never invents
     // them), so nothing is emitted. ponytail: buildAuthor still runs so the
     // faker stream (and every later shipment id) is unmoved.
+    // LINX-17756 AC-04/06/07 — the focus carrier and its methods on the row.
+    const focusFacts = (response = false) => ({
+      scac: focusOption.scac, carrierName: focusOption.carrierName, notifyMethod: focusOption.apiSource,
+      ...(response && focusOption.responseMethod ? { responseMethod: focusOption.responseMethod } : {}),
+    });
     if (toBeTendered) buildAuthor('Tender Sent', 'Net Native');
     else pushHistory('Tender Sent', 'tender', 'Net Native',
       `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`,
-      'update'); // DEC-87: advances the lifecycle, not a milestone
+      'update', focusFacts()); // DEC-87: advances the lifecycle, not a milestone
 
     if (hasAccepted) {
       advanceClock(0.5, 24);
       pushHistory('Tender Response Received', 'tender', 'Net Native',
         `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Accepted.`,
-        'success'); // DEC-87 milestone #1: a carrier committed
+        'success', focusFacts(true)); // DEC-87 milestone #1: a carrier committed
     } else if (hasSent) {
       // Genuinely mid-flight (tenderStatus === 'Sent', no accepted carrier
       // yet) — no response has arrived, so NO Tender Response Received event
@@ -2009,13 +2082,13 @@ function generateShipment(index, chainOverride) {
         // branch above is untouched — it stays 'success'.
         pushHistory('Tender Response Received', 'tender', 'Net Native',
           `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Declined.`,
-          'neutral');
+          'neutral', focusFacts(true));
       } else {
         // 'Cancelled' maps to the catalog's Timeout variant — this generator's
         // status enum has no literal "timeout"; "Cancelled" (no active carrier
         // decision recorded) is the closer real-world analogue than "Declined".
         pushHistory('Tender Response Received', 'tender', 'Net Native',
-          'No carrier response received. Tender timed out and was automatically declined.', 'failure');
+          'No carrier response received. Tender timed out and was automatically declined.', 'failure', focusFacts());
       }
 
       // PGI Response Received (validation-errors variant) — TERMINAL wrap-up,

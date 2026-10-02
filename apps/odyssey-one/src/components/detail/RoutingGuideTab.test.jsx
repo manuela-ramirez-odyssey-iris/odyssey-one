@@ -153,51 +153,54 @@ describe('RoutingGuideTab — Edit Quote persists the Rate', () => {
 
 // Accept/Decline/Cancel audit fields (Fix 4/5, 2026-08-10) — handleAction wrote
 // ONLY `status`. The clicked row is a genuine RESPONSE (Accept/Decline/Cancel
-// all count); the row auto-tendered by the Decline/Cancel cascade is a NOTIFY,
-// not a response — that asymmetry is the point of the fix. modifyDate must be
-// "MM/DD/YYYY HH:MM" (formatDateTimeMDYHM), not toLocaleString().
+// all count). LINX-15899 A1 — the Decline/Cancel cascade is gone, so the next
+// null-status row is never written. modifyDate must be "MM/DD/YYYY HH:MM"
+// (formatDateTimeMDYHM), not toLocaleString().
+
+// LINX-15897 — the Decline dialog's ComboBox. Options are virtualized (zero
+// rows in jsdom), so type to filter, then keyboard-pick the first match.
+function pickDeclineReason(text) {
+  const input = within(screen.getByRole('dialog')).getByRole('combobox')
+  fireEvent.focus(input)
+  fireEvent.change(input, { target: { value: text } })
+  const wrapper = input.closest('.combo-box')
+  fireEvent.keyDown(wrapper, { key: 'ArrowDown' })
+  fireEvent.keyDown(wrapper, { key: 'Enter' })
+}
+
 describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
   afterEach(() => { vi.useRealTimers() })
 
-  it('the clicked row gets response fields; the cascaded row gets only notify fields; proNumber is untouched', () => {
+  it('Decline writes response + decline fields on the clicked row only (no cascade); proNumber is untouched', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 7, 10, 15, 30))
 
     const clicked = {
       rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'Van', cost: '$100.00 USD', status: 'Sent', proNumber: 'PRO-EXISTING',
+      equipment: 'Van', cost: '$100.00 USD', status: 'Sent', proNumber: 'PRO-EXISTING', api: 'EDI',
     }
-    const cascaded = {
+    const next = {
       rank: 2, routeRank: 2, scac: 'FEDX', carrierName: 'FedEx Freight',
       equipment: 'Van', cost: '$200.00 USD', status: null, proNumber: null,
     }
-    const data = { options: [clicked, cascaded] }
-    const shipment = { sellShipment: 'SHIP-1' }
-    render(<RoutingGuideTab data={data} shipment={shipment} />)
+    render(<RoutingGuideTab data={{ options: [clicked, next] }} shipment={{ sellShipment: 'SHIP-1' }} />)
 
     const rows = document.querySelectorAll('[data-right-table] tbody tr')
     fireEvent.click(rows[0].querySelector('td:last-child'))
     fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    expect(saveTenderOption).not.toHaveBeenCalled() // nothing until Save
+    pickDeclineReason('wrong price') // description search
+    fireEvent.click(screen.getByRole('button', { name: 'Decline Tender' }))
 
-    expect(saveTenderOption).toHaveBeenCalledTimes(2)
-    const calls = saveTenderOption.mock.calls
-    const clickedSent = calls.find(([, o]) => o.rank === 1)[1]
-    const cascadedSent = calls.find(([, o]) => o.rank === 2)[1]
-
-    expect(clickedSent.responseUser).toBe('Amy Cook')
-    expect(clickedSent.responseMethod).toBe('Manual Update')
-    expect(clickedSent.responseDateTime).toBe('08/10/2026 15:30')
-    expect(clickedSent.modifyUser).toBe('Amy Cook')
-    expect(clickedSent.modifyDate).toBe('08/10/2026 15:30')
-    expect(clickedSent.proNumber).toBe('PRO-EXISTING') // carrier-supplied — never fabricated
-
-    expect(cascadedSent.notifyDateTime).toBe('08/10/2026 15:30')
-    expect(cascadedSent.modifyDate).toBe('08/10/2026 15:30')
-    // The asymmetry: being auto-tendered is a NOTIFY, not a RESPONSE.
-    expect(cascadedSent.responseUser).toBeUndefined()
-    expect(cascadedSent.responseDateTime).toBeUndefined()
-    expect(cascadedSent.responseMethod).toBeUndefined()
-    expect(cascadedSent.proNumber).toBeNull()
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sent] = saveTenderOption.mock.calls[0]
+    expect(sent.rank).toBe(1)
+    expect(sent).toMatchObject({
+      status: 'Declined', tenderAction: 'Decline', declineReasonCode: 'WRP', declineReason: 'Wrong Price',
+      responseUser: 'Amy Cook', responseMethod: 'Manual Update', responseDateTime: '08/10/2026 15:30',
+      modifyUser: 'Amy Cook', modifyDate: '08/10/2026 15:30', proNumber: 'PRO-EXISTING',
+    })
+    expect(sent.tenderCommMessage).toBeUndefined() // EDI — no TE-4
   })
 
   // Fix 6, 2026-08-10 — Tender/Re-Tender are NOTIFY events (same "being
@@ -227,10 +230,11 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
     expect(sentOption.notifyDateTime).toBe('08/10/2026 15:30')
     expect(sentOption.modifyUser).toBe('Amy Cook')
     expect(sentOption.modifyDate).toBe('08/10/2026 15:30')
-    // The negative half: a Tender is a notify, not a response.
-    expect(sentOption.responseUser).toBeUndefined()
-    expect(sentOption.responseDateTime).toBeUndefined()
-    expect(sentOption.responseMethod).toBeUndefined()
+    // The negative half: a Tender is a notify, not a response — the response
+    // fields hold the mapper's empty shape (a new cycle clears them, LINX-15899).
+    expect(sentOption.responseUser).toBeNull()
+    expect(sentOption.responseDateTime).toBe('--')
+    expect(sentOption.responseMethod).toBe('--')
   })
 
   // BR-11 — a Manual communication method generates no tender message, so a
@@ -258,15 +262,18 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(saveTenderOption).toHaveBeenCalledTimes(1)
-    expect(saveTenderOption.mock.calls[0][1].status).toBe('Sent')
+    // LINX-15899 — Manual lands on To Be Tendered, with no carrier-review token.
+    expect(saveTenderOption.mock.calls[0][1]).toMatchObject({ status: 'To Be Tendered', tenderAction: 'Tender' })
+    expect(saveTenderOption.mock.calls[0][1].tenderToken).toBeUndefined()
   })
 
-  // Fix 7, 2026-08-10 — a Re-Tender fires on a Declined/Cancelled row that
-  // still carries the PREVIOUS cycle's response. Left in place, the row
+  // Fix 7, 2026-08-10 — a Tender (LINX-15899: Declined/Cancelled offer Tender,
+  // no longer Re-Tender) fires on a row that still carries the PREVIOUS
+  // cycle's response. Left in place, the row
   // would read "Declined by Amy Cook at ..." while status says Sent
   // (awaiting a fresh response). proNumber is a carrier-supplied identifier
   // from the prior cycle and must survive untouched.
-  it("Re-Tender on a Declined row clears the prior cycle's response fields, sets notify/modify, and leaves proNumber untouched", () => {
+  it("Tender on a Declined row clears the prior cycle's response fields, sets notify/modify, and leaves proNumber untouched", () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 7, 10, 15, 30))
 
@@ -281,7 +288,7 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
 
     const rows = document.querySelectorAll('[data-right-table] tbody tr')
     fireEvent.click(rows[0].querySelector('td:last-child'))
-    fireEvent.click(screen.getByRole('button', { name: 'Re-Tender' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
 
     expect(saveTenderOption).toHaveBeenCalledTimes(1)
     const [, sentOption] = saveTenderOption.mock.calls[0]
@@ -356,10 +363,10 @@ describe('RoutingGuideTab — tender token mint (S157)', () => {
     expect(sentOption.tenderToken).toBeUndefined()
   })
 
-  it('Re-Tender on a Declined Email row mints a DIFFERENT token than the one it carried', () => {
+  it('Re-Tender on a Sent Email row mints a DIFFERENT token than the one it carried', () => {
     const option = {
       rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'Van', cost: '--', status: 'Declined', api: 'Email', tenderToken: 'stale-token',
+      equipment: 'Van', cost: '--', status: 'Sent', api: 'Email', tenderToken: 'stale-token',
     }
     render(<RoutingGuideTab data={{ options: [option] }} shipment={{ sellShipment: 'SHIP-1' }} />)
 
@@ -371,24 +378,21 @@ describe('RoutingGuideTab — tender token mint (S157)', () => {
     expect(sentOption.tenderToken).not.toBe('stale-token')
   })
 
-  it("the Decline/Cancel cascade's auto-tendered next row gets a token when its method is Email", () => {
-    const clicked = {
+  // LINX-15897 §5 — Decline on an Email row records the TE-4 cancellation
+  // message (the server writes it into the history entry).
+  it('Decline on an Email row carries tenderCommMessage TE-4 in the payload', () => {
+    const option = {
       rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'Van', cost: '$100.00 USD', status: 'Sent', api: 'EDI',
+      equipment: 'Van', cost: '$100.00 USD', status: 'Sent', api: 'Email',
     }
-    const cascaded = {
-      rank: 2, routeRank: 2, scac: 'FEDX', carrierName: 'FedEx Freight',
-      equipment: 'Van', cost: '$200.00 USD', status: null, api: 'Email',
-    }
-    render(<RoutingGuideTab data={{ options: [clicked, cascaded] }} shipment={{ sellShipment: 'SHIP-1' }} />)
+    render(<RoutingGuideTab data={{ options: [option] }} shipment={{ sellShipment: 'SHIP-1' }} />)
 
     openMenu()
     fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    pickDeclineReason('NAV') // code search
+    fireEvent.click(screen.getByRole('button', { name: 'Decline Tender' }))
 
-    expect(saveTenderOption).toHaveBeenCalledTimes(2)
-    const cascadedSent = saveTenderOption.mock.calls.find(([, o]) => o.rank === 2)[1]
-    expect(cascadedSent.tenderToken).toBeTruthy()
-    expect(decodeToken(cascadedSent.tenderToken)).toEqual({ shipmentId: 'SHIP-1', scac: 'FEDX' })
+    expect(saveTenderOption.mock.calls[0][1]).toMatchObject({ tenderAction: 'Decline', tenderCommMessage: 'TE-4', declineReasonCode: 'NAV' })
   })
 })
 
@@ -1087,8 +1091,8 @@ describe('Process SCAC (LINX-13954)', () => {
     await act1Frame()
     expect(plasmaRows()).toHaveLength(2)
 
-    // Cancel CLOSES a cycle — no sheen of its own — and then Re-Tender must
-    // replay it on the SAME row. This is the case that regressed: setting
+    // Cancel CLOSES a cycle — no sheen of its own — and then Tender (what a
+    // Cancelled row offers, LINX-15899) must replay it on the SAME row. This is the case that regressed: setting
     // processRank to the rank it already held was a no-op React never
     // re-rendered, so the animation silently never restarted (user).
     openMenu()
@@ -1097,7 +1101,7 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(plasmaRows()).toHaveLength(0)
 
     openMenu()
-    fireEvent.click(screen.getByRole('button', { name: 'Re-Tender' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tender' }))
     await act1Frame()
     expect(plasmaRows()).toHaveLength(2)
   })
@@ -1428,8 +1432,10 @@ describe('Routing-failed indicator + Call Routing retry (LINX-15076/15077)', () 
   it('offers "Call Routing" only for a routing-failed row', () => {
     const data = {
       options: [
+        // Declined, not Sent: an active tender on row 2 would lock row 1's
+        // menu (LINX-15899 §4 single active tender).
         { ...baseOption, rank: 1, scac: 'EXLA', carrierName: 'Ex Freight', status: null, routingFailed: true },
-        { ...baseOption, rank: 2, scac: 'ODFL', status: 'Sent' },
+        { ...baseOption, rank: 2, scac: 'ODFL', status: 'Declined' },
       ],
     }
     render(<RoutingGuideTab data={data} shipment={shipment} />)
@@ -1455,7 +1461,7 @@ describe('Routing-failed indicator + Call Routing retry (LINX-15076/15077)', () 
     // Donor: the only other option carrying real dates — simulatedRoutingDates
     // borrows from it (processScac.js), same as the success branch does.
     const donor = {
-      ...baseOption, rank: 2, scac: 'ODFL', status: 'Sent',
+      ...baseOption, rank: 2, scac: 'ODFL', status: 'Declined', // not active — see above
       pickupDateTime: '08/12/2026 09:00', deliveryDateTime: '08/14/2026 17:00',
     }
     const data = { options: [failed, donor] }
@@ -1628,5 +1634,104 @@ describe('Order change: tender readable, tender actions locked (S137, D2)', () =
     expect(screen.getByText('Tender Actions')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Add Carrier' }).disabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Reinstate' }).disabled).toBe(false)
+  })
+})
+
+// LINX-15899 / LINX-15897 (spec 2026-10-01 §3–§5).
+describe('Tender actions per option (LINX-15899) + Decline dialog (LINX-15897)', () => {
+  const opt = (rank, over = {}) => ({ ...baseOption, rank, routeRank: rank, scac: `SC${rank}`, carrierName: `Carrier ${rank}`, ...over })
+  const lane = (i) => document.querySelectorAll('[data-right-table] tbody tr')[i].querySelector('td:last-child')
+  const tenderActions = () => ['Tender', 'Re-Tender', 'Cancel', 'Accept', 'Decline']
+    .filter((name) => screen.queryByRole('button', { name }))
+
+  it.each([
+    [null, ['Tender']],
+    ['Cancelled', ['Tender']],
+    ['Sent', ['Re-Tender', 'Cancel', 'Accept', 'Decline']],
+    ['Declined', ['Tender']],
+    ['To Be Tendered', ['Tender']],
+    ['To Be Cancelled', ['Cancel']],
+    ['Accepted', ['Re-Tender', 'Cancel', 'Decline']],
+    ['Mystery', []], // unknown status must NOT fall back to the Tender menu
+  ])('%s offers %j', (status, expected) => {
+    render(<RoutingGuideTab data={{ options: [opt(1, { status })] }} shipment={{ sellShipment: 'S' }} />)
+    fireEvent.click(lane(0))
+    expect(tenderActions()).toEqual(expected)
+  })
+
+  it('locks every OTHER option while one is active, naming its SCAC; marks the active row', () => {
+    render(<RoutingGuideTab data={{ options: [opt(1, { status: 'Declined' }), opt(2, { status: 'Accepted' }), opt(3, { status: null })] }} shipment={{ sellShipment: 'S' }} />)
+    expect(lane(1).hasAttribute('aria-disabled')).toBe(false)
+    for (const i of [0, 2]) expect(lane(i).getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(lane(2))
+    expect(screen.queryByText('Tender Actions')).toBeNull()
+    fireEvent.mouseEnter(lane(2).querySelector('[data-tooltip-trigger]'))
+    expect(screen.getByText('Complete the action on SC2 first.')).toBeTruthy()
+    expect(screen.getAllByText('Active tender')).toHaveLength(1)
+  })
+
+  it('nothing active → nothing locked, no marker', () => {
+    render(<RoutingGuideTab data={{ options: [opt(1, { status: 'Declined' }), opt(2, { status: 'Cancelled' })] }} shipment={{ sellShipment: 'S' }} />)
+    expect(lane(0).hasAttribute('aria-disabled')).toBe(false)
+    expect(lane(1).hasAttribute('aria-disabled')).toBe(false)
+    expect(screen.queryByText('Active tender')).toBeNull()
+  })
+
+  it('shows a "Gave back" badge on a carrierGaveBack option', () => {
+    render(<RoutingGuideTab data={{ options: [opt(1, { status: 'Declined', carrierGaveBack: true }), opt(2, { status: 'Declined' })] }} />)
+    expect(screen.getAllByText('Gave back')).toHaveLength(1)
+  })
+
+  it('Decline dialog: no reason → message on press, nothing written; Cancel writes nothing', () => {
+    render(<RoutingGuideTab data={{ options: [opt(1, { status: 'Sent' })] }} shipment={{ sellShipment: 'S' }} />)
+    fireEvent.click(lane(0))
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    const dialog = screen.getByRole('dialog')
+    // A5 — no giveback checkbox when declining a Sent option.
+    expect(within(dialog).queryByText('Carrier Gave Back the Load')).toBeNull()
+    const save = within(dialog).getByRole('button', { name: 'Decline Tender' })
+    expect(save.disabled).toBe(false) // never silently disabled
+    expect(screen.queryByText('Decline Reason is required.')).toBeNull()
+    fireEvent.click(save)
+    expect(screen.getByText('Decline Reason is required.')).toBeTruthy()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+  })
+
+  it('Decline on Accepted: giveback requires a comment, then writes code + giveback', () => {
+    render(<RoutingGuideTab data={{ options: [opt(1, { status: 'Accepted' })] }} shipment={{ sellShipment: 'S' }} />)
+    fireEvent.click(lane(0))
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+    pickDeclineReason('OCE')
+    fireEvent.click(screen.getByLabelText('Carrier Gave Back the Load'))
+    fireEvent.click(screen.getByRole('button', { name: 'Decline Tender' }))
+    expect(screen.getByText('Comments are required when "Carrier Gave Back the Load" is selected.')).toBeTruthy()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Comments'), { target: { value: '   ' } }) // blank still blank
+    fireEvent.click(screen.getByRole('button', { name: 'Decline Tender' }))
+    expect(saveTenderOption).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Comments'), { target: { value: 'Truck broke down' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Decline Tender' }))
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    expect(saveTenderOption.mock.calls[0][1]).toMatchObject({
+      status: 'Declined', tenderAction: 'Decline', declineReasonCode: 'OCE', declineReason: 'Carrier Capacity Exceeded',
+      responseComments: 'Truck broke down', carrierGaveBack: true,
+    })
+    expect(screen.getByText('Gave back')).toBeTruthy()
+  })
+
+  it('a refused write (409) rolls the row back and says so', async () => {
+    saveTenderOption.mockRejectedValueOnce(Object.assign(new Error('conflict'), { status: 409 }))
+    render(<RoutingGuideTab data={{ options: [opt(1, { status: 'Sent' })] }} shipment={{ sellShipment: 'S' }} />)
+    fireEvent.click(lane(0))
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }))
+    expect(saveTenderOption.mock.calls[0][1].tenderAction).toBe('Accept')
+    expect(await screen.findByText(/changed elsewhere/)).toBeTruthy()
+    expect(screen.getByText('Sent')).toBeTruthy()
+    expect(screen.queryByText('Accepted')).toBeNull()
   })
 })

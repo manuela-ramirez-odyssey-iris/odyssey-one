@@ -3,57 +3,75 @@ import { describe, test, expect, vi } from 'vitest'
 vi.mock('../spotboard/token.js', () => ({ mintToken: vi.fn(() => 'TOKEN123') }))
 vi.mock('../tender/email/tenderEmail.js', () => ({ isEmailNotify: (api) => api === 'Email' || api === 'Email & EDI' }))
 
-import { applyTenderAction } from './tenderAction'
+import { applyTenderAction, tenderWriteExtras } from './tenderAction'
 
 const ctx = { now: '09/25/2026 12:00', currentUserName: 'Amy Cook', sellShipment: '26000001' }
 const opt = (rank, over = {}) => ({ rank, status: null, api: 'EDI', scac: `SCAC${rank}`, ...over })
+const decline = { code: 'WRP', description: 'Wrong Price', comments: 'Lane too far', carrierGaveBack: true }
 
 describe('applyTenderAction', () => {
-  test('Cancel: sets Cancelled + response fields on the clicked rank only (no cascade when nothing else is null)', () => {
-    const options = [opt(1, { status: 'Sent' })]
-    const { updated, touched } = applyTenderAction(options, 1, 'Cancel', ctx)
+  test('result per action (LINX-15899)', () => {
+    const run = (status, action) => applyTenderAction([opt(1, { status })], 1, action, { ...ctx, decline }).updated[0].status
+    expect(run(null, 'Tender')).toBe('Sent')
+    expect(run('Sent', 'Re-Tender')).toBe('Sent')
+    expect(run('Sent', 'Accept')).toBe('Accepted')
+    expect(run('Accepted', 'Decline')).toBe('Declined')
+    expect(run('To Be Cancelled', 'Cancel')).toBe('Cancelled')
+  })
+
+  test('Cancel: sets Cancelled + response fields on the clicked rank only', () => {
+    const { updated, touched } = applyTenderAction([opt(1, { status: 'Sent' })], 1, 'Cancel', ctx)
     expect(updated[0]).toMatchObject({ status: 'Cancelled', responseUser: 'Amy Cook', responseMethod: 'Manual Update', responseDateTime: ctx.now })
     expect(touched).toEqual([1])
   })
 
-  // The cascade this whole module exists to share verbatim with Consolidation
-  // Review's "Cancel tendered shipment(s)" (user ruling, 2026-09-25 — reuse
-  // the SAME path, cascade included, not a cascade-free variant).
-  test('Cancel cascades to the next null-status carrier by rank ascending', () => {
-    const options = [opt(1, { status: 'Sent' }), opt(3), opt(2)]
-    const { updated, touched } = applyTenderAction(options, 1, 'Cancel', ctx)
-    expect(touched.sort()).toEqual([1, 2])
-    const autoTendered = updated.find((o) => o.rank === 2)
-    expect(autoTendered.status).toBe('Sent')
-    expect(autoTendered.notifyDateTime).toBe(ctx.now)
-    // rank 3 (also null-status, but rank 2 comes first ascending) is untouched
-    expect(updated.find((o) => o.rank === 3).status).toBeNull()
+  // A1 — the auto-tender cascade is gone: the next null-status carrier stays put.
+  test.each(['Cancel', 'Decline'])('%s no longer cascades to the next null-status carrier', (action) => {
+    const options = [opt(1, { status: 'Sent' }), opt(2), opt(3)]
+    const { updated, touched } = applyTenderAction(options, 1, action, { ...ctx, decline })
+    expect(touched).toEqual([1])
+    expect(updated.find((o) => o.rank === 2)).toBe(options[1])
+    expect(updated.find((o) => o.rank === 2).status).toBeNull()
   })
 
-  test('Decline cascades the same way Cancel does', () => {
-    const options = [opt(1, { status: 'Sent' }), opt(2)]
-    const { updated, touched } = applyTenderAction(options, 1, 'Decline', ctx)
-    expect(updated.find((o) => o.rank === 1).status).toBe('Declined')
-    expect(touched).toEqual([1, 2])
-  })
-
-  test('Accept/Tender/Re-Tender never cascade', () => {
-    const options = [opt(1, { status: 'Sent' }), opt(2)]
-    expect(applyTenderAction(options, 1, 'Accept', ctx).touched).toEqual([1])
-    expect(applyTenderAction([opt(1)], 1, 'Tender', ctx).touched).toEqual([1])
+  test('Manual comm method: Tender/Re-Tender → To Be Tendered, no token', () => {
+    for (const [status, action] of [[null, 'Tender'], ['Sent', 'Re-Tender']]) {
+      const { updated } = applyTenderAction([opt(1, { status, api: 'Manual' })], 1, action, ctx)
+      expect(updated[0].status).toBe('To Be Tendered')
+      expect(updated[0].tenderToken).toBeUndefined()
+    }
   })
 
   test('Tender/Re-Tender mint a token for an email carrier, not an EDI one', () => {
-    const emailOpt = [opt(1, { api: 'Email' })]
-    const { updated } = applyTenderAction(emailOpt, 1, 'Tender', ctx)
-    expect(updated[0].tenderToken).toBe('TOKEN123')
-    const ediOpt = [opt(1, { api: 'EDI' })]
-    expect(applyTenderAction(ediOpt, 1, 'Tender', ctx).updated[0].tenderToken).toBeUndefined()
+    expect(applyTenderAction([opt(1, { api: 'Email' })], 1, 'Tender', ctx).updated[0].tenderToken).toBe('TOKEN123')
+    expect(applyTenderAction([opt(1, { api: 'EDI' })], 1, 'Tender', ctx).updated[0].tenderToken).toBeUndefined()
   })
 
-  test('Re-Tender clears the prior cycle\'s response fields', () => {
-    const options = [opt(1, { status: 'Declined', responseDateTime: '09/01/2026', responseUser: 'X', responseMethod: 'Manual Update' })]
-    const { updated } = applyTenderAction(options, 1, 'Re-Tender', ctx)
-    expect(updated[0]).toMatchObject({ status: 'Sent', responseDateTime: '--', responseMethod: '--', responseUser: null })
+  test('Decline stores the §5 answer; giveback only from Accepted (A5)', () => {
+    const fromAccepted = applyTenderAction([opt(1, { status: 'Accepted' })], 1, 'Decline', { ...ctx, decline }).updated[0]
+    expect(fromAccepted).toMatchObject({ status: 'Declined', declineReasonCode: 'WRP', declineReason: 'Wrong Price', responseComments: 'Lane too far', carrierGaveBack: true })
+    const fromSent = applyTenderAction([opt(1, { status: 'Sent' })], 1, 'Decline', { ...ctx, decline }).updated[0]
+    expect(fromSent.carrierGaveBack).toBeUndefined()
+  })
+
+  // Bug 13 (LINX-15897) — a new cycle drops the old decline but keeps the giveback.
+  test.each(['Tender', 'Re-Tender'])('%s clears the prior response + decline, keeps carrierGaveBack', (action) => {
+    const options = [opt(1, {
+      status: 'Declined', responseDateTime: '09/01/2026', responseUser: 'X', responseMethod: 'Manual Update',
+      declineReason: 'Wrong Price', declineReasonCode: 'WRP', responseComments: 'c', carrierGaveBack: true,
+    })]
+    const { updated } = applyTenderAction(options, 1, action, ctx)
+    expect(updated[0]).toMatchObject({
+      status: 'Sent', responseDateTime: '--', responseMethod: '--', responseUser: null,
+      declineReason: null, declineReasonCode: null, responseComments: null, carrierGaveBack: true,
+    })
+  })
+})
+
+describe('tenderWriteExtras', () => {
+  test('every write names its action; Decline on email records TE-4', () => {
+    expect(tenderWriteExtras(opt(1, { api: 'EDI' }), 'Accept')).toEqual({ tenderAction: 'Accept' })
+    expect(tenderWriteExtras(opt(1, { api: 'EDI' }), 'Decline')).toEqual({ tenderAction: 'Decline' })
+    expect(tenderWriteExtras(opt(1, { api: 'Email & EDI' }), 'Decline')).toEqual({ tenderAction: 'Decline', tenderCommMessage: 'TE-4' })
   })
 })

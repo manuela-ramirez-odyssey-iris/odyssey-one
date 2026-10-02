@@ -1700,3 +1700,96 @@ describe('consistency slice (C4/C12 re-route, C11 header, C19 row columns, C5 em
     assert.match(buildCountsQuery({ panel: 'monitoring' }).text, /order_count IS DISTINCT FROM '0'/)
   })
 })
+
+// ── LINX-15899/15897 §4/§6 — tender actions: matrix + single-active guard + History ──
+import { tenderHistoryEntry } from './shipments.mjs'
+
+// A fake db: SELECT option FROM tenders → `tenders`; UPDATE tenders hits; logs every query.
+function tenderDb(tenders) {
+  const calls = []
+  return {
+    calls,
+    query: async (q) => {
+      calls.push(q)
+      if (/SELECT option FROM tenders/.test(q.text)) return { rows: tenders.map((option) => ({ option })) }
+      return { rows: [{ id: 1 }] }
+    },
+  }
+}
+const OPTS = [{ rank: 1, scac: 'AAAA', status: 'Declined' }, { rank: 2, scac: 'BBBB', status: 'Sent' }, { rank: 3, scac: 'CCCC', status: null }]
+
+test('saveTender: Tender on another option while one is Sent -> 409 another-tender-active, nothing written', async () => {
+  const db = tenderDb(OPTS)
+  await assert.rejects(
+    () => saveTender({ params: ['1'], body: { option: { rank: 3, scac: 'CCCC', status: 'Sent', tenderAction: 'Tender' } }, db }),
+    (e) => e.status === 409 && e.message === 'another-tender-active',
+  )
+  assert.equal(db.calls.length, 1)
+})
+
+test('saveTender: action outside the §3 matrix for the current status -> 409 action-not-allowed', async () => {
+  // Accept on a Declined option; Decline on a never-tendered one
+  for (const [rank, action] of [[1, 'Accept'], [3, 'Decline']]) {
+    await assert.rejects(
+      () => saveTender({ params: ['1'], body: { option: { rank, scac: 'X', status: 'Declined', tenderAction: action } }, db: tenderDb(OPTS) }),
+      (e) => e.status === 409 && e.message === 'action-not-allowed',
+    )
+  }
+})
+
+test('saveTender: Decline on the Sent option -> stored without contract keys, guarded on the read status, one History entry', async () => {
+  const db = tenderDb(OPTS)
+  const option = { rank: 2, scac: 'BBBB', status: 'Declined', modifyUser: 'Pat Planner', declineReasonCode: 'WRP', declineReason: 'Wrong Price',
+    responseComments: 'too low', carrierGaveBack: false, tenderAction: 'Decline', tenderCommMessage: 'TE-4' }
+  assert.deepEqual(await saveTender({ params: ['1'], body: { option }, db }), { success: true, rank: 2 })
+  const update = db.calls.find((q) => /UPDATE tenders/.test(q.text))
+  const stored = JSON.parse(update.values[5])
+  assert.equal(stored.tenderAction, undefined)
+  assert.equal(stored.tenderCommMessage, undefined)
+  assert.equal(update.values[8], 'Sent') // implicit expectStatus = the status the matrix checked
+  const hist = db.calls.find((q) => /historyList/.test(q.text))
+  const [entry] = JSON.parse(hist.values[1])
+  assert.equal(entry.action, 'Decline')
+  assert.deepEqual([entry.oldValue, entry.newValue, entry.communicationStatus, entry.communicationMessage], ['Sent', 'Declined', 'Success', 'TE-4'])
+  assert.deepEqual(entry.author, { name: 'Pat Planner', kind: 'internal' })
+  assert.deepEqual(entry.optionNote, { code: 'WRP', description: 'Wrong Price', comment: 'too low', carrierGaveBack: false })
+})
+
+test('saveTender: carrier email page Accept -> external actor, no communication', async () => {
+  const db = tenderDb(OPTS)
+  await saveTender({ params: ['1'], body: { option: { rank: 2, scac: 'BBBB', status: 'Accepted', modifyUser: 'BBBB (email link)', tenderAction: 'Accept' } }, db })
+  const [entry] = JSON.parse(db.calls.find((q) => /historyList/.test(q.text)).values[1])
+  assert.equal(entry.author.kind, 'external')
+  assert.equal(entry.communicationStatus, '—')
+  assert.equal(entry.optionNote, undefined)
+})
+
+test('saveTender: Re-Tender of the active option itself is allowed (it is the only active one)', async () => {
+  const db = tenderDb(OPTS)
+  await saveTender({ params: ['1'], body: { option: { rank: 2, scac: 'BBBB', status: 'Sent', tenderAction: 'Re-Tender' } }, db })
+  assert.ok(db.calls.some((q) => /historyList/.test(q.text)))
+})
+
+test('saveTender: no tenderAction (quote / order-change callers) -> no guard read, no History', async () => {
+  const db = tenderDb(OPTS)
+  await saveTender({ params: ['1'], body: { option: { rank: 3, scac: 'CCCC', status: 'Sent' } }, db })
+  assert.equal(db.calls.length, 1)
+  assert.match(db.calls[0].text, /UPDATE tenders/)
+})
+
+test('tenderHistoryEntry: never-tendered previous status reads as a dash', () => {
+  const e = tenderHistoryEntry({ action: 'Tender', option: { scac: 'X', status: 'Sent' }, prevStatus: null, author: { name: 'A', kind: 'internal' }, comm: 'Success' })
+  assert.equal(e.oldValue, '—')
+  assert.match(e.details, /Communication Status: Success\./)
+})
+
+test('tenderHistoryEntry: LINX-17756 carrier name + notify method; response method only on a response', () => {
+  const a = { name: 'A', kind: 'internal' }
+  const opt = { scac: 'X', carrierName: 'X Freight', apiSource: 'Email', responseMethod: 'Email Links Update' }
+  const t = tenderHistoryEntry({ action: 'Tender', option: { ...opt, status: 'Sent' }, prevStatus: null, author: a, comm: 'Success' })
+  assert.equal(t.carrierName, 'X Freight')
+  assert.equal(t.notifyMethod, 'Email')
+  assert.equal(t.responseMethod, undefined)
+  const d = tenderHistoryEntry({ action: 'Decline', option: { ...opt, status: 'Declined' }, prevStatus: 'Sent', author: a, comm: 'Success' })
+  assert.equal(d.responseMethod, 'Email Links Update')
+})

@@ -59,7 +59,6 @@
     "HeaderStrip",
     "MenuRowCheckbox",
     "MenuRowRadio",
-    "ModalFooter",
     "ModalMedium",
     "PageHeader",
     "Paginator",
@@ -75,7 +74,9 @@
     "TextArea",
     "TimePicker",
     "Timeline",
+    "TimelineDot",
     "TitleSubtitle",
+    "Tooltip",
     "Widget",
     "WidgetMini"
   ],

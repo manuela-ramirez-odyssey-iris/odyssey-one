@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge, SubAccordion, Tab, TitleSubtitle } from '@odyssey/ui'
+import { Badge, SubAccordion, Tab, TimelineDot, TitleSubtitle } from '@odyssey/ui'
 import { ArrowRight, Merge } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { formatDateTimeMDYHM } from '../../lib/dates'
@@ -26,7 +26,7 @@ import { DepthDot, LineageTab, LineageTree, findPath, labelOf } from './LineageT
 // data (still used for grouping/labels elsewhere), it just no longer drives
 // color. The generator reseed that back-fills `outcome` onto existing seed
 // rows is separately user-gated and has not run yet — see the missing-outcome
-// fallback on BADGE_VARIANTS/getDotColor below.
+// fallback on BADGE_VARIANTS below.
 //
 // DEC-81 follow-up (2026-08-10, same-day): fourth value `'neutral'` added —
 // the step completed successfully but the business result is unfavourable or
@@ -112,20 +112,44 @@ export const ACTION_LABELS = {
   'Routing Completed': 'Routing Execution',
 }
 
+// LINX-15897 "Option Note" on a Decline entry (spec §6, A4 prototype format):
+// `Option Note: WRP - Wrong Price · "comment" · ☑ Carrier Gave Back the Load`.
+// The checkbox glyph always shows — unchecked is information too.
+export function formatOptionNote({ code, description, comment, carrierGaveBack }) {
+  const reason = [code, description].filter(Boolean).join(' - ')
+  return ['Option Note: ' + (reason || '—'), comment ? `"${comment}"` : null,
+    `${carrierGaveBack ? '☑' : '☐'} Carrier Gave Back the Load`].filter(Boolean).join(' · ')
+}
+
 /** Newest-first copy of the entries — never sorts the caller's array in place. */
 export function orderNewestFirst(entries = []) {
   return [...entries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 }
 
+// LINX-17756 — tender events live in their own Tender History tab and are
+// dropped from Shipment History (AC-02, spec T2).
+export const isTenderEvent = (e) => e?.category === 'tender'
+const shipmentOnly = (entries) => entries?.filter((e) => !isTenderEvent(e))
+
+// AC-04/06/07 — the carrier and methods of a tender row, as one facts line;
+// each part only when the row carries it ("where applicable").
+export function tenderFacts(e) {
+  return [
+    e.scac && `Carrier: ${e.scac}${e.carrierName ? ` – ${e.carrierName}` : ''}`,
+    e.notifyMethod && `Notify: ${e.notifyMethod}`,
+    e.responseMethod && `Response: ${e.responseMethod}`,
+  ].filter(Boolean).join(' · ')
+}
+
 // The entry-row renderer — extracted so the lineage preview tab reuses it
 // (S164); the DEC comments below travel with the markup unchanged. Sorts here
 // (newest first, 2026-08-17) so every caller gets the same reading order.
-function HistoryEntries({ entries }) {
+export function HistoryEntries({ entries }) {
   return (
     <div className="history-list">
       {orderNewestFirst(entries).map((entry, i) => (
         <div className="history-entry" key={i}>
-          <div className="history-dot" style={{ background: getDotColor(entry.outcome) }} />
+          <TimelineDot className="history-dot" color={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default} />
           <div className="history-content">
             <div className="history-row1">
               {/* DEC-70 introduced a "System" badge beside the actor; user removed
@@ -157,6 +181,8 @@ function HistoryEntries({ entries }) {
 
             <div className="history-details">{entry.details}</div>
 
+            {tenderFacts(entry) && <div className="history-details history-facts" style={{ color: 'var(--text-tertiary)' }}>{tenderFacts(entry)}</div>}
+
             {entry.field && (
               <div className="history-diff">
                 <span className="history-diff-field">{entry.field}:</span>
@@ -164,6 +190,10 @@ function HistoryEntries({ entries }) {
                 <span className="history-diff-arrow">&rarr;</span>
                 <span className="history-diff-new">{entry.newValue}</span>
               </div>
+            )}
+
+            {entry.optionNote && (
+              <div className="history-details">{formatOptionNote(entry.optionNote)}</div>
             )}
           </div>
         </div>
@@ -178,7 +208,7 @@ function HistoryEntries({ entries }) {
 // no sources = band reads "Created as a new shipment" and no Lineage Tree tab.
 // The static card below survives only as a defensive no-`shipment` fallback.
 const HistoryTab = React.memo(function HistoryTab({ data, lineage, shipment }) {
-  const raw = data?.entries
+  const raw = shipmentOnly(data?.entries)
   const empty = !raw || raw.length === 0
 
   if (shipment) {
@@ -268,7 +298,7 @@ function HistoryPanel({ node, customer, depth, onOpen, entries, status }) {
 // PREVIOUS shipment's trail while this one loads, so placeholder = loading.
 function PreviewPanel({ tab, customer, onOpen }) {
   const { data, isPending, isPlaceholderData, isError } = useShipmentDetail(tab.node.sellShipment)
-  const entries = data?.historyData?.entries
+  const entries = shipmentOnly(data?.historyData?.entries)
   const status = isError ? 'Could not load this shipment’s history.'
     : isPending || isPlaceholderData ? 'Loading history…'
     : !entries?.length ? 'No history available.' : null
@@ -386,6 +416,13 @@ function LineageHistory({ entries, lineage, shipment }) {
 function HistoryAuthor({ entry }) {
   const author = entry.author
 
+  // A tender-action author (LINX-15899 §6) may carry no email — the API knows
+  // the planner's name only, and a carrier is "<SCAC> (email link)". Plain
+  // text then: a tooltip repeating the name reveals nothing.
+  if (author && author.kind !== 'system' && !author.email) {
+    return <span className="history-actor">{author.name}</span>
+  }
+
   if (author && author.kind !== 'system') {
     return (
       <TooltipTrigger
@@ -446,25 +483,4 @@ const BADGE_VARIANTS = {
   neutral: 'amber',
   info: 'gray',
   default: 'gray',
-}
-
-// Timeline dot color — the matching badge TEXT token (no dedicated dot/status
-// tokens exist yet; the badge text shade is the nearest saturated equivalent
-// of the old hardcoded hexes). Keyed on `outcome`, same DEC-81 mapping and
-// same neutral fallback as BADGE_VARIANTS above. `neutral` uses
-// `--badge-yellow-text` since the Badge `amber` variant is itself backed by
-// the yellow token pair (see packages/ui/src/Badge.jsx). `info` (DEC-87,
-// 2026-08-12) uses `--badge-gray-text` — the same token the Badge `gray`
-// variant is backed by — kept distinct from the `default` (missing-outcome)
-// fallback below, which uses `--text-tertiary` rather than the gray badge
-// token itself.
-function getDotColor(outcome) {
-  switch (outcome) {
-    case 'failure': return 'var(--badge-red-text)'
-    case 'success': return 'var(--badge-green-text)'
-    case 'update': return 'var(--badge-blue-text)'
-    case 'neutral': return 'var(--badge-yellow-text)'
-    case 'info': return 'var(--badge-gray-text)'
-    default: return 'var(--text-tertiary)'
-  }
 }

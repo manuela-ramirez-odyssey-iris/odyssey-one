@@ -13,7 +13,7 @@ export const meta = {
 }
 
 export const props = [
-  { name: 'variant', type: 'primary|secondary|outline|ghost|error|link|icon', desc: 'Visual style. outline/ghost are dark-surface variants. icon = icon-only, Secondary-styled (sm).' },
+  { name: 'variant', type: 'primary|secondary|outline|ghost|error|purple|link|icon', desc: 'Visual style. outline/ghost are dark-surface variants. purple = external (customer) change actions (Figma: md only). icon = icon-only, Secondary-styled (sm).' },
   { name: 'size', type: 'sm|md|lg', desc: 'Padding + label size. Default md.' },
   { name: 'disabled', type: 'boolean', desc: 'Native disabled; hover/active suppressed.' },
   { name: 'icon', type: 'ReactNode', desc: 'Leading icon slot (inherits currentColor).' },
@@ -30,12 +30,16 @@ export const tokens = [
   { token: '--deep-sea-neutral-300', resolves: 'DSN/300', usage: 'secondary/icon/error border' },
   { token: '--bg-error', resolves: 'Bittersweet/100', usage: 'error idle bg' },
   { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error label' },
+  { token: '--purple-100', resolves: 'Purple/100', usage: 'purple idle bg' },
+  { token: '--purple-200', resolves: 'Purple/200', usage: 'purple hover/pressed bg' },
+  { token: '--purple-800', resolves: 'Purple/800', usage: 'purple label' },
+  { token: '--purple-900', resolves: 'Purple/900', usage: 'purple pressed label' },
   { token: '--text-link', resolves: 'Carolina Blue/500', usage: 'link label' },
   { token: '--shadow-sm', resolves: 'shadow/sm', usage: 'raised variants (idle)' },
   { token: '--opacity-disabled', resolves: 'Opacity/disabled (40%)', usage: 'every variant disabled = its idle look at this opacity, no shadow (S158)' },
 ]
 
-const VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'error', 'link']
+const VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'error', 'purple', 'link']
 const SIZES = ['sm', 'md', 'lg']
 const DARK = new Set(['outline', 'ghost'])
 

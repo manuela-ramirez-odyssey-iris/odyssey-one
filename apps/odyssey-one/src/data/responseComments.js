@@ -19,21 +19,38 @@
  *
  * PROVENANCE — the text is OURS. The real `ShippingOption` carries both
  * `responseReason` (a code) and `responseComments` (free text); Saikat's code
- * read, LINX-15895 comment 2026-09-15. We seed only the text, and inventing a
- * reason-code vocabulary is a question for Jana rather than a gap to fill
- * silently.
+ * read, LINX-15895 comment 2026-09-15. The code vocabulary now exists
+ * (LINX-15897, src/data/declineReasons.js — spec 2026-10-01 §8), so a Declined
+ * comment is keyed by its decline code and must agree with it; a code with no
+ * sentence here simply has no comment (Comments is optional in 15897).
  */
 
-/** The carrier said no, and why. */
-const DECLINED = [
-  'No capacity available for the requested pickup date.',
-  'Lane not served with this equipment type.',
-  'Rate below contracted minimum for this lane.',
-  'Driver hours will not cover the delivery window.',
-  'Equipment unavailable at origin on the requested date.',
-  'Origin appointment window cannot be met.',
-  'Backhaul coverage only — no outbound capacity this week.',
-]
+/**
+ * The carrier said no, and why — keyed by the decline code it explains
+ * (declineReasons.js). Only codes a carrier would elaborate on carry one.
+ */
+const DECLINED_BY_CODE = {
+  NAV: 'No capacity available for the requested pickup date.',
+  DNS: 'Lane not served with this equipment type.',
+  WRP: 'Rate below contracted minimum for this lane.',
+  DOT: 'Driver hours will not cover the delivery window.',
+  OCE: 'Equipment unavailable at origin on the requested date.',
+  HOP: 'Origin appointment window cannot be met.',
+  CBH: 'Backhaul coverage only — no outbound capacity this week.',
+}
+const DECLINED = Object.values(DECLINED_BY_CODE)
+
+/**
+ * LINX-15897 — the carrier accepted, then gave the load back. Comments are
+ * REQUIRED with the giveback flag, so every code here has one; the seed draws
+ * a giveback's code from these keys only.
+ */
+export const GAVE_BACK_BY_CODE = {
+  NAV: 'Accepted, then gave the load back — no driver available after all.',
+  DOT: 'Accepted, then gave the load back — driver ran out of hours.',
+  OCE: 'Accepted, then gave the load back — truck reassigned to a contract load.',
+  CBH: 'Accepted, then gave the load back — backhaul fell through.',
+}
 
 /**
  * WE pulled the tender, so the reason is ours rather than the carrier's —
@@ -70,9 +87,12 @@ export const RESPONSE_COMMENTS = {
  * @param {number} seed         an ALREADY-DRAWN integer off the same row
  *                              (`lcePkId` in the seed) — indexing with it keeps
  *                              both call sites free of new random draws.
+ * @param {string} [declineCode] a Declined row's code; its comment (or null)
+ *                              wins over the seed-indexed pool.
  * @returns {string|null}
  */
-export function responseCommentFor(status, seed) {
+export function responseCommentFor(status, seed, declineCode) {
+  if (status === 'Declined' && declineCode) return DECLINED_BY_CODE[declineCode] ?? null
   const pool = RESPONSE_COMMENTS[status]
   if (!pool || pool.length === 0) return null
   // An accepted tender is normally recorded without a note — about a third carry

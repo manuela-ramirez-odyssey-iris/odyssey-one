@@ -458,7 +458,7 @@ export default function BottomBar({
       case 'documents': return <DocumentsTab data={shownDetails.documentsData} />
       case 'notes': return <NotesTab data={shownDetails.notesData} />
       case 'history': return <HistoryTab data={shownDetails.historyData} lineage={shownDetails.lineage} shipment={shipment} />
-      case 'tender': return <TenderHistoryTab />
+      case 'tender': return <TenderHistoryTab data={shownDetails.historyData} />
       // LINX-15895 — prior routing versions, derived from the detail itself
       // (src/data/routingHistory.js); no API of its own in either runtime.
       case 'routingHistory': return <RoutingHistoryTab details={shownDetails} shipment={shipment} />

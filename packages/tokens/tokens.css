@@ -61,7 +61,9 @@
 
   /* --- Primitives: Purple --- */
   --purple-100: #EDE9FE;
+  --purple-200: #DDD6FE;
   --purple-800: #5B21B6;
+  --purple-900: #4C1D95;
 
   /* --- Primitives: Ice Blue --- */
   --ice-blue-200: #C0DEFD;

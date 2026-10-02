@@ -22,6 +22,33 @@ function stopAddress(s) {
   return { name: s.location ?? '', lines: [s.address].filter((l) => l && l !== '--') }
 }
 
+// ponytail: NO tender expiry exists in the stories or on the VM (DEC-178);
+// Papu's 2026-10-01 VD fixes ask for "Tender Expires <date>". Placeholder =
+// notify + 24h until Dave/Jana give the TMS response window. Display only —
+// nothing enforces it (Adam: prototype links never expire).
+export const TENDER_EXPIRY_HOURS = 24
+export function tenderExpiry(notify) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})(.*)$/.exec(String(notify ?? '').trim())
+  if (!m) return ''
+  const t = new Date(Date.UTC(+m[3], +m[1] - 1, +m[2], +m[4] + TENDER_EXPIRY_HOURS, +m[5]))
+  const p = (n) => String(n).padStart(2, '0')
+  return `${p(t.getUTCMonth() + 1)}/${p(t.getUTCDate())}/${t.getUTCFullYear()} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}${m[6]}`
+}
+
+// The issuing office's footer details, keyed by the planning group that sends
+// the tender (Papu 2026-10-01: footer address/contact "dynamic based on the
+// office from which the tender is issued").
+// ponytail: only the HQ office is known — the prototype has one planning
+// mailbox; add the real office list (Papu/Dave) and every tender picks it up.
+export const OFFICES = {
+  'planning-charlotte@odysseylogistics.com': {
+    name: 'Odyssey Logistics & Technology Corporation',
+    address: '3545 Whitehall Park Drive, Charlotte NC 28273',
+    phone: '704-808-7400',
+  },
+}
+export const officeFor = (mailbox) => OFFICES[mailbox] ?? OFFICES[PLANNING_GROUP_MAILBOX]
+
 function fmtTzLine(dt, tz) {
   if (!dt || dt === '--') return ''
   return tz ? `${dt} (${tz})` : dt
@@ -66,6 +93,7 @@ export function buildTenderEmailContext({ shipment, option }) {
     pickupLine: fmtTzLine(option?.pickupDateTime, option?.pickupTZ),
     deliverLine: fmtTzLine(option?.deliveryDateTime, option?.deliveryTZ),
     notifyDateTime: option?.notifyDateTime ?? '',
+    expiresAt: tenderExpiry(option?.notifyDateTime),
     offeredRate: [option?.rate, option?.rateDetails?.currency].filter(Boolean).join(' '),
     stops: middle.map((s) => ({
       label: `Stop - ${s.location ?? ''}`,
@@ -74,6 +102,7 @@ export function buildTenderEmailContext({ shipment, option }) {
     api: option?.api ?? '',
     token: option?.tenderToken ?? '',
     sender: PLANNING_GROUP_MAILBOX,
+    office: officeFor(PLANNING_GROUP_MAILBOX),
     // ponytail: BR-3's mf$get.load_tender_communication has no counterpart
     // here (no carrier contact model) — one synthesized address stands in,
     // same convention as spotboard/carrierList.js's buildRow.

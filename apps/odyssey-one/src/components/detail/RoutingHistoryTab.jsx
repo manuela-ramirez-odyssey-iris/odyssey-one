@@ -112,7 +112,8 @@ const SECTIONS = [
 /** AC, verbatim. */
 const NO_DROPPED_CARRIERS = 'This routing version does not contain any dropped carriers.'
 
-const STATUS_VARIANT = { Accepted: 'green', Sent: 'blue', Declined: 'red', Cancelled: 'gray' }
+// To Be Tendered / To Be Cancelled share the Tender tab's pending (yellow) tone (LINX-15899).
+const STATUS_VARIANT = { Accepted: 'green', Sent: 'blue', Declined: 'red', Cancelled: 'gray', 'To Be Tendered': 'amber', 'To Be Cancelled': 'amber' }
 
 /** The tender outcome as the normalized Badge, not the Tender tab's inline-styled
  *  local StatusBadge — a new surface has no reason to inherit that drift. */
@@ -129,7 +130,10 @@ function rowValues(option, columns) {
     const raw = option[col.key]
     values[col.key] = col.key === 'status'
       ? statusCell(raw)
-      : (raw === null || raw === undefined || raw === '' ? DASH : raw)
+      // LINX-15897 §5 (A4) — the giveback stays visible in history, beside the SCAC.
+      : col.key === 'scac' && option.carrierGaveBack
+        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{raw}<Badge variant="red">Gave back</Badge></span>
+        : (raw === null || raw === undefined || raw === '' ? DASH : raw)
   }
   return values
 }

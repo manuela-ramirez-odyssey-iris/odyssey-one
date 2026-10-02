@@ -265,10 +265,15 @@ export interface RoutingOptionVM {
       a field not named in mapRoutingOption is silently dropped on reload.
       tenderToken: minted for Email/Email & EDI notify methods, checked by the
       carrier Tender Review page's forgery guard. declineReason/responseComments:
-      written by that page's Decline action. */
+      written by that page's Decline action.
+      LINX-15897: declineReasonCode = src/data/declineReasons.js code
+      (declineReason keeps the description); carrierGaveBack = the carrier
+      accepted then returned the load — survives a later Tender/Re-Tender. */
   tenderToken?: string
   declineReason: string | null
+  declineReasonCode: string | null
   responseComments: string | null
+  carrierGaveBack: boolean
 }
 
 // ── Cost tab ─────────────────────────────────────────────────

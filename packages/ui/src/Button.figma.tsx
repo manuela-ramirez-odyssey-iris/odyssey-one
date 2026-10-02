@@ -13,6 +13,7 @@ figma.connect(
         Outline: 'outline',
         Ghost: 'ghost',
         Error: 'error',
+        Purple: 'purple',
         Icon: 'icon',
       }),
       size: figma.enum('Size', {

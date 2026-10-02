@@ -1,16 +1,13 @@
-// @vitest-environment jsdom
-import { render, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { vi, it, expect } from 'vitest'
 import { StopDateField } from './EditStopsView'
 
-// D4 (S163) — the Direct review's date fields start blank, so a planner can
-// pick the time before the date; that time used to be dropped.
+// D4 (S163) — a time picked before any date is held, then lands in the stamp.
 it('StopDateField: a time picked before the date is kept when the date arrives', () => {
   const onChange = vi.fn()
   const { container } = render(<StopDateField id="t" label="Pickup Date" value="" onChange={onChange} />)
   const time = container.querySelector('#t-time')
   fireEvent.change(time, { target: { value: '14:30' } })
-  fireEvent.blur(time) // TimePicker commits on blur
   expect(onChange).not.toHaveBeenCalled()
   const date = container.querySelector('#t-date')
   fireEvent.change(date, { target: { value: '06/04/2026' } })

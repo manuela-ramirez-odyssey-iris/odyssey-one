@@ -444,7 +444,9 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
     // (undefined token, null reason/comments) survives instead of degrading.
     tenderToken: o.tenderToken,
     declineReason: o.declineReason ?? null,
+    declineReasonCode: o.declineReasonCode ?? null, // LINX-15897
     responseComments: o.responseComments ?? null,
+    carrierGaveBack: o.carrierGaveBack === true,
   }
 }
 

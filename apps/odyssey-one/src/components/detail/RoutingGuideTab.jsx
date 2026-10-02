@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import useSheet from '../../routes/useSheet'
 import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog, TriangleAlert, Link as LinkIcon } from 'lucide-react'
 import { ICON_LG, ICON_MD } from '@odyssey/tokens'
-import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
+import { Alert, Badge, Button, Checkbox, ComboBox, ModalMedium, Tab, TextArea } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
 import { saveTenderOption } from '../../api/services/shipmentService'
 import { parseDollar, fmtDollar } from '../../utils/money'
@@ -17,7 +17,9 @@ import { droppedCarrierToOption, insertRank, planProcessScac, simulatedRoutingDa
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { WRAP_HEADER_W, LOCKED_COLUMNS, NEVER_COLLAPSE_KEYS, COLLAPSIBLE_KEYS, TAB_COLUMNS, SUB_TABS } from './tenderColumns.js'
-import { applyTenderAction } from '../../lib/tenderAction.js'
+import { applyTenderAction, tenderWriteExtras } from '../../lib/tenderAction.js'
+import { DECLINE_REASONS } from '../../data/declineReasons.js'
+import { ACTIVE_TENDER } from '../../consolidation/eligibility.js'
 import { consolidatedReviewPending, OC_REVIEW_LOCK_TOOLTIP } from '../../lib/orderChangeDoorway.js'
 import TooltipTrigger from '../ui/TooltipTrigger.jsx'
 
@@ -29,18 +31,24 @@ const STATUS_STYLES = {
   Accepted: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
   Sent: { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
   'To Be Tendered': { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
+  // LINX-15899 — awaiting a manual cancel, the mirror of To Be Tendered, so the
+  // same pending tone (A4 prototype default until the VD lands).
+  'To Be Cancelled': { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
   Declined: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
   Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 
+// LINX-15899 status → actions, as written (spec 2026-10-01 §3). Actions not
+// in a row are HIDDEN, not disabled. To Be Tendered → Tender only (A2 —
+// supersedes DEC-209's Tender + Cancel from LINX-8253).
 const TENDER_ACTIONS = {
   null: ['Tender'],
-  // LINX-8253: To Be Tendered → Sent (the user tenders manually, e.g. a call) or Cancelled.
-  'To Be Tendered': ['Tender', 'Cancel'],
-  Sent: ['Accept', 'Decline', 'Cancel'],
-  Accepted: ['Cancel'],
-  Declined: ['Re-Tender'],
-  Cancelled: ['Re-Tender'],
+  Cancelled: ['Tender'],
+  Sent: ['Re-Tender', 'Cancel', 'Accept', 'Decline'],
+  Declined: ['Tender'],
+  'To Be Tendered': ['Tender'],
+  'To Be Cancelled': ['Cancel'],
+  Accepted: ['Re-Tender', 'Cancel', 'Decline'],
 }
 
 // STATUS_AFTER_ACTION moved to lib/tenderAction.js (S161) with the rest of
@@ -55,7 +63,11 @@ const TENDER_ACTIONS = {
 // second map entry, so it composes with whatever status already offers
 // instead of drifting from it.
 function actionsFor(option) {
-  const base = TENDER_ACTIONS[option.status] || TENDER_ACTIONS[null] || []
+  // "Not tendered yet" is null, or '' off a consolidation rewrite
+  // (consolidateShipments.mjs). Any OTHER unknown status offers nothing —
+  // falling back to Tender would let an unrecognised state start a second
+  // active tender.
+  const base = (option.status == null || option.status === '' ? TENDER_ACTIONS[null] : TENDER_ACTIONS[option.status]) || []
   return option.routingFailed ? [...base, 'Call Routing'] : base
 }
 
@@ -373,8 +385,9 @@ function DeleteQuoteConfirm({ onConfirm, onCancel }) {
 // Tender Communication Service is invoked, so the only thing left is to tell
 // the planner they must notify the carrier themselves and ask whether they
 // did. Title/message are VERBATIM from the ticket; OK = "yes, I contacted
-// them" and lets the normal Tender/Re-Tender path run (status → Sent, history
-// + audit stamped by it); Cancel leaves everything untouched.
+// them" and lets the normal Tender/Re-Tender path run (status → To Be
+// Tendered for a Manual method, LINX-15899; no token; audit stamped by it);
+// Cancel leaves everything untouched.
 function ManualTenderConfirm({ onConfirm, onCancel }) {
   return (
     <ConfirmDialog
@@ -397,6 +410,81 @@ function DatesUnavailableConfirm({ onDismiss }) {
       onConfirm={onDismiss}
       onCancel={onDismiss}
     />
+  )
+}
+
+// LINX-15897 (spec §5) — Decline on a Sent/Accepted option. Nothing is
+// written until Decline Tender; the button is never silently disabled — the
+// press shows the (verbatim) message instead. A4: layout is a prototype
+// default from @odyssey/ui atoms until the VD lands.
+const REASON_OPTIONS = DECLINE_REASONS.map((r) => ({ value: r.code, label: `${r.code} — ${r.description}` }))
+export const DECLINE_REASON_REQUIRED = 'Decline Reason is required.'
+export const GIVEBACK_COMMENT_REQUIRED = 'Comments are required when "Carrier Gave Back the Load" is selected.'
+
+function DeclineDialog({ option, onConfirm, onCancel }) {
+  const [code, setCode] = useState(null)
+  const [comments, setComments] = useState('')
+  const [gaveBack, setGaveBack] = useState(false)
+  const [pressed, setPressed] = useState(false)
+  // A5 — giveback = the carrier accepted, then returned it; a Sent option was
+  // never accepted.
+  const canGiveBack = option.status === 'Accepted'
+  const reasonError = pressed && !code ? DECLINE_REASON_REQUIRED : undefined
+  const commentError = pressed && gaveBack && !comments.trim() ? GIVEBACK_COMMENT_REQUIRED : undefined
+
+  const submit = () => {
+    setPressed(true)
+    if (!code || (gaveBack && !comments.trim())) return
+    const reason = DECLINE_REASONS.find((r) => r.code === code)
+    onConfirm({ code, description: reason.description, comments: comments.trim() || null, carrierGaveBack: canGiveBack && gaveBack })
+  }
+
+  // ModalMedium portals itself to <body> (S159).
+  return (
+    <ModalMedium
+      title={`Decline Tender — ${option.scac}`}
+      onClose={onCancel}
+      footer={
+        <>
+          <Button variant="secondary" size="lg" onClick={onCancel}>Cancel</Button>
+          <Button variant="error" size="lg" onClick={submit}>Decline Tender</Button>
+        </>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+        {/* Default filter matches the "CODE — Description" label, so typing
+            either the code or any part of the description finds it. */}
+        <ComboBox
+          variant="select"
+          showLabel
+          label="Decline Reason"
+          required
+          placeholder="Search code or description"
+          options={REASON_OPTIONS}
+          value={REASON_OPTIONS.find((o) => o.value === code)?.label ?? ''}
+          onSelect={(value) => setCode(value || null)}
+          onClear={() => setCode(null)}
+          emptyMessage="No matching reasons"
+          error={reasonError}
+        />
+        <TextArea
+          id="decline-comments"
+          label="Comments"
+          required={gaveBack}
+          value={comments}
+          onChange={(e) => setComments(e.target.value)}
+          rows={3}
+          error={commentError}
+        />
+        {canGiveBack && (
+          <Checkbox
+            label="Carrier Gave Back the Load"
+            checked={gaveBack}
+            onChange={(e) => setGaveBack(e.target.checked)}
+          />
+        )}
+      </div>
+    </ModalMedium>
   )
 }
 
@@ -490,7 +578,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, tabColumns, highlightedRank, processRank, addedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns, locked = false }) {
+function RoutingTable({ options, tabColumns, highlightedRank, processRank, addedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns, locked = false, activeTender = null }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -641,15 +729,22 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                       // token is text-on-tint and only reads right against
                       // --badge-yellow-bg. Standalone on a light row it renders
                       // brown (S136 — shipped that way, caught on screen).
-                      : col.key === 'scac' && option.routingFailed ? (
+                      // LINX-15899 §4 / LINX-15897 §5 (A4 prototype default) —
+                      // the active option and a carrier giveback are marked
+                      // beside the SCAC too.
+                      : col.key === 'scac' && (option.routingFailed || option.rank === activeTender?.rank || option.carrierGaveBack) ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           {getCellValue(option, col)}
-                          <TriangleAlert
-                            {...ICON_MD}
-                            style={{ color: 'var(--text-warning)', flexShrink: 0 }}
-                            role="img"
-                            aria-label="Routing failed"
-                          />
+                          {option.routingFailed && (
+                            <TriangleAlert
+                              {...ICON_MD}
+                              style={{ color: 'var(--text-warning)', flexShrink: 0 }}
+                              role="img"
+                              aria-label="Routing failed"
+                            />
+                          )}
+                          {option.rank === activeTender?.rank && <Badge variant="blue">Active tender</Badge>}
+                          {option.carrierGaveBack && <Badge variant="red">Gave back</Badge>}
                         </span>
                       )
                       : col.key === 'carrierName' && option.spotRate ? (
@@ -746,6 +841,12 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
           <tbody>
             {options.map((option) => {
               const isHighlighted = highlightedRank === option.rank
+              // LINX-15899 §4 — one active tender per shipment: every OTHER
+              // option's menu trigger disables (same treatment as the order-
+              // change lock, which wins the tooltip when both apply).
+              const otherActive = activeTender && activeTender.rank !== option.rank
+              const rowLocked = locked || !!otherActive
+              const lockTooltip = locked ? OC_REVIEW_LOCK_TOOLTIP : `Complete the action on ${activeTender?.scac} first.`
               return (
                 <tr
                   key={option.rank}
@@ -776,12 +877,12 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                     // dimmed (not the cell — it's sticky, a translucent cell
                     // would show the scrolled columns through it), and opens
                     // nothing.
-                    aria-disabled={locked || undefined}
+                    aria-disabled={rowLocked || undefined}
                     style={{
                       ...stickyLastCol,
                       ...ACTION_LANE,
                       borderBottom: '1px solid var(--border-subtle)',
-                      cursor: locked ? 'not-allowed' : 'pointer',
+                      cursor: rowLocked ? 'not-allowed' : 'pointer',
                       // S136 — a highlighted no-status row (freshly Process-SCAC'd) falls
                       // back to the SAME blue getRowBg already tints the rest of the row
                       // with, not plain white. Without this the action lane was the one
@@ -792,7 +893,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
-                      if (locked) return
+                      if (rowLocked) return
                       const rect = e.currentTarget.getBoundingClientRect()
                       const dropdownHeight = 200
                       const spaceBelow = window.innerHeight - rect.bottom
@@ -807,8 +908,8 @@ function RoutingTable({ options, tabColumns, highlightedRank, processRank, added
                           the same weight as the header's arrange control (user, 2026-08-17).
                           S136 — same highlighted fallback as the cell's own background,
                           so the icon doesn't read as invisible/placeholder-gray against it. */}
-                      <TooltipTrigger asSpan disabled={!locked} tooltipProps={{ groups: [{ content: OC_REVIEW_LOCK_TOOLTIP }] }}>
-                        <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? 'var(--text-placeholder)', opacity: locked ? 0.5 : undefined }} />
+                      <TooltipTrigger asSpan disabled={!rowLocked} tooltipProps={{ groups: [{ content: lockTooltip }] }}>
+                        <TruckElectric {...ICON_LG} style={{ color: STATUS_STYLES[option.status]?.color ?? 'var(--text-placeholder)', opacity: rowLocked ? 0.5 : undefined }} />
                       </TooltipTrigger>
                     </div>
                   </td>
@@ -954,6 +1055,8 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   // BR-11 — `{ rank, action }` pending the "you must contact the carrier
   // yourself" confirm on a Manual-notify option, or null.
   const [manualTender, setManualTender] = useState(null)
+  // LINX-15897 — rank of the option whose Decline dialog is open, or null.
+  const [declineRank, setDeclineRank] = useState(null)
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
@@ -993,6 +1096,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     setManualDatesFor(null)
     setProcessNotice(null)
     setProcessSuccess(null)
+    setDeclineRank(null)
 
     setCollapsedWidths(null)
 
@@ -1135,6 +1239,28 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     return saveTenderOption(id, routingOptionVmToDto(option))
       .then(() => true)
       .catch((e) => { console.error('tender save failed', e); return false })
+  }, [shipment])
+
+  // A tender ACTION's write (LINX-15899 spec §4/§6): the payload names the
+  // action (`tenderWriteExtras`) so saveTender can guard the §3 matrix + the
+  // single-active rule and write the history entry. Unlike persistTender this
+  // is not fire-and-forget: a refusal (409 — a stale tab, the carrier page
+  // answering first) rolls the row back and says so, rather than leaving a
+  // status on screen the server never took.
+  // ponytail: rolls back to the pre-action snapshot — an edit made between the
+  // click and the rejection is lost with it; refetch-on-409 if that matters.
+  const persistTenderAction = useCallback((before, option, action) => {
+    const id = shipment?.sellShipment
+    if (!id || !option) return
+    saveTenderOption(id, { ...routingOptionVmToDto(option), ...tenderWriteExtras(option, action) })
+      .catch((e) => {
+        console.error('tender action save failed', e)
+        setOptions(before)
+        setProcessNoticeTitle('Tender Not Updated')
+        setProcessNotice(e?.status === 409
+          ? 'This tender was changed elsewhere. Reload the shipment to see its current status.'
+          : "Couldn't save the tender action. Nothing was changed.")
+      })
   }, [shipment])
 
   // LINX-13954/15075 — walks the step list `planProcessScac` returns; every
@@ -1389,7 +1515,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
   }, [quoteModal, options, persistTender, currentUser])
 
-  const handleAction = useCallback((rank, action, manualConfirmed = false) => {
+  const handleAction = useCallback((rank, action, manualConfirmed = false, decline = null) => {
 
     if (action === 'ShowRateDetails') {
       const carrier = options.find(o => o.rank === rank)
@@ -1508,6 +1634,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
       setManualTender({ rank, action })
       return
     }
+    // LINX-15897 — Decline needs the §5 answer first; the dialog re-enters
+    // here with it. Nothing changes until then.
+    if (action === 'Decline' && !decline) {
+      setOpenMenuRank(null)
+      setDeclineRank(rank)
+      return
+    }
     // The two actions that actually START something: a tender goes out and the
     // row now waits on a carrier. Accept/Decline/Cancel are the opposite — they
     // CLOSE a cycle — so they get no sheen. See processRank's note above.
@@ -1519,21 +1652,19 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     // row read as in-progress to anything that inspects it.)
     if (isResponseAction) setProcessRank(null)
 
-    // S161 — the per-option status change + Decline/Cancel cascade moved to
-    // lib/tenderAction.js's applyTenderAction, so Consolidation Review's
-    // "Cancel tendered shipment(s)" (B3) can fire the SAME Cancel path
-    // instead of a hand-rolled cascade-free variant. Behaviour unchanged —
-    // this is a straight extraction (see that file for the Fix 4/6/7 notes).
+    // S161 — the per-option status change lives in lib/tenderAction.js's
+    // applyTenderAction, shared with the consolidation editor's tender check
+    // (useTenderedCheck.js). LINX-15899 A1 — no auto-tender cascade any more,
+    // so exactly one row is touched.
     const { updated, touched } = applyTenderAction(options, rank, action, {
-      now, currentUserName: currentUser.name, sellShipment: shipment?.sellShipment,
+      now, currentUserName: currentUser.name, sellShipment: shipment?.sellShipment, decline,
     })
 
     setOptions(updated)
-    // The cascade changes TWO rows — persist both, not just the clicked one.
-    touched.forEach((r) => persistTender(updated.find((o) => o.rank === r)))
+    touched.forEach((r) => persistTenderAction(options, updated.find((o) => o.rank === r), action))
 
     setOpenMenuRank(null)
-  }, [options, persistTender, currentUser, startProcessSheen, shipment])
+  }, [options, persistTenderAction, currentUser, startProcessSheen, shipment])
 
   // Every option on a shipment shares its pickup/delivery timezone — take the
   // first one that actually carries a value as the shipment's TZ, so a NEW quote
@@ -1553,6 +1684,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
     custom: [{ id: 'default-tender', name: 'Default Columns', columns: tabColumnDefs.map((c) => c.key) }],
     odyssey: [],
   }
+
+  // LINX-15899 §4 — Active = Sent/Accepted/To Be Tendered (the same set the
+  // consolidation eligibility rule uses). At most one by construction; if
+  // seed data ever carries two, the lowest rank is the one marked.
+  const activeTender = [...options].sort((a, b) => a.rank - b.rank).find((o) => ACTIVE_TENDER.has(o.status)) ?? null
 
   /* Attach _menuPos to the option that has its menu open */
   const optionsWithPos = options.map((opt) =>
@@ -1586,13 +1722,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
   const reviewOnStops = consolidatedReviewPending(shipmentDetails?.orderChange)
   const reviewOrderChangeButton = (
     <Button
-      variant="secondary"
-      size="sm"
-      // No icon (user, 2026-09-07 — it wore three different glyphs across
-      // the day and none earned its place). The LABEL is purple instead:
-      // the review flow's accent, the same token the diff badges and the
-      // Tender tab's own alert badge use.
-      style={{ color: 'var(--badge-purple-text)' }}
+      // Button `purple` (S164, user) replaces secondary + a purple label —
+      // the review flow's accent, the customer-change colour. md: the only
+      // size Figma ships for it. No icon (user, 2026-09-07).
+      variant="purple"
+      size="md"
       // Right-aligned by the row's own `justify-content: space-between`
       // (tender.css) inside `.tender-pane__tab-actions` — the old
       // `tender-pane__review-oc` auto-margin rule stays retired (S137).
@@ -1664,6 +1798,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
             onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
             onOpenColumns={() => setColumnPanelOpen(true)}
             locked={!!pendingOrderChange}
+            activeTender={activeTender}
           />
             </div>
             {/* LINX-15075 — the picker doorway. Revised 2026-09-01: mounted
@@ -1728,6 +1863,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onReq
         <ManualTenderConfirm
           onConfirm={() => { const { rank, action } = manualTender; setManualTender(null); handleAction(rank, action, true) }}
           onCancel={() => setManualTender(null)}
+        />
+      )}
+
+      {declineRank != null && (
+        <DeclineDialog
+          option={options.find((o) => o.rank === declineRank)}
+          onConfirm={(decline) => { const rank = declineRank; setDeclineRank(null); handleAction(rank, 'Decline', false, decline) }}
+          onCancel={() => setDeclineRank(null)}
         />
       )}
 

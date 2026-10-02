@@ -6,6 +6,23 @@
   overflow: visible;
 }
 
+/* Tabs band pins to the top of .shipments-bar__content while the pane
+   scrolls, so Review Order Change stays reachable (user, S164). Frosted
+   like .summary-strip--sticky (user): the shared band's sheen + an 8px
+   backdrop blur over the rows passing under it. z-index clears the table's
+   sticky lanes (max 5). */
+.tender-pane > .pane-tabs-band {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .tender-pane > .pane-tabs-band {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
 /* Gap between the full-width tabs band and the table card */
 .tender-pane__col {
   padding-top: var(--spacing-5);
@@ -24,8 +41,10 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  /* nudge down to align with tab underline bottom edge */
-  padding-bottom: var(--spacing-1);
+  /* Centre the md (36px) button on the tab LABEL, not the underline (user,
+     S164): label centre sits 2px underline + 16px .tab__content pad + 10px
+     (half its 20px line) = 28px up; 28 − 18 (half the button) = 10px. */
+  padding-bottom: calc(var(--spacing-3) - 2px);
 }
 
 /* Row 2: bordered table container — white bg, 2xl radius, shadow-sm, no title.

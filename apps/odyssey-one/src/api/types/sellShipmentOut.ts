@@ -253,7 +253,16 @@ export interface SellShipmentRoutingOption {
   /** LINX-15795/15796 (S156) — see RoutingOptionVM.tenderToken. */
   tenderToken?: string
   declineReason?: string | null
+  /** LINX-15897 — see RoutingOptionVM.declineReasonCode/carrierGaveBack. */
+  declineReasonCode?: string | null
   responseComments?: string | null
+  carrierGaveBack?: boolean
+  /** LINX-15899 write-only (spec 2026-10-01 §6): the action this save performs
+   *  ('Tender'|'Re-Tender'|'Cancel'|'Accept'|'Decline'). saveTender reads it to
+   *  guard + record history, then strips it — never stored, never read back.
+   *  tenderCommMessage likewise ('TE-4' on an email Decline). */
+  tenderAction?: 'Tender' | 'Re-Tender' | 'Cancel' | 'Accept' | 'Decline'
+  tenderCommMessage?: string
 }
 
 export interface SellShipmentCostSummary {

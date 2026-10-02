@@ -321,11 +321,11 @@ export default function LiveBids({
     },
     { label: 'List', value: quote.listName, full: quote.listName },
     {
-      label: 'CLOSES IN',
+      label: 'Closes In',
       value: <Countdown closeAt={quote.closeAt} openAt={quote.openAt} onExpire={handleExpire} zeroWhenExpired />,
     },
     {
-      label: 'AWARD TO',
+      label: 'Award To',
       value: selectedCarrier?.name ?? '--',
       full: selectedCarrier ? `${selectedCarrier.scac} · ${selectedCarrier.name}` : null,
     },

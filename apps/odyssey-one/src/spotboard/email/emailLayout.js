@@ -175,7 +175,7 @@ export const blocks = {
   spacer: (px = 8) => row(cell('&nbsp;', `font-size:1px;line-height:${px}px;padding:0;`)),
 }
 
-export function renderHtml({ title, blocks: body, preheader = '' }) {
+export function renderHtml({ title, blocks: body, preheader = '', office = null }) {
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -197,7 +197,7 @@ ${body.join('\n')}
 </table>
 </td></tr>
 <tr><td style="${FONT}font-size:11px;line-height:16px;text-align:center;color:${C.textTertiary};border-top:1px solid ${C.border};padding:20px 24px;">
-Odyssey Logistics &amp; Technology Corporation &middot; 3545 Whitehall Park Drive, Charlotte NC 28273 &middot; 704-808-7400<br />
+${office ? `${esc(office.name)} &middot; ${esc(office.address)} &middot; ${esc(office.phone)}` : 'Odyssey Logistics &amp; Technology Corporation &middot; 3545 Whitehall Park Drive, Charlotte NC 28273 &middot; 704-808-7400'}<br />
 This is a transactional message about a shipment you are configured to receive quotes for. It contains confidential information for the intended recipient only.
 </td></tr>
 </table>

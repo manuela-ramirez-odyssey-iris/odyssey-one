@@ -429,7 +429,7 @@ describe('LiveBids', () => {
     expect(within(strip).queryByText('Award type')).toBeFalsy()
 
     // CLOSES IN is node-valued (the countdown Badge) — no `full`, stays bare.
-    const closesCell = within(strip).getByText('CLOSES IN').closest('.summary-strip__cell')
+    const closesCell = within(strip).getByText('Closes In').closest('.summary-strip__cell')
     expect(closesCell.querySelector('[data-tooltip-trigger]')).toBeFalsy()
 
     // The merged window cell is hoverable and explains BOTH timestamps.

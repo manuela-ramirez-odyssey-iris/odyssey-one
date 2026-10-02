@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getSellShipmentDetail, saveTenderOption } from '../../api/services/shipmentService'
 import { shipmentDetailQueryKey } from '../../api/queries/useShipmentDetail'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
-import { applyTenderAction } from '../../lib/tenderAction.js'
+import { applyTenderAction, tenderWriteExtras } from '../../lib/tenderAction.js'
 import { currentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 import { ACTIVE_TENDER } from '../../consolidation/eligibility.js'
@@ -183,7 +183,7 @@ export function useTenderedCheck({ rows, setRows, details, onRemove, onDiscard, 
 
   // "Cancel tendered shipment(s)" reuses the Tender tab's OWN Cancel path
   // (lib/tenderAction.js's applyTenderAction, shared with RoutingGuideTab.jsx)
-  // — including its auto-tender cascade (user ruling, 2026-09-25). Rows stay —
+  // — no auto-tender cascade since DEC-229 (A1, 2026-10-01). Rows stay —
   // only their tenderStatus clears, so the next re-verify doesn't re-trip.
   const cancelTenders = async () => {
     setBusy(true)
@@ -199,8 +199,12 @@ export function useTenderedCheck({ rows, setRows, details, onRemove, onDiscard, 
         const { updated, touched } = applyTenderAction(options, active.rank, 'Cancel', {
           now, currentUserName: currentUser.name, sellShipment: row.sellShipment,
         })
-        await Promise.all(touched.map((r) =>
-          saveTenderOption(row.sellShipment, routingOptionVmToDto(updated.find((o) => o.rank === r)))))
+        // A real planner Cancel: named, so the server guards it and logs it to
+        // History (DEC-232). The simulated Accept above stays unnamed.
+        await Promise.all(touched.map((r) => {
+          const o = updated.find((x) => x.rank === r)
+          return saveTenderOption(row.sellShipment, { ...routingOptionVmToDto(o), ...tenderWriteExtras(o, 'Cancel') })
+        }))
         queryClient.invalidateQueries({ queryKey: shipmentDetailQueryKey(row.sellShipment) })
       }))
       const done = new Set(tenderedRows.map((r) => r.id))

@@ -3,7 +3,7 @@
 // it (S156's gallery deliverable — no API, no store).
 import { mintToken } from '../../spotboard/token.js'
 import { buildTenderEmailContext } from '../../tender/email/tenderEmailContext.js'
-import { tenderEmail, tenderAcceptedEmail, tenderCanceledEmail } from '../../tender/email/tenderEmail.js'
+import { tenderEmail, tenderCanceledEmail } from '../../tender/email/tenderEmail.js'
 
 const STOPS = [
   { type: 'pickup', location: 'Acme Chemical Plant 1, Charlotte, NC 28217 US', address: '12345 N. Tryon', date: '09/20/2026 08:00 EDT' },
@@ -56,10 +56,6 @@ function emailFor(shipment, option) {
   return tenderEmail(buildTenderEmailContext({ shipment, option }))
 }
 
-// TE-3 (user ruling 2026-09-24, Adam's ask) — the accepted option carries a
-// responseDateTime, same as a real Accept write on TenderReview.jsx.
-const ACCEPTED_OPTION = { ...BASE_OPTION, status: 'Accepted', responseDateTime: '09/19/2026 09:41 EDT' }
-
 // TE-4 — the planner canceled the tender (user, 2026-09-24).
 const CANCELED_OPTION = { ...BASE_OPTION, status: 'Canceled', cancelDateTime: '09/19/2026 11:05 EDT' }
 
@@ -71,8 +67,8 @@ export const SCENARIOS = [
     note: 'The same tender, also dispatched by EDI — this copy is informational, no accept/decline affordance.' },
   { key: 'consolidation', label: 'Consolidation tender', kinds: ['TE-1'],
     note: 'A consolidation shipment (multiple orders) — the subject reads "multiple deliveries" instead of a single Order#.' },
-  { key: 'accepted', label: 'Tender accepted (confirmation)', kinds: ['TE-3'],
-    note: 'Sent the moment the carrier presses Accept on the review page — user ruling 2026-09-24 (Adam Shingle), not in the three stories.' },
+  // TE-3 (accepted) hidden — Papu 2026-10-01: carriers get immediate feedback
+  // on the review page; no Accepted/Declined email is generated for now.
   { key: 'canceled', label: 'Tender canceled (by planner)', kinds: ['TE-4'],
     note: 'Sent when the planner cancels a tendered shipment — user ask 2026-09-24, not in the three stories. No link: nothing left to respond to.' },
 ]
@@ -81,10 +77,36 @@ export function scenarioFor(key) {
   return SCENARIOS.find((s) => s.key === key) ?? SCENARIOS[0]
 }
 
-export function emailsForScenario(key) {
+// The scenarios whose email carries a Review button point at a REAL seeded
+// shipment's Sent option (Adam: the button must open the actual landing page,
+// not send people to the Tender tab's link column). Seeded tokens are
+// deterministic (generate.mjs), so these resolve on /tender-review/:token.
+// ponytail: hardcoded ids — a reseed that stops these being Sent-by-email
+// leaves the stub email (dead link); re-pick from Neon if that happens.
+export const LIVE_TENDERS = {
+  'sent-email': { sellShipment: '25018281', scac: 'SNLU' },
+  'sent-email-edi': { sellShipment: '25005961', scac: 'ABFS' },
+  consolidation: { sellShipment: '25135734', scac: 'FXFE' },
+}
+
+// `live` = { [scenarioKey]: ShipmentDetailVM } once fetched; until then (or if
+// the option is gone) the scenario falls back to its stub.
+function liveEmail(key, live) {
+  const shipment = live?.[key]
+  const option = shipment?.routingData?.options?.find((o) => o.scac === LIVE_TENDERS[key].scac && o.tenderToken)
+  if (!option) return null
+  // ?demo=1 rides on the token so the template's link carries it untouched.
+  const ctx = buildTenderEmailContext({ shipment, option })
+  return [{ ...tenderEmail({ ...ctx, token: `${ctx.token}?demo=1` }), recipientLabel: `${option.scac} · ${option.carrierName}` }]
+}
+
+export function emailsForScenario(key, live) {
+  if (LIVE_TENDERS[key]) {
+    const real = liveEmail(key, live)
+    if (real) return real
+  }
   if (key === 'sent-email-edi') return [{ ...emailFor(BASE_SHIPMENT, { ...BASE_OPTION, api: 'Email & EDI' }), recipientLabel: `${BASE_OPTION.scac} · ${BASE_OPTION.carrierName}` }]
   if (key === 'consolidation') return [{ ...emailFor(CONSOLIDATION_SHIPMENT, CONSOLIDATION_OPTION), recipientLabel: `${CONSOLIDATION_OPTION.scac} · ${CONSOLIDATION_OPTION.carrierName}` }]
-  if (key === 'accepted') return [{ ...tenderAcceptedEmail(buildTenderEmailContext({ shipment: BASE_SHIPMENT, option: ACCEPTED_OPTION })), recipientLabel: `${ACCEPTED_OPTION.scac} · ${ACCEPTED_OPTION.carrierName}` }]
   if (key === 'canceled') return [{ ...tenderCanceledEmail(buildTenderEmailContext({ shipment: BASE_SHIPMENT, option: CANCELED_OPTION })), recipientLabel: `${CANCELED_OPTION.scac} · ${CANCELED_OPTION.carrierName}` }]
   return [{ ...emailFor(BASE_SHIPMENT, BASE_OPTION), recipientLabel: `${BASE_OPTION.scac} · ${BASE_OPTION.carrierName}` }]
 }

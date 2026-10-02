@@ -34,10 +34,12 @@ export function tenderEmail(ctx) {
   const kind = ctx.api === 'Email & EDI' ? 'TE-2' : 'TE-1'
   const link = `${ctx.appOrigin}/tender-review/${ctx.token}`
   const subject = subjectFor(ctx)
-  const ctaLabel = kind === 'TE-2' ? 'Review Tender' : 'Review & Respond'
-  const noticeLine = kind === 'TE-2'
+  // Papu 2026-10-01: button names per method; one "Tender Expires" notice for both.
+  const ctaLabel = kind === 'TE-2' ? 'Tender review' : 'Review & respond'
+  const noticeLine = `Tender Expires ${ctx.expiresAt || '--'}`
+  const ediNote = kind === 'TE-2'
     ? 'Informational copy — this tender was also sent to you by EDI. Please respond through your EDI connection.'
-    : `Tendered ${ctx.notifyDateTime}`
+    : null
   // BR-01/BR-08 (15796) — the finality note names accept/decline, which
   // TE-2's informational copy must not mention anywhere in the message.
   const responseNote = kind === 'TE-2' ? null : RESPONSE_NOTE
@@ -46,6 +48,7 @@ export function tenderEmail(ctx) {
   const text = renderText([
     'Tender Notification',
     noticeLine,
+    ediNote,
     '',
     `Shipper: ${ctx.customerName}`,
     `Carrier: ${ctx.scac} - ${ctx.carrierName}`,
@@ -76,6 +79,7 @@ export function tenderEmail(ctx) {
       blocks.eyebrow('Tender Notification'),
       blocks.headline(`${ctx.scac} — Shipment ${ctx.odysseyShipmentIdentifier}`),
       blocks.notice(noticeLine, 'info'),
+      ediNote ? blocks.paragraph(ediNote) : null,
       blocks.columnStack([
         [['Shipper', ctx.customerName], ['Carrier', `${ctx.scac} - ${ctx.carrierName}`]],
         [['Shipment ID', ctx.odysseyShipmentIdentifier], ['Equipment', ctx.equipment], ['Weight', ctx.weight], ['Hazmat', ctx.hazmat]],
@@ -92,6 +96,7 @@ export function tenderEmail(ctx) {
       blocks.button(ctaLabel, link),
       responseNote ? blocks.paragraph(responseNote) : null,
     ].filter(Boolean),
+    office: ctx.office,
   })
 
   return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }
@@ -137,6 +142,7 @@ export function tenderAcceptedEmail(ctx) {
       blocks.route(ctx.from, ctx.to),
       blocks.factGrid([['Distance', ctx.distance]]),
     ],
+    office: ctx.office,
   })
 
   return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }
@@ -179,6 +185,7 @@ export function tenderCanceledEmail(ctx) {
       blocks.route(ctx.from, ctx.to),
       blocks.factGrid([['Distance', ctx.distance]]),
     ],
+    office: ctx.office,
   })
 
   return { id: kind, kind, subject, from: ctx.sender, to: ctx.toEmail, text, html }

@@ -80,7 +80,7 @@ import Tooltip from './Tooltip.jsx'
  *
  * - `size` ('default' | 'mini', Figma `Size` axis on 4254:904, D22): Mini
  *   puts label beside value on one row (8px gap), cells hug content, 8/12
- *   padding, value label/sm — a ~36px band instead of 76px. Cells hug content (no 152px basis).
+ *   padding, value label/sm medium, labels Title Case (no uppercase) — a ~36px band instead of 76px. Cells hug content (no 152px basis).
  * - `sticky` (default off): sticks the strip to the top of its scroll
  *   container and flips it to Mini while stuck (i.e. once content scrolls
  *   under it), back to `size` at rest. While stuck-mini the band is widened

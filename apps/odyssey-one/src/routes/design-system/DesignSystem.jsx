@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ComboBox } from '@odyssey/ui'
+import { Download } from 'lucide-react'
 import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, allVersions, filterTiersByVersion, latestVersion, filterTiersByCurrentVersion, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
@@ -264,7 +265,19 @@ export default function DesignSystem() {
     <div className="ds-root">
       <main className="ds-page">
         <header className="ds-header">
-          <h1>Odyssey Design System</h1>
+          <div className="ds-header__title">
+            <h1>Odyssey Design System</h1>
+            {/* Button can't render as a link (no escape hatch by design), so a plain
+                <a> wears the same btn classes. D22: the tokens .md for external agents. */}
+            <a
+              className="btn btn--secondary btn--sm btn--has-icon text-label-sm-medium"
+              href="/odyssey-design-system.md"
+              download="odyssey-design-system.md"
+            >
+              <span className="btn__icon"><Download size={16} aria-hidden="true" /></span>
+              Download tokens (.md)
+            </a>
+          </div>
           <p>
             Live <code>@odyssey/ui</code> components — hover, focus, type. The real
             thing, not a static reproduction.

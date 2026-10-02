@@ -121,6 +121,19 @@ describe('TenderReview — invalid / loading', () => {
 })
 
 describe('TenderReview — Sent + Email', () => {
+  it('hovering a leg icon shows that leg\'s distance tooltip; leaving hides it', async () => {
+    stubFetch(baseDto({ tenderToken: TOKEN, status: 'Sent', apiSource: 'Email' }))
+    const { container } = renderAt(`/tender-review/${TOKEN}`)
+    await screen.findByText('Acme Corp')
+    const icons = container.querySelectorAll('.tender-stop__leg-icon')
+    expect(icons.length).toBe(1) // two stops → one leg, none on the last stop
+
+    fireEvent.mouseMove(icons[0])
+    expect(screen.getByText('Distance from P1 to D1')).toBeTruthy()
+    fireEvent.mouseLeave(container.querySelector('.tender-review-stops'))
+    expect(screen.queryByText('Distance from P1 to D1')).toBe(null)
+  })
+
   it('shows both Accept and Decline buttons', async () => {
     stubFetch(baseDto({ tenderToken: TOKEN, status: 'Sent', apiSource: 'Email' }))
     renderAt(`/tender-review/${TOKEN}`)
@@ -160,7 +173,9 @@ describe('TenderReview — Sent + Email', () => {
     expect(screen.queryByRole('button', { name: 'Decline Tender' })).toBe(null)
     // TE-3 (user ruling 2026-09-24) — the accepted banner names the carrier's
     // synthesized ops mailbox, same formula as tenderEmailContext.js's toEmail.
-    expect(screen.getByText(new RegExp(`A confirmation has been emailed to ops@${SCAC.toLowerCase()}\\.example\\.com`))).toBeTruthy()
+    // Papu 2026-10-01: no Accepted email is sent for now, so the banner
+    // must not claim one was.
+    expect(screen.queryByText(/A confirmation has been emailed/)).toBe(null)
   })
 
   it('Decline is disabled until a reason is chosen, and writes the reason + comments', async () => {
@@ -173,7 +188,7 @@ describe('TenderReview — Sent + Email', () => {
     expect(confirmBtn.disabled).toBe(true)
 
     fireEvent.click(document.querySelector('.dropdown-button'))
-    fireEvent.click(screen.getByText('Rate too low'))
+    fireEvent.click(screen.getByText('WRP — Wrong Price'))
     expect(confirmBtn.disabled).toBe(false)
 
     fireEvent.change(screen.getByLabelText('Comments (optional)'), { target: { value: 'Too far from lane.' } })
@@ -182,7 +197,7 @@ describe('TenderReview — Sent + Email', () => {
     await waitFor(() => {
       expect(screen.getByText(/tender declined/i)).toBeTruthy()
     })
-    expect(screen.getByText(/Reason: Rate too low\./)).toBeTruthy()
+    expect(screen.getByText(/Reason: Wrong Price\./)).toBeTruthy()
     // Decline never sends TE-3.
     expect(screen.queryByText(/A confirmation has been emailed/)).toBe(null)
   })
@@ -212,6 +227,19 @@ describe('TenderReview — Sent + Email', () => {
     await waitFor(() => {
       expect(screen.getByText('This tender response has already been submitted and cannot be processed again.')).toBeTruthy()
     })
+  })
+
+  it('?demo=1 shows the answer without writing — fetch is only ever the page load', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => baseDto({ tenderToken: TOKEN, status: 'Sent', apiSource: 'Email' }) })
+    vi.stubGlobal('fetch', fetchSpy)
+    renderAt(`/tender-review/${TOKEN}?demo=1`)
+    await screen.findByText('Acme Corp')
+    const loads = fetchSpy.mock.calls.length
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accept Tender' }))
+
+    await waitFor(() => expect(screen.getByText(/tender accepted/i)).toBeTruthy())
+    expect(fetchSpy.mock.calls.length).toBe(loads)
   })
 })
 
@@ -262,14 +290,19 @@ describe('TenderReview — already-responded states', () => {
 })
 
 describe('TenderReview layout (S159 — team review 2026-09-30)', () => {
-  it('Load References shows Order Number, Load ID, Customer PO Number and Pickup Number as separate columns', async () => {
+  it('one Load References section per order with its four fields (Papu 2026-10-01)', async () => {
+    const { container } = renderAt(`/tender-review/${TOKEN}`)
+    await screen.findByText('Load References')
+    const loads = container.querySelectorAll('.tender-review-load')
+    expect(loads.length).toBe(1)
+    const text = loads[0].textContent
+    for (const s of ['Order Number', 'SO-990001', 'Load ID', 'Customer PO Number', 'PO-4421', 'Pickup Number', 'PU-8891']) expect(text).toContain(s)
+  })
+  it('the header badge reads Tender Expires, not Tendered', async () => {
     renderAt(`/tender-review/${TOKEN}`)
-    const heading = await screen.findByText('Load References')
-    const table = heading.parentElement.querySelector('table')
-    const headers = [...table.querySelectorAll('th')].map((th) => th.textContent)
-    expect(headers).toEqual(['Order Number', 'Load ID', 'Customer PO Number', 'Pickup Number'])
-    const cells = [...table.querySelectorAll('tbody td')].map((td) => td.textContent)
-    expect(cells).toEqual(['SO-990001', '--', 'PO-4421', 'PU-8891'])
+    await screen.findByText('Acme Corp')
+    expect(screen.getByText(/^Tender Expires /)).toBeTruthy()
+    expect(screen.queryByText(/^Tendered /)).toBe(null)
   })
 })
 
